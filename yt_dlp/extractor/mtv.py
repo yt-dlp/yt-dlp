@@ -15,6 +15,7 @@ from ..utils import (
     float_or_none,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     RegexNotFoundError,
     sanitized_Request,
     strip_or_none,
@@ -99,9 +100,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
                     formats.extend([{
                         'ext': 'flv' if rtmp_video_url.startswith('rtmp') else ext,
                         'url': rtmp_video_url,
-                        'format_id': '-'.join(filter(None, [
+                        'format_id': join_nonempty(
                             'rtmp' if rtmp_video_url.startswith('rtmp') else None,
-                            rendition.get('bitrate')])),
+                            rendition.get('bitrate')),
                         'width': int(rendition.get('width')),
                         'height': int(rendition.get('height')),
                     }])
@@ -306,16 +307,20 @@ class MTVServicesInfoExtractor(InfoExtractor):
             mgid = self._extract_triforce_mgid(webpage)
 
         if not mgid:
+            mgid = self._search_regex(
+                r'"videoConfig":{"videoId":"(mgid:.*?)"', webpage, 'mgid', default=None)
+
+        if not mgid:
+            mgid = self._search_regex(
+                r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
+
+        if not mgid:
             data = self._parse_json(self._search_regex(
                 r'__DATA__\s*=\s*({.+?});', webpage, 'data'), None)
             main_container = self._extract_child_with_type(data, 'MainContainer')
             ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
             mgid = video_player['props']['media']['video']['config']['uri']
-
-        if not mgid:
-            mgid = self._search_regex(
-                r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
 
         return mgid
 

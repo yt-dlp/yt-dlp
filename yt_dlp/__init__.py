@@ -29,6 +29,8 @@ from .utils import (
     error_to_compat_str,
     ExistingVideoReached,
     expand_path,
+    float_or_none,
+    int_or_none,
     match_filter_func,
     MaxDownloadsReached,
     parse_duration,
@@ -225,11 +227,13 @@ def _real_main(argv=None):
     if opts.playlistend not in (-1, None) and opts.playlistend < opts.playliststart:
         raise ValueError('Playlist end must be greater than playlist start')
     if opts.extractaudio:
+        opts.audioformat = opts.audioformat.lower()
         if opts.audioformat not in ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS):
             parser.error('invalid audio format specified')
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
-        if not opts.audioquality.isdigit():
+        audioquality = int_or_none(float_or_none(opts.audioquality))  # int_or_none prevents inf, nan
+        if audioquality is None or audioquality < 0:
             parser.error('invalid audio quality specified')
     if opts.recodevideo is not None:
         opts.recodevideo = opts.recodevideo.replace(' ', '')
@@ -286,6 +290,11 @@ def _real_main(argv=None):
     set_default_compat('abort-on-error', 'ignoreerrors', 'only_download')
     set_default_compat('no-playlist-metafiles', 'allow_playlist_files')
     set_default_compat('no-clean-infojson', 'clean_infojson')
+    if 'no-attach-info-json' in compat_opts:
+        if opts.embed_infojson:
+            _unused_compat_opt('no-attach-info-json')
+        else:
+            opts.embed_infojson = False
     if 'format-sort' in compat_opts:
         opts.format_sort.extend(InfoExtractor.FormatSort.ytdl_default)
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
@@ -369,8 +378,6 @@ def _real_main(argv=None):
         opts.sponsorblock_remove = set()
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
 
-    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
-        opts.addchapters = True
     opts.remove_chapters = opts.remove_chapters or []
 
     if (opts.remove_chapters or sponsorblock_query) and opts.sponskrub is not False:
@@ -391,39 +398,31 @@ def _real_main(argv=None):
         opts.remuxvideo = False
 
     if opts.allow_unplayable_formats:
-        if opts.extractaudio:
-            report_conflict('--allow-unplayable-formats', '--extract-audio')
-            opts.extractaudio = False
-        if opts.remuxvideo:
-            report_conflict('--allow-unplayable-formats', '--remux-video')
-            opts.remuxvideo = False
-        if opts.recodevideo:
-            report_conflict('--allow-unplayable-formats', '--recode-video')
-            opts.recodevideo = False
-        if opts.addmetadata:
-            report_conflict('--allow-unplayable-formats', '--add-metadata')
-            opts.addmetadata = False
-        if opts.embedsubtitles:
-            report_conflict('--allow-unplayable-formats', '--embed-subs')
-            opts.embedsubtitles = False
-        if opts.embedthumbnail:
-            report_conflict('--allow-unplayable-formats', '--embed-thumbnail')
-            opts.embedthumbnail = False
-        if opts.xattrs:
-            report_conflict('--allow-unplayable-formats', '--xattrs')
-            opts.xattrs = False
-        if opts.fixup and opts.fixup.lower() not in ('never', 'ignore'):
-            report_conflict('--allow-unplayable-formats', '--fixup')
+        def report_unplayable_conflict(opt_name, arg, default=False, allowed=None):
+            val = getattr(opts, opt_name)
+            if (not allowed and val) or not allowed(val):
+                report_conflict('--allow-unplayable-formats', arg)
+                setattr(opts, opt_name, default)
+
+        report_unplayable_conflict('extractaudio', '--extract-audio')
+        report_unplayable_conflict('remuxvideo', '--remux-video')
+        report_unplayable_conflict('recodevideo', '--recode-video')
+        report_unplayable_conflict('addmetadata', '--embed-metadata')
+        report_unplayable_conflict('addchapters', '--embed-chapters')
+        report_unplayable_conflict('embed_infojson', '--embed-info-json')
+        opts.embed_infojson = False
+        report_unplayable_conflict('embedsubtitles', '--embed-subs')
+        report_unplayable_conflict('embedthumbnail', '--embed-thumbnail')
+        report_unplayable_conflict('xattrs', '--xattrs')
+        report_unplayable_conflict('fixup', '--fixup', default='never', allowed=lambda x: x in (None, 'never', 'ignore'))
         opts.fixup = 'never'
-        if opts.remove_chapters:
-            report_conflict('--allow-unplayable-formats', '--remove-chapters')
-            opts.remove_chapters = []
-        if opts.sponsorblock_remove:
-            report_conflict('--allow-unplayable-formats', '--sponsorblock-remove')
-            opts.sponsorblock_remove = set()
-        if opts.sponskrub:
-            report_conflict('--allow-unplayable-formats', '--sponskrub')
+        report_unplayable_conflict('remove_chapters', '--remove-chapters', default=[])
+        report_unplayable_conflict('sponsorblock_remove', '--sponsorblock-remove', default=set())
+        report_unplayable_conflict('sponskrub', '--sponskrub', default=set())
         opts.sponskrub = False
+
+    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
+        opts.addchapters = True
 
     # PostProcessors
     postprocessors = list(opts.add_postprocessors)
@@ -522,11 +521,14 @@ def _real_main(argv=None):
     # By default ffmpeg preserves metadata applicable for both
     # source and target containers. From this point the container won't change,
     # so metadata can be added here.
-    if opts.addmetadata or opts.addchapters:
+    if opts.addmetadata or opts.addchapters or opts.embed_infojson:
+        if opts.embed_infojson is None:
+            opts.embed_infojson = 'if_exists'
         postprocessors.append({
             'key': 'FFmpegMetadata',
             'add_chapters': opts.addchapters,
             'add_metadata': opts.addmetadata,
+            'add_infojson': opts.embed_infojson,
         })
     # Note: Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
@@ -791,15 +793,15 @@ def main(argv=None):
         _real_main(argv)
     except DownloadError:
         sys.exit(1)
-    except SameFileError:
-        sys.exit('ERROR: fixed output name but more than one file to download')
+    except SameFileError as e:
+        sys.exit(f'ERROR: {e}')
     except KeyboardInterrupt:
         sys.exit('\nERROR: Interrupted by user')
-    except BrokenPipeError:
+    except BrokenPipeError as e:
         # https://docs.python.org/3/library/signal.html#note-on-sigpipe
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, sys.stdout.fileno())
-        sys.exit(r'\nERROR: {err}')
+        sys.exit(f'\nERROR: {e}')
 
 
 __all__ = ['main', 'YoutubeDL', 'gen_extractors', 'list_extractors']

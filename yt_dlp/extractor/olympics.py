@@ -2,22 +2,26 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import (
+    int_or_none,
+    try_get
+)
 
 
 class OlympicsReplayIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?olympics\.com/tokyo-2020/(?:[a-z]{2}/)?replay/(?P<id>[^/#&?]+)'
+    _VALID_URL = r'https?://(?:www\.)?olympics\.com(?:/tokyo-2020)?/[a-z]{2}/(?:replay|video)/(?P<id>[^/#&?]+)'
     _TESTS = [{
-        'url': 'https://olympics.com/tokyo-2020/en/replay/300622eb-abc0-43ea-b03b-c5f2d429ec7b/jumping-team-qualifier',
+        'url': 'https://olympics.com/fr/video/men-s-109kg-group-a-weightlifting-tokyo-2020-replays',
         'info_dict': {
-            'id': '300622eb-abc0-43ea-b03b-c5f2d429ec7b',
+            'id': 'f6a0753c-8e6f-4b7d-a435-027054a4f8e9',
             'ext': 'mp4',
-            'title': 'Jumping Team Qualifier',
-            'release_date': '20210806',
-            'upload_date': '20210713',
+            'title': '+109kg (H) Groupe A - Haltérophilie | Replay de Tokyo 2020',
+            'upload_date': '20210801',
+            'timestamp': 1627783200,
+            'description': 'md5:c66af4a5bc7429dbcc43d15845ff03b3',
         },
         'params': {
-            'format': 'bv',
+            'skip_download': True,
         },
     }, {
         'url': 'https://olympics.com/tokyo-2020/en/replay/bd242924-4b22-49a5-a846-f1d4c809250d/mens-bronze-medal-match-hun-esp',
@@ -26,31 +30,41 @@ class OlympicsReplayIE(InfoExtractor):
 
     def _real_extract(self, url):
         id = self._match_id(url)
-        # The parameters are hardcoded in the webpage, it's not necessary to download the webpage just for these parameters.
-        # If in downloading webpage serves other functions aswell, then extract these parameters from it.
-        token_url = 'https://appovptok.ovpobs.tv/api/identity/app/token?api_key=OTk5NDcxOjpvY3N3LWFwaXVzZXI%3D&api_secret=ODY4ODM2MjE3ODMwYmVjNTAxMWZlMDJiMTYxZmY0MjFiMjMwMjllMjJmNDA1YWRiYzA5ODcxYTZjZTljZDkxOTo6NTM2NWIzNjRlMTM1ZmI2YWNjNmYzMGMzOGM3NzZhZTY%3D'
-        token = self._download_webpage(token_url, id)
-        headers = {'x-obs-app-token': token}
-        data_json = self._download_json(f'https://appocswtok.ovpobs.tv/api/schedule-sessions/{id}?include=stream',
-                                        id, headers=headers)
-        meta_data = data_json['data']['attributes']
-        for t_dict in data_json['included']:
-            if t_dict.get('type') == 'Stream':
-                stream_data = t_dict['attributes']
+
+        webpage = self._download_webpage(url, id)
+        title = self._html_search_meta(('title', 'og:title', 'twitter:title'), webpage)
+        uuid = self._html_search_meta('episode_uid', webpage)
+        m3u8_url = self._html_search_meta('video_url', webpage)
+        json_ld = self._search_json_ld(webpage, uuid)
+        thumbnails_list = json_ld.get('image')
+        if not thumbnails_list:
+            thumbnails_list = self._html_search_regex(
+                r'["\']image["\']:\s*["\']([^"\']+)["\']', webpage, 'images', default='')
+            thumbnails_list = thumbnails_list.replace('[', '').replace(']', '').split(',')
+            thumbnails_list = [thumbnail.strip() for thumbnail in thumbnails_list]
+        thumbnails = []
+        for thumbnail in thumbnails_list:
+            width_a, height_a, width = self._search_regex(
+                r'/images/image/private/t_(?P<width_a>\d+)-(?P<height_a>\d+)_(?P<width>\d+)/primary/[\W\w\d]+',
+                thumbnail, 'thumb', group=(1, 2, 3), default=(None, None, None))
+            width_a, height_a, width = int_or_none(width_a), int_or_none(height_a), int_or_none(width)
+            thumbnails.append({
+                'url': thumbnail,
+                'width': width,
+                'height': int_or_none(try_get(width, lambda x: x * height_a / width_a))
+            })
         m3u8_url = self._download_json(
-            'https://meteringtok.ovpobs.tv/api/playback-sessions', id, headers=headers, query={
-                'alias': stream_data['alias'],
-                'stream': stream_data['stream'],
-                'type': 'vod'
-            })['data']['attributes']['url']
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, id)
+            f'https://olympics.com/tokenGenerator?url={m3u8_url}', uuid, note='Downloading m3u8 url')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, uuid, m3u8_id='hls')
         self._sort_formats(formats)
 
         return {
-            'id': id,
-            'title': meta_data['title'],
-            'release_date': unified_strdate(meta_data.get('start') or meta_data.get('broadcastPublished')),
-            'upload_date': unified_strdate(meta_data.get('publishedAt')),
+            'id': uuid,
+            'title': title,
+            'timestamp': json_ld.get('timestamp'),
+            'description': json_ld.get('description'),
+            'thumbnails': thumbnails,
+            'duration': json_ld.get('duration'),
             'formats': formats,
             'subtitles': subtitles,
         }

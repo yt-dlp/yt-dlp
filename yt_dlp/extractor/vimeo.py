@@ -18,6 +18,7 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     get_element_by_class,
+    HEADRequest,
     js_to_json,
     int_or_none,
     merge_dicts,
@@ -35,6 +36,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
     unescapeHTML,
+    urlhandle_detect_ext,
 )
 
 
@@ -229,27 +231,26 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             query['unlisted_hash'] = unlisted_hash
         download_data = self._download_json(
             url, video_id, fatal=False, query=query,
-            headers={'X-Requested-With': 'XMLHttpRequest'})
-        if download_data:
-            source_file = download_data.get('source_file')
-            if isinstance(source_file, dict):
-                download_url = source_file.get('download_url')
-                if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
-                    source_name = source_file.get('public_name', 'Original')
-                    if self._is_valid_url(download_url, video_id, '%s video' % source_name):
-                        ext = (try_get(
-                            source_file, lambda x: x['extension'],
-                            compat_str) or determine_ext(
-                            download_url, None) or 'mp4').lower()
-                        return {
-                            'url': download_url,
-                            'ext': ext,
-                            'width': int_or_none(source_file.get('width')),
-                            'height': int_or_none(source_file.get('height')),
-                            'filesize': parse_filesize(source_file.get('size')),
-                            'format_id': source_name,
-                            'quality': 1,
-                        }
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+            expected_status=(403, 404)) or {}
+        source_file = download_data.get('source_file')
+        download_url = try_get(source_file, lambda x: x['download_url'])
+        if download_url and not source_file.get('is_cold') and not source_file.get('is_defrosting'):
+            source_name = source_file.get('public_name', 'Original')
+            if self._is_valid_url(download_url, video_id, '%s video' % source_name):
+                ext = (try_get(
+                    source_file, lambda x: x['extension'],
+                    compat_str) or determine_ext(
+                    download_url, None) or 'mp4').lower()
+                return {
+                    'url': download_url,
+                    'ext': ext,
+                    'width': int_or_none(source_file.get('width')),
+                    'height': int_or_none(source_file.get('height')),
+                    'filesize': parse_filesize(source_file.get('size')),
+                    'format_id': source_name,
+                    'quality': 1,
+                }
 
         jwt_response = self._download_json(
             'https://vimeo.com/_rv/viewer', video_id, note='Downloading jwt token', fatal=False) or {}
@@ -258,15 +259,19 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         headers = {'Authorization': 'jwt %s' % jwt_response['jwt']}
         original_response = self._download_json(
             f'https://api.vimeo.com/videos/{video_id}', video_id,
-            headers=headers, fatal=False) or {}
-        for download_data in original_response.get('download') or {}:
+            headers=headers, fatal=False, expected_status=(403, 404)) or {}
+        for download_data in original_response.get('download') or []:
             download_url = download_data.get('link')
             if not download_url or download_data.get('quality') != 'source':
                 continue
-            query = parse_qs(download_url)
+            ext = determine_ext(parse_qs(download_url).get('filename', [''])[0].lower(), default_ext=None)
+            if not ext:
+                urlh = self._request_webpage(
+                    HEADRequest(download_url), video_id, fatal=False, note='Determining source extension')
+                ext = urlh and urlhandle_detect_ext(urlh)
             return {
                 'url': download_url,
-                'ext': determine_ext(query.get('filename', [''])[0].lower()),
+                'ext': ext or 'unknown_video',
                 'format_id': download_data.get('public_name', 'Original'),
                 'width': int_or_none(download_data.get('width')),
                 'height': int_or_none(download_data.get('height')),
@@ -291,7 +296,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                         )?
                         vimeo(?:pro)?\.com/
                         (?!(?:channels|album|showcase)/[^/?#]+/?(?:$|[?#])|[^/]+/review/|ondemand/)
-                        (?:.*?/)?
+                        (?:[^/]+/)*?
                         (?:
                             (?:
                                 play_redirect_hls|
@@ -362,7 +367,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'format': 'best[protocol=https]',
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             'url': 'http://vimeo.com/68375962',
@@ -402,7 +406,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'upload_date': '20130928',
                 'duration': 187,
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
+            'params': {'format': 'http-1080p'},
         },
         {
             'url': 'http://vimeo.com/76979871',
@@ -424,7 +428,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
                     'es': [{'ext': 'vtt'}],
                     'fr': [{'ext': 'vtt'}],
                 },
-            }
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         },
         {
             # from https://www.ouya.tv/game/Pier-Solar-and-the-Great-Architects/
@@ -469,7 +474,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
                 'upload_date': '20200225',
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             # only available via https://vimeo.com/channels/tributes/6213729 and
@@ -491,7 +495,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
         },
         {
             # redirects to ondemand extractor and should be passed through it
@@ -511,7 +514,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'skip_download': True,
             },
-            'expected_warnings': ['Unable to download JSON metadata'],
             'skip': 'this page is no longer available.',
         },
         {
@@ -572,14 +574,41 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'only_matching': True,
         },
         {
+            'note': 'Direct URL with hash',
             'url': 'https://vimeo.com/160743502/abd0e13fb4',
-            'only_matching': True,
+            'info_dict': {
+                'id': '160743502',
+                'ext': 'mp4',
+                'uploader': 'Julian Tryba',
+                'uploader_id': 'aliniamedia',
+                'title': 'Harrisville New Hampshire',
+                'timestamp': 1459259666,
+                'upload_date': '20160329',
+            },
+            'params': {'skip_download': True},
+        },
+        {
+            'url': 'https://vimeo.com/138909882',
+            'info_dict': {
+                'id': '138909882',
+                'ext': 'mp4',
+                'title': 'Eastnor Castle 2015 Firework Champions - The Promo!',
+                'description': 'md5:5967e090768a831488f6e74b7821b3c1',
+                'uploader_id': 'fireworkchampions',
+                'uploader': 'Firework Champions',
+                'upload_date': '20150910',
+                'timestamp': 1441901895,
+            },
+            'params': {
+                'skip_download': True,
+                'format': 'Original',
+            },
         },
         {
             # requires passing unlisted_hash(a52724358e) to load_download_config request
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
-        }
+        },
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
@@ -708,7 +737,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
             headers['Referer'] = url
 
         # Extract ID from URL
-        video_id, unlisted_hash = self._match_valid_url(url).groups()
+        mobj = self._match_valid_url(url).groupdict()
+        video_id, unlisted_hash = mobj['id'], mobj.get('unlisted_hash')
         if unlisted_hash:
             return self._extract_from_api(video_id, unlisted_hash)
 
@@ -1100,10 +1130,10 @@ class VimeoGroupsIE(VimeoChannelIE):
     IE_NAME = 'vimeo:group'
     _VALID_URL = r'https://vimeo\.com/groups/(?P<id>[^/]+)(?:/(?!videos?/\d+)|$)'
     _TESTS = [{
-        'url': 'https://vimeo.com/groups/kattykay',
+        'url': 'https://vimeo.com/groups/meetup',
         'info_dict': {
-            'id': 'kattykay',
-            'title': 'Katty Kay',
+            'id': 'meetup',
+            'title': 'Vimeo Meetup!',
         },
         'playlist_mincount': 27,
     }]
@@ -1125,7 +1155,6 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader_id': 'user21297594',
             'description': "Comedian Dick Hardwick's five minute demo filmed in front of a live theater audience.\nEdit by Doug Mattocks",
         },
-        'expected_warnings': ['Unable to download JSON metadata'],
     }, {
         'note': 'video player needs Referer',
         'url': 'https://vimeo.com/user22258446/review/91613211/13f927e053',

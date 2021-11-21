@@ -7,6 +7,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     qualities,
     try_get,
@@ -94,11 +95,7 @@ class SRGSSRIE(InfoExtractor):
                 continue
             protocol = source.get('protocol')
             quality = source.get('quality')
-            format_id = []
-            for e in (protocol, source.get('encoding'), quality):
-                if e:
-                    format_id.append(e)
-            format_id = '-'.join(format_id)
+            format_id = join_nonempty(protocol, source.get('encoding'), quality)
 
             if protocol in ('HDS', 'HLS'):
                 if source.get('tokenType') == 'AKAMAI':

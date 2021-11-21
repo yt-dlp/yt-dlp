@@ -21,7 +21,6 @@ class BandaiChannelIE(BrightcoveNewIE):
             'duration': 1387.733,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }]

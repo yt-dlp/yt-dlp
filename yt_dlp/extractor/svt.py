@@ -168,7 +168,6 @@ class SVTPlayIE(SVTPlayBaseIE):
             },
         },
         'params': {
-            'format': 'bestvideo',
             # skip for now due to download test asserts that segment is > 10000 bytes and svt uses
             # init segments that are smaller
             # AssertionError: Expected test_SVTPlay_jNwpV9P.mp4 to be at least 9.77KiB, but it's only 864.00B
