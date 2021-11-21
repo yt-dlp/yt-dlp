@@ -9,7 +9,7 @@ from ..utils import (
 
 
 class SkyNewsAUIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?skynews\.com\.au/[^/]+/[^/]+/[^/]+/video/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?skynews\.com\.au/[^/]+/[^/]+/[^/]+/video/(?P<id>[a-z0-9]+)'
 
     _TESTS = [{
         'url': 'https://www.skynews.com.au/world-news/united-states/incredible-vision-shows-lava-overflowing-from-spains-la-palma-volcano/video/0f4c6243d6903502c01251f228b91a71',

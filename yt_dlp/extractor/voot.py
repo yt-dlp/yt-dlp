@@ -15,7 +15,7 @@ class VootIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     (?:
                         voot:|
-                        (?:https?://)(?:www\.)?voot\.com/?
+                        https?://(?:www\.)?voot\.com/?
                         (?:
                             movies/[^/]+/|
                             (?:shows|kids)/(?:[^/]+/){4}

@@ -8,7 +8,7 @@ from ..utils import ExtractorError
 
 
 class EpiconIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?epicon\.in/(?:documentaries|movies|tv-shows/[^/?#]+/[^/?#]+)/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?epicon\.in/(?:documentaries|movies|tv-shows/[^/?#]+/[^/?#]+)/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.epicon.in/documentaries/air-battle-of-srinagar',
         'info_dict': {
@@ -84,7 +84,7 @@ class EpiconIE(InfoExtractor):
 
 
 class EpiconSeriesIE(InfoExtractor):
-    _VALID_URL = r'(?!.*season)(?:https?://)(?:www\.)?epicon\.in/tv-shows/(?P<id>[^/?#]+)'
+    _VALID_URL = r'(?!.*season)https?://(?:www\.)?epicon\.in/tv-shows/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.epicon.in/tv-shows/1-of-something',
         'playlist_mincount': 5,

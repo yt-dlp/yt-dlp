@@ -21,7 +21,7 @@ class Zee5IE(InfoExtractor):
     _VALID_URL = r'''(?x)
                      (?:
                         zee5:|
-                        (?:https?://)(?:www\.)?zee5\.com/(?:[^#?]+/)?
+                        https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
                             (?:tvshows|kids|zee5originals)(?:/[^#/?]+){3}
                             |movies/[^#/?]+
@@ -174,7 +174,7 @@ class Zee5SeriesIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                      (?:
                         zee5:series:|
-                        (?:https?://)(?:www\.)?zee5\.com/(?:[^#?]+/)?
+                        https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:tvshows|kids|zee5originals)(?:/[^#/?]+){2}/
                      )
                      (?P<id>[^#/?]+)/?(?:$|[?#])

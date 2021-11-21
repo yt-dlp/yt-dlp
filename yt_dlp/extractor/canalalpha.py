@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class CanalAlphaIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?canalalpha\.ch/play/[^/]+/[^/]+/(?P<id>\d+)/?.*'
+    _VALID_URL = r'https?://(?:www\.)?canalalpha\.ch/play/[^/]+/[^/]+/(?P<id>\d+)/?.*'
 
     _TESTS = [{
         'url': 'https://www.canalalpha.ch/play/le-journal/episode/24520/jeudi-28-octobre-2021',
