@@ -2157,7 +2157,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         comment_replies_renderer, ytcfg, video_id,
                         parent=comment.get('id'), comment_tracker=comment_tracker)
                     max_replies = min(
-                        int_or_none(get_single_config_arg('max_comment_thread_replies')) or sys.maxsize, max(0, max_reply_comments - comment_tracker[4]))
+                        int_or_none(get_single_config_arg('max_comment_thread_replies'), default=sys.maxsize), max(0, max_reply_comments - comment_tracker[4]))
                     for reply_comment in itertools.islice(comment_entries_iter, max_replies):
                         yield reply_comment
 
