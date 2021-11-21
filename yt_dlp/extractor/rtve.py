@@ -254,7 +254,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'title': title,
             'thumbnail': info.get('thumbnail'),
             'duration': float_or_none(info.get('duration'), 1000),
-            'series': info.get('programInfo').get('title'),
+            'series': try_get(info, lambda x: x['programInfo']['title']),
             'formats': formats,
         }
 
