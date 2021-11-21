@@ -136,6 +136,7 @@ from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvp import TVPEmbedIE
+from .blogger import BloggerIE
 
 
 class GenericIE(InfoExtractor):
@@ -2173,6 +2174,17 @@ class GenericIE(InfoExtractor):
                 'skip_download': True,
             },
         },
+        {
+            # blogger embed
+            'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
+            'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
+            'info_dict': {
+                'id': 'BLOGGER-video-3c740e3a49197e16-796',
+                'ext': 'mp4',
+                'title': 'Blogger',
+                'thumbnail': r're:^https?://.*',
+            },
+        },
         # {
         #     # TODO: find another test
         #     # http://schema.org/VideoObject
@@ -2332,6 +2344,34 @@ class GenericIE(InfoExtractor):
                 'thumbnail': 'https://bogmedia.org/contents/videos_screenshots/21000/21217/preview_480p.mp4.jpg',
             }
         },
+        {
+            # Reddit-hosted video that will redirect and be processed by RedditIE
+            # Redirects to https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/
+            'url': 'https://v.redd.it/zv89llsvexdz',
+            'md5': '87f5f02f6c1582654146f830f21f8662',
+            'info_dict': {
+                'id': 'zv89llsvexdz',
+                'ext': 'mp4',
+                'timestamp': 1501941939.0,
+                'title': 'That small heart attack.',
+                'upload_date': '20170805',
+                'uploader': 'Antw87'
+            }
+        },
+        {
+            # 1080p Reddit-hosted video that will redirect and be processed by RedditIE
+            'url': 'https://v.redd.it/33hgok7dfbz71/',
+            'md5': '7a1d587940242c9bb3bd6eb320b39258',
+            'info_dict': {
+                'id': '33hgok7dfbz71',
+                'ext': 'mp4',
+                'title': "The game Didn't want me to Knife that Guy I guess",
+                'uploader': 'paraf1ve',
+                'timestamp': 1636788683.0,
+                'upload_date': '20211113'
+            }
+        }
+        #
     ]
 
     def report_following_redirect(self, new_url):
@@ -3215,6 +3255,11 @@ class GenericIE(InfoExtractor):
         onionstudios_url = OnionStudiosIE._extract_url(webpage)
         if onionstudios_url:
             return self.url_result(onionstudios_url)
+
+        # Look for Blogger embeds
+        blogger_urls = BloggerIE._extract_urls(webpage)
+        if blogger_urls:
+            return self.playlist_from_matches(blogger_urls, video_id, video_title, ie=BloggerIE.ie_key())
 
         # Look for ViewLift embeds
         viewlift_url = ViewLiftEmbedIE._extract_url(webpage)

@@ -893,5 +893,6 @@ class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
                 break
 
     def _get_n_results(self, query, n):
-        tracks = self._get_collection('search/tracks', query, limit=n, q=query)
-        return self.playlist_result(tracks, query, query)
+        return self.playlist_result(itertools.islice(
+            self._get_collection('search/tracks', query, limit=n, q=query),
+            0, None if n == float('inf') else n), query, query)

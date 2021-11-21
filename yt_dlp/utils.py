@@ -4086,10 +4086,10 @@ class LazyList(collections.abc.Sequence):
     class IndexError(IndexError):
         pass
 
-    def __init__(self, iterable):
+    def __init__(self, iterable, *, reverse=False, _cache=None):
         self.__iterable = iter(iterable)
-        self.__cache = []
-        self.__reversed = False
+        self.__cache = [] if _cache is None else _cache
+        self.__reversed = reverse
 
     def __iter__(self):
         if self.__reversed:
@@ -4155,9 +4155,17 @@ class LazyList(collections.abc.Sequence):
         self.__exhaust()
         return len(self.__cache)
 
-    def reverse(self):
-        self.__reversed = not self.__reversed
-        return self
+    def __reversed__(self):
+        return type(self)(self.__iterable, reverse=not self.__reversed, _cache=self.__cache)
+
+    def __copy__(self):
+        return type(self)(self.__iterable, reverse=self.__reversed, _cache=self.__cache)
+
+    def __deepcopy__(self, memo):
+        # FIXME: This is actually just a shallow copy
+        id_ = id(self)
+        memo[id_] = self.__copy__()
+        return memo[id_]
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
@@ -4168,6 +4176,10 @@ class LazyList(collections.abc.Sequence):
 
 
 class PagedList:
+
+    class IndexError(IndexError):
+        pass
+
     def __len__(self):
         # This is only useful for tests
         return len(self.getslice())
@@ -4179,7 +4191,9 @@ class PagedList:
         self._cache = {}
 
     def getpage(self, pagenum):
-        page_results = self._cache.get(pagenum) or list(self._pagefunc(pagenum))
+        page_results = self._cache.get(pagenum)
+        if page_results is None:
+            page_results = list(self._pagefunc(pagenum))
         if self._use_cache:
             self._cache[pagenum] = page_results
         return page_results
@@ -4195,7 +4209,9 @@ class PagedList:
         if not isinstance(idx, int) or idx < 0:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
-        return entries[0] if entries else None
+        if not entries:
+            raise self.IndexError()
+        return entries[0]
 
 
 class OnDemandPagedList(PagedList):
@@ -4801,10 +4817,11 @@ def determine_protocol(info_dict):
     return compat_urllib_parse_urlparse(url).scheme
 
 
-def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
-    """ Render a list of rows, each as a list of values """
+def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
+    """ Render a list of rows, each as a list of values.
+    Text after a \t will be right aligned """
     def width(string):
-        return len(remove_terminal_sequences(string))
+        return len(remove_terminal_sequences(string).replace('\t', ''))
 
     def get_max_lens(table):
         return [max(width(str(v)) for v in col) for col in zip(*table)]
@@ -4812,21 +4829,24 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
     def filter_using_list(row, filterArray):
         return [col for (take, col) in zip(filterArray, row) if take]
 
-    if hideEmpty:
+    if hide_empty:
         max_lens = get_max_lens(data)
         header_row = filter_using_list(header_row, max_lens)
         data = [filter_using_list(row, max_lens) for row in data]
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
-    extraGap += 1
+    extra_gap += 1
     if delim:
-        table = [header_row] + [[delim * (ml + extraGap) for ml in max_lens]] + data
-    max_lens[-1] = 0
+        table = [header_row, [delim * (ml + extra_gap) for ml in max_lens]] + data
+        table[1][-1] = table[1][-1][:-extra_gap]  # Remove extra_gap from end of delimiter
     for row in table:
         for pos, text in enumerate(map(str, row)):
-            row[pos] = text + (' ' * (max_lens[pos] - width(text) + extraGap))
-    ret = '\n'.join(''.join(row) for row in table)
+            if '\t' in text:
+                row[pos] = text.replace('\t', ' ' * (max_lens[pos] - width(text))) + ' ' * extra_gap
+            else:
+                row[pos] = text + ' ' * (max_lens[pos] - width(text) + extra_gap)
+    ret = '\n'.join(''.join(row).rstrip() for row in table)
     return ret
 
 
