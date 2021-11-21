@@ -18,6 +18,7 @@ from ..utils import (
     remove_end,
     remove_start,
     std_headers,
+    try_get,
 )
 
 _bytes_to_chr = (lambda x: x) if sys.version_info[0] == 2 else (lambda x: map(chr, x))
@@ -251,7 +252,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'title': info['title'].strip(),
             'thumbnail': info.get('thumbnail'),
             'duration': float_or_none(info.get('duration'), 1000),
-            'series': try_get(info, ('programInfo').get('title'),
+            'series': try_get(info, ('programInfo').get('title')),
             'formats': self._extract_png_formats(audio_id),
         }
 
