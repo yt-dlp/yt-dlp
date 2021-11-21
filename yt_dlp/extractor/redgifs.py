@@ -1,18 +1,21 @@
 # coding: utf-8
 
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-
 from ..utils import (
     ExtractorError,
     int_or_none,
     qualities,
+    try_get,
 )
 
 
 class RedGifsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:(?:www|thumbs2?)\.)?redgifs\.com/(?:watch/)?(?P<id>[^-/?#\.]+)'
+    _FORMATS = {
+        'gif': 250,
+        'sd': 480,
+        'hd': None,
+    }
     _TESTS = [{
         'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
         'info_dict': {
@@ -52,48 +55,26 @@ class RedGifsIE(InfoExtractor):
             'https://api.redgifs.com/v2/gifs/%s' % video_id,
             video_id, 'Downloading video info')
         if 'error' in video_info:
-            raise ExtractorError('RedGifs said: ' + video_info['error'], expected=True)
+            raise ExtractorError(f'RedGifs said: {video_info["error"]}', expected=True)
 
         gif = video_info['gif']
         urls = gif['urls']
 
-        # redgifs do not have title
-        title = ' '.join(gif.get('tags')) or 'RedGifs'
-        timestamp = int_or_none(gif.get('createDate'))
-        uploader = gif.get('userName')
-        view_count = int_or_none(gif.get('views'))
-        like_count = int_or_none(gif.get('likes'))
-        age_limit = 18
+        quality = qualities(tuple(self._FORMATS.keys()))
 
-        orig_width = int_or_none(gif.get('width'))
         orig_height = int_or_none(gif.get('height'))
-
-        duration = int_or_none(gif.get('duration'))
-
-        categories = gif.get('tags') or []
-
-        FORMATS = ('gif', 'sd', 'hd')
-        quality = qualities(FORMATS)
+        aspect_ratio = try_get(gif, lambda x: orig_height / x['width'])
 
         formats = []
-        for format_id in FORMATS:
+        for format_id, height in self._FORMATS.items():
             video_url = urls.get(format_id)
             if not video_url:
                 continue
-            if format_id == 'gif':
-                max_height = 250
-            elif format_id == 'sd':
-                max_height = 480
-            else:
-                max_height = orig_height
-
-            height = orig_height if max_height > orig_height else max_height
-            width = orig_width if height == orig_height else int(height / orig_height * orig_width)
-
+            height = min(orig_height, height or orig_height)
             formats.append({
                 'url': video_url,
                 'format_id': format_id,
-                'width': width,
+                'width': height * aspect_ratio if aspect_ratio else None,
                 'height': height,
                 'quality': quality(format_id),
             })
@@ -101,13 +82,13 @@ class RedGifsIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
-            'timestamp': timestamp,
-            'uploader': uploader,
-            'duration': duration,
-            'view_count': view_count,
-            'like_count': like_count,
-            'categories': categories,
-            'age_limit': age_limit,
+            'title': ' '.join(gif.get('tags') or []) or 'RedGifs',
+            'timestamp': int_or_none(gif.get('createDate')),
+            'uploader': gif.get('userName'),
+            'duration': int_or_none(gif.get('duration')),
+            'view_count': int_or_none(gif.get('views')),
+            'like_count': int_or_none(gif.get('likes')),
+            'categories': gif.get('tags') or [],
+            'age_limit': 18,
             'formats': formats,
         }
