@@ -224,7 +224,6 @@ class RTVEAudioIE(RTVEALaCartaIE):
         formats = []
         for quality, audio_url in self._decrypt_url(png):
             ext = determine_ext(audio_url)
-            print(quality, audio_url, ext)
             if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
                     audio_url, audio_id, 'mp4', 'm3u8_native',
@@ -246,16 +245,14 @@ class RTVEAudioIE(RTVEALaCartaIE):
         info = self._download_json(
             'https://www.rtve.es/api/audios/%s.json' % audio_id,
             audio_id)['page']['items'][0]
-        title = info['title'].strip()
-        formats = self._extract_png_formats(audio_id)
 
         return {
             'id': audio_id,
-            'title': title,
+            'title': info['title'].strip(),
             'thumbnail': info.get('thumbnail'),
             'duration': float_or_none(info.get('duration'), 1000),
-            'series': try_get(info, lambda x: x['programInfo']['title']),
-            'formats': formats,
+            'series': try_get(info, ('programInfo').get('title'),
+            'formats': self._extract_png_formats(audio_id),
         }
 
 

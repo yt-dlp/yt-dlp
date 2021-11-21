@@ -1237,11 +1237,11 @@ from .rtp import RTPIE
 from .rtrfm import RTRFMIE
 from .rts import RTSIE
 from .rtve import (
-        RTVEALaCartaIE,
-        RTVELiveIE,
-        RTVEAudioIE,
-        RTVEInfantilIE,
-        RTVETelevisionIE,
+    RTVEALaCartaIE,
+    RTVEAudioIE,
+    RTVELiveIE,
+    RTVEInfantilIE,
+    RTVETelevisionIE,
 )
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
