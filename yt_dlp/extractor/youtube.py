@@ -2180,13 +2180,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if message and not parent:
             self.report_warning(message, video_id=video_id)
 
-        visitor_data = None
+        response = None
         is_first_continuation = parent is None
 
         for page_num in itertools.count(0):
             if not continuation:
                 break
-            headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=visitor_data)
+            headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=self._extract_visitor_data(response))
             comment_prog_str = f'({comment_tracker[0]}/{comment_tracker[1]})'
             if page_num == 0:
                 if is_first_continuation:
@@ -2205,13 +2205,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 check_get_keys='onResponseReceivedEndpoints')
             if not response:
                 break
-            visitor_data = try_get(
-                response,
-                lambda x: x['responseContext']['webResponseContextExtensionData']['ytConfigData']['visitorData'],
-                compat_str) or visitor_data
 
             continuation_contents = dict_get(response, ('onResponseReceivedEndpoints', 'continuationContents'))
-
             continuation = None
             if isinstance(continuation_contents, list):
                 for continuation_section in continuation_contents:
