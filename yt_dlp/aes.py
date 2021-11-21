@@ -28,6 +28,48 @@ else:
 BLOCK_SIZE_BYTES = 16
 
 
+def aes_ecb_encrypt(data, key, iv=None):
+    """
+    Encrypt with aes in ECB mode
+
+    @param {int[]} data        cleartext
+    @param {int[]} key         16/24/32-Byte cipher key
+    @param {int[]} iv          Unused for this mode
+    @returns {int[]}           encrypted data
+    """
+    expanded_key = key_expansion(key)
+    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+
+    encrypted_data = []
+    for i in range(block_count):
+        block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
+        encrypted_data += aes_encrypt(block, expanded_key)
+    encrypted_data = encrypted_data[:len(data)]
+
+    return encrypted_data
+
+
+def aes_ecb_decrypt(data, key, iv=None):
+    """
+    Decrypt with aes in ECB mode
+
+    @param {int[]} data        cleartext
+    @param {int[]} key         16/24/32-Byte cipher key
+    @param {int[]} iv          Unused for this mode
+    @returns {int[]}           decrypted data
+    """
+    expanded_key = key_expansion(key)
+    block_count = int(ceil(float(len(data)) / BLOCK_SIZE_BYTES))
+
+    encrypted_data = []
+    for i in range(block_count):
+        block = data[i * BLOCK_SIZE_BYTES: (i + 1) * BLOCK_SIZE_BYTES]
+        encrypted_data += aes_decrypt(block, expanded_key)
+    encrypted_data = encrypted_data[:len(data)]
+
+    return encrypted_data
+
+
 def aes_ctr_decrypt(data, key, iv):
     """
     Decrypt with aes in counter mode

@@ -151,25 +151,25 @@ def parseOpts(overrideArguments=None):
 
     def _dict_from_options_callback(
             option, opt_str, value, parser,
-            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True):
+            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True,
+            process_key=str.lower):
 
         out_dict = getattr(parser.values, option.dest)
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
         mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
         if mobj is not None:
-            keys = [k.strip() for k in mobj.group('keys').lower().split(',')]
-            val = mobj.group('val')
+            keys, val = mobj.group('keys').split(','), mobj.group('val')
         elif default_key is not None:
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
                 'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
         try:
+            keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val
         except Exception as err:
-            raise optparse.OptionValueError(
-                'wrong %s formatting; %s' % (opt_str, err))
+            raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
             out_dict[key] = val
 
@@ -278,7 +278,7 @@ def parseOpts(overrideArguments=None):
             'allowed_values': {
                 'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
+                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
                 'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
@@ -792,7 +792,7 @@ def parseOpts(overrideArguments=None):
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'multiple_keys': False},
+        callback_kwargs={'multiple_keys': False, 'process_key': None},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
@@ -1287,7 +1287,9 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--embed-metadata', '--add-metadata',
         action='store_true', dest='addmetadata', default=False,
-        help='Embed metadata to the video file. Also adds chapters to file unless --no-add-chapters is used (Alias: --add-metadata)')
+        help=(
+            'Embed metadata to the video file. Also embeds chapters/infojson if present '
+            'unless --no-embed-chapters/--no-embed-info-json are used (Alias: --add-metadata)'))
     postproc.add_option(
         '--no-embed-metadata', '--no-add-metadata',
         action='store_false', dest='addmetadata',
@@ -1300,6 +1302,14 @@ def parseOpts(overrideArguments=None):
         '--no-embed-chapters', '--no-add-chapters',
         action='store_false', dest='addchapters',
         help='Do not add chapter markers (default) (Alias: --no-add-chapters)')
+    postproc.add_option(
+        '--embed-info-json',
+        action='store_true', dest='embed_infojson', default=None,
+        help='Embed the infojson as an attachment to mkv/mka video files')
+    postproc.add_option(
+        '--no-embed-info-json',
+        action='store_false', dest='embed_infojson',
+        help='Do not embed the infojson as an attachment to the video file')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',
