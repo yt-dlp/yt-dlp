@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import base64
+import collections
 import datetime
 import hashlib
 import itertools
@@ -2649,7 +2650,7 @@ class InfoExtractor(object):
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
         formats, subtitles = [], {}
-        stream_numbers = {'audio': 0, 'video': 0}
+        stream_numbers = collections.defaultdict(int)
         for period in mpd_doc.findall(_add_ns('Period')):
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
@@ -2715,10 +2716,8 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
-                            'manifest_stream_number': stream_numbers[content_type]
                         }
                         f.update(parse_codecs(codecs))
-                        stream_numbers[content_type] += 1
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
@@ -2885,7 +2884,9 @@ class InfoExtractor(object):
                     else:
                         # Assuming direct URL to unfragmented media.
                         f['url'] = base_url
-                    if content_type in ('video', 'audio') or mime_type == 'image/jpeg':
+                    if content_type in ('video', 'audio', 'image/jpeg'):
+                        f['manifest_stream_number'] = stream_numbers[f['url']]
+                        stream_numbers[f['url']] += 1
                         formats.append(f)
                     elif content_type == 'text':
                         subtitles.setdefault(lang or 'und', []).append(f)
