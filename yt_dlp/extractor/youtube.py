@@ -2108,7 +2108,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'parent': parent or 'root'
         }
 
-    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, comment_tracker=None):
+    def _comment_entries(self, root_continuation_data, ytcfg, video_id, parent=None, tracker=None):
 
         get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
 
@@ -2120,7 +2120,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comments_header_renderer, 'countText', 'commentsCount', max_runs=1))
 
                 if expected_comment_count:
-                    comment_tracker[1] = expected_comment_count
+                    tracker['est_total'] = expected_comment_count
                     self.to_screen(f'Downloading ~{expected_comment_count} comments')
                 comment_sort_index = int(get_single_config_arg('comment_sort') != 'top')  # 1 = new, 0 = top
 
@@ -2145,9 +2145,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 lambda x: int_or_none(get_single_config_arg(x)) or sys.maxsize,
                 ('max_parent_comments', 'max_reply_comments'))
             if not parent:
-                comment_tracker[2] = 0
+                tracker['current_page_thread'] = 0
             for content in contents:
-                if not parent and comment_tracker[3] >= max_parent_comments:
+                if not parent and tracker['total_parent_comments'] >= max_parent_comments:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
                 comment_renderer = get_first(
@@ -2158,8 +2158,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not comment:
                     continue
 
-                comment_tracker[0] += 1
-                comment_tracker[4 if parent else 3] += 1
+                tracker['running_total'] += 1
+                tracker['total_reply_comments' if parent else 'total_parent_comments'] += 1
                 yield comment
 
                 # Attempt to get the replies
@@ -2167,25 +2167,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_thread_renderer, lambda x: x['replies']['commentRepliesRenderer'], dict)
 
                 if comment_replies_renderer:
-                    comment_tracker[2] += 1
+                    tracker['current_page_thread'] += 1
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
-                        parent=comment.get('id'), comment_tracker=comment_tracker)
+                        parent=comment.get('id'), tracker=tracker)
                     max_replies = min(
                         int_or_none(get_single_config_arg('max_reply_comments_per_thread'), default=sys.maxsize),
-                        max(0, max_reply_comments - comment_tracker[4]))
+                        max(0, max_reply_comments - tracker['total_reply_comments']))
 
                     for reply_comment in itertools.islice(comment_entries_iter, max_replies):
                         yield reply_comment
 
         # Keeps track of counts across recursive calls
-        # 0: running_total
-        # 1: est_total
-        # 2: current_page_thread
-        # 3: total_parent_comments
-        # 4: total_reply_comments
-        # TODO: implement a cleaner / more maintainable method?
-        comment_tracker = comment_tracker or [0, 0, 0, 0, 0]
+        if not tracker:
+            tracker = dict(
+                running_total=0,
+                est_total=0,
+                current_page_thread=0,
+                total_parent_comments=0,
+                total_reply_comments=0)
 
         # YouTube comments have a max depth of 2
         max_depth = int_or_none(get_single_config_arg('max_comment_depth')) or 2
@@ -2204,13 +2204,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not continuation:
                 break
             headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=self._extract_visitor_data(response))
-            comment_prog_str = f'({comment_tracker[0]}/{comment_tracker[1]})'
+            comment_prog_str = f"({tracker['running_total']}/{tracker['est_total']})"
             if page_num == 0:
                 if is_first_continuation:
                     note_prefix = 'Downloading comment section API JSON'
                 else:
                     note_prefix = '    Downloading comment API JSON reply thread %d %s' % (
-                        comment_tracker[2], comment_prog_str)
+                        tracker['current_page_thread'], comment_prog_str)
             else:
                 note_prefix = '%sDownloading comment%s API JSON page %d %s' % (
                     '       ' if parent else '', ' replies' if parent else '',
@@ -2226,11 +2226,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             continuation = None
             for continuation_section in continuation_contents:
-                continuation_items = try_get(
+                continuation_items = traverse_obj(
                     continuation_section,
-                    (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
-                     lambda x: x['appendContinuationItemsAction']['continuationItems']),
-                    list) or []
+                    (('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems'),
+                    get_all=False, expected_type=list) or []
                 if is_first_continuation:
                     continuation = extract_header(continuation_items)
                     is_first_continuation = False
