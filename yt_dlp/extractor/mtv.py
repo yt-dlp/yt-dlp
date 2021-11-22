@@ -278,7 +278,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
     @staticmethod
     def _extract_child_with_type(parent, t):
         for c in parent['children']:
-            if c.get('type') and c.get('type') == t:
+            if c.get('type') == t:
                 return c
 
     def _extract_mgid(self, webpage):
