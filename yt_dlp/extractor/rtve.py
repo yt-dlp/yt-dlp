@@ -217,6 +217,12 @@ class RTVEAudioIE(RTVEALaCartaIE):
     }]
 
     def _extract_png_formats(self, audio_id):
+        """
+        This function retrieves media related png thumbnail which obfuscate
+        valuable information about the media. This information is decrypted
+        via base class _decrypt_url function providing media quality and
+        media url
+        """
         png = self._download_webpage(
             'http://www.rtve.es/ztnr/movil/thumbnail/%s/audios/%s.png' %
             (self._manager, audio_id),
