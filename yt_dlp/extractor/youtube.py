@@ -2226,8 +2226,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             continuation = None
             for continuation_section in continuation_contents:
-                if not isinstance(continuation_section, dict):
-                    continue
                 continuation_items = try_get(
                     continuation_section,
                     (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
