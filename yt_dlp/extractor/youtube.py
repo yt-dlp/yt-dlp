@@ -2115,15 +2115,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def extract_header(contents):
             _continuation = None
             for content in contents:
-                comments_header_renderer = try_get(content, lambda x: x['commentsHeaderRenderer'])
+                comments_header_renderer = traverse_obj(content, 'commentsHeaderRenderer')
                 expected_comment_count = parse_count(self._get_text(
                     comments_header_renderer, 'countText', 'commentsCount', max_runs=1))
 
                 if expected_comment_count:
                     comment_tracker[1] = expected_comment_count
-                    self.to_screen('Downloading ~%d comments' % expected_comment_count)
-                sort_mode_str = get_single_config_arg('comment_sort')
-                comment_sort_index = int(sort_mode_str != 'top')  # 1 = new, 0 = top
+                    self.to_screen(f'Downloading ~{expected_comment_count} comments')
+                comment_sort_index = int(get_single_config_arg('comment_sort') != 'top')  # 1 = new, 0 = top
 
                 sort_menu_item = try_get(
                     comments_header_renderer,
@@ -2134,18 +2133,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not _continuation:
                     continue
 
-                sort_text = sort_menu_item.get('title')
-                if isinstance(sort_text, compat_str):
-                    sort_text = sort_text.lower()
-                else:
+                sort_text = str_or_none(sort_menu_item.get('title'))
+                if not sort_text:
                     sort_text = 'top comments' if comment_sort_index == 0 else 'newest first'
-                self.to_screen('Sorting comments by %s' % sort_text)
+                self.to_screen('Sorting comments by %s' % sort_text.lower())
                 break
             return _continuation
 
         def extract_thread(contents):
             max_parent_comments, max_reply_comments = map(
-                lambda x: int_or_none(get_single_config_arg(x)) or float('inf'),
+                lambda x: int_or_none(get_single_config_arg(x)) or sys.maxsize,
                 ('max_parent_comments', 'max_reply_comments'))
             if not parent:
                 comment_tracker[2] = 0
@@ -2153,15 +2150,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if not parent and comment_tracker[3] >= max_parent_comments:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
-                comment_renderer = try_get(
-                    comment_thread_renderer, (lambda x: x['comment']['commentRenderer'], dict)) or try_get(
-                    content, (lambda x: x['commentRenderer'], dict))
+                comment_renderer = get_first(
+                    (comment_thread_renderer, content), [['commentRenderer', ('comment', 'commentRenderer')]],
+                    expected_type=dict, default={})
 
-                if not comment_renderer:
-                    continue
                 comment = self._extract_comment(comment_renderer, parent)
                 if not comment:
                     continue
+
                 comment_tracker[0] += 1
                 comment_tracker[4 if parent else 3] += 1
                 yield comment
@@ -2176,7 +2172,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         comment_replies_renderer, ytcfg, video_id,
                         parent=comment.get('id'), comment_tracker=comment_tracker)
                     max_replies = min(
-                        int_or_none(get_single_config_arg('max_comment_thread_replies'), default=sys.maxsize), max(0, max_reply_comments - comment_tracker[4]))
+                        int_or_none(get_single_config_arg('max_reply_comments_per_thread'), default=sys.maxsize),
+                        max(0, max_reply_comments - comment_tracker[4]))
+
                     for reply_comment in itertools.islice(comment_entries_iter, max_replies):
                         yield reply_comment
 
@@ -2222,34 +2220,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 item_id=None, query=continuation,
                 ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
                 check_get_keys='onResponseReceivedEndpoints')
-            if not response:
-                break
 
-            continuation_contents = dict_get(response, ('onResponseReceivedEndpoints', 'continuationContents'))
+            continuation_contents = traverse_obj(
+                response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
+
             continuation = None
-            if isinstance(continuation_contents, list):
-                for continuation_section in continuation_contents:
-                    if not isinstance(continuation_section, dict):
-                        continue
-                    continuation_items = try_get(
-                        continuation_section,
-                        (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
-                         lambda x: x['appendContinuationItemsAction']['continuationItems']),
-                        list) or []
-                    if is_first_continuation:
-                        continuation = extract_header(continuation_items)
-                        is_first_continuation = False
-                        if continuation:
-                            break
-                        continue
-
-                    for entry in extract_thread(continuation_items):
-                        if not entry:
-                            return
-                        yield entry
-                    continuation = self._extract_continuation({'contents': continuation_items})
+            for continuation_section in continuation_contents:
+                if not isinstance(continuation_section, dict):
+                    continue
+                continuation_items = try_get(
+                    continuation_section,
+                    (lambda x: x['reloadContinuationItemsCommand']['continuationItems'],
+                     lambda x: x['appendContinuationItemsAction']['continuationItems']),
+                    list) or []
+                if is_first_continuation:
+                    continuation = extract_header(continuation_items)
+                    is_first_continuation = False
                     if continuation:
                         break
+                    continue
+
+                for entry in extract_thread(continuation_items):
+                    if not entry:
+                        return
+                    yield entry
+                continuation = self._extract_continuation({'contents': continuation_items})
+                if continuation:
+                    break
 
     def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
