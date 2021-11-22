@@ -2690,6 +2690,8 @@ class YoutubeDL(object):
                 self.report_error('Cannot write internet shortcut file because the "webpage_url" field is missing in the media information')
                 return False
             linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
+            if not self._ensure_dir_exists(encodeFilename(linkfn)):
+                return False
             if self.params.get('overwrites', True) and os.path.exists(encodeFilename(linkfn)):
                 self.to_screen(f'[info] Internet shortcut (.{link_type}) is already present')
                 return True
