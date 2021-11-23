@@ -370,6 +370,19 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _WAYBACK_DEFAULT_CAPTURE_DATE = '20050214000000'
     _WAYBACK_BASE_DATE_URL = 'https://web.archive.org/web/%sif_/' % _WAYBACK_DEFAULT_CAPTURE_DATE  # TODO
 
+    def _call_api(self, item_id, url, query: dict, note='Downloading CDX API JSON'):
+        query = {
+            'url': url,
+            'output': 'json',
+            'fastLatest': True,
+            'filter': 'statuscode:200',
+            'fl': 'original,mimetype,length,timestamp',
+            'limit': 100,
+            **(query or {})
+        }
+        return try_get(
+            self._download_json('https://web.archive.org/cdx/search/cdx', item_id, note, query=query), lambda x: x[1:])
+
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
             (r'%s\s*%s' % (regex, self._YT_INITIAL_BOUNDARY_RE),
@@ -401,8 +414,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 or YoutubeIE._get_text(microformats, 'title')
                 or YoutubeIE._get_text(initial_data_video, 'title')
                 or self._extract_webpage_title(webpage)
-                or search_meta(['og:title', 'twitter:title', 'title'])
-                or video_id)
+                or search_meta(['og:title', 'twitter:title', 'title']))
 
         thumbnails = []
         thumbnail_dicts = traverse_obj(
@@ -455,29 +467,19 @@ class YoutubeWebArchiveIE(InfoExtractor):
         return info
 
     def _extract_thumbnails(self, video_id):
-        try_all = 'checkall' in self._configuration_arg('thumbnails')
+        try_all = 'thumbnails' in self._configuration_arg('checkall')
         thumbnail_base_urls = [(ext, server, 'http://{server}/vi{webp}/{video_id}'.format(
             webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server))
             for server in (self._YT_ALL_THUMB_SERVERS if try_all else self._YT_DEFAULT_THUMB_SERVERS) for ext in (('jpg', 'webp') if try_all else ('jpg',))]
 
         thumbnails = []
         for ext, server, url in thumbnail_base_urls:
-            res = try_get(self._download_json(
-                'https://web.archive.org/cdx/search/cdx',
-                query={
-                    'url': url,
-                    'matchType': 'prefix',
-                    'collapse': 'urlkey',
-                    'output': 'json',
-                    'fl': 'original,mimetype,length,timestamp',
-                    'limit': 10000,
-                    'filter': 'mimetype:image\/(?:webp|jpeg)',
-                    'filter': 'statuscode:200',
-                    'fastLatest': True
-                },
-                video_id=video_id,
-                note=f'Downloading thumbnails CDX JSON%s' % (f' ({server}:{ext})' if len(thumbnail_base_urls) > 1 else '')
-            ), lambda x: x[1:])
+            query = {
+                'matchType': 'prefix',
+                'collapse': 'urlkey',
+                'filter': 'mimetype:image\/(?:webp|jpeg)'
+            }
+            res = self._call_api(video_id, url, query)
             if res:
                 # TODO fix sorting
                 # TODO: different thumbnails overtime, sort by date?
@@ -490,7 +492,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     } for sect in res[1:] if len(sect) == 4
                 )
                 # By default only try default thumbnail servers
-                if 'checkall' not in self._configuration_arg('thumbnails'):
+                if not try_all:
                     break
 
         # TODO: deal with duplicate files from different servers?
@@ -505,16 +507,31 @@ class YoutubeWebArchiveIE(InfoExtractor):
             r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
             page_title, 'title', default='')
 
+    def _idk_what_to_name_this(self, video_id, snapshots: list):
+        # TODO: what if the snapshots are the same?
+        # Might be worth querying CDX, getting oldest non-301 url. Also get oldest non-301 post 201X url for metadata extraction.
+        # also, if the snapshot
+        # 'https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DsIgBVsl13d8&matchType=prefix&collapse=timestamp%3A6&collapse=digest&collapse=length%3A2&output=json&fl=timestamp%2Clength%2Cstatuscode&filter=statuscode%3A200&filter=mimetype%3Atext%5C%2Fhtml&limit=10&fastLatest=true'
+        info_dicts = []
+        for snapshot_date in snapshots:
+            if not snapshot_date:
+                continue
+            webpage = self._download_webpage(
+                (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (snapshot_date, video_id),
+                video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived)',
+                note=f'Downloading webpage snapshot {snapshot_date}')
+            info = self._extract_metadata(video_id, webpage or '')
+            info_dicts.append(info)
+            if info.get('title') and 'snapshots' not in self._configuration_arg('checkall'):
+                break
+        return merge_dicts(*info_dicts)
+
     def _real_extract(self, url):
 
         snapshot_date, video_id = self._match_valid_url(url).groups()
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
-        webpage = self._download_webpage(
-            self._WAYBACK_BASE_DATE_URL + 'http://www.youtube.com/watch?v=%s' % video_id,
-            video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
-
-        info = self._extract_metadata(video_id, webpage or '')
+        info = self._idk_what_to_name_this(video_id, [snapshot_date, self._WAYBACK_DEFAULT_CAPTURE_DATE])
         info['thumbnails'] = self._extract_thumbnails(video_id)
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
         internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
