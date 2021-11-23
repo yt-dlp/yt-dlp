@@ -942,7 +942,10 @@ from .niconico import (
     NicovideoSearchIE,
     NicovideoSearchURLIE,
 )
-from .ninecninemedia import NineCNineMediaIE
+from .ninecninemedia import (
+    NineCNineMediaIE,
+    CPTwentyFourIE,
+)
 from .ninegag import NineGagIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
