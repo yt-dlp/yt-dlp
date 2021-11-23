@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -11,6 +12,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     strip_or_none,
+    try_get,
     unified_timestamp,
 )
 
@@ -180,7 +182,7 @@ class DPlayIE(InfoExtractor):
             })
         return streaming_list
 
-    def _get_disco_api_info(self, url, display_id, disco_host, realm, country):
+    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain=''):
         geo_countries = [country.upper()]
         self._initialize_geo_bypass({
             'countries': geo_countries,
@@ -209,6 +211,7 @@ class DPlayIE(InfoExtractor):
         info = video['data']['attributes']
         title = info['name'].strip()
         formats = []
+        subtitles = {}
         try:
             streaming = self._download_video_playback_info(
                 disco_base, video_id, headers)
@@ -225,13 +228,17 @@ class DPlayIE(InfoExtractor):
             format_id = format_dict.get('type')
             ext = determine_ext(format_url)
             if format_id == 'dash' or ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    format_url, display_id, mpd_id='dash', fatal=False))
+                dash_fmts, dash_subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, display_id, mpd_id='dash', fatal=False)
+                formats.extend(dash_fmts)
+                subtitles = self._merge_subtitles(subtitles, dash_subs)
             elif format_id == 'hls' or ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     format_url, display_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls',
-                    fatal=False))
+                    fatal=False)
+                formats.extend(m3u8_fmts)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             else:
                 formats.append({
                     'url': format_url,
@@ -265,7 +272,6 @@ class DPlayIE(InfoExtractor):
                     name = attributes.get('name')
                     if name:
                         tags.append(name)
-
         return {
             'id': video_id,
             'display_id': display_id,
@@ -280,6 +286,10 @@ class DPlayIE(InfoExtractor):
             'tags': tags,
             'thumbnails': thumbnails,
             'formats': formats,
+            'subtitles': subtitles,
+            'http_headers': {
+                'referer': domain,
+            },
         }
 
     def _real_extract(self, url):
@@ -289,7 +299,7 @@ class DPlayIE(InfoExtractor):
         country = mobj.group('country') or mobj.group('subdomain_country') or mobj.group('plus_country')
         host = 'disco-api.' + domain if domain[0] == 'd' else 'eu2-prod.disco-api.com'
         return self._get_disco_api_info(
-            url, display_id, host, 'dplay' + country, country)
+            url, display_id, host, 'dplay' + country, country, domain)
 
 
 class HGTVDeIE(DPlayIE):
@@ -426,3 +436,55 @@ class AnimalPlanetIE(DiscoveryPlusIE):
 
     _PRODUCT = 'apl'
     _API_URL = 'us1-prod-direct.animalplanet.com'
+
+
+class DiscoveryPlusItalyShowIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.it/programmi/(?P<show_name>[^/]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.it/programmi/deal-with-it-stai-al-gioco',
+        'playlist_mincount': 168,
+        'info_dict': {
+            'id': 'deal-with-it-stai-al-gioco',
+        },
+    }]
+
+    _BASE_API = 'https://disco-api.discoveryplus.it/'
+
+    def _entries(self, show_name):
+        headers = {
+            'x-disco-client': 'WEB:UNKNOWN:dplay-client:2.6.0',
+            'x-disco-params': 'realm=dplayit',
+            'referer': 'https://www.discoveryplus.it/',
+        }
+        headers['Authorization'] = 'Bearer ' + self._download_json(
+            self._BASE_API + 'token', show_name, 'Downloading token',
+            query={
+                'realm': 'dplayit',
+                'deviceId': uuid.uuid4().hex,
+            })['data']['attributes']['token']
+        show_url = self._BASE_API + 'cms/routes/programmi/{}?include=default'.format(show_name)
+        show_json = self._download_json(show_url,
+                                        video_id=show_name,
+                                        headers=headers)['included'][1]['attributes']['component']
+        show_id = show_json['mandatoryParams'].split('=')[-1]
+        season_url = self._BASE_API + 'content/videos?sort=episodeNumber&filter[seasonNumber]={}&filter[show.id]={}&page[size]=100&page[number]={}'
+        for season in show_json['filters'][0]['options']:
+            season_id = season['id']
+            total_pages, page_num = 1, 0
+            while page_num < total_pages:
+                season_json = self._download_json(season_url.format(season_id, show_id, str(page_num + 1)),
+                                                  video_id=show_id, headers=headers,
+                                                  note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
+                if page_num == 0:
+                    total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
+                episodes_json = season_json['data']
+                for episode in episodes_json:
+                    video_id = episode['attributes']['path']
+                    yield self.url_result(
+                        'https://discoveryplus.it/videos/%s' % video_id,
+                        ie=DPlayIE.ie_key(), video_id=video_id)
+                page_num += 1
+
+    def _real_extract(self, url):
+        show_name = self._match_valid_url(url).group('show_name')
+        return self.playlist_result(self._entries(show_name), playlist_id=show_name)

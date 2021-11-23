@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+import uuid
 
 from ..compat import compat_str
 from ..utils import try_get
@@ -29,13 +30,18 @@ class DiscoveryPlusIndiaIE(DPlayIE):
         },
         'params': {
             'skip_download': True,
-        },
-        'skip': 'Cookies (not necessarily logged in) are needed'
+        }
     }]
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
         headers['x-disco-params'] = 'realm=%s' % realm
         headers['x-disco-client'] = 'WEB:UNKNOWN:dplus-india:17.0.0'
+        headers['Authorization'] = 'Bearer ' + self._download_json(
+            disco_base + 'token', display_id, 'Downloading token',
+            query={
+                'realm': realm,
+                'deviceId': uuid.uuid4().hex,
+            })['data']['attributes']['token']
 
     def _download_video_playback_info(self, disco_base, video_id, headers):
         return self._download_json(
@@ -50,7 +56,7 @@ class DiscoveryPlusIndiaIE(DPlayIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         return self._get_disco_api_info(
-            url, display_id, 'ap2-prod-direct.discoveryplus.in', 'dplusindia', 'in')
+            url, display_id, 'ap2-prod-direct.discoveryplus.in', 'dplusindia', 'in', 'https://www.discoveryplus.in/')
 
 
 class DiscoveryPlusIndiaShowIE(InfoExtractor):
@@ -69,6 +75,12 @@ class DiscoveryPlusIndiaShowIE(InfoExtractor):
             'x-disco-params': 'realm=dplusindia',
             'referer': 'https://www.discoveryplus.in/',
         }
+        headers['Authorization'] = 'Bearer ' + self._download_json(
+            'https://ap2-prod-direct.discoveryplus.in/token', show_name, 'Downloading token',
+            query={
+                'realm': 'dplusindia',
+                'deviceId': uuid.uuid4().hex,
+            })['data']['attributes']['token']
         show_url = 'https://ap2-prod-direct.discoveryplus.in/cms/routes/show/{}?include=default'.format(show_name)
         show_json = self._download_json(show_url,
                                         video_id=show_name,
