@@ -533,7 +533,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             url = compat_urllib_parse_unquote(urlh.url)
             video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url
-            format = {'url': url}
+            format = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}
             itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
             if itag and itag in YoutubeIE._formats:  # Naughty access but it works
                 format.update(YoutubeIE._formats[itag])
