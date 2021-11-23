@@ -370,7 +370,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _WAYBACK_DEFAULT_CAPTURE_DATE = '20050214000000'
     _WAYBACK_BASE_DATE_URL = 'https://web.archive.org/web/%sif_/' % _WAYBACK_DEFAULT_CAPTURE_DATE  # TODO
 
-    def _call_api(self, item_id, url, query: dict, note='Downloading CDX API JSON'):
+    def _call_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note='Downloading CDX API JSON'):
 
         def _format_cdx_response(res):
             keys = try_get(res, lambda x: x[0], list) or []
@@ -382,6 +382,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'fastLatest': True,
             'fl': 'original,mimetype,length,timestamp',
             'limit': 100,
+            'filter': ['statuscode:200'] + (filters or []),
+            'collapse': collapse or [],
             **(query or {})
         }
         return _format_cdx_response(
@@ -478,12 +480,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         thumbnails = []
         for ext, server, url in thumbnail_base_urls:
-            query = {
-                'matchType': 'prefix',
-                'collapse': 'urlkey',
-                'filter': ['mimetype:image\/(?:webp|jpeg)', 'statuscode:200']
-            }
-            res = self._call_api(video_id, url, query)
+
+            res = self._call_api(
+                video_id, url, filters=['mimetype:image\/(?:webp|jpeg)'],
+                collapse=['urlkey'], query={'matchType': 'prefix'})
+
             if res:
                 # TODO fix sorting
                 # TODO: different thumbnails overtime, sort by date?
@@ -536,12 +537,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
         if date_from_url:
             snapshot_dates.append(date_from_url)
 
-        snapshot_query = {
-            'collapse': ['timestamp:8', 'digest'], # collapse same day
-            'mimetype': 'mimetype:text\/html',
-            'filter': 'statuscode:200',
-        }
-        snapshots = self._call_api(video_id, f'https://www.youtube.com/watch?v={video_id}', snapshot_query) or []
+        snapshots = self._call_api(
+            video_id, f'https://www.youtube.com/watch?v={video_id}',
+            filters=['mimetype:text\/html'], collapse=['timestamp:6', 'digest']) or []
         # find snapshot of new version of yt
 
 
