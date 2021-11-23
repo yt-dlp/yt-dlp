@@ -1452,6 +1452,9 @@ class InfoExtractor(object):
                 item_type = e.get('@type')
                 if expected_type is not None and expected_type != item_type:
                     continue
+                rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)
+                if rating is not None:
+                    info['average_rating'] = rating
                 if item_type in ('TVEpisode', 'Episode'):
                     episode_name = unescapeHTML(e.get('name'))
                     info.update({
