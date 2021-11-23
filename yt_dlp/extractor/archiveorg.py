@@ -263,12 +263,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _VALID_URL = r"""(?x)^
                 (?:https?://)?web\.archive\.org/
                     (?:web/)?
-                    (?:[0-9A-Za-z_*]+/)?  # /web and the version index is optional
+                    (?:(?P<date>[0-9]{14})?[0-9A-Za-z_*]*/)?  # /web and the version index is optional
 
                 (?:https?(?::|%3[Aa])//)?
                 (?:
                     (?:\w+\.)?youtube\.com/watch(?:\?|%3[fF])(?:[^\#]+(?:&|%26))?v(?:=|%3[dD])  # Youtube URL
-                    |(wayback-fakeurl\.archive\.org/yt/)  # Or the internal fake url
+                    |(?:wayback-fakeurl\.archive\.org/yt/)  # Or the internal fake url
                 )
                 (?P<id>[0-9A-Za-z_-]{11})(?:%26|\#|&|$)
                 """
@@ -366,7 +366,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _YT_ALL_THUMB_SERVERS = orderedSet(
         _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in range(0, 5)]])
 
-    _BASE_WAYBACK_URL = 'https://web.archive.org/web/20050214000000if_/'
+    _WAYBACK_BASE_URL = 'https://web.archive.org/web/%sif_/'
+    _WAYBACK_DEFAULT_CAPTURE_DATE = '20050214000000'
+    _WAYBACK_BASE_DATE_URL = 'https://web.archive.org/web/%sif_/' % _WAYBACK_DEFAULT_CAPTURE_DATE  # TODO
 
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
@@ -481,7 +483,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 # TODO: different thumbnails overtime, sort by date?
                 thumbnails.extend(
                     {
-                        'url': self._BASE_WAYBACK_URL + sect[0],
+                        'url': self._WAYBACK_BASE_DATE_URL + sect[0],
                         'filesize': int_or_none(sect[2]),
                         'height': int_or_none(sect[2]),  # filesize
                         'id': int_or_none(sect[3])  # timestamp
@@ -504,12 +506,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
             page_title, 'title', default='')
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
 
+        snapshot_date, video_id = self._match_valid_url(url).groups()
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
         webpage = self._download_webpage(
-            self._BASE_WAYBACK_URL + 'http://www.youtube.com/watch?v=%s' % video_id,
+            self._WAYBACK_BASE_DATE_URL + 'http://www.youtube.com/watch?v=%s' % video_id,
             video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived).')
 
         info = self._extract_metadata(video_id, webpage or '')
