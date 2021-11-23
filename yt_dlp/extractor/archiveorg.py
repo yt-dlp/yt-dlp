@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import re
 import json
-
+import itertools
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..compat import (
@@ -371,17 +371,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _WAYBACK_BASE_DATE_URL = 'https://web.archive.org/web/%sif_/' % _WAYBACK_DEFAULT_CAPTURE_DATE  # TODO
 
     def _call_api(self, item_id, url, query: dict, note='Downloading CDX API JSON'):
+
+        def _format_cdx_response(res):
+            keys = try_get(res, lambda x: x[0], list) or []
+            values = try_get(res, lambda x: x[1:], list) or []
+            return list(dict(zip(keys, v)) for v in values)
         query = {
             'url': url,
             'output': 'json',
             'fastLatest': True,
-            'filter': 'statuscode:200',
             'fl': 'original,mimetype,length,timestamp',
             'limit': 100,
             **(query or {})
         }
-        return try_get(
-            self._download_json('https://web.archive.org/cdx/search/cdx', item_id, note, query=query), lambda x: x[1:])
+        return _format_cdx_response(
+            self._download_json('https://web.archive.org/cdx/search/cdx', item_id, note, query=query))
 
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
@@ -477,7 +481,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             query = {
                 'matchType': 'prefix',
                 'collapse': 'urlkey',
-                'filter': 'mimetype:image\/(?:webp|jpeg)'
+                'filter': ['mimetype:image\/(?:webp|jpeg)', 'statuscode:200']
             }
             res = self._call_api(video_id, url, query)
             if res:
@@ -526,12 +530,32 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 break
         return merge_dicts(*info_dicts)
 
+    def _get_snapshot_dates(self, video_id, url):
+        snapshot_dates = []
+        date_from_url = self._match_valid_url(url).group('date')
+        if date_from_url:
+            snapshot_dates.append(date_from_url)
+
+        snapshot_query = {
+            'collapse': ['timestamp:8', 'digest'], # collapse same day
+            'mimetype': 'mimetype:text\/html',
+            'filter': 'statuscode:200',
+        }
+        snapshots = self._call_api(video_id, f'https://www.youtube.com/watch?v={video_id}', snapshot_query) or []
+        # find snapshot of new version of yt
+
+
+        print(snapshots)
+        return snapshot_dates
+
     def _real_extract(self, url):
 
-        snapshot_date, video_id = self._match_valid_url(url).groups()
+        video_id = self._match_id(url)
+        #snapshot_date, video_id = self._match_valid_url(url).groups()
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
-        info = self._idk_what_to_name_this(video_id, [snapshot_date, self._WAYBACK_DEFAULT_CAPTURE_DATE])
+        snapshot_dates = self._get_snapshot_dates(video_id, url)
+        info = self._idk_what_to_name_this(video_id, snapshot_dates)
         info['thumbnails'] = self._extract_thumbnails(video_id)
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
         internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
