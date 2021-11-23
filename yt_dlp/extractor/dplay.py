@@ -439,22 +439,27 @@ class AnimalPlanetIE(DiscoveryPlusIE):
 
 
 class DiscoveryPlusShowBaseIE(InfoExtractor):
+    _HEADERS = {}
+
+    def _real_initialize(self):
+        if not self._HEADERS:
+            self._HEADERS = {
+                'x-disco-client': self._X_CLIENT,
+                'x-disco-params': 'realm=' + self._REALM,
+                'referer': self._DOMAIN,
+            }
+            self._HEADERS['Authorization'] = 'Bearer ' + self._download_json(
+                self._BASE_API + 'token', None, 'Downloading token',
+                query={
+                    'realm': self._REALM,
+                    'deviceId': uuid.uuid4().hex,
+                })['data']['attributes']['token']
+
     def _entries(self, show_name):
-        headers = {
-            'x-disco-client': self._X_CLIENT,
-            'x-disco-params': 'realm=' + self._REALM,
-            'referer': self._DOMAIN,
-        }
-        headers['Authorization'] = 'Bearer ' + self._download_json(
-            self._BASE_API + 'token', show_name, 'Downloading token',
-            query={
-                'realm': self._REALM,
-                'deviceId': uuid.uuid4().hex,
-            })['data']['attributes']['token']
-        show_url = self._BASE_API + 'cms/routes/' + self._SHOW_STR + '/{}?include=default'.format(show_name)
+        show_url = f'{self._BASE_API}cms/routes/{self._SHOW_STR}/{show_name}?include=default'
         show_json = self._download_json(show_url,
                                         video_id=show_name,
-                                        headers=headers)['included'][self._INDEX]['attributes']['component']
+                                        headers=self._HEADERS)['included'][self._INDEX]['attributes']['component']
         show_id = show_json['mandatoryParams'].split('=')[-1]
         season_url = self._BASE_API + 'content/videos?sort=episodeNumber&filter[seasonNumber]={}&filter[show.id]={}&page[size]=100&page[number]={}'
         for season in show_json['filters'][0]['options']:
@@ -462,7 +467,7 @@ class DiscoveryPlusShowBaseIE(InfoExtractor):
             total_pages, page_num = 1, 0
             while page_num < total_pages:
                 season_json = self._download_json(season_url.format(season_id, show_id, str(page_num + 1)),
-                                                  video_id=show_id, headers=headers,
+                                                  video_id=show_id, headers=self._HEADERS,
                                                   note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
                 if page_num == 0:
                     total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
@@ -496,3 +501,71 @@ class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
     _SHOW_STR = 'programmi'
     _INDEX = 1
     _VIDEO_IE = DPlayIE
+
+
+class DiscoveryPlusIndiaIE(DPlayIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/videos?' + DPlayIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.in/videos/how-do-they-do-it/fugu-and-more?seasonId=8&type=EPISODE',
+        'info_dict': {
+            'id': '27104',
+            'ext': 'mp4',
+            'display_id': 'how-do-they-do-it/fugu-and-more',
+            'title': 'Fugu and More',
+            'description': 'The Japanese catch, prepare and eat the deadliest fish on the planet.',
+            'duration': 1319,
+            'timestamp': 1582309800,
+            'upload_date': '20200221',
+            'series': 'How Do They Do It?',
+            'season_number': 8,
+            'episode_number': 2,
+            'creator': 'Discovery Channel',
+        },
+        'params': {
+            'skip_download': True,
+        }
+    }]
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers['x-disco-params'] = 'realm=%s' % realm
+        headers['x-disco-client'] = 'WEB:UNKNOWN:dplus-india:17.0.0'
+        headers['Authorization'] = 'Bearer ' + self._download_json(
+            disco_base + 'token', display_id, 'Downloading token',
+            query={
+                'realm': realm,
+                'deviceId': uuid.uuid4().hex,
+            })['data']['attributes']['token']
+
+    def _download_video_playback_info(self, disco_base, video_id, headers):
+        return self._download_json(
+            disco_base + 'playback/v3/videoPlaybackInfo',
+            video_id, headers=headers, data=json.dumps({
+                'deviceInfo': {
+                    'adBlocker': False,
+                },
+                'videoId': video_id,
+            }).encode('utf-8'))['data']['attributes']['streaming']
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._get_disco_api_info(
+            url, display_id, 'ap2-prod-direct.discoveryplus.in', 'dplusindia', 'in', 'https://www.discoveryplus.in/')
+
+
+class DiscoveryPlusIndiaShowIE(DiscoveryPlusShowBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/show/(?P<show_name>[^/]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.in/show/how-do-they-do-it',
+        'playlist_mincount': 140,
+        'info_dict': {
+            'id': 'how-do-they-do-it',
+        },
+    }]
+
+    _BASE_API = 'https://ap2-prod-direct.discoveryplus.in/'
+    _DOMAIN = 'https://www.discoveryplus.in/'
+    _X_CLIENT = 'WEB:UNKNOWN:dplus-india:prod'
+    _REALM = 'dplusindia'
+    _SHOW_STR = 'show'
+    _INDEX = 4
+    _VIDEO_IE = DiscoveryPlusIndiaIE

@@ -340,10 +340,6 @@ from .democracynow import DemocracynowIE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
-from .discoveryplusindia import (
-    DiscoveryPlusIndiaIE,
-    DiscoveryPlusIndiaShowIE,
-)
 from .dotsub import DotsubIE
 from .douyutv import (
     DouyuShowIE,
@@ -357,6 +353,8 @@ from .dplay import (
     DIYNetworkIE,
     AnimalPlanetIE,
     DiscoveryPlusItalyShowIE,
+    DiscoveryPlusIndiaIE,
+    DiscoveryPlusIndiaShowIE,
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
