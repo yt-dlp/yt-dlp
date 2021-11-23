@@ -33,11 +33,56 @@ class ArteTVIE(ArteTVBaseIE):
                         /(?P<id>\d{6}-\d{3}-[AF])
                     ''' % {'langs': ArteTVBaseIE._ARTE_LANGUAGES}
     _TESTS = [{
+        'url': 'https://www.arte.tv/de/videos/092724-001-A/lasst-mich-schlafen/',
+        'info_dict': {
+            'id': '092724-001-A',
+            'ext': 'mp4',
+            'title': 'Lasst mich schlafen!',
+            'alt_title': 'Wie schlafen wir?',
+            'description': 'Gegen Abend signalisiert die biologische Uhr dem Körper durch das Ausschütten von Melatonin, dass es Zeit ist, '
+                           'herunterzufahren. Doch was geschieht dabei im Gehirn? Der Schlafforscher Raphael Heinzer vom Schlafforschungsze'
+                           'ntrum Lausanne will dies herausfinden und beobachtet die Hirnströme in den verschiedenen Schlafphasen.',
+            'upload_date': '20200224'
+        },
+    }, {
+        'url': 'https://www.arte.tv/de/videos/030273-820-A/arte-reportage',
+        'info_dict': {
+            'id': '030273-820-A',
+            'ext': 'mp4',
+            'title': 'ARTE Reportage',
+            'alt_title': 'Sudan: Die Tigray fliehen aus Äthiopien',
+            'description': 'Sudan: In nur wenigen Stunden verloren viele Bewohner aus der Region Tigray alles im Konflikt gegen die Regierun'
+                           'g.In diesem Konflikt geht es um die jahrzehntealten Spannungen zwischen den gut 80 Ethnien im Land. / Elfenbeink'
+                           'üste: Die 1.000 Einwohner des Dorfs Trinlé-Diapleu integrieren Patienten eines Psychiatrischen Zentrums in ihr D'
+                           'orfleben, um ihnen bei der Genesung zu helfen.\n\n(1): Sudan: Die Tigray fliehen aus ÄthiopienIn nur wenigen Stu'
+                           'nden verloren viele Bewohner aus der Region Tigray alles im Konflikt gegen die Regierung.Ärzte und Bauern, Stude'
+                           'nten und Händler, ganze Familien aus der Region Tigray mussten im Konflikt gegen die Regierung fliehen. In ihrer'
+                           ' Heimatregion hatten Tigray Rebellen die Regierung herausgefordert und die schlug hart zurück. In diesem Konflik'
+                           't geht es um die jahrzehntealten Spannungen zwischen den gut 80 Ethnien im Land, es geht um politischen Einfluss'
+                           ' und um Landbesitz. Auch dem neuen und zunächst international hoch gelobten Ministerpräsidenten Abiy Ahmed Ali i'
+                           'st es nicht gelungen, die Ethnien untereinander zu befrieden. Unsere Reporter begleiteten die Flüchtlinge aus Ät'
+                           'hiopien im Sudan in ein Flüchtlingscamp in der Wüste, die meisten verbringen die ersten Nächte dort unter freiem'
+                           ' Himmel.(2): Elfenbeinküste: Das Dorf, das psychisch Kranken hilftDie 1.000 Einwohner des Dorfs Trinlé-Diapleu h'
+                           'elfen Patienten in ihrem Psychiatrie Zentrum gesund zu werden.In Trinlé-Diapleu leben die psychisch Kranken nich'
+                           't abgetrennt von den Leuten im Dorf, ganz im Gegenteil: Die Patienten des Psychiatrischen Zentrums Victor Houali'
+                           ' werden gleich nach ihrer Ankunft behutsam in das Dorfleben integriert. Das Prinzip der offenen Psychiatrie, in '
+                           'dieser Form wohl nicht nur in der Elfenbeinküste einmalig, haben zwei Ärzte der in Frankreich sehr bekannten Cli'
+                           'nique de La Borde, Philippe Bichon und Frédérique Drogoul, in den 80er Jahren hier eingeführt. Auch Patienten mi'
+                           't Psychosen und Wahnvorstellungen oder schwere Fälle von Schizophrenie heilen sie hier mit der Hilfe von Medikam'
+                           'enten, Therapiegesprächen und Mitmenschlichkeit. Für viele Kranke in der Elfenbeinküste ist das Victor Houali di'
+                           'e letzte Hoffnung auf Genesung.',
+            'upload_date': '20210716'
+        }
+    }, {
         'url': 'https://www.arte.tv/en/videos/088501-000-A/mexico-stealing-petrol-to-survive/',
         'info_dict': {
             'id': '088501-000-A',
             'ext': 'mp4',
             'title': 'Mexico: Stealing Petrol to Survive',
+            'alt_title': 'ARTE Reportage',
+            'description': 'In Mexico, the black market in oil is more lucrative than drugs. Poor families drill into pipelines and syphon of'
+                           'f the petrol that finds its way to illegal gas stations. The illicit trade in gasoline is highly dangerous and co'
+                           'sts Mexico 3 billion euros a year.',
             'upload_date': '20190628',
         },
     }, {
@@ -171,14 +216,19 @@ class ArteTVIE(ArteTVBaseIE):
         # with respect to other formats with the same resolution
         self._sort_formats(formats, ('res', 'quality'))
 
-        return {
+        extracted_metadata = {
             'id': player_info.get('VID') or video_id,
             'title': title,
-            'description': player_info.get('VDE') or player_info.get('V7T'),
             'upload_date': unified_strdate(upload_date_str),
             'thumbnail': player_info.get('programImage') or player_info.get('VTU', {}).get('IUR'),
             'formats': formats,
         }
+        if player_info.get('subtitle', '').strip():
+            extracted_metadata['alt_title'] = player_info.get('subtitle', '').strip()
+        description = "%s\n\n%s" % (player_info.get('V7T', '').strip(), player_info.get('VDE', '').strip())
+        if description.strip():
+            extracted_metadata['description'] = description.strip()
+        return extracted_metadata
 
 
 class ArteTVEmbedIE(InfoExtractor):
