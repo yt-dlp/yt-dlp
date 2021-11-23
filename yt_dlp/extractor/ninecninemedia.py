@@ -105,7 +105,7 @@ class NineCNineMediaIE(InfoExtractor):
 class CPTwentyFourIE(InfoExtractor):
     IE_NAME = 'cp24'
     _GEO_COUNTRIES = ['CA']
-    _VALID_URL = r'https?://(?:www\.)?cp24\.com/[^/]+/?.*'
+    _VALID_URL = r'https?://(?:www\.)?cp24\.com/news/.*'
 
     _TESTS = [{
         'url': 'https://www.cp24.com/news/video-shows-atm-being-ripped-out-of-business-by-pickup-truck-driver-in-mississauga-1.5676877',
