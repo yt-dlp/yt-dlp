@@ -117,7 +117,7 @@ class ITVIE(InfoExtractor):
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_subs, featureset_subs = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
+             for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
              if try_get(featureset, lambda x: x[2]) == 'outband-webvtt'),
             (None, None))
 
@@ -146,7 +146,7 @@ class ITVIE(InfoExtractor):
         # See: https://github.com/yt-dlp/yt-dlp/issues/986
         platform_tag_video, featureset_video = next(
             ((platform_tag, featureset)
-             for platform_tag, featuresets in reversed(variants.items()) for featureset in featuresets
+             for platform_tag, featuresets in reversed(list(variants.items())) for featureset in featuresets
              if try_get(featureset, lambda x: x[:2]) == ['hls', 'aes']),
             (None, None))
         if not platform_tag_video or not featureset_video:
