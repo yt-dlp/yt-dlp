@@ -438,34 +438,23 @@ class AnimalPlanetIE(DiscoveryPlusIE):
     _API_URL = 'us1-prod-direct.animalplanet.com'
 
 
-class DiscoveryPlusItalyShowIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.it/programmi/(?P<show_name>[^/]+)/?(?:[?#]|$)'
-    _TESTS = [{
-        'url': 'https://www.discoveryplus.it/programmi/deal-with-it-stai-al-gioco',
-        'playlist_mincount': 168,
-        'info_dict': {
-            'id': 'deal-with-it-stai-al-gioco',
-        },
-    }]
-
-    _BASE_API = 'https://disco-api.discoveryplus.it/'
-
+class DiscoveryPlusShowBaseIE(InfoExtractor):
     def _entries(self, show_name):
         headers = {
-            'x-disco-client': 'WEB:UNKNOWN:dplay-client:2.6.0',
-            'x-disco-params': 'realm=dplayit',
-            'referer': 'https://www.discoveryplus.it/',
+            'x-disco-client': self._X_CLIENT,
+            'x-disco-params': 'realm=' + self._REALM,
+            'referer': self._DOMAIN,
         }
         headers['Authorization'] = 'Bearer ' + self._download_json(
             self._BASE_API + 'token', show_name, 'Downloading token',
             query={
-                'realm': 'dplayit',
+                'realm': self._REALM,
                 'deviceId': uuid.uuid4().hex,
             })['data']['attributes']['token']
-        show_url = self._BASE_API + 'cms/routes/programmi/{}?include=default'.format(show_name)
+        show_url = self._BASE_API + 'cms/routes/' + self._SHOW_STR + '/{}?include=default'.format(show_name)
         show_json = self._download_json(show_url,
                                         video_id=show_name,
-                                        headers=headers)['included'][1]['attributes']['component']
+                                        headers=headers)['included'][self._INDEX]['attributes']['component']
         show_id = show_json['mandatoryParams'].split('=')[-1]
         season_url = self._BASE_API + 'content/videos?sort=episodeNumber&filter[seasonNumber]={}&filter[show.id]={}&page[size]=100&page[number]={}'
         for season in show_json['filters'][0]['options']:
@@ -481,10 +470,29 @@ class DiscoveryPlusItalyShowIE(InfoExtractor):
                 for episode in episodes_json:
                     video_id = episode['attributes']['path']
                     yield self.url_result(
-                        'https://discoveryplus.it/videos/%s' % video_id,
-                        ie=DPlayIE.ie_key(), video_id=video_id)
+                        '%svideos/%s' % (self._DOMAIN, video_id),
+                        ie=self._VIDEO_IE.ie_key(), video_id=video_id)
                 page_num += 1
 
     def _real_extract(self, url):
         show_name = self._match_valid_url(url).group('show_name')
         return self.playlist_result(self._entries(show_name), playlist_id=show_name)
+
+
+class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.it/programmi/(?P<show_name>[^/]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.it/programmi/deal-with-it-stai-al-gioco',
+        'playlist_mincount': 168,
+        'info_dict': {
+            'id': 'deal-with-it-stai-al-gioco',
+        },
+    }]
+
+    _BASE_API = 'https://disco-api.discoveryplus.it/'
+    _DOMAIN = 'https://www.discoveryplus.it/'
+    _X_CLIENT = 'WEB:UNKNOWN:dplay-client:2.6.0'
+    _REALM = 'dplayit'
+    _SHOW_STR = 'programmi'
+    _INDEX = 1
+    _VIDEO_IE = DPlayIE
