@@ -357,6 +357,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
         }
     ]
     # 2018 response context https://web.archive.org/web/20180803221945/https://www.youtube.com/watch?v=NGgpLa9zYpM&gl=US&hl=en
+    # https://web.archive.org/https://www.youtube.com/watch?v=zrc2gGhTJpk only capture has no title dead video. Working capture has params on URL, so have to use fallback.
+    # TODO: https://web.archive.org/https://www.youtube.com/watch?v=-giLdluEXqQ gives wrong description
 
     _YT_INITIAL_DATA_RE = r'(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s' % YoutubeIE._YT_INITIAL_DATA_RE
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
@@ -379,9 +381,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
         query = {
             'url': url,
             'output': 'json',
-            'fastLatest': True,
             'fl': 'original,mimetype,length,timestamp',
-            'limit': 100,
+            'limit': 500,
             'filter': ['statuscode:200'] + (filters or []),
             'collapse': collapse or [],
             **(query or {})
@@ -473,6 +474,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         return info
 
     def _extract_thumbnails(self, video_id):
+        # TODO: fix extraction
         try_all = 'thumbnails' in self._configuration_arg('checkall')
         thumbnail_base_urls = [(ext, server, 'http://{server}/vi{webp}/{video_id}'.format(
             webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server))
@@ -512,49 +514,58 @@ class YoutubeWebArchiveIE(InfoExtractor):
             r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
             page_title, 'title', default='')
 
-    def _idk_what_to_name_this(self, video_id, snapshots: list):
-        # TODO: what if the snapshots are the same?
+    def _idk_what_to_name_this(self, video_id, captures: list):
+        # TODO: what if the captures are the same?
         # Might be worth querying CDX, getting oldest non-301 url. Also get oldest non-301 post 201X url for metadata extraction.
-        # also, if the snapshot
+        # also, if the capture
         # 'https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DsIgBVsl13d8&matchType=prefix&collapse=timestamp%3A6&collapse=digest&collapse=length%3A2&output=json&fl=timestamp%2Clength%2Cstatuscode&filter=statuscode%3A200&filter=mimetype%3Atext%5C%2Fhtml&limit=10&fastLatest=true'
         info_dicts = []
-        for snapshot_date in snapshots:
-            if not snapshot_date:
+        for capture_date in captures:
+            if not capture_date:
                 continue
             webpage = self._download_webpage(
-                (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (snapshot_date, video_id),
+                (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture_date, video_id),
                 video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived)',
-                note=f'Downloading webpage snapshot {snapshot_date}')
+                note=f'Downloading webpage capture {capture_date}')
             info = self._extract_metadata(video_id, webpage or '')
             info_dicts.append(info)
-            if info.get('title') and 'snapshots' not in self._configuration_arg('checkall'):
+            if info.get('title') and 'captures' not in self._configuration_arg('checkall'):
                 break
         return merge_dicts(*info_dicts)
 
-    def _get_snapshot_dates(self, video_id, url):
-        snapshot_dates = []
-        date_from_url = self._match_valid_url(url).group('date')
-        if date_from_url:
-            snapshot_dates.append(date_from_url)
-
-        snapshots = self._call_api(
+    def _get_capture_dates(self, video_id, url_date):
+        capture_dates = []
+        response = self._call_api(
             video_id, f'https://www.youtube.com/watch?v={video_id}',
-            filters=['mimetype:text\/html'], collapse=['timestamp:6', 'digest']) or []
-        # find snapshot of new version of yt
+            filters=['mimetype:text/html'], collapse=['timestamp:6', 'digest'], query={'matchType': 'prefix'}) or []
+        captures = sorted([int_or_none(r['timestamp']) for r in response])  # TODO: what happens if timestamp is none
 
+        # Modern captures is defined as the common date captures on Wayback switched to the new layout
+        # i.e the layout we support extracting most metadata from
+        # Hence we prefer one of these captures if possible.
+        modern_captures = list(filter(lambda x: x >= 20200701000000, captures))
+        if modern_captures:
+            capture_dates.append(modern_captures[0])
+        capture_dates.append(url_date)  # TODO: do we want this to be first or second priority?
+        if captures:
+            capture_dates.append(captures[0])
+        if 'captures' in self._configuration_arg('checkall'):
+            capture_dates.extend(modern_captures+captures)
 
-        print(snapshots)
-        return snapshot_dates
+        # CDX API does not find watch urls with extra parameters
+        # So in the worst case, we'll fallback to the earliest capture available
+        capture_dates.append(self._WAYBACK_DEFAULT_CAPTURE_DATE)
+        return orderedSet(capture_dates)
 
     def _real_extract(self, url):
 
-        video_id = self._match_id(url)
-        #snapshot_date, video_id = self._match_valid_url(url).groups()
+        capture_date, video_id = self._match_valid_url(url).groups()
         # If the video is no longer available, the oldest capture may be one before it was removed.
         # Setting the capture date in url to early date seems to redirect to earliest capture.
-        snapshot_dates = self._get_snapshot_dates(video_id, url)
-        info = self._idk_what_to_name_this(video_id, snapshot_dates)
-        info['thumbnails'] = self._extract_thumbnails(video_id)
+        capture_dates = self._get_capture_dates(video_id, int_or_none(capture_date))
+        self.write_debug('Captures to try: ' + ', '.join(str(i) for i in capture_dates if i is not None))
+        info = self._idk_what_to_name_this(video_id, capture_dates)
+       # info['thumbnails'] = self._extract_thumbnails(video_id)
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
         internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
         urlh = None
