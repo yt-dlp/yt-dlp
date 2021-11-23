@@ -359,6 +359,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
     # 2018 response context https://web.archive.org/web/20180803221945/https://www.youtube.com/watch?v=NGgpLa9zYpM&gl=US&hl=en
     # https://web.archive.org/https://www.youtube.com/watch?v=zrc2gGhTJpk only capture has no title dead video. Working capture has params on URL, so have to use fallback.
     # TODO: https://web.archive.org/https://www.youtube.com/watch?v=-giLdluEXqQ gives wrong description
+    # https://web.archive.org/web/20171205211234/https://www.youtube.com/watch?v=lHJTf93HL1s no working captures
 
     _YT_INITIAL_DATA_RE = r'(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s' % YoutubeIE._YT_INITIAL_DATA_RE
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
@@ -535,26 +536,27 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     def _get_capture_dates(self, video_id, url_date):
         capture_dates = []
+        # Note that the CDX API will not find watch pages with extra params in the url.
         response = self._call_api(
             video_id, f'https://www.youtube.com/watch?v={video_id}',
             filters=['mimetype:text/html'], collapse=['timestamp:6', 'digest'], query={'matchType': 'prefix'}) or []
-        captures = sorted([int_or_none(r['timestamp']) for r in response])  # TODO: what happens if timestamp is none
+        all_captures = ([int_or_none(r['timestamp']) for r in response])  # TODO: what happens if timestamp is none
 
+        all_captures.sort()
         # Modern captures is defined as the common date captures on Wayback switched to the new layout
         # i.e the layout we support extracting most metadata from
         # Hence we prefer one of these captures if possible.
-        modern_captures = list(filter(lambda x: x >= 20200701000000, captures))
+        modern_captures = list(filter(lambda x: x >= 20200701000000, all_captures))
         if modern_captures:
             capture_dates.append(modern_captures[0])
         capture_dates.append(url_date)  # TODO: do we want this to be first or second priority?
-        if captures:
-            capture_dates.append(captures[0])
+        if all_captures:
+            capture_dates.append(all_captures[0])
         if 'captures' in self._configuration_arg('checkall'):
-            capture_dates.extend(modern_captures+captures)
+            capture_dates.extend(modern_captures+all_captures)
 
-        # CDX API does not find watch urls with extra parameters
-        # So in the worst case, we'll fallback to the earliest capture available
-        capture_dates.append(self._WAYBACK_DEFAULT_CAPTURE_DATE)
+        # In the worst case, we'll fallback to the earliest and newest captures available
+        capture_dates.extend([self._WAYBACK_DEFAULT_CAPTURE_DATE, 20690420000000])  # TODO
         return orderedSet(capture_dates)
 
     def _real_extract(self, url):
@@ -600,4 +602,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
             if not info.get('duration'):
                 info['duration'] = str_to_int(try_get(video_file_url_qs, lambda x: x['dur'][0]))
 
+        if not info.get('title'):
+            info['title'] = video_id
         return info
