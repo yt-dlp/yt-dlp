@@ -30,7 +30,7 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp, traverse_obj, float_or_none,
-    urljoin, orderedSet, get_domain, url_basename, base_url
+    urljoin, orderedSet, get_domain, url_basename, base_url, urlhandle_detect_ext
 )
 
 
@@ -362,11 +362,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
     _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
 
-    _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']
+    _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
     _YT_ALL_THUMB_SERVERS = orderedSet(
         _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in range(0, 5)]])
 
     _BASE_WAYBACK_URL = 'https://web.archive.org/web/20050214000000if_/'
+
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
             (r'%s\s*%s' % (regex, self._YT_INITIAL_BOUNDARY_RE),
@@ -452,7 +453,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         return info
 
     def _extract_thumbnails(self, video_id):
-        try_all = 'searchmore' in self._configuration_arg('thumbnails')
+        try_all = 'checkall' in self._configuration_arg('thumbnails')
         thumbnail_base_urls = [(ext, server, 'http://{server}/vi{webp}/{video_id}'.format(
             webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server))
             for server in (self._YT_ALL_THUMB_SERVERS if try_all else self._YT_DEFAULT_THUMB_SERVERS) for ext in (('jpg', 'webp') if try_all else ('jpg',))]
@@ -486,8 +487,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                         'id': int_or_none(sect[3])  # timestamp
                     } for sect in res[1:] if len(sect) == 4
                 )
-                if 'nobreakonfind' not in self._configuration_arg('thumbnails'):
-                    break  # TODO: how to we decide to break early, and how many archived eps do we check?
+                # By default only try default thumbnail servers
+                if 'checkall' not in self._configuration_arg('thumbnails'):
+                    break
 
         # TODO: deal with duplicate files from different servers?
         self._remove_duplicate_formats(thumbnails)
@@ -514,11 +516,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
         # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
         internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
-        video_file_url = None
+        urlh = None
         try:
-            video_file_url = compat_urllib_parse_unquote(
-                self._request_webpage(HEADRequest(internal_fake_url), video_id,
-                note='Fetching video file url', expected_status=True).url)
+            urlh = self._request_webpage(HEADRequest(internal_fake_url), video_id,
+                note='Fetching video file url', expected_status=True)
         except ExtractorError as e:
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
@@ -528,17 +529,18 @@ class YoutubeWebArchiveIE(InfoExtractor):
             else:
                 raise
 
-        if video_file_url:
-            video_file_url_qs = parse_qs(video_file_url)
+        if urlh:
+            url = compat_urllib_parse_unquote(urlh.url)
+            video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url
-            format = {'url': video_file_url}
+            format = {'url': url}
             itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
             if itag and itag in YoutubeIE._formats:  # Naughty access but it works
                 format.update(YoutubeIE._formats[itag])
                 format.update({'format_id': itag})
             else:
                 mime = try_get(video_file_url_qs, lambda x: x['mime'][0])
-                ext = mimetype2ext(mime) or determine_ext(video_file_url)
+                ext = mimetype2ext(mime) or urlhandle_detect_ext(urlh)
                 format.update({'ext': ext})
             info['formats'] = [format]
             if not info.get('duration'):
