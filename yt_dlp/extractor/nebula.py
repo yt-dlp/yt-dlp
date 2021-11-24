@@ -255,30 +255,28 @@ class NebulaCollectionIE(NebulaBaseIE):
         },
     ]
 
-    def _fetch_collection(self, collection_id):
+    def _generate_playlist_entries(self, collection_id, channel):
         page_nr = 1
-        next_url = f'https://content.watchnebula.com/video/channels/{collection_id}/'
-        episodes = []
-        channel_details = None
-        while next_url:
-            channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer',
-                                            note=f'Retrieving channel page {page_nr}')
-            if not channel_details:
-                channel_details = channel['details']
-            episodes.extend(channel['episodes']['results'])
+        episodes = channel['episodes']['results']
+        while episodes:
+            for episode in episodes:
+                yield self._build_video_info(episode)
             next_url = channel['episodes']['next']
-            page_nr += 1
-
-        return channel_details, episodes
+            if next_url:
+                page_nr += 1
+                channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer', note=f'Retrieving channel page {page_nr}')
+                episodes = channel['episodes']['results']
+            else:
+                episodes = None
 
     def _real_extract(self, url):
         collection_id = self._match_id(url)
-        channel_details, episodes = self._fetch_collection(collection_id)
+        channel_url = f'https://content.watchnebula.com/video/channels/{collection_id}/'
+        channel = self._call_nebula_api(channel_url, collection_id, auth_type='bearer', note='Retrieving channel')
+        channel_details = channel['details']
 
         return self.playlist_result(
-            entries=[
-                self._build_video_info(episode) for episode in episodes
-            ],
+            entries=self._generate_playlist_entries(collection_id, channel),
             playlist_id=collection_id,
             playlist_title=channel_details['title'],
             playlist_description=channel_details['description']
