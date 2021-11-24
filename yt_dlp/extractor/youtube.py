@@ -3117,6 +3117,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return info
 
+
 class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _extract_channel_id(self, webpage):
@@ -3326,6 +3327,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'shelfRenderer': lambda x: self._shelf_entries(x),
                     'backstagePostThreadRenderer': self._post_thread_entries,
                     'videoRenderer': lambda x: [self._video_entry(x)],
+                    'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
+                    'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
                 }
                 for key, renderer in isr_content.items():
                     if key not in known_renderers:
@@ -3744,50 +3747,19 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             params = self._SEARCH_PARAMS
         if params:
             data['params'] = params
-        continuation = {}
+        continuation_list = [None]
         for page_num in itertools.count(1):
-            data.update(continuation)
+            data.update(continuation_list[0] or {})
             search = self._extract_response(
                 item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
-                check_get_keys=('contents', 'onResponseReceivedCommands')
-            )
-            if not search:
-                break
+                check_get_keys=('contents', 'onResponseReceivedCommands'))
             slr_contents = try_get(
                 search,
                 (lambda x: x['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'],
                  lambda x: x['onResponseReceivedCommands'][0]['appendContinuationItemsAction']['continuationItems']),
                 list)
-            if not slr_contents:
-                break
-
-            # Youtube sometimes adds promoted content to searches,
-            # changing the index location of videos and token.
-            # So we search through all entries till we find them.
-            continuation = None
-            for slr_content in slr_contents:
-                if not continuation:
-                    continuation = self._extract_continuation({'contents': [slr_content]})
-
-                isr_contents = try_get(
-                    slr_content,
-                    lambda x: x['itemSectionRenderer']['contents'],
-                    list)
-                if not isr_contents:
-                    continue
-                for content in isr_contents:
-                    if not isinstance(content, dict):
-                        continue
-                    video = content.get('videoRenderer')
-                    if not isinstance(video, dict):
-                        continue
-                    video_id = video.get('videoId')
-                    if not video_id:
-                        continue
-
-                    yield self._extract_video(video)
-
-            if not continuation:
+            yield from self._extract_entries({'contents': slr_contents}, continuation_list)
+            if not continuation_list[0]:
                 break
 
 
@@ -4569,14 +4541,15 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_DESC = 'YouTube search'
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
-    _SEARCH_PARAMS = None
+    _SEARCH_PARAMS = 'EgIQAQ%3D%3D'  # Videos only
     _TESTS = []
+
 
 class YoutubeSearchDateIE(SearchInfoExtractor, YoutubeTabBaseInfoExtractor):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
     IE_DESC = 'YouTube search, newest videos first'
-    _SEARCH_PARAMS = 'CAI%3D'
+    _SEARCH_PARAMS = 'CAISAhAB'  # Videos only, sorted by date
 
 
 class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
@@ -4590,6 +4563,14 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             'id': 'youtube-dl test video',
             'title': 'youtube-dl test video',
         }
+    }, {
+        'url': 'https://www.youtube.com/results?search_query=python&sp=EgIQAg%253D%253D',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': 'python',
+            'title': 'python',
+        }
+
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,
