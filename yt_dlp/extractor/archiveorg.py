@@ -551,6 +551,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
     def _real_extract(self, url):
 
         url_date, video_id = self._match_valid_url(url).groups()
+
+        urlh = None
+        try:
+            urlh = self._request_webpage(
+                HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
+                video_id, note='Fetching video file url', expected_status=True)
+        except ExtractorError as e:
+            # HTTP Error 404 is expected if the video is not saved.
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                self.raise_no_formats(
+                    'The requested video is not archived, indexed, or there is an issue with web.archive.org',
+                    expected=True)
+            else:
+                raise
+
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + ', '.join(str(i) for i in capture_dates if i is not None))
         info = {}
@@ -569,20 +584,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
                     break
 
         info['thumbnails'] = self._extract_thumbnails(video_id)
-
-        urlh = None
-        try:
-            urlh = self._request_webpage(
-                HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
-                video_id, note='Fetching video file url', expected_status=True)
-        except ExtractorError as e:
-            # HTTP Error 404 is expected if the video is not saved.
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
-                self.raise_no_formats(
-                    'The requested video is not archived, indexed, or there is an issue with web.archive.org',
-                    expected=True)
-            else:
-                raise
 
         if urlh:
             url = compat_urllib_parse_unquote(urlh.url)
