@@ -276,7 +276,7 @@ class FunimationIE(FunimationBaseIE):
     def _get_subtitles(self, subtitles, experience_id, episode, display_id, format_name):
         if isinstance(episode, str):
             webpage = self._download_webpage(
-                f'https://www.funimation.com/player/{experience_id}', display_id,
+                f'https://www.funimation.com/player/{experience_id}/', display_id,
                 fatal=False, note=f'Downloading player webpage for {format_name}')
             episode, _, _ = self._get_episode(webpage, episode_id=episode, fatal=False)
 

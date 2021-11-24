@@ -397,7 +397,7 @@ class JSInterpreter(object):
                 elif member == 'splice':
                     assertion(isinstance(obj, list), 'must be applied on a list')
                     assertion(argvals, 'takes one or more arguments')
-                    index, howMany = (argvals + [len(obj)])[:2]
+                    index, howMany = map(int, (argvals + [len(obj)])[:2])
                     if index < 0:
                         index += len(obj)
                     add_items = argvals[2:]

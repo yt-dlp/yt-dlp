@@ -605,6 +605,20 @@ class VimeoIE(VimeoBaseInfoExtractor):
             },
         },
         {
+            'url': 'https://vimeo.com/channels/staffpicks/143603739',
+            'info_dict': {
+                'id': '143603739',
+                'ext': 'mp4',
+                'uploader': 'Karim Huu Do',
+                'timestamp': 1445846953,
+                'upload_date': '20151026',
+                'title': 'The Shoes - Submarine Feat. Blaine Harrison',
+                'uploader_id': 'karimhd',
+                'description': 'md5:8e2eea76de4504c2e8020a9bcfa1e843',
+            },
+            'params': {'skip_download': 'm3u8'},
+        },
+        {
             # requires passing unlisted_hash(a52724358e) to load_download_config request
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
@@ -798,18 +812,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
         timestamp = None
         video_description = None
         info_dict = {}
+        config_url = None
 
         channel_id = self._search_regex(
             r'vimeo\.com/channels/([^/]+)', url, 'channel id', default=None)
         if channel_id:
             config_url = self._html_search_regex(
-                r'\bdata-config-url="([^"]+)"', webpage, 'config URL')
+                r'\bdata-config-url="([^"]+)"', webpage, 'config URL', default=None)
             video_description = clean_html(get_element_by_class('description', webpage))
             info_dict.update({
                 'channel_id': channel_id,
                 'channel_url': 'https://vimeo.com/channels/' + channel_id,
             })
-        else:
+        if not config_url:
             page_config = self._parse_json(self._search_regex(
                 r'vimeo\.(?:clip|vod_title)_page_config\s*=\s*({.+?});',
                 webpage, 'page config', default='{}'), video_id, fatal=False)

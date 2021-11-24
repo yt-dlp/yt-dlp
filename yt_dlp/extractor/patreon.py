@@ -191,7 +191,7 @@ class PatreonIE(InfoExtractor):
 
 class PatreonUserIE(InfoExtractor):
 
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?P<id>[-_\w\d]+)/?(?:posts/?)?'
+    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?P<id>[-\w]+)'
 
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',

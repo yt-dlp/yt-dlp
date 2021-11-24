@@ -53,6 +53,7 @@ ACODECS = {
     'opus': 'libopus',
     'vorbis': 'libvorbis',
     'wav': None,
+    'alac': None,
 }
 
 
@@ -383,7 +384,7 @@ class FFmpegPostProcessor(PostProcessor):
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
     COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
-    SUPPORTED_EXTS = ('best', 'aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav')
+    SUPPORTED_EXTS = ('best', 'aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav', 'alac')
 
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
@@ -399,10 +400,10 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
         limits = {
             'libmp3lame': (10, 0),
+            'libvorbis': (0, 10),
             # FFmpeg's AAC encoder does not have an upper limit for the value of -q:a.
             # Experimentally, with values over 4, bitrate changes were minimal or non-existent
             'aac': (0.1, 4),
-            'vorbis': (0, 10),
             'libfdk_aac': (1, 5),
         }.get(codec)
         if not limits:
@@ -426,7 +427,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, information):
-        path = information['filepath']
+        orig_path = path = information['filepath']
         orig_ext = information['ext']
 
         if self._preferredcodec == 'best' and orig_ext in self.COMMON_AUDIO_EXTS:
@@ -452,6 +453,10 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                     more_opts = ['-f', 'adts']
                 if filecodec == 'vorbis':
                     extension = 'ogg'
+            elif filecodec == 'alac':
+                acodec = None
+                extension = 'm4a'
+                more_opts += ['-acodec', 'alac']
             else:
                 # MP3 otherwise.
                 acodec = 'libmp3lame'
@@ -466,34 +471,41 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             more_opts = self._quality_args(acodec)
             if self._preferredcodec == 'aac':
                 more_opts += ['-f', 'adts']
-            if self._preferredcodec == 'm4a':
+            elif self._preferredcodec == 'm4a':
                 more_opts += ['-bsf:a', 'aac_adtstoasc']
-            if self._preferredcodec == 'vorbis':
+            elif self._preferredcodec == 'vorbis':
                 extension = 'ogg'
-            if self._preferredcodec == 'wav':
+            elif self._preferredcodec == 'wav':
                 extension = 'wav'
                 more_opts += ['-f', 'wav']
+            elif self._preferredcodec == 'alac':
+                extension = 'm4a'
+                more_opts += ['-acodec', 'alac']
 
         prefix, sep, ext = path.rpartition('.')  # not os.path.splitext, since the latter does not work on unicode in all setups
-        new_path = prefix + sep + extension
+        temp_path = new_path = prefix + sep + extension
 
-        information['filepath'] = new_path
-        information['ext'] = extension
-
-        # If we download foo.mp3 and convert it to... foo.mp3, then don't delete foo.mp3, silly.
-        if (new_path == path
-                or (self._nopostoverwrites and os.path.exists(encodeFilename(new_path)))):
+        if new_path == path:
+            orig_path = prepend_extension(path, 'orig')
+            temp_path = prepend_extension(path, 'temp')
+        if (self._nopostoverwrites and os.path.exists(encodeFilename(new_path))
+                and os.path.exists(encodeFilename(orig_path))):
             self.to_screen('Post-process file %s exists, skipping' % new_path)
             return [], information
 
         try:
-            self.to_screen('Destination: ' + new_path)
-            self.run_ffmpeg(path, new_path, acodec, more_opts)
+            self.to_screen(f'Destination: {new_path}')
+            self.run_ffmpeg(path, temp_path, acodec, more_opts)
         except AudioConversionError as e:
             raise PostProcessingError(
                 'audio conversion failed: ' + e.msg)
         except Exception:
             raise PostProcessingError('error running ' + self.basename)
+
+        os.replace(path, orig_path)
+        os.replace(temp_path, new_path)
+        information['filepath'] = new_path
+        information['ext'] = extension
 
         # Try to update the date time for extracted audio file.
         if information.get('filetime') is not None:
@@ -501,7 +513,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                 new_path, time.time(), information['filetime'],
                 errnote='Cannot update utime of audio file')
 
-        return [path], information
+        return [orig_path], information
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):

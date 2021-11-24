@@ -26,29 +26,31 @@ class TestYoutubeLists(unittest.TestCase):
     def test_youtube_playlist_noplaylist(self):
         dl = FakeYDL()
         dl.params['noplaylist'] = True
-        ie = YoutubePlaylistIE(dl)
+        ie = YoutubeTabIE(dl)
         result = ie.extract('https://www.youtube.com/watch?v=FXxLjLQi3Fg&list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re')
         self.assertEqual(result['_type'], 'url')
-        self.assertEqual(YoutubeIE().extract_id(result['url']), 'FXxLjLQi3Fg')
+        self.assertEqual(YoutubeIE.extract_id(result['url']), 'FXxLjLQi3Fg')
 
     def test_youtube_course(self):
+        print('Skipping: Course URLs no longer exists')
+        return
         dl = FakeYDL()
         ie = YoutubePlaylistIE(dl)
         # TODO find a > 100 (paginating?) videos course
         result = ie.extract('https://www.youtube.com/course?list=ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8')
         entries = list(result['entries'])
-        self.assertEqual(YoutubeIE().extract_id(entries[0]['url']), 'j9WZyLZCBzs')
+        self.assertEqual(YoutubeIE.extract_id(entries[0]['url']), 'j9WZyLZCBzs')
         self.assertEqual(len(entries), 25)
-        self.assertEqual(YoutubeIE().extract_id(entries[-1]['url']), 'rYefUsYuEp0')
+        self.assertEqual(YoutubeIE.extract_id(entries[-1]['url']), 'rYefUsYuEp0')
 
     def test_youtube_mix(self):
         dl = FakeYDL()
-        ie = YoutubePlaylistIE(dl)
-        result = ie.extract('https://www.youtube.com/watch?v=W01L70IGBgE&index=2&list=RDOQpdSVF_k_w')
-        entries = result['entries']
+        ie = YoutubeTabIE(dl)
+        result = ie.extract('https://www.youtube.com/watch?v=tyITL_exICo&list=RDCLAK5uy_kLWIr9gv1XLlPbaDS965-Db4TrBoUTxQ8')
+        entries = list(result['entries'])
         self.assertTrue(len(entries) >= 50)
         original_video = entries[0]
-        self.assertEqual(original_video['id'], 'OQpdSVF_k_w')
+        self.assertEqual(original_video['id'], 'tyITL_exICo')
 
     def test_youtube_toptracks(self):
         print('Skipping: The playlist page gives error 500')
@@ -68,10 +70,10 @@ class TestYoutubeLists(unittest.TestCase):
         entries = list(result['entries'])
         self.assertTrue(len(entries) == 1)
         video = entries[0]
-        self.assertEqual(video['_type'], 'url_transparent')
+        self.assertEqual(video['_type'], 'url')
         self.assertEqual(video['ie_key'], 'Youtube')
         self.assertEqual(video['id'], 'BaW_jenozKc')
-        self.assertEqual(video['url'], 'BaW_jenozKc')
+        self.assertEqual(video['url'], 'https://www.youtube.com/watch?v=BaW_jenozKc')
         self.assertEqual(video['title'], 'youtube-dl test video "\'/\\ä↭𝕐')
         self.assertEqual(video['duration'], 10)
         self.assertEqual(video['uploader'], 'Philipp Hagemeister')

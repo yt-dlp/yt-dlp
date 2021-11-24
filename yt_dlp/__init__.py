@@ -378,8 +378,6 @@ def _real_main(argv=None):
         opts.sponsorblock_remove = set()
     sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
 
-    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
-        opts.addchapters = True
     opts.remove_chapters = opts.remove_chapters or []
 
     if (opts.remove_chapters or sponsorblock_query) and opts.sponskrub is not False:
@@ -400,39 +398,31 @@ def _real_main(argv=None):
         opts.remuxvideo = False
 
     if opts.allow_unplayable_formats:
-        if opts.extractaudio:
-            report_conflict('--allow-unplayable-formats', '--extract-audio')
-            opts.extractaudio = False
-        if opts.remuxvideo:
-            report_conflict('--allow-unplayable-formats', '--remux-video')
-            opts.remuxvideo = False
-        if opts.recodevideo:
-            report_conflict('--allow-unplayable-formats', '--recode-video')
-            opts.recodevideo = False
-        if opts.addmetadata:
-            report_conflict('--allow-unplayable-formats', '--add-metadata')
-            opts.addmetadata = False
-        if opts.embedsubtitles:
-            report_conflict('--allow-unplayable-formats', '--embed-subs')
-            opts.embedsubtitles = False
-        if opts.embedthumbnail:
-            report_conflict('--allow-unplayable-formats', '--embed-thumbnail')
-            opts.embedthumbnail = False
-        if opts.xattrs:
-            report_conflict('--allow-unplayable-formats', '--xattrs')
-            opts.xattrs = False
-        if opts.fixup and opts.fixup.lower() not in ('never', 'ignore'):
-            report_conflict('--allow-unplayable-formats', '--fixup')
+        def report_unplayable_conflict(opt_name, arg, default=False, allowed=None):
+            val = getattr(opts, opt_name)
+            if (not allowed and val) or not allowed(val):
+                report_conflict('--allow-unplayable-formats', arg)
+                setattr(opts, opt_name, default)
+
+        report_unplayable_conflict('extractaudio', '--extract-audio')
+        report_unplayable_conflict('remuxvideo', '--remux-video')
+        report_unplayable_conflict('recodevideo', '--recode-video')
+        report_unplayable_conflict('addmetadata', '--embed-metadata')
+        report_unplayable_conflict('addchapters', '--embed-chapters')
+        report_unplayable_conflict('embed_infojson', '--embed-info-json')
+        opts.embed_infojson = False
+        report_unplayable_conflict('embedsubtitles', '--embed-subs')
+        report_unplayable_conflict('embedthumbnail', '--embed-thumbnail')
+        report_unplayable_conflict('xattrs', '--xattrs')
+        report_unplayable_conflict('fixup', '--fixup', default='never', allowed=lambda x: x in (None, 'never', 'ignore'))
         opts.fixup = 'never'
-        if opts.remove_chapters:
-            report_conflict('--allow-unplayable-formats', '--remove-chapters')
-            opts.remove_chapters = []
-        if opts.sponsorblock_remove:
-            report_conflict('--allow-unplayable-formats', '--sponsorblock-remove')
-            opts.sponsorblock_remove = set()
-        if opts.sponskrub:
-            report_conflict('--allow-unplayable-formats', '--sponskrub')
+        report_unplayable_conflict('remove_chapters', '--remove-chapters', default=[])
+        report_unplayable_conflict('sponsorblock_remove', '--sponsorblock-remove', default=set())
+        report_unplayable_conflict('sponskrub', '--sponskrub', default=set())
         opts.sponskrub = False
+
+    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
+        opts.addchapters = True
 
     # PostProcessors
     postprocessors = list(opts.add_postprocessors)

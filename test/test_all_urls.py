@@ -38,7 +38,6 @@ class TestAllURLsMatching(unittest.TestCase):
         assertTab('https://www.youtube.com/AsapSCIENCE')
         assertTab('https://www.youtube.com/embedded')
         assertTab('https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q')
-        assertTab('https://www.youtube.com/course?list=ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8')
         assertTab('https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC')
         assertTab('https://www.youtube.com/watch?v=AV6J6_AeFEQ&playnext=1&list=PL4023E734DA416012')  # 668
         self.assertFalse('youtube:playlist' in self.matching_ies('PLtS2H6bU1M'))
