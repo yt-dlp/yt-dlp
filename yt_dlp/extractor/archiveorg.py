@@ -350,7 +350,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20160218',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
                 'duration': 1236,
-                'description': 'md5:TODO' # TODO: fix description extraction
+                'description': 'md5:TODO'  # TODO: fix description extraction
             }
         },
         {
@@ -439,8 +439,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
                        if webpage else (lambda x: None))
         player_response = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
-                video_id, 'initial player response') or {}
+            webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
+            video_id, 'initial player response') or {}
         initial_data = self._extract_yt_initial_variable(
             webpage, self._YT_INITIAL_DATA_RE,
             video_id, 'initial player response') or {}
@@ -481,7 +481,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             # https://github.com/ytdl-org/youtube-dl/blob/dc879c5a37dae588a5bb35d416635678356ad1b7/youtube_dl/extractor/youtube.py#L2202-L2205
             or self._search_regex(
                 [r'(?s)id="eow-date.*?>(.*?)</span>',
-                r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],
+                    r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],
                 webpage, 'upload date', default=None))
 
         info = {
@@ -504,7 +504,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         thumbnails = []
         for ext, server, url in thumbnail_base_urls:
             response = self._call_api(
-                video_id, url, filters=['mimetype:image\/(?:webp|jpeg)'],
+                video_id, url, filters=['mimetype:image/(?:webp|jpeg)'],
                 collapse=['urlkey'], query={'matchType': 'prefix'})
             if not response:
                 continue
@@ -542,7 +542,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             capture_dates.append(all_captures[0])
 
         if 'captures' in self._configuration_arg('checkall'):
-            capture_dates.extend(modern_captures+all_captures)
+            capture_dates.extend(modern_captures + all_captures)
 
         # Fallbacks
         capture_dates.extend([self._EARLIEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
@@ -579,7 +579,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                 self.raise_no_formats(
-                    f'The requested video is not archived, indexed, or there is an issue with web.archive.org',
+                    'The requested video is not archived, indexed, or there is an issue with web.archive.org',
                     expected=True)
             else:
                 raise
