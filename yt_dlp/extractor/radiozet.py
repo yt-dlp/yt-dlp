@@ -33,7 +33,7 @@ class RadioZetPodcastIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        podcast_id = self._html_search_regex(r'<div.*?\sid="player".*?\sdata-id=[\'"]([[^\'"]+)['"]',
+        podcast_id = self._html_search_regex(r'<div.*?\sid="player".*?\sdata-id="([0-9]+)".*?>',
                                              webpage, 'podcast id')
         data = self._call_api(podcast_id, display_id)['data'][0]
 
