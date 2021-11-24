@@ -348,8 +348,7 @@ class TwitchVodIE(TwitchBaseIE):
             'is_live': is_live,
         }
 
-    @staticmethod
-    def _extract_info_gql(info, item_id):
+    def _extract_info_gql(self, info, item_id):
         def moment_to_chapter(moment):
             moment = moment.get('node')
 
