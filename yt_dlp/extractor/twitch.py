@@ -390,7 +390,7 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
-            'chapters': chapters if len(chapters) == 0 else None,
+            'chapters': chapters if len(chapters) != 0 else None,
         }
 
     def _real_extract(self, url):
