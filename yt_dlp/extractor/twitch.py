@@ -354,15 +354,19 @@ class TwitchVodIE(TwitchBaseIE):
 
             momentPosition = int_or_none(moment.get('positionMilliseconds'), 1000)
             momentDuration = int_or_none(moment.get('durationMilliseconds'), 1000)
+            chapterName = str_or_none(moment.get('description'))
 
             if momentPosition is None or momentDuration is None:
-                # TODO: warning or debug log about missing important data
-                return None
+                self.report_warning(
+                    "Important chapter information missing for chapter %s" % chapterName,
+                    item_id)
+
+                return moment
 
             return {
                 'start_time': momentPosition,
                 'end_time': momentPosition + momentDuration,
-                'title': str_or_none(moment.get('description'))
+                'title': chapterName
             }
 
         vod_id = info.get('id') or item_id
