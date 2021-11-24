@@ -507,7 +507,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 continue
             webpage = self._download_webpage(
                 (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture_date, video_id),
-                video_id=video_id, fatal=False, errnote='unable to download video webpage (probably not archived)',
+                video_id=video_id, fatal=False, errnote='unable to download video webpage (it might not be archived)',
                 note=f'Downloading webpage capture {capture_date}')
             info = self._extract_metadata(video_id, webpage or '')
             info_dicts.append(info)
@@ -559,7 +559,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
                 self.raise_no_formats(
-                    'HTTP Error %s. Most likely the video is not saved or there is an issue with web.archive.org' % e.cause.code,
+                    f'The requested video is not archived, indexed, or there is an issue with web.archive.org',
                     expected=True)
             else:
                 raise
