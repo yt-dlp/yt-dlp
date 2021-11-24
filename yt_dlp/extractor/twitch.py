@@ -379,8 +379,6 @@ class TwitchVodIE(TwitchBaseIE):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         chapters = [moment_to_chapter(moment) for moment in info.get('moments') or []]
-        if chapters.count(None) > 0:
-            chapters = None
 
         return {
             'id': vod_id,
