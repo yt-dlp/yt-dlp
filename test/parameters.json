@@ -9,7 +9,7 @@
     "forcetitle": false,
     "forceurl": false,
     "force_write_download_archive": false,
-    "format": "best",
+    "format": "b/bv",
     "ignoreerrors": false,
     "listformats": null,
     "logtostderr": false,

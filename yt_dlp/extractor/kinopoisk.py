@@ -23,9 +23,6 @@ class KinoPoiskIE(InfoExtractor):
             'duration': 4533,
             'age_limit': 12,
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }, {
         'url': 'https://www.kinopoisk.ru/film/81041',
         'only_matching': True,

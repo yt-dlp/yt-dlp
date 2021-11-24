@@ -10,6 +10,7 @@ from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
     int_or_none,
+    join_nonempty,
     js_to_json,
     orderedSet,
     qualities,
@@ -275,7 +276,7 @@ class FunimationIE(FunimationBaseIE):
     def _get_subtitles(self, subtitles, experience_id, episode, display_id, format_name):
         if isinstance(episode, str):
             webpage = self._download_webpage(
-                f'https://www.funimation.com/player/{experience_id}', display_id,
+                f'https://www.funimation.com/player/{experience_id}/', display_id,
                 fatal=False, note=f'Downloading player webpage for {format_name}')
             episode, _, _ = self._get_episode(webpage, episode_id=episode, fatal=False)
 
@@ -288,10 +289,11 @@ class FunimationIE(FunimationBaseIE):
                     sub_type = sub_type if sub_type != 'FULL' else None
                     current_sub = {
                         'url': text_track['src'],
-                        'name': ' '.join(filter(None, (version, text_track.get('label'), sub_type)))
+                        'name': join_nonempty(version, text_track.get('label'), sub_type, delim=' ')
                     }
-                    lang = '_'.join(filter(None, (
-                        text_track.get('language', 'und'), version if version != 'Simulcast' else None, sub_type)))
+                    lang = join_nonempty(text_track.get('language', 'und'),
+                                         version if version != 'Simulcast' else None,
+                                         sub_type, delim='_')
                     if current_sub not in subtitles.get(lang, []):
                         subtitles.setdefault(lang, []).append(current_sub)
         return subtitles

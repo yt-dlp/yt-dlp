@@ -11,6 +11,7 @@ from ..utils import (
     float_or_none,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     orderedSet,
     remove_end,
     str_or_none,
@@ -82,12 +83,7 @@ class ORFTVthekIE(InfoExtractor):
                 src = url_or_none(fd.get('src'))
                 if not src:
                     continue
-                format_id_list = []
-                for key in ('delivery', 'quality', 'quality_string'):
-                    value = fd.get(key)
-                    if value:
-                        format_id_list.append(value)
-                format_id = '-'.join(format_id_list)
+                format_id = join_nonempty('delivery', 'quality', 'quality_string', from_dict=fd)
                 ext = determine_ext(src)
                 if ext == 'm3u8':
                     m3u8_formats = self._extract_m3u8_formats(

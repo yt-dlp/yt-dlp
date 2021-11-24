@@ -111,7 +111,7 @@ class PicartoVodIE(InfoExtractor):
         vod_info = self._parse_json(
             self._search_regex(
                 r'(?s)#vod-player["\']\s*,\s*(\{.+?\})\s*\)', webpage,
-                video_id),
+                'vod player'),
             video_id, transform_source=js_to_json)
 
         formats = self._extract_m3u8_formats(
