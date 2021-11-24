@@ -279,7 +279,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'info_dict': {
                 'id': 'aYAGB11YrSs',
                 'ext': 'webm',
-                'title': 'Team Fortress 2 - Sandviches!'
+                'title': 'Team Fortress 2 - Sandviches!',
+                'description': 'md5:4984c0f9a07f349fc5d8e82ab7af4eaf',
+                'upload_date': '20110926',
+                'uploader': 'Zeurel',
+                'channel_id': 'UCukCyHaD-bK3in_pKpfH9Eg',
+                'duration': 32
             }
         },
         {
@@ -288,59 +293,87 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'info_dict': {
                 'id': '97t7Xj_iBv0',
                 'ext': 'mp4',
-                'title': 'How Flexible Machines Could Save The World'
+                'title': 'Why Machines That Bend Are Better',
+                'description': 'md5:00404df2c632d16a674ff8df1ecfbb6c',
+                'upload_date': '20190312',
+                'uploader': 'Veritasium',
+                'channel_id': 'UCHnyfMqiRRG1u-2MsSQLbXA',
+                'duration': 771
             }
         },
         {
-            # Video from 2012, webm format itag 45.
+            # Video from 2012, webm format itag 45. Newest capture is deleted video, with an invalid description.
+            # Should use the date in the link. Title ends with '- Youtube'.
             'url': 'https://web.archive.org/web/20120712231619/http://www.youtube.com/watch?v=AkhihxRKcrs&gl=US&hl=en',
             'info_dict': {
                 'id': 'AkhihxRKcrs',
                 'ext': 'webm',
-                'title': 'Limited Run: Mondo\'s Modern Classic 1 of 3 (SDCC 2012)'
+                'title': 'Limited Run: Mondo\'s Modern Classic 1 of 3 (SDCC 2012)',
+                'upload_date': '20120712',
+                'duration': 398,
+                'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3'  # TODO: fix
+
             }
         },
         {
-            # Old flash-only video. Webpage title starts with "YouTube - ".
+            # FLV video. Video file URL does not provide itag information
             'url': 'https://web.archive.org/web/20081211103536/http://www.youtube.com/watch?v=jNQXAC9IVRw',
             'info_dict': {
                 'id': 'jNQXAC9IVRw',
-                'ext': 'unknown_video',
-                'title': 'Me at the zoo'
+                'ext': 'flv',
+                'title': 'Me at the zoo',
+                'upload_date': '20050423',  # TODO: uploader?
+                'channel_id': 'UC4QobU6STFB0P71PMvOGN5A',
+                'duration': 19,
+                'description': 'md5:56450c47046034c3a218d25cf2b52f4e'
             }
         },
         {
-            # Flash video with .flv extension (itag 34). Title has prefix "YouTube         -"
-            # Title has some weird unicode characters too.
             'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
             'info_dict': {
                 'id': 'lTx3G6h2xyA',
                 'ext': 'flv',
-                'title': '‪Madeon - Pop Culture (live mashup)‬‏'
+                'title': 'Madeon - Pop Culture (live mashup)',
+                'upload_date': '20110711',
+                'uploader': 'Madeon',
+                'channel_id': 'UCqMDNf3Pn5L7pcNkuSEeO3w',
+                'duration': 204,
+                'description': 'md5:f7535343b6eda34a314eff8b85444680'
             }
         },
-        {   # Some versions of Youtube have have "YouTube" as page title in html (and later rewritten by js).
-            'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
+        {
+            # First capture is of dead video, second is the oldest from CDX response.
+            'url': 'https://web.archive.org/https://www.youtube.com/watch?v=1JYutPM8O6E',
             'info_dict': {
-                'id': 'kH-G_aIBlFw',
+                'id': '1JYutPM8O6E',
                 'ext': 'mp4',
-                'title': 'kH-G_aIBlFw'
-            },
-            'expected_warnings': [
-                'unable to extract title',
-            ]
+                'title': 'Fake Teen Doctor Strikes AGAIN! - Weekly Weird News',
+                'upload_date': '20160218',
+                'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
+                'duration': 1236,
+                'description': 'md5:TODO' # TODO: fix description extraction
+            }
         },
         {
-            # First capture is a 302 redirect intermediary page.
-            'url': 'https://web.archive.org/web/20050214000000/http://www.youtube.com/watch?v=0altSZ96U4M',
+            # First capture of dead video, capture date in link links to dead capture.
+            'url': 'https://web.archive.org/web/20180803221945/https://www.youtube.com/watch?v=6FPhZJGvf4E',
             'info_dict': {
-                'id': '0altSZ96U4M',
+                'id': '6FPhZJGvf4E',
                 'ext': 'mp4',
-                'title': '0altSZ96U4M'
-            },
-            'expected_warnings': [
-                'unable to extract title',
-            ]
+                'title': 'WTF: Video Games Still Launch BROKEN?! - T.U.G.S.',
+                'upload_date': '20160219',
+                'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
+                'duration': '798',
+                'description': 'md5:TODO'
+            }
+        },
+        {
+            'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
+            'only_matching': True
+        },
+        {
+            'url': 'https://web.archive.org/web/20050214000000_if/http://www.youtube.com/watch?v=0altSZ96U4M',
+            'only_matching': True
         },
         {
             # Video not archived, only capture is unavailable video page
@@ -356,11 +389,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'only_matching': True,
         }
     ]
-    # 2018 response context https://web.archive.org/web/20180803221945/https://www.youtube.com/watch?v=NGgpLa9zYpM&gl=US&hl=en
-    # https://web.archive.org/https://www.youtube.com/watch?v=zrc2gGhTJpk only capture has no title dead video. Working capture has params on URL, so have to use fallback.
-    # TODO: https://web.archive.org/https://www.youtube.com/watch?v=-giLdluEXqQ gives wrong description
-    # https://web.archive.org/web/20171205211234/https://www.youtube.com/watch?v=lHJTf93HL1s no working captures
-    # 6FPhZJGvf4E latest capture bad, oldest capture good
+    # TODO:
+    # first page is 302 redirect (or bad capture), that is the only capture so fallback to video id for title
+    # examples using old title
     _YT_INITIAL_DATA_RE = r'(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s' % YoutubeIE._YT_INITIAL_DATA_RE
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
     _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
@@ -531,9 +562,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture, video_id),
                 video_id=video_id, fatal=False, errnote='unable to download video webpage (it may not be archived)',
                 note='Downloading capture webpage')
-            info = merge_dicts(info, self._extract_metadata(video_id, webpage or ''))
-            if info.get('title') and 'captures' not in self._configuration_arg('checkall'):
-                break
+            _info_dict = self._extract_metadata(video_id, webpage or '')
+            # Try avoid getting deleted video metadata
+            if _info_dict.get('title'):
+                info = merge_dicts(info, _info_dict)
+                if 'captures' not in self._configuration_arg('checkall'):
+                    break
 
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
