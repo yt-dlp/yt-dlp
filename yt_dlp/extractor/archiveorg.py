@@ -370,8 +370,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
         _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in range(0, 5)]])
 
     _WAYBACK_BASE_URL = 'https://web.archive.org/web/%sif_/'
-    _WAYBACK_DEFAULT_CAPTURE_DATE = '20050214000000'
-    _WAYBACK_BASE_DATE_URL = 'https://web.archive.org/web/%sif_/' % _WAYBACK_DEFAULT_CAPTURE_DATE  # TODO
+    _EARLIEST_CAPTURE_DATE = 20050214000000
+    _NEWEST_CAPTURE_DATE = 205001010000000
 
     def _call_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note='Downloading CDX API JSON'):
 
@@ -417,20 +417,20 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
-            expected_type=dict, default={}, get_all=False)
+            expected_type=dict, get_all=False, default={})
 
         video_details = traverse_obj(
-            player_response, 'videoDetails', expected_type=dict, default={})
+            player_response, 'videoDetails', expected_type=dict, get_all=False, default={})
 
         microformats = traverse_obj(
             player_response, ('microformat', 'playerMicroformatRenderer'), expected_type=dict, get_all=False, default={})
 
         video_title = (
-                video_details.get('title')
-                or YoutubeIE._get_text(microformats, 'title')
-                or YoutubeIE._get_text(initial_data_video, 'title')
-                or self._extract_webpage_title(webpage)
-                or search_meta(['og:title', 'twitter:title', 'title']))
+            video_details.get('title')
+            or YoutubeIE._get_text(microformats, 'title')
+            or YoutubeIE._get_text(initial_data_video, 'title')
+            or self._extract_webpage_title(webpage)
+            or search_meta(['og:title', 'twitter:title', 'title']))
 
         channel_id = str_or_none(
             video_details.get('channelId')
@@ -441,18 +441,18 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or microformats.get('lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
         description = (
-                video_details.get('shortDescription')
-                or YoutubeIE._get_text(microformats, 'description')
-                or search_meta(['description', 'og:description', 'twitter:description']))
+            video_details.get('shortDescription')
+            or YoutubeIE._get_text(microformats, 'description')
+            or search_meta(['description', 'og:description', 'twitter:description']))
 
         upload_date = unified_strdate(
             dict_get(microformats, ('uploadDate', 'publishDate'))
             or search_meta(['uploadDate', 'datePublished'])
+            # https://github.com/ytdl-org/youtube-dl/blob/dc879c5a37dae588a5bb35d416635678356ad1b7/youtube_dl/extractor/youtube.py#L2202-L2205
             or self._search_regex(
-            [r'(?s)id="eow-date.*?>(.*?)</span>',
-             r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],
-            webpage, 'upload date', default=None)
-        )
+                [r'(?s)id="eow-date.*?>(.*?)</span>',
+                r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],
+                webpage, 'upload date', default=None))
 
         info = {
             'id': video_id,
@@ -480,15 +480,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 continue
 
             # TODO fix sorting
-            # TODO: different thumbnails overtime, sort by date?
             thumbnails.extend(
                 {
-                    'url': (self._WAYBACK_BASE_URL % (int_or_none(thumb.get('timestamp')) or self._WAYBACK_DEFAULT_CAPTURE_DATE)) + thumb.get('original'),
+                    'url': (self._WAYBACK_BASE_URL % (int_or_none(thumb.get('timestamp')) or self._EARLIEST_CAPTURE_DATE)) + thumb.get('original'),
                     'filesize': int_or_none(thumb.get('length')),
-                    'id': int_or_none(thumb.get('length'))
+                    'id': int_or_none(thumb.get('length'))  # TODO. Also large filesize != best quality
                 } for thumb in response
             )
-            # By default only try default thumbnail servers
             if not try_all:
                 break
 
@@ -496,65 +494,54 @@ class YoutubeWebArchiveIE(InfoExtractor):
         self._remove_duplicate_formats(thumbnails)
         return thumbnails
 
-    def _idk_what_to_name_this(self, video_id, captures: list):
-        # TODO: what if the captures are the same?
-        # Might be worth querying CDX, getting oldest non-301 url. Also get oldest non-301 post 201X url for metadata extraction.
-        # also, if the capture
-        # 'https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DsIgBVsl13d8&matchType=prefix&collapse=timestamp%3A6&collapse=digest&collapse=length%3A2&output=json&fl=timestamp%2Clength%2Cstatuscode&filter=statuscode%3A200&filter=mimetype%3Atext%5C%2Fhtml&limit=10&fastLatest=true'
-        info_dicts = []
-        for capture_date in captures:
-            if not capture_date:
-                continue
-            webpage = self._download_webpage(
-                (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture_date, video_id),
-                video_id=video_id, fatal=False, errnote='unable to download video webpage (it might not be archived)',
-                note=f'Downloading webpage capture {capture_date}')
-            info = self._extract_metadata(video_id, webpage or '')
-            info_dicts.append(info)
-            if info.get('title') and 'captures' not in self._configuration_arg('checkall'):
-                break
-        return merge_dicts(*info_dicts)
-
     def _get_capture_dates(self, video_id, url_date):
         capture_dates = []
-        # Note that the CDX API will not find watch pages with extra params in the url.
+        # Note: CDX API will not find watch pages with extra params in the url.
         response = self._call_api(
             video_id, f'https://www.youtube.com/watch?v={video_id}',
             filters=['mimetype:text/html'], collapse=['timestamp:6', 'digest'], query={'matchType': 'prefix'}) or []
-        all_captures = ([int_or_none(r['timestamp']) for r in response])  # TODO: what happens if timestamp is none
+        all_captures = sorted([int_or_none(r['timestamp']) for r in response if int_or_none(r['timestamp']) is not None])
 
-        all_captures.sort()
-        # Modern captures is defined as the common date captures on Wayback switched to the new layout
-        # i.e the layout we support extracting most metadata from
-        # Hence we prefer one of these captures if possible.
+        # Prefer the new polymer UI captures as we support extracting more metadata from them
+        # WBM captures seem to all switch to this layout ~July 2020
         modern_captures = list(filter(lambda x: x >= 20200701000000, all_captures))
         if modern_captures:
             capture_dates.append(modern_captures[0])
-        capture_dates.append(url_date)  # TODO: do we want this to be first or second priority?
+        capture_dates.append(url_date)
         if all_captures:
             capture_dates.append(all_captures[0])
+
         if 'captures' in self._configuration_arg('checkall'):
             capture_dates.extend(modern_captures+all_captures)
 
-        # In the worst case, we'll fallback to the earliest and newest captures available
-        capture_dates.extend([self._WAYBACK_DEFAULT_CAPTURE_DATE, 20690420000000])  # TODO
+        # Fallbacks
+        capture_dates.extend([self._EARLIEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
         return orderedSet(capture_dates)
 
     def _real_extract(self, url):
 
-        capture_date, video_id = self._match_valid_url(url).groups()
-        # If the video is no longer available, the oldest capture may be one before it was removed.
-        # Setting the capture date in url to early date seems to redirect to earliest capture.
-        capture_dates = self._get_capture_dates(video_id, int_or_none(capture_date))
+        url_date, video_id = self._match_valid_url(url).groups()
+        capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + ', '.join(str(i) for i in capture_dates if i is not None))
-        info = self._idk_what_to_name_this(video_id, capture_dates)
+        info = {}
+        for capture in capture_dates:
+            if not capture:
+                continue
+            webpage = self._download_webpage(
+                (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture, video_id),
+                video_id=video_id, fatal=False, errnote='unable to download video webpage (it may not be archived)',
+                note='Downloading capture webpage')
+            info = merge_dicts(info, self._extract_metadata(video_id, webpage or ''))
+            if info.get('title') and 'captures' not in self._configuration_arg('checkall'):
+                break
+
         info['thumbnails'] = self._extract_thumbnails(video_id)
-        # Use link translator mentioned in https://github.com/ytdl-org/youtube-dl/issues/13655
-        internal_fake_url = 'https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id
+
         urlh = None
         try:
-            urlh = self._request_webpage(HEADRequest(internal_fake_url), video_id,
-                note='Fetching video file url', expected_status=True)
+            urlh = self._request_webpage(
+                HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
+                video_id, note='Fetching video file url', expected_status=True)
         except ExtractorError as e:
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
