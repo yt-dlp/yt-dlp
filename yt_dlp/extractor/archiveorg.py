@@ -3,17 +3,15 @@ from __future__ import unicode_literals
 
 import re
 import json
-import itertools
 from .common import InfoExtractor
 from .youtube import YoutubeIE
 from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_unquote_plus,
-    compat_HTTPError, compat_urlparse
+    compat_HTTPError,
 )
 from ..utils import (
     clean_html,
-    determine_ext,
     dict_get,
     extract_attributes,
     ExtractorError,
@@ -22,15 +20,16 @@ from ..utils import (
     KNOWN_EXTENSIONS,
     merge_dicts,
     mimetype2ext,
+    orderedSet,
     parse_duration,
     parse_qs,
-    RegexNotFoundError,
     str_to_int,
     str_or_none,
+    traverse_obj,
     try_get,
     unified_strdate,
-    unified_timestamp, traverse_obj, float_or_none,
-    urljoin, orderedSet, get_domain, url_basename, base_url, urlhandle_detect_ext
+    unified_timestamp,
+    urlhandle_detect_ext
 )
 
 
