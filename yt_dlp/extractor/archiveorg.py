@@ -485,7 +485,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 webpage, 'upload date', default=None))
 
         info = {
-            'id': video_id,
             'title': video_title,
             'description': description,
             'upload_date': upload_date,
@@ -568,7 +567,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
         self.write_debug('Captures to try: ' + ', '.join(str(i) for i in capture_dates if i is not None))
-        info = {}
+        info = {'id': video_id}
         for capture in capture_dates:
             if not capture:
                 continue
