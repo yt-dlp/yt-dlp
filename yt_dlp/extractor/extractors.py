@@ -1245,8 +1245,8 @@ from .scte import (
     SCTECourseIE,
 )
 from .seeker import SeekerIE
-from .senateisvp import SenateISVPIE
-from .senateisvp import SenateIOtherIE
+from .senategov import SenateISVPIE
+from .senategov import SenateIOtherIE
 from .sendtonews import SendtoNewsIE
 from .servus import ServusIE
 from .sevenplus import SevenPlusIE
