@@ -48,6 +48,7 @@
  - **Alura**
  - **AluraCourse**
  - **Amara**
+ - **AmazonStore**
  - **AMCNetworks**
  - **AmericasTestKitchen**
  - **AmericasTestKitchenSeason**
@@ -184,7 +185,6 @@
  - **CCTV**: 央视网
  - **CDA**
  - **CeskaTelevize**
- - **CeskaTelevizePorady**
  - **CGTN**
  - **channel9**: Channel 9
  - **CharlieRose**
@@ -366,6 +366,7 @@
  - **Funk**
  - **Fusion**
  - **Fux**
+ - **Gab**
  - **GabTV**
  - **Gaia**
  - **GameInformer**
@@ -449,9 +450,11 @@
  - **Instagram**
  - **instagram:tag**: Instagram hashtag search
  - **instagram:user**: Instagram user profile
+ - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
  - **IPrima**
+ - **IPrimaCNN**
  - **iqiyi**: 爱奇艺
  - **Ir90Tv**
  - **ITTF**
@@ -560,6 +563,7 @@
  - **MediaKlikk**
  - **Medialaan**
  - **Mediaset**
+ - **MediasetShow**
  - **Mediasite**
  - **MediasiteCatalog**
  - **MediasiteNamedCatalog**
@@ -592,6 +596,7 @@
  - **mixcloud:user**
  - **MLB**
  - **MLBVideo**
+ - **MLSSoccer**
  - **Mnet**
  - **MNetTV**
  - **MoeVideo**: LetitBit video services: moevideo.net, playreplay.net and videochart.net
@@ -801,6 +806,7 @@
  - **Pinterest**
  - **PinterestCollection**
  - **Pladform**
+ - **PlanetMarathi**
  - **Platzi**
  - **PlatziCourse**
  - **play.fm**
@@ -817,7 +823,12 @@
  - **podomatic**
  - **Pokemon**
  - **PokemonWatch**
+ - **PolsatGo**
  - **PolskieRadio**
+ - **polskieradio:kierowcow**
+ - **polskieradio:player**
+ - **polskieradio:podcast**
+ - **polskieradio:podcast:list**
  - **PolskieRadioCategory**
  - **Popcorntimes**
  - **PopcornTV**
@@ -860,6 +871,8 @@
  - **radiocanada:audiovideo**
  - **radiofrance**
  - **RadioJavan**
+ - **radiokapital**
+ - **radiokapital:show**
  - **radlive**
  - **radlive:channel**
  - **radlive:season**
@@ -867,6 +880,8 @@
  - **RaiPlay**
  - **RaiPlayLive**
  - **RaiPlayPlaylist**
+ - **RaiPlayRadio**
+ - **RaiPlayRadioPlaylist**
  - **RayWenderlich**
  - **RayWenderlichCourse**
  - **RBMARadio**
@@ -894,6 +909,7 @@
  - **RMCDecouverte**
  - **RockstarGames**
  - **RoosterTeeth**
+ - **RoosterTeethSeries**
  - **RottenTomatoes**
  - **Roxwel**
  - **Rozhlas**
@@ -961,6 +977,7 @@
  - **Sina**
  - **sky.it**
  - **sky:news**
+ - **sky:news:story**
  - **sky:sports**
  - **sky:sports:news**
  - **skyacademy.it**
@@ -1079,6 +1096,8 @@
  - **ThisAmericanLife**
  - **ThisAV**
  - **ThisOldHouse**
+ - **ThreeSpeak**
+ - **ThreeSpeakUser**
  - **TikTok**
  - **tiktok:user**
  - **tinypic**: tinypic.com videos
@@ -1142,6 +1161,7 @@
  - **tvp**: Telewizja Polska
  - **tvp:embed**: Telewizja Polska
  - **tvp:series**
+ - **tvp:stream**
  - **TVPlayer**
  - **TVPlayHome**
  - **Tweakers**
@@ -1296,6 +1316,8 @@
  - **WistiaPlaylist**
  - **wnl**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **WorldStarHipHop**
+ - **wppilot**
+ - **wppilot:channels**
  - **WSJ**: Wall Street Journal
  - **WSJArticle**
  - **WWE**
