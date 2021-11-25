@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
 import json
 import time
 import urllib
@@ -256,18 +257,16 @@ class NebulaCollectionIE(NebulaBaseIE):
     ]
 
     def _generate_playlist_entries(self, collection_id, channel):
-        page_nr = 1
         episodes = channel['episodes']['results']
-        while episodes:
+        for page_num in itertools.count(2):
             for episode in episodes:
                 yield self._build_video_info(episode)
             next_url = channel['episodes']['next']
-            if next_url:
-                page_nr += 1
-                channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer', note=f'Retrieving channel page {page_nr}')
-                episodes = channel['episodes']['results']
-            else:
-                episodes = None
+            if not next_url:
+                break
+            channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer',
+                                            note=f'Retrieving channel page {page_num}')
+            episodes = channel['episodes']['results']
 
     def _real_extract(self, url):
         collection_id = self._match_id(url)
