@@ -11,42 +11,43 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     determine_ext,
+    parse_qs,
     unsmuggle_url,
 )
 
-_COMM_MAP = [
-    ['ag', '76440', 'http://ag-f.akamaihd.net'],
-    ['aging', '76442', 'http://aging-f.akamaihd.net'],
-    ['approps', '76441', 'http://approps-f.akamaihd.net'],
-    ['armed', '76445', 'http://armed-f.akamaihd.net'],
-    ['banking', '76446', 'http://banking-f.akamaihd.net'],
-    ['budget', '76447', 'http://budget-f.akamaihd.net'],
-    ['cecc', '76486', 'http://srs-f.akamaihd.net'],
-    ['commerce', '80177', 'http://commerce1-f.akamaihd.net'],
-    ['csce', '75229', 'http://srs-f.akamaihd.net'],
-    ['dpc', '76590', 'http://dpc-f.akamaihd.net'],
-    ['energy', '76448', 'http://energy-f.akamaihd.net'],
-    ['epw', '76478', 'http://epw-f.akamaihd.net'],
-    ['ethics', '76449', 'http://ethics-f.akamaihd.net'],
-    ['finance', '76450', 'http://finance-f.akamaihd.net'],
-    ['foreign', '76451', 'http://foreign-f.akamaihd.net'],
-    ['govtaff', '76453', 'http://govtaff-f.akamaihd.net'],
-    ['help', '76452', 'http://help-f.akamaihd.net'],
-    ['indian', '76455', 'http://indian-f.akamaihd.net'],
-    ['intel', '76456', 'http://intel-f.akamaihd.net'],
-    ['intlnarc', '76457', 'http://intlnarc-f.akamaihd.net'],
-    ['jccic', '85180', 'http://jccic-f.akamaihd.net'],
-    ['jec', '76458', 'http://jec-f.akamaihd.net'],
-    ['judiciary', '76459', 'http://judiciary-f.akamaihd.net'],
-    ['rpc', '76591', 'http://rpc-f.akamaihd.net'],
-    ['rules', '76460', 'http://rules-f.akamaihd.net'],
-    ['saa', '76489', 'http://srs-f.akamaihd.net'],
-    ['smbiz', '76461', 'http://smbiz-f.akamaihd.net'],
-    ['srs', '75229', 'http://srs-f.akamaihd.net'],
-    ['uscc', '76487', 'http://srs-f.akamaihd.net'],
-    ['vetaff', '76462', 'http://vetaff-f.akamaihd.net'],
-    ['arch', '', 'http://ussenate-f.akamaihd.net/']
-]
+_COMMITTEES = {
+    'ag': ('76440', 'http://ag-f.akamaihd.net'),
+    'aging': ('76442', 'http://aging-f.akamaihd.net'),
+    'approps': ('76441', 'http://approps-f.akamaihd.net'),
+    'arch': ('', 'http://ussenate-f.akamaihd.net'),
+    'armed': ('76445', 'http://armed-f.akamaihd.net'),
+    'banking': ('76446', 'http://banking-f.akamaihd.net'),
+    'budget': ('76447', 'http://budget-f.akamaihd.net'),
+    'cecc': ('76486', 'http://srs-f.akamaihd.net'),
+    'commerce': ('80177', 'http://commerce1-f.akamaihd.net'),
+    'csce': ('75229', 'http://srs-f.akamaihd.net'),
+    'dpc': ('76590', 'http://dpc-f.akamaihd.net'),
+    'energy': ('76448', 'http://energy-f.akamaihd.net'),
+    'epw': ('76478', 'http://epw-f.akamaihd.net'),
+    'ethics': ('76449', 'http://ethics-f.akamaihd.net'),
+    'finance': ('76450', 'http://finance-f.akamaihd.net'),
+    'foreign': ('76451', 'http://foreign-f.akamaihd.net'),
+    'govtaff': ('76453', 'http://govtaff-f.akamaihd.net'),
+    'help': ('76452', 'http://help-f.akamaihd.net'),
+    'indian': ('76455', 'http://indian-f.akamaihd.net'),
+    'intel': ('76456', 'http://intel-f.akamaihd.net'),
+    'intlnarc': ('76457', 'http://intlnarc-f.akamaihd.net'),
+    'jccic': ('85180', 'http://jccic-f.akamaihd.net'),
+    'jec': ('76458', 'http://jec-f.akamaihd.net'),
+    'judiciary': ('76459', 'http://judiciary-f.akamaihd.net'),
+    'rpc': ('76591', 'http://rpc-f.akamaihd.net'),
+    'rules': ('76460', 'http://rules-f.akamaihd.net'),
+    'saa': ('76489', 'http://srs-f.akamaihd.net'),
+    'smbiz': ('76461', 'http://smbiz-f.akamaihd.net'),
+    'srs': ('75229', 'http://srs-f.akamaihd.net'),
+    'uscc': ('76487', 'http://srs-f.akamaihd.net'),
+    'vetaff': ('76462', 'http://vetaff-f.akamaihd.net'),
+}
 
 
 class SenateISVPIE(InfoExtractor):
@@ -119,24 +120,18 @@ class SenateISVPIE(InfoExtractor):
         video_type = qs['type'][0]
         committee = video_type if video_type == 'arch' else qs['comm'][0]
 
-        def get_info_for_comm(committee):
-            for entry in _COMM_MAP:
-                if entry[0] == committee:
-                    return entry[1:]
-
-        stream_num, domain = get_info_for_comm(committee)
+        stream_num, domain = _COMMITTEES[committee]
 
         formats = []
         if video_type == 'arch':
             filename = video_id if '.' in video_id else video_id + '.mp4'
             formats = [{
-                # All parameters in the query string are necessary to prevent a 403 error
                 'url': compat_urlparse.urljoin(domain, 'i/' + filename + '/master.m3u8'),
             }]
         else:
             hdcore_sign = 'hdcore=3.1.0'
             url_params = (domain, video_id, stream_num)
-            f4m_url = '%s/z/%s_1@%s/manifest.f4m?' % url_params + hdcore_sign
+            f4m_url = f'%s/z/%s_1@%s/manifest.f4m?{hdcore_sign}' % url_params
             m3u8_url = '%s/i/%s_1@%s/master.m3u8' % url_params
             for entry in self._extract_f4m_formats(f4m_url, video_id, f4m_id='f4m'):
                 # URLs without the extra param induce an 404 error
@@ -158,92 +153,63 @@ class SenateISVPIE(InfoExtractor):
         }
 
 
-class SenateIOtherIE(InfoExtractor):
+class SenateGovIE(InfoExtractor):
     _IE_NAME = 'senate.gov'
     _VALID_URL = r'https?:\/\/(?:www\.)?(help|appropriations|judiciary|banking|armed-services|finance)\.senate\.gov'
     _TESTS = [{
         'url': 'https://www.help.senate.gov/hearings/vaccines-saving-lives-ensuring-confidence-and-protecting-public-health',
-        'md5': 'fc0e014dce9409edbbd9e1ff99334819',
         'info_dict': {
-            'id': 'vaccines-saving-lives-ensuring-confidence-and-protecting-public-health',
-            'title': 'Vaccines: Saving Lives, Ensuring Confidence, and Protecting Public Health  The U.S. Senate Committee on Health, Education, Labor  Pensions',
+            'id': 'help090920',
+            'display_id': 'vaccines-saving-lives-ensuring-confidence-and-protecting-public-health',
+            'title': 'Vaccines: Saving Lives, Ensuring Confidence, and Protecting Public Health',
             'description': 'The U.S. Senate Committee on Health, Education, Labor & Pensions',
             'ext': 'mp4',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.appropriations.senate.gov/hearings/watch?hearingid=B8A25434-5056-A066-6020-1F68CB75F0CD',
-        'md5': '875c5d1fb03a6fd42fc53fd366e87bbd',
         'info_dict': {
-            'id': 'watch?hearingid=B8A25434-5056-A066-6020-1F68CB75F0CD',
-            'title': 'Review of the FY2019 Budget Request for the U.S. Army \t \t \t\tHearings',
+            'id': 'appropsA051518',
+            'display_id': 'watch?hearingid=B8A25434-5056-A066-6020-1F68CB75F0CD',
+            'title': 'Review of the FY2019 Budget Request for the U.S. Army',
             'ext': 'mp4',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://www.banking.senate.gov/hearings/21st-century-communities-public-transportation-infrastructure-investment-and-fast-act-reauthorization',
-        'md5': 'a47f370334614703fa56e9d5473286dc',
         'info_dict': {
-            'id': '21st-century-communities-public-transportation-infrastructure-investment-and-fast-act-reauthorization',
-            'title': '21st Century Communities: Public Transportation Infrastructure Investment and FAST Act Reauthorization  United States Committee on Banking, Housing, and Urban Affairs',
+            'id': 'banking041521',
+            'display_id': '21st-century-communities-public-transportation-infrastructure-investment-and-fast-act-reauthorization',
+            'title': '21st Century Communities: Public Transportation Infrastructure Investment and FAST Act Reauthorization',
             'description': 'The Official website of The United States Committee on Banking, Housing, and Urban Affairs',
             'ext': 'mp4',
         },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _real_extract(self, url):
-        video_id = self._generic_id(url)
-        webpage = self._download_webpage(url, video_id)
-        video_title = self._og_search_title(webpage, default=None) or self._html_search_regex(
-            r'(?s)<title>(.*?)<\/title>', webpage, 'video title')
-        video_description = self._og_search_description(webpage, default=None)
-        video_thumbnail = self._og_search_thumbnail(webpage, default=None)
-        age_limit = self._rta_search(webpage)
+        display_id = self._generic_id(url)
+        webpage = self._download_webpage(url, display_id)
+        parse_info = parse_qs(self._search_regex(
+            r'<iframe class="[^>"]*streaminghearing[^>"]*"\s[^>]*\bsrc="([^">]*)', webpage, 'hearing URL'))
 
-        video_title = video_title.replace("|", "")
-        video_title = video_title.replace("&", "")
+        stream_num, stream_domain = _COMMITTEES[parse_info['comm'][-1]]
+        filename = parse_info['filename'][-1]
 
-        info_dict = {
-            'id': video_id,
-            'title': video_title,
-            'description': video_description,
-            'thumbnail': video_thumbnail,
-            'age_limit': age_limit,
+        formats = self._extract_m3u8_formats(
+            f'{stream_domain}/i/{filename}_1@{stream_num}/master.m3u8',
+            display_id, ext='mp4')
+        self._sort_formats(formats)
+
+        title = self._html_search_regex(
+                (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title')
+
+        return {
+            'id': re.sub(r'.mp4$', '', filename),
+            'display_id': display_id,
+            'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
+            'description': self._og_search_description(webpage, default=None),
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'age_limit': self._rta_search(webpage),
+            'formats': formats
         }
-
-        def parse_site_url(stream_hearing):
-            parse_info = {}
-            params = stream_hearing.split("?")[1]
-            for site_param in params.split("&"):
-                param_data = site_param.split("=")
-                parse_info[param_data[0]] = param_data[1]
-
-            return parse_info
-
-        def get_video_url(parse_info):
-            stream_comm = parse_info["comm"]
-            filename = parse_info["filename"]
-
-            stream_num = ""
-            stream_domain = ""
-            for comm, stream_num, stream_domain in _COMM_MAP:
-                if not stream_comm:
-                    break
-                elif stream_comm == comm:
-                    stream_num = stream_num
-                    stream_domain = stream_domain
-                    break
-
-            hlsurl = stream_domain + '/i/' + filename + '_1@' + stream_num + "/master.m3u8?"
-            return hlsurl
-
-        streaminghearing = re.findall(r'<iframe class="(?:.*)streaminghearing(?:.*)" src="(.*?) ', webpage)[0]
-        parse_info = parse_site_url(streaminghearing)
-        video_url = get_video_url(parse_info)
-
-        ext = determine_ext(video_url)
-        if ext == "m3u8":
-            info_dict['formats'] = self._extract_m3u8_formats(video_url, video_id, ext='mp4')
-
-        if info_dict.get('formats'):
-            self._sort_formats(info_dict['formats'])
-
-        return info_dict
