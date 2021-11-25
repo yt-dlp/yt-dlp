@@ -73,10 +73,23 @@ class NebulaBaseIE(InfoExtractor):
     def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
         assert method in ('GET', 'POST',)
         assert auth_type in ('api', 'bearer',)
-        authorization = f'Token {self._nebula_api_token}' if auth_type == 'api' else f'Bearer {self._nebula_bearer_token}'
-        return self._download_json(
-            url, video_id, note=note, headers={'Authorization': authorization},
-            data=b'' if method == 'POST' else None)
+
+        def inner_call():
+            authorization = f'Token {self._nebula_api_token}' if auth_type == 'api' else f'Bearer {self._nebula_bearer_token}'
+            return self._download_json(
+                url, video_id, note=note, headers={'Authorization': authorization},
+                data=b'' if method == 'POST' else None)
+
+        try:
+            return inner_call()
+        except ExtractorError as exc:
+            # if 401 or 403, attempt credential re-auth and retry
+            if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
+                self.to_screen(f'Reauthenticating to Nebula and retrying, because last {auth_type} call resulted in error {exc.cause.code}')
+                self._real_initialize()
+                return inner_call()
+            else:
+                raise
 
     def _fetch_nebula_bearer_token(self):
         """
@@ -92,15 +105,7 @@ class NebulaBaseIE(InfoExtractor):
         Get a Zype access token, which is required to access video streams -- in our case: to
         generate video URLs.
         """
-        try:
-            user_object = self._call_nebula_api('https://api.watchnebula.com/api/v1/auth/user/', note='Retrieving Zype access token')
-        except ExtractorError as exc:
-            # if 401, attempt credential auth and retry
-            if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code == 401:
-                self._nebula_api_token = self._retrieve_nebula_auth()
-                user_object = self._call_nebula_api('https://api.watchnebula.com/api/v1/auth/user/', note='Retrieving Zype access token')
-            else:
-                raise
+        user_object = self._call_nebula_api('https://api.watchnebula.com/api/v1/auth/user/', note='Retrieving Zype access token')
 
         access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], str)
         if not access_token:
