@@ -51,7 +51,7 @@ _COMMITTEES = {
 
 
 class SenateISVPIE(InfoExtractor):
-    _IE_NAME = 'senate.gov'
+    _IE_NAME = 'senate.gov:isvp'
     _VALID_URL = r'https?://(?:www\.)?senate\.gov/isvp/?\?(?P<qs>.+)'
 
     _TESTS = [{
