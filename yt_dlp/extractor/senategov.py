@@ -10,7 +10,6 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
-    determine_ext,
     parse_qs,
     unsmuggle_url,
 )
@@ -202,7 +201,7 @@ class SenateGovIE(InfoExtractor):
         self._sort_formats(formats)
 
         title = self._html_search_regex(
-                (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title')
+            (*self._og_regexes('title'), r'(?s)<title>([^<]*?)</title>'), webpage, 'video title')
 
         return {
             'id': re.sub(r'.mp4$', '', filename),
