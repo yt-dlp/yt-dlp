@@ -14,6 +14,7 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     qualities,
+    traverse_obj,
     try_get,
     update_url_query,
     url_or_none,
@@ -438,6 +439,23 @@ class TVPlayHomeIE(InfoExtractor):
             (?:[^/]+/)*[^/?#&]+(?:episode|programme|clip)-(?P<id>\d+)
     '''
     _TESTS = [{
+        'url': 'https://play.tv3.lt/series/gauju-karai-karveliai,serial-2343791/serija-8,episode-2343828',
+        'info_dict': {
+            'id': '2343828',
+            'ext': 'mp4',
+            'title': 'Gaujų karai. Karveliai (2021) | S01E08: Serija 8',
+            'description': 'md5:f6fcfbb236429f05531131640dfa7c81',
+            'duration': 2710,
+            'season': 'Gaujų karai. Karveliai',
+            'season_number': 1,
+            'release_year': 2021,
+            'episode': 'Serija 8',
+            'episode_number': 8,
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
         'url': 'https://play.tv3.lt/series/moterys-meluoja-geriau-n-7,serial-2574652/serija-25,episode-3284937',
         'info_dict': {
             'id': '3284937',
@@ -451,11 +469,7 @@ class TVPlayHomeIE(InfoExtractor):
             'description': 'md5:c6926e9710f1a126f028fbe121eddb79',
             'duration': 2440,
         },
-        'params': {
-            'format': 'bestvideo',
-            # m3u8 download
-            'skip_download': True,
-        },
+        'skip': '404'
     }, {
         'url': 'https://play.tv3.lt/lives/tv6-lt,live-2838694/optibet-a-lygos-rungtynes-marijampoles-suduva--vilniaus-riteriai,programme-3422014',
         'only_matching': True,
@@ -472,54 +486,41 @@ class TVPlayHomeIE(InfoExtractor):
 
     def _real_extract(self, url):
         country, is_live, video_id = self._match_valid_url(url).groups()
-        video_type = 'MOVIE'
-        asset = {
-            'id': video_id
+
+        api_path = 'lives/programmes' if is_live else 'vods'
+        data = self._download_json(
+            urljoin(url, f'/api/products/{api_path}/{video_id}?platform=BROWSER&lang={country.upper()}'),
+            video_id)
+
+        video_type = 'CATCHUP' if is_live else 'MOVIE'
+        stream_id = data['programRecordingId'] if is_live else video_id
+        stream = self._download_json(
+            urljoin(url, f'/api/products/{stream_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            stream['sources']['HLS'][0]['src'], video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
+        self._sort_formats(formats)
+
+        thumbnails = set(traverse_obj(
+            data, (('galary', 'images', 'artworks'), ..., ..., ('miniUrl', 'mainUrl')), expected_type=url_or_none))
+
+        return {
+            'id': video_id,
+            'title': self._resolve_title(data),
+            'description': traverse_obj(data, 'description', 'lead'),
+            'duration': int_or_none(data.get('duration')),
+            'season': traverse_obj(data, ('season', 'serial', 'title')),
+            'season_number': int_or_none(traverse_obj(data, ('season', 'number'))),
+            'episode': data.get('title'),
+            'episode_number': int_or_none(data.get('episode')),
+            'release_year': int_or_none(traverse_obj(data, ('season', 'serial', 'year'))),
+            'thumbnails': [{'url': url, 'ext': 'jpg'} for url in thumbnails],
+            'formats': formats,
+            'subtitles': subtitles,
         }
 
-        if is_live is None:
-            json = self._download_json(
-                urljoin(url,
-                        f'/api/products/vods/{video_id}?platform=BROWSER&lang={country.upper()}'),
-                video_id)
-
-            asset['season'] = try_get(json, lambda x: x['season']['serial']['title'])
-            asset['season_number'] = int_or_none(try_get(json, lambda x: x['season']['number']))
-            asset['release_year'] = int_or_none(try_get(json, lambda x: x["season"]["serial"]["year"]))
-            asset['episode'] = json.get('title')
-            asset['episode_number'] = int_or_none(json.get('episode'))
-        else:
-            json = self._download_json(
-                urljoin(url, f'/api/products/lives/programmes/{video_id}?platform=BROWSER&lang={country.upper()}'),
-                video_id)
-            video_type = 'CATCHUP'
-            video_id = json['programRecordingId']
-
-        asset['title'] = self.resolve_title(json)
-        asset['description'] = json.get('description') or json.get('lead')
-        asset['duration'] = int_or_none(json.get('duration'))
-
-        images = json.get('gallery') or json.get('images')
-        if images is not None:
-            pc_ = images['pc'][0]
-            asset['thumbnails'] = [{
-                'url': pc_.get('mainUrl') or pc_.get('miniUrl'),
-                'ext': 'jpg',
-            }]
-
-        stream = self._download_json(
-            urljoin(url, f'/api/products/{video_id}/videos/playlist?videoType={video_type}&platform=BROWSER'), video_id)
-
-        m3u8_url = stream['sources']['HLS'][0]['src']
-
-        asset['formats'] = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-        self._sort_formats(asset['formats'])
-
-        return asset
-
-    def resolve_title(self, json):
-        try:
-            return f'{json["season"]["serial"]["title"]} ({json["season"]["serial"]["year"]}) | S{json["season"]["number"]:02d}|E{json["episode"]:02d}: {json["title"]}'
-        except KeyError:
-            return json.get("title")
+    @staticmethod
+    def _resolve_title(data):
+        return try_get(data, lambda x: (
+            f'{data["season"]["serial"]["title"]} ({data["season"]["serial"]["year"]}) | '
+            f'S{data["season"]["number"]:02d}E{data["episode"]:02d}: {data["title"]}'
+        )) or data.get('title')
