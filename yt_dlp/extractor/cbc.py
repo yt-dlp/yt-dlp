@@ -2,6 +2,9 @@
 from __future__ import unicode_literals
 
 import re
+import json
+import base64
+import time
 
 from .common import InfoExtractor
 from ..compat import (
@@ -244,37 +247,96 @@ class CBCGemIE(InfoExtractor):
         'params': {'format': 'bv'},
         'skip': 'Geo-restricted to Canada',
     }]
-    _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/assets/'
+
+    _GEO_COUNTRIES = ['CA']
+    _TOKEN_API_KEY = '3f4beddd-2061-49b0-ae80-6f1f2ed65b37'
+    _NETRC_MACHINE = 'cbcgem'
+    _claims_token = None
+
+    def _new_claims_token(self, email, password):
+        data = json.dumps({
+            'email': email,
+            'password': password,
+        }).encode()
+        headers = {'content-type': 'application/json'}
+        query = {'apikey': self._TOKEN_API_KEY}
+        resp = self._download_json('https://api.loginradius.com/identity/v2/auth/login',
+                                   None, data=data, headers=headers, query=query)
+        access_token = resp['access_token']
+
+        query = {
+            'access_token': access_token,
+            'apikey': self._TOKEN_API_KEY,
+            'jwtapp': 'jwt',
+        }
+        resp = self._download_json('https://cloud-api.loginradius.com/sso/jwt/api/token',
+                                   None, headers=headers, query=query)
+        sig = resp['signature']
+
+        data = json.dumps({'jwt': sig}).encode()
+        headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
+        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
+                                   None, data=data, headers=headers)
+        cbc_access_token = resp['accessToken']
+
+        headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
+        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
+                                   None, headers=headers)
+        return resp['claimsToken']
+
+    def _get_claims_token_expiry(self):
+        # Token is a JWT
+        # JWT is decoded here and 'exp' field is extracted
+        # It is a Unix timestamp for when the token expires
+        b64_data = self._claims_token.split('.')[1]
+        data = base64.urlsafe_b64decode(b64_data + "==")
+        return json.loads(data)['exp']
+
+    def claims_token_expired(self):
+        exp = self._get_claims_token_expiry()
+        if exp - time.time() < 10:
+            # It will expire in less than 10 seconds, or has already expired
+            return True
+        return False
+
+    def claims_token_valid(self):
+        return self._claims_token is not None and not self.claims_token_expired()
+
+    def _get_claims_token(self, email, password):
+        if not self.claims_token_valid():
+            self._claims_token = self._new_claims_token(email, password)
+            self._downloader.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
+        return self._claims_token
+
+    def _real_initialize(self):
+        if self.claims_token_valid():
+            return
+        self._claims_token = self._downloader.cache.load(self._NETRC_MACHINE, 'claims_token')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._download_json(self._API_BASE + video_id, video_id)
+        video_info = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/assets/' + video_id, video_id)
 
-        last_error = None
-        attempt = -1
-        retries = self.get_param('extractor_retries', 15)
-        while attempt < retries:
-            attempt += 1
-            if last_error:
-                self.report_warning('%s. Retrying ...' % last_error)
-            m3u8_info = self._download_json(
-                video_info['playSession']['url'], video_id,
-                note='Downloading JSON metadata%s' % f' (attempt {attempt})')
-            m3u8_url = m3u8_info.get('url')
-            if m3u8_url:
-                break
-            elif m3u8_info.get('errorCode') == 1:
-                self.raise_geo_restricted(countries=['CA'])
-            else:
-                last_error = f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}'
-                # 35 means media unavailable, but retries work
-                if m3u8_info.get('errorCode') != 35 or attempt >= retries:
-                    raise ExtractorError(last_error)
+        email, password = self._get_login_info()
+        if email and password:
+            claims_token = self._get_claims_token(email, password)
+            headers = {'x-claims-token': claims_token}
+        else:
+            headers = {}
+        m3u8_info = self._download_json(video_info['playSession']['url'], video_id, headers=headers)
+        m3u8_url = m3u8_info.get('url')
+
+        if m3u8_info.get('errorCode') == 1:
+            self.raise_geo_restricted(countries=['CA'])
+        elif m3u8_info.get('errorCode') == 35:
+            self.raise_login_required(method='password')
+        elif m3u8_info.get('errorCode') != 0:
+            raise ExtractorError(f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
         self._remove_duplicate_formats(formats)
 
-        for i, format in enumerate(formats):
+        for format in formats:
             if format.get('vcodec') == 'none':
                 if format.get('ext') is None:
                     format['ext'] = 'm4a'
@@ -328,7 +390,8 @@ class CBCGemPlaylistIE(InfoExtractor):
         show = match.group('show')
         show_info = self._download_json(self._API_BASE + show, season_id)
         season = int(match.group('season'))
-        season_info = try_get(show_info, lambda x: x['seasons'][season - 1])
+
+        season_info = next((s for s in show_info['seasons'] if s.get('season') == season), None)
 
         if season_info is None:
             raise ExtractorError(f'Couldn\'t find season {season} of {show}')
@@ -377,7 +440,7 @@ class CBCGemPlaylistIE(InfoExtractor):
 
 class CBCGemLiveIE(InfoExtractor):
     IE_NAME = 'gem.cbc.ca:live'
-    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>[0-9]{12})'
+    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>\d+)'
     _TEST = {
         'url': 'https://gem.cbc.ca/live/920604739687',
         'info_dict': {
@@ -396,21 +459,21 @@ class CBCGemLiveIE(InfoExtractor):
 
     # It's unclear where the chars at the end come from, but they appear to be
     # constant. Might need updating in the future.
-    _API = 'https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT'
+    # There are two URLs, some livestreams are in one, and some
+    # in the other. The JSON schema is the same for both.
+    _API_URLS = ['https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT', 'https://tpfeed.cbc.ca/f/ExhSPC/FNiv9xQx_BnT']
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        live_info = self._download_json(self._API, video_id)['entries']
 
-        video_info = None
-        for stream in live_info:
-            if stream.get('guid') == video_id:
-                video_info = stream
-
-        if video_info is None:
-            raise ExtractorError(
-                'Couldn\'t find video metadata, maybe this livestream is now offline',
-                expected=True)
+        for api_url in self._API_URLS:
+            video_info = next((
+                stream for stream in self._download_json(api_url, video_id)['entries']
+                if stream.get('guid') == video_id), None)
+            if video_info:
+                break
+        else:
+            raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
 
         return {
             '_type': 'url_transparent',

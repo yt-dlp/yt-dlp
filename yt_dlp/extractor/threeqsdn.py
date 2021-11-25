@@ -9,6 +9,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
 )
 
@@ -119,24 +120,16 @@ class ThreeQSDNIE(InfoExtractor):
                     src = s.get('src')
                     if not (src and self._is_valid_url(src, video_id)):
                         continue
-                    width = None
-                    format_id = ['http']
                     ext = determine_ext(src)
-                    if ext:
-                        format_id.append(ext)
                     height = int_or_none(s.get('height'))
-                    if height:
-                        format_id.append('%dp' % height)
-                        if aspect:
-                            width = int(height * aspect)
                     formats.append({
                         'ext': ext,
-                        'format_id': '-'.join(format_id),
+                        'format_id': join_nonempty('http', ext, height and '%dp' % height),
                         'height': height,
                         'source_preference': 0,
                         'url': src,
                         'vcodec': 'none' if height == 0 else None,
-                        'width': width,
+                        'width': int(height * aspect) if height and aspect else None,
                     })
         # It seems like this would be correctly handled by default
         # However, unless someone can confirm this, the old

@@ -223,7 +223,7 @@ class TrovoChannelBaseIE(InfoExtractor):
 
 class TrovoChannelVodIE(TrovoChannelBaseIE):
     _VALID_URL = r'trovovod:(?P<id>[^\s]+)'
-    IE_DESC = 'All VODs of a trovo.live channel, "trovovod" keyword'
+    IE_DESC = 'All VODs of a trovo.live channel; "trovovod:" prefix'
 
     _TESTS = [{
         'url': 'trovovod:OneTappedYou',
@@ -244,7 +244,7 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
 
 class TrovoChannelClipIE(TrovoChannelBaseIE):
     _VALID_URL = r'trovoclip:(?P<id>[^\s]+)'
-    IE_DESC = 'All Clips of a trovo.live channel, "trovoclip" keyword'
+    IE_DESC = 'All Clips of a trovo.live channel; "trovoclip:" prefix'
 
     _TESTS = [{
         'url': 'trovoclip:OneTappedYou',

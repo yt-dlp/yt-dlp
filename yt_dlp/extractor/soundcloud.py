@@ -856,7 +856,7 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
 class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
     IE_NAME = 'soundcloud:search'
     IE_DESC = 'Soundcloud search'
-    _MAX_RESULTS = float('inf')
+    _SEARCH_KEY = 'scsearch'
     _TESTS = [{
         'url': 'scsearch15:post-avant jazzcore',
         'info_dict': {
@@ -865,7 +865,6 @@ class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
         'playlist_count': 15,
     }]
 
-    _SEARCH_KEY = 'scsearch'
     _MAX_RESULTS_PER_PAGE = 200
     _DEFAULT_RESULTS_PER_PAGE = 50
 
@@ -894,5 +893,6 @@ class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
                 break
 
     def _get_n_results(self, query, n):
-        tracks = self._get_collection('search/tracks', query, limit=n, q=query)
-        return self.playlist_result(tracks, query, query)
+        return self.playlist_result(itertools.islice(
+            self._get_collection('search/tracks', query, limit=n, q=query),
+            0, None if n == float('inf') else n), query, query)

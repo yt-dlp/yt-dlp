@@ -46,7 +46,6 @@ class DPlayIE(InfoExtractor):
             'episode_number': 1,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
@@ -67,7 +66,6 @@ class DPlayIE(InfoExtractor):
             'episode_number': 1,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
@@ -87,7 +85,6 @@ class DPlayIE(InfoExtractor):
             'episode_number': 7,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'skip': 'Available for Premium users',
@@ -313,9 +310,6 @@ class HGTVDeIE(DPlayIE):
             'season_number': 3,
             'episode_number': 3,
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }]
 
     def _real_extract(self, url):
@@ -325,7 +319,7 @@ class HGTVDeIE(DPlayIE):
 
 
 class DiscoveryPlusIE(DPlayIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?:\w{2}/)?video' + DPlayIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
         'info_dict': {
@@ -343,6 +337,9 @@ class DiscoveryPlusIE(DPlayIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://discoveryplus.com/ca/video/bering-sea-gold-discovery-ca/goldslingers',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dplus_us'

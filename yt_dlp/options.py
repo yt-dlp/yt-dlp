@@ -151,25 +151,25 @@ def parseOpts(overrideArguments=None):
 
     def _dict_from_options_callback(
             option, opt_str, value, parser,
-            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True):
+            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True,
+            process_key=str.lower):
 
         out_dict = getattr(parser.values, option.dest)
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
         mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
         if mobj is not None:
-            keys = [k.strip() for k in mobj.group('keys').lower().split(',')]
-            val = mobj.group('val')
+            keys, val = mobj.group('keys').split(','), mobj.group('val')
         elif default_key is not None:
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
                 'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
         try:
+            keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val
         except Exception as err:
-            raise optparse.OptionValueError(
-                'wrong %s formatting; %s' % (opt_str, err))
+            raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
             out_dict[key] = val
 
@@ -209,7 +209,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
-        help='Ignore download and postprocessing errors. The download will be considered successfull even if the postprocessing fails')
+        help='Ignore download and postprocessing errors. The download will be considered successful even if the postprocessing fails')
     general.add_option(
         '--no-abort-on-error',
         action='store_const', dest='ignoreerrors', const='only_download',
@@ -278,7 +278,7 @@ def parseOpts(overrideArguments=None):
             'allowed_values': {
                 'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
+                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
                 'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
@@ -383,7 +383,7 @@ def parseOpts(overrideArguments=None):
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded in this date. '
+            'Download only videos uploaded on this date. '
             'The date can be "YYYYMMDD" or in the format '
             '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
     selection.add_option(
@@ -562,12 +562,16 @@ def parseOpts(overrideArguments=None):
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
-        action='store_true', dest='check_formats', default=None,
-        help='Check that the formats selected are actually downloadable')
+        action='store_const', const='selected', dest='check_formats', default=None,
+        help='Check that the selected formats are actually downloadable')
+    video_format.add_option(
+        '--check-all-formats',
+        action='store_true', dest='check_formats',
+        help='Check all formats for whether they are actually downloadable')
     video_format.add_option(
         '--no-check-formats',
         action='store_false', dest='check_formats',
-        help='Do not check that the formats selected are actually downloadable')
+        help='Do not check that the formats are actually downloadable')
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
@@ -630,7 +634,7 @@ def parseOpts(overrideArguments=None):
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_list_from_options_callback,
         help=(
-            'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs en.*,ja) '
+            'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs "en.*,ja") '
             'You can prefix the language code with a "-" to exempt it from the requested languages. (Eg: --sub-langs all,-live_chat) '
             'Use --list-subs for a list of available language tags'))
 
@@ -788,7 +792,7 @@ def parseOpts(overrideArguments=None):
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'multiple_keys': False},
+        callback_kwargs={'multiple_keys': False, 'process_key': None},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
@@ -836,7 +840,7 @@ def parseOpts(overrideArguments=None):
         '--ignore-no-formats-error',
         action='store_true', dest='ignore_no_formats_error', default=False,
         help=(
-            'Ignore "No video formats" error. Usefull for extracting metadata '
+            'Ignore "No video formats" error. Useful for extracting metadata '
             'even if the videos are not actually available for download (experimental)'))
     verbosity.add_option(
         '--no-ignore-no-formats-error',
@@ -931,7 +935,7 @@ def parseOpts(overrideArguments=None):
             'Template for progress outputs, optionally prefixed with one of "download:" (default), '
             '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
             'The video\'s fields are accessible under the "info" key and '
-            'the progress attributes are accessible under "progress" key. Eg: '
+            'the progress attributes are accessible under "progress" key. E.g.: '
             # TODO: Document the fields inside "progress"
             '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
@@ -975,6 +979,9 @@ def parseOpts(overrideArguments=None):
         '--no-batch-file',
         dest='batchfile', action='store_const', const=None,
         help='Do not read URLs from batch file (default)')
+    filesystem.add_option(
+        '--id', default=False,
+        action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-P', '--paths',
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
@@ -1021,11 +1028,11 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--windows-filenames',
         action='store_true', dest='windowsfilenames', default=False,
-        help='Force filenames to be windows compatible')
+        help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
         action='store_false', dest='windowsfilenames',
-        help='Make filenames windows compatible only if using windows (default)')
+        help='Make filenames Windows-compatible only if using Windows (default)')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
@@ -1208,7 +1215,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality, insert a value between 0 (better) and 9 (worse) for VBR or a specific bitrate like 128K (default %default)')
+        help='Specify ffmpeg audio quality, insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
@@ -1280,7 +1287,9 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--embed-metadata', '--add-metadata',
         action='store_true', dest='addmetadata', default=False,
-        help='Embed metadata to the video file. Also adds chapters to file unless --no-add-chapters is used (Alias: --add-metadata)')
+        help=(
+            'Embed metadata to the video file. Also embeds chapters/infojson if present '
+            'unless --no-embed-chapters/--no-embed-info-json are used (Alias: --add-metadata)'))
     postproc.add_option(
         '--no-embed-metadata', '--no-add-metadata',
         action='store_false', dest='addmetadata',
@@ -1293,6 +1302,14 @@ def parseOpts(overrideArguments=None):
         '--no-embed-chapters', '--no-add-chapters',
         action='store_false', dest='addchapters',
         help='Do not add chapter markers (default) (Alias: --no-add-chapters)')
+    postproc.add_option(
+        '--embed-info-json',
+        action='store_true', dest='embed_infojson', default=None,
+        help='Embed the infojson as an attachment to mkv/mka video files')
+    postproc.add_option(
+        '--no-embed-info-json',
+        action='store_false', dest='embed_infojson',
+        help='Do not embed the infojson as an attachment to the video file')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',

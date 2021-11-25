@@ -8,7 +8,6 @@ on:
 jobs:
   build_unix:
     runs-on: ubuntu-latest
-
     outputs:
       ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -51,6 +50,10 @@ jobs:
         echo "changelog<<EOF" >> $GITHUB_ENV
         echo "$changelog" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
+
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: python devscripts/make_lazy_extractors.py
     - name: Run Make
       run: make all tar
     - name: Get SHA2-256SUMS for yt-dlp
@@ -65,6 +68,7 @@ jobs:
     - name: Get SHA2-512SUMS for yt-dlp.tar.gz
       id: sha512_tar
       run: echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
+
     - name: Install dependencies for pypi
       env:
         PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
@@ -81,6 +85,7 @@ jobs:
         rm -rf dist/*
         python setup.py sdist bdist_wheel
         twine upload dist/*
+
     - name: Install SSH private key
       env:
         BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
@@ -99,6 +104,7 @@ jobs:
         git -C taps/ config user.email github-actions@example.com
         git -C taps/ commit -am 'yt-dlp: ${{ steps.bump_version.outputs.ytdlp_version }}'
         git -C taps/ push
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -109,7 +115,11 @@ jobs:
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
         commitish: ${{ steps.push_update.outputs.head_sha }}
         body: |
-          Changelog:
+          #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
+
+          ---
+
+          ### Changelog:
           ${{ env.changelog }}
         draft: false
         prerelease: false
@@ -133,13 +143,79 @@ jobs:
         asset_name: yt-dlp.tar.gz
         asset_content_type: application/gzip
 
+  build_macos:
+    runs-on: macos-11
+    needs: build_unix
+    if: False
+    outputs:
+      sha256_macos: ${{ steps.sha256_macos.outputs.sha256_macos }}
+      sha512_macos: ${{ steps.sha512_macos.outputs.sha512_macos }}
+      sha256_macos_zip: ${{ steps.sha256_macos_zip.outputs.sha256_macos_zip }}
+      sha512_macos_zip: ${{ steps.sha512_macos_zip.outputs.sha512_macos_zip }}
+
+    steps:
+    - uses: actions/checkout@v2
+    # In order to create a universal2 application, the version of python3 in /usr/bin has to be used
+    - name: Install Requirements
+      run: |
+          brew install coreutils
+          /usr/bin/python3 -m pip install -U --user pip Pyinstaller mutagen pycryptodomex websockets
+    - name: Bump version
+      id: bump_version
+      run: /usr/bin/python3 devscripts/update-version.py
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: /usr/bin/python3 devscripts/make_lazy_extractors.py
+    - name: Run PyInstaller Script
+      run: /usr/bin/python3 pyinst.py --target-architecture universal2 --onefile
+    - name: Upload yt-dlp MacOS binary
+      id: upload-release-macos
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_macos
+        asset_name: yt-dlp_macos
+        asset_content_type: application/octet-stream
+    - name: Get SHA2-256SUMS for yt-dlp_macos
+      id: sha256_macos
+      run: echo "::set-output name=sha256_macos::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp_macos
+      id: sha512_macos
+      run: echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
+
+    - name: Run PyInstaller Script with --onedir
+      run: /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
+    - uses: papeloto/action-zip@v1
+      with:
+        files: ./dist/yt-dlp_macos
+        dest: ./dist/yt-dlp_macos.zip
+    - name: Upload yt-dlp MacOS onedir
+      id: upload-release-macos-zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_macos.zip
+        asset_name: yt-dlp_macos.zip
+        asset_content_type: application/zip
+    - name: Get SHA2-256SUMS for yt-dlp_macos.zip
+      id: sha256_macos_zip
+      run: echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
+    - name: Get SHA2-512SUMS for yt-dlp_macos
+      id: sha512_macos_zip
+      run: echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
+
   build_windows:
     runs-on: windows-latest
     needs: build_unix
-
     outputs:
       sha256_win: ${{ steps.sha256_win.outputs.sha256_win }}
       sha512_win: ${{ steps.sha512_win.outputs.sha512_win }}
+      sha256_py2exe: ${{ steps.sha256_py2exe.outputs.sha256_py2exe }}
+      sha512_py2exe: ${{ steps.sha512_py2exe.outputs.sha512_py2exe }}
       sha256_win_zip: ${{ steps.sha256_win_zip.outputs.sha256_win_zip }}
       sha512_win_zip: ${{ steps.sha512_win_zip.outputs.sha512_win_zip }}
 
@@ -150,16 +226,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
           python-version: '3.8'
-    - name: Upgrade pip and enable wheel support
-      run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
       # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
-      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
+      run: |
+          python -m pip install --upgrade pip setuptools wheel py2exe
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
-    - name: Print version
-      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: python devscripts/make_lazy_extractors.py
     - name: Run PyInstaller Script
       run: python pyinst.py
     - name: Upload yt-dlp.exe Windows binary
@@ -178,32 +255,52 @@ jobs:
     - name: Get SHA2-512SUMS for yt-dlp.exe
       id: sha512_win
       run: echo "::set-output name=sha512_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
+
     - name: Run PyInstaller Script with --onedir
       run: python pyinst.py --onedir
     - uses: papeloto/action-zip@v1
       with:
         files: ./dist/yt-dlp
-        dest: ./dist/yt-dlp.zip
-    - name: Upload yt-dlp.zip Windows onedir
+        dest: ./dist/yt-dlp_win.zip
+    - name: Upload yt-dlp Windows onedir
       id: upload-release-windows-zip
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ needs.build_unix.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp.zip
-        asset_name: yt-dlp.zip
+        asset_path: ./dist/yt-dlp_win.zip
+        asset_name: yt-dlp_win.zip
         asset_content_type: application/zip
-    - name: Get SHA2-256SUMS for yt-dlp.zip
+    - name: Get SHA2-256SUMS for yt-dlp_win.zip
       id: sha256_win_zip
-      run: echo "::set-output name=sha256_win_zip::$((Get-FileHash dist\yt-dlp.zip -Algorithm SHA256).Hash.ToLower())"
-    - name: Get SHA2-512SUMS for yt-dlp.zip
+      run: echo "::set-output name=sha256_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA256).Hash.ToLower())"
+    - name: Get SHA2-512SUMS for yt-dlp_win.zip
       id: sha512_win_zip
-      run: echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp.zip -Algorithm SHA512).Hash.ToLower())"
+      run: echo "::set-output name=sha512_win_zip::$((Get-FileHash dist\yt-dlp_win.zip -Algorithm SHA512).Hash.ToLower())"
+
+    - name: Run py2exe Script
+      run: python setup.py py2exe
+    - name: Upload yt-dlp_min.exe Windows binary
+      id: upload-release-windows-py2exe
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.build_unix.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp.exe
+        asset_name: yt-dlp_min.exe
+        asset_content_type: application/vnd.microsoft.portable-executable
+    - name: Get SHA2-256SUMS for yt-dlp_min.exe
+      id: sha256_py2exe
+      run: echo "::set-output name=sha256_py2exe::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA256).Hash.ToLower())"
+    - name: Get SHA2-512SUMS for yt-dlp_min.exe
+      id: sha512_py2exe
+      run: echo "::set-output name=sha512_py2exe::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
 
   build_windows32:
     runs-on: windows-latest
-    needs: [build_unix, build_windows]
+    needs: build_unix
 
     outputs:
       sha256_win32: ${{ steps.sha256_win32.outputs.sha256_win32 }}
@@ -217,15 +314,16 @@ jobs:
       with:
           python-version: '3.7'
           architecture: 'x86'
-    - name: Upgrade pip and enable wheel support
-      run: python -m pip install --upgrade pip setuptools wheel
     - name: Install Requirements
-      run: pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
+      run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
       run: python devscripts/update-version.py
-    - name: Print version
-      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
+    - name: Build lazy extractors
+      id: lazy_extractors
+      run: python devscripts/make_lazy_extractors.py
     - name: Run PyInstaller Script for 32 Bit
       run: python pyinst.py
     - name: Upload Executable yt-dlp_x86.exe
@@ -252,17 +350,23 @@ jobs:
     steps:
     - name: Make SHA2-256SUMS file
       env:
-        SHA256_WIN: ${{ needs.build_windows.outputs.sha256_win }}
-        SHA256_WIN_ZIP: ${{ needs.build_windows.outputs.sha256_win_zip }}
-        SHA256_WIN32: ${{ needs.build_windows32.outputs.sha256_win32 }}
         SHA256_BIN: ${{ needs.build_unix.outputs.sha256_bin }}
         SHA256_TAR: ${{ needs.build_unix.outputs.sha256_tar }}
+        SHA256_WIN: ${{ needs.build_windows.outputs.sha256_win }}
+        SHA256_PY2EXE: ${{ needs.build_windows.outputs.sha256_py2exe }}
+        SHA256_WIN_ZIP: ${{ needs.build_windows.outputs.sha256_win_zip }}
+        SHA256_WIN32: ${{ needs.build_windows32.outputs.sha256_win32 }}
+        SHA256_MACOS: ${{ needs.build_macos.outputs.sha256_macos }}
+        SHA256_MACOS_ZIP: ${{ needs.build_macos.outputs.sha256_macos_zip }}
       run: |
-        echo "${{ env.SHA256_WIN }}  yt-dlp.exe" >> SHA2-256SUMS
-        echo "${{ env.SHA256_WIN32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_BIN }}  yt-dlp" >> SHA2-256SUMS
         echo "${{ env.SHA256_TAR }}  yt-dlp.tar.gz" >> SHA2-256SUMS
-        echo "${{ env.SHA256_WIN_ZIP }}  yt-dlp.zip" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WIN }}  yt-dlp.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_PY2EXE }}  yt-dlp_min.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WIN32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
+        echo "${{ env.SHA256_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-256SUMS
+      #  echo "${{ env.SHA256_MACOS }}  yt-dlp_macos" >> SHA2-256SUMS
+      #  echo "${{ env.SHA256_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-256SUMS
     - name: Upload 256SUMS file
       id: upload-sums
       uses: actions/upload-release-asset@v1
@@ -275,17 +379,23 @@ jobs:
         asset_content_type: text/plain
     - name: Make SHA2-512SUMS file
       env:
-        SHA512_WIN: ${{ needs.build_windows.outputs.sha512_win }}
-        SHA512_WIN_ZIP: ${{ needs.build_windows.outputs.sha512_win_zip }}
-        SHA512_WIN32: ${{ needs.build_windows32.outputs.sha512_win32 }}
         SHA512_BIN: ${{ needs.build_unix.outputs.sha512_bin }}
         SHA512_TAR: ${{ needs.build_unix.outputs.sha512_tar }}
+        SHA512_WIN: ${{ needs.build_windows.outputs.sha512_win }}
+        SHA512_PY2EXE: ${{ needs.build_windows.outputs.sha512_py2exe }}
+        SHA512_WIN_ZIP: ${{ needs.build_windows.outputs.sha512_win_zip }}
+        SHA512_WIN32: ${{ needs.build_windows32.outputs.sha512_win32 }}
+        SHA512_MACOS: ${{ needs.build_macos.outputs.sha512_macos }}
+        SHA512_MACOS_ZIP: ${{ needs.build_macos.outputs.sha512_macos_zip }}
       run: |
-        echo "${{ env.SHA512_WIN }}  yt-dlp.exe" >> SHA2-512SUMS
-        echo "${{ env.SHA512_WIN32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
         echo "${{ env.SHA512_BIN }}  yt-dlp" >> SHA2-512SUMS
         echo "${{ env.SHA512_TAR }}  yt-dlp.tar.gz" >> SHA2-512SUMS
-        echo "${{ env.SHA512_WIN_ZIP }}  yt-dlp.zip" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WIN }}  yt-dlp.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-512SUMS
+        echo "${{ env.SHA512_PY2EXE }}  yt-dlp_min.exe" >> SHA2-512SUMS
+        echo "${{ env.SHA512_WIN32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
+      #  echo "${{ env.SHA512_MACOS }}  yt-dlp_macos" >> SHA2-512SUMS
+      #  echo "${{ env.SHA512_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-512SUMS
     - name: Upload 512SUMS file
       id: upload-512sums
       uses: actions/upload-release-asset@v1

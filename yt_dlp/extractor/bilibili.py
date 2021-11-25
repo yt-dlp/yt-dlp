@@ -376,8 +376,10 @@ class BiliBiliIE(InfoExtractor):
             replies = traverse_obj(
                 self._download_json(
                     f'https://api.bilibili.com/x/v2/reply?pn={idx}&oid={video_id}&type=1&jsonp=jsonp&sort=2&_=1567227301685',
-                    video_id, note=f'Extracting comments from page {idx}'),
-                ('data', 'replies')) or []
+                    video_id, note=f'Extracting comments from page {idx}', fatal=False),
+                ('data', 'replies'))
+            if not replies:
+                return
             for children in map(self._get_all_children, replies):
                 yield from children
 
@@ -566,7 +568,7 @@ class BilibiliCategoryIE(InfoExtractor):
 
 
 class BiliBiliSearchIE(SearchInfoExtractor):
-    IE_DESC = 'Bilibili video search, "bilisearch" keyword'
+    IE_DESC = 'Bilibili video search'
     _MAX_RESULTS = 100000
     _SEARCH_KEY = 'bilisearch'
 

@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import base64
+import collections
 import datetime
 import hashlib
 import itertools
@@ -54,6 +55,7 @@ from ..utils import (
     GeoRestrictedError,
     GeoUtils,
     int_or_none,
+    join_nonempty,
     js_to_json,
     JSON_LD_RE,
     mimetype2ext,
@@ -74,6 +76,7 @@ from ..utils import (
     strip_or_none,
     traverse_obj,
     unescapeHTML,
+    UnsupportedError,
     unified_strdate,
     unified_timestamp,
     update_Request,
@@ -340,6 +343,7 @@ class InfoExtractor(object):
     series, programme or podcast:
 
     series:         Title of the series or programme the video episode belongs to.
+    series_id:      Id of the series or programme the video episode belongs to, as a unicode string.
     season:         Title of the season the video episode belongs to.
     season_number:  Number of the season the video episode belongs to, as an integer.
     season_id:      Id of the season the video episode belongs to, as a unicode string.
@@ -440,15 +444,17 @@ class InfoExtractor(object):
     _WORKING = True
 
     _LOGIN_HINTS = {
-        'any': 'Use --cookies, --username and --password or --netrc to provide account credentials',
+        'any': 'Use --cookies, --username and --password, or --netrc to provide account credentials',
         'cookies': (
             'Use --cookies-from-browser or --cookies for the authentication. '
             'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
-        'password': 'Use --username and --password or --netrc to provide account credentials',
+        'password': 'Use --username and --password, or --netrc to provide account credentials',
     }
 
     def __init__(self, downloader=None):
-        """Constructor. Receives an optional downloader."""
+        """Constructor. Receives an optional downloader (a YoutubeDL instance).
+        If a downloader is not passed during initialization,
+        it must be set using "set_downloader()" before "extract()" is called"""
         self._ready = False
         self._x_forwarded_for_ip = None
         self._printed_messages = set()
@@ -602,10 +608,19 @@ class InfoExtractor(object):
                     if self.__maybe_fake_ip_and_retry(e.countries):
                         continue
                     raise
+        except UnsupportedError:
+            raise
         except ExtractorError as e:
-            video_id = e.video_id or self.get_temp_id(url)
-            raise ExtractorError(
-                e.msg, video_id=video_id, ie=self.IE_NAME, tb=e.traceback, expected=e.expected, cause=e.cause)
+            kwargs = {
+                'video_id': e.video_id or self.get_temp_id(url),
+                'ie': self.IE_NAME,
+                'tb': e.traceback,
+                'expected': e.expected,
+                'cause': e.cause
+            }
+            if hasattr(e, 'countries'):
+                kwargs['countries'] = e.countries
+            raise type(e)(e.msg, **kwargs)
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
@@ -664,7 +679,7 @@ class InfoExtractor(object):
         See _download_webpage docstring for arguments specification.
         """
         if not self._downloader._first_webpage_request:
-            sleep_interval = float_or_none(self.get_param('sleep_interval_requests')) or 0
+            sleep_interval = self.get_param('sleep_interval_requests') or 0
             if sleep_interval > 0:
                 self.to_screen('Sleeping %s seconds ...' % sleep_interval)
                 time.sleep(sleep_interval)
@@ -1137,7 +1152,7 @@ class InfoExtractor(object):
                 if mobj:
                     break
 
-        _name = self._downloader._color_text(name, 'blue')
+        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
 
         if mobj:
             if group is None:
@@ -1437,6 +1452,9 @@ class InfoExtractor(object):
                 item_type = e.get('@type')
                 if expected_type is not None and expected_type != item_type:
                     continue
+                rating = traverse_obj(e, ('aggregateRating', 'ratingValue'), expected_type=float_or_none)
+                if rating is not None:
+                    info['average_rating'] = rating
                 if item_type in ('TVEpisode', 'Episode'):
                     episode_name = unescapeHTML(e.get('name'))
                     info.update({
@@ -1483,6 +1501,13 @@ class InfoExtractor(object):
                     break
         return dict((k, v) for k, v in info.items() if v is not None)
 
+    def _search_nextjs_data(self, webpage, video_id, **kw):
+        return self._parse_json(
+            self._search_regex(
+                r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
+                webpage, 'next.js data', **kw),
+            video_id, **kw)
+
     @staticmethod
     def _hidden_inputs(html):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
@@ -1519,7 +1544,7 @@ class InfoExtractor(object):
             'vcodec': {'type': 'ordered', 'regex': True,
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e?a?c-?3', 'dts', '', None, 'none']},
+                       'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -1537,8 +1562,8 @@ class InfoExtractor(object):
             'ie_pref': {'priority': True, 'type': 'extractor'},
             'hasvid': {'priority': True, 'field': 'vcodec', 'type': 'boolean', 'not_in_list': ('none',)},
             'hasaud': {'field': 'acodec', 'type': 'boolean', 'not_in_list': ('none',)},
-            'lang': {'convert': 'ignore', 'field': 'language_preference'},
-            'quality': {'convert': 'float_none', 'default': -1},
+            'lang': {'convert': 'float', 'field': 'language_preference', 'default': -1},
+            'quality': {'convert': 'float', 'default': -1},
             'filesize': {'convert': 'bytes'},
             'fs_approx': {'convert': 'bytes', 'field': 'filesize_approx'},
             'id': {'convert': 'string', 'field': 'format_id'},
@@ -1549,7 +1574,7 @@ class InfoExtractor(object):
             'vbr': {'convert': 'float_none'},
             'abr': {'convert': 'float_none'},
             'asr': {'convert': 'float_none'},
-            'source': {'convert': 'ignore', 'field': 'source_preference'},
+            'source': {'convert': 'float', 'field': 'source_preference', 'default': -1},
 
             'codec': {'type': 'combined', 'field': ('vcodec', 'acodec')},
             'br': {'type': 'combined', 'field': ('tbr', 'vbr', 'abr'), 'same_limit': True},
@@ -1899,7 +1924,7 @@ class InfoExtractor(object):
             tbr = int_or_none(media_el.attrib.get('bitrate'))
             width = int_or_none(media_el.attrib.get('width'))
             height = int_or_none(media_el.attrib.get('height'))
-            format_id = '-'.join(filter(None, [f4m_id, compat_str(i if tbr is None else tbr)]))
+            format_id = join_nonempty(f4m_id, tbr or i)
             # If <bootstrapInfo> is present, the specified f4m is a
             # stream-level manifest, and only set-level manifests may refer to
             # external resources.  See section 11.4 and section 4 of F4M spec
@@ -1961,7 +1986,7 @@ class InfoExtractor(object):
 
     def _m3u8_meta_format(self, m3u8_url, ext=None, preference=None, quality=None, m3u8_id=None):
         return {
-            'format_id': '-'.join(filter(None, [m3u8_id, 'meta'])),
+            'format_id': join_nonempty(m3u8_id, 'meta'),
             'url': m3u8_url,
             'ext': ext,
             'protocol': 'm3u8',
@@ -2014,10 +2039,10 @@ class InfoExtractor(object):
             video_id=None):
         formats, subtitles = [], {}
 
-        if '#EXT-X-FAXS-CM:' in m3u8_doc:  # Adobe Flash Access
-            return formats, subtitles
-
-        has_drm = re.search(r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://', m3u8_doc)
+        has_drm = re.search('|'.join([
+            r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
+            r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
+        ]), m3u8_doc)
 
         def format_url(url):
             return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
@@ -2056,7 +2081,7 @@ class InfoExtractor(object):
 
         if '#EXT-X-TARGETDURATION' in m3u8_doc:  # media playlist, return as is
             formats = [{
-                'format_id': '-'.join(map(str, filter(None, [m3u8_id, idx]))),
+                'format_id': join_nonempty(m3u8_id, idx),
                 'format_index': idx,
                 'url': m3u8_url,
                 'ext': ext,
@@ -2105,7 +2130,7 @@ class InfoExtractor(object):
             if media_url:
                 manifest_url = format_url(media_url)
                 formats.extend({
-                    'format_id': '-'.join(map(str, filter(None, (m3u8_id, group_id, name, idx)))),
+                    'format_id': join_nonempty(m3u8_id, group_id, name, idx),
                     'format_note': name,
                     'format_index': idx,
                     'url': manifest_url,
@@ -2162,9 +2187,9 @@ class InfoExtractor(object):
                     # format_id intact.
                     if not live:
                         stream_name = build_stream_name()
-                        format_id[1] = stream_name if stream_name else '%d' % (tbr if tbr else len(formats))
+                        format_id[1] = stream_name or '%d' % (tbr or len(formats))
                     f = {
-                        'format_id': '-'.join(map(str, filter(None, format_id))),
+                        'format_id': join_nonempty(*format_id),
                         'format_index': idx,
                         'url': manifest_url,
                         'manifest_url': m3u8_url,
@@ -2628,7 +2653,7 @@ class InfoExtractor(object):
 
         mpd_duration = parse_duration(mpd_doc.get('mediaPresentationDuration'))
         formats, subtitles = [], {}
-        stream_numbers = {'audio': 0, 'video': 0}
+        stream_numbers = collections.defaultdict(int)
         for period in mpd_doc.findall(_add_ns('Period')):
             period_duration = parse_duration(period.get('duration')) or mpd_duration
             period_ms_info = extract_multisegment_info(period, {
@@ -2694,10 +2719,8 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
-                            'manifest_stream_number': stream_numbers[content_type]
                         }
                         f.update(parse_codecs(codecs))
-                        stream_numbers[content_type] += 1
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
@@ -2864,7 +2887,9 @@ class InfoExtractor(object):
                     else:
                         # Assuming direct URL to unfragmented media.
                         f['url'] = base_url
-                    if content_type in ('video', 'audio') or mime_type == 'image/jpeg':
+                    if content_type in ('video', 'audio', 'image/jpeg'):
+                        f['manifest_stream_number'] = stream_numbers[f['url']]
+                        stream_numbers[f['url']] += 1
                         formats.append(f)
                     elif content_type == 'text':
                         subtitles.setdefault(lang or 'und', []).append(f)
@@ -2953,13 +2978,6 @@ class InfoExtractor(object):
                         })
                         fragment_ctx['time'] += fragment_ctx['duration']
 
-                format_id = []
-                if ism_id:
-                    format_id.append(ism_id)
-                if stream_name:
-                    format_id.append(stream_name)
-                format_id.append(compat_str(tbr))
-
                 if stream_type == 'text':
                     subtitles.setdefault(stream_language, []).append({
                         'ext': 'ismt',
@@ -2978,7 +2996,7 @@ class InfoExtractor(object):
                     })
                 elif stream_type in ('video', 'audio'):
                     formats.append({
-                        'format_id': '-'.join(format_id),
+                        'format_id': join_nonempty(ism_id, stream_name, tbr),
                         'url': ism_url,
                         'manifest_url': ism_url,
                         'ext': 'ismv' if stream_type == 'video' else 'isma',
@@ -3618,8 +3636,10 @@ class SearchInfoExtractor(InfoExtractor):
     """
     Base class for paged search queries extractors.
     They accept URLs in the format _SEARCH_KEY(|all|[0-9]):{query}
-    Instances should define _SEARCH_KEY and _MAX_RESULTS.
+    Instances should define _SEARCH_KEY and optionally _MAX_RESULTS
     """
+
+    _MAX_RESULTS = float('inf')
 
     @classmethod
     def _make_valid_url(cls):

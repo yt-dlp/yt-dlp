@@ -9,12 +9,12 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     NO_DEFAULT,
     orderedSet,
     parse_codecs,
     qualities,
-    str_or_none,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -70,11 +70,11 @@ class ZDFBaseIE(InfoExtractor):
                     f = {'vcodec': data[0], 'acodec': data[1]}
             f.update({
                 'url': format_url,
-                'format_id': '-'.join(filter(str_or_none, ('http', meta.get('type'), meta.get('quality')))),
+                'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
-            'format_note': ', '.join(filter(None, (meta.get('quality'), meta.get('class')))),
+            'format_note': join_nonempty('quality', 'class', from_dict=meta, delim=', '),
             'language': meta.get('language'),
             'language_preference': 10 if meta.get('class') == 'main' else -10 if meta.get('class') == 'ad' else -1,
             'quality': qualities(self._QUALITIES)(meta.get('quality')),

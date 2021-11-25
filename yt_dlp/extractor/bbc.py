@@ -451,9 +451,10 @@ class BBCCoUkIE(InfoExtractor):
             playlist = self._download_json(
                 'http://www.bbc.co.uk/programmes/%s/playlist.json' % playlist_id,
                 playlist_id, 'Downloading playlist JSON')
+            formats = []
+            subtitles = {}
 
-            version = playlist.get('defaultAvailableVersion')
-            if version:
+            for version in playlist.get('allAvailableVersions', []):
                 smp_config = version['smpConfig']
                 title = smp_config['title']
                 description = smp_config['summary']
@@ -463,8 +464,18 @@ class BBCCoUkIE(InfoExtractor):
                         continue
                     programme_id = item.get('vpid')
                     duration = int_or_none(item.get('duration'))
-                    formats, subtitles = self._download_media_selector(programme_id)
-                return programme_id, title, description, duration, formats, subtitles
+                    version_formats, version_subtitles = self._download_media_selector(programme_id)
+                    types = version['types']
+                    for f in version_formats:
+                        f['format_note'] = ', '.join(types)
+                        if any('AudioDescribed' in x for x in types):
+                            f['language_preference'] = -10
+                    formats += version_formats
+                    for tag, subformats in (version_subtitles or {}).items():
+                        subtitles.setdefault(tag, [])
+                        subtitles[tag] += subformats
+
+            return programme_id, title, description, duration, formats, subtitles
         except ExtractorError as ee:
             if not (isinstance(ee.cause, compat_HTTPError) and ee.cause.code == 404):
                 raise

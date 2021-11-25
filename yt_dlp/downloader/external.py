@@ -21,8 +21,7 @@ from ..utils import (
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
-    is_outdated_version,
-    process_communicate_or_kill,
+    Popen,
     sanitize_open,
 )
 
@@ -116,9 +115,8 @@ class ExternalFD(FragmentFD):
         self._debug_cmd(cmd)
 
         if 'fragments' not in info_dict:
-            p = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE)
-            _, stderr = process_communicate_or_kill(p)
+            p = Popen(cmd, stderr=subprocess.PIPE)
+            _, stderr = p.communicate_or_kill()
             if p.returncode != 0:
                 self.to_stderr(stderr.decode('utf-8', 'replace'))
             return p.returncode
@@ -128,9 +126,8 @@ class ExternalFD(FragmentFD):
 
         count = 0
         while count <= fragment_retries:
-            p = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE)
-            _, stderr = process_communicate_or_kill(p)
+            p = Popen(cmd, stderr=subprocess.PIPE)
+            _, stderr = p.communicate_or_kill()
             if p.returncode == 0:
                 break
             # TODO: Decide whether to retry based on error code
@@ -199,8 +196,8 @@ class CurlFD(ExternalFD):
         self._debug_cmd(cmd)
 
         # curl writes the progress to stderr so don't capture it.
-        p = subprocess.Popen(cmd)
-        process_communicate_or_kill(p)
+        p = Popen(cmd)
+        p.communicate_or_kill()
         return p.returncode
 
 
@@ -446,8 +443,7 @@ class FFmpegFD(ExternalFD):
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
             for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
                 stream_number = fmt.get('manifest_stream_number', 0)
-                a_or_v = 'a' if fmt.get('acodec') != 'none' else 'v'
-                args.extend(['-map', f'{i}:{a_or_v}:{stream_number}'])
+                args.extend(['-map', f'{i}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
@@ -461,7 +457,7 @@ class FFmpegFD(ExternalFD):
                 args += ['-f', 'mpegts']
             else:
                 args += ['-f', 'mp4']
-                if (ffpp.basename == 'ffmpeg' and is_outdated_version(ffpp._versions['ffmpeg'], '3.2', False)) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
+                if (ffpp.basename == 'ffmpeg' and ffpp._features.get('needs_adtstoasc')) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
                     args += ['-bsf:a', 'aac_adtstoasc']
         elif protocol == 'rtmp':
             args += ['-f', 'flv']
@@ -476,7 +472,7 @@ class FFmpegFD(ExternalFD):
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
         self._debug_cmd(args)
 
-        proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
+        proc = Popen(args, stdin=subprocess.PIPE, env=env)
         if url in ('-', 'pipe:'):
             self.on_process_started(proc, proc.stdin)
         try:
@@ -488,7 +484,7 @@ class FFmpegFD(ExternalFD):
             # streams). Note that Windows is not affected and produces playable
             # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
             if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
-                process_communicate_or_kill(proc, b'q')
+                proc.communicate_or_kill(b'q')
             else:
                 proc.kill()
                 proc.wait()

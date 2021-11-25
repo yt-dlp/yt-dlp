@@ -185,7 +185,7 @@ class FranceTVIE(InfoExtractor):
                 'vcodec': 'none',
                 'ext': 'mhtml',
                 'protocol': 'mhtml',
-                'url': 'about:dummy',
+                'url': 'about:invalid',
                 'fragments': [{
                     'path': sheet,
                     # XXX: not entirely accurate; each spritesheet seems to be

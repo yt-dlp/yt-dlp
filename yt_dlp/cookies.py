@@ -17,7 +17,7 @@ from .compat import (
 from .utils import (
     bug_reports_message,
     expand_path,
-    process_communicate_or_kill,
+    Popen,
     YoutubeDLCookieJar,
 )
 
@@ -117,7 +117,7 @@ def _extract_firefox_cookies(profile, logger):
         raise FileNotFoundError('could not find firefox cookies database in {}'.format(search_root))
     logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
-    with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
@@ -236,7 +236,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
 
     decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger)
 
-    with tempfile.TemporaryDirectory(prefix='youtube_dl') as tmpdir:
+    with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
         try:
             cursor = _open_database_copy(cookie_database_path, tmpdir)
@@ -599,14 +599,14 @@ def _get_mac_keyring_password(browser_keyring_name, logger):
         return password.encode('utf-8')
     else:
         logger.debug('using find-generic-password to obtain password')
-        proc = subprocess.Popen(['security', 'find-generic-password',
-                                 '-w',  # write password to stdout
-                                 '-a', browser_keyring_name,  # match 'account'
-                                 '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.DEVNULL)
+        proc = Popen(
+            ['security', 'find-generic-password',
+             '-w',  # write password to stdout
+             '-a', browser_keyring_name,  # match 'account'
+             '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         try:
-            stdout, stderr = process_communicate_or_kill(proc)
+            stdout, stderr = proc.communicate_or_kill()
             if stdout[-1:] == b'\n':
                 stdout = stdout[:-1]
             return stdout
@@ -620,7 +620,7 @@ def _get_windows_v10_key(browser_root, logger):
     if path is None:
         logger.error('could not find local state file')
         return None
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf8') as f:
         data = json.load(f)
     try:
         base64_key = data['os_crypt']['encrypted_key']

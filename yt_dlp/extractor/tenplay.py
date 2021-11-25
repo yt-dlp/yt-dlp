@@ -58,7 +58,7 @@ class TenPlayIE(InfoExtractor):
             'email': username,
             'password': password,
         }))
-        return "Bearer " + data['jwt']['accessToken']
+        return 'Bearer ' + data['jwt']['accessToken']
 
     def _real_extract(self, url):
         content_id = self._match_id(url)

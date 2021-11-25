@@ -385,8 +385,7 @@ class NexxIE(InfoExtractor):
         elif cdn == 'free':
             formats = self._extract_free_formats(video, video_id)
         else:
-            # TODO: reverse more cdns
-            assert False
+            self.raise_no_formats(f'{cdn} formats are currently not supported', video_id)
 
         self._sort_formats(formats)
 
@@ -427,7 +426,6 @@ class NexxEmbedIE(InfoExtractor):
             'upload_date': '20140305',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
