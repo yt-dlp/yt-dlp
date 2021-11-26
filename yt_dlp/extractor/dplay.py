@@ -19,15 +19,26 @@ from ..utils import (
 
 class DPlayBaseIE(InfoExtractor):
     _PATH_REGEX = r'/(?P<id>[^/]+/[^/?#]+)'
-    _token_cache = {}
+    _auth_token_cache = {}
 
-    def _get_auth(self, disco_base, display_id, query):
-        key = (disco_base, *sorted(query.items()))
-        if key not in self._token_cache:
-            self._token_cache[key] = self._download_json(
+    def _get_auth(self, disco_base, display_id, realm, needs_device_id=True):
+        key = (disco_base, realm)
+        st = self._get_cookies(disco_base).get('st')
+        token = (st and st.value) or self._auth_token_cache.get(key)
+
+        if not token:
+            query = {'realm': realm}
+            if needs_device_id:
+                query['deviceId'] = uuid.uuid4().hex
+            token = self._download_json(
                 disco_base + 'token', display_id, 'Downloading token',
                 query=query)['data']['attributes']['token']
-        return f'Bearer {self._token_cache[key]}'
+
+            # Save cache only if cookies are not being set
+            if not self._get_cookies(disco_base).get('st'):
+                self._auth_token_cache[key] = token
+
+        return f'Bearer {token}'
 
     def _process_errors(self, e, geo_countries):
         info = self._parse_json(e.cause.read().decode('utf-8'), None)
@@ -41,7 +52,7 @@ class DPlayBaseIE(InfoExtractor):
         raise ExtractorError(info['errors'][0]['detail'], expected=True)
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers['Authorization'] = self._get_auth(disco_base, display_id, {'realm': realm})
+        headers['Authorization'] = self._get_auth(disco_base, display_id, realm, False)
 
     def _download_video_playback_info(self, disco_base, video_id, headers):
         streaming = self._download_json(
@@ -470,14 +481,11 @@ class DiscoveryPlusIndiaIE(DPlayBaseIE):
     }]
 
     def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers.update(
+        headers.update({
             'x-disco-params': 'realm=%s' % realm,
             'x-disco-client': 'WEB:UNKNOWN:dplus-india:17.0.0',
-            'Authorization': self._get_auth(disco_base, display_id, {
-                'realm': realm,
-                'deviceId': uuid.uuid4().hex,
-            }),
-        )
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
 
     def _download_video_playback_info(self, disco_base, video_id, headers):
         return self._download_json(
@@ -536,12 +544,9 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
     def _entries(self, show_name):
         headers = {
             'x-disco-client': self._X_CLIENT,
-            'x-disco-params': 'realm=' + self._REALM,
+            'x-disco-params': f'realm={self._REALM}',
             'referer': self._DOMAIN,
-            'Authentication': self._get_auth(self._BASE_API, None, {
-                'realm': self._REALM,
-                'deviceId': uuid.uuid4().hex,
-            }),
+            'Authentication': self._get_auth(self._BASE_API, None, self._REALM),
         }
         show_json = self._download_json(
             f'{self._BASE_API}cms/routes/{self._SHOW_STR}/{show_name}?include=default',
@@ -552,9 +557,9 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
             season_id = season['id']
             total_pages, page_num = 1, 0
             while page_num < total_pages:
-                season_json = self._download_json(season_url.format(season_id, show_id, str(page_num + 1)),
-                                                  video_id=show_id, headers=headers,
-                                                  note='Downloading JSON metadata%s' % (' page %d' % page_num if page_num else ''))
+                season_json = self._download_json(
+                    season_url.format(season_id, show_id, str(page_num + 1)), show_name, headers=headers,
+                    note='Downloading season %s JSON metadata%s' % (season_id, ' page %d' % page_num if page_num else ''))
                 if page_num == 0:
                     total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
                 episodes_json = season_json['data']
@@ -586,7 +591,7 @@ class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
     _REALM = 'dplayit'
     _SHOW_STR = 'programmi'
     _INDEX = 1
-    _VIDEO_IE = DPlayBaseIE
+    _VIDEO_IE = DPlayIE
 
 
 class DiscoveryPlusIndiaShowIE(DiscoveryPlusShowBaseIE):
