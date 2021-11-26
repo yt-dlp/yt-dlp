@@ -316,6 +316,7 @@ class TwitchVodIE(TwitchBaseIE):
             'view_count': int,
         },
         'params': {
+            'subtitleslangs': ['live_chat'],
             'skip_download': True,
         },
     }, {
