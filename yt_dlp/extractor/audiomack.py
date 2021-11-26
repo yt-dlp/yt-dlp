@@ -30,18 +30,10 @@ class AudiomackIE(InfoExtractor):
         },
         # audiomack wrapper around soundcloud song
         # Needs new test URL.
-        {
+        {   # Song has been removed from the site.
             'add_ie': ['Soundcloud'],
             'url': 'http://www.audiomack.com/song/hip-hop-daily/black-mamba-freestyle',
             'only_matching': True,
-            # 'info_dict': {
-                # 'id': '258901379',
-                # 'ext': 'mp3',
-                # 'description': 'mamba day freestyle for the legend Kobe Bryant ',
-                # 'title': 'Black Mamba Freestyle [Prod. By Danny Wolf]',
-                # 'uploader': 'ILOVEMAKONNEN',
-                # 'upload_date': '20160414',
-            # }
         },
     ]
 
