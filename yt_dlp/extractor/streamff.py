@@ -34,13 +34,10 @@ class StreamFFIE(InfoExtractor):
         }
         """
         json_data = self._download_json(self._API_URL + api_path, video_id)
-        video_url = f'https://streamff.com/{json_data["videoLink"]}'
-        title = json_data.get('name') or video_id
-
         return {
             'id': video_id,
-            'title': title,
-            'url': video_url,
+            'title': json_data.get('name') or video_id,
+            'url': 'https://streamff.com/%s' % json_data['videoLink'],
             'view_count': int_or_none(json_data.get('views')),
-            'timestamp': parse_iso8601(json_data.get('date'))
+            'timestamp': parse_iso8601(json_data.get('date')),
         }
