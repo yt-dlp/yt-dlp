@@ -179,6 +179,7 @@ from .br import (
 )
 from .bravotv import BravoTVIE
 from .breakcom import BreakIE
+from .breitbart import BreitBartIE
 from .brightcove import (
     BrightcoveLegacyIE,
     BrightcoveNewIE,
