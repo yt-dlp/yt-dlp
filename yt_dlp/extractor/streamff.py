@@ -21,19 +21,7 @@ class StreamFFIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        api_path = f'/videos/{video_id}'
-
-        """"
-        {
-            'views': 94,
-            'uploaded': True,
-            'publicURl': '55cc94',
-            'date': '2021-10-20T21:17:23.887Z',
-            'name': '55cc94',
-            'videoLink': '/uploads/55cc94.mp4'
-        }
-        """
-        json_data = self._download_json(self._API_URL + api_path, video_id)
+        json_data = self._download_json(f'https://streamff.com/api/videos/{video_id}', video_id)
         return {
             'id': video_id,
             'title': json_data.get('name') or video_id,
