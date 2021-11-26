@@ -14,6 +14,7 @@ cookies
 *.mp4
 *.m4a
 *.m4v
+*.mov
 *.mp3
 *.3gp
 *.webm
@@ -33,6 +34,7 @@ cookies
 *.swp
 *.ogg
 *.opus
+*.unknown_video
 *.info.json
 *.live_chat.json
 *.jpg
@@ -41,6 +43,9 @@ cookies
 *.webp
 *.annotations.xml
 *.description
+*.desktop
+*.url
+*.webloc
 .cache/
 
 # Allow config/media files in testdata
