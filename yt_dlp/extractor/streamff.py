@@ -5,7 +5,6 @@ from ..utils import int_or_none, parse_iso8601
 
 class StreamFFIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?streamff\.com/v/(?P<id>[a-zA-Z0-9]+)'
-    _API_URL = 'https://streamff.com/api'
 
     _TESTS = [{
         'url': 'https://streamff.com/v/55cc94',
@@ -15,7 +14,8 @@ class StreamFFIE(InfoExtractor):
             'ext': 'mp4',
             'title': '55cc94',
             'timestamp': 1634764643,
-            'upload_date': '20211020'
+            'upload_date': '20211020',
+            'view_count': int,
         }
     }]
 
