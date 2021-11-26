@@ -124,9 +124,9 @@ class SenateISVPIE(InfoExtractor):
         formats = []
         if video_type == 'arch':
             filename = video_id if '.' in video_id else video_id + '.mp4'
-            formats = [{
-                'url': compat_urlparse.urljoin(domain, 'i/' + filename + '/master.m3u8'),
-            }]
+            m3u8_url = compat_urlparse.urljoin(domain, 'i/' + filename + '/master.m3u8')
+            for entry in self._extract_m3u8_formats(m3u8_url, video_id, ext='mp4', m3u8_id='m3u8'):
+                formats.append(entry)
         else:
             hdcore_sign = 'hdcore=3.1.0'
             url_params = (domain, video_id, stream_num)
