@@ -18,6 +18,7 @@ from ..utils import (
 
 
 class DPlayBaseIE(InfoExtractor):
+    _PATH_REGEX = r'/(?P<id>[^/]+/[^/?#]+)'
     _token_cache = {}
 
     def _get_auth(self, disco_base, display_id, query):
@@ -27,141 +28,6 @@ class DPlayBaseIE(InfoExtractor):
                 disco_base + 'token', display_id, 'Downloading token',
                 query=query)['data']['attributes']['token']
         return f'Bearer {self._token_cache[key]}'
-
-class DPlayIE(DPlayBaseIE):
-    _PATH_REGEX = r'/(?P<id>[^/]+/[^/?#]+)'
-    _VALID_URL = r'''(?x)https?://
-        (?P<domain>
-            (?:www\.)?(?P<host>d
-                (?:
-                    play\.(?P<country>dk|fi|jp|se|no)|
-                    iscoveryplus\.(?P<plus_country>dk|es|fi|it|se|no)
-                )
-            )|
-            (?P<subdomain_country>es|it)\.dplay\.com
-        )/[^/]+''' + _PATH_REGEX
-
-    _TESTS = [{
-        # non geo restricted, via secure api, unsigned download hls URL
-        'url': 'https://www.dplay.se/videos/nugammalt-77-handelser-som-format-sverige/nugammalt-77-handelser-som-format-sverige-101',
-        'info_dict': {
-            'id': '13628',
-            'display_id': 'nugammalt-77-handelser-som-format-sverige/nugammalt-77-handelser-som-format-sverige-101',
-            'ext': 'mp4',
-            'title': 'Svensken lär sig njuta av livet',
-            'description': 'md5:d3819c9bccffd0fe458ca42451dd50d8',
-            'duration': 2649.856,
-            'timestamp': 1365453720,
-            'upload_date': '20130408',
-            'creator': 'Kanal 5',
-            'series': 'Nugammalt - 77 händelser som format Sverige',
-            'season_number': 1,
-            'episode_number': 1,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # geo restricted, via secure api, unsigned download hls URL
-        'url': 'http://www.dplay.dk/videoer/ted-bundy-mind-of-a-monster/ted-bundy-mind-of-a-monster',
-        'info_dict': {
-            'id': '104465',
-            'display_id': 'ted-bundy-mind-of-a-monster/ted-bundy-mind-of-a-monster',
-            'ext': 'mp4',
-            'title': 'Ted Bundy: Mind Of A Monster',
-            'description': 'md5:8b780f6f18de4dae631668b8a9637995',
-            'duration': 5290.027,
-            'timestamp': 1570694400,
-            'upload_date': '20191010',
-            'creator': 'ID - Investigation Discovery',
-            'series': 'Ted Bundy: Mind Of A Monster',
-            'season_number': 1,
-            'episode_number': 1,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # disco-api
-        'url': 'https://www.dplay.no/videoer/i-kongens-klr/sesong-1-episode-7',
-        'info_dict': {
-            'id': '40206',
-            'display_id': 'i-kongens-klr/sesong-1-episode-7',
-            'ext': 'mp4',
-            'title': 'Episode 7',
-            'description': 'md5:e3e1411b2b9aebeea36a6ec5d50c60cf',
-            'duration': 2611.16,
-            'timestamp': 1516726800,
-            'upload_date': '20180123',
-            'series': 'I kongens klær',
-            'season_number': 1,
-            'episode_number': 7,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'Available for Premium users',
-    }, {
-        'url': 'http://it.dplay.com/nove/biografie-imbarazzanti/luigi-di-maio-la-psicosi-di-stanislawskij/',
-        'md5': '2b808ffb00fc47b884a172ca5d13053c',
-        'info_dict': {
-            'id': '6918',
-            'display_id': 'biografie-imbarazzanti/luigi-di-maio-la-psicosi-di-stanislawskij',
-            'ext': 'mp4',
-            'title': 'Luigi Di Maio: la psicosi di Stanislawskij',
-            'description': 'md5:3c7a4303aef85868f867a26f5cc14813',
-            'thumbnail': r're:^https?://.*\.jpe?g',
-            'upload_date': '20160524',
-            'timestamp': 1464076800,
-            'series': 'Biografie imbarazzanti',
-            'season_number': 1,
-            'episode': 'Episode 1',
-            'episode_number': 1,
-        },
-    }, {
-        'url': 'https://es.dplay.com/dmax/la-fiebre-del-oro/temporada-8-episodio-1/',
-        'info_dict': {
-            'id': '21652',
-            'display_id': 'la-fiebre-del-oro/temporada-8-episodio-1',
-            'ext': 'mp4',
-            'title': 'Episodio 1',
-            'description': 'md5:b9dcff2071086e003737485210675f69',
-            'thumbnail': r're:^https?://.*\.png',
-            'upload_date': '20180709',
-            'timestamp': 1531173540,
-            'series': 'La fiebre del oro',
-            'season_number': 8,
-            'episode': 'Episode 1',
-            'episode_number': 1,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://www.dplay.fi/videot/shifting-gears-with-aaron-kaufman/episode-16',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.dplay.jp/video/gold-rush/24086',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.discoveryplus.se/videos/nugammalt-77-handelser-som-format-sverige/nugammalt-77-handelser-som-format-sverige-101',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.discoveryplus.dk/videoer/ted-bundy-mind-of-a-monster/ted-bundy-mind-of-a-monster',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.discoveryplus.no/videoer/i-kongens-klr/sesong-1-episode-7',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.discoveryplus.it/videos/biografie-imbarazzanti/luigi-di-maio-la-psicosi-di-stanislawskij',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.discoveryplus.es/videos/la-fiebre-del-oro/temporada-8-episodio-1',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.discoveryplus.fi/videot/shifting-gears-with-aaron-kaufman/episode-16',
-        'only_matching': True,
-    }]
 
     def _process_errors(self, e, geo_countries):
         info = self._parse_json(e.cause.read().decode('utf-8'), None)
@@ -299,6 +165,141 @@ class DPlayIE(DPlayBaseIE):
             },
         }
 
+
+class DPlayIE(DPlayBaseIE):
+    _VALID_URL = r'''(?x)https?://
+        (?P<domain>
+            (?:www\.)?(?P<host>d
+                (?:
+                    play\.(?P<country>dk|fi|jp|se|no)|
+                    iscoveryplus\.(?P<plus_country>dk|es|fi|it|se|no)
+                )
+            )|
+            (?P<subdomain_country>es|it)\.dplay\.com
+        )/[^/]+''' + DPlayBaseIE._PATH_REGEX
+
+    _TESTS = [{
+        # non geo restricted, via secure api, unsigned download hls URL
+        'url': 'https://www.dplay.se/videos/nugammalt-77-handelser-som-format-sverige/nugammalt-77-handelser-som-format-sverige-101',
+        'info_dict': {
+            'id': '13628',
+            'display_id': 'nugammalt-77-handelser-som-format-sverige/nugammalt-77-handelser-som-format-sverige-101',
+            'ext': 'mp4',
+            'title': 'Svensken lär sig njuta av livet',
+            'description': 'md5:d3819c9bccffd0fe458ca42451dd50d8',
+            'duration': 2649.856,
+            'timestamp': 1365453720,
+            'upload_date': '20130408',
+            'creator': 'Kanal 5',
+            'series': 'Nugammalt - 77 händelser som format Sverige',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # geo restricted, via secure api, unsigned download hls URL
+        'url': 'http://www.dplay.dk/videoer/ted-bundy-mind-of-a-monster/ted-bundy-mind-of-a-monster',
+        'info_dict': {
+            'id': '104465',
+            'display_id': 'ted-bundy-mind-of-a-monster/ted-bundy-mind-of-a-monster',
+            'ext': 'mp4',
+            'title': 'Ted Bundy: Mind Of A Monster',
+            'description': 'md5:8b780f6f18de4dae631668b8a9637995',
+            'duration': 5290.027,
+            'timestamp': 1570694400,
+            'upload_date': '20191010',
+            'creator': 'ID - Investigation Discovery',
+            'series': 'Ted Bundy: Mind Of A Monster',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        # disco-api
+        'url': 'https://www.dplay.no/videoer/i-kongens-klr/sesong-1-episode-7',
+        'info_dict': {
+            'id': '40206',
+            'display_id': 'i-kongens-klr/sesong-1-episode-7',
+            'ext': 'mp4',
+            'title': 'Episode 7',
+            'description': 'md5:e3e1411b2b9aebeea36a6ec5d50c60cf',
+            'duration': 2611.16,
+            'timestamp': 1516726800,
+            'upload_date': '20180123',
+            'series': 'I kongens klær',
+            'season_number': 1,
+            'episode_number': 7,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'http://it.dplay.com/nove/biografie-imbarazzanti/luigi-di-maio-la-psicosi-di-stanislawskij/',
+        'md5': '2b808ffb00fc47b884a172ca5d13053c',
+        'info_dict': {
+            'id': '6918',
+            'display_id': 'biografie-imbarazzanti/luigi-di-maio-la-psicosi-di-stanislawskij',
+            'ext': 'mp4',
+            'title': 'Luigi Di Maio: la psicosi di Stanislawskij',
+            'description': 'md5:3c7a4303aef85868f867a26f5cc14813',
+            'thumbnail': r're:^https?://.*\.jpe?g',
+            'upload_date': '20160524',
+            'timestamp': 1464076800,
+            'series': 'Biografie imbarazzanti',
+            'season_number': 1,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+        },
+    }, {
+        'url': 'https://es.dplay.com/dmax/la-fiebre-del-oro/temporada-8-episodio-1/',
+        'info_dict': {
+            'id': '21652',
+            'display_id': 'la-fiebre-del-oro/temporada-8-episodio-1',
+            'ext': 'mp4',
+            'title': 'Episodio 1',
+            'description': 'md5:b9dcff2071086e003737485210675f69',
+            'thumbnail': r're:^https?://.*\.png',
+            'upload_date': '20180709',
+            'timestamp': 1531173540,
+            'series': 'La fiebre del oro',
+            'season_number': 8,
+            'episode': 'Episode 1',
+            'episode_number': 1,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.dplay.fi/videot/shifting-gears-with-aaron-kaufman/episode-16',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dplay.jp/video/gold-rush/24086',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.se/videos/nugammalt-77-handelser-som-format-sverige/nugammalt-77-handelser-som-format-sverige-101',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.dk/videoer/ted-bundy-mind-of-a-monster/ted-bundy-mind-of-a-monster',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.no/videoer/i-kongens-klr/sesong-1-episode-7',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.it/videos/biografie-imbarazzanti/luigi-di-maio-la-psicosi-di-stanislawskij',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.es/videos/la-fiebre-del-oro/temporada-8-episodio-1',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.discoveryplus.fi/videot/shifting-gears-with-aaron-kaufman/episode-16',
+        'only_matching': True,
+    }]
+
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
@@ -309,8 +310,8 @@ class DPlayIE(DPlayBaseIE):
             url, display_id, host, 'dplay' + country, country, domain)
 
 
-class HGTVDeIE(DPlayIE):
-    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayIE._PATH_REGEX
+class HGTVDeIE(DPlayBaseIE):
+    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://de.hgtv.com/sendungen/tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette/',
         'info_dict': {
@@ -335,8 +336,8 @@ class HGTVDeIE(DPlayIE):
             url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
 
 
-class DiscoveryPlusIE(DPlayIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?:\w{2}/)?video' + DPlayIE._PATH_REGEX
+class DiscoveryPlusIE(DPlayBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
         'info_dict': {
@@ -386,7 +387,7 @@ class DiscoveryPlusIE(DPlayIE):
 
 
 class ScienceChannelIE(DiscoveryPlusIE):
-    _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.sciencechannel.com/video/strangest-things-science-atve-us/nazi-mystery-machine',
         'info_dict': {
@@ -406,7 +407,7 @@ class ScienceChannelIE(DiscoveryPlusIE):
 
 
 class DIYNetworkIE(DiscoveryPlusIE):
-    _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
         'info_dict': {
@@ -426,7 +427,7 @@ class DIYNetworkIE(DiscoveryPlusIE):
 
 
 class AnimalPlanetIE(DiscoveryPlusIE):
-    _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.animalplanet.com/video/north-woods-law-animal-planet/squirrel-showdown',
         'info_dict': {
@@ -445,8 +446,8 @@ class AnimalPlanetIE(DiscoveryPlusIE):
     _API_URL = 'us1-prod-direct.animalplanet.com'
 
 
-class DiscoveryPlusIndiaIE(DPlayIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/videos?' + DPlayIE._PATH_REGEX
+class DiscoveryPlusIndiaIE(DPlayBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/videos?' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.in/videos/how-do-they-do-it/fugu-and-more?seasonId=8&type=EPISODE',
         'info_dict': {
@@ -549,7 +550,7 @@ class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
     _REALM = 'dplayit'
     _SHOW_STR = 'programmi'
     _INDEX = 1
-    _VIDEO_IE = DPlayIE
+    _VIDEO_IE = DPlayBaseIE
 
 
 class DiscoveryPlusIndiaShowIE(DiscoveryPlusShowBaseIE):

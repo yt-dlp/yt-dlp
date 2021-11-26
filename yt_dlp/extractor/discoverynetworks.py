@@ -2,10 +2,10 @@
 from __future__ import unicode_literals
 
 
-from .dplay import DPlayIE
+from .dplay import DPlayBaseIE
 
 
-class DiscoveryNetworksDeIE(DPlayIE):
+class DiscoveryNetworksDeIE(DPlayBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de|dplay\.co\.uk)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
 
     _TESTS = [{
