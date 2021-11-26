@@ -1740,9 +1740,10 @@ class YoutubeDL(object):
     def _check_formats(self, formats):
         for f in formats:
             self.to_screen('[info] Testing format %s' % f['format_id'])
-            temp_file = tempfile.NamedTemporaryFile(
-                suffix='.tmp', delete=False,
-                dir=self.get_output_path('temp') or None)
+            path = self.get_output_path('temp')
+            if not self._ensure_dir_exists(f'{path}/'):
+                continue
+            temp_file = tempfile.NamedTemporaryFile(suffix='.tmp', delete=False, dir=path or None)
             temp_file.close()
             try:
                 success, _ = self.dl(temp_file.name, f, test=True)
