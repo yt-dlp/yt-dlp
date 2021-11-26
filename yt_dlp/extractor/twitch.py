@@ -361,7 +361,7 @@ class TwitchVodIE(TwitchBaseIE):
                     "Important chapter information missing for chapter %s" % chapterName,
                     item_id)
 
-                return moment
+                return None
 
             return {
                 'start_time': momentPosition,
@@ -379,6 +379,8 @@ class TwitchVodIE(TwitchBaseIE):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         chapters = [moment_to_chapter(moment) for moment in info.get('moments') or []]
+        while chapters.__contains__(None):
+            chapters.remove(None)
 
         return {
             'id': vod_id,
