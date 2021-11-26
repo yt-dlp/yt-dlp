@@ -352,8 +352,9 @@ from .dplay import (
     ScienceChannelIE,
     DIYNetworkIE,
     AnimalPlanetIE,
-    DiscoveryPlusItalyShowIE,
     DiscoveryPlusIndiaIE,
+    DiscoveryNetworksDeIE,
+    DiscoveryPlusItalyShowIE,
     DiscoveryPlusIndiaShowIE,
 )
 from .dreisat import DreiSatIE
@@ -376,7 +377,6 @@ from .discoverygo import (
     DiscoveryGoIE,
     DiscoveryGoPlaylistIE,
 )
-from .discoverynetworks import DiscoveryNetworksDeIE
 from .discoveryvr import DiscoveryVRIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
