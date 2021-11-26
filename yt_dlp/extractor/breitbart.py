@@ -12,7 +12,7 @@ class BreitBartIE(InfoExtractor):
             'id': '5cOz1yup',
             'ext': 'mp4',
             'title': 'Watch \u2013 Clyburn: Statues in Congress Have to Go Because they Are Honoring Slavery',
-            'description': 'House Majority Whip James Clyburn (D-SC) said\u00a0Tuesday on MSNBC\'s \"Ayman Mohyeldin Reports\" that a statue sent by South Carolina of the seventh vice president of the United States\u00a0John C. Calhoun needs to be removed from\u00a0Capitol\'s National Statuary Hall because it is honoring slavery.',
+            'description': 'md5:bac35eb0256d1cb17f517f54c79404d5',
             'thumbnail': 'https://cdn.jwplayer.com/thumbs/5cOz1yup-1920.jpg',
             'age_limit': 0,
         }
