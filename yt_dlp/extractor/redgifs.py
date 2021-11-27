@@ -119,11 +119,11 @@ def _parse_gif_entry(gif_data):
         'title': title,
         'age_limit': 18,
         'formats': formats,
-        'timestamp': gif_data['createDate'],
-        'view_count': gif_data['views'],
-        'uploader': gif_data['userName'],
+        'timestamp': gif_data.get('createDate'),
+        'view_count': int_or_none(gif_data.get('views')),
+        'uploader': gif_data.get('userName'),
         'webpage_url': webpage_url,
-        'tags': gif_data['tags']
+        'tags': gif_data.get('tags')
     }
 
 
