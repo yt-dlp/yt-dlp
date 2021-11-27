@@ -80,7 +80,7 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             (field_name, query.get(field_name, (default,))[0])
             for field_name, default in fields.items()]
 
-        return {key:val for key, val in api_query if val is not None}
+        return {key: val for key, val in api_query if val is not None}
 
     def _paged_entries(self, ep, item_id, query, fields):
         page = int_or_none(query.get('page', (None,))[0])
