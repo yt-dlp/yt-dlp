@@ -304,15 +304,14 @@ class TwitchVodIE(TwitchBaseIE):
             'Downloading stream metadata GraphQL')
 
         video = traverse_obj(data, (0, 'data', 'video'))
-        video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges'))
+        video['moments'] = traverse_obj(data, (1, 'data', 'video', 'moments', 'edges', ..., 'node'))
 
         if video is None:
             raise ExtractorError(
                 'Video %s does not exist' % item_id, expected=True)
         return self._extract_info_gql(video, item_id)
 
-    @staticmethod
-    def _extract_info(info):
+    def _extract_info(self, info):
         status = info.get('status')
         if status == 'recording':
             is_live = True
@@ -348,27 +347,22 @@ class TwitchVodIE(TwitchBaseIE):
             'is_live': is_live,
         }
 
-    def _extract_info_gql(self, info, item_id):
-        def moment_to_chapter(moment):
-            moment = moment.get('node')
+    def _extract_moments(self, info, item_id):
+        for moment in info.get('moments') or []:
+            start_time = int_or_none(moment.get('positionMilliseconds'), 1000)
+            duration = int_or_none(moment.get('durationMilliseconds'), 1000)
+            name = str_or_none(moment.get('description'))
 
-            momentPosition = int_or_none(moment.get('positionMilliseconds'), 1000)
-            momentDuration = int_or_none(moment.get('durationMilliseconds'), 1000)
-            chapterName = str_or_none(moment.get('description'))
-
-            if momentPosition is None or momentDuration is None:
-                self.report_warning(
-                    "Important chapter information missing for chapter %s" % chapterName,
-                    item_id)
-
-                return None
-
-            return {
-                'start_time': momentPosition,
-                'end_time': momentPosition + momentDuration,
-                'title': chapterName
+            if start_time is None or duration is None:
+                self.report_warning(f'Important chapter information missing for chapter {name}', item_id)
+                continue
+            yield {
+                'start_time': start_time,
+                'end_time': start_time + duration,
+                'title': name,
             }
 
+    def _extract_info_gql(self, info, item_id):
         vod_id = info.get('id') or item_id
         # id backward compatibility for download archives
         if vod_id[0] != 'v':
@@ -377,10 +371,6 @@ class TwitchVodIE(TwitchBaseIE):
         if thumbnail:
             for p in ('width', 'height'):
                 thumbnail = thumbnail.replace('{%s}' % p, '0')
-
-        chapters = [moment_to_chapter(moment) for moment in info.get('moments') or []]
-        while chapters.__contains__(None):
-            chapters.remove(None)
 
         return {
             'id': vod_id,
@@ -392,7 +382,7 @@ class TwitchVodIE(TwitchBaseIE):
             'uploader_id': try_get(info, lambda x: x['owner']['login'], compat_str),
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
-            'chapters': chapters if len(chapters) != 0 else None,
+            'chapters': list(self._extract_moments(info, item_id)),
         }
 
     def _real_extract(self, url):
