@@ -11,45 +11,12 @@ from ..utils import (
     OnDemandPagedList,
 )
 
-
-class RedGifsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
+class RedGifsBaseInfoExtractor(InfoExtractor):
     _FORMATS = {
         'gif': 250,
         'sd': 480,
         'hd': None,
     }
-    _TESTS = [{
-        'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
-        'info_dict': {
-            'id': 'squeakyhelplesswisent',
-            'ext': 'mp4',
-            'title': 'Hotwife Legs Thick',
-            'timestamp': 1636287915,
-            'upload_date': '20211107',
-            'uploader': 'ignored52',
-            'duration': 16,
-            'view_count': int,
-            'like_count': int,
-            'categories': list,
-            'age_limit': 18,
-        }
-    }, {
-        'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
-        'info_dict': {
-            'id': 'squeakyhelplesswisent',
-            'ext': 'mp4',
-            'title': 'Hotwife Legs Thick',
-            'timestamp': 1636287915,
-            'upload_date': '20211107',
-            'uploader': 'ignored52',
-            'duration': 16,
-            'view_count': int,
-            'like_count': int,
-            'categories': list,
-            'age_limit': 18,
-        }
-    }]
 
     def _parse_gif_data(self, gif_data):
         video_id = gif_data.get("id")
@@ -92,6 +59,41 @@ class RedGifsIE(InfoExtractor):
             'formats': formats,
         }
 
+
+class RedGifsIE(RedGifsBaseInfoExtractor):
+    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
+    _TESTS = [{
+        'url': 'https://www.redgifs.com/watch/squeakyhelplesswisent',
+        'info_dict': {
+            'id': 'squeakyhelplesswisent',
+            'ext': 'mp4',
+            'title': 'Hotwife Legs Thick',
+            'timestamp': 1636287915,
+            'upload_date': '20211107',
+            'uploader': 'ignored52',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'categories': list,
+            'age_limit': 18,
+        }
+    }, {
+        'url': 'https://thumbs2.redgifs.com/SqueakyHelplessWisent-mobile.mp4#t=0',
+        'info_dict': {
+            'id': 'squeakyhelplesswisent',
+            'ext': 'mp4',
+            'title': 'Hotwife Legs Thick',
+            'timestamp': 1636287915,
+            'upload_date': '20211107',
+            'uploader': 'ignored52',
+            'duration': 16,
+            'view_count': int,
+            'like_count': int,
+            'categories': list,
+            'age_limit': 18,
+        }
+    }]
+
     def _real_extract(self, url):
         video_id = self._match_id(url).lower()
 
@@ -104,7 +106,7 @@ class RedGifsIE(InfoExtractor):
         return self._parse_gif_data(video_info['gif'])
 
 
-class RedGifsSearchIE(RedGifsIE):
+class RedGifsSearchIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs search'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>.*)'
     _PAGE_SIZE = 80
@@ -184,7 +186,7 @@ class RedGifsSearchIE(RedGifsIE):
         )
 
 
-class RedGifsUserIE(RedGifsIE):
+class RedGifsUserIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs user'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>.*))?'
     _PAGE_SIZE = 30
