@@ -58,6 +58,8 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             'tags': gif_data.get('tags'),
             'age_limit': 18,
             'formats': formats,
+            'ie_key': self.ie_key(),
+            'extractor': self.IE_NAME,
         }
 
     def _paged_entries(self, page_fetcher, page, page_size):
