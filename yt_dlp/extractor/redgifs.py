@@ -233,29 +233,22 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
         return [self._parse_gif_data(entry) for entry in data['gifs']]
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url)
-        username = match.group('username')
-        query_str = match.group('query')
+        username, query_str = self._match_valid_url(url).group('username', 'query')
         playlist_id = username
         if query_str:
             playlist_id = f'{username}?{query_str}'
-        description = f'RedGifs user {username}'
 
         if not username:
             raise ExtractorError('Invalid username', expected=True)
 
+        query = compat_parse_qs(query_str or '')
         api_query = {
-            'order': 'recent',
+            'order': query.get('order', ('recent',))[0],
         }
-        page = None
-        if query_str:
-            query = compat_parse_qs(query_str)
-            if query.get('order'):
-                api_query['order'] = query.get('order', ('recent',))[0]
-                description += ", ordered by {order}"
-            if query.get('type'):
-                api_query['type'] = query.get('type')[0]
-            page = query.get('page', (1,))[0]
+        if query.get('type'):
+            api_query['type'] = query.get('type')[0]
+        page = query.get('page', (None,))[0]
+        description = f'RedGifs user {username}, ordered by {api_query["order"]}'
 
         if page is not None:
             entries = self._fetch_page(playlist_id, username, api_query, page)
