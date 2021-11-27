@@ -2934,9 +2934,10 @@ class YoutubeDL(object):
                     downloader = get_suitable_downloader(info_dict, self.params) if 'protocol' in info_dict else None
                     downloader = downloader.__name__ if downloader else None
                     ffmpeg_fixup(info_dict.get('requested_formats') is None and downloader == 'HlsFD',
-                                 'malformed AAC bitstream detected', FFmpegFixupM3u8PP)
-                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'malformed timestamps detected', FFmpegFixupTimestampPP)
-                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'malformed duration detected', FFmpegFixupDurationPP)
+                                 'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
+                                 FFmpegFixupM3u8PP)
+                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed timestamps detected', FFmpegFixupTimestampPP)
+                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed duration detected', FFmpegFixupDurationPP)
 
                 fixup()
                 try:

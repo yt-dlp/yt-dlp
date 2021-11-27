@@ -855,10 +855,21 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
 
 
 class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
+    def _needs_fixup(self, info):
+        yield info['ext'] in ('mp4', 'm4a')
+        yield info['protocol'].startswith('m3u8')
+        try:
+            metadata = self.get_metadata_object(info['filepath'])
+        except PostProcessingError as e:
+            self.report_warning(f'Unable to extract metadata: {e.msg}')
+            yield True
+        else:
+            yield traverse_obj(metadata, ('format', 'format_name'), casesense=False) == 'mpegts'
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if self.get_audio_codec(info['filepath']) == 'aac':
-            self._fixup('Fixing malformed AAC bitstream', info['filepath'], [
+        if all(self._needs_fixup(info)):
+            self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
                 '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
         return [], info
 
