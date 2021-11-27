@@ -53,7 +53,7 @@ class TrovoIE(TrovoBaseIE):
     }
   }
 }''' % username,
-            })['data']['getLiveInfo']
+            }, headers={'Accept': 'application/json'})['data']['getLiveInfo']
         if live_info.get('isLive') == 0:
             raise ExtractorError('%s is offline' % username, expected=True)
         program_info = live_info['programInfo']
