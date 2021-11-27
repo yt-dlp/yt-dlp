@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class RedGifsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www|thumbs2?)\.)?redgifs\.com/(?:watch/)?(?P<id>[^-/?#\.]+)'
+    _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
     _FORMATS = {
         'gif': 250,
         'sd': 480,
