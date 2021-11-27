@@ -97,7 +97,7 @@ class RedGifsIE(InfoExtractor):
 
 def _parse_gif_entry(gif_data):
     video_id = gif_data["id"]
-    title = " ".join(gif_data['tags'])
+    title = " ".join(gif_data.get('tags') or [])
     formats = [
         {
             "format_id": "gif",
