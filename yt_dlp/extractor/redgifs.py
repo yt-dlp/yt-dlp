@@ -244,9 +244,6 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
         if query_str:
             playlist_id = f'{username}?{query_str}'
 
-        if not username:
-            raise ExtractorError('Invalid username', expected=True)
-
         query = compat_parse_qs(query_str or '')
         api_query = {
             'order': query.get('order', ('recent',))[0],
