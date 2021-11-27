@@ -400,7 +400,7 @@ def _real_main(argv=None):
     if opts.allow_unplayable_formats:
         def report_unplayable_conflict(opt_name, arg, default=False, allowed=None):
             val = getattr(opts, opt_name)
-            if (not allowed and val) or not allowed(val):
+            if (not allowed and val) or (allowed and not allowed(val)):
                 report_conflict('--allow-unplayable-formats', arg)
                 setattr(opts, opt_name, default)
 
