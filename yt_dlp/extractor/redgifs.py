@@ -169,7 +169,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
             api_query['type'] = query.get('type')[0]
 
         if query.get('page'):
-            page = query.get('page', (1,))[0]
+            page = query.get('page')[0]
             entries = self._fetch_page(query_str, api_query, page)
         else:
             entries = OnDemandPagedList(
