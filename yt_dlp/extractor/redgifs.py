@@ -1,4 +1,5 @@
 # coding: utf-8
+import functools
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
@@ -7,6 +8,7 @@ from ..utils import (
     int_or_none,
     qualities,
     try_get,
+    OnDemandPagedList,
 )
 
 
@@ -105,6 +107,7 @@ class RedGifsIE(InfoExtractor):
 class RedGifsSearchIE(RedGifsIE):
     IE_DESC = 'Redgifs search'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>.*)'
+    _PAGE_SIZE = 80
     _TESTS = [
         {
             'url': 'https://www.redgifs.com/browse?tags=Lesbian',
@@ -113,7 +116,7 @@ class RedGifsSearchIE(RedGifsIE):
                 'title': 'Lesbian',
                 'description': 'RedGifs search for Lesbian, ordered by trending'
             },
-            'playlist_mincount': 19,
+            'playlist_mincount': 100,
         },
         {
             'url': 'https://www.redgifs.com/browse?type=g&order=latest&tags=Lesbian',
@@ -122,7 +125,7 @@ class RedGifsSearchIE(RedGifsIE):
                 'title': 'Lesbian',
                 'description': 'RedGifs search for Lesbian, ordered by latest'
             },
-            'playlist_mincount': 19,
+            'playlist_mincount': 100,
         },
         {
             'url': 'https://www.redgifs.com/browse?type=g&order=latest&tags=Lesbian&page=2',
@@ -131,9 +134,21 @@ class RedGifsSearchIE(RedGifsIE):
                 'title': 'Lesbian',
                 'description': 'RedGifs search for Lesbian, ordered by latest'
             },
-            'playlist_mincount': 19,
+            'playlist_count': 80,
         }
     ]
+
+    def _fetch_page(self, video_id, api_query, page=1):
+        api_query['page'] = page
+        data = self._download_json(
+            'https://api.redgifs.com/v2/gifs/search',
+            video_id,
+            query=api_query
+        )
+        if 'error' in data:
+            raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True)
+
+        return [self._parse_gif_data(entry) for entry in data['gifs']]
 
     def _real_extract(self, url):
         query_str = self._match_valid_url(url).group('query')
@@ -144,24 +159,20 @@ class RedGifsSearchIE(RedGifsIE):
 
         tags = query.get('tags')[0]
         order = query.get('order', ('trending',))[0]
-        page = query.get('page', (1,))[0]
         api_query = {
             'search_text': tags,
             'order': order,
-            'page': page
         }
         if query.get('type'):
             api_query['type'] = query.get('type')[0]
 
-        data = self._download_json(
-            'https://api.redgifs.com/v2/gifs/search',
-            query_str,
-            query=api_query
-        )
-        if 'error' in data:
-            raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True)
-
-        entries = [self._parse_gif_data(entry) for entry in data['gifs']]
+        if query.get('page'):
+            page = query.get('page', (1,))[0]
+            entries = self._fetch_page(query_str, api_query, page)
+        else:
+            entries = OnDemandPagedList(
+                functools.partial(self._fetch_page, query_str, api_query),
+                self._PAGE_SIZE)
         title = tags
         description = f'RedGifs search for {tags}, ordered by {order}'
 
