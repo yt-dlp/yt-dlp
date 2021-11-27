@@ -96,23 +96,23 @@ class RedGifsIE(InfoExtractor):
 
 
 def _parse_gif_entry(gif_data):
-    video_id = gif_data["id"]
-    title = " ".join(gif_data.get('tags') or [])
+    video_id = gif_data['id']
+    title = ' '.join(gif_data.get('tags') or [])
     formats = [
         {
-            "format_id": "gif",
-            "url": gif_data["urls"]["gif"]
+            'format_id': 'gif',
+            'url': gif_data['urls']['gif']
         },
         {
-            "format_id": "sd",
-            "url": gif_data["urls"]["sd"]
+            'format_id': 'sd',
+            'url': gif_data['urls']['sd']
         },
         {
-            "format_id": "hd",
-            "url": gif_data["urls"]["hd"]
+            'format_id': 'hd',
+            'url': gif_data['urls']['hd']
         }
     ]
-    webpage_url = "https://redgifs.com/watch/{}".format(video_id)
+    webpage_url = f'https://redgifs.com/watch/{video_id}'
 
     return {
         'id': video_id,
@@ -152,25 +152,25 @@ class RedGifsSearchIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        query_str = self._match_valid_url(url).group("query")
+        query_str = self._match_valid_url(url).group('query')
 
         query = compat_parse_qs(query_str)
         if not query.get('tags'):
             raise ExtractorError('Invalid query tags', expected=True)
 
-        tags = query.get("tags")[0]
-        order = query.get("order", ("trending",))[0]
-        page = query.get("page", (1,))[0]
+        tags = query.get('tags')[0]
+        order = query.get('order', ('trending',))[0]
+        page = query.get('page', (1,))[0]
         api_query = {
-            "search_text": tags,
-            "order": order,
-            "page": page
+            'search_text': tags,
+            'order': order,
+            'page': page
         }
-        if query.get("type"):
-            api_query["type"] = query.get("type")[0]
+        if query.get('type'):
+            api_query['type'] = query.get('type')[0]
 
         data = self._download_json(
-            "https://api.redgifs.com/v2/gifs/search",
+            'https://api.redgifs.com/v2/gifs/search',
             query_str,
             query=api_query
         )
@@ -179,7 +179,7 @@ class RedGifsSearchIE(InfoExtractor):
 
         entries = [_parse_gif_entry(entry) for entry in data['gifs']]
         title = tags
-        description = "Redgifs search for {}, ordered by {}".format(tags, order)
+        description = f'Redgifs search for {tags}, ordered by {order}'
 
         return self.playlist_result(
             entries,
