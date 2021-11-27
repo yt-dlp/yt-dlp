@@ -160,9 +160,11 @@ class RedGifsSearchIE(InfoExtractor):
 
         tags = query.get("tags")[0]
         order = query.get("order", ("trending",))[0]
+        page = query.get("page", (1,))[0]
         api_query = {
             "search_text": tags,
-            "order": order
+            "order": order,
+            "page": page
         }
         if query.get("type"):
             api_query["type"] = query.get("type")[0]
