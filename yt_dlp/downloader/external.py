@@ -558,7 +558,7 @@ class FFmpegFD(ExternalFD):
             # streams). Note that Windows is not affected and produces playable
             # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
             if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
-                process_communicate_or_kill(proc, b'q')
+                proc.communicate_or_kill(b'q')
             else:
                 proc.kill()
                 proc.wait()
