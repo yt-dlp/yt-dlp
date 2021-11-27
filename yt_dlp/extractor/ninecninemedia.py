@@ -1,8 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..utils import (
     float_or_none,
@@ -105,7 +103,7 @@ class NineCNineMediaIE(InfoExtractor):
 class CPTwentyFourIE(InfoExtractor):
     IE_NAME = 'cp24'
     _GEO_COUNTRIES = ['CA']
-    _VALID_URL = r'https?://(?:www\.)?cp24\.com/news/.*'
+    _VALID_URL = r'https?://(?:www\.)?cp24\.com/news/(?P<id>[^?#]+)'
 
     _TESTS = [{
         'url': 'https://www.cp24.com/news/video-shows-atm-being-ripped-out-of-business-by-pickup-truck-driver-in-mississauga-1.5676877',
@@ -122,15 +120,15 @@ class CPTwentyFourIE(InfoExtractor):
             'series': 'CTV News Toronto',
             'duration': 26.86,
             'thumbnail': 'http://images2.9c9media.com/image_asset/2014_11_5_2eb609a0-475b-0132-fbd6-34b52f6f1279_jpg_2000x1125.jpg',
-            'duration_string': '26',
             'upload_date': '20211122',
         },
         'params': {'skip_download': True, 'format': 'bv'}
     }]
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(url, None)
-        video_id, destination = self._search_regex(
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id)
+        id, destination = self._search_regex(
             r'getAuthStates\("(?P<id>[^"]+)",\s?"(?P<destination>[^"]+)"\);',
             webpage, 'video id and destination', group=('id', 'destination'))
         return self.url_result(f'9c9media:{destination}:{id}', ie=NineCNineMediaIE.ie_key(), video_id=id)
