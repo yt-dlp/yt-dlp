@@ -345,6 +345,7 @@ class TwitchVodIE(TwitchBaseIE):
             'timestamp': parse_iso8601(info.get('recorded_at')),
             'view_count': int_or_none(info.get('views')),
             'is_live': is_live,
+            'was_live': True,
         }
 
     def _extract_moments(self, info, item_id):
@@ -368,9 +369,14 @@ class TwitchVodIE(TwitchBaseIE):
         if vod_id[0] != 'v':
             vod_id = 'v%s' % vod_id
         thumbnail = url_or_none(info.get('previewThumbnailURL'))
+        is_live = None
         if thumbnail:
-            for p in ('width', 'height'):
-                thumbnail = thumbnail.replace('{%s}' % p, '0')
+            if thumbnail.endswith('/404_processing_{width}x{height}.png'):
+                is_live, thumbnail = True, None
+            else:
+                is_live = False
+                for p in ('width', 'height'):
+                    thumbnail = thumbnail.replace('{%s}' % p, '0')
 
         return {
             'id': vod_id,
@@ -383,6 +389,8 @@ class TwitchVodIE(TwitchBaseIE):
             'timestamp': unified_timestamp(info.get('publishedAt')),
             'view_count': int_or_none(info.get('viewCount')),
             'chapters': list(self._extract_moments(info, item_id)),
+            'is_live': is_live,
+            'was_live': True,
         }
 
     def _real_extract(self, url):
