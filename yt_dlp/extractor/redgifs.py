@@ -49,22 +49,14 @@ class RedGifsIE(InfoExtractor):
         }
     }]
 
-    def _real_extract(self, url):
-        video_id = self._match_id(url).lower()
-
-        video_info = self._download_json(
-            'https://api.redgifs.com/v2/gifs/%s' % video_id,
-            video_id, 'Downloading video info')
-        if 'error' in video_info:
-            raise ExtractorError(f'RedGifs said: {video_info["error"]}', expected=True)
-
-        gif = video_info['gif']
-        urls = gif['urls']
+    def _parse_gif_data(self, gif_data):
+        video_id = gif_data.get("id")
+        urls = gif_data['urls']
 
         quality = qualities(tuple(self._FORMATS.keys()))
 
-        orig_height = int_or_none(gif.get('height'))
-        aspect_ratio = try_get(gif, lambda x: orig_height / x['width'])
+        orig_height = int_or_none(gif_data.get('height'))
+        aspect_ratio = try_get(gif_data, lambda x: orig_height / x['width'])
 
         formats = []
         for format_id, height in self._FORMATS.items():
@@ -81,53 +73,36 @@ class RedGifsIE(InfoExtractor):
             })
         self._sort_formats(formats)
 
+        webpage_url = f'https://redgifs.com/watch/{video_id}'
+
         return {
             'id': video_id,
-            'title': ' '.join(gif.get('tags') or []) or 'RedGifs',
-            'timestamp': int_or_none(gif.get('createDate')),
-            'uploader': gif.get('userName'),
-            'duration': int_or_none(gif.get('duration')),
-            'view_count': int_or_none(gif.get('views')),
-            'like_count': int_or_none(gif.get('likes')),
-            'categories': gif.get('tags') or [],
+            'title': ' '.join(gif_data.get('tags') or []) or 'RedGifs',
+            'timestamp': int_or_none(gif_data.get('createDate')),
+            'uploader': gif_data.get('userName'),
+            'duration': int_or_none(gif_data.get('duration')),
+            'view_count': int_or_none(gif_data.get('views')),
+            'like_count': int_or_none(gif_data.get('likes')),
+            'categories': gif_data.get('tags') or [],
+            'webpage_url': webpage_url,
+            'tags': gif_data.get('tags'),
             'age_limit': 18,
             'formats': formats,
         }
 
+    def _real_extract(self, url):
+        video_id = self._match_id(url).lower()
 
-def _parse_gif_entry(gif_data):
-    video_id = gif_data['id']
-    title = ' '.join(gif_data.get('tags') or [])
-    formats = [
-        {
-            'format_id': 'gif',
-            'url': gif_data['urls']['gif']
-        },
-        {
-            'format_id': 'sd',
-            'url': gif_data['urls']['sd']
-        },
-        {
-            'format_id': 'hd',
-            'url': gif_data['urls']['hd']
-        }
-    ]
-    webpage_url = f'https://redgifs.com/watch/{video_id}'
+        video_info = self._download_json(
+            'https://api.redgifs.com/v2/gifs/%s' % video_id,
+            video_id, 'Downloading video info')
+        if 'error' in video_info:
+            raise ExtractorError(f'RedGifs said: {video_info["error"]}', expected=True)
 
-    return {
-        'id': video_id,
-        'title': title,
-        'age_limit': 18,
-        'formats': formats,
-        'timestamp': gif_data.get('createDate'),
-        'view_count': int_or_none(gif_data.get('views')),
-        'uploader': gif_data.get('userName'),
-        'webpage_url': webpage_url,
-        'tags': gif_data.get('tags')
-    }
+        return self._parse_gif_data(video_info['gif'])
 
 
-class RedGifsSearchIE(InfoExtractor):
+class RedGifsSearchIE(RedGifsIE):
     IE_DESC = 'Redgifs search'
     _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>.*)'
     _TESTS = [
@@ -186,7 +161,7 @@ class RedGifsSearchIE(InfoExtractor):
         if 'error' in data:
             raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True)
 
-        entries = [_parse_gif_entry(entry) for entry in data['gifs']]
+        entries = [self._parse_gif_data(entry) for entry in data['gifs']]
         title = tags
         description = f'Redgifs search for {tags}, ordered by {order}'
 
