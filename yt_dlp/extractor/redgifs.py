@@ -108,7 +108,7 @@ class RedGifsIE(RedGifsBaseInfoExtractor):
 
 class RedGifsSearchIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs search'
-    _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>.*)'
+    _VALID_URL = r'https?://(?:www\.)?redgifs\.com/browse\?(?P<query>[^#]+)'
     _PAGE_SIZE = 80
     _TESTS = [
         {
@@ -188,7 +188,7 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
 
 class RedGifsUserIE(RedGifsBaseInfoExtractor):
     IE_DESC = 'Redgifs user'
-    _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>.*))?'
+    _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>[^#]+))?'
     _PAGE_SIZE = 30
     _TESTS = [
         {
