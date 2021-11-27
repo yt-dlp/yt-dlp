@@ -11,6 +11,7 @@ from ..utils import (
     OnDemandPagedList,
 )
 
+
 class RedGifsBaseInfoExtractor(InfoExtractor):
     _FORMATS = {
         'gif': 250,
