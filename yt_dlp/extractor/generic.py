@@ -56,7 +56,7 @@ from .sportbox import SportBoxIE
 from .myvi import MyviIE
 from .condenast import CondeNastIE
 from .udn import UDNEmbedIE
-from .senateisvp import SenateISVPIE
+from .senategov import SenateISVPIE
 from .svt import SVTIE
 from .pornhub import PornHubIE
 from .xhamster import XHamsterEmbedIE
