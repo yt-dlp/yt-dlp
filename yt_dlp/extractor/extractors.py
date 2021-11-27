@@ -889,7 +889,10 @@ from .ndr import (
     NJoyEmbedIE,
 )
 from .ndtv import NDTVIE
-from .nebula import NebulaIE
+from .nebula import (
+    NebulaIE,
+    NebulaCollectionIE,
+)
 from .nerdcubed import NerdCubedFeedIE
 from .netzkino import NetzkinoIE
 from .neteasemusic import (
