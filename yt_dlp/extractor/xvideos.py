@@ -22,7 +22,7 @@ class XVideosIE(InfoExtractor):
                             (?:www|flashservice)\.xvideos\.com/embedframe/|
                             static-hw\.xvideos\.com/swf/xv-player\.swf\?.*?\bid_video=
                         )
-                        (?P<id>[0-9]+)/(?P<display_id>[^/]+)
+                        (?P<id>[0-9]+)
                     '''
     _TESTS = [{
         'url': 'http://www.xvideos.com/video4588838/biker_takes_his_girl',
