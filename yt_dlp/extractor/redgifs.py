@@ -182,3 +182,89 @@ class RedGifsSearchIE(RedGifsIE):
             playlist_title=title,
             playlist_description=description
         )
+
+
+class RedGifsUserIE(RedGifsIE):
+    IE_DESC = 'Redgifs user'
+    _VALID_URL = r'https?://(?:www\.)?redgifs\.com/users/(?P<username>[^/?#]+)(?:\?(?P<query>.*))?'
+    _PAGE_SIZE = 30
+    _TESTS = [
+        {
+            'url': 'https://www.redgifs.com/users/lamsinka89',
+            'info_dict': {
+                'id': 'lamsinka89',
+                'title': 'lamsinka89',
+                'description': 'RedGifs user lamsinka89'
+            },
+            'playlist_mincount': 100,
+        },
+        {
+            'url': 'https://www.redgifs.com/users/lamsinka89?page=3',
+            'info_dict': {
+                'id': 'lamsinka89?page=3',
+                'title': 'lamsinka89',
+                'description': 'RedGifs user lamsinka89'
+            },
+            'playlist_count': 30,
+        },
+        {
+            'url': 'https://www.redgifs.com/users/lamsinka89?order=best&type=g',
+            'info_dict': {
+                'id': 'lamsinka89?order=best&type=g',
+                'title': 'lamsinka89',
+                'description': 'RedGifs user lamsinka89'
+            },
+            'playlist_mincount': 100,
+        }
+    ]
+
+    def _fetch_page(self, video_id, username, api_query, page=1):
+        api_query['page'] = page
+        data = self._download_json(
+            f'https://api.redgifs.com/v2/users/{username}/search',
+            video_id,
+            query=api_query
+        )
+        if 'error' in data:
+            raise ExtractorError(f'RedGifs said: {data["error"]}', expected=True)
+
+        return [self._parse_gif_data(entry) for entry in data['gifs']]
+
+    def _real_extract(self, url):
+        match = self._match_valid_url(url)
+        username = match.group('username')
+        query_str = match.group('query')
+        playlist_id = username
+        if query_str:
+            playlist_id = f'{username}?{query_str}'
+        description = f'RedGifs user {username}'
+
+        if not username:
+            raise ExtractorError('Invalid username', expected=True)
+
+        api_query = {
+            'order': 'recent',
+        }
+        page = None
+        if query_str:
+            query = compat_parse_qs(query_str)
+            if query.get('order'):
+                api_query['order'] = query.get('order', ('recent',))[0]
+                description += ", ordered by {order}"
+            if query.get('type'):
+                api_query['type'] = query.get('type')[0]
+            page = query.get('page', (1,))[0]
+
+        if page is not None:
+            entries = self._fetch_page(playlist_id, username, api_query, page)
+        else:
+            entries = OnDemandPagedList(
+                functools.partial(self._fetch_page, playlist_id, username, api_query),
+                self._PAGE_SIZE)
+
+        return self.playlist_result(
+            entries,
+            playlist_id=playlist_id,
+            playlist_title=username,
+            playlist_description=description
+        )
