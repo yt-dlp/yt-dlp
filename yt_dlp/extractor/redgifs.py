@@ -111,7 +111,7 @@ class RedGifsSearchIE(RedGifsIE):
             'info_dict': {
                 'id': 'tags=Lesbian',
                 'title': 'Lesbian',
-                'description': 'Redgifs search for Lesbian, ordered by trending'
+                'description': 'RedGifs search for Lesbian, ordered by trending'
             },
             'playlist_mincount': 19,
         },
@@ -120,7 +120,7 @@ class RedGifsSearchIE(RedGifsIE):
             'info_dict': {
                 'id': 'type=g&order=latest&tags=Lesbian',
                 'title': 'Lesbian',
-                'description': 'Redgifs search for Lesbian, ordered by latest'
+                'description': 'RedGifs search for Lesbian, ordered by latest'
             },
             'playlist_mincount': 19,
         },
@@ -129,7 +129,7 @@ class RedGifsSearchIE(RedGifsIE):
             'info_dict': {
                 'id': 'type=g&order=latest&tags=Lesbian&page=2',
                 'title': 'Lesbian',
-                'description': 'Redgifs search for Lesbian, ordered by latest'
+                'description': 'RedGifs search for Lesbian, ordered by latest'
             },
             'playlist_mincount': 19,
         }
@@ -163,7 +163,7 @@ class RedGifsSearchIE(RedGifsIE):
 
         entries = [self._parse_gif_data(entry) for entry in data['gifs']]
         title = tags
-        description = f'Redgifs search for {tags}, ordered by {order}'
+        description = f'RedGifs search for {tags}, ordered by {order}'
 
         return self.playlist_result(
             entries,
