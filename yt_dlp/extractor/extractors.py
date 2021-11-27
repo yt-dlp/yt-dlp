@@ -1218,7 +1218,7 @@ from .redbulltv import (
 from .reddit import RedditIE
 from .redgifs import (
     RedGifsIE,
-    RedgifsSearchIE,
+    RedGifsSearchIE,
 )
 from .redtube import RedTubeIE
 from .regiotv import RegioTVIE
