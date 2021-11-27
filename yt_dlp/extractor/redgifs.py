@@ -59,6 +59,14 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             'formats': formats,
         }
 
+    def _paged_entries(self, page_fetcher, page, page_size):
+        if page is not None:
+            return page_fetcher(page)
+        return OnDemandPagedList(
+            page_fetcher,
+            page_size
+        )
+
 
 class RedGifsIE(RedGifsBaseInfoExtractor):
     _VALID_URL = r'https?://(?:(?:www\.)?redgifs\.com/watch/|thumbs2\.redgifs\.com/)(?P<id>[^-/?#\.]+)'
@@ -168,20 +176,17 @@ class RedGifsSearchIE(RedGifsBaseInfoExtractor):
         if query.get('type'):
             api_query['type'] = query.get('type')[0]
 
-        if query.get('page'):
-            page = query.get('page')[0]
-            entries = self._fetch_page(query_str, api_query, page)
-        else:
-            entries = OnDemandPagedList(
-                functools.partial(self._fetch_page, query_str, api_query),
-                self._PAGE_SIZE)
-        title = tags
+        entries = self._paged_entries(
+            functools.partial(self._fetch_page, query_str, api_query),
+            query.get('page', (None,))[0],
+            self._PAGE_SIZE
+        )
         description = f'RedGifs search for {tags}, ordered by {order}'
 
         return self.playlist_result(
             entries,
             playlist_id=query_str,
-            playlist_title=title,
+            playlist_title=tags,
             playlist_description=description
         )
 
@@ -247,15 +252,13 @@ class RedGifsUserIE(RedGifsBaseInfoExtractor):
         }
         if query.get('type'):
             api_query['type'] = query.get('type')[0]
-        page = query.get('page', (None,))[0]
-        description = f'RedGifs user {username}, ordered by {api_query["order"]}'
 
-        if page is not None:
-            entries = self._fetch_page(playlist_id, username, api_query, page)
-        else:
-            entries = OnDemandPagedList(
-                functools.partial(self._fetch_page, playlist_id, username, api_query),
-                self._PAGE_SIZE)
+        entries = self._paged_entries(
+            functools.partial(self._fetch_page, playlist_id, username, api_query),
+            query.get('page', (None,))[0],
+            self._PAGE_SIZE
+        )
+        description = f'RedGifs user {username}, ordered by {api_query["order"]}'
 
         return self.playlist_result(
             entries,
