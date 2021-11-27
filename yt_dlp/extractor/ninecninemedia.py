@@ -130,10 +130,7 @@ class CPTwentyFourIE(InfoExtractor):
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
-        match_obj = re.search(r'getAuthStates\(\"(?P<id>[^\"]+)\",\s?\"(?P<destination>[^\"]+)\"\);', webpage)
-        if not match_obj:
-            raise self.raise_no_formats('No video found on the page')
-        id, destination = match_obj.groups()
-        if not id and not destination:
-            raise self.raise_no_formats('Unable to parse id or destination')
+        video_id, destination = self._search_regex(
+            r'getAuthStates\("(?P<id>[^"]+)",\s?"(?P<destination>[^"]+)"\);',
+            webpage, 'video id and destination', group=('id', 'destination'))
         return self.url_result(f'9c9media:{destination}:{id}', ie=NineCNineMediaIE.ie_key(), video_id=id)
