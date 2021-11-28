@@ -64,9 +64,12 @@ class StreamCZIE(InfoExtractor):
     def _extract(self, ext, spl_url, play_list):
         formats = []
         for r, v in play_list.items():
+            relative_url = v.get('url')
+            if not relative_url:
+                continue
             format = {
                 'format_id': r,
-                'url': urljoin(spl_url, v.get('url')),
+                'url': urljoin(spl_url, relative_url),
                 'protocol': 'https',
                 'ext': ext
             }
