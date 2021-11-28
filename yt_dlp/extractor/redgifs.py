@@ -41,11 +41,9 @@ class RedGifsBaseInfoExtractor(InfoExtractor):
             })
         self._sort_formats(formats)
 
-        webpage_url = f'https://redgifs.com/watch/{video_id}'
-
         return {
             'id': video_id,
-            'webpage_url': webpage_url,
+            'webpage_url': f'https://redgifs.com/watch/{video_id}',
             'ie_key': RedGifsIE.ie_key(),
             'extractor': 'RedGifs',
             'title': ' '.join(gif_data.get('tags') or []) or 'RedGifs',
