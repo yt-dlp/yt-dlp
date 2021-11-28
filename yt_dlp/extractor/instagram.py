@@ -65,7 +65,7 @@ class InstagramBaseIE(InfoExtractor):
                 raise ExtractorError(f'Unable to login: {login["message"]}')
             elif login.get('user'):
                 raise ExtractorError('Unable to login: Sorry, your password was incorrect. Please double-check your password.', expected=True)
-            elif login.get('user') == False:
+            elif login.get('user') is False:
                 raise ExtractorError('Unable to login: The username you entered doesn\'t belong to an account. Please check your username and try again.', expected=True)
             raise ExtractorError('Unable to login')
         InstagramBaseIE._IS_LOGGED_IN = True
