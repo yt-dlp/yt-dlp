@@ -849,24 +849,24 @@ class YoutubeDL(object):
         WARNING = 'yellow'
         SUPPRESS = 'light black'
 
-    def __format_text(self, out, text, f, fallback=None, *, test_encoding=False):
-        assert out in ('screen', 'err')
+    def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
         if test_encoding:
             original_text = text
-            handle = self._screen_file if out == 'screen' else self._err_file
             encoding = self.params.get('encoding') or getattr(handle, 'encoding', 'ascii')
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
         if isinstance(f, self.Styles):
             f = f._value_
-        return format_text(text, f) if self._allow_colors[out] else text if fallback is None else fallback
+        return format_text(text, f) if allow_colors else text if fallback is None else fallback
 
     def _format_screen(self, *args, **kwargs):
-        return self.__format_text('screen', *args, **kwargs)
+        return self._format_text(
+            self._screen_file, self._allow_colors['screen'], *args, **kwargs)
 
     def _format_err(self, *args, **kwargs):
-        return self.__format_text('err', *args, **kwargs)
+        return self._format_text(
+            self._err_file, self._allow_colors['err'], *args, **kwargs)
 
     def report_warning(self, message, only_once=False):
         '''
