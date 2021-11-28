@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import json
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -96,7 +95,7 @@ class StreamCZIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        display_id, video_id = re.match(self._VALID_URL, url).groups()
+        display_id, video_id = self._match_valid_url(url).groups()
 
         data = self._download_json(
             self._GRAPHQL_URL, video_id, 'Downloading GraphQL result',
