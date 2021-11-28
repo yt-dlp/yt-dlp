@@ -72,8 +72,8 @@ class StreamCZIE(InfoExtractor):
             }
             if v.get('bandwidth'):
                 format.update({'tbr': v['bandwidth'] / 1000})
-                if v.get('duration'):
-                    format.update({'filesize_approx': v['bandwidth'] * v['duration'] / 8000})
+            if v.get('duration'):
+                format.update({'duration': v['duration'] / 1000})
             if v.get('codec'):
                 format.update(parse_codecs(v['codec']))
             if v.get('resolution'):
