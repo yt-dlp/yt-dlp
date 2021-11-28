@@ -31,7 +31,7 @@ class StreamCZIE(InfoExtractor):
             'id': '57953890',
             'display_id': 'buh',
             'title': 'Bůh',
-            'description': 'Trenér Hrouzek je plný rozporů. Na pomoc si povolá i toho nejvyššího. Kdo to ale je? Pomůže mu vyřešit několik dilemat, která se mu v poslední době v životě nahromadila?',
+            'description': 'md5:8f5f09b9b7bc67df910486cdd88f7165',
             'ext': 'mp4',
         }
     }, {
@@ -41,7 +41,7 @@ class StreamCZIE(InfoExtractor):
             'id': '64147267',
             'display_id': 'znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili',
             'title': 'Zničehonic jim skrz střechu prolítnul záhadný předmět. Badatelé vše objasnili',
-            'description': "18. listopadu 2010 spadl na jeden z domů v Ohrazenicích na Třebíčsku kus ledu. Badatelé si potom marně lámali hlavu nad tím, kde se mohl vzít. Kus ledu napáchal v domě nemalou škodu, naštěstí jen materiální, nikoho neporanil.\r\n",
+            'description': 'md5:1dcb5e010eb697dedc5942f76c5b3744',
             'ext': 'mp4',
         }
     }]
