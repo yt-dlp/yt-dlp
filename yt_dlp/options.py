@@ -450,6 +450,14 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='break_on_reject', default=False,
         help='Stop the download process when encountering a file that has been filtered out')
     selection.add_option(
+        '--break-per-input',
+        action='store_true', dest='break_per_url', default=False,
+        help='Make --break-on-existing and --break-on-reject act only on the current input URL')
+    selection.add_option(
+        '--no-break-per-input',
+        action='store_false', dest='break_per_url',
+        help='--break-on-existing and --break-on-reject terminates the entire download queue')
+    selection.add_option(
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
         help='Number of allowed failures until the rest of the playlist is skipped')

@@ -701,6 +701,7 @@ def _real_main(argv=None):
         'download_archive': download_archive_fn,
         'break_on_existing': opts.break_on_existing,
         'break_on_reject': opts.break_on_reject,
+        'break_per_url': opts.break_per_url,
         'skip_playlist_after_errors': opts.skip_playlist_after_errors,
         'cookiefile': opts.cookiefile,
         'cookiesfrombrowser': opts.cookiesfrombrowser,

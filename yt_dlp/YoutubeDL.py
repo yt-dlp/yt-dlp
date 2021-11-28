@@ -310,6 +310,8 @@ class YoutubeDL(object):
                        file that is in the archive.
     break_on_reject:   Stop the download process when encountering a video that
                        has been filtered out.
+    break_per_url:     Whether break_on_reject and break_on_existing
+                       should act on each input URL as opposed to for the entire queue
     cookiefile:        File name where cookies should be read from and dumped to
     cookiesfrombrowser: A tuple containing the name of the browser and the profile
                        name/path from where cookies are loaded.
@@ -2968,9 +2970,13 @@ class YoutubeDL(object):
                 res = func(*args, **kwargs)
             except UnavailableVideoError as e:
                 self.report_error(e)
-            except DownloadCancelled as e:
+            except MaxDownloadsReached as e:
                 self.to_screen(f'[info] {e}')
                 raise
+            except DownloadCancelled as e:
+                self.to_screen(f'[info] {e}')
+                if not self.params.get('break_per_url'):
+                    raise
             else:
                 if self.params.get('dump_single_json', False):
                     self.post_extract(res)
