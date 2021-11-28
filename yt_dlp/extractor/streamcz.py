@@ -55,9 +55,13 @@ class StreamCZIE(InfoExtractor):
         for k, v in play_list.items():
             if v.get('language'):
                 for ext in v.get('urls'):
+                    relative_url = v['urls'].get(ext)
+                    if not relative_url:
+                        continue
+
                     subtitles.setdefault(v['language'], []).append({
                         'ext': ext,
-                        'url': urljoin(spl_url, v['urls'].get(ext))
+                        'url': urljoin(spl_url, relative_url)
                     })
         return subtitles
 
