@@ -196,6 +196,14 @@ def _real_main(argv=None):
         opts.continue_dl = False
     if opts.concurrent_fragment_downloads <= 0:
         raise ValueError('Concurrent fragments must be positive')
+    if opts.wait_for_video is not None:
+        mobj = re.match(r'(?P<min>\d+)(?:-(?P<max>\d+))?$', opts.wait_for_video)
+        if not mobj:
+            parser.error('Invalid time range to wait')
+        min_wait, max_wait = map(int_or_none, mobj.group('min', 'max'))
+        if max_wait is not None and max_wait < min_wait:
+            parser.error('Invalid time range to wait')
+        opts.wait_for_video = (min_wait, max_wait)
 
     def parse_retries(retries, name=''):
         if retries in ('inf', 'infinite'):
@@ -720,6 +728,7 @@ def _real_main(argv=None):
         'youtube_include_hls_manifest': opts.youtube_include_hls_manifest,
         'encoding': opts.encoding,
         'extract_flat': opts.extract_flat,
+        'wait_for_video': opts.wait_for_video,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,
         'final_ext': final_ext,

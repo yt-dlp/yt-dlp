@@ -1079,7 +1079,8 @@ class InfoExtractor(object):
     def raise_login_required(
             self, msg='This video is only available for registered users',
             metadata_available=False, method='any'):
-        if metadata_available and self.get_param('ignore_no_formats_error'):
+        if metadata_available and (
+                self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
         if method is not None:
             msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
@@ -1088,13 +1089,15 @@ class InfoExtractor(object):
     def raise_geo_restricted(
             self, msg='This video is not available from your location due to geo restriction',
             countries=None, metadata_available=False):
-        if metadata_available and self.get_param('ignore_no_formats_error'):
+        if metadata_available and (
+                self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
         else:
             raise GeoRestrictedError(msg, countries=countries)
 
     def raise_no_formats(self, msg, expected=False, video_id=None):
-        if expected and self.get_param('ignore_no_formats_error'):
+        if expected and (
+                self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg, video_id)
         elif isinstance(msg, ExtractorError):
             raise msg

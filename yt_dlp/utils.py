@@ -2600,9 +2600,20 @@ class MaxDownloadsReached(DownloadCancelled):
     msg = 'Maximum number of downloads reached, stopping due to --max-downloads'
 
 
-class ThrottledDownload(YoutubeDLError):
+class ReExtractInfo(YoutubeDLError):
+    """ Video info needs to be re-extracted. """
+
+    def __init__(self, msg, expected=False):
+        super().__init__(msg)
+        self.expected = expected
+
+
+class ThrottledDownload(ReExtractInfo):
     """ Download speed below --throttled-rate. """
     msg = 'The download speed is below throttle limit'
+
+    def __init__(self, msg):
+        super().__init__(msg, expected=False)
 
 
 class UnavailableVideoError(YoutubeDLError):

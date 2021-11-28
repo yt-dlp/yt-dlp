@@ -259,6 +259,16 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='extract_flat',
         help='Extract the videos of a playlist')
     general.add_option(
+        '--wait-for-video',
+        dest='wait_for_video', metavar='MIN[-MAX]', default=None,
+        help=(
+            'Wait for scheduled streams to become available. '
+            'Pass the minimum number of seconds (or range) to wait between retries'))
+    general.add_option(
+        '--no-wait-for-video',
+        dest='wait_for_video', action='store_const', const=None,
+        help='Do not wait for scheduled streams (default)')
+    general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
         help='Mark videos watched (even with --simulate). Currently only supported for YouTube')

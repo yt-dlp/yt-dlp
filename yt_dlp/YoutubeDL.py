@@ -93,6 +93,7 @@ from .utils import (
     PostProcessingError,
     preferredencoding,
     prepend_extension,
+    ReExtractInfo,
     register_socks_protocols,
     RejectedVideoReached,
     render_table,
@@ -109,7 +110,7 @@ from .utils import (
     strftime_or_none,
     subtitles_filename,
     supports_terminal_sequences,
-    ThrottledDownload,
+    timetuple_from_msec,
     to_high_limit_path,
     traverse_obj,
     try_get,
@@ -333,6 +334,9 @@ class YoutubeDL(object):
     extract_flat:      Do not resolve URLs, return the immediate result.
                        Pass in 'in_playlist' to only show this behavior for
                        playlist items.
+    wait_for_video:    If given, wait for scheduled streams to become available.
+                       The value should be a tuple containing the range
+                       (min_secs, max_secs) to wait between retries
     postprocessors:    A list of dictionaries, each with an entry
                        * key:  The name of the postprocessor. See
                                yt_dlp/postprocessor/__init__.py for a list.
@@ -1328,9 +1332,12 @@ class YoutubeDL(object):
                 self.report_error(msg)
             except ExtractorError as e:  # An error we somewhat expected
                 self.report_error(compat_str(e), e.format_traceback())
-            except ThrottledDownload as e:
-                self.to_stderr('\r')
-                self.report_warning(f'{e}; Re-extracting data')
+            except ReExtractInfo as e:
+                if e.expected:
+                    self.to_screen(f'{e}; Re-extracting data')
+                else:
+                    self.to_stderr('\r')
+                    self.report_warning(f'{e}; Re-extracting data')
                 return wrapper(self, *args, **kwargs)
             except (DownloadCancelled, LazyList.IndexError, PagedList.IndexError):
                 raise
@@ -1340,6 +1347,47 @@ class YoutubeDL(object):
                 else:
                     raise
         return wrapper
+
+    def _wait_for_video(self, ie_result):
+        if (not self.params.get('wait_for_video')
+                or ie_result.get('_type', 'video') != 'video'
+                or ie_result.get('formats') or ie_result.get('url')):
+            return
+
+        format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
+        last_msg = ''
+
+        def progress(msg):
+            nonlocal last_msg
+            self.to_screen(msg + ' ' * (len(last_msg) - len(msg)) + '\r', skip_eol=True)
+            last_msg = msg
+
+        min_wait, max_wait = self.params.get('wait_for_video')
+        diff = try_get(ie_result, lambda x: x['release_timestamp'] - time.time())
+        if diff is None and ie_result.get('live_status') == 'is_upcoming':
+            diff = random.randrange(min_wait or 0, max_wait) if max_wait else min_wait
+            self.report_warning('Release time of video is not known')
+        elif (diff or 0) <= 0:
+            self.report_warning('Video should already be available according to extracted info')
+        diff = min(max(diff, min_wait or 0), max_wait or float('inf'))
+        self.to_screen(f'[wait] Waiting for {format_dur(diff)} - Press Ctrl+C to try now')
+
+        wait_till = time.time() + diff
+        try:
+            while True:
+                diff = wait_till - time.time()
+                if diff <= 0:
+                    progress('')
+                    raise ReExtractInfo('[wait] Wait period ended', expected=True)
+                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
+                time.sleep(1)
+        except KeyboardInterrupt:
+            progress('')
+            raise ReExtractInfo('[wait] Interrupted by user', expected=True)
+        except BaseException as e:
+            if not isinstance(e, ReExtractInfo):
+                self.to_screen('')
+            raise
 
     @__handle_extraction_exceptions
     def __extract_info(self, url, ie, download, extra_info, process):
@@ -1356,6 +1404,7 @@ class YoutubeDL(object):
             ie_result.setdefault('original_url', extra_info['original_url'])
         self.add_default_extra_info(ie_result, ie, url)
         if process:
+            self._wait_for_video(ie_result)
             return self.process_ie_result(ie_result, download, extra_info)
         else:
             return ie_result
@@ -3007,7 +3056,7 @@ class YoutubeDL(object):
             info = self.sanitize_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
         try:
             self.__download_wrapper(self.process_ie_result)(info, download=True)
-        except (DownloadError, EntryNotInPlaylist, ThrottledDownload) as e:
+        except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
             if not isinstance(e, EntryNotInPlaylist):
                 self.to_stderr('\r')
             webpage_url = info.get('webpage_url')
