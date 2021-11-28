@@ -472,8 +472,7 @@ class BBCCoUkIE(InfoExtractor):
                             f['language_preference'] = -10
                     formats += version_formats
                     for tag, subformats in (version_subtitles or {}).items():
-                        subtitles.setdefault(tag, [])
-                        subtitles[tag] += subformats
+                        subtitles.setdefault(tag, []).extend(subformats)
 
             return programme_id, title, description, duration, formats, subtitles
         except ExtractorError as ee:

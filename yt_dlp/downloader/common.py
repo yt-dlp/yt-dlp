@@ -93,6 +93,8 @@ class FileDownloader(object):
     def format_percent(percent):
         if percent is None:
             return '---.-%'
+        elif percent == 100:
+            return '100%'
         return '%6s' % ('%3.1f%%' % percent)
 
     @staticmethod
@@ -298,7 +300,7 @@ class FileDownloader(object):
                 s['_elapsed_str'] = self.format_seconds(s['elapsed'])
                 msg_template += ' in %(_elapsed_str)s'
             s['_percent_str'] = self.format_percent(100)
-            self._report_progress_status(s)
+            self._report_progress_status(s, msg_template)
             return
 
         if s['status'] != 'downloading':
@@ -307,7 +309,7 @@ class FileDownloader(object):
         if s.get('eta') is not None:
             s['_eta_str'] = self.format_eta(s['eta'])
         else:
-            s['_eta_str'] = 'Unknown ETA'
+            s['_eta_str'] = 'Unknown'
 
         if s.get('total_bytes') and s.get('downloaded_bytes') is not None:
             s['_percent_str'] = self.format_percent(100 * s['downloaded_bytes'] / s['total_bytes'])
@@ -339,7 +341,7 @@ class FileDownloader(object):
                 else:
                     msg_template = '%(_downloaded_bytes_str)s at %(_speed_str)s'
             else:
-                msg_template = '%(_percent_str)s % at %(_speed_str)s ETA %(_eta_str)s'
+                msg_template = '%(_percent_str)s at %(_speed_str)s ETA %(_eta_str)s'
         if s.get('fragment_index') and s.get('fragment_count'):
             msg_template += ' (frag %(fragment_index)s/%(fragment_count)s)'
         elif s.get('fragment_index'):

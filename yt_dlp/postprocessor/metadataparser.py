@@ -16,7 +16,7 @@ class MetadataParserPP(PostProcessor):
         for f in actions:
             action = f[0]
             assert isinstance(action, self.Actions)
-            self._actions.append(getattr(self, action._value_)(*f[1:]))
+            self._actions.append(getattr(self, action.value)(*f[1:]))
 
     @classmethod
     def validate_action(cls, action, *data):
@@ -26,7 +26,7 @@ class MetadataParserPP(PostProcessor):
         '''
         if not isinstance(action, cls.Actions):
             raise ValueError(f'{action!r} is not a valid action')
-        getattr(cls, action._value_)(cls, *data)
+        getattr(cls, action.value)(cls, *data)
 
     @staticmethod
     def field_to_template(tmpl):

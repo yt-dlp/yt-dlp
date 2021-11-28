@@ -25,18 +25,16 @@ from .cookies import SUPPORTED_BROWSERS
 from .utils import (
     DateRange,
     decodeOption,
+    DownloadCancelled,
     DownloadError,
     error_to_compat_str,
-    ExistingVideoReached,
     expand_path,
     float_or_none,
     int_or_none,
     match_filter_func,
-    MaxDownloadsReached,
     parse_duration,
     preferredencoding,
     read_batch_urls,
-    RejectedVideoReached,
     render_table,
     SameFileError,
     setproctitle,
@@ -195,7 +193,7 @@ def _real_main(argv=None):
     if opts.overwrites:  # --yes-overwrites implies --no-continue
         opts.continue_dl = False
     if opts.concurrent_fragment_downloads <= 0:
-        raise ValueError('Concurrent fragments must be positive')
+        parser.error('Concurrent fragments must be positive')
     if opts.wait_for_video is not None:
         mobj = re.match(r'(?P<min>\d+)(?:-(?P<max>\d+))?$', opts.wait_for_video)
         if not mobj:
@@ -231,9 +229,9 @@ def _real_main(argv=None):
             parser.error('invalid http chunk size specified')
         opts.http_chunk_size = numeric_chunksize
     if opts.playliststart <= 0:
-        raise ValueError('Playlist start must be positive')
+        raise parser.error('Playlist start must be positive')
     if opts.playlistend not in (-1, None) and opts.playlistend < opts.playliststart:
-        raise ValueError('Playlist end must be greater than playlist start')
+        raise parser.error('Playlist end must be greater than playlist start')
     if opts.extractaudio:
         opts.audioformat = opts.audioformat.lower()
         if opts.audioformat not in ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS):
@@ -762,7 +760,7 @@ def _real_main(argv=None):
     }
 
     with YoutubeDL(ydl_opts) as ydl:
-        actual_use = len(all_urls) or opts.load_info_filename
+        actual_use = all_urls or opts.load_info_filename
 
         # Remove cache dir
         if opts.rm_cachedir:
@@ -791,7 +789,7 @@ def _real_main(argv=None):
                 retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
             else:
                 retcode = ydl.download(all_urls)
-        except (MaxDownloadsReached, ExistingVideoReached, RejectedVideoReached):
+        except DownloadCancelled:
             ydl.to_screen('Aborting remaining downloads')
             retcode = 101
 

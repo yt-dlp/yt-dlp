@@ -499,7 +499,7 @@ class InstagramUserIE(InstagramPlaylistBaseIE):
 
 class InstagramTagIE(InstagramPlaylistBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/explore/tags/(?P<id>[^/]+)'
-    IE_DESC = 'Instagram hashtag search'
+    IE_DESC = 'Instagram hashtag search URLs'
     IE_NAME = 'instagram:tag'
     _TESTS = [{
         'url': 'https://instagram.com/explore/tags/lolcats',

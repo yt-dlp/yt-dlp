@@ -1538,10 +1538,10 @@ class InfoExtractor(object):
 
         default = ('hidden', 'aud_or_vid', 'hasvid', 'ie_pref', 'lang', 'quality',
                    'res', 'fps', 'hdr:12', 'codec:vp9.2', 'size', 'br', 'asr',
-                   'proto', 'ext', 'hasaud', 'source', 'format_id')  # These must not be aliases
+                   'proto', 'ext', 'hasaud', 'source', 'id')  # These must not be aliases
         ytdl_default = ('hasaud', 'lang', 'quality', 'tbr', 'filesize', 'vbr',
                         'height', 'width', 'proto', 'vext', 'abr', 'aext',
-                        'fps', 'fs_approx', 'source', 'format_id')
+                        'fps', 'fs_approx', 'source', 'id')
 
         settings = {
             'vcodec': {'type': 'ordered', 'regex': True,
@@ -1551,7 +1551,7 @@ class InfoExtractor(object):
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
-                      'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.+', '.*dash', 'ws|websocket', '', 'mms|rtsp', 'none', 'f4']},
+                      'order': ['(ht|f)tps', '(ht|f)tp$', 'm3u8.*', '.*dash', 'websocket_frag', 'rtmpe?', '', 'mms|rtsp', 'ws|websocket', 'f4']},
             'vext': {'type': 'ordered', 'field': 'video_ext',
                      'order': ('mp4', 'webm', 'flv', '', 'none'),
                      'order_free': ('webm', 'mp4', 'flv', '', 'none')},
@@ -1615,7 +1615,12 @@ class InfoExtractor(object):
             'format_id': {'type': 'alias', 'field': 'id'},
         }
 
-        _order = []
+        def __init__(self, ie, field_preference):
+            self._order = []
+            self.ydl = ie._downloader
+            self.evaluate_params(self.ydl.params, field_preference)
+            if ie.get_param('verbose'):
+                self.print_verbose_info(self.ydl.write_debug)
 
         def _get_field_setting(self, field, key):
             if field not in self.settings:
@@ -1805,10 +1810,7 @@ class InfoExtractor(object):
     def _sort_formats(self, formats, field_preference=[]):
         if not formats:
             return
-        format_sort = self.FormatSort()  # params and to_screen are taken from the downloader
-        format_sort.evaluate_params(self._downloader.params, field_preference)
-        if self.get_param('verbose', False):
-            format_sort.print_verbose_info(self._downloader.write_debug)
+        format_sort = self.FormatSort(self, field_preference)
         formats.sort(key=lambda f: format_sort.calculate_preference(f))
 
     def _check_formats(self, formats, video_id):

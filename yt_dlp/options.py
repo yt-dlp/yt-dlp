@@ -378,10 +378,6 @@ def parseOpts(overrideArguments=None):
         dest='rejecttitle', metavar='REGEX',
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--max-downloads',
-        dest='max_downloads', metavar='NUMBER', type=int, default=None,
-        help='Abort after downloading NUMBER files')
-    selection.add_option(
         '--min-filesize',
         metavar='SIZE', dest='min_filesize', default=None,
         help='Do not download any videos smaller than SIZE (e.g. 50k or 44.6m)')
@@ -452,6 +448,14 @@ def parseOpts(overrideArguments=None):
         dest='download_archive',
         help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it')
     selection.add_option(
+        '--no-download-archive',
+        dest='download_archive', action="store_const", const=None,
+        help='Do not use archive file (default)')
+    selection.add_option(
+        '--max-downloads',
+        dest='max_downloads', metavar='NUMBER', type=int, default=None,
+        help='Abort after downloading NUMBER files')
+    selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
@@ -471,10 +475,6 @@ def parseOpts(overrideArguments=None):
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
         help='Number of allowed failures until the rest of the playlist is skipped')
-    selection.add_option(
-        '--no-download-archive',
-        dest='download_archive', action="store_const", const=None,
-        help='Do not use archive file (default)')
     selection.add_option(
         '--include-ads',
         dest='include_ads', action='store_true',
@@ -1154,7 +1154,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--cookies',
         dest='cookiefile', metavar='FILE',
-        help='File to read cookies from and dump cookie jar in')
+        help='Netscape formatted file to read cookies from and dump cookie jar in')
     filesystem.add_option(
         '--no-cookies',
         action='store_const', const=None, dest='cookiefile', metavar='FILE',
@@ -1354,7 +1354,7 @@ def parseOpts(overrideArguments=None):
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
             'detect_or_warn (the default; fix file if we can, warn otherwise), '
-            'force (try fixing even if file already exists'))
+            'force (try fixing even if file already exists)'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',

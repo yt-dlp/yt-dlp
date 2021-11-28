@@ -2575,10 +2575,6 @@ class PostProcessingError(YoutubeDLError):
     indicate an error in the postprocessing task.
     """
 
-    def __init__(self, msg):
-        super(PostProcessingError, self).__init__(msg)
-        self.msg = msg
-
 
 class DownloadCancelled(YoutubeDLError):
     """ Exception raised when the download queue should be interrupted """
