@@ -217,7 +217,7 @@ class TrovoChannelBaseIE(InfoExtractor):
         id = self._match_id(url)
         uid = str(self._download_json('https://gql.trovo.live/', id, query={
             'query': '{getLiveInfo(params:{userName:"%s"}){streamerInfo{uid}}}' % id
-        })['data']['getLiveInfo']['streamerInfo']['uid'])
+        }, headers={'Accept': 'application/json'})['data']['getLiveInfo']['streamerInfo']['uid'])
         return self.playlist_result(self._entries(uid), playlist_id=uid)
 
 
@@ -239,7 +239,7 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
     def _get_vod_json(self, page, uid):
         return self._download_json('https://gql.trovo.live/', uid, query={
             'query': self._QUERY % (page, uid)
-        })['data']['getChannelLtvVideoInfos']
+        }, headers={'Accept': 'application/json'})['data']['getChannelLtvVideoInfos']
 
 
 class TrovoChannelClipIE(TrovoChannelBaseIE):
@@ -260,4 +260,4 @@ class TrovoChannelClipIE(TrovoChannelBaseIE):
     def _get_vod_json(self, page, uid):
         return self._download_json('https://gql.trovo.live/', uid, query={
             'query': self._QUERY % (page, uid)
-        })['data']['getChannelClipVideoInfos']
+        }, headers={'Accept': 'application/json'})['data']['getChannelClipVideoInfos']
