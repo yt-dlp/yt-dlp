@@ -29,6 +29,7 @@ from .utils import (
     DownloadError,
     error_to_compat_str,
     expand_path,
+    GeoUtils,
     float_or_none,
     int_or_none,
     match_filter_func,
@@ -255,12 +256,17 @@ def _real_main(argv=None):
     if opts.convertthumbnails is not None:
         if opts.convertthumbnails not in FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS:
             parser.error('invalid thumbnail format specified')
-
     if opts.cookiesfrombrowser is not None:
         opts.cookiesfrombrowser = [
             part.strip() or None for part in opts.cookiesfrombrowser.split(':', 1)]
         if opts.cookiesfrombrowser[0].lower() not in SUPPORTED_BROWSERS:
             parser.error('unsupported browser specified for cookies')
+    geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
+    if geo_bypass_code is not None:
+        try:
+            GeoUtils.random_ipv4(geo_bypass_code)
+        except Exception:
+            parser.error('unsupported geo-bypass country or ip-block')
 
     if opts.date is not None:
         date = DateRange.day(opts.date)
