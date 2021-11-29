@@ -102,6 +102,7 @@ def run_update(ydl):
         return tuple(map(int, version_str.split('.')))
 
     version_id = version_info['tag_name']
+    ydl.to_screen(f'Latest version: {version_id}, Current version: {__version__}')
     if version_tuple(__version__) >= version_tuple(version_id):
         ydl.to_screen(f'yt-dlp is up to date ({__version__})')
         return

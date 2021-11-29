@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from datetime import datetime
+import sys
 import subprocess
 
 
@@ -13,7 +14,10 @@ old_ver = '.'.join(old_version_list[:3])
 old_rev = old_version_list[3] if len(old_version_list) > 3 else ''
 
 ver = datetime.utcnow().strftime("%Y.%m.%d")
-rev = str(int(old_rev or 0) + 1) if old_ver == ver else ''
+
+rev = (sys.argv[1:] or [''])[0]  # Use first argument, if present as revision number
+if not rev:
+    rev = str(int(old_rev or 0) + 1) if old_ver == ver else ''
 
 VERSION = '.'.join((ver, rev)) if rev else ver
 
