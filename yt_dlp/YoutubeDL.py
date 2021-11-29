@@ -1186,12 +1186,8 @@ class YoutubeDL(object):
             # https://github.com/blackjack4494/youtube-dlc/issues/85
             trim_file_name = self.params.get('trim_file_name', False)
             if trim_file_name:
-                fn_groups = filename.rsplit('.')
-                ext = fn_groups[-1]
-                sub_ext = ''
-                if len(fn_groups) > 2:
-                    sub_ext = fn_groups[-2]
-                filename = join_nonempty(fn_groups[0][:trim_file_name], sub_ext, ext, delim='.')
+                no_ext, *ext = filename.rsplit('.', 2)
+                filename = join_nonempty(no_ext[:trim_file_name], *ext, delim='.')
 
             return filename
         except ValueError as err:
