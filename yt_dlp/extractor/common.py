@@ -1586,7 +1586,7 @@ class InfoExtractor(object):
             'res': {'type': 'multiple', 'field': ('height', 'width'),
                     'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
 
-            # Most of these exist only for compatibility reasons
+            # Deprecated
             'dimension': {'type': 'alias', 'field': 'res'},
             'resolution': {'type': 'alias', 'field': 'res'},
             'extension': {'type': 'alias', 'field': 'ext'},
@@ -1595,7 +1595,7 @@ class InfoExtractor(object):
             'video_bitrate': {'type': 'alias', 'field': 'vbr'},
             'audio_bitrate': {'type': 'alias', 'field': 'abr'},
             'framerate': {'type': 'alias', 'field': 'fps'},
-            'language_preference': {'type': 'alias', 'field': 'lang'},  # not named as 'language' because such a field exists
+            'language_preference': {'type': 'alias', 'field': 'lang'},
             'protocol': {'type': 'alias', 'field': 'proto'},
             'source_preference': {'type': 'alias', 'field': 'source'},
             'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
@@ -1624,6 +1624,11 @@ class InfoExtractor(object):
 
         def _get_field_setting(self, field, key):
             if field not in self.settings:
+                if key in ('forced', 'priority'):
+                    return False
+                self.ydl.deprecation_warning(
+                    f'Using arbitrary fields ({field}) for format sorting is deprecated '
+                    'and may be removed in a future version')
                 self.settings[field] = {}
             propObj = self.settings[field]
             if key not in propObj:
@@ -1706,7 +1711,10 @@ class InfoExtractor(object):
                 if field is None:
                     continue
                 if self._get_field_setting(field, 'type') == 'alias':
-                    field = self._get_field_setting(field, 'field')
+                    alias, field = field, self._get_field_setting(field, 'field')
+                    self.ydl.deprecation_warning(
+                        f'Format sorting alias {alias} is deprecated '
+                        f'and may be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')

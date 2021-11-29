@@ -566,6 +566,8 @@ class YoutubeDL(object):
 
         for msg in self.params.get('_warnings', []):
             self.report_warning(msg)
+        for msg in self.params.get('_deprecation_warnings', []):
+            self.deprecation_warning(msg)
 
         if 'list-formats' in self.params.get('compat_opts', []):
             self.params['listformats_table'] = False
@@ -885,6 +887,12 @@ class YoutubeDL(object):
             if self.params.get('no_warnings'):
                 return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
+
+    def deprecation_warning(self, message):
+        if self.params.get('logger') is not None:
+            self.params['logger'].warning('DeprecationWarning: {message}')
+        else:
+            self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
 
     def report_error(self, message, tb=None):
         '''

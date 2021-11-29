@@ -10,7 +10,7 @@ import traceback
 from zipimport import zipimporter
 
 from .compat import compat_realpath
-from .utils import encode_compat_str, Popen
+from .utils import encode_compat_str, Popen, write_string
 
 from .version import __version__
 
@@ -251,13 +251,13 @@ def print_notes(to_screen, versions, fromVersion=__version__):
 '''
 
 
+# Deprecated
 def update_self(to_screen, verbose, opener):
-    ''' Exists for backward compatibility '''
 
     printfn = to_screen
 
-    printfn(
-        'WARNING: "yt_dlp.update.update_self" is deprecated and may be removed in a future version. '
+    write_string(
+        'DeprecationWarning: "yt_dlp.update.update_self" is deprecated and may be removed in a future version. '
         'Use "yt_dlp.update.run_update(ydl)" instead')
 
     class FakeYDL():

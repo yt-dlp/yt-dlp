@@ -71,7 +71,7 @@ def _real_main(argv=None):
     setproctitle('yt-dlp')
 
     parser, opts, args = parseOpts(argv)
-    warnings = []
+    warnings, deprecation_warnings = [], []
 
     # Set user agent
     if opts.user_agent is not None:
@@ -536,7 +536,7 @@ def _real_main(argv=None):
             'add_metadata': opts.addmetadata,
             'add_infojson': opts.embed_infojson,
         })
-    # Note: Deprecated
+    # Deprecated
     # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
     # but must be below EmbedSubtitle and FFmpegMetadata
     # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
@@ -549,6 +549,7 @@ def _real_main(argv=None):
             'cut': opts.sponskrub_cut,
             'force': opts.sponskrub_force,
             'ignoreerror': opts.sponskrub is None,
+            '_from_cli': True,
         })
     if opts.embedthumbnail:
         already_have_thumbnail = opts.writethumbnail or opts.write_all_thumbnails
@@ -587,6 +588,19 @@ def _real_main(argv=None):
         report_args_compat('--post-processor-args', 'post-processors')
         opts.postprocessor_args.setdefault('sponskrub', [])
         opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
+
+    def report_deprecation(val, old, new=None):
+        if not val:
+            return
+        deprecation_warnings.append(
+            f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
+            else f'{old} is deprecated and may not work as expected')
+
+    report_deprecation(opts.sponskrub, '--sponskrub', '--sponsorblock-mark or --sponsorblock-remove')
+    report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
+    report_deprecation(opts.include_ads, '--include-ads')
+    # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future
+    # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
 
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
@@ -756,6 +770,7 @@ def _real_main(argv=None):
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         '_warnings': warnings,
+        '_deprecation_warnings': deprecation_warnings,
         'compat_opts': compat_opts,
     }
 

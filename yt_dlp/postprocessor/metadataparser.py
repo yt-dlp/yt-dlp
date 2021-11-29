@@ -96,6 +96,7 @@ class MetadataParserPP(PostProcessor):
         return f
 
 
+# Deprecated
 class MetadataFromFieldPP(MetadataParserPP):
     @classmethod
     def to_action(cls, f):
@@ -108,9 +109,16 @@ class MetadataFromFieldPP(MetadataParserPP):
             match.group('out'))
 
     def __init__(self, downloader, formats):
-        MetadataParserPP.__init__(self, downloader, [self.to_action(f) for f in formats])
+        super().__init__(self, downloader, [self.to_action(f) for f in formats])
+        self.deprecation_warning(
+            'yt_dlp.postprocessor.MetadataFromFieldPP is deprecated '
+            'and may be removed in a future version. Use yt_dlp.postprocessor.MetadataParserPP instead')
 
 
-class MetadataFromTitlePP(MetadataParserPP):  # for backward compatibility
+# Deprecated
+class MetadataFromTitlePP(MetadataParserPP):
     def __init__(self, downloader, titleformat):
-        MetadataParserPP.__init__(self, downloader, [(self.Actions.INTERPRET, 'title', titleformat)])
+        super().__init__(self, downloader, [(self.Actions.INTERPRET, 'title', titleformat)])
+        self.deprecation_warning(
+            'yt_dlp.postprocessor.MetadataFromTitlePP is deprecated '
+            'and may be removed in a future version. Use yt_dlp.postprocessor.MetadataParserPP instead')

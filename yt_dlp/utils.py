@@ -6552,10 +6552,11 @@ def traverse_obj(
     return default
 
 
+# Deprecated
 def traverse_dict(dictn, keys, casesense=True):
-    ''' For backward compatibility. Do not use '''
-    return traverse_obj(dictn, keys, casesense=casesense,
-                        is_user_input=True, traverse_string=True)
+    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
+                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
+    return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
 def variadic(x, allowed_types=(str, bytes)):

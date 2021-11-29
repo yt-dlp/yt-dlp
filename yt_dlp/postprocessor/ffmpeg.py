@@ -167,6 +167,13 @@ class FFmpegPostProcessor(PostProcessor):
                 self.probe_basename = p
                 break
 
+        if self.basename == 'avconv':
+            self.deprecation_warning(
+                'Support for avconv is deprecated and may be removed in a future version. Use ffmpeg instead')
+        if self.probe_basename == 'avprobe':
+            self.deprecation_warning(
+                'Support for avprobe is deprecated and may be removed in a future version. Use ffprobe instead')
+
     @property
     def available(self):
         return self.basename is not None
