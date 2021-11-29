@@ -153,7 +153,7 @@ from .postprocessor import (
     _PLUGIN_CLASSES as plugin_postprocessors
 )
 from .update import detect_variant
-from .version import __version__
+from .version import __version__, RELEASE_GIT_HEAD
 
 if compat_os_name == 'nt':
     import ctypes
@@ -3401,7 +3401,11 @@ class YoutubeDL(object):
             write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
 
         source = detect_variant()
-        write_debug('yt-dlp version %s%s' % (__version__, '' if source == 'unknown' else f' ({source})'))
+        write_debug(join_nonempty(
+            'yt-dlp version', __version__,
+            f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
+            '' if source == 'unknown' else f'({source})',
+            delim=' '))
         if not _LAZY_LOADER:
             if os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
                 write_debug('Lazy loading extractors is forcibly disabled')
@@ -3413,20 +3417,22 @@ class YoutubeDL(object):
                 for name, klass in itertools.chain(plugin_extractors.items(), plugin_postprocessors.items())])
         if self.params.get('compat_opts'):
             write_debug('Compatibility options: %s' % ', '.join(self.params.get('compat_opts')))
-        try:
-            sp = Popen(
-                ['git', 'rev-parse', '--short', 'HEAD'],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                cwd=os.path.dirname(os.path.abspath(__file__)))
-            out, err = sp.communicate_or_kill()
-            out = out.decode().strip()
-            if re.match('[0-9a-f]+', out):
-                write_debug('Git HEAD: %s' % out)
-        except Exception:
+
+        if source == 'source':
             try:
-                sys.exc_clear()
+                sp = Popen(
+                    ['git', 'rev-parse', '--short', 'HEAD'],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                    cwd=os.path.dirname(os.path.abspath(__file__)))
+                out, err = sp.communicate_or_kill()
+                out = out.decode().strip()
+                if re.match('[0-9a-f]+', out):
+                    write_debug('Git HEAD: %s' % out)
             except Exception:
-                pass
+                try:
+                    sys.exc_clear()
+                except Exception:
+                    pass
 
         def python_implementation():
             impl_name = platform.python_implementation()

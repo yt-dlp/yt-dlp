@@ -31,8 +31,6 @@ jobs:
       run: |
         python devscripts/update-version.py
         make issuetemplates
-    - name: Print version
-      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
     - name: Update master
       id: push_update
       run: |
