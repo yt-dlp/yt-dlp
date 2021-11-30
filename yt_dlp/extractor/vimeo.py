@@ -119,10 +119,9 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         self._set_cookie('vimeo.com', name, value)
 
     def _vimeo_sort_formats(self, formats):
-        # Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
-        # at the same time without actual units specified. This lead to wrong sorting.
-        # But since yt-dlp prefers 'res,fps' anyway, 'field_preference' is not needed
-        self._sort_formats(formats)
+        # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
+        # at the same time without actual units specified.
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source'))
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
@@ -140,6 +139,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             formats.append({
                 'url': video_url,
                 'format_id': 'http-%s' % f.get('quality'),
+                'source_preference': 10,
                 'width': int_or_none(f.get('width')),
                 'height': int_or_none(f.get('height')),
                 'fps': int_or_none(f.get('fps')),
@@ -605,6 +605,20 @@ class VimeoIE(VimeoBaseInfoExtractor):
             },
         },
         {
+            'url': 'https://vimeo.com/channels/staffpicks/143603739',
+            'info_dict': {
+                'id': '143603739',
+                'ext': 'mp4',
+                'uploader': 'Karim Huu Do',
+                'timestamp': 1445846953,
+                'upload_date': '20151026',
+                'title': 'The Shoes - Submarine Feat. Blaine Harrison',
+                'uploader_id': 'karimhd',
+                'description': 'md5:8e2eea76de4504c2e8020a9bcfa1e843',
+            },
+            'params': {'skip_download': 'm3u8'},
+        },
+        {
             # requires passing unlisted_hash(a52724358e) to load_download_config request
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
@@ -798,18 +812,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
         timestamp = None
         video_description = None
         info_dict = {}
+        config_url = None
 
         channel_id = self._search_regex(
             r'vimeo\.com/channels/([^/]+)', url, 'channel id', default=None)
         if channel_id:
             config_url = self._html_search_regex(
-                r'\bdata-config-url="([^"]+)"', webpage, 'config URL')
+                r'\bdata-config-url="([^"]+)"', webpage, 'config URL', default=None)
             video_description = clean_html(get_element_by_class('description', webpage))
             info_dict.update({
                 'channel_id': channel_id,
                 'channel_url': 'https://vimeo.com/channels/' + channel_id,
             })
-        else:
+        if not config_url:
             page_config = self._parse_json(self._search_regex(
                 r'vimeo\.(?:clip|vod_title)_page_config\s*=\s*({.+?});',
                 webpage, 'page config', default='{}'), video_id, fatal=False)

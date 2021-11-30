@@ -167,6 +167,13 @@ class FFmpegPostProcessor(PostProcessor):
                 self.probe_basename = p
                 break
 
+        if self.basename == 'avconv':
+            self.deprecation_warning(
+                'Support for avconv is deprecated and may be removed in a future version. Use ffmpeg instead')
+        if self.probe_basename == 'avprobe':
+            self.deprecation_warning(
+                'Support for avprobe is deprecated and may be removed in a future version. Use ffprobe instead')
+
     @property
     def available(self):
         return self.basename is not None
@@ -251,22 +258,23 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
-    def _get_real_video_duration(self, info, fatal=True):
+    def _get_real_video_duration(self, filepath, fatal=True):
         try:
-            if '_real_duration' not in info:
-                info['_real_duration'] = float_or_none(
-                    traverse_obj(self.get_metadata_object(info['filepath']), ('format', 'duration')))
-            if not info['_real_duration']:
+            duration = float_or_none(
+                traverse_obj(self.get_metadata_object(filepath), ('format', 'duration')))
+            if not duration:
                 raise PostProcessingError('ffprobe returned empty duration')
+            return duration
         except PostProcessingError as e:
             if fatal:
-                raise PostProcessingError(f'Unable to determine video duration; {e}')
-        return info.setdefault('_real_duration', None)
+                raise PostProcessingError(f'Unable to determine video duration: {e.msg}')
 
     def _duration_mismatch(self, d1, d2):
         if not d1 or not d2:
             return None
-        return abs(d1 - d2) > 1
+        # The duration is often only known to nearest second. So there can be <1sec disparity natually.
+        # Further excuse an additional <1sec difference.
+        return abs(d1 - d2) > 2
 
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
@@ -575,22 +583,22 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self._already_have_subtitle = already_have_subtitle
 
     @PostProcessor._restrict_to(images=False)
-    def run(self, information):
-        if information['ext'] not in ('mp4', 'webm', 'mkv'):
+    def run(self, info):
+        if info['ext'] not in ('mp4', 'webm', 'mkv'):
             self.to_screen('Subtitles can only be embedded in mp4, webm or mkv files')
-            return [], information
-        subtitles = information.get('requested_subtitles')
+            return [], info
+        subtitles = info.get('requested_subtitles')
         if not subtitles:
             self.to_screen('There aren\'t any subtitles to embed')
-            return [], information
+            return [], info
 
-        filename = information['filepath']
-        if information.get('duration') and self._duration_mismatch(
-                self._get_real_video_duration(information, False), information['duration']):
+        filename = info['filepath']
+        if info.get('duration') and not info.get('__real_download') and self._duration_mismatch(
+                self._get_real_video_duration(filename, False), info['duration']):
             self.to_screen(f'Skipping {self.pp_key()} since the real and expected durations mismatch')
-            return [], information
+            return [], info
 
-        ext = information['ext']
+        ext = info['ext']
         sub_langs, sub_names, sub_filenames = [], [], []
         webm_vtt_warn = False
         mp4_ass_warn = False
@@ -615,7 +623,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
 
         if not sub_langs:
-            return [], information
+            return [], info
 
         input_files = [filename] + sub_filenames
 
@@ -628,7 +636,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             # https://trac.ffmpeg.org/ticket/6016)
             '-map', '-0:d',
         ]
-        if information['ext'] == 'mp4':
+        if info['ext'] == 'mp4':
             opts += ['-c:s', 'mov_text']
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
             opts.extend(['-map', '%d:0' % (i + 1)])
@@ -644,7 +652,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         os.replace(temp_filename, filename)
 
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
-        return files_to_delete, information
+        return files_to_delete, info
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
@@ -855,10 +863,21 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
 
 
 class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
+    def _needs_fixup(self, info):
+        yield info['ext'] in ('mp4', 'm4a')
+        yield info['protocol'].startswith('m3u8')
+        try:
+            metadata = self.get_metadata_object(info['filepath'])
+        except PostProcessingError as e:
+            self.report_warning(f'Unable to extract metadata: {e.msg}')
+            yield True
+        else:
+            yield traverse_obj(metadata, ('format', 'format_name'), casesense=False) == 'mpegts'
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if self.get_audio_codec(info['filepath']) == 'aac':
-            self._fixup('Fixing malformed AAC bitstream', info['filepath'], [
+        if all(self._needs_fixup(info)):
+            self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
                 '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
         return [], info
 

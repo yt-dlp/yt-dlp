@@ -6,7 +6,7 @@ from ..utils import unified_strdate
 
 
 class GronkhIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?gronkh\.tv/stream/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/stream/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://gronkh.tv/stream/536',

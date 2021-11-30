@@ -179,6 +179,7 @@ from .br import (
 )
 from .bravotv import BravoTVIE
 from .breakcom import BreakIE
+from .breitbart import BreitBartIE
 from .brightcove import (
     BrightcoveLegacyIE,
     BrightcoveNewIE,
@@ -187,6 +188,7 @@ from .businessinsider import BusinessInsiderIE
 from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
+from .cableav import CableAVIE
 from .cam4 import CAM4IE
 from .camdemy import (
     CamdemyIE,
@@ -340,10 +342,6 @@ from .democracynow import DemocracynowIE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
-from .discoveryplusindia import (
-    DiscoveryPlusIndiaIE,
-    DiscoveryPlusIndiaShowIE,
-)
 from .dotsub import DotsubIE
 from .douyutv import (
     DouyuShowIE,
@@ -355,7 +353,11 @@ from .dplay import (
     HGTVDeIE,
     ScienceChannelIE,
     DIYNetworkIE,
-    AnimalPlanetIE
+    AnimalPlanetIE,
+    DiscoveryPlusIndiaIE,
+    DiscoveryNetworksDeIE,
+    DiscoveryPlusItalyShowIE,
+    DiscoveryPlusIndiaShowIE,
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
@@ -377,7 +379,6 @@ from .discoverygo import (
     DiscoveryGoIE,
     DiscoveryGoPlaylistIE,
 )
-from .discoverynetworks import DiscoveryNetworksDeIE
 from .discoveryvr import DiscoveryVRIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
@@ -888,7 +889,10 @@ from .ndr import (
     NJoyEmbedIE,
 )
 from .ndtv import NDTVIE
-from .nebula import NebulaIE
+from .nebula import (
+    NebulaIE,
+    NebulaCollectionIE,
+)
 from .nerdcubed import NerdCubedFeedIE
 from .netzkino import NetzkinoIE
 from .neteasemusic import (
@@ -942,7 +946,10 @@ from .niconico import (
     NicovideoSearchIE,
     NicovideoSearchURLIE,
 )
-from .ninecninemedia import NineCNineMediaIE
+from .ninecninemedia import (
+    NineCNineMediaIE,
+    CPTwentyFourIE,
+)
 from .ninegag import NineGagIE
 from .ninenow import NineNowIE
 from .nintendo import NintendoIE
@@ -1168,6 +1175,7 @@ from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
 from .radiofrance import RadioFranceIE
+from .radiozet import RadioZetPodcastIE
 from .radiokapital import (
     RadioKapitalIE,
     RadioKapitalShowIE,
@@ -1208,6 +1216,11 @@ from .redbulltv import (
     RedBullIE,
 )
 from .reddit import RedditIE
+from .redgifs import (
+    RedGifsIE,
+    RedGifsSearchIE,
+    RedGifsUserIE,
+)
 from .redtube import RedTubeIE
 from .regiotv import RegioTVIE
 from .rentv import (
@@ -1276,7 +1289,7 @@ from .scte import (
     SCTECourseIE,
 )
 from .seeker import SeekerIE
-from .senateisvp import SenateISVPIE
+from .senategov import SenateISVPIE, SenateGovIE
 from .sendtonews import SendtoNewsIE
 from .servus import ServusIE
 from .sevenplus import SevenPlusIE
@@ -1403,6 +1416,7 @@ from .streamable import StreamableIE
 from .streamanity import StreamanityIE
 from .streamcloud import StreamcloudIE
 from .streamcz import StreamCZIE
+from .streamff import StreamFFIE
 from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE

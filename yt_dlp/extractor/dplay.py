@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -11,12 +12,172 @@ from ..utils import (
     float_or_none,
     int_or_none,
     strip_or_none,
+    try_get,
     unified_timestamp,
 )
 
 
-class DPlayIE(InfoExtractor):
+class DPlayBaseIE(InfoExtractor):
     _PATH_REGEX = r'/(?P<id>[^/]+/[^/?#]+)'
+    _auth_token_cache = {}
+
+    def _get_auth(self, disco_base, display_id, realm, needs_device_id=True):
+        key = (disco_base, realm)
+        st = self._get_cookies(disco_base).get('st')
+        token = (st and st.value) or self._auth_token_cache.get(key)
+
+        if not token:
+            query = {'realm': realm}
+            if needs_device_id:
+                query['deviceId'] = uuid.uuid4().hex
+            token = self._download_json(
+                disco_base + 'token', display_id, 'Downloading token',
+                query=query)['data']['attributes']['token']
+
+            # Save cache only if cookies are not being set
+            if not self._get_cookies(disco_base).get('st'):
+                self._auth_token_cache[key] = token
+
+        return f'Bearer {token}'
+
+    def _process_errors(self, e, geo_countries):
+        info = self._parse_json(e.cause.read().decode('utf-8'), None)
+        error = info['errors'][0]
+        error_code = error.get('code')
+        if error_code == 'access.denied.geoblocked':
+            self.raise_geo_restricted(countries=geo_countries)
+        elif error_code in ('access.denied.missingpackage', 'invalid.token'):
+            raise ExtractorError(
+                'This video is only available for registered users. You may want to use --cookies.', expected=True)
+        raise ExtractorError(info['errors'][0]['detail'], expected=True)
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers['Authorization'] = self._get_auth(disco_base, display_id, realm, False)
+
+    def _download_video_playback_info(self, disco_base, video_id, headers):
+        streaming = self._download_json(
+            disco_base + 'playback/videoPlaybackInfo/' + video_id,
+            video_id, headers=headers)['data']['attributes']['streaming']
+        streaming_list = []
+        for format_id, format_dict in streaming.items():
+            streaming_list.append({
+                'type': format_id,
+                'url': format_dict.get('url'),
+            })
+        return streaming_list
+
+    def _get_disco_api_info(self, url, display_id, disco_host, realm, country, domain=''):
+        geo_countries = [country.upper()]
+        self._initialize_geo_bypass({
+            'countries': geo_countries,
+        })
+        disco_base = 'https://%s/' % disco_host
+        headers = {
+            'Referer': url,
+        }
+        self._update_disco_api_headers(headers, disco_base, display_id, realm)
+        try:
+            video = self._download_json(
+                disco_base + 'content/videos/' + display_id, display_id,
+                headers=headers, query={
+                    'fields[channel]': 'name',
+                    'fields[image]': 'height,src,width',
+                    'fields[show]': 'name',
+                    'fields[tag]': 'name',
+                    'fields[video]': 'description,episodeNumber,name,publishStart,seasonNumber,videoDuration',
+                    'include': 'images,primaryChannel,show,tags'
+                })
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                self._process_errors(e, geo_countries)
+            raise
+        video_id = video['data']['id']
+        info = video['data']['attributes']
+        title = info['name'].strip()
+        formats = []
+        subtitles = {}
+        try:
+            streaming = self._download_video_playback_info(
+                disco_base, video_id, headers)
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                self._process_errors(e, geo_countries)
+            raise
+        for format_dict in streaming:
+            if not isinstance(format_dict, dict):
+                continue
+            format_url = format_dict.get('url')
+            if not format_url:
+                continue
+            format_id = format_dict.get('type')
+            ext = determine_ext(format_url)
+            if format_id == 'dash' or ext == 'mpd':
+                dash_fmts, dash_subs = self._extract_mpd_formats_and_subtitles(
+                    format_url, display_id, mpd_id='dash', fatal=False)
+                formats.extend(dash_fmts)
+                subtitles = self._merge_subtitles(subtitles, dash_subs)
+            elif format_id == 'hls' or ext == 'm3u8':
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, display_id, 'mp4',
+                    entry_protocol='m3u8_native', m3u8_id='hls',
+                    fatal=False)
+                formats.extend(m3u8_fmts)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
+            else:
+                formats.append({
+                    'url': format_url,
+                    'format_id': format_id,
+                })
+        self._sort_formats(formats)
+
+        creator = series = None
+        tags = []
+        thumbnails = []
+        included = video.get('included') or []
+        if isinstance(included, list):
+            for e in included:
+                attributes = e.get('attributes')
+                if not attributes:
+                    continue
+                e_type = e.get('type')
+                if e_type == 'channel':
+                    creator = attributes.get('name')
+                elif e_type == 'image':
+                    src = attributes.get('src')
+                    if src:
+                        thumbnails.append({
+                            'url': src,
+                            'width': int_or_none(attributes.get('width')),
+                            'height': int_or_none(attributes.get('height')),
+                        })
+                if e_type == 'show':
+                    series = attributes.get('name')
+                elif e_type == 'tag':
+                    name = attributes.get('name')
+                    if name:
+                        tags.append(name)
+        return {
+            'id': video_id,
+            'display_id': display_id,
+            'title': title,
+            'description': strip_or_none(info.get('description')),
+            'duration': float_or_none(info.get('videoDuration'), 1000),
+            'timestamp': unified_timestamp(info.get('publishStart')),
+            'series': series,
+            'season_number': int_or_none(info.get('seasonNumber')),
+            'episode_number': int_or_none(info.get('episodeNumber')),
+            'creator': creator,
+            'tags': tags,
+            'thumbnails': thumbnails,
+            'formats': formats,
+            'subtitles': subtitles,
+            'http_headers': {
+                'referer': domain,
+            },
+        }
+
+
+class DPlayIE(DPlayBaseIE):
     _VALID_URL = r'''(?x)https?://
         (?P<domain>
             (?:www\.)?(?P<host>d
@@ -26,7 +187,7 @@ class DPlayIE(InfoExtractor):
                 )
             )|
             (?P<subdomain_country>es|it)\.dplay\.com
-        )/[^/]+''' + _PATH_REGEX
+        )/[^/]+''' + DPlayBaseIE._PATH_REGEX
 
     _TESTS = [{
         # non geo restricted, via secure api, unsigned download hls URL
@@ -150,138 +311,6 @@ class DPlayIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _process_errors(self, e, geo_countries):
-        info = self._parse_json(e.cause.read().decode('utf-8'), None)
-        error = info['errors'][0]
-        error_code = error.get('code')
-        if error_code == 'access.denied.geoblocked':
-            self.raise_geo_restricted(countries=geo_countries)
-        elif error_code in ('access.denied.missingpackage', 'invalid.token'):
-            raise ExtractorError(
-                'This video is only available for registered users. You may want to use --cookies.', expected=True)
-        raise ExtractorError(info['errors'][0]['detail'], expected=True)
-
-    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
-        headers['Authorization'] = 'Bearer ' + self._download_json(
-            disco_base + 'token', display_id, 'Downloading token',
-            query={
-                'realm': realm,
-            })['data']['attributes']['token']
-
-    def _download_video_playback_info(self, disco_base, video_id, headers):
-        streaming = self._download_json(
-            disco_base + 'playback/videoPlaybackInfo/' + video_id,
-            video_id, headers=headers)['data']['attributes']['streaming']
-        streaming_list = []
-        for format_id, format_dict in streaming.items():
-            streaming_list.append({
-                'type': format_id,
-                'url': format_dict.get('url'),
-            })
-        return streaming_list
-
-    def _get_disco_api_info(self, url, display_id, disco_host, realm, country):
-        geo_countries = [country.upper()]
-        self._initialize_geo_bypass({
-            'countries': geo_countries,
-        })
-        disco_base = 'https://%s/' % disco_host
-        headers = {
-            'Referer': url,
-        }
-        self._update_disco_api_headers(headers, disco_base, display_id, realm)
-        try:
-            video = self._download_json(
-                disco_base + 'content/videos/' + display_id, display_id,
-                headers=headers, query={
-                    'fields[channel]': 'name',
-                    'fields[image]': 'height,src,width',
-                    'fields[show]': 'name',
-                    'fields[tag]': 'name',
-                    'fields[video]': 'description,episodeNumber,name,publishStart,seasonNumber,videoDuration',
-                    'include': 'images,primaryChannel,show,tags'
-                })
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
-                self._process_errors(e, geo_countries)
-            raise
-        video_id = video['data']['id']
-        info = video['data']['attributes']
-        title = info['name'].strip()
-        formats = []
-        try:
-            streaming = self._download_video_playback_info(
-                disco_base, video_id, headers)
-        except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
-                self._process_errors(e, geo_countries)
-            raise
-        for format_dict in streaming:
-            if not isinstance(format_dict, dict):
-                continue
-            format_url = format_dict.get('url')
-            if not format_url:
-                continue
-            format_id = format_dict.get('type')
-            ext = determine_ext(format_url)
-            if format_id == 'dash' or ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(
-                    format_url, display_id, mpd_id='dash', fatal=False))
-            elif format_id == 'hls' or ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    format_url, display_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id='hls',
-                    fatal=False))
-            else:
-                formats.append({
-                    'url': format_url,
-                    'format_id': format_id,
-                })
-        self._sort_formats(formats)
-
-        creator = series = None
-        tags = []
-        thumbnails = []
-        included = video.get('included') or []
-        if isinstance(included, list):
-            for e in included:
-                attributes = e.get('attributes')
-                if not attributes:
-                    continue
-                e_type = e.get('type')
-                if e_type == 'channel':
-                    creator = attributes.get('name')
-                elif e_type == 'image':
-                    src = attributes.get('src')
-                    if src:
-                        thumbnails.append({
-                            'url': src,
-                            'width': int_or_none(attributes.get('width')),
-                            'height': int_or_none(attributes.get('height')),
-                        })
-                if e_type == 'show':
-                    series = attributes.get('name')
-                elif e_type == 'tag':
-                    name = attributes.get('name')
-                    if name:
-                        tags.append(name)
-
-        return {
-            'id': video_id,
-            'display_id': display_id,
-            'title': title,
-            'description': strip_or_none(info.get('description')),
-            'duration': float_or_none(info.get('videoDuration'), 1000),
-            'timestamp': unified_timestamp(info.get('publishStart')),
-            'series': series,
-            'season_number': int_or_none(info.get('seasonNumber')),
-            'episode_number': int_or_none(info.get('episodeNumber')),
-            'creator': creator,
-            'tags': tags,
-            'thumbnails': thumbnails,
-            'formats': formats,
-        }
-
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         display_id = mobj.group('id')
@@ -289,11 +318,11 @@ class DPlayIE(InfoExtractor):
         country = mobj.group('country') or mobj.group('subdomain_country') or mobj.group('plus_country')
         host = 'disco-api.' + domain if domain[0] == 'd' else 'eu2-prod.disco-api.com'
         return self._get_disco_api_info(
-            url, display_id, host, 'dplay' + country, country)
+            url, display_id, host, 'dplay' + country, country, domain)
 
 
-class HGTVDeIE(DPlayIE):
-    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayIE._PATH_REGEX
+class HGTVDeIE(DPlayBaseIE):
+    _VALID_URL = r'https?://de\.hgtv\.com/sendungen' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://de.hgtv.com/sendungen/tiny-house-klein-aber-oho/wer-braucht-schon-eine-toilette/',
         'info_dict': {
@@ -318,8 +347,8 @@ class HGTVDeIE(DPlayIE):
             url, display_id, 'eu1-prod.disco-api.com', 'hgtv', 'de')
 
 
-class DiscoveryPlusIE(DPlayIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?:\w{2}/)?video' + DPlayIE._PATH_REGEX
+class DiscoveryPlusIE(DPlayBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
         'info_dict': {
@@ -369,7 +398,7 @@ class DiscoveryPlusIE(DPlayIE):
 
 
 class ScienceChannelIE(DiscoveryPlusIE):
-    _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.sciencechannel.com/video/strangest-things-science-atve-us/nazi-mystery-machine',
         'info_dict': {
@@ -389,7 +418,7 @@ class ScienceChannelIE(DiscoveryPlusIE):
 
 
 class DIYNetworkIE(DiscoveryPlusIE):
-    _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:watch\.)?diynetwork\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
         'info_dict': {
@@ -409,7 +438,7 @@ class DIYNetworkIE(DiscoveryPlusIE):
 
 
 class AnimalPlanetIE(DiscoveryPlusIE):
-    _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.animalplanet.com/video/north-woods-law-animal-planet/squirrel-showdown',
         'info_dict': {
@@ -426,3 +455,159 @@ class AnimalPlanetIE(DiscoveryPlusIE):
 
     _PRODUCT = 'apl'
     _API_URL = 'us1-prod-direct.animalplanet.com'
+
+
+class DiscoveryPlusIndiaIE(DPlayBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/videos?' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.in/videos/how-do-they-do-it/fugu-and-more?seasonId=8&type=EPISODE',
+        'info_dict': {
+            'id': '27104',
+            'ext': 'mp4',
+            'display_id': 'how-do-they-do-it/fugu-and-more',
+            'title': 'Fugu and More',
+            'description': 'The Japanese catch, prepare and eat the deadliest fish on the planet.',
+            'duration': 1319,
+            'timestamp': 1582309800,
+            'upload_date': '20200221',
+            'series': 'How Do They Do It?',
+            'season_number': 8,
+            'episode_number': 2,
+            'creator': 'Discovery Channel',
+        },
+        'params': {
+            'skip_download': True,
+        }
+    }]
+
+    def _update_disco_api_headers(self, headers, disco_base, display_id, realm):
+        headers.update({
+            'x-disco-params': 'realm=%s' % realm,
+            'x-disco-client': 'WEB:UNKNOWN:dplus-india:17.0.0',
+            'Authorization': self._get_auth(disco_base, display_id, realm),
+        })
+
+    def _download_video_playback_info(self, disco_base, video_id, headers):
+        return self._download_json(
+            disco_base + 'playback/v3/videoPlaybackInfo',
+            video_id, headers=headers, data=json.dumps({
+                'deviceInfo': {
+                    'adBlocker': False,
+                },
+                'videoId': video_id,
+            }).encode('utf-8'))['data']['attributes']['streaming']
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        return self._get_disco_api_info(
+            url, display_id, 'ap2-prod-direct.discoveryplus.in', 'dplusindia', 'in', 'https://www.discoveryplus.in/')
+
+
+class DiscoveryNetworksDeIE(DPlayBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?(?P<domain>(?:tlc|dmax)\.de|dplay\.co\.uk)/(?:programme|show|sendungen)/(?P<programme>[^/]+)/(?:video/)?(?P<alternate_id>[^/]+)'
+
+    _TESTS = [{
+        'url': 'https://www.tlc.de/programme/breaking-amish/video/die-welt-da-drauen/DCB331270001100',
+        'info_dict': {
+            'id': '78867',
+            'ext': 'mp4',
+            'title': 'Die Welt da draußen',
+            'description': 'md5:61033c12b73286e409d99a41742ef608',
+            'timestamp': 1554069600,
+            'upload_date': '20190331',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }, {
+        'url': 'https://www.dmax.de/programme/dmax-highlights/video/tuning-star-sidney-hoffmann-exklusiv-bei-dmax/191023082312316',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dplay.co.uk/show/ghost-adventures/video/hotel-leger-103620/EHD_280313B',
+        'only_matching': True,
+    }, {
+        'url': 'https://tlc.de/sendungen/breaking-amish/die-welt-da-drauen/',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        domain, programme, alternate_id = self._match_valid_url(url).groups()
+        country = 'GB' if domain == 'dplay.co.uk' else 'DE'
+        realm = 'questuk' if country == 'GB' else domain.replace('.', '')
+        return self._get_disco_api_info(
+            url, '%s/%s' % (programme, alternate_id),
+            'sonic-eu1-prod.disco-api.com', realm, country)
+
+
+class DiscoveryPlusShowBaseIE(DPlayBaseIE):
+
+    def _entries(self, show_name):
+        headers = {
+            'x-disco-client': self._X_CLIENT,
+            'x-disco-params': f'realm={self._REALM}',
+            'referer': self._DOMAIN,
+            'Authentication': self._get_auth(self._BASE_API, None, self._REALM),
+        }
+        show_json = self._download_json(
+            f'{self._BASE_API}cms/routes/{self._SHOW_STR}/{show_name}?include=default',
+            video_id=show_name, headers=headers)['included'][self._INDEX]['attributes']['component']
+        show_id = show_json['mandatoryParams'].split('=')[-1]
+        season_url = self._BASE_API + 'content/videos?sort=episodeNumber&filter[seasonNumber]={}&filter[show.id]={}&page[size]=100&page[number]={}'
+        for season in show_json['filters'][0]['options']:
+            season_id = season['id']
+            total_pages, page_num = 1, 0
+            while page_num < total_pages:
+                season_json = self._download_json(
+                    season_url.format(season_id, show_id, str(page_num + 1)), show_name, headers=headers,
+                    note='Downloading season %s JSON metadata%s' % (season_id, ' page %d' % page_num if page_num else ''))
+                if page_num == 0:
+                    total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
+                episodes_json = season_json['data']
+                for episode in episodes_json:
+                    video_id = episode['attributes']['path']
+                    yield self.url_result(
+                        '%svideos/%s' % (self._DOMAIN, video_id),
+                        ie=self._VIDEO_IE.ie_key(), video_id=video_id)
+                page_num += 1
+
+    def _real_extract(self, url):
+        show_name = self._match_valid_url(url).group('show_name')
+        return self.playlist_result(self._entries(show_name), playlist_id=show_name)
+
+
+class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.it/programmi/(?P<show_name>[^/]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.it/programmi/deal-with-it-stai-al-gioco',
+        'playlist_mincount': 168,
+        'info_dict': {
+            'id': 'deal-with-it-stai-al-gioco',
+        },
+    }]
+
+    _BASE_API = 'https://disco-api.discoveryplus.it/'
+    _DOMAIN = 'https://www.discoveryplus.it/'
+    _X_CLIENT = 'WEB:UNKNOWN:dplay-client:2.6.0'
+    _REALM = 'dplayit'
+    _SHOW_STR = 'programmi'
+    _INDEX = 1
+    _VIDEO_IE = DPlayIE
+
+
+class DiscoveryPlusIndiaShowIE(DiscoveryPlusShowBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.in/show/(?P<show_name>[^/]+)/?(?:[?#]|$)'
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.in/show/how-do-they-do-it',
+        'playlist_mincount': 140,
+        'info_dict': {
+            'id': 'how-do-they-do-it',
+        },
+    }]
+
+    _BASE_API = 'https://ap2-prod-direct.discoveryplus.in/'
+    _DOMAIN = 'https://www.discoveryplus.in/'
+    _X_CLIENT = 'WEB:UNKNOWN:dplus-india:prod'
+    _REALM = 'dplusindia'
+    _SHOW_STR = 'show'
+    _INDEX = 4
+    _VIDEO_IE = DiscoveryPlusIndiaIE

@@ -7,10 +7,8 @@
 * Update Changelog.md and CONTRIBUTORS
 * Change "Merged with ytdl" version in Readme.md if needed
 * Add new/fixed extractors in "new features" section of Readme.md
-* Commit as `Release <version>`
-* Push to origin/release using `git push origin master:release`
-    build task will now run
-
+* Commit as `Release <version>` and push to master
+* Dispatch the workflow https://github.com/yt-dlp/yt-dlp/actions/workflows/build.yml on master
 -->
 
 

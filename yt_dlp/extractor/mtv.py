@@ -307,20 +307,22 @@ class MTVServicesInfoExtractor(InfoExtractor):
             mgid = self._extract_triforce_mgid(webpage)
 
         if not mgid:
-            mgid = self._search_regex(
-                r'"videoConfig":{"videoId":"(mgid:.*?)"', webpage, 'mgid', default=None)
-
-        if not mgid:
-            mgid = self._search_regex(
-                r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
-
-        if not mgid:
             data = self._parse_json(self._search_regex(
                 r'__DATA__\s*=\s*({.+?});', webpage, 'data'), None)
             main_container = self._extract_child_with_type(data, 'MainContainer')
             ab_testing = self._extract_child_with_type(main_container, 'ABTesting')
             video_player = self._extract_child_with_type(ab_testing or main_container, 'VideoPlayer')
-            mgid = video_player['props']['media']['video']['config']['uri']
+            if video_player:
+                mgid = try_get(video_player, lambda x: x['props']['media']['video']['config']['uri'])
+            else:
+                flex_wrapper = self._extract_child_with_type(ab_testing or main_container, 'FlexWrapper')
+                auth_suite_wrapper = self._extract_child_with_type(flex_wrapper, 'AuthSuiteWrapper')
+                player = self._extract_child_with_type(auth_suite_wrapper or flex_wrapper, 'Player')
+                if player:
+                    mgid = try_get(player, lambda x: x['props']['videoDetail']['mgid'])
+
+        if not mgid:
+            raise ExtractorError('Could not extract mgid')
 
         return mgid
 

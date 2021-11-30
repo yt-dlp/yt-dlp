@@ -443,8 +443,7 @@ class FFmpegFD(ExternalFD):
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
             for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
                 stream_number = fmt.get('manifest_stream_number', 0)
-                a_or_v = 'a' if fmt.get('acodec') != 'none' else 'v'
-                args.extend(['-map', f'{i}:{a_or_v}:{stream_number}'])
+                args.extend(['-map', f'{i}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]

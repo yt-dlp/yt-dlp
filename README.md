@@ -288,7 +288,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
 
 **Note**: In either platform, `devscripts/update-version.py` can be used to automatically update the version number
 
-You can also fork the project on github and push it to a release branch in your fork for the [build workflow](https://github.com/yt-dlp/yt-dlp/blob/master/.github/workflows/build.yml) to automatically make a release for you
+You can also fork the project on github and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a release
 
 # USAGE AND OPTIONS
 
@@ -1204,7 +1204,7 @@ To use percent literals in an output template use `%%`. To output to stdout use 
 
 The current default template is `%(title)s [%(id)s].%(ext)s`.
 
-In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title:
+In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title.
 
 #### Output template and Windows batch files
 
@@ -1616,7 +1616,7 @@ with YoutubeDL(ydl_opts) as ydl:
     ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
 ```
 
-Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L154-L452).
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L162).
 
 Here's a more complete example demonstrating various functionality:
 
@@ -1787,7 +1787,7 @@ These are aliases that are no longer documented for various reasons
     --yes-overwrites                 --force-overwrites
 
 #### Sponskrub Options
-Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of `--sponsorblock`
+Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of the `--sponsorblock` options
 
     --sponskrub                      --sponsorblock-mark all
     --no-sponskrub                   --no-sponsorblock

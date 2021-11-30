@@ -10,7 +10,7 @@ from ..utils import (
 
 
 class EUScreenIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?euscreen\.eu/item.html\?id=(?P<id>[^&?$/]+)'
+    _VALID_URL = r'https?://(?:www\.)?euscreen\.eu/item.html\?id=(?P<id>[^&?$/]+)'
 
     _TESTS = [{
         'url': 'https://euscreen.eu/item.html?id=EUS_0EBCBF356BFC4E12A014023BA41BD98C',

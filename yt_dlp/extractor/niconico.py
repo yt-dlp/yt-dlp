@@ -703,7 +703,7 @@ class NicovideoSearchURLIE(InfoExtractor):
 
 
 class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
-    IE_DESC = 'Nico video searches'
+    IE_DESC = 'Nico video search'
     IE_NAME = NicovideoSearchIE_NAME
     _SEARCH_KEY = 'nicosearch'
     _TESTS = []
@@ -714,7 +714,7 @@ class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
 
 
 class NicovideoSearchDateIE(NicovideoSearchIE):
-    IE_DESC = 'Nico video searches, newest first'
+    IE_DESC = 'Nico video search, newest first'
     IE_NAME = f'{NicovideoSearchIE_NAME}:date'
     _SEARCH_KEY = 'nicosearchdate'
     _TESTS = [{

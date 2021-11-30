@@ -38,5 +38,10 @@ class ExecPP(PostProcessor):
         return [], info
 
 
-class ExecAfterDownloadPP(ExecPP):  # for backward compatibility
-    pass
+# Deprecated
+class ExecAfterDownloadPP(ExecPP):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.deprecation_warning(
+            'yt_dlp.postprocessor.ExecAfterDownloadPP is deprecated '
+            'and may be removed in a future version. Use yt_dlp.postprocessor.ExecPP instead')
