@@ -4754,6 +4754,45 @@ def parse_codecs(codecs_str):
     return {}
 
 
+def get_compatible_ext(vcodecs, acodecs, vexts, aexts):
+    assert len(vcodecs) == len(vexts) and len(acodecs) == len(aexts)
+
+    if max(len(acodecs), len(vcodecs)) > 1:
+        # TODO: any other format allows this?
+        return 'mkv'
+    vext, aext = vexts[0], aexts[0]
+    vcodec, acodec = map(lambda codecs: codecs[0].split('.')[0].replace('0', ''), (vcodecs, acodecs))
+
+    # TODO: Make sure all these are accounted for
+    # 'avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'
+    # 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'
+
+    COMPATIBLE_CODECS = {
+        'mp4': {
+            # fourcc (m3u8, mpd)
+            'av1', 'hevc', 'avc1', 'mp4a',
+            # whatever the ism does
+            'h264', 'aacl',
+        },
+        'webm': {
+            'av1', 'vp9', 'vp8', 'opus', 'vrbs',
+            # these are in the webm spec, so putting it here to be sure
+            'vp9x', 'vp8x',
+        },
+    }
+    for ext, codecs in COMPATIBLE_CODECS.items():
+        if codecs.issuperset((vcodec, acodec)):
+            return ext
+
+    COMPATIBLE_EXTS = (
+        {'mp3', 'mp4', 'm4a', 'm4p', 'm4b', 'm4r', 'm4v', 'ismv', 'isma'},
+        {'webm'},
+    )
+    if any(ext_sets.issuperset((vext, aext)) for ext_sets in COMPATIBLE_EXTS):
+        return vext
+    return 'mkv'
+
+
 def urlhandle_detect_ext(url_handle):
     getheader = url_handle.headers.get
 
