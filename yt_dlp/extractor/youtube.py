@@ -9,6 +9,7 @@ import datetime
 import hashlib
 import itertools
 import json
+import math
 import os.path
 import random
 import re
@@ -28,6 +29,7 @@ from ..compat import (
 )
 from ..jsinterp import JSInterpreter
 from ..utils import (
+    bug_reports_message,
     bytes_to_intlist,
     clean_html,
     datetime_from_str,
@@ -39,8 +41,10 @@ from ..utils import (
     int_or_none,
     intlist_to_bytes,
     is_html,
+    join_nonempty,
     mimetype2ext,
     network_exceptions,
+    NO_DEFAULT,
     orderedSet,
     parse_codecs,
     parse_count,
@@ -63,6 +67,10 @@ from ..utils import (
     urljoin,
     variadic,
 )
+
+
+def get_first(obj, keys, **kwargs):
+    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
 
 # any clients starting with _ cannot be explicity requested by the user
@@ -258,6 +266,70 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     # If True it will raise an error if no login info is provided
     _LOGIN_REQUIRED = False
 
+    _INVIDIOUS_SITES = (
+        # invidious-redirect websites
+        r'(?:www\.)?redirect\.invidious\.io',
+        r'(?:(?:www|dev)\.)?invidio\.us',
+        # Invidious instances taken from https://github.com/iv-org/documentation/blob/master/Invidious-Instances.md
+        r'(?:www\.)?invidious\.pussthecat\.org',
+        r'(?:www\.)?invidious\.zee\.li',
+        r'(?:www\.)?invidious\.ethibox\.fr',
+        r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
+        # youtube-dl invidious instances list
+        r'(?:(?:www|no)\.)?invidiou\.sh',
+        r'(?:(?:www|fi)\.)?invidious\.snopyta\.org',
+        r'(?:www\.)?invidious\.kabi\.tk',
+        r'(?:www\.)?invidious\.mastodon\.host',
+        r'(?:www\.)?invidious\.zapashcanon\.fr',
+        r'(?:www\.)?(?:invidious(?:-us)?|piped)\.kavin\.rocks',
+        r'(?:www\.)?invidious\.tinfoil-hat\.net',
+        r'(?:www\.)?invidious\.himiko\.cloud',
+        r'(?:www\.)?invidious\.reallyancient\.tech',
+        r'(?:www\.)?invidious\.tube',
+        r'(?:www\.)?invidiou\.site',
+        r'(?:www\.)?invidious\.site',
+        r'(?:www\.)?invidious\.xyz',
+        r'(?:www\.)?invidious\.nixnet\.xyz',
+        r'(?:www\.)?invidious\.048596\.xyz',
+        r'(?:www\.)?invidious\.drycat\.fr',
+        r'(?:www\.)?inv\.skyn3t\.in',
+        r'(?:www\.)?tube\.poal\.co',
+        r'(?:www\.)?tube\.connect\.cafe',
+        r'(?:www\.)?vid\.wxzm\.sx',
+        r'(?:www\.)?vid\.mint\.lgbt',
+        r'(?:www\.)?vid\.puffyan\.us',
+        r'(?:www\.)?yewtu\.be',
+        r'(?:www\.)?yt\.elukerio\.org',
+        r'(?:www\.)?yt\.lelux\.fi',
+        r'(?:www\.)?invidious\.ggc-project\.de',
+        r'(?:www\.)?yt\.maisputain\.ovh',
+        r'(?:www\.)?ytprivate\.com',
+        r'(?:www\.)?invidious\.13ad\.de',
+        r'(?:www\.)?invidious\.toot\.koeln',
+        r'(?:www\.)?invidious\.fdn\.fr',
+        r'(?:www\.)?watch\.nettohikari\.com',
+        r'(?:www\.)?invidious\.namazso\.eu',
+        r'(?:www\.)?invidious\.silkky\.cloud',
+        r'(?:www\.)?invidious\.exonip\.de',
+        r'(?:www\.)?invidious\.riverside\.rocks',
+        r'(?:www\.)?invidious\.blamefran\.net',
+        r'(?:www\.)?invidious\.moomoo\.de',
+        r'(?:www\.)?ytb\.trom\.tf',
+        r'(?:www\.)?yt\.cyberhost\.uk',
+        r'(?:www\.)?kgg2m7yk5aybusll\.onion',
+        r'(?:www\.)?qklhadlycap4cnod\.onion',
+        r'(?:www\.)?axqzx4s6s54s32yentfqojs3x5i7faxza6xo3ehd4bzzsg2ii4fv2iid\.onion',
+        r'(?:www\.)?c7hqkpkpemu6e7emz5b4vyz7idjgdvgaaa3dyimmeojqbgpea3xqjoid\.onion',
+        r'(?:www\.)?fz253lmuao3strwbfbmx46yu7acac2jz27iwtorgmbqlkurlclmancad\.onion',
+        r'(?:www\.)?invidious\.l4qlywnpwqsluw65ts7md3khrivpirse744un3x7mlskqauz5pyuzgqd\.onion',
+        r'(?:www\.)?owxfohz4kjyv25fvlqilyxast7inivgiktls3th44jhk3ej3i7ya\.b32\.i2p',
+        r'(?:www\.)?4l2dgddgsrkf2ous66i6seeyi6etzfgrue332grh2n7madpwopotugyd\.onion',
+        r'(?:www\.)?w6ijuptxiku4xpnnaetxvnkc5vqcdu7mgns2u77qefoixi63vbvnpnqd\.onion',
+        r'(?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion',
+        r'(?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion',
+        r'(?:www\.)?hpniueoejy4opn7bc4ftgazyqjoeqwlvh2uiku2xqku6zpoa4bf5ruid\.onion',
+    )
+
     def _login(self):
         """
         Attempt to log in to YouTube.
@@ -437,9 +509,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         Extracts visitorData from an API response or ytcfg
         Appears to be used to track session state
         """
-        return traverse_obj(
-            args, (..., ('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))),
-            expected_type=compat_str, get_all=False)
+        return get_first(
+            args, (('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))),
+            expected_type=str)
 
     @property
     def is_authenticated(self):
@@ -696,69 +768,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
 class YoutubeIE(YoutubeBaseInfoExtractor):
     IE_DESC = 'YouTube'
-    _INVIDIOUS_SITES = (
-        # invidious-redirect websites
-        r'(?:www\.)?redirect\.invidious\.io',
-        r'(?:(?:www|dev)\.)?invidio\.us',
-        # Invidious instances taken from https://github.com/iv-org/documentation/blob/master/Invidious-Instances.md
-        r'(?:www\.)?invidious\.pussthecat\.org',
-        r'(?:www\.)?invidious\.zee\.li',
-        r'(?:www\.)?invidious\.ethibox\.fr',
-        r'(?:www\.)?invidious\.3o7z6yfxhbw7n3za4rss6l434kmv55cgw2vuziwuigpwegswvwzqipyd\.onion',
-        # youtube-dl invidious instances list
-        r'(?:(?:www|no)\.)?invidiou\.sh',
-        r'(?:(?:www|fi)\.)?invidious\.snopyta\.org',
-        r'(?:www\.)?invidious\.kabi\.tk',
-        r'(?:www\.)?invidious\.mastodon\.host',
-        r'(?:www\.)?invidious\.zapashcanon\.fr',
-        r'(?:www\.)?(?:invidious(?:-us)?|piped)\.kavin\.rocks',
-        r'(?:www\.)?invidious\.tinfoil-hat\.net',
-        r'(?:www\.)?invidious\.himiko\.cloud',
-        r'(?:www\.)?invidious\.reallyancient\.tech',
-        r'(?:www\.)?invidious\.tube',
-        r'(?:www\.)?invidiou\.site',
-        r'(?:www\.)?invidious\.site',
-        r'(?:www\.)?invidious\.xyz',
-        r'(?:www\.)?invidious\.nixnet\.xyz',
-        r'(?:www\.)?invidious\.048596\.xyz',
-        r'(?:www\.)?invidious\.drycat\.fr',
-        r'(?:www\.)?inv\.skyn3t\.in',
-        r'(?:www\.)?tube\.poal\.co',
-        r'(?:www\.)?tube\.connect\.cafe',
-        r'(?:www\.)?vid\.wxzm\.sx',
-        r'(?:www\.)?vid\.mint\.lgbt',
-        r'(?:www\.)?vid\.puffyan\.us',
-        r'(?:www\.)?yewtu\.be',
-        r'(?:www\.)?yt\.elukerio\.org',
-        r'(?:www\.)?yt\.lelux\.fi',
-        r'(?:www\.)?invidious\.ggc-project\.de',
-        r'(?:www\.)?yt\.maisputain\.ovh',
-        r'(?:www\.)?ytprivate\.com',
-        r'(?:www\.)?invidious\.13ad\.de',
-        r'(?:www\.)?invidious\.toot\.koeln',
-        r'(?:www\.)?invidious\.fdn\.fr',
-        r'(?:www\.)?watch\.nettohikari\.com',
-        r'(?:www\.)?invidious\.namazso\.eu',
-        r'(?:www\.)?invidious\.silkky\.cloud',
-        r'(?:www\.)?invidious\.exonip\.de',
-        r'(?:www\.)?invidious\.riverside\.rocks',
-        r'(?:www\.)?invidious\.blamefran\.net',
-        r'(?:www\.)?invidious\.moomoo\.de',
-        r'(?:www\.)?ytb\.trom\.tf',
-        r'(?:www\.)?yt\.cyberhost\.uk',
-        r'(?:www\.)?kgg2m7yk5aybusll\.onion',
-        r'(?:www\.)?qklhadlycap4cnod\.onion',
-        r'(?:www\.)?axqzx4s6s54s32yentfqojs3x5i7faxza6xo3ehd4bzzsg2ii4fv2iid\.onion',
-        r'(?:www\.)?c7hqkpkpemu6e7emz5b4vyz7idjgdvgaaa3dyimmeojqbgpea3xqjoid\.onion',
-        r'(?:www\.)?fz253lmuao3strwbfbmx46yu7acac2jz27iwtorgmbqlkurlclmancad\.onion',
-        r'(?:www\.)?invidious\.l4qlywnpwqsluw65ts7md3khrivpirse744un3x7mlskqauz5pyuzgqd\.onion',
-        r'(?:www\.)?owxfohz4kjyv25fvlqilyxast7inivgiktls3th44jhk3ej3i7ya\.b32\.i2p',
-        r'(?:www\.)?4l2dgddgsrkf2ous66i6seeyi6etzfgrue332grh2n7madpwopotugyd\.onion',
-        r'(?:www\.)?w6ijuptxiku4xpnnaetxvnkc5vqcdu7mgns2u77qefoixi63vbvnpnqd\.onion',
-        r'(?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion',
-        r'(?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion',
-        r'(?:www\.)?hpniueoejy4opn7bc4ftgazyqjoeqwlvh2uiku2xqku6zpoa4bf5ruid\.onion',
-    )
     _VALID_URL = r"""(?x)^
                      (
                          (?:https?://|//)                                    # http(s):// or protocol-independent URL
@@ -792,7 +801,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                      (?P<id>[0-9A-Za-z_-]{11})                                # here is it! the YouTube video ID
                      (?(1).+)?                                                # if we found the ID, everything can follow
                      (?:\#|$)""" % {
-        'invidious': '|'.join(_INVIDIOUS_SITES),
+        'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
     }
     _PLAYER_INFO_RE = (
         r'/s/player/(?P<id>[a-zA-Z0-9_-]{8,})/player',
@@ -1666,7 +1675,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # shorts
             'url': 'https://www.youtube.com/shorts/BGQWPY4IigY',
             'only_matching': True,
-        },
+        }, {
+            'note': 'Storyboards',
+            'url': 'https://www.youtube.com/watch?v=5KLPxDtMqe8',
+            'info_dict': {
+                'id': '5KLPxDtMqe8',
+                'ext': 'mhtml',
+                'format_id': 'sb0',
+                'title': 'Your Brain is Plastic',
+                'uploader_id': 'scishow',
+                'description': 'md5:89cd86034bdb5466cd87c6ba206cd2bc',
+                'upload_date': '20140324',
+                'uploader': 'SciShow',
+            }, 'params': {'format': 'mhtml', 'skip_download': True}
+        }
     ]
 
     @classmethod
@@ -1720,7 +1742,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError('Cannot identify player %r' % player_url)
         return id_m.group('id')
 
-    def _load_player(self, video_id, player_url, fatal=True) -> bool:
+    def _load_player(self, video_id, player_url, fatal=True):
         player_id = self._extract_player_info(player_url)
         if player_id not in self._code_cache:
             code = self._download_webpage(
@@ -1729,7 +1751,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 errnote='Download of %s failed' % player_url)
             if code:
                 self._code_cache[player_id] = code
-        return player_id in self._code_cache
+        return self._code_cache.get(player_id)
 
     def _extract_signature_function(self, video_id, player_url, example_sig):
         player_id = self._extract_player_info(player_url)
@@ -1743,8 +1765,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if cache_spec is not None:
             return lambda s: ''.join(s[i] for i in cache_spec)
 
-        if self._load_player(video_id, player_url):
-            code = self._code_cache[player_id]
+        code = self._load_player(video_id, player_url)
+        if code:
             res = self._parse_sig_js(code)
 
             test_string = ''.join(map(compat_chr, range(len(example_sig))))
@@ -1755,6 +1777,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return res
 
     def _print_sig_code(self, func, example_sig):
+        if not self.get_param('youtube_print_sig_code'):
+            return
+
         def gen_sig_code(idxs):
             def _genslice(start, end, step):
                 starts = '' if start == 0 else str(start)
@@ -1831,13 +1856,58 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 )
                 self._player_cache[player_id] = func
             func = self._player_cache[player_id]
-            if self.get_param('youtube_print_sig_code'):
-                self._print_sig_code(func, s)
+            self._print_sig_code(func, s)
             return func(s)
         except Exception as e:
-            tb = traceback.format_exc()
-            raise ExtractorError(
-                'Signature extraction failed: ' + tb, cause=e)
+            raise ExtractorError('Signature extraction failed: ' + traceback.format_exc(), cause=e)
+
+    def _decrypt_nsig(self, s, video_id, player_url):
+        """Turn the encrypted n field into a working signature"""
+        if player_url is None:
+            raise ExtractorError('Cannot decrypt nsig without player_url')
+        if player_url.startswith('//'):
+            player_url = 'https:' + player_url
+        elif not re.match(r'https?://', player_url):
+            player_url = compat_urlparse.urljoin(
+                'https://www.youtube.com', player_url)
+
+        sig_id = ('nsig_value', s)
+        if sig_id in self._player_cache:
+            return self._player_cache[sig_id]
+
+        try:
+            player_id = ('nsig', player_url)
+            if player_id not in self._player_cache:
+                self._player_cache[player_id] = self._extract_n_function(video_id, player_url)
+            func = self._player_cache[player_id]
+            self._player_cache[sig_id] = func(s)
+            self.write_debug(f'Decrypted nsig {s} => {self._player_cache[sig_id]}')
+            return self._player_cache[sig_id]
+        except Exception as e:
+            raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
+
+    def _extract_n_function_name(self, jscode):
+        return self._search_regex(
+            (r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})\([a-zA-Z0-9]\)',),
+            jscode, 'Initial JS player n function name', group='nfunc')
+
+    def _extract_n_function(self, video_id, player_url):
+        player_id = self._extract_player_info(player_url)
+        func_code = self._downloader.cache.load('youtube-nsig', player_id)
+
+        if func_code:
+            jsi = JSInterpreter(func_code)
+        else:
+            jscode = self._load_player(video_id, player_url)
+            funcname = self._extract_n_function_name(jscode)
+            jsi = JSInterpreter(jscode)
+            func_code = jsi.extract_function_code(funcname)
+            self._downloader.cache.store('youtube-nsig', player_id, func_code)
+
+        if self.get_param('youtube_print_sig_code'):
+            self.to_screen(f'Extracted nsig function from {player_id}:\n{func_code[1]}\n')
+
+        return lambda s: jsi.extract_function_from_code(*func_code)([s])
 
     def _extract_signature_timestamp(self, video_id, player_url, ytcfg=None, fatal=False):
         """
@@ -1856,18 +1926,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     raise ExtractorError(error_msg)
                 self.report_warning(error_msg)
                 return
-            if self._load_player(video_id, player_url, fatal=fatal):
-                player_id = self._extract_player_info(player_url)
-                code = self._code_cache[player_id]
+            code = self._load_player(video_id, player_url, fatal=fatal)
+            if code:
                 sts = int_or_none(self._search_regex(
                     r'(?:signatureTimestamp|sts)\s*:\s*(?P<sts>[0-9]{5})', code,
                     'JS player signature timestamp', group='sts', fatal=fatal))
         return sts
 
     def _mark_watched(self, video_id, player_responses):
-        playback_url = traverse_obj(
-            player_responses, (..., 'playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
-            expected_type=url_or_none, get_all=False)
+        playback_url = get_first(
+            player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
+            expected_type=url_or_none)
         if not playback_url:
             self.report_warning('Unable to mark watched')
             return
@@ -2290,18 +2359,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _get_requested_clients(self, url, smuggled_data):
         requested_clients = []
+        default = ['android', 'web']
         allowed_clients = sorted(
             [client for client in INNERTUBE_CLIENTS.keys() if client[:1] != '_'],
             key=lambda client: INNERTUBE_CLIENTS[client]['priority'], reverse=True)
         for client in self._configuration_arg('player_client'):
             if client in allowed_clients:
                 requested_clients.append(client)
+            elif client == 'default':
+                requested_clients.extend(default)
             elif client == 'all':
                 requested_clients.extend(allowed_clients)
             else:
                 self.report_warning(f'Skipping unsupported client {client}')
         if not requested_clients:
-            requested_clients = ['android', 'web']
+            requested_clients = default
 
         if smuggled_data.get('is_music_url') or self.is_music_url(url):
             requested_clients.extend(
@@ -2387,7 +2459,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return prs, player_url
 
     def _extract_formats(self, streaming_data, video_id, player_url, is_live):
-        itags, stream_ids = [], []
+        itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {}
         q = qualities([
             # Normally tiny is the smallest video-only formats. But
@@ -2440,8 +2512,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sp = try_get(sc, lambda x: x['sp'][0]) or 'signature'
                 fmt_url += '&' + sp + '=' + signature
 
+            query = parse_qs(fmt_url)
+            throttled = False
+            if query.get('n'):
+                try:
+                    fmt_url = update_url_query(fmt_url, {
+                        'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
+                except ExtractorError as e:
+                    self.report_warning(
+                        f'nsig extraction failed: You may experience throttling for some formats\n'
+                        f'n = {query["n"][0]} ; player = {player_url}\n{e}', only_once=True)
+                    throttled = True
+
             if itag:
-                itags.append(itag)
+                itags[itag] = 'https'
                 stream_ids.append(stream_id)
 
             tbr = float_or_none(
@@ -2450,11 +2534,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
                 'format_id': itag,
-                'format_note': ', '.join(filter(None, (
+                'format_note': join_nonempty(
                     '%s%s' % (audio_track.get('displayName') or '',
                               ' (default)' if audio_track.get('audioIsDefault') else ''),
-                    fmt.get('qualityLabel') or quality.replace('audio_quality_', '')))),
-                'fps': int_or_none(fmt.get('fps')),
+                    fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
+                    throttled and 'THROTTLED', delim=', '),
+                'source_preference': -10 if throttled else -1,
+                'fps': int_or_none(fmt.get('fps')) or None,
                 'height': height,
                 'quality': q(quality),
                 'tbr': tbr,
@@ -2489,46 +2575,71 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True))
         get_hls = 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True)
 
-        def guess_quality(f):
-            for val, qdict in ((f.get('format_id'), itag_qualities), (f.get('height'), res_qualities)):
-                if val in qdict:
-                    return q(qdict[val])
-            return -1
+        def process_manifest_format(f, proto, itag):
+            if itag in itags:
+                if itags[itag] == proto or f'{itag}-{proto}' in itags:
+                    return False
+                itag = f'{itag}-{proto}'
+            if itag:
+                f['format_id'] = itag
+                itags[itag] = proto
+
+            f['quality'] = next((
+                q(qdict[val])
+                for val, qdict in ((f.get('format_id', '').split('-')[0], itag_qualities), (f.get('height'), res_qualities))
+                if val in qdict), -1)
+            return True
 
         for sd in streaming_data:
             hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
                 for f in self._extract_m3u8_formats(hls_manifest_url, video_id, 'mp4', fatal=False):
-                    itag = self._search_regex(
-                        r'/itag/(\d+)', f['url'], 'itag', default=None)
-                    if itag in itags:
-                        itag += '-hls'
-                        if itag in itags:
-                            continue
-                    if itag:
-                        f['format_id'] = itag
-                        itags.append(itag)
-                    f['quality'] = guess_quality(f)
-                    yield f
+                    if process_manifest_format(f, 'hls', self._search_regex(
+                            r'/itag/(\d+)', f['url'], 'itag', default=None)):
+                        yield f
 
             dash_manifest_url = get_dash and sd.get('dashManifestUrl')
             if dash_manifest_url:
                 for f in self._extract_mpd_formats(dash_manifest_url, video_id, fatal=False):
-                    itag = f['format_id']
-                    if itag in itags:
-                        itag += '-dash'
-                        if itag in itags:
-                            continue
-                    if itag:
-                        f['format_id'] = itag
-                        itags.append(itag)
-                    f['quality'] = guess_quality(f)
-                    filesize = int_or_none(self._search_regex(
-                        r'/clen/(\d+)', f.get('fragment_base_url')
-                        or f['url'], 'file size', default=None))
-                    if filesize:
-                        f['filesize'] = filesize
-                    yield f
+                    if process_manifest_format(f, 'dash', f['format_id']):
+                        f['filesize'] = int_or_none(self._search_regex(
+                            r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
+                        yield f
+
+    def _extract_storyboard(self, player_responses, duration):
+        spec = get_first(
+            player_responses, ('storyboards', 'playerStoryboardSpecRenderer', 'spec'), default='').split('|')[::-1]
+        if not spec:
+            return
+        base_url = spec.pop()
+        L = len(spec) - 1
+        for i, args in enumerate(spec):
+            args = args.split('#')
+            counts = list(map(int_or_none, args[:5]))
+            if len(args) != 8 or not all(counts):
+                self.report_warning(f'Malformed storyboard {i}: {"#".join(args)}{bug_reports_message()}')
+                continue
+            width, height, frame_count, cols, rows = counts
+            N, sigh = args[6:]
+
+            url = base_url.replace('$L', str(L - i)).replace('$N', N) + f'&sigh={sigh}'
+            fragment_count = frame_count / (cols * rows)
+            fragment_duration = duration / fragment_count
+            yield {
+                'format_id': f'sb{i}',
+                'format_note': 'storyboard',
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': url,
+                'width': width,
+                'height': height,
+                'fragments': [{
+                    'path': url.replace('$M', str(j)),
+                    'duration': min(fragment_duration, duration - (j * fragment_duration)),
+                } for j in range(math.ceil(fragment_count))],
+            }
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -2546,8 +2657,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
             video_id, webpage, master_ytcfg)
-
-        get_first = lambda obj, keys, **kwargs: traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])
@@ -2574,49 +2683,48 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or search_meta(['og:title', 'twitter:title', 'title']))
         video_description = get_first(video_details, 'shortDescription')
 
-        if not smuggled_data.get('force_singlefeed', False):
-            if not self.get_param('noplaylist'):
-                multifeed_metadata_list = get_first(
-                    player_responses,
-                    ('multicamera', 'playerLegacyMulticameraRenderer', 'metadataList'),
-                    expected_type=str)
-                if multifeed_metadata_list:
-                    entries = []
-                    feed_ids = []
-                    for feed in multifeed_metadata_list.split(','):
-                        # Unquote should take place before split on comma (,) since textual
-                        # fields may contain comma as well (see
-                        # https://github.com/ytdl-org/youtube-dl/issues/8536)
-                        feed_data = compat_parse_qs(
-                            compat_urllib_parse_unquote_plus(feed))
-
-                        def feed_entry(name):
-                            return try_get(
-                                feed_data, lambda x: x[name][0], compat_str)
-
-                        feed_id = feed_entry('id')
-                        if not feed_id:
-                            continue
-                        feed_title = feed_entry('title')
-                        title = video_title
-                        if feed_title:
-                            title += ' (%s)' % feed_title
-                        entries.append({
-                            '_type': 'url_transparent',
-                            'ie_key': 'Youtube',
-                            'url': smuggle_url(
-                                '%swatch?v=%s' % (base_url, feed_data['id'][0]),
-                                {'force_singlefeed': True}),
-                            'title': title,
-                        })
-                        feed_ids.append(feed_id)
-                    self.to_screen(
-                        'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
-                        % (', '.join(feed_ids), video_id))
-                    return self.playlist_result(
-                        entries, video_id, video_title, video_description)
-            else:
+        multifeed_metadata_list = get_first(
+            player_responses,
+            ('multicamera', 'playerLegacyMulticameraRenderer', 'metadataList'),
+            expected_type=str)
+        if multifeed_metadata_list and not smuggled_data.get('force_singlefeed'):
+            if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+            else:
+                entries = []
+                feed_ids = []
+                for feed in multifeed_metadata_list.split(','):
+                    # Unquote should take place before split on comma (,) since textual
+                    # fields may contain comma as well (see
+                    # https://github.com/ytdl-org/youtube-dl/issues/8536)
+                    feed_data = compat_parse_qs(
+                        compat_urllib_parse_unquote_plus(feed))
+
+                    def feed_entry(name):
+                        return try_get(
+                            feed_data, lambda x: x[name][0], compat_str)
+
+                    feed_id = feed_entry('id')
+                    if not feed_id:
+                        continue
+                    feed_title = feed_entry('title')
+                    title = video_title
+                    if feed_title:
+                        title += ' (%s)' % feed_title
+                    entries.append({
+                        '_type': 'url_transparent',
+                        'ie_key': 'Youtube',
+                        'url': smuggle_url(
+                            '%swatch?v=%s' % (base_url, feed_data['id'][0]),
+                            {'force_singlefeed': True}),
+                        'title': title,
+                    })
+                    feed_ids.append(feed_id)
+                self.to_screen(
+                    'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
+                    % (', '.join(feed_ids), video_id))
+                return self.playlist_result(
+                    entries, video_id, video_title, video_description)
 
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
@@ -2644,16 +2752,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 reason += f'. {subreason}'
             if reason:
                 self.raise_no_formats(reason, expected=True)
-
-        for f in formats:
-            if '&c=WEB&' in f['url'] and '&ratebypass=yes&' not in f['url']:  # throttled
-                f['source_preference'] = -10
-                # TODO: this method is not reliable
-                f['format_note'] = format_field(f, 'format_note', '%s ') + '(maybe throttled)'
-
-        # Source is given priority since formats that throttle are given lower source_preference
-        # When throttling issue is fully fixed, remove this
-        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang'))
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:
@@ -2741,6 +2839,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         live_endtime = parse_iso8601(get_first(live_broadcast_details, 'endTimestamp'))
         if not duration and live_endtime and live_starttime:
             duration = live_endtime - live_starttime
+
+        formats.extend(self._extract_storyboard(player_responses, duration))
+
+        # Source is given priority since formats that throttle are given lower source_preference
+        # When throttling issue is fully fixed, remove this
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source', 'codec:vp9.2', 'lang', 'proto'))
 
         info = {
             'id': video_id,
@@ -3014,494 +3118,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return info
 
 
-class YoutubeTabIE(YoutubeBaseInfoExtractor):
-    IE_DESC = 'YouTube Tabs'
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:\w+\.)?
-                        (?:
-                            youtube(?:kids)?\.com|
-                            invidio\.us
-                        )/
-                        (?:
-                            (?P<channel_type>channel|c|user|browse)/|
-                            (?P<not_channel>
-                                feed/|hashtag/|
-                                (?:playlist|watch)\?.*?\blist=
-                            )|
-                            (?!(?:%s)\b)  # Direct URLs
-                        )
-                        (?P<id>[^/?\#&]+)
-                    ''' % YoutubeBaseInfoExtractor._RESERVED_NAMES
-    IE_NAME = 'youtube:tab'
-
-    _TESTS = [{
-        'note': 'playlists, multipage',
-        'url': 'https://www.youtube.com/c/ИгорьКлейнер/playlists?view=1&flow=grid',
-        'playlist_mincount': 94,
-        'info_dict': {
-            'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Игорь Клейнер - Playlists',
-            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader': 'Игорь Клейнер',
-            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-        },
-    }, {
-        'note': 'playlists, multipage, different order',
-        'url': 'https://www.youtube.com/user/igorkle1/playlists?view=1&sort=dd',
-        'playlist_mincount': 94,
-        'info_dict': {
-            'id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'title': 'Игорь Клейнер - Playlists',
-            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
-            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
-            'uploader': 'Игорь Клейнер',
-        },
-    }, {
-        'note': 'playlists, series',
-        'url': 'https://www.youtube.com/c/3blue1brown/playlists?view=50&sort=dd&shelf_id=3',
-        'playlist_mincount': 5,
-        'info_dict': {
-            'id': 'UCYO_jab_esuFRV4b17AJtAw',
-            'title': '3Blue1Brown - Playlists',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
-            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
-            'uploader': '3Blue1Brown',
-        },
-    }, {
-        'note': 'playlists, singlepage',
-        'url': 'https://www.youtube.com/user/ThirstForScience/playlists',
-        'playlist_mincount': 4,
-        'info_dict': {
-            'id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
-            'title': 'ThirstForScience - Playlists',
-            'description': 'md5:609399d937ea957b0f53cbffb747a14c',
-            'uploader': 'ThirstForScience',
-            'uploader_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
-        }
-    }, {
-        'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
-        'only_matching': True,
-    }, {
-        'note': 'basic, single video playlist',
-        'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
-        'info_dict': {
-            'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader': 'Sergey M.',
-            'id': 'PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
-            'title': 'youtube-dl public playlist',
-        },
-        'playlist_count': 1,
-    }, {
-        'note': 'empty playlist',
-        'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
-        'info_dict': {
-            'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
-            'uploader': 'Sergey M.',
-            'id': 'PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
-            'title': 'youtube-dl empty playlist',
-        },
-        'playlist_count': 0,
-    }, {
-        'note': 'Home tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/featured',
-        'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Home',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-        },
-        'playlist_mincount': 2,
-    }, {
-        'note': 'Videos tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos',
-        'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Videos',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-        },
-        'playlist_mincount': 975,
-    }, {
-        'note': 'Videos tab, sorted by popular',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos?view=0&sort=p&flow=grid',
-        'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Videos',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-        },
-        'playlist_mincount': 199,
-    }, {
-        'note': 'Playlists tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/playlists',
-        'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Playlists',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-        },
-        'playlist_mincount': 17,
-    }, {
-        'note': 'Community tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/community',
-        'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Community',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-        },
-        'playlist_mincount': 18,
-    }, {
-        'note': 'Channels tab',
-        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/channels',
-        'info_dict': {
-            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-            'title': 'lex will - Channels',
-            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
-            'uploader': 'lex will',
-            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
-        },
-        'playlist_mincount': 12,
-    }, {
-        'note': 'Search tab',
-        'url': 'https://www.youtube.com/c/3blue1brown/search?query=linear%20algebra',
-        'playlist_mincount': 40,
-        'info_dict': {
-            'id': 'UCYO_jab_esuFRV4b17AJtAw',
-            'title': '3Blue1Brown - Search - linear algebra',
-            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
-            'uploader': '3Blue1Brown',
-            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
-        },
-    }, {
-        'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtubekids.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
-        'only_matching': True,
-    }, {
-        'url': 'https://music.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
-        'only_matching': True,
-    }, {
-        'note': 'Playlist with deleted videos (#651). As a bonus, the video #51 is also twice in this list.',
-        'url': 'https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
-        'info_dict': {
-            'title': '29C3: Not my department',
-            'id': 'PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
-            'uploader': 'Christiaan008',
-            'uploader_id': 'UCEPzS1rYsrkqzSLNp76nrcg',
-            'description': 'md5:a14dc1a8ef8307a9807fe136a0660268',
-        },
-        'playlist_count': 96,
-    }, {
-        'note': 'Large playlist',
-        'url': 'https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q',
-        'info_dict': {
-            'title': 'Uploads from Cauchemar',
-            'id': 'UUBABnxM4Ar9ten8Mdjj1j0Q',
-            'uploader': 'Cauchemar',
-            'uploader_id': 'UCBABnxM4Ar9ten8Mdjj1j0Q',
-        },
-        'playlist_mincount': 1123,
-    }, {
-        'note': 'even larger playlist, 8832 videos',
-        'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
-        'only_matching': True,
-    }, {
-        'note': 'Buggy playlist: the webpage has a "Load more" button but it doesn\'t have more videos',
-        'url': 'https://www.youtube.com/playlist?list=UUXw-G3eDE9trcvY2sBMM_aA',
-        'info_dict': {
-            'title': 'Uploads from Interstellar Movie',
-            'id': 'UUXw-G3eDE9trcvY2sBMM_aA',
-            'uploader': 'Interstellar Movie',
-            'uploader_id': 'UCXw-G3eDE9trcvY2sBMM_aA',
-        },
-        'playlist_mincount': 21,
-    }, {
-        'note': 'Playlist with "show unavailable videos" button',
-        'url': 'https://www.youtube.com/playlist?list=UUTYLiWFZy8xtPwxFwX9rV7Q',
-        'info_dict': {
-            'title': 'Uploads from Phim Siêu Nhân Nhật Bản',
-            'id': 'UUTYLiWFZy8xtPwxFwX9rV7Q',
-            'uploader': 'Phim Siêu Nhân Nhật Bản',
-            'uploader_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
-        },
-        'playlist_mincount': 200,
-    }, {
-        'note': 'Playlist with unavailable videos in page 7',
-        'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
-        'info_dict': {
-            'title': 'Uploads from BlankTV',
-            'id': 'UU8l9frL61Yl5KFOl87nIm2w',
-            'uploader': 'BlankTV',
-            'uploader_id': 'UC8l9frL61Yl5KFOl87nIm2w',
-        },
-        'playlist_mincount': 1000,
-    }, {
-        'note': 'https://github.com/ytdl-org/youtube-dl/issues/21844',
-        'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
-        'info_dict': {
-            'title': 'Data Analysis with Dr Mike Pound',
-            'id': 'PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
-            'uploader_id': 'UC9-y-6csu5WGm29I7JiwpnA',
-            'uploader': 'Computerphile',
-            'description': 'md5:7f567c574d13d3f8c0954d9ffee4e487',
-        },
-        'playlist_mincount': 11,
-    }, {
-        'url': 'https://invidio.us/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
-        'only_matching': True,
-    }, {
-        'note': 'Playlist URL that does not actually serve a playlist',
-        'url': 'https://www.youtube.com/watch?v=FqZTN594JQw&list=PLMYEtVRpaqY00V9W81Cwmzp6N6vZqfUKD4',
-        'info_dict': {
-            'id': 'FqZTN594JQw',
-            'ext': 'webm',
-            'title': "Smiley's People 01 detective, Adventure Series, Action",
-            'uploader': 'STREEM',
-            'uploader_id': 'UCyPhqAZgwYWZfxElWVbVJng',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCyPhqAZgwYWZfxElWVbVJng',
-            'upload_date': '20150526',
-            'license': 'Standard YouTube License',
-            'description': 'md5:507cdcb5a49ac0da37a920ece610be80',
-            'categories': ['People & Blogs'],
-            'tags': list,
-            'view_count': int,
-            'like_count': int,
-            'dislike_count': int,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'This video is not available.',
-        'add_ie': [YoutubeIE.ie_key()],
-    }, {
-        'url': 'https://www.youtubekids.com/watch?v=Agk7R8I8o5U&list=PUZ6jURNr1WQZCNHF0ao-c0g',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/watch?v=MuAGGZNfUkU&list=RDMM',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
-        'info_dict': {
-            'id': '3yImotZU3tw',  # This will keep changing
-            'ext': 'mp4',
-            'title': compat_str,
-            'uploader': 'Sky News',
-            'uploader_id': 'skynews',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/skynews',
-            'upload_date': r're:\d{8}',
-            'description': compat_str,
-            'categories': ['News & Politics'],
-            'tags': list,
-            'like_count': int,
-            'dislike_count': int,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'expected_warnings': ['Downloading just video ', 'Ignoring subtitle tracks found in '],
-    }, {
-        'url': 'https://www.youtube.com/user/TheYoungTurks/live',
-        'info_dict': {
-            'id': 'a48o2S1cPoo',
-            'ext': 'mp4',
-            'title': 'The Young Turks - Live Main Show',
-            'uploader': 'The Young Turks',
-            'uploader_id': 'TheYoungTurks',
-            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/TheYoungTurks',
-            'upload_date': '20150715',
-            'license': 'Standard YouTube License',
-            'description': 'md5:438179573adcdff3c97ebb1ee632b891',
-            'categories': ['News & Politics'],
-            'tags': ['Cenk Uygur (TV Program Creator)', 'The Young Turks (Award-Winning Work)', 'Talk Show (TV Genre)'],
-            'like_count': int,
-            'dislike_count': int,
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/channel/UC1yBKRuGpC1tSM73A0ZjYjQ/live',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/c/CommanderVideoHq/live',
-        'only_matching': True,
-    }, {
-        'note': 'A channel that is not live. Should raise error',
-        'url': 'https://www.youtube.com/user/numberphile/live',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/feed/trending',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/feed/library',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/feed/history',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/feed/subscriptions',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/feed/watch_later',
-        'only_matching': True,
-    }, {
-        'note': 'Recommended - redirects to home page.',
-        'url': 'https://www.youtube.com/feed/recommended',
-        'only_matching': True,
-    }, {
-        'note': 'inline playlist with not always working continuations',
-        'url': 'https://www.youtube.com/watch?v=UC6u0Tct-Fo&list=PL36D642111D65BE7C',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/course?list=ECUl4u3cNGP61MdtwGTqZA0MreSaDybji8',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/course',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/zsecurity',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.youtube.com/NASAgovVideo/videos',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/TheYoungTurks/live',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.youtube.com/hashtag/cctv9',
-        'info_dict': {
-            'id': 'cctv9',
-            'title': '#cctv9',
-        },
-        'playlist_mincount': 350,
-    }, {
-        'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
-        'only_matching': True,
-    }, {
-        'note': 'Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist',
-        'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
-        'only_matching': True
-    }, {
-        'note': '/browse/ should redirect to /channel/',
-        'url': 'https://music.youtube.com/browse/UC1a8OFewdjuLq6KlF8M_8Ng',
-        'only_matching': True
-    }, {
-        'note': 'VLPL, should redirect to playlist?list=PL...',
-        'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
-        'info_dict': {
-            'id': 'PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
-            'uploader': 'NoCopyrightSounds',
-            'description': 'Providing you with copyright free / safe music for gaming, live streaming, studying and more!',
-            'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
-            'title': 'NCS Releases',
-        },
-        'playlist_mincount': 166,
-    }, {
-        'note': 'Topic, should redirect to playlist?list=UU...',
-        'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
-        'info_dict': {
-            'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
-            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
-            'title': 'Uploads from Royalty Free Music - Topic',
-            'uploader': 'Royalty Free Music - Topic',
-        },
-        'expected_warnings': [
-            'A channel/user page was given',
-            'The URL does not have a videos tab',
-        ],
-        'playlist_mincount': 101,
-    }, {
-        'note': 'Topic without a UU playlist',
-        'url': 'https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg',
-        'info_dict': {
-            'id': 'UCtFRv9O2AHqOZjjynzrv-xg',
-            'title': 'UCtFRv9O2AHqOZjjynzrv-xg',
-        },
-        'expected_warnings': [
-            'A channel/user page was given',
-            'The URL does not have a videos tab',
-            'Falling back to channel URL',
-        ],
-        'playlist_mincount': 9,
-    }, {
-        'note': 'Youtube music Album',
-        'url': 'https://music.youtube.com/browse/MPREb_gTAcphH99wE',
-        'info_dict': {
-            'id': 'OLAK5uy_l1m0thk3g31NmIIz_vMIbWtyv7eZixlH0',
-            'title': 'Album - Royalty Free Music Library V2 (50 Songs)',
-        },
-        'playlist_count': 50,
-    }, {
-        'note': 'unlisted single video playlist',
-        'url': 'https://www.youtube.com/playlist?list=PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
-        'info_dict': {
-            'uploader_id': 'UC9zHu_mHU96r19o-wV5Qs1Q',
-            'uploader': 'colethedj',
-            'id': 'PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
-            'title': 'yt-dlp unlisted playlist test',
-            'availability': 'unlisted'
-        },
-        'playlist_count': 1,
-    }, {
-        'note': 'API Fallback: Recommended - redirects to home page. Requires visitorData',
-        'url': 'https://www.youtube.com/feed/recommended',
-        'info_dict': {
-            'id': 'recommended',
-            'title': 'recommended',
-        },
-        'playlist_mincount': 50,
-        'params': {
-            'skip_download': True,
-            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
-        },
-    }, {
-        'note': 'API Fallback: /videos tab, sorted by oldest first',
-        'url': 'https://www.youtube.com/user/theCodyReeder/videos?view=0&sort=da&flow=grid',
-        'info_dict': {
-            'id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
-            'title': 'Cody\'sLab - Videos',
-            'description': 'md5:d083b7c2f0c67ee7a6c74c3e9b4243fa',
-            'uploader': 'Cody\'sLab',
-            'uploader_id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
-        },
-        'playlist_mincount': 650,
-        'params': {
-            'skip_download': True,
-            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
-        },
-    }, {
-        'note': 'API Fallback: Topic, should redirect to playlist?list=UU...',
-        'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
-        'info_dict': {
-            'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
-            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
-            'title': 'Uploads from Royalty Free Music - Topic',
-            'uploader': 'Royalty Free Music - Topic',
-        },
-        'expected_warnings': [
-            'A channel/user page was given',
-            'The URL does not have a videos tab',
-        ],
-        'playlist_mincount': 101,
-        'params': {
-            'skip_download': True,
-            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
-        },
-    }]
-
-    @classmethod
-    def suitable(cls, url):
-        return False if YoutubeIE.suitable(url) else super(
-            YoutubeTabIE, cls).suitable(url)
+class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _extract_channel_id(self, webpage):
         channel_id = self._html_search_meta(
@@ -3684,49 +3301,53 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 if entry:
                     yield entry
     '''
-    def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
+    def _extract_entries(self, parent_renderer, continuation_list):
+        # continuation_list is modified in-place with continuation_list = [continuation_token]
+        continuation_list[:] = [None]
+        contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
+        for content in contents:
+            if not isinstance(content, dict):
+                continue
+            is_renderer = try_get(content, lambda x: x['itemSectionRenderer'], dict)
+            if not is_renderer:
+                renderer = content.get('richItemRenderer')
+                if renderer:
+                    for entry in self._rich_entries(renderer):
+                        yield entry
+                    continuation_list[0] = self._extract_continuation(parent_renderer)
+                continue
+            isr_contents = try_get(is_renderer, lambda x: x['contents'], list) or []
+            for isr_content in isr_contents:
+                if not isinstance(isr_content, dict):
+                    continue
 
-        def extract_entries(parent_renderer):  # this needs to called again for continuation to work with feeds
-            contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
-            for content in contents:
-                if not isinstance(content, dict):
-                    continue
-                is_renderer = try_get(content, lambda x: x['itemSectionRenderer'], dict)
-                if not is_renderer:
-                    renderer = content.get('richItemRenderer')
-                    if renderer:
-                        for entry in self._rich_entries(renderer):
-                            yield entry
-                        continuation_list[0] = self._extract_continuation(parent_renderer)
-                    continue
-                isr_contents = try_get(is_renderer, lambda x: x['contents'], list) or []
-                for isr_content in isr_contents:
-                    if not isinstance(isr_content, dict):
+                known_renderers = {
+                    'playlistVideoListRenderer': self._playlist_entries,
+                    'gridRenderer': self._grid_entries,
+                    'shelfRenderer': lambda x: self._shelf_entries(x),
+                    'backstagePostThreadRenderer': self._post_thread_entries,
+                    'videoRenderer': lambda x: [self._video_entry(x)],
+                    'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
+                    'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
+                }
+                for key, renderer in isr_content.items():
+                    if key not in known_renderers:
                         continue
-
-                    known_renderers = {
-                        'playlistVideoListRenderer': self._playlist_entries,
-                        'gridRenderer': self._grid_entries,
-                        'shelfRenderer': lambda x: self._shelf_entries(x, tab.get('title') != 'Channels'),
-                        'backstagePostThreadRenderer': self._post_thread_entries,
-                        'videoRenderer': lambda x: [self._video_entry(x)],
-                    }
-                    for key, renderer in isr_content.items():
-                        if key not in known_renderers:
-                            continue
-                        for entry in known_renderers[key](renderer):
-                            if entry:
-                                yield entry
-                        continuation_list[0] = self._extract_continuation(renderer)
-                        break
-
-                if not continuation_list[0]:
-                    continuation_list[0] = self._extract_continuation(is_renderer)
+                    for entry in known_renderers[key](renderer):
+                        if entry:
+                            yield entry
+                    continuation_list[0] = self._extract_continuation(renderer)
+                    break
 
             if not continuation_list[0]:
-                continuation_list[0] = self._extract_continuation(parent_renderer)
+                continuation_list[0] = self._extract_continuation(is_renderer)
 
-        continuation_list = [None]  # Python 2 does not support nonlocal
+        if not continuation_list[0]:
+            continuation_list[0] = self._extract_continuation(parent_renderer)
+
+    def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
+        continuation_list = [None]
+        extract_entries = lambda x: self._extract_entries(x, continuation_list)
         tab_content = try_get(tab, lambda x: x['content'], dict)
         if not tab_content:
             return
@@ -4118,6 +3739,519 @@ class YoutubeTabIE(YoutubeBaseInfoExtractor):
                 entry['url'] = smuggle_url(entry['url'], data)
             yield entry
 
+    _SEARCH_PARAMS = None
+
+    def _search_results(self, query, params=NO_DEFAULT):
+        data = {'query': query}
+        if params is NO_DEFAULT:
+            params = self._SEARCH_PARAMS
+        if params:
+            data['params'] = params
+        continuation_list = [None]
+        for page_num in itertools.count(1):
+            data.update(continuation_list[0] or {})
+            search = self._extract_response(
+                item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
+                check_get_keys=('contents', 'onResponseReceivedCommands'))
+            slr_contents = try_get(
+                search,
+                (lambda x: x['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'],
+                 lambda x: x['onResponseReceivedCommands'][0]['appendContinuationItemsAction']['continuationItems']),
+                list)
+            yield from self._extract_entries({'contents': slr_contents}, continuation_list)
+            if not continuation_list[0]:
+                break
+
+
+class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
+    IE_DESC = 'YouTube Tabs'
+    _VALID_URL = r'''(?x:
+        https?://
+            (?:\w+\.)?
+            (?:
+                youtube(?:kids)?\.com|
+                %(invidious)s
+            )/
+            (?:
+                (?P<channel_type>channel|c|user|browse)/|
+                (?P<not_channel>
+                    feed/|hashtag/|
+                    (?:playlist|watch)\?.*?\blist=
+                )|
+                (?!(?:%(reserved_names)s)\b)  # Direct URLs
+            )
+            (?P<id>[^/?\#&]+)
+    )''' % {
+        'reserved_names': YoutubeBaseInfoExtractor._RESERVED_NAMES,
+        'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
+    }
+    IE_NAME = 'youtube:tab'
+
+    _TESTS = [{
+        'note': 'playlists, multipage',
+        'url': 'https://www.youtube.com/c/ИгорьКлейнер/playlists?view=1&flow=grid',
+        'playlist_mincount': 94,
+        'info_dict': {
+            'id': 'UCqj7Cz7revf5maW9g5pgNcg',
+            'title': 'Игорь Клейнер - Playlists',
+            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
+            'uploader': 'Игорь Клейнер',
+            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
+        },
+    }, {
+        'note': 'playlists, multipage, different order',
+        'url': 'https://www.youtube.com/user/igorkle1/playlists?view=1&sort=dd',
+        'playlist_mincount': 94,
+        'info_dict': {
+            'id': 'UCqj7Cz7revf5maW9g5pgNcg',
+            'title': 'Игорь Клейнер - Playlists',
+            'description': 'md5:be97ee0f14ee314f1f002cf187166ee2',
+            'uploader_id': 'UCqj7Cz7revf5maW9g5pgNcg',
+            'uploader': 'Игорь Клейнер',
+        },
+    }, {
+        'note': 'playlists, series',
+        'url': 'https://www.youtube.com/c/3blue1brown/playlists?view=50&sort=dd&shelf_id=3',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'title': '3Blue1Brown - Playlists',
+            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'uploader': '3Blue1Brown',
+        },
+    }, {
+        'note': 'playlists, singlepage',
+        'url': 'https://www.youtube.com/user/ThirstForScience/playlists',
+        'playlist_mincount': 4,
+        'info_dict': {
+            'id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
+            'title': 'ThirstForScience - Playlists',
+            'description': 'md5:609399d937ea957b0f53cbffb747a14c',
+            'uploader': 'ThirstForScience',
+            'uploader_id': 'UCAEtajcuhQ6an9WEzY9LEMQ',
+        }
+    }, {
+        'url': 'https://www.youtube.com/c/ChristophLaimer/playlists',
+        'only_matching': True,
+    }, {
+        'note': 'basic, single video playlist',
+        'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
+        'info_dict': {
+            'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
+            'uploader': 'Sergey M.',
+            'id': 'PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
+            'title': 'youtube-dl public playlist',
+        },
+        'playlist_count': 1,
+    }, {
+        'note': 'empty playlist',
+        'url': 'https://www.youtube.com/playlist?list=PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
+        'info_dict': {
+            'uploader_id': 'UCmlqkdCBesrv2Lak1mF_MxA',
+            'uploader': 'Sergey M.',
+            'id': 'PL4lCao7KL_QFodcLWhDpGCYnngnHtQ-Xf',
+            'title': 'youtube-dl empty playlist',
+        },
+        'playlist_count': 0,
+    }, {
+        'note': 'Home tab',
+        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/featured',
+        'info_dict': {
+            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'title': 'lex will - Home',
+            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+        },
+        'playlist_mincount': 2,
+    }, {
+        'note': 'Videos tab',
+        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos',
+        'info_dict': {
+            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'title': 'lex will - Videos',
+            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+        },
+        'playlist_mincount': 975,
+    }, {
+        'note': 'Videos tab, sorted by popular',
+        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/videos?view=0&sort=p&flow=grid',
+        'info_dict': {
+            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'title': 'lex will - Videos',
+            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+        },
+        'playlist_mincount': 199,
+    }, {
+        'note': 'Playlists tab',
+        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/playlists',
+        'info_dict': {
+            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'title': 'lex will - Playlists',
+            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+        },
+        'playlist_mincount': 17,
+    }, {
+        'note': 'Community tab',
+        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/community',
+        'info_dict': {
+            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'title': 'lex will - Community',
+            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+        },
+        'playlist_mincount': 18,
+    }, {
+        'note': 'Channels tab',
+        'url': 'https://www.youtube.com/channel/UCKfVa3S1e4PHvxWcwyMMg8w/channels',
+        'info_dict': {
+            'id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+            'title': 'lex will - Channels',
+            'description': 'md5:2163c5d0ff54ed5f598d6a7e6211e488',
+            'uploader': 'lex will',
+            'uploader_id': 'UCKfVa3S1e4PHvxWcwyMMg8w',
+        },
+        'playlist_mincount': 12,
+    }, {
+        'note': 'Search tab',
+        'url': 'https://www.youtube.com/c/3blue1brown/search?query=linear%20algebra',
+        'playlist_mincount': 40,
+        'info_dict': {
+            'id': 'UCYO_jab_esuFRV4b17AJtAw',
+            'title': '3Blue1Brown - Search - linear algebra',
+            'description': 'md5:e1384e8a133307dd10edee76e875d62f',
+            'uploader': '3Blue1Brown',
+            'uploader_id': 'UCYO_jab_esuFRV4b17AJtAw',
+        },
+    }, {
+        'url': 'https://invidio.us/channel/UCmlqkdCBesrv2Lak1mF_MxA',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtubekids.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
+        'only_matching': True,
+    }, {
+        'url': 'https://music.youtube.com/channel/UCmlqkdCBesrv2Lak1mF_MxA',
+        'only_matching': True,
+    }, {
+        'note': 'Playlist with deleted videos (#651). As a bonus, the video #51 is also twice in this list.',
+        'url': 'https://www.youtube.com/playlist?list=PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
+        'info_dict': {
+            'title': '29C3: Not my department',
+            'id': 'PLwP_SiAcdui0KVebT0mU9Apz359a4ubsC',
+            'uploader': 'Christiaan008',
+            'uploader_id': 'UCEPzS1rYsrkqzSLNp76nrcg',
+            'description': 'md5:a14dc1a8ef8307a9807fe136a0660268',
+        },
+        'playlist_count': 96,
+    }, {
+        'note': 'Large playlist',
+        'url': 'https://www.youtube.com/playlist?list=UUBABnxM4Ar9ten8Mdjj1j0Q',
+        'info_dict': {
+            'title': 'Uploads from Cauchemar',
+            'id': 'UUBABnxM4Ar9ten8Mdjj1j0Q',
+            'uploader': 'Cauchemar',
+            'uploader_id': 'UCBABnxM4Ar9ten8Mdjj1j0Q',
+        },
+        'playlist_mincount': 1123,
+    }, {
+        'note': 'even larger playlist, 8832 videos',
+        'url': 'http://www.youtube.com/user/NASAgovVideo/videos',
+        'only_matching': True,
+    }, {
+        'note': 'Buggy playlist: the webpage has a "Load more" button but it doesn\'t have more videos',
+        'url': 'https://www.youtube.com/playlist?list=UUXw-G3eDE9trcvY2sBMM_aA',
+        'info_dict': {
+            'title': 'Uploads from Interstellar Movie',
+            'id': 'UUXw-G3eDE9trcvY2sBMM_aA',
+            'uploader': 'Interstellar Movie',
+            'uploader_id': 'UCXw-G3eDE9trcvY2sBMM_aA',
+        },
+        'playlist_mincount': 21,
+    }, {
+        'note': 'Playlist with "show unavailable videos" button',
+        'url': 'https://www.youtube.com/playlist?list=UUTYLiWFZy8xtPwxFwX9rV7Q',
+        'info_dict': {
+            'title': 'Uploads from Phim Siêu Nhân Nhật Bản',
+            'id': 'UUTYLiWFZy8xtPwxFwX9rV7Q',
+            'uploader': 'Phim Siêu Nhân Nhật Bản',
+            'uploader_id': 'UCTYLiWFZy8xtPwxFwX9rV7Q',
+        },
+        'playlist_mincount': 200,
+    }, {
+        'note': 'Playlist with unavailable videos in page 7',
+        'url': 'https://www.youtube.com/playlist?list=UU8l9frL61Yl5KFOl87nIm2w',
+        'info_dict': {
+            'title': 'Uploads from BlankTV',
+            'id': 'UU8l9frL61Yl5KFOl87nIm2w',
+            'uploader': 'BlankTV',
+            'uploader_id': 'UC8l9frL61Yl5KFOl87nIm2w',
+        },
+        'playlist_mincount': 1000,
+    }, {
+        'note': 'https://github.com/ytdl-org/youtube-dl/issues/21844',
+        'url': 'https://www.youtube.com/playlist?list=PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
+        'info_dict': {
+            'title': 'Data Analysis with Dr Mike Pound',
+            'id': 'PLzH6n4zXuckpfMu_4Ff8E7Z1behQks5ba',
+            'uploader_id': 'UC9-y-6csu5WGm29I7JiwpnA',
+            'uploader': 'Computerphile',
+            'description': 'md5:7f567c574d13d3f8c0954d9ffee4e487',
+        },
+        'playlist_mincount': 11,
+    }, {
+        'url': 'https://invidio.us/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc',
+        'only_matching': True,
+    }, {
+        'note': 'Playlist URL that does not actually serve a playlist',
+        'url': 'https://www.youtube.com/watch?v=FqZTN594JQw&list=PLMYEtVRpaqY00V9W81Cwmzp6N6vZqfUKD4',
+        'info_dict': {
+            'id': 'FqZTN594JQw',
+            'ext': 'webm',
+            'title': "Smiley's People 01 detective, Adventure Series, Action",
+            'uploader': 'STREEM',
+            'uploader_id': 'UCyPhqAZgwYWZfxElWVbVJng',
+            'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCyPhqAZgwYWZfxElWVbVJng',
+            'upload_date': '20150526',
+            'license': 'Standard YouTube License',
+            'description': 'md5:507cdcb5a49ac0da37a920ece610be80',
+            'categories': ['People & Blogs'],
+            'tags': list,
+            'view_count': int,
+            'like_count': int,
+            'dislike_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'This video is not available.',
+        'add_ie': [YoutubeIE.ie_key()],
+    }, {
+        'url': 'https://www.youtubekids.com/watch?v=Agk7R8I8o5U&list=PUZ6jURNr1WQZCNHF0ao-c0g',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/watch?v=MuAGGZNfUkU&list=RDMM',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/channel/UCoMdktPbSTixAyNGwb-UYkQ/live',
+        'info_dict': {
+            'id': '3yImotZU3tw',  # This will keep changing
+            'ext': 'mp4',
+            'title': compat_str,
+            'uploader': 'Sky News',
+            'uploader_id': 'skynews',
+            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/skynews',
+            'upload_date': r're:\d{8}',
+            'description': compat_str,
+            'categories': ['News & Politics'],
+            'tags': list,
+            'like_count': int,
+            'dislike_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'expected_warnings': ['Downloading just video ', 'Ignoring subtitle tracks found in '],
+    }, {
+        'url': 'https://www.youtube.com/user/TheYoungTurks/live',
+        'info_dict': {
+            'id': 'a48o2S1cPoo',
+            'ext': 'mp4',
+            'title': 'The Young Turks - Live Main Show',
+            'uploader': 'The Young Turks',
+            'uploader_id': 'TheYoungTurks',
+            'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/TheYoungTurks',
+            'upload_date': '20150715',
+            'license': 'Standard YouTube License',
+            'description': 'md5:438179573adcdff3c97ebb1ee632b891',
+            'categories': ['News & Politics'],
+            'tags': ['Cenk Uygur (TV Program Creator)', 'The Young Turks (Award-Winning Work)', 'Talk Show (TV Genre)'],
+            'like_count': int,
+            'dislike_count': int,
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/channel/UC1yBKRuGpC1tSM73A0ZjYjQ/live',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/c/CommanderVideoHq/live',
+        'only_matching': True,
+    }, {
+        'note': 'A channel that is not live. Should raise error',
+        'url': 'https://www.youtube.com/user/numberphile/live',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/feed/trending',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/feed/library',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/feed/history',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/feed/subscriptions',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/feed/watch_later',
+        'only_matching': True,
+    }, {
+        'note': 'Recommended - redirects to home page.',
+        'url': 'https://www.youtube.com/feed/recommended',
+        'only_matching': True,
+    }, {
+        'note': 'inline playlist with not always working continuations',
+        'url': 'https://www.youtube.com/watch?v=UC6u0Tct-Fo&list=PL36D642111D65BE7C',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/course',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/zsecurity',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.youtube.com/NASAgovVideo/videos',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/TheYoungTurks/live',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.youtube.com/hashtag/cctv9',
+        'info_dict': {
+            'id': 'cctv9',
+            'title': '#cctv9',
+        },
+        'playlist_mincount': 350,
+    }, {
+        'url': 'https://www.youtube.com/watch?list=PLW4dVinRY435CBE_JD3t-0SRXKfnZHS1P&feature=youtu.be&v=M9cJMXmQ_ZU',
+        'only_matching': True,
+    }, {
+        'note': 'Requires Premium: should request additional YTM-info webpage (and have format 141) for videos in playlist',
+        'url': 'https://music.youtube.com/playlist?list=PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+        'only_matching': True
+    }, {
+        'note': '/browse/ should redirect to /channel/',
+        'url': 'https://music.youtube.com/browse/UC1a8OFewdjuLq6KlF8M_8Ng',
+        'only_matching': True
+    }, {
+        'note': 'VLPL, should redirect to playlist?list=PL...',
+        'url': 'https://music.youtube.com/browse/VLPLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+        'info_dict': {
+            'id': 'PLRBp0Fe2GpgmgoscNFLxNyBVSFVdYmFkq',
+            'uploader': 'NoCopyrightSounds',
+            'description': 'Providing you with copyright free / safe music for gaming, live streaming, studying and more!',
+            'uploader_id': 'UC_aEa8K-EOJ3D6gOs7HcyNg',
+            'title': 'NCS Releases',
+        },
+        'playlist_mincount': 166,
+    }, {
+        'note': 'Topic, should redirect to playlist?list=UU...',
+        'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
+        'info_dict': {
+            'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
+            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
+            'title': 'Uploads from Royalty Free Music - Topic',
+            'uploader': 'Royalty Free Music - Topic',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+        ],
+        'playlist_mincount': 101,
+    }, {
+        'note': 'Topic without a UU playlist',
+        'url': 'https://www.youtube.com/channel/UCtFRv9O2AHqOZjjynzrv-xg',
+        'info_dict': {
+            'id': 'UCtFRv9O2AHqOZjjynzrv-xg',
+            'title': 'UCtFRv9O2AHqOZjjynzrv-xg',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+            'Falling back to channel URL',
+        ],
+        'playlist_mincount': 9,
+    }, {
+        'note': 'Youtube music Album',
+        'url': 'https://music.youtube.com/browse/MPREb_gTAcphH99wE',
+        'info_dict': {
+            'id': 'OLAK5uy_l1m0thk3g31NmIIz_vMIbWtyv7eZixlH0',
+            'title': 'Album - Royalty Free Music Library V2 (50 Songs)',
+        },
+        'playlist_count': 50,
+    }, {
+        'note': 'unlisted single video playlist',
+        'url': 'https://www.youtube.com/playlist?list=PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
+        'info_dict': {
+            'uploader_id': 'UC9zHu_mHU96r19o-wV5Qs1Q',
+            'uploader': 'colethedj',
+            'id': 'PLwL24UFy54GrB3s2KMMfjZscDi1x5Dajf',
+            'title': 'yt-dlp unlisted playlist test',
+            'availability': 'unlisted'
+        },
+        'playlist_count': 1,
+    }, {
+        'note': 'API Fallback: Recommended - redirects to home page. Requires visitorData',
+        'url': 'https://www.youtube.com/feed/recommended',
+        'info_dict': {
+            'id': 'recommended',
+            'title': 'recommended',
+        },
+        'playlist_mincount': 50,
+        'params': {
+            'skip_download': True,
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+        },
+    }, {
+        'note': 'API Fallback: /videos tab, sorted by oldest first',
+        'url': 'https://www.youtube.com/user/theCodyReeder/videos?view=0&sort=da&flow=grid',
+        'info_dict': {
+            'id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
+            'title': 'Cody\'sLab - Videos',
+            'description': 'md5:d083b7c2f0c67ee7a6c74c3e9b4243fa',
+            'uploader': 'Cody\'sLab',
+            'uploader_id': 'UCu6mSoMNzHQiBIOCkHUa2Aw',
+        },
+        'playlist_mincount': 650,
+        'params': {
+            'skip_download': True,
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+        },
+    }, {
+        'note': 'API Fallback: Topic, should redirect to playlist?list=UU...',
+        'url': 'https://music.youtube.com/browse/UC9ALqqC4aIeG5iDs7i90Bfw',
+        'info_dict': {
+            'id': 'UU9ALqqC4aIeG5iDs7i90Bfw',
+            'uploader_id': 'UC9ALqqC4aIeG5iDs7i90Bfw',
+            'title': 'Uploads from Royalty Free Music - Topic',
+            'uploader': 'Royalty Free Music - Topic',
+        },
+        'expected_warnings': [
+            'A channel/user page was given',
+            'The URL does not have a videos tab',
+        ],
+        'playlist_mincount': 101,
+        'params': {
+            'skip_download': True,
+            'extractor_args': {'youtubetab': {'skip': ['webpage']}}
+        },
+    }]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if YoutubeIE.suitable(url) else super(
+            YoutubeTabIE, cls).suitable(url)
+
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
         if self.is_music_url(url):
@@ -4250,12 +4384,15 @@ class YoutubePlaylistIE(InfoExtractor):
                         (?:
                             (?:
                                 youtube(?:kids)?\.com|
-                                invidio\.us
+                                %(invidious)s
                             )
                             /.*?\?.*?\blist=
                         )?
                         (?P<id>%(playlist_id)s)
-                     )''' % {'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE}
+                     )''' % {
+        'playlist_id': YoutubeBaseInfoExtractor._PLAYLIST_ID_RE,
+        'invidious': '|'.join(YoutubeBaseInfoExtractor._INVIDIOUS_SITES),
+    }
     IE_NAME = 'youtube:playlist'
     _TESTS = [{
         'note': 'issue #673',
@@ -4377,7 +4514,7 @@ class YoutubeYtUserIE(InfoExtractor):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         return self.url_result(
-            'https://www.youtube.com/user/%s' % user_id,
+            'https://www.youtube.com/user/%s/videos' % user_id,
             ie=YoutubeTabIE.ie_key(), video_id=user_id)
 
 
@@ -4400,77 +4537,25 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
             ie=YoutubeTabIE.ie_key())
 
 
-class YoutubeSearchIE(SearchInfoExtractor, YoutubeTabIE):
-    IE_DESC = 'YouTube searches'
+class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
+    IE_DESC = 'YouTube search'
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
-    _SEARCH_PARAMS = None
+    _SEARCH_PARAMS = 'EgIQAQ%3D%3D'  # Videos only
     _TESTS = []
 
-    def _search_results(self, query):
-        data = {'query': query}
-        if self._SEARCH_PARAMS:
-            data['params'] = self._SEARCH_PARAMS
-        continuation = {}
-        for page_num in itertools.count(1):
-            data.update(continuation)
-            search = self._extract_response(
-                item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
-                check_get_keys=('contents', 'onResponseReceivedCommands')
-            )
-            if not search:
-                break
-            slr_contents = try_get(
-                search,
-                (lambda x: x['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'],
-                 lambda x: x['onResponseReceivedCommands'][0]['appendContinuationItemsAction']['continuationItems']),
-                list)
-            if not slr_contents:
-                break
 
-            # Youtube sometimes adds promoted content to searches,
-            # changing the index location of videos and token.
-            # So we search through all entries till we find them.
-            continuation = None
-            for slr_content in slr_contents:
-                if not continuation:
-                    continuation = self._extract_continuation({'contents': [slr_content]})
-
-                isr_contents = try_get(
-                    slr_content,
-                    lambda x: x['itemSectionRenderer']['contents'],
-                    list)
-                if not isr_contents:
-                    continue
-                for content in isr_contents:
-                    if not isinstance(content, dict):
-                        continue
-                    video = content.get('videoRenderer')
-                    if not isinstance(video, dict):
-                        continue
-                    video_id = video.get('videoId')
-                    if not video_id:
-                        continue
-
-                    yield self._extract_video(video)
-
-            if not continuation:
-                break
-
-
-class YoutubeSearchDateIE(YoutubeSearchIE):
+class YoutubeSearchDateIE(SearchInfoExtractor, YoutubeTabBaseInfoExtractor):
     IE_NAME = YoutubeSearchIE.IE_NAME + ':date'
     _SEARCH_KEY = 'ytsearchdate'
-    IE_DESC = 'YouTube searches, newest videos first'
-    _SEARCH_PARAMS = 'CAI%3D'
+    IE_DESC = 'YouTube search, newest videos first'
+    _SEARCH_PARAMS = 'CAISAhAB'  # Videos only, sorted by date
 
 
-class YoutubeSearchURLIE(YoutubeSearchIE):
+class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
     IE_DESC = 'YouTube search URLs with sorting and filter support'
     IE_NAME = YoutubeSearchIE.IE_NAME + '_url'
-    _SEARCH_KEY = None
     _VALID_URL = r'https?://(?:www\.)?youtube\.com/results\?(.*?&)?(?:search_query|q)=(?:[^&]+)(?:[&]|$)'
-    # _MAX_RESULTS = 100
     _TESTS = [{
         'url': 'https://www.youtube.com/results?baz=bar&search_query=youtube-dl+test+video&filters=video&lclk=video',
         'playlist_mincount': 5,
@@ -4479,19 +4564,22 @@ class YoutubeSearchURLIE(YoutubeSearchIE):
             'title': 'youtube-dl test video',
         }
     }, {
+        'url': 'https://www.youtube.com/results?search_query=python&sp=EgIQAg%253D%253D',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': 'python',
+            'title': 'python',
+        }
+
+    }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,
     }]
 
-    @classmethod
-    def _make_valid_url(cls):
-        return cls._VALID_URL
-
     def _real_extract(self, url):
         qs = parse_qs(url)
         query = (qs.get('search_query') or qs.get('q'))[0]
-        self._SEARCH_PARAMS = qs.get('sp', ('',))[0]
-        return self._get_n_results(query, self._MAX_RESULTS)
+        return self.playlist_result(self._search_results(query, qs.get('sp', (None,))[0]), query, query)
 
 
 class YoutubeFeedsInfoExtractor(YoutubeTabIE):

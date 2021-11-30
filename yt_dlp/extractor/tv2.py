@@ -19,7 +19,7 @@ from ..utils import (
 
 
 class TV2IE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?tv2\.no/v\d*/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://www.tv2.no/v/916509/',
         'info_dict': {
@@ -33,6 +33,9 @@ class TV2IE(InfoExtractor):
             'view_count': int,
             'categories': list,
         },
+    }, {
+        'url': 'http://www.tv2.no/v2/916509',
+        'only_matching': True,
     }]
     _PROTOCOLS = ('HLS', 'DASH')
     _GEO_COUNTRIES = ['NO']

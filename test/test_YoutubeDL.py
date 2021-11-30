@@ -137,7 +137,7 @@ class TestFormatSelection(unittest.TestCase):
         test('webm/mp4', '47')
         test('3gp/40/mp4', '35')
         test('example-with-dashes', 'example-with-dashes')
-        test('all', '35', 'example-with-dashes', '45', '47', '2')  # Order doesn't actually matter for this
+        test('all', '2', '47', '45', 'example-with-dashes', '35')
         test('mergeall', '2+47+45+example-with-dashes+35', multi=True)
 
     def test_format_selection_audio(self):
@@ -520,7 +520,7 @@ class TestFormatSelection(unittest.TestCase):
         ydl = YDL({'format': 'all[width>=400][width<=600]'})
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['B', 'C', 'D'])
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
 
         ydl = YDL({'format': 'best[height<40]'})
         try:
@@ -656,7 +656,7 @@ class TestYoutubeDL(unittest.TestCase):
         'playlist_autonumber': 2,
         '_last_playlist_index': 100,
         'n_entries': 10,
-        'formats': [{'id': 'id1'}, {'id': 'id2'}, {'id': 'id3'}]
+        'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
     }
 
     def test_prepare_outtmpl_and_filename(self):
@@ -737,6 +737,7 @@ class TestYoutubeDL(unittest.TestCase):
         test(NA_TEST_OUTTMPL, 'NA-NA-def-1234.mp4')
         test(NA_TEST_OUTTMPL, 'none-none-def-1234.mp4', outtmpl_na_placeholder='none')
         test(NA_TEST_OUTTMPL, '--def-1234.mp4', outtmpl_na_placeholder='')
+        test('%(non_existent.0)s', 'NA')
 
         # String formatting
         FMT_TEST_OUTTMPL = '%%(height)%s.%%(ext)s'
@@ -762,14 +763,15 @@ class TestYoutubeDL(unittest.TestCase):
         test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
-        sanitize = lambda x: x.replace(':', ' -').replace('"', "'")
+        sanitize = lambda x: x.replace(':', ' -').replace('"', "'").replace('\n', ' ')
 
         # Custom type casting
-        test('%(formats.:.id)l', 'id1, id2, id3')
-        test('%(formats.:.id)#l', ('id1\nid2\nid3', 'id1 id2 id3'))
+        test('%(formats.:.id)l', 'id 1, id 2, id 3')
+        test('%(formats.:.id)#l', ('id 1\nid 2\nid 3', 'id 1 id 2 id 3'))
         test('%(ext)l', 'mp4')
-        test('%(formats.:.id) 15l', '  id1, id2, id3')
+        test('%(formats.:.id) 18l', '  id 1, id 2, id 3')
         test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
+        test('%(formats)#j', (json.dumps(FORMATS, indent=4), sanitize(json.dumps(FORMATS, indent=4))))
         test('%(title5).3B', 'á')
         test('%(title5)U', 'áéí 𝐀')
         test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
@@ -777,8 +779,12 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title5)+#U', 'a\u0301e\u0301i\u0301 A')
         if compat_os_name == 'nt':
             test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
+            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', "'id 1' 'id 2' 'id 3'"))
+            test('%(formats.0.id)#q', ('"id 1"', "'id 1'"))
         else:
             test('%(title4)q', ('\'foo "bar" test\'', "'foo 'bar' test'"))
+            test('%(formats.:.id)#q', "'id 1' 'id 2' 'id 3'")
+            test('%(formats.0.id)#q', "'id 1'")
 
         # Internal formatting
         test('%(timestamp-1000>%H-%M-%S)s', '11-43-20')

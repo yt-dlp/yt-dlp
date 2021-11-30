@@ -21,7 +21,6 @@ class MLSSoccerIE(InfoExtractor):
             'uploader_id': '5530036772001',
             'tags': ['club/canada'],
             'is_live': False,
-            'duration_string': '5:50',
             'upload_date': '20211007',
             'filesize_approx': 255193528.83200002
         },

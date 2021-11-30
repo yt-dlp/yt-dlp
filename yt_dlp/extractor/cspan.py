@@ -18,7 +18,7 @@ from ..utils import (
     str_to_int,
     unescapeHTML,
 )
-from .senateisvp import SenateISVPIE
+from .senategov import SenateISVPIE
 from .ustream import UstreamIE
 
 

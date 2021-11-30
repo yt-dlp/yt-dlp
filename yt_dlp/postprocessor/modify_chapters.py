@@ -38,7 +38,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         if not chapters and not sponsor_chapters:
             return [], info
 
-        real_duration = self._get_real_video_duration(info)
+        real_duration = self._get_real_video_duration(info['filepath'])
         if not chapters:
             chapters = [{'start_time': 0, 'end_time': real_duration, 'title': info['title']}]
 
@@ -72,7 +72,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
             os.replace(out_file, in_file)
             files_to_remove.append(uncut_file)
 
-        info['_real_duration'] = info['chapters'][-1]['end_time']
         return files_to_remove, info
 
     def _mark_chapters_to_remove(self, chapters, sponsor_chapters):

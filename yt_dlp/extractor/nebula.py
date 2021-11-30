@@ -1,22 +1,163 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
 import json
 import time
+import urllib
 
-from urllib.error import HTTPError
-from .common import InfoExtractor
-from ..compat import compat_str, compat_urllib_parse_unquote, compat_urllib_parse_quote
 from ..utils import (
     ExtractorError,
     parse_iso8601,
     try_get,
-    urljoin,
 )
+from .common import InfoExtractor
 
 
-class NebulaIE(InfoExtractor):
+class NebulaBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'watchnebula'
 
+    _nebula_api_token = None
+    _nebula_bearer_token = None
+    _zype_access_token = None
+
+    def _perform_nebula_auth(self):
+        username, password = self._get_login_info()
+        if not (username and password):
+            self.raise_login_required()
+
+        data = json.dumps({'email': username, 'password': password}).encode('utf8')
+        response = self._download_json(
+            'https://api.watchnebula.com/api/v1/auth/login/',
+            data=data, fatal=False, video_id=None,
+            headers={
+                'content-type': 'application/json',
+                # Submitting the 'sessionid' cookie always causes a 403 on auth endpoint
+                'cookie': ''
+            },
+            note='Logging in to Nebula with supplied credentials',
+            errnote='Authentication failed or rejected')
+        if not response or not response.get('key'):
+            self.raise_login_required()
+
+        # save nebula token as cookie
+        self._set_cookie(
+            'nebula.app', 'nebula-auth',
+            urllib.parse.quote(
+                json.dumps({
+                    "apiToken": response["key"],
+                    "isLoggingIn": False,
+                    "isLoggingOut": False,
+                }, separators=(",", ":"))),
+            expire_time=int(time.time()) + 86400 * 365,
+        )
+
+        return response['key']
+
+    def _retrieve_nebula_api_token(self):
+        """
+        Check cookie jar for valid token. Try to authenticate using credentials if no valid token
+        can be found in the cookie jar.
+        """
+        nebula_cookies = self._get_cookies('https://nebula.app')
+        nebula_cookie = nebula_cookies.get('nebula-auth')
+        if nebula_cookie:
+            self.to_screen('Authenticating to Nebula with token from cookie jar')
+            nebula_cookie_value = urllib.parse.unquote(nebula_cookie.value)
+            nebula_api_token = self._parse_json(nebula_cookie_value, None).get('apiToken')
+            if nebula_api_token:
+                return nebula_api_token
+
+        return self._perform_nebula_auth()
+
+    def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
+        assert method in ('GET', 'POST',)
+        assert auth_type in ('api', 'bearer',)
+
+        def inner_call():
+            authorization = f'Token {self._nebula_api_token}' if auth_type == 'api' else f'Bearer {self._nebula_bearer_token}'
+            return self._download_json(
+                url, video_id, note=note, headers={'Authorization': authorization},
+                data=b'' if method == 'POST' else None)
+
+        try:
+            return inner_call()
+        except ExtractorError as exc:
+            # if 401 or 403, attempt credential re-auth and retry
+            if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
+                self.to_screen(f'Reauthenticating to Nebula and retrying, because last {auth_type} call resulted in error {exc.cause.code}')
+                self._login()
+                return inner_call()
+            else:
+                raise
+
+    def _fetch_nebula_bearer_token(self):
+        """
+        Get a Bearer token for the Nebula API. This will be required to fetch video meta data.
+        """
+        response = self._call_nebula_api('https://api.watchnebula.com/api/v1/authorization/',
+                                         method='POST',
+                                         note='Authorizing to Nebula')
+        return response['token']
+
+    def _fetch_zype_access_token(self):
+        """
+        Get a Zype access token, which is required to access video streams -- in our case: to
+        generate video URLs.
+        """
+        user_object = self._call_nebula_api('https://api.watchnebula.com/api/v1/auth/user/', note='Retrieving Zype access token')
+
+        access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], str)
+        if not access_token:
+            if try_get(user_object, lambda x: x['is_subscribed'], bool):
+                # TODO: Reimplement the same Zype token polling the Nebula frontend implements
+                # see https://github.com/ytdl-org/youtube-dl/pull/24805#issuecomment-749231532
+                raise ExtractorError(
+                    'Unable to extract Zype access token from Nebula API authentication endpoint. '
+                    'Open an arbitrary video in a browser with this account to generate a token',
+                    expected=True)
+            raise ExtractorError('Unable to extract Zype access token from Nebula API authentication endpoint')
+        return access_token
+
+    def _build_video_info(self, episode):
+        zype_id = episode['zype_id']
+        zype_video_url = f'https://player.zype.com/embed/{zype_id}.html?access_token={self._zype_access_token}'
+        channel_slug = episode['channel_slug']
+        return {
+            'id': episode['zype_id'],
+            'display_id': episode['slug'],
+            '_type': 'url_transparent',
+            'ie_key': 'Zype',
+            'url': zype_video_url,
+            'title': episode['title'],
+            'description': episode['description'],
+            'timestamp': parse_iso8601(episode['published_at']),
+            'thumbnails': [{
+                # 'id': tn.get('name'),  # this appears to be null
+                'url': tn['original'],
+                'height': key,
+            } for key, tn in episode['assets']['thumbnail'].items()],
+            'duration': episode['duration'],
+            'channel': episode['channel_title'],
+            'channel_id': channel_slug,
+            'channel_url': f'https://nebula.app/{channel_slug}',
+            'uploader': episode['channel_title'],
+            'uploader_id': channel_slug,
+            'uploader_url': f'https://nebula.app/{channel_slug}',
+            'series': episode['channel_title'],
+            'creator': episode['channel_title'],
+        }
+
+    def _login(self):
+        self._nebula_api_token = self._retrieve_nebula_api_token()
+        self._nebula_bearer_token = self._fetch_nebula_bearer_token()
+        self._zype_access_token = self._fetch_zype_access_token()
+
+    def _real_initialize(self):
+        self._login()
+
+
+class NebulaIE(NebulaBaseIE):
     _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/videos/(?P<id>[-\w]+)'
     _TESTS = [
         {
@@ -30,12 +171,13 @@ class NebulaIE(InfoExtractor):
                 'upload_date': '20180731',
                 'timestamp': 1533009600,
                 'channel': 'Lindsay Ellis',
+                'channel_id': 'lindsayellis',
                 'uploader': 'Lindsay Ellis',
+                'uploader_id': 'lindsayellis',
             },
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         },
         {
             'url': 'https://nebula.app/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
@@ -47,13 +189,14 @@ class NebulaIE(InfoExtractor):
                 'description': r're:^In this episode we explore the unsung heroes of D-Day, the landing craft.',
                 'upload_date': '20200327',
                 'timestamp': 1585348140,
-                'channel': 'The Logistics of D-Day',
-                'uploader': 'The Logistics of D-Day',
+                'channel': 'Real Engineering',
+                'channel_id': 'realengineering',
+                'uploader': 'Real Engineering',
+                'uploader_id': 'realengineering',
             },
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         },
         {
             'url': 'https://nebula.app/videos/money-episode-1-the-draw',
@@ -66,173 +209,82 @@ class NebulaIE(InfoExtractor):
                 'upload_date': '20200323',
                 'timestamp': 1584980400,
                 'channel': 'Tom Scott Presents: Money',
+                'channel_id': 'tom-scott-presents-money',
                 'uploader': 'Tom Scott Presents: Money',
+                'uploader_id': 'tom-scott-presents-money',
             },
             'params': {
                 'usenetrc': True,
             },
-            'skip': 'All Nebula content requires authentication',
         },
         {
             'url': 'https://watchnebula.com/videos/money-episode-1-the-draw',
             'only_matching': True,
         },
     ]
-    _NETRC_MACHINE = 'watchnebula'
 
-    _nebula_token = None
-
-    def _retrieve_nebula_auth(self):
-        """
-        Log in to Nebula, and returns a Nebula API token
-        """
-
-        username, password = self._get_login_info()
-        if not (username and password):
-            self.raise_login_required()
-
-        self.report_login()
-        data = json.dumps({'email': username, 'password': password}).encode('utf8')
-        response = self._download_json(
-            'https://api.watchnebula.com/api/v1/auth/login/',
-            data=data, fatal=False, video_id=None,
-            headers={
-                'content-type': 'application/json',
-                # Submitting the 'sessionid' cookie always causes a 403 on auth endpoint
-                'cookie': ''
-            },
-            note='Authenticating to Nebula with supplied credentials',
-            errnote='Authentication failed or rejected')
-        if not response or not response.get('key'):
-            self.raise_login_required()
-
-        # save nebula token as cookie
-        self._set_cookie(
-            'nebula.app', 'nebula-auth',
-            compat_urllib_parse_quote(
-                json.dumps({
-                    "apiToken": response["key"],
-                    "isLoggingIn": False,
-                    "isLoggingOut": False,
-                }, separators=(",", ":"))),
-            expire_time=int(time.time()) + 86400 * 365,
-        )
-
-        return response['key']
-
-    def _retrieve_zype_api_key(self, page_url, display_id):
-        """
-        Retrieves the Zype API key
-        """
-
-        # Find the js that has the API key from the webpage and download it
-        webpage = self._download_webpage(page_url, video_id=display_id)
-        main_script_relpath = self._search_regex(
-            r'<script[^>]*src="(?P<script_relpath>[^"]*main.[0-9a-f]*.chunk.js)"[^>]*>', webpage,
-            group='script_relpath', name='script relative path', fatal=True)
-        main_script_abspath = urljoin(page_url, main_script_relpath)
-        main_script = self._download_webpage(main_script_abspath, video_id=display_id,
-                                             note='Retrieving Zype API key')
-
-        api_key = self._search_regex(
-            r'REACT_APP_ZYPE_API_KEY\s*:\s*"(?P<api_key>[\w-]*)"', main_script,
-            group='api_key', name='API key', fatal=True)
-
-        return api_key
-
-    def _call_zype_api(self, path, params, video_id, api_key, note):
-        """
-        A helper for making calls to the Zype API.
-        """
-        query = {'api_key': api_key, 'per_page': 1}
-        query.update(params)
-        return self._download_json('https://api.zype.com' + path, video_id, query=query, note=note)
-
-    def _call_nebula_api(self, path, video_id, access_token, note):
-        """
-        A helper for making calls to the Nebula API.
-        """
-        return self._download_json('https://api.watchnebula.com/api/v1' + path, video_id, headers={
-            'Authorization': 'Token {access_token}'.format(access_token=access_token)
-        }, note=note)
-
-    def _fetch_zype_access_token(self, video_id):
-        try:
-            user_object = self._call_nebula_api('/auth/user/', video_id, self._nebula_token, note='Retrieving Zype access token')
-        except ExtractorError as exc:
-            # if 401, attempt credential auth and retry
-            if exc.cause and isinstance(exc.cause, HTTPError) and exc.cause.code == 401:
-                self._nebula_token = self._retrieve_nebula_auth()
-                user_object = self._call_nebula_api('/auth/user/', video_id, self._nebula_token, note='Retrieving Zype access token')
-            else:
-                raise
-
-        access_token = try_get(user_object, lambda x: x['zype_auth_info']['access_token'], compat_str)
-        if not access_token:
-            if try_get(user_object, lambda x: x['is_subscribed'], bool):
-                # TODO: Reimplement the same Zype token polling the Nebula frontend implements
-                # see https://github.com/ytdl-org/youtube-dl/pull/24805#issuecomment-749231532
-                raise ExtractorError(
-                    'Unable to extract Zype access token from Nebula API authentication endpoint. '
-                    'Open an arbitrary video in a browser with this account to generate a token',
-                    expected=True)
-            raise ExtractorError('Unable to extract Zype access token from Nebula API authentication endpoint')
-        return access_token
-
-    def _extract_channel_title(self, video_meta):
-        # TODO: Implement the API calls giving us the channel list,
-        # so that we can do the title lookup and then figure out the channel URL
-        categories = video_meta.get('categories', []) if video_meta else []
-        # the channel name is the value of the first category
-        for category in categories:
-            if category.get('value'):
-                return category['value'][0]
-
-    def _real_initialize(self):
-        # check cookie jar for valid token
-        nebula_cookies = self._get_cookies('https://nebula.app')
-        nebula_cookie = nebula_cookies.get('nebula-auth')
-        if nebula_cookie:
-            self.to_screen('Authenticating to Nebula with token from cookie jar')
-            nebula_cookie_value = compat_urllib_parse_unquote(nebula_cookie.value)
-            self._nebula_token = self._parse_json(nebula_cookie_value, None).get('apiToken')
-
-        # try to authenticate using credentials if no valid token has been found
-        if not self._nebula_token:
-            self._nebula_token = self._retrieve_nebula_auth()
+    def _fetch_video_metadata(self, slug):
+        return self._call_nebula_api(f'https://content.watchnebula.com/video/{slug}/',
+                                     video_id=slug,
+                                     auth_type='bearer',
+                                     note='Fetching video meta data')
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        api_key = self._retrieve_zype_api_key(url, display_id)
+        slug = self._match_id(url)
+        video = self._fetch_video_metadata(slug)
+        return self._build_video_info(video)
 
-        response = self._call_zype_api('/videos', {'friendly_title': display_id},
-                                       display_id, api_key, note='Retrieving metadata from Zype')
-        if len(response.get('response') or []) != 1:
-            raise ExtractorError('Unable to find video on Zype API')
-        video_meta = response['response'][0]
 
-        video_id = video_meta['_id']
-        zype_access_token = self._fetch_zype_access_token(display_id)
+class NebulaCollectionIE(NebulaBaseIE):
+    IE_NAME = 'nebula:collection'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!videos/)(?P<id>[-\w]+)'
+    _TESTS = [
+        {
+            'url': 'https://nebula.app/tom-scott-presents-money',
+            'info_dict': {
+                'id': 'tom-scott-presents-money',
+                'title': 'Tom Scott Presents: Money',
+                'description': 'Tom Scott hosts a series all about trust, negotiation and money.',
+            },
+            'playlist_count': 5,
+            'params': {
+                'usenetrc': True,
+            },
+        }, {
+            'url': 'https://nebula.app/lindsayellis',
+            'info_dict': {
+                'id': 'lindsayellis',
+                'title': 'Lindsay Ellis',
+                'description': 'Enjoy these hottest of takes on Disney, Transformers, and Musicals.',
+            },
+            'playlist_mincount': 100,
+            'params': {
+                'usenetrc': True,
+            },
+        },
+    ]
 
-        channel_title = self._extract_channel_title(video_meta)
+    def _generate_playlist_entries(self, collection_id, channel):
+        episodes = channel['episodes']['results']
+        for page_num in itertools.count(2):
+            for episode in episodes:
+                yield self._build_video_info(episode)
+            next_url = channel['episodes']['next']
+            if not next_url:
+                break
+            channel = self._call_nebula_api(next_url, collection_id, auth_type='bearer',
+                                            note=f'Retrieving channel page {page_num}')
+            episodes = channel['episodes']['results']
 
-        return {
-            'id': video_id,
-            'display_id': display_id,
-            '_type': 'url_transparent',
-            'ie_key': 'Zype',
-            'url': 'https://player.zype.com/embed/%s.html?access_token=%s' % (video_id, zype_access_token),
-            'title': video_meta.get('title'),
-            'description': video_meta.get('description'),
-            'timestamp': parse_iso8601(video_meta.get('published_at')),
-            'thumbnails': [{
-                'id': tn.get('name'),  # this appears to be null
-                'url': tn['url'],
-                'width': tn.get('width'),
-                'height': tn.get('height'),
-            } for tn in video_meta.get('thumbnails', [])],
-            'duration': video_meta.get('duration'),
-            'channel': channel_title,
-            'uploader': channel_title,  # we chose uploader = channel name
-            # TODO: uploader_url, channel_id, channel_url
-        }
+    def _real_extract(self, url):
+        collection_id = self._match_id(url)
+        channel_url = f'https://content.watchnebula.com/video/channels/{collection_id}/'
+        channel = self._call_nebula_api(channel_url, collection_id, auth_type='bearer', note='Retrieving channel')
+        channel_details = channel['details']
+
+        return self.playlist_result(
+            entries=self._generate_playlist_entries(collection_id, channel),
+            playlist_id=collection_id,
+            playlist_title=channel_details['title'],
+            playlist_description=channel_details['description']
+        )
