@@ -10,7 +10,7 @@ from ..utils import PostProcessingError, network_exceptions, sanitized_Request
 
 
 class SponsorBlockPP(FFmpegPostProcessor):
-
+    # https://wiki.sponsor.ajay.app/w/Types
     EXTRACTORS = {
         'Youtube': 'YouTube',
     }
@@ -22,10 +22,10 @@ class SponsorBlockPP(FFmpegPostProcessor):
         'intro': 'Intermission/Intro Animation',
         'outro': 'Endcards/Credits',
         'selfpromo': 'Unpaid/Self Promotion',
-        'interaction': 'Interaction Reminder',
         'preview': 'Preview/Recap',
         'filler': 'Filler Tangent',
-        'music_offtopic': 'Non-Music Section'
+        'interaction': 'Interaction Reminder',
+        'music_offtopic': 'Non-Music Section',
         **POI_CATEGORIES,
     }
 
