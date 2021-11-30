@@ -1564,11 +1564,10 @@ The following extractors use this feature:
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `include_live_dash`: Include live dash formats (These formats don't download properly)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
-* `max_comments`: Maximum amount of comments to download (default all)
-* `max_reply_comments_per_thread`: Maximum amount of reply comments per thread (default all)
-* `max_parent_comments`: Maximum parent comments overall (default all)
-* `max_reply_comments`: Maximum reply comments overall (default all)
-* `max_comment_depth`: Maximum depth for nested comments. YouTube supports depths 1 or 2 (default)
+* `max_comments`: Comma seperated list of integers: `max,max_parents,max_replies,max_replies_per_thread`. Default is `all,all,all,all`
+    * Ex. 1: `all,all,1000,10` will get a maximum of 1000 replies overall, with a maximum of 10 replies per thread. 
+    * Ex. 2: `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies.
+* `max_comment_depth` (Deprecated, set `max_replies` to 0 or all in `max_comments`): Maximum depth for nested comments. YouTube supports depths 1 or 2 (default)
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)

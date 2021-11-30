@@ -2141,13 +2141,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return _continuation
 
         def extract_thread(contents):
-            max_parent_comments, max_reply_comments = map(
-                lambda x: int_or_none(get_single_config_arg(x), default=sys.maxsize),
-                ('max_parent_comments', 'max_reply_comments'))
             if not parent:
                 tracker['current_page_thread'] = 0
             for content in contents:
-                if not parent and tracker['total_parent_comments'] >= max_parent_comments:
+                if not parent and tracker['total_parent_comments'] >= max_parents:
                     yield
                 comment_thread_renderer = try_get(content, lambda x: x['commentThreadRenderer'])
                 comment_renderer = get_first(
@@ -2171,11 +2168,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     comment_entries_iter = self._comment_entries(
                         comment_replies_renderer, ytcfg, video_id,
                         parent=comment.get('id'), tracker=tracker)
-                    max_replies = min(
-                        int_or_none(get_single_config_arg('max_reply_comments_per_thread'), default=sys.maxsize),
-                        max(0, max_reply_comments - tracker['total_reply_comments']))
-
-                    for reply_comment in itertools.islice(comment_entries_iter, max_replies):
+                    for reply_comment in itertools.islice(comment_entries_iter, min(max_replies_per_thread, max(0, max_replies - tracker['total_reply_comments']))):
                         yield reply_comment
 
         # Keeps track of counts across recursive calls
@@ -2187,10 +2180,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 total_parent_comments=0,
                 total_reply_comments=0)
 
+        # TODO: Deprecated
         # YouTube comments have a max depth of 2
         max_depth = int_or_none(get_single_config_arg('max_comment_depth')) or 2
         if max_depth == 1 and parent:
             return
+
+        max_comments, max_parents, max_replies, max_replies_per_thread, *_ = map(
+            lambda p: int_or_none(p, default=sys.maxsize), self._configuration_arg('max_comments', ) + [''] * 4)
 
         continuation = self._extract_continuation(root_continuation_data)
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
