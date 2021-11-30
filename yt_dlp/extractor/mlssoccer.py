@@ -6,7 +6,7 @@ from .common import InfoExtractor
 
 class MLSSoccerIE(InfoExtractor):
     _VALID_DOMAINS = r'(?:(?:cfmontreal|intermiamicf|lagalaxy|lafc|houstondynamofc|dcunited|atlutd|mlssoccer|fcdallas|columbuscrew|coloradorapids|fccincinnati|chicagofirefc|austinfc|nashvillesc|whitecapsfc|sportingkc|soundersfc|sjearthquakes|rsl|timbers|philadelphiaunion|orlandocitysc|newyorkredbulls|nycfc)\.com|(?:torontofc)\.ca|(?:revolutionsoccer)\.net)'
-    _VALID_URL = r'(?:https?://)(?:www\.)?%s/video/#?(?P<id>[^/&$#?]+)' % _VALID_DOMAINS
+    _VALID_URL = r'https?://(?:www\.)?%s/video/#?(?P<id>[^/&$#?]+)' % _VALID_DOMAINS
 
     _TESTS = [{
         'url': 'https://www.mlssoccer.com/video/the-octagon-can-alphonso-davies-lead-canada-to-first-world-cup-since-1986#the-octagon-can-alphonso-davies-lead-canada-to-first-world-cup-since-1986',
