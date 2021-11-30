@@ -14,6 +14,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
     EXTRACTORS = {
         'Youtube': 'YouTube',
     }
+    POI_CATEGORIES = {
+        'poi_highlight': 'Highlight',
+    }
     CATEGORIES = {
         'sponsor': 'Sponsor',
         'intro': 'Intermission/Intro Animation',
@@ -23,6 +26,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         'preview': 'Preview/Recap',
         'filler': 'Filler Tangent',
         'music_offtopic': 'Non-Music Section'
+        **POI_CATEGORIES,
     }
 
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
@@ -51,6 +55,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
             # Ignore milliseconds difference at the start.
             if start_end[0] <= 1:
                 start_end[0] = 0
+            # Make POI chapters 1 sec so that we can properly mark them
+            if s['category'] in self.POI_CATEGORIES.keys():
+                start_end[1] += 1
             # Ignore milliseconds difference at the end.
             # Never allow the segment to exceed the video.
             if duration and duration - start_end[1] <= 1:
