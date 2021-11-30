@@ -1619,6 +1619,9 @@ def parseOpts(overrideArguments=None):
                     current_path = os.path.join(path, '%s.conf' % package)
                     config = _readOptions(current_path, default=None)
                 if config is not None:
+                    current_path = os.path.realpath(current_path)
+                    if current_path in paths.values():
+                        return False
                     configs[name], paths[name] = config, current_path
                     return parser.parse_args(config)[0].ignoreconfig
             return False
