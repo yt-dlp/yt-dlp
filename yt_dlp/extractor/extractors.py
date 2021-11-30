@@ -341,10 +341,6 @@ from .democracynow import DemocracynowIE
 from .dfb import DFBIE
 from .dhm import DHMIE
 from .digg import DiggIE
-from .discoveryplusindia import (
-    DiscoveryPlusIndiaIE,
-    DiscoveryPlusIndiaShowIE,
-)
 from .dotsub import DotsubIE
 from .douyutv import (
     DouyuShowIE,
@@ -356,7 +352,11 @@ from .dplay import (
     HGTVDeIE,
     ScienceChannelIE,
     DIYNetworkIE,
-    AnimalPlanetIE
+    AnimalPlanetIE,
+    DiscoveryPlusIndiaIE,
+    DiscoveryNetworksDeIE,
+    DiscoveryPlusItalyShowIE,
+    DiscoveryPlusIndiaShowIE,
 )
 from .dreisat import DreiSatIE
 from .drbonanza import DRBonanzaIE
@@ -378,7 +378,6 @@ from .discoverygo import (
     DiscoveryGoIE,
     DiscoveryGoPlaylistIE,
 )
-from .discoverynetworks import DiscoveryNetworksDeIE
 from .discoveryvr import DiscoveryVRIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
