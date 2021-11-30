@@ -31,10 +31,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
         FFmpegPostProcessor.__init__(self, downloader)
-        # From https://wiki.sponsor.ajay.app/w/Types:
-        # The filler category is very aggressive.
-        # It is strongly recommended to not use this in a client by default.
-        self._categories = tuple(categories or set(self.CATEGORIES.keys()).difference(['filler']))
+        self._categories = tuple(categories or self.CATEGORIES.keys())
         self._API_URL = api if re.match('^https?://', api) else 'https://' + api
 
     def run(self, info):

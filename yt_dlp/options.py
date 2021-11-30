@@ -1434,8 +1434,10 @@ def parseOpts(overrideArguments=None):
     sponsorblock.add_option(
         '--sponsorblock-mark', metavar='CATS',
         dest='sponsorblock_mark', default=set(), action='callback', type='str',
-        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
-        help=(
+        callback=_set_from_options_callback, callback_kwargs={
+            'allowed_values': SponsorBlockPP.CATEGORIES.keys(),
+            'aliases': {'default': ['all']}
+        }, help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
             'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
             'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories. '
@@ -1443,8 +1445,13 @@ def parseOpts(overrideArguments=None):
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
         dest='sponsorblock_remove', default=set(), action='callback', type='str',
-        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
-        help=(
+        callback=_set_from_options_callback, callback_kwargs={
+            'allowed_values': SponsorBlockPP.CATEGORIES.keys(),
+            # Note: From https://wiki.sponsor.ajay.app/w/Types:
+            # The filler category is very aggressive.
+            # It is strongly recommended to not use this in a client by default.
+            'aliases': {'default': ['all', '-filler']}
+        }, help=(
             'SponsorBlock categories to be removed from the video file, separated by commas. '
             'If a category is present in both mark and remove, remove takes precedence. '
             'The syntax and available categories are the same as for --sponsorblock-mark'))
