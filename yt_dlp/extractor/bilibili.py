@@ -50,7 +50,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://www.bilibili.com/video/av1074402/',
         'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
         'info_dict': {
-            'id': '1074402_part1',
+            'id': '1074402',
             'ext': 'flv',
             'title': '【金坷垃】金泡沫',
             'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
