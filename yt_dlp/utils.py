@@ -4761,7 +4761,8 @@ def get_compatible_ext(vcodecs, acodecs, vexts, aexts):
         # TODO: any other format allows this?
         return 'mkv'
     vext, aext = vexts[0], aexts[0]
-    vcodec, acodec = map(lambda codecs: codecs[0].split('.')[0].replace('0', ''), (vcodecs, acodecs))
+    vcodec, acodec = map(lambda c: c.split('.')[0].replace('0', '') if c else None,
+                         (vcodecs[0], acodecs[0]))
 
     # TODO: Make sure all these are accounted for
     # 'avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'
@@ -4780,8 +4781,8 @@ def get_compatible_ext(vcodecs, acodecs, vexts, aexts):
             'vp9x', 'vp8x',
         },
     }
-    for ext, codecs in COMPATIBLE_CODECS.items():
-        if codecs.issuperset((vcodec, acodec)):
+    for ext, codec_set in COMPATIBLE_CODECS.items():
+        if codec_set.issuperset((vcodec, acodec)):
             return ext
 
     COMPATIBLE_EXTS = (

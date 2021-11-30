@@ -1985,10 +1985,10 @@ class YoutubeDL(object):
             the_only_audio = audio_fmts[0] if len(audio_fmts) == 1 else None
 
             output_ext = self.params.get('merge_output_format') or get_compatible_ext(
-                    vcodecs=[f.get('vcodec') for f in video_fmts],
-                    acodecs=[f.get('acodec') for f in audio_fmts],
-                    vexts=[f['ext'] for f in video_fmts],
-                    aexts=[f['ext'] for f in audio_fmts])
+                vcodecs=[f.get('vcodec') for f in video_fmts],
+                acodecs=[f.get('acodec') for f in audio_fmts],
+                vexts=[f['ext'] for f in video_fmts],
+                aexts=[f['ext'] for f in audio_fmts])
 
             filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
 
