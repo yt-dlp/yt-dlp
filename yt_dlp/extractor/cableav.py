@@ -3,7 +3,7 @@ from .common import InfoExtractor
 
 
 class CableAVIE(InfoExtractor):
-    _VALID_URL = r'https://cableav\.tv/(?P<id>[a-zA-Z0-9]+)/'
+    _VALID_URL = r'https://cableav\.tv/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'https://cableav.tv/lS4iR9lWjN8/',
         'md5': '7e3fe5e49d61c4233b7f5b0f69b15e18',
@@ -29,7 +29,6 @@ class CableAVIE(InfoExtractor):
             'id': video_id,
             'title': self._og_search_title(webpage),
             'description': self._og_search_description(webpage),
-            'url': video_url,
             'thumbnail': self._og_search_thumbnail(webpage),
             'formats': formats,
         }
