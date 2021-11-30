@@ -2183,7 +2183,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # TODO: Deprecated
         # YouTube comments have a max depth of 2
-        max_depth = int_or_none(get_single_config_arg('max_comment_depth')) or 2
+        max_depth = int_or_none(get_single_config_arg('max_comment_depth'))
+        if max_depth:
+            self._downloader.deprecation_warning(
+                '[youtube] max_comment_depth extractor argument is deprecated. Set max replies in the max-comments extractor argument instead.')
         if max_depth == 1 and parent:
             return
 
