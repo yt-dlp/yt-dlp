@@ -2142,7 +2142,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         def extract_thread(contents):
             max_parent_comments, max_reply_comments = map(
-                lambda x: int_or_none(get_single_config_arg(x)) or sys.maxsize,
+                lambda x: int_or_none(get_single_config_arg(x), default=sys.maxsize),
                 ('max_parent_comments', 'max_reply_comments'))
             if not parent:
                 tracker['current_page_thread'] = 0
