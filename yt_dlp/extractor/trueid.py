@@ -91,8 +91,7 @@ class TrueIDIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url).groupdict()
-        domain, video_id = match['domain'], match['id']
+        domain, video_id = self._match_valid_url(url).group('domain', 'id')
         webpage = self._download_webpage(url, video_id)
         initial_data = traverse_obj(
             self._search_nextjs_data(webpage, video_id, fatal=False), ('props', 'pageProps', 'initialContentData'), default={})
@@ -101,15 +100,14 @@ class TrueIDIE(InfoExtractor):
             stream_data = self._download_json(
                 f'https://{domain}/cmsPostProxy/contents/video/{video_id}/streamer?os=android', video_id, data=b'')['data']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
-                errmsg = self._parse_json(e.cause.read().decode(), video_id)['meta']['message']
-                if 'country' in errmsg:
-                    self.raise_geo_restricted(
-                        errmsg, [initial_data['display_country']] if initial_data.get('display_country') else None, True)
-                else:
-                    self.raise_no_formats(errmsg, video_id=video_id)
-            else:
+            if not isinstance(e.cause, compat_HTTPError):
                 raise e
+            errmsg = self._parse_json(e.cause.read().decode(), video_id)['meta']['message']
+            if 'country' in errmsg:
+                self.raise_geo_restricted(
+                    errmsg, [initial_data['display_country']] if initial_data.get('display_country') else None, True)
+            else:
+                self.raise_no_formats(errmsg, video_id=video_id)
 
         if stream_data:
             stream_url = stream_data['stream']['stream_url']
@@ -121,13 +119,10 @@ class TrueIDIE(InfoExtractor):
             else:
                 formats = [{'url': stream_url}]
 
-        thumbnails = []
-        for thumb_key in initial_data.get('thumb_list') or {}:
-            if url_or_none(initial_data['thumb_list'][thumb_key]):
-                thumbnails.append({
-                    'id': thumb_key,
-                    'url': url_or_none(initial_data['thumb_list'][thumb_key])
-                })
+        thumbnails = [
+            {'id': thumb_key, 'url': thumb_url}
+            for thumb_key, thumb_url in (initial_data.get('thumb_list') or {}).items()
+            if url_or_none(thumb_url)]
 
         return {
             'id': video_id,
