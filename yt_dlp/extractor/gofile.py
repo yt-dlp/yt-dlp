@@ -23,15 +23,12 @@ class GofileIE(InfoExtractor):
             }
         }]
     }]
+    _TOKEN = None
 
     def _entries(self, file_id):
 
-        # Create guest account
-        accountdata = self._download_json('https://api.gofile.io/createAccount', 'Gofile', note='Getting a new guest account')
-        accountToken = accountdata['data']['token']
-
         # Get file list
-        requesturl = f'https://api.gofile.io/getContent?contentId={file_id}&token={accountToken}&websiteToken=websiteToken&cache=true'
+        requesturl = f'https://api.gofile.io/getContent?contentId={file_id}&token={self._TOKEN}&websiteToken=websiteToken&cache=true'
         filelist = self._download_json(requesturl, 'Gofile', note='Getting filelist')
 
         status = filelist['status']
@@ -46,7 +43,7 @@ class GofileIE(InfoExtractor):
             filetype = file['mimetype'].split('/', 1)[0]
             if filetype != 'video' and filetype != 'audio':
                 continue
-            
+
             foundfiles = True
             filedata = {
                 'id': file['id'],
@@ -60,8 +57,10 @@ class GofileIE(InfoExtractor):
         if not foundfiles:
             self.raise_no_formats('No video/audio found at provided URL.', expected=True)
 
-        # Set guest accountToken cookie to allow downloads
-        self._set_cookie('gofile.io', 'accountToken', accountToken)
+    def _real_initialize(self):
+        accountdata = self._download_json('https://api.gofile.io/createAccount', 'Gofile', note='Getting a new guest account')
+        self._TOKEN = accountdata['data']['token']
+        self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
 
     def _real_extract(self, url):
         file_id = self._match_id(url)
