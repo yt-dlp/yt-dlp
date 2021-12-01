@@ -60,7 +60,7 @@ class GofileIE(InfoExtractor):
     def _real_initialize(self):
 
         cookies = self._get_cookies('https://gofile.io/')
-        if cookies:
+        if cookies.get('accountToken'):
             self._TOKEN = cookies['accountToken'].value
             return
 
