@@ -27,11 +27,15 @@ class GofileIE(InfoExtractor):
 
         # Get file list
         requesturl = f'https://api.gofile.io/getContent?contentId={file_id}&token={accountToken}&websiteToken=websiteToken&cache=true'
-        filelist = self._download_json_handle(requesturl, 'Gofile', note='Getting filelist')
+        filelist, _ = self._download_json_handle(requesturl, 'Gofile', note='Getting filelist')
+
+        status = filelist['status']
+        if status != "ok":
+            raise ExtractorError('Received error from service, status: %s\n' % status, expected=True)
 
         # Create all entries
         def entries():
-            contents = filelist[0]['data']['contents']
+            contents = filelist['data']['contents']
 
             for _, file in contents.items():
                 try:
