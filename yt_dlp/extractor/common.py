@@ -466,6 +466,8 @@ class InfoExtractor(object):
         # we have cached the regexp for *this* class, whereas getattr would also
         # match the superclass
         if '_VALID_URL_RE' not in cls.__dict__:
+            if '_VALID_URL' not in cls.__dict__:
+                cls._VALID_URL = cls._make_valid_url()
             cls._VALID_URL_RE = re.compile(cls._VALID_URL)
         return cls._VALID_URL_RE.match(url)
 
@@ -3658,17 +3660,8 @@ class SearchInfoExtractor(InfoExtractor):
     def _make_valid_url(cls):
         return r'%s(?P<prefix>|[1-9][0-9]*|all):(?P<query>[\s\S]+)' % cls._SEARCH_KEY
 
-    @classmethod
-    def suitable(cls, url):
-        return re.match(cls._make_valid_url(), url) is not None
-
     def _real_extract(self, query):
-        mobj = re.match(self._make_valid_url(), query)
-        if mobj is None:
-            raise ExtractorError('Invalid search query "%s"' % query)
-
-        prefix = mobj.group('prefix')
-        query = mobj.group('query')
+        prefix, query = self._match_valid_url(query).group('prefix', 'query')
         if prefix == '':
             return self._get_n_results(query, 1)
         elif prefix == 'all':
