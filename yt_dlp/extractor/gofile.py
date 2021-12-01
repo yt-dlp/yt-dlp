@@ -54,4 +54,4 @@ class GofileIE(InfoExtractor):
         self._set_cookie('gofile.io', 'accountToken', accountToken)
 
         # Start extraction on entries
-        return self.playlist_result(entries())
+        return self.playlist_result(entries(), file_id)
