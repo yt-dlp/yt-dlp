@@ -34,9 +34,6 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20200916',
             'release_date': '20200630',
         },
-        'params': {
-            'format': 'bv'
-        },
         'expected_warnings': ['Video is geo restricted.']
     }, {
         'url': 'https://trueid.id/series/zZOBVPb62EwR/qXY73rwyl7oj/one-piece-ep-1/',
@@ -57,9 +54,6 @@ class TrueIDIE(InfoExtractor):
             'upload_date': '20210112',
             'release_date': '20210131',
         },
-        'params': {
-            'format': 'bv'
-        },
         'expected_warnings': ['Video is geo restricted.']
     }, {
         'url': 'https://vn.trueid.net/series/7DNPM7Bpa9wv/pwLgEQ4Xbda2/haikyu-vua-bong-chuyen-phan-1/',
@@ -77,9 +71,6 @@ class TrueIDIE(InfoExtractor):
             'thumbnail': 'https://cms.dmpcdn.com/movie/2021/09/28/b6e7ec00-2039-11ec-8436-974544e5841f_webp_original.jpg',
             'upload_date': '20210818',
             'release_date': '20210818',
-        },
-        'params': {
-            'format': 'bv'
         },
         'expected_warnings': ['Video is geo restricted.']
     }, {
