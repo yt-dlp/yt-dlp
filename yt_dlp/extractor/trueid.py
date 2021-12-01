@@ -4,8 +4,8 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    determine_ext,
     ExtractorError,
-    float_or_none,
     int_or_none,
     parse_age_limit,
     traverse_obj,
@@ -15,7 +15,7 @@ from ..utils import (
 
 
 class TrueIDIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?trueid\.id/(?:movie|series/[^/]+)/(?P<id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?P<domain>vn\.trueid\.net|trueid\.(?:id|ph))/(?:movie|series/[^/]+)/(?P<id>[^/?#&]+)'
     _TESTS = [{
         'url': 'https://trueid.id/movie/XYNlDOZZJzL6/pengabdi-setan/',
         'md5': '2552c7535125885901f1a2a4bcf32ca3',
@@ -60,20 +60,43 @@ class TrueIDIE(InfoExtractor):
         'params': {
             'format': 'bv'
         }
+    }, {
+        'url': 'https://vn.trueid.net/series/7DNPM7Bpa9wv/pwLgEQ4Xbda2/haikyu-vua-bong-chuyen-phan-1/',
+        'info_dict': {
+            'id': 'pwLgEQ4Xbda2',
+            'ext': 'mp4',
+            'title': 'Haikyu!!: Vua Bóng Chuyền Phần 1 - Tập 1',
+            'description': 'md5:0374dd44d247799169449ee30cca963a',
+            'timestamp': 1629270901,
+            'categories': ['Anime', 'Phim Hài', 'Phim Học Đường', 'Phim Thể Thao', 'Shounen'],
+            'release_timestamp': 1629270720,
+            'release_year': 2014,
+            'age_limit': 13,
+            'thumbnail': 'https://cms.dmpcdn.com/movie/2021/09/28/b6e7ec00-2039-11ec-8436-974544e5841f_webp_original.jpg',
+            'upload_date': '20210818',
+            'release_date': '20210818',
+        },
+        'params': {
+            'format': 'bv'
+        }
+    }, {
+        'url': 'https://trueid.ph/series/l8rvvAw7Jwv8/l8rvvAw7Jwv8/naruto-trailer/',
+        'only_matching': True,
     }]
     _CUSTOM_RATINGS = {
         'PG': 7,
     }
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        match = self._match_valid_url(url).groupdict()
+        domain, video_id = match['domain'], match['id']
         webpage = self._download_webpage(url, video_id)
         initial_data = traverse_obj(
             self._search_nextjs_data(webpage, video_id, fatal=False), ('props', 'pageProps', 'initialContentData'), default={})
 
         try:
             stream_data = self._download_json(
-                f'https://trueid.id/cmsPostProxy/contents/video/{video_id}/streamer?os=android', video_id, data=b'')['data']
+                f'https://{domain}/cmsPostProxy/contents/video/{video_id}/streamer?os=android', video_id, data=b'')['data']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError):
                 errmsg = self._parse_json(e.cause.read().decode(), video_id)['meta']['message']
@@ -86,7 +109,14 @@ class TrueIDIE(InfoExtractor):
                 raise e
 
         if stream_data:
-            formats, subs = self._extract_m3u8_formats_and_subtitles(stream_data['stream']['stream_url'], video_id, 'mp4')
+            stream_url = stream_data['stream']['stream_url']
+            stream_ext = determine_ext(stream_url)
+            if stream_ext == 'm3u8':
+                formats, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, 'mp4')
+            elif stream_ext == 'mpd':
+                formats, subs = self._extract_mpd_formats_and_subtitles(stream_url, video_id)
+            else:
+                formats = [{'url': stream_url}]
 
         thumbnails = []
         for thumb_key in initial_data.get('thumb_list') or {}:
@@ -99,11 +129,13 @@ class TrueIDIE(InfoExtractor):
         return {
             'id': video_id,
             'title': initial_data.get('title') or self._html_search_regex(
-                r'Nonton (?P<name>.+) Gratis \| TrueID', webpage, 'title', group='name'),
+                [r'Nonton (?P<name>.+) Gratis',
+                 r'Xem (?P<name>.+) Miễn phí',
+                 r'Watch (?P<name>.+) Free'], webpage, 'title', group='name'),
             'display_id': initial_data.get('slug_title'),
             'description': initial_data.get('synopsis'),
             'timestamp': unified_timestamp(initial_data.get('create_date')),
-            'duration': float_or_none(initial_data.get('duration'), invscale=60),
+            # 'duration': int_or_none(initial_data.get('duration'), invscale=60),  # duration field must atleast be accurate to the second
             'categories': traverse_obj(initial_data, ('article_category_details', ..., 'name')),
             'release_timestamp': unified_timestamp(initial_data.get('publish_date')),
             'release_year': int_or_none(initial_data.get('release_year')),
@@ -111,5 +143,8 @@ class TrueIDIE(InfoExtractor):
             'subtitles': subs,
             'thumbnails': thumbnails,
             'age_limit': self._CUSTOM_RATINGS.get(initial_data.get('rate')) or parse_age_limit(initial_data.get('rate')),
-            'cast': (initial_data.get('actor') or []) + (initial_data.get('director') or [])
+            'cast': traverse_obj(initial_data, (('actor', 'director'), ...)),
+            'view_count': int_or_none(initial_data.get('count_views')),
+            'like_count': int_or_none(initial_data.get('count_likes')),
+            'average_rating': int_or_none(initial_data.get('count_ratings')),
         }
