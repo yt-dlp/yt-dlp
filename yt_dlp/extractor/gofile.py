@@ -33,6 +33,7 @@ class GofileIE(InfoExtractor):
         # Get file list
         requesturl = f'https://api.gofile.io/getContent?contentId={file_id}&token={accountToken}&websiteToken=websiteToken&cache=true'
         filelist = self._download_json(requesturl, 'Gofile', note='Getting filelist')
+
         status = filelist['status']
         if status != "ok":
             raise ExtractorError('Received error from service, status: %s\n' % status, expected=True)
@@ -40,6 +41,11 @@ class GofileIE(InfoExtractor):
         contents = try_get(filelist, lambda x: x['data']['contents'], dict)
 
         for _, file in contents.items():
+
+            filetype = file['mimetype'].split("/", 1)[0]
+            if filetype != "video" and filetype != "audio":
+                continue
+
             filedata = {
                 'id': file['id'],
                 'title': file['name'].rsplit('.', 1)[0],
