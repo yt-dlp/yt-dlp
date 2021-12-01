@@ -96,6 +96,7 @@ from .utils import (
     ReExtractInfo,
     register_socks_protocols,
     RejectedVideoReached,
+    remove_terminal_sequences,
     render_table,
     replace_extension,
     SameFileError,
@@ -776,6 +777,7 @@ class YoutubeDL(object):
     def to_console_title(self, message):
         if not self.params.get('consoletitle', False):
             return
+        message = remove_terminal_sequences(message)
         if compat_os_name == 'nt':
             if ctypes.windll.kernel32.GetConsoleWindow():
                 # c_wchar_p() might not be necessary if `message` is
