@@ -35,17 +35,19 @@ class GofileIE(InfoExtractor):
         filelist = self._download_json(requesturl, 'Gofile', note='Getting filelist')
 
         status = filelist['status']
-        if status != "ok":
+        if status != 'ok':
             raise ExtractorError('Received error from service, status: %s\n' % status, expected=True)
 
         contents = try_get(filelist, lambda x: x['data']['contents'], dict)
+        foundfiles = False
 
         for _, file in contents.items():
 
-            filetype = file['mimetype'].split("/", 1)[0]
-            if filetype != "video" and filetype != "audio":
+            filetype = file['mimetype'].split('/', 1)[0]
+            if filetype != 'video' and filetype != 'audio':
                 continue
-
+            
+            foundfiles = True
             filedata = {
                 'id': file['id'],
                 'title': file['name'].rsplit('.', 1)[0],
@@ -54,6 +56,9 @@ class GofileIE(InfoExtractor):
                 'release_timestamp': file['createTime']
             }
             yield filedata
+
+        if not foundfiles:
+            self.raise_no_formats('No video/audio found at provided URL.', expected=True)
 
         # Set guest accountToken cookie to allow downloads
         self._set_cookie('gofile.io', 'accountToken', accountToken)
