@@ -39,12 +39,6 @@ class {name}({bases}):
     _module = '{module}'
 '''
 
-make_valid_template = '''
-    @classmethod
-    def _make_valid_url(cls):
-        return {valid_url!r}
-'''
-
 
 def get_base_name(base):
     if base is InfoExtractor:
@@ -61,15 +55,14 @@ def build_lazy_ie(ie, name):
         bases=', '.join(map(get_base_name, ie.__bases__)),
         module=ie.__module__)
     valid_url = getattr(ie, '_VALID_URL', None)
+    if not valid_url and hasattr(ie, '_make_valid_url'):
+        valid_url = ie._make_valid_url()
     if valid_url:
         s += f'    _VALID_URL = {valid_url!r}\n'
     if not ie._WORKING:
         s += '    _WORKING = False\n'
     if ie.suitable.__func__ is not InfoExtractor.suitable.__func__:
         s += f'\n{getsource(ie.suitable)}'
-    if hasattr(ie, '_make_valid_url'):
-        # search extractors
-        s += make_valid_template.format(valid_url=ie._make_valid_url())
     return s
 
 

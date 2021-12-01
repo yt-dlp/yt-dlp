@@ -17,6 +17,11 @@ class TrovoBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?trovo\.live/'
     _HEADERS = {'Origin': 'https://trovo.live'}
 
+    def _call_api(self, video_id, query=None, data=None):
+        return self._download_json(
+            'https://gql.trovo.live/', video_id, query=query, data=data,
+            headers={'Accept': 'application/json'})
+
     def _extract_streamer_info(self, data):
         streamer_info = data.get('streamerInfo') or {}
         username = streamer_info.get('userName')
@@ -32,9 +37,8 @@ class TrovoIE(TrovoBaseIE):
 
     def _real_extract(self, url):
         username = self._match_id(url)
-        live_info = self._download_json(
-            'https://gql.trovo.live/', username, query={
-                'query': '''{
+        live_info = self._call_api(username, query={
+            'query': '''{
   getLiveInfo(params: {userName: "%s"}) {
     isLive
     programInfo {
@@ -53,7 +57,7 @@ class TrovoIE(TrovoBaseIE):
     }
   }
 }''' % username,
-            })['data']['getLiveInfo']
+        })['data']['getLiveInfo']
         if live_info.get('isLive') == 0:
             raise ExtractorError('%s is offline' % username, expected=True)
         program_info = live_info['programInfo']
@@ -104,6 +108,7 @@ class TrovoVodIE(TrovoBaseIE):
             'comments': 'mincount:8',
             'categories': ['Grand Theft Auto V'],
         },
+        'skip': '404'
     }, {
         'url': 'https://trovo.live/clip/lc-5285890810184026005',
         'only_matching': True,
@@ -111,15 +116,14 @@ class TrovoVodIE(TrovoBaseIE):
 
     def _real_extract(self, url):
         vid = self._match_id(url)
-        resp = self._download_json(
-            'https://gql.trovo.live/', vid, data=json.dumps([{
-                'query': '''{
+        resp = self._call_api(vid, data=json.dumps([{
+            'query': '''{
   batchGetVodDetailInfo(params: {vids: ["%s"]}) {
     VodDetailInfos
   }
 }''' % vid,
-            }, {
-                'query': '''{
+        }, {
+            'query': '''{
   getCommentList(params: {appInfo: {postID: "%s"}, pageSize: 1000000000, preview: {}}) {
     commentList {
       author {
@@ -133,9 +137,7 @@ class TrovoVodIE(TrovoBaseIE):
     }
   }
 }''' % vid,
-            }]).encode(), headers={
-                'Content-Type': 'application/json',
-            })
+        }]).encode())
         vod_detail_info = resp[0]['data']['batchGetVodDetailInfo']['VodDetailInfos'][vid]
         vod_info = vod_detail_info['vodInfo']
         title = vod_info['title']
@@ -197,7 +199,7 @@ class TrovoVodIE(TrovoBaseIE):
         return info
 
 
-class TrovoChannelBaseIE(InfoExtractor):
+class TrovoChannelBaseIE(TrovoBaseIE):
     def _get_vod_json(self, page, uid):
         raise NotImplementedError('This method must be implemented by subclasses')
 
@@ -215,7 +217,7 @@ class TrovoChannelBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         id = self._match_id(url)
-        uid = str(self._download_json('https://gql.trovo.live/', id, query={
+        uid = str(self._call_api(id, query={
             'query': '{getLiveInfo(params:{userName:"%s"}){streamerInfo{uid}}}' % id
         })['data']['getLiveInfo']['streamerInfo']['uid'])
         return self.playlist_result(self._entries(uid), playlist_id=uid)
@@ -237,7 +239,7 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
     _TYPE = 'video'
 
     def _get_vod_json(self, page, uid):
-        return self._download_json('https://gql.trovo.live/', uid, query={
+        return self._call_api(uid, query={
             'query': self._QUERY % (page, uid)
         })['data']['getChannelLtvVideoInfos']
 
@@ -258,6 +260,6 @@ class TrovoChannelClipIE(TrovoChannelBaseIE):
     _TYPE = 'clip'
 
     def _get_vod_json(self, page, uid):
-        return self._download_json('https://gql.trovo.live/', uid, query={
+        return self._call_api(uid, query={
             'query': self._QUERY % (page, uid)
         })['data']['getChannelClipVideoInfos']

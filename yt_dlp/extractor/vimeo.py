@@ -119,10 +119,9 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         self._set_cookie('vimeo.com', name, value)
 
     def _vimeo_sort_formats(self, formats):
-        # Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
-        # at the same time without actual units specified. This lead to wrong sorting.
-        # But since yt-dlp prefers 'res,fps' anyway, 'field_preference' is not needed
-        self._sort_formats(formats)
+        # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
+        # at the same time without actual units specified.
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source'))
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
@@ -140,6 +139,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             formats.append({
                 'url': video_url,
                 'format_id': 'http-%s' % f.get('quality'),
+                'source_preference': 10,
                 'width': int_or_none(f.get('width')),
                 'height': int_or_none(f.get('height')),
                 'fps': int_or_none(f.get('fps')),

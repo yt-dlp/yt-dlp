@@ -2575,10 +2575,6 @@ class PostProcessingError(YoutubeDLError):
     indicate an error in the postprocessing task.
     """
 
-    def __init__(self, msg):
-        super(PostProcessingError, self).__init__(msg)
-        self.msg = msg
-
 
 class DownloadCancelled(YoutubeDLError):
     """ Exception raised when the download queue should be interrupted """
@@ -2600,9 +2596,20 @@ class MaxDownloadsReached(DownloadCancelled):
     msg = 'Maximum number of downloads reached, stopping due to --max-downloads'
 
 
-class ThrottledDownload(YoutubeDLError):
+class ReExtractInfo(YoutubeDLError):
+    """ Video info needs to be re-extracted. """
+
+    def __init__(self, msg, expected=False):
+        super().__init__(msg)
+        self.expected = expected
+
+
+class ThrottledDownload(ReExtractInfo):
     """ Download speed below --throttled-rate. """
     msg = 'The download speed is below throttle limit'
+
+    def __init__(self, msg):
+        super().__init__(msg, expected=False)
 
 
 class UnavailableVideoError(YoutubeDLError):
@@ -6545,10 +6552,11 @@ def traverse_obj(
     return default
 
 
+# Deprecated
 def traverse_dict(dictn, keys, casesense=True):
-    ''' For backward compatibility. Do not use '''
-    return traverse_obj(dictn, keys, casesense=casesense,
-                        is_user_input=True, traverse_string=True)
+    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
+                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
+    return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
 def variadic(x, allowed_types=(str, bytes)):

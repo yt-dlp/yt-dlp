@@ -41,6 +41,7 @@ from .external import (
 
 PROTOCOL_MAP = {
     'rtmp': RtmpFD,
+    'rtmpe': RtmpFD,
     'rtmp_ffmpeg': FFmpegFD,
     'm3u8_native': HlsFD,
     'm3u8': FFmpegFD,

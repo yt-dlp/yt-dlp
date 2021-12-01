@@ -64,13 +64,12 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 
 # NEW FEATURES
-The major new features from the latest release of [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc) are:
+
+* Based on **youtube-dl 2021.06.06 [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)** and **youtube-dlc 2020.11.11-3 [commit/98e248f](https://github.com/blackjack4494/yt-dlc/commit/98e248faa49e69d795abc60f7cdefcf91e2612aa)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
 
 * **[SponsorBlock Integration](#sponsorblock-options)**: You can mark/remove sponsor sections in youtube videos by utilizing the [SponsorBlock](https://sponsor.ajay.app) API
 
 * **[Format Sorting](#sorting-formats)**: The default format sorting options have been changed so that higher resolution and better codecs will be now preferred instead of simply using larger bitrate. Furthermore, you can now specify the sort order using `-S`. This allows for much easier format selection than what is possible by simply using `--format` ([examples](#format-selection-examples))
-
-* **Merged with youtube-dl [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)**: (v2021.06.06) You get all the latest features and patches of [youtube-dl](https://github.com/ytdl-org/youtube-dl) in addition to all the features of [youtube-dlc](https://github.com/blackjack4494/yt-dlc)
 
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico improvements are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
@@ -92,11 +91,7 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Aria2c with HLS/DASH**: You can use `aria2c` as the external downloader for DASH(mpd) and HLS(m3u8) formats
 
-* **New extractors**: 17live, 3speak, amazonstore, animelab, audius, bandcampmusic, bannedvideo, biliintl, bitwave.tv, blackboardcollaborate, cam4, cgtn, chingari, ciscowebex, damtomo, discoveryplus.in, douyin, epicon, euscreen, fancode, filmmodu, gab, gedi, gettr, gopro, gotostage, gronkh, koo, manototv, mediaite, mediaklikk, mediasetshow, mediathek, microsoftstream, mildom, mirrativ, mlsscoccer, mtv.it, musescore, mxplayershow, n1, nebula, nfhsnetwork, novaplay, nzherald, olympics replay, on24, openrec, parlview-AU, peloton, planetmarathi, pluto.tv, polsatgo, polskieradio, pornflip, projectveritas, radiko, radiokapital, radlive, raiplayradio, rcs, rctiplus, saitosan, sciencechannel, shemaroome, skynews-AU, skynews-story, sovietscloset, startv, streamanity, telemundo, theta, theta, tokentube, tv2huseries, ukcolumn, utreon, veo, vidiolive, vidiopremier, voicy, vupload, whowatch, wim.tv, wppilot, youtube webarchive, zee5, zen.yandex
-
-* **New playlist extractors**: bilibili categories, eroprofile albums, hotstar series, hungama albums, newgrounds user, niconico search/users, paramountplus series, patreon user, peertube playlist/channels, roosterteeth series, sonyliv series, tiktok user, trovo channels, voot series
-
-* **Fixed/improved extractors**: 7plus, 9now, afreecatv, akamai, aljazeera, amcnetworks, animalplanet, archive.org, arte, atv, bbc, bilibili, bitchute, bravotv, camtube, cbc, cda, ceskatelevize, chingari, comedycentral, coub, crackle, crunchyroll, curiositystream, diynetwork, dw, eroprofile, facebook, francetv, funimation, globo, hearthisatie, hidive, hotstar, hungama, imdb, ina, instagram, iprima, itv, iwara, kakao, la7, linkedinlearning, linuxacadamy, mediaset, mediasite, motherless, mxplayer, nbcolympics, ndr, newgrounds, niconico, nitter, nova, nrk, nuvid, oreilly, paramountplus, parliamentlive, patreon, pbs, peertube, plutotv, polskieradio, pornhub, reddit, redtube, rmcdecouverte, roosterteeth, rtp, rumble, saml verizon login, skyit, sonyliv, soundcloud, southparkde, spankbang, spreaker, streamable, tagesschau, tbs, tennistv, tenplay, tiktok, tubi, tv2, tv2hu, tv5mondeplus, tvp, twitcasting, vh1, viafree, videa, vidio, vidme, viewlift, viki, vimeo, viu, vk, vlive, vrt, wakanim, xhamster, yahoo
+* **New and fixed extractors**: Many new extractors have been added and a lot of exisiting ones have been fixed. See the [changelog](Changelog.md) or the [list of supported sites](supportedsites.md)
 
 * **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN
 
@@ -108,21 +103,15 @@ The major new features from the latest release of [blackjack4494/yt-dlc](https:/
 
 * **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
 
-* **Other new options**: `--print`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Other new options**: Many new options have been added such as `--print`, `--wait-for-video`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
-* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection) etc
+* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio etc
 
 * **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
 * **Self-updater**: The releases can be updated using `yt-dlp -U`
 
-
 See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/commits) for the full list of changes
-
-
-**PS**: Some of these changes are already in youtube-dlc, but are still unreleased. See [this](Changelog.md#unreleased-changes-in-blackjack4494yt-dlc) for details
-
-If you are coming from [youtube-dl](https://github.com/ytdl-org/youtube-dl), the amount of changes are very large. Compare [options](#options) and [supported sites](supportedsites.md) with youtube-dl's to get an idea of the massive number of features/patches [youtube-dlc](https://github.com/blackjack4494/yt-dlc) has accumulated.
 
 ### Differences in default behavior
 
@@ -288,7 +277,7 @@ Then simply run `make`. You can also run `make yt-dlp` instead to compile only t
 
 **Note**: In either platform, `devscripts/update-version.py` can be used to automatically update the version number
 
-You can also fork the project on github and push it to a release branch in your fork for the [build workflow](https://github.com/yt-dlp/yt-dlp/blob/master/.github/workflows/build.yml) to automatically make a release for you
+You can also fork the project on github and run your fork's [build workflow](.github/workflows/build.yml) to automatically build a release
 
 # USAGE AND OPTIONS
 
@@ -340,6 +329,10 @@ You can also fork the project on github and push it to a release branch in your 
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
     --no-flat-playlist               Extract the videos of a playlist
+    --wait-for-video MIN[-MAX]       Wait for scheduled streams to become
+                                     available. Pass the minimum number of
+                                     seconds (or range) to wait between retries
+    --no-wait-for-video              Do not wait for scheduled streams (default)
     --mark-watched                   Mark videos watched (even with --simulate).
                                      Currently only supported for YouTube
     --no-mark-watched                Do not mark videos watched (default)
@@ -389,7 +382,6 @@ You can also fork the project on github and push it to a release branch in your 
                                      specify range: "--playlist-items
                                      1-3,7,10-13", it will download the videos
                                      at index 1, 2, 3, 7, 10, 11, 12 and 13
-    --max-downloads NUMBER           Abort after downloading NUMBER files
     --min-filesize SIZE              Do not download any videos smaller than
                                      SIZE (e.g. 50k or 44.6m)
     --max-filesize SIZE              Do not download any videos larger than SIZE
@@ -431,13 +423,18 @@ You can also fork the project on github and push it to a release branch in your 
     --download-archive FILE          Download only videos not listed in the
                                      archive file. Record the IDs of all
                                      downloaded videos in it
+    --no-download-archive            Do not use archive file (default)
+    --max-downloads NUMBER           Abort after downloading NUMBER files
     --break-on-existing              Stop the download process when encountering
                                      a file that is in the archive
     --break-on-reject                Stop the download process when encountering
                                      a file that has been filtered out
+    --break-per-input                Make --break-on-existing and --break-on-
+                                     reject act only on the current input URL
+    --no-break-per-input             --break-on-existing and --break-on-reject
+                                     terminates the entire download queue
     --skip-playlist-after-errors N   Number of allowed failures until the rest
                                      of the playlist is skipped
-    --no-download-archive            Do not use archive file (default)
 
 ## Download Options:
     -N, --concurrent-fragments N     Number of fragments of a dash/hlsnative
@@ -588,8 +585,8 @@ You can also fork the project on github and push it to a release branch in your 
     --load-info-json FILE            JSON file containing the video information
                                      (created with the "--write-info-json"
                                      option)
-    --cookies FILE                   File to read cookies from and dump cookie
-                                     jar in
+    --cookies FILE                   Netscape formatted file to read cookies
+                                     from and dump cookie jar in
     --no-cookies                     Do not read/dump cookies from/to file
                                      (default)
     --cookies-from-browser BROWSER[:PROFILE]
@@ -1204,7 +1201,7 @@ To use percent literals in an output template use `%%`. To output to stdout use 
 
 The current default template is `%(title)s [%(id)s].%(ext)s`.
 
-In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title:
+In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title.
 
 #### Output template and Windows batch files
 
@@ -1614,7 +1611,7 @@ with YoutubeDL(ydl_opts) as ydl:
     ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
 ```
 
-Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L154-L452).
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L162).
 
 Here's a more complete example demonstrating various functionality:
 
@@ -1785,7 +1782,7 @@ These are aliases that are no longer documented for various reasons
     --yes-overwrites                 --force-overwrites
 
 #### Sponskrub Options
-Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of `--sponsorblock`
+Support for [SponSkrub](https://github.com/faissaloo/SponSkrub) has been deprecated in favor of the `--sponsorblock` options
 
     --sponskrub                      --sponsorblock-mark all
     --no-sponskrub                   --no-sponsorblock

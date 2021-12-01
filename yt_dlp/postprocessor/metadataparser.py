@@ -16,7 +16,7 @@ class MetadataParserPP(PostProcessor):
         for f in actions:
             action = f[0]
             assert isinstance(action, self.Actions)
-            self._actions.append(getattr(self, action._value_)(*f[1:]))
+            self._actions.append(getattr(self, action.value)(*f[1:]))
 
     @classmethod
     def validate_action(cls, action, *data):
@@ -26,7 +26,7 @@ class MetadataParserPP(PostProcessor):
         '''
         if not isinstance(action, cls.Actions):
             raise ValueError(f'{action!r} is not a valid action')
-        getattr(cls, action._value_)(cls, *data)
+        getattr(cls, action.value)(cls, *data)
 
     @staticmethod
     def field_to_template(tmpl):
@@ -105,12 +105,17 @@ class MetadataFromFieldPP(MetadataParserPP):
         return (
             cls.Actions.INTERPRET,
             match.group('in').replace('\\:', ':'),
-            match.group('out'))
+            match.group('out'),
+        )
 
     def __init__(self, downloader, formats):
-        MetadataParserPP.__init__(self, downloader, [self.to_action(f) for f in formats])
+        super().__init__(downloader, [self.to_action(f) for f in formats])
 
 
-class MetadataFromTitlePP(MetadataParserPP):  # for backward compatibility
+# Deprecated
+class MetadataFromTitlePP(MetadataParserPP):
     def __init__(self, downloader, titleformat):
-        MetadataParserPP.__init__(self, downloader, [(self.Actions.INTERPRET, 'title', titleformat)])
+        super().__init__(downloader, [(self.Actions.INTERPRET, 'title', titleformat)])
+        self.deprecation_warning(
+            'yt_dlp.postprocessor.MetadataFromTitlePP is deprecated '
+            'and may be removed in a future version. Use yt_dlp.postprocessor.MetadataFromFieldPP instead')

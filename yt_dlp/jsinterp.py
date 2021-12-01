@@ -25,6 +25,8 @@ _ASSIGN_OPERATORS.append(('=', (lambda cur, right: right)))
 
 _NAME_RE = r'[a-zA-Z_$][a-zA-Z_$0-9]*'
 
+_MATCHING_PARENS = dict(zip('({[', ')}]'))
+
 
 class JS_Break(ExtractorError):
     def __init__(self):
@@ -88,26 +90,24 @@ class JSInterpreter(object):
     def _seperate(expr, delim=',', max_split=None):
         if not expr:
             return
-        parens = {'(': 0, '{': 0, '[': 0, ']': 0, '}': 0, ')': 0}
-        start, splits, pos, max_pos = 0, 0, 0, len(delim) - 1
+        counters = {k: 0 for k in _MATCHING_PARENS.values()}
+        start, splits, pos, delim_len = 0, 0, 0, len(delim) - 1
         for idx, char in enumerate(expr):
-            if char in parens:
-                parens[char] += 1
-            is_in_parens = (parens['['] - parens[']']
-                            or parens['('] - parens[')']
-                            or parens['{'] - parens['}'])
-            if char == delim[pos] and not is_in_parens:
-                if pos == max_pos:
-                    pos = 0
-                    yield expr[start: idx - max_pos]
-                    start = idx + 1
-                    splits += 1
-                    if max_split and splits >= max_split:
-                        break
-                else:
-                    pos += 1
-            else:
+            if char in _MATCHING_PARENS:
+                counters[_MATCHING_PARENS[char]] += 1
+            elif char in counters:
+                counters[char] -= 1
+            if char != delim[pos] or any(counters.values()):
                 pos = 0
+                continue
+            elif pos != delim_len:
+                pos += 1
+                continue
+            yield expr[start: idx - delim_len]
+            start, pos = idx + 1, 0
+            splits += 1
+            if max_split and splits >= max_split:
+                break
         yield expr[start:]
 
     @staticmethod

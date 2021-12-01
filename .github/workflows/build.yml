@@ -1,14 +1,11 @@
 name: Build
-
-on:
-  push:
-    branches:
-      - release
+on: workflow_dispatch
 
 jobs:
   build_unix:
     runs-on: ubuntu-latest
     outputs:
+      version_suffix: ${{ steps.version_suffix.outputs.version_suffix }}
       ytdlp_version: ${{ steps.bump_version.outputs.ytdlp_version }}
       upload_url: ${{ steps.create_release.outputs.upload_url }}
       sha256_bin: ${{ steps.sha256_bin.outputs.sha256_bin }}
@@ -26,23 +23,32 @@ jobs:
           python-version: '3.8'
     - name: Install packages
       run: sudo apt-get -y install zip pandoc man
+    - name: Set version suffix
+      id: version_suffix
+      env:
+        PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
+      if: "env.PUSH_VERSION_COMMIT == ''"
+      run: echo ::set-output name=version_suffix::$(date -u +"%H%M%S")
     - name: Bump version
       id: bump_version
       run: |
-        python devscripts/update-version.py
+        python devscripts/update-version.py ${{ steps.version_suffix.outputs.version_suffix }}
         make issuetemplates
-    - name: Print version
-      run: echo "${{ steps.bump_version.outputs.ytdlp_version }}"
-    - name: Update master
-      id: push_update
+    - name: Push to release
+      id: push_release
       run: |
-        git config --global user.email "${{ github.event.pusher.email }}"
-        git config --global user.name "${{ github.event.pusher.name }}"
+        git config --global user.name github-actions
+        git config --global user.email github-actions@example.com
         git add -u
-        git commit -m "[version] update" -m ":ci skip all"
-        git pull --rebase origin ${{ github.event.repository.master_branch }}
-        git push origin ${{ github.event.ref }}:${{ github.event.repository.master_branch }}
+        git commit -m "[version] update" -m "Created by: ${{ github.event.sender.login }}" -m ":ci skip all"
+        git push origin --force ${{ github.event.ref }}:release
         echo ::set-output name=head_sha::$(git rev-parse HEAD)
+    - name: Update master
+      id: push_master
+      env:
+        PUSH_VERSION_COMMIT: ${{ secrets.PUSH_VERSION_COMMIT }}
+      if: "env.PUSH_VERSION_COMMIT != ''"
+      run: git push origin ${{ github.event.ref }}
     - name: Get Changelog
       id: get_changelog
       run: |
@@ -113,7 +119,7 @@ jobs:
       with:
         tag_name: ${{ steps.bump_version.outputs.ytdlp_version }}
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
-        commitish: ${{ steps.push_update.outputs.head_sha }}
+        commitish: ${{ steps.push_release.outputs.head_sha }}
         body: |
           #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
 
@@ -146,7 +152,6 @@ jobs:
   build_macos:
     runs-on: macos-11
     needs: build_unix
-    if: False
     outputs:
       sha256_macos: ${{ steps.sha256_macos.outputs.sha256_macos }}
       sha512_macos: ${{ steps.sha512_macos.outputs.sha512_macos }}
@@ -156,10 +161,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     # In order to create a universal2 application, the version of python3 in /usr/bin has to be used
+    # Pyinstaller is pinned to 4.5.1 because the builds are failing in 4.6, 4.7
     - name: Install Requirements
       run: |
           brew install coreutils
-          /usr/bin/python3 -m pip install -U --user pip Pyinstaller mutagen pycryptodomex websockets
+          /usr/bin/python3 -m pip install -U --user pip Pyinstaller==4.5.1 mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
       run: /usr/bin/python3 devscripts/update-version.py
@@ -233,7 +239,9 @@ jobs:
           pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
-      run: python devscripts/update-version.py
+      env:
+        version_suffix: ${{ needs.build_unix.outputs.version_suffix }}
+      run: python devscripts/update-version.py ${{ env.version_suffix }}
     - name: Build lazy extractors
       id: lazy_extractors
       run: python devscripts/make_lazy_extractors.py
@@ -320,7 +328,9 @@ jobs:
           pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
     - name: Bump version
       id: bump_version
-      run: python devscripts/update-version.py
+      env:
+        version_suffix: ${{ needs.build_unix.outputs.version_suffix }}
+      run: python devscripts/update-version.py ${{ env.version_suffix }}
     - name: Build lazy extractors
       id: lazy_extractors
       run: python devscripts/make_lazy_extractors.py
@@ -345,7 +355,7 @@ jobs:
 
   finish:
     runs-on: ubuntu-latest
-    needs: [build_unix, build_windows, build_windows32]
+    needs: [build_unix, build_windows, build_windows32, build_macos]
 
     steps:
     - name: Make SHA2-256SUMS file
@@ -365,8 +375,8 @@ jobs:
         echo "${{ env.SHA256_PY2EXE }}  yt-dlp_min.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_WIN32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
         echo "${{ env.SHA256_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-256SUMS
-      #  echo "${{ env.SHA256_MACOS }}  yt-dlp_macos" >> SHA2-256SUMS
-      #  echo "${{ env.SHA256_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-256SUMS
+        echo "${{ env.SHA256_MACOS }}  yt-dlp_macos" >> SHA2-256SUMS
+        echo "${{ env.SHA256_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-256SUMS
     - name: Upload 256SUMS file
       id: upload-sums
       uses: actions/upload-release-asset@v1
@@ -394,8 +404,8 @@ jobs:
         echo "${{ env.SHA512_WIN_ZIP }}  yt-dlp_win.zip" >> SHA2-512SUMS
         echo "${{ env.SHA512_PY2EXE }}  yt-dlp_min.exe" >> SHA2-512SUMS
         echo "${{ env.SHA512_WIN32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS
-      #  echo "${{ env.SHA512_MACOS }}  yt-dlp_macos" >> SHA2-512SUMS
-      #  echo "${{ env.SHA512_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-512SUMS
+        echo "${{ env.SHA512_MACOS }}  yt-dlp_macos" >> SHA2-512SUMS
+        echo "${{ env.SHA512_MACOS_ZIP }}  yt-dlp_macos.zip" >> SHA2-512SUMS
     - name: Upload 512SUMS file
       id: upload-512sums
       uses: actions/upload-release-asset@v1
