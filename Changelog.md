@@ -38,7 +38,7 @@
 * Ensure directory exists when checking formats
 * Ensure path for link files exists by [Zirro](https://github.com/Zirro)
 * Ensure same config file is not loaded multiple times
-* Fix 'postprocessor_hooks`
+* Fix `postprocessor_hooks`
 * Fix `--break-on-archive` when pre-checking
 * Fix `--check-formats` for `mhtml`
 * Fix `--load-info-json` of playlists with failed entries
@@ -110,10 +110,9 @@
 * [youtube] Decrypt n-sig for URLs with `ratebypass`
 * [youtube] Minor improvement to format sorting
 * [cleanup] Add deprecation warnings
-* [cleanup] Minor cleanup
-* [cleanup] Misc cleanup
 * [cleanup] Refactor `JSInterpreter._seperate`
 * [Cleanup] Remove some unnecessary groups in regexes by [Ashish0804](https://github.com/Ashish0804)
+* [cleanup] Misc cleanup
 
 
 ### 2021.11.10.1
@@ -1476,6 +1475,7 @@
 
 **Note**: All uncredited changes above this point are authored by [pukkandan](https://github.com/pukkandan)
 
+### Unreleased changes in [blackjack4494/yt-dlc](https://github.com/blackjack4494/yt-dlc)
 * Updated to youtube-dl release 2020.11.26 by [pukkandan](https://github.com/pukkandan)
 * Youtube improvements by [pukkandan](https://github.com/pukkandan)
     * Implemented all Youtube Feeds (ytfav, ytwatchlater, ytsubs, ythistory, ytrec) and SearchURL
