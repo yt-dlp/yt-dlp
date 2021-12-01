@@ -36,7 +36,8 @@ class TrueIDIE(InfoExtractor):
         },
         'params': {
             'format': 'bv'
-        }
+        },
+        'expected_warnings': ['Video is geo restricted.']
     }, {
         'url': 'https://trueid.id/series/zZOBVPb62EwR/qXY73rwyl7oj/one-piece-ep-1/',
         'md5': '1c6d976049bc3c89a8a25aed2c3fb081',
@@ -53,19 +54,20 @@ class TrueIDIE(InfoExtractor):
             'age_limit': 7,
             'cast': ['Kounosuke Uda', 'Junji Shimizu'],
             'thumbnail': 'https://cms.dmpcdn.com/movie/2021/01/13/f84e9e70-5562-11eb-9fe2-dd6c2099a468_original.png',
-            'duration_string': '23:00',
             'upload_date': '20210112',
             'release_date': '20210131',
         },
         'params': {
             'format': 'bv'
-        }
+        },
+        'expected_warnings': ['Video is geo restricted.']
     }, {
         'url': 'https://vn.trueid.net/series/7DNPM7Bpa9wv/pwLgEQ4Xbda2/haikyu-vua-bong-chuyen-phan-1/',
         'info_dict': {
             'id': 'pwLgEQ4Xbda2',
             'ext': 'mp4',
             'title': 'Haikyu!!: Vua Bóng Chuyền Phần 1 - Tập 1',
+            'display_id': 'haikyu-vua-bong-chuyen-phan-1-tap-1',
             'description': 'md5:0374dd44d247799169449ee30cca963a',
             'timestamp': 1629270901,
             'categories': ['Anime', 'Phim Hài', 'Phim Học Đường', 'Phim Thể Thao', 'Shounen'],
@@ -78,7 +80,8 @@ class TrueIDIE(InfoExtractor):
         },
         'params': {
             'format': 'bv'
-        }
+        },
+        'expected_warnings': ['Video is geo restricted.']
     }, {
         'url': 'https://trueid.ph/series/l8rvvAw7Jwv8/l8rvvAw7Jwv8/naruto-trailer/',
         'only_matching': True,
