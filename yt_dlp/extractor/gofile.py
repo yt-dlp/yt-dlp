@@ -1,7 +1,8 @@
 # coding: utf-8
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError
+    ExtractorError,
+    try_get
 )
 
 
@@ -33,7 +34,7 @@ class GofileIE(InfoExtractor):
         if status != "ok":
             raise ExtractorError('Received error from service, status: %s\n' % status, expected=True)
 
-        contents = filelist['data']['contents']
+        contents = try_get(filelist, lambda x: x['data']['contents'], dict)
 
         for _, file in contents.items():
             try:
