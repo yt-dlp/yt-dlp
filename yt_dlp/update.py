@@ -109,14 +109,13 @@ def run_update(ydl):
 
     err = is_non_updateable()
     if err:
-        ydl.to_screen(f'Latest version: {version_id}, Current version: {__version__}')
         return report_error(err, True)
 
     # sys.executable is set to the full pathname of the exe-file for py2exe
     # though symlinks are not followed so that we need to do this manually
     # with help of realpath
     filename = compat_realpath(sys.executable if hasattr(sys, 'frozen') else sys.argv[0])
-    ydl.to_screen(f'Current version {__version__}; Build Hash {calc_sha256sum(filename)}')
+    ydl.to_screen(f'Current Build Hash {calc_sha256sum(filename)}')
     ydl.to_screen(f'Updating to version {version_id} ...')
 
     version_labels = {

@@ -327,7 +327,7 @@ class YoutubeDL(object):
     bidi_workaround:   Work around buggy terminals without bidirectional text
                        support, using fridibi
     debug_printtraffic:Print out sent and received HTTP traffic
-    include_ads:       Download ads as well
+    include_ads:       Download ads as well (deprecated)
     default_search:    Prepend this string if an input url is not valid.
                        'auto' for elaborate guessing
     encoding:          Use this encoding instead of the system-specified.
