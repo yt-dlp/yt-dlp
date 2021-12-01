@@ -33,7 +33,7 @@ class GofileIE(InfoExtractor):
 
         status = filelist['status']
         if status != 'ok':
-            raise ExtractorError('Received error from service, status: %s\n' % status, expected=True)
+            raise ExtractorError('Received error from service, status: %s' % status, expected=True)
 
         contents = try_get(filelist, lambda x: x['data']['contents'], dict)
         foundfiles = False
@@ -49,8 +49,8 @@ class GofileIE(InfoExtractor):
                 'id': file['id'],
                 'title': file['name'].rsplit('.', 1)[0],
                 'url': file['directLink'],
-                'filesize': file['size'],
-                'release_timestamp': file['createTime']
+                'filesize': file.get('size'),
+                'release_timestamp': file.get('createTime')
             }
             yield filedata
 
