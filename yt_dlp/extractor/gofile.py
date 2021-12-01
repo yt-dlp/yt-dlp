@@ -1,7 +1,6 @@
 # coding: utf-8
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     try_get
 )
 
@@ -19,7 +18,6 @@ class GofileIE(InfoExtractor):
         }
     }]
 
-    # Create all entries
     def _entries(self, file_id):
 
         # Create guest account
@@ -37,17 +35,14 @@ class GofileIE(InfoExtractor):
         contents = try_get(filelist, lambda x: x['data']['contents'], dict)
 
         for _, file in contents.items():
-            try:
-                filedata = {
-                    'id': file['id'],
-                    'title': file['name'],
-                    'url': file['directLink'],
-                    'filesize': file['size'],
-                    'release_timestamp': file['createTime']
-                }
-                yield filedata
-            except ExtractorError as e:
-                raise ExtractorError(e)
+            filedata = {
+                'id': file['id'],
+                'title': file['name'],
+                'url': file['directLink'],
+                'filesize': file['size'],
+                'release_timestamp': file['createTime']
+            }
+            yield filedata
 
         # Set guest accountToken cookie to allow downloads
         self._set_cookie('gofile.io', 'accountToken', accountToken)
