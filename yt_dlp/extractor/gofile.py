@@ -38,7 +38,7 @@ class GofileIE(InfoExtractor):
         contents = try_get(filelist, lambda x: x['data']['contents'], dict)
         foundfiles = False
 
-        for _, file in contents.items():
+        for file in contents.values():
 
             filetype = file['mimetype'].split('/', 1)[0]
             if filetype != 'video' and filetype != 'audio':
