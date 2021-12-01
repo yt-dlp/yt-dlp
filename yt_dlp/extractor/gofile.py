@@ -10,13 +10,18 @@ class GofileIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?gofile\.io/d/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://gofile.io/d/AMZyDw',
-        'md5': '774879ad31bc62c23269da8bf490d025',
         'info_dict': {
-            'id': 'de571ac1-5edc-42e2-8ec2-bdac83ad4a31',
-            'filesize': 928116,
-            'ext': 'mp4',
-            'title': 'nuuh'
-        }
+            'id': 'AMZyDw',
+        },
+        'playlist_mincount': 2,
+        'playlist': [{
+            'info_dict': {
+                'id': 'de571ac1-5edc-42e2-8ec2-bdac83ad4a31',
+                'filesize': 928116,
+                'ext': 'mp4',
+                'title': 'nuuh'
+            }
+        }]
     }]
 
     def _entries(self, file_id):
@@ -28,7 +33,6 @@ class GofileIE(InfoExtractor):
         # Get file list
         requesturl = f'https://api.gofile.io/getContent?contentId={file_id}&token={accountToken}&websiteToken=websiteToken&cache=true'
         filelist, _ = self._download_json_handle(requesturl, 'Gofile', note='Getting filelist')
-
         status = filelist['status']
         if status != "ok":
             raise ExtractorError('Received error from service, status: %s\n' % status, expected=True)
