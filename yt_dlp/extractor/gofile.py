@@ -15,7 +15,7 @@ class GofileIE(InfoExtractor):
             'id': 'de571ac1-5edc-42e2-8ec2-bdac83ad4a31',
             'filesize': 928116,
             'ext': 'mp4',
-            'title': 'nuuh.mp4'
+            'title': 'nuuh'
         }
     }]
 
@@ -38,7 +38,7 @@ class GofileIE(InfoExtractor):
         for _, file in contents.items():
             filedata = {
                 'id': file['id'],
-                'title': file['name'],
+                'title': file['name'].rsplit('.', 1)[0],
                 'url': file['directLink'],
                 'filesize': file['size'],
                 'release_timestamp': file['createTime']
