@@ -49,6 +49,7 @@ class FragmentFD(FileDownloader):
                         Skip unavailable fragments (DASH and hlsnative only)
     keep_fragments:     Keep downloaded fragments on disk after downloading is
                         finished
+    concurrent_fragment_downloads:  The number of threads to use for native hls and dash downloads
     _no_ytdl_file:      Don't use .ytdl file
 
     For each incomplete fragment download yt-dlp keeps on disk a special

@@ -346,7 +346,8 @@ class BiliBiliIE(InfoExtractor):
     def _extract_anthology_entries(self, bv_id, video_id, webpage):
         title = self._html_search_regex(
             (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
-             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
+             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>',
+             r'<title>(?P<title>.+?)</title>'), webpage, 'title',
             group='title')
         json_data = self._download_json(
             f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',

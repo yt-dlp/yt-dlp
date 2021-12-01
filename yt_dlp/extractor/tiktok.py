@@ -438,6 +438,7 @@ class TikTokUserIE(TikTokBaseIE):
                     **self._parse_aweme_video_app(video),
                     'ie_key': TikTokIE.ie_key(),
                     'extractor': 'TikTok',
+                    'webpage_url': f'https://tiktok.com/@{user_id}/video/{video["aweme_id"]}',
                 }
             if not post_list.get('has_more'):
                 break

@@ -2459,7 +2459,14 @@ def bug_reports_message(before=';'):
 
 class YoutubeDLError(Exception):
     """Base exception for YoutubeDL errors."""
-    pass
+    msg = None
+
+    def __init__(self, msg=None):
+        if msg is not None:
+            self.msg = msg
+        elif self.msg is None:
+            self.msg = type(self).__name__
+        super().__init__(self.msg)
 
 
 network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
@@ -2544,7 +2551,7 @@ class EntryNotInPlaylist(YoutubeDLError):
     This exception will be thrown by YoutubeDL when a requested entry
     is not found in the playlist info_dict
     """
-    pass
+    msg = 'Entry not found in info'
 
 
 class SameFileError(YoutubeDLError):
@@ -2553,7 +2560,12 @@ class SameFileError(YoutubeDLError):
     This exception will be thrown by FileDownloader objects if they detect
     multiple files would have to be downloaded to the same file on disk.
     """
-    pass
+    msg = 'Fixed output name but more than one file to download'
+
+    def __init__(self, filename=None):
+        if filename is not None:
+            self.msg += f': {filename}'
+        super().__init__(self.msg)
 
 
 class PostProcessingError(YoutubeDLError):
@@ -2563,19 +2575,10 @@ class PostProcessingError(YoutubeDLError):
     indicate an error in the postprocessing task.
     """
 
-    def __init__(self, msg):
-        super(PostProcessingError, self).__init__(msg)
-        self.msg = msg
-
 
 class DownloadCancelled(YoutubeDLError):
     """ Exception raised when the download queue should be interrupted """
     msg = 'The download was cancelled'
-
-    def __init__(self, msg=None):
-        if msg is not None:
-            self.msg = msg
-        YoutubeDLError.__init__(self, self.msg)
 
 
 class ExistingVideoReached(DownloadCancelled):
@@ -2593,9 +2596,20 @@ class MaxDownloadsReached(DownloadCancelled):
     msg = 'Maximum number of downloads reached, stopping due to --max-downloads'
 
 
-class ThrottledDownload(YoutubeDLError):
+class ReExtractInfo(YoutubeDLError):
+    """ Video info needs to be re-extracted. """
+
+    def __init__(self, msg, expected=False):
+        super().__init__(msg)
+        self.expected = expected
+
+
+class ThrottledDownload(ReExtractInfo):
     """ Download speed below --throttled-rate. """
-    pass
+    msg = 'The download speed is below throttle limit'
+
+    def __init__(self, msg):
+        super().__init__(msg, expected=False)
 
 
 class UnavailableVideoError(YoutubeDLError):
@@ -2604,7 +2618,12 @@ class UnavailableVideoError(YoutubeDLError):
     This exception will be thrown when a video is requested
     in a format that is not available for that video.
     """
-    pass
+    msg = 'Unable to download video'
+
+    def __init__(self, err=None):
+        if err is not None:
+            self.msg += f': {err}'
+        super().__init__(self.msg)
 
 
 class ContentTooShortError(YoutubeDLError):
@@ -4074,10 +4093,10 @@ class LazyList(collections.abc.Sequence):
     class IndexError(IndexError):
         pass
 
-    def __init__(self, iterable):
+    def __init__(self, iterable, *, reverse=False, _cache=None):
         self.__iterable = iter(iterable)
-        self.__cache = []
-        self.__reversed = False
+        self.__cache = [] if _cache is None else _cache
+        self.__reversed = reverse
 
     def __iter__(self):
         if self.__reversed:
@@ -4143,9 +4162,17 @@ class LazyList(collections.abc.Sequence):
         self.__exhaust()
         return len(self.__cache)
 
-    def reverse(self):
-        self.__reversed = not self.__reversed
-        return self
+    def __reversed__(self):
+        return type(self)(self.__iterable, reverse=not self.__reversed, _cache=self.__cache)
+
+    def __copy__(self):
+        return type(self)(self.__iterable, reverse=self.__reversed, _cache=self.__cache)
+
+    def __deepcopy__(self, memo):
+        # FIXME: This is actually just a shallow copy
+        id_ = id(self)
+        memo[id_] = self.__copy__()
+        return memo[id_]
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
@@ -4156,6 +4183,10 @@ class LazyList(collections.abc.Sequence):
 
 
 class PagedList:
+
+    class IndexError(IndexError):
+        pass
+
     def __len__(self):
         # This is only useful for tests
         return len(self.getslice())
@@ -4167,7 +4198,9 @@ class PagedList:
         self._cache = {}
 
     def getpage(self, pagenum):
-        page_results = self._cache.get(pagenum) or list(self._pagefunc(pagenum))
+        page_results = self._cache.get(pagenum)
+        if page_results is None:
+            page_results = list(self._pagefunc(pagenum))
         if self._use_cache:
             self._cache[pagenum] = page_results
         return page_results
@@ -4183,7 +4216,9 @@ class PagedList:
         if not isinstance(idx, int) or idx < 0:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
-        return entries[0] if entries else None
+        if not entries:
+            raise self.IndexError()
+        return entries[0]
 
 
 class OnDemandPagedList(PagedList):
@@ -4789,10 +4824,11 @@ def determine_protocol(info_dict):
     return compat_urllib_parse_urlparse(url).scheme
 
 
-def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
-    """ Render a list of rows, each as a list of values """
+def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
+    """ Render a list of rows, each as a list of values.
+    Text after a \t will be right aligned """
     def width(string):
-        return len(remove_terminal_sequences(string))
+        return len(remove_terminal_sequences(string).replace('\t', ''))
 
     def get_max_lens(table):
         return [max(width(str(v)) for v in col) for col in zip(*table)]
@@ -4800,21 +4836,24 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
     def filter_using_list(row, filterArray):
         return [col for (take, col) in zip(filterArray, row) if take]
 
-    if hideEmpty:
+    if hide_empty:
         max_lens = get_max_lens(data)
         header_row = filter_using_list(header_row, max_lens)
         data = [filter_using_list(row, max_lens) for row in data]
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
-    extraGap += 1
+    extra_gap += 1
     if delim:
-        table = [header_row] + [[delim * (ml + extraGap) for ml in max_lens]] + data
-    max_lens[-1] = 0
+        table = [header_row, [delim * (ml + extra_gap) for ml in max_lens]] + data
+        table[1][-1] = table[1][-1][:-extra_gap]  # Remove extra_gap from end of delimiter
     for row in table:
         for pos, text in enumerate(map(str, row)):
-            row[pos] = text + (' ' * (max_lens[pos] - width(text) + extraGap))
-    ret = '\n'.join(''.join(row) for row in table)
+            if '\t' in text:
+                row[pos] = text.replace('\t', ' ' * (max_lens[pos] - width(text))) + ' ' * extra_gap
+            else:
+                row[pos] = text + ' ' * (max_lens[pos] - width(text) + extra_gap)
+    ret = '\n'.join(''.join(row).rstrip() for row in table)
     return ret
 
 
@@ -6442,10 +6481,10 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, _current_depth=0):
         nonlocal depth
-        if obj is None:
-            return None
         path = tuple(variadic(path))
         for i, key in enumerate(path):
+            if obj is None:
+                return None
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
@@ -6513,10 +6552,11 @@ def traverse_obj(
     return default
 
 
+# Deprecated
 def traverse_dict(dictn, keys, casesense=True):
-    ''' For backward compatibility. Do not use '''
-    return traverse_obj(dictn, keys, casesense=casesense,
-                        is_user_input=True, traverse_string=True)
+    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
+                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
+    return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
 def variadic(x, allowed_types=(str, bytes)):
@@ -6581,5 +6621,5 @@ def number_of_digits(number):
 
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
-        values = operator.itemgetter(values)(from_dict)
+        values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))

@@ -230,6 +230,11 @@ class HotStarIE(HotStarBaseIE):
             if tags and 'encryption:plain' not in tags:
                 for f in current_formats:
                     f['has_drm'] = True
+            if tags and 'language' in tags:
+                lang = re.search(r'language:(?P<lang>[a-z]+)', tags).group('lang')
+                for f in current_formats:
+                    if not f.get('langauge'):
+                        f['language'] = lang
             formats.extend(current_formats)
             subs = self._merge_subtitles(subs, current_subs)
         if not formats and geo_restricted:
@@ -291,7 +296,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
 
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
-    _VALID_URL = r'(?P<url>(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
         'info_dict': {
