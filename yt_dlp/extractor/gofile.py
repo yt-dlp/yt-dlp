@@ -18,8 +18,8 @@ class GofileIE(InfoExtractor):
         }
     }]
 
-    def _real_extract(self, url):
-        file_id = self._match_id(url)
+    # Create all entries
+    def _entries(self, file_id):
 
         # Create guest account
         accountdata = self._download_json_handle('https://api.gofile.io/createAccount', 'Gofile', note='Getting a new guest account')
@@ -33,25 +33,26 @@ class GofileIE(InfoExtractor):
         if status != "ok":
             raise ExtractorError('Received error from service, status: %s\n' % status, expected=True)
 
-        # Create all entries
-        def entries():
-            contents = filelist['data']['contents']
+        contents = filelist['data']['contents']
 
-            for _, file in contents.items():
-                try:
-                    filedata = {
-                        'id': file['id'],
-                        'title': file['name'],
-                        'url': file['directLink'],
-                        'filesize': file['size'],
-                        'release_timestamp': file['createTime']
-                    }
-                    yield filedata
-                except ExtractorError as e:
-                    raise ExtractorError(e)
+        for _, file in contents.items():
+            try:
+                filedata = {
+                    'id': file['id'],
+                    'title': file['name'],
+                    'url': file['directLink'],
+                    'filesize': file['size'],
+                    'release_timestamp': file['createTime']
+                }
+                yield filedata
+            except ExtractorError as e:
+                raise ExtractorError(e)
 
-        # Set accountToken to allow downloads
+        # Set guest accountToken cookie to allow downloads
         self._set_cookie('gofile.io', 'accountToken', accountToken)
 
+    def _real_extract(self, url):
+        file_id = self._match_id(url)
+
         # Start extraction on entries
-        return self.playlist_result(entries(), file_id)
+        return self.playlist_result(self._entries(file_id), playlist_id=file_id)
