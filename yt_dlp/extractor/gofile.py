@@ -58,6 +58,12 @@ class GofileIE(InfoExtractor):
             self.raise_no_formats('No video/audio found at provided URL.', expected=True)
 
     def _real_initialize(self):
+
+        cookies = self._get_cookies('https://gofile.io/')
+        if cookies:
+            self._TOKEN = cookies['accountToken'].value
+            return
+
         accountdata = self._download_json('https://api.gofile.io/createAccount', 'Gofile', note='Getting a new guest account')
         self._TOKEN = accountdata['data']['token']
         self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
