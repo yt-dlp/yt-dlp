@@ -139,6 +139,9 @@ class RaiBaseIE(InfoExtractor):
                 return False if resp.url == url else resp.url
             return None
 
+        # filter out audio-only formats
+        fmts = [f for f in fmts if not f.get('vcodec') == 'none']
+
         def get_format_info(tbr):
             import math
             br = int_or_none(tbr)
@@ -183,9 +186,6 @@ class RaiBaseIE(InfoExtractor):
 
         available_qualities = mobj.group('quality').split(',') if mobj.group('quality') else ['*']
         available_qualities = [i for i in available_qualities if i]
-
-        # filter out audio-only formats
-        fmts = [f for f in fmts if not f.get('vcodec') == 'none']
 
         formats = []
         for q in available_qualities:
