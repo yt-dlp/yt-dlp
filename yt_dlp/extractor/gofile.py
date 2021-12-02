@@ -40,8 +40,8 @@ class GofileIE(InfoExtractor):
 
         for file in contents.values():
 
-            filetype = file['mimetype'].split('/', 1)[0]
-            if filetype != 'video' and filetype != 'audio':
+            filetype, fileformat = file['mimetype'].split('/', 1)
+            if filetype != 'video' and filetype != 'audio' and fileformat != 'vnd.mts':
                 continue
 
             foundfiles = True
