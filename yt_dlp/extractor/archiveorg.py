@@ -508,15 +508,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 collapse=['urlkey'], query={'matchType': 'prefix'})
             if not response:
                 continue
-
             # TODO fix sorting
             thumbnails.extend(
                 {
-                    'url': (self._WAYBACK_BASE_URL % (int_or_none(thumb.get('timestamp')) or self._EARLIEST_CAPTURE_DATE)) + thumb.get('original'),
-                    'filesize': int_or_none(thumb.get('length')),
-                    'id': int_or_none(thumb.get('length'))  # TODO. Also large filesize != best quality
-                } for thumb in response
-            )
+                    'url': (self._WAYBACK_BASE_URL % (int_or_none(thumbnail_dict.get('timestamp')) or self._EARLIEST_CAPTURE_DATE)) + thumbnail_dict.get('original'),
+                    'filesize': int_or_none(thumbnail_dict.get('length')),
+                    'id': int_or_none(thumbnail_dict.get('length'))  # TODO. Also large filesize != best quality
+                } for thumbnail_dict in response)
             if not try_all:
                 break
 
