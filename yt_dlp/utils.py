@@ -2608,8 +2608,8 @@ class ThrottledDownload(ReExtractInfo):
     """ Download speed below --throttled-rate. """
     msg = 'The download speed is below throttle limit'
 
-    def __init__(self, msg):
-        super().__init__(msg, expected=False)
+    def __init__(self):
+        super().__init__(self.msg, expected=False)
 
 
 class UnavailableVideoError(YoutubeDLError):
