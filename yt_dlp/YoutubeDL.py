@@ -2345,6 +2345,10 @@ class YoutubeDL(object):
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
 
+        if info_dict.get('is_live'):
+            get_from_start = bool(self.params.get('live_from_start'))
+            formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
+
         if not formats:
             self.raise_no_formats(info_dict)
 

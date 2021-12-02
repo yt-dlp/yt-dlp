@@ -2642,13 +2642,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     dct['container'] = dct['ext'] + '_dash'
             yield dct
 
+        live_from_start = is_live and self.get_param('live_from_start')
         skip_manifests = self._configuration_arg('skip')
-        get_dash = (
-            (not is_live or self._configuration_arg('include_live_dash') or self._configuration_arg('download_live_from_start'))
-            and 'dash' not in skip_manifests and self.get_param('youtube_include_dash_manifest', True))
-        get_hls = (
-            not self._configuration_arg('download_live_from_start')
-            and 'hls' not in skip_manifests and self.get_param('youtube_include_hls_manifest', True))
+        if not self.get_param('youtube_include_hls_manifest', True):
+            skip_manifests.push('hls')
+        get_dash = 'dash' not in skip_manifests and (
+            not is_live or live_from_start or self._configuration_arg('include_live_dash'))
+        get_hls = not live_from_start and 'hls' not in skip_manifests
 
         def process_manifest_format(f, proto, itag):
             if itag in itags:
@@ -2679,6 +2679,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if process_manifest_format(f, 'dash', f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
+                        if live_from_start:
+                            f['is_from_start'] = True
+                            f['protocol'] = 'youtube_dl_from_start_dash'
                         yield f
 
     def _extract_storyboard(self, player_responses, duration):
@@ -2827,16 +2830,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 reason += f'. {subreason}'
             if reason:
                 self.raise_no_formats(reason, expected=True)
-
-        if is_live and self._configuration_arg('download_live_from_start'):
-            for f in formats:
-                # override protocols with dl-from-start one
-                protocol = f['protocol']
-                if 'dash' in protocol:
-                    f['protocol'] = 'youtube_dl_from_start_dash'
-                else:
-                    # give an excessively negative priority to prevent from being choosen
-                    f['quality'] = -1000
 
         keywords = get_first(video_details, 'keywords', expected_type=list) or []
         if not keywords and webpage:

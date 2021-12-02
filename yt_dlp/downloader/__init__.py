@@ -34,7 +34,7 @@ from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
-from .youtube_dl_from_start import YoutubeDlFromStartDashFD
+from .dash import YoutubeDlFromStartDashFD
 from .external import (
     get_external_downloader,
     FFmpegFD,
