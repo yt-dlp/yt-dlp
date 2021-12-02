@@ -16,6 +16,7 @@ from ..utils import (
     dict_get,
     extract_attributes,
     ExtractorError,
+    get_element_by_id,
     HEADRequest,
     int_or_none,
     KNOWN_EXTENSIONS,
@@ -303,7 +304,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         },
         {
             # Video from 2012, webm format itag 45. Newest capture is deleted video, with an invalid description.
-            # Should use the date in the link. Title ends with '- Youtube'.
+            # Should use the date in the link. Title ends with '- Youtube'. Capture has description in eow-description
             'url': 'https://web.archive.org/web/20120712231619/http://www.youtube.com/watch?v=AkhihxRKcrs&gl=US&hl=en',
             'info_dict': {
                 'id': 'AkhihxRKcrs',
@@ -311,8 +312,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'Limited Run: Mondo\'s Modern Classic 1 of 3 (SDCC 2012)',
                 'upload_date': '20120712',
                 'duration': 398,
-                'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3'  # TODO: fix
-
+                'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3'
             }
         },
         {
@@ -325,7 +325,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20050423',  # TODO: uploader?
                 'channel_id': 'UC4QobU6STFB0P71PMvOGN5A',
                 'duration': 19,
-                'description': 'md5:56450c47046034c3a218d25cf2b52f4e'
+                'description': 'md5:10436b12e07ac43ff8df65287a56efb4'
             }
         },
         {
@@ -351,7 +351,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20160218',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
                 'duration': 1236,
-                'description': 'md5:TODO'  # TODO: fix description extraction
+                'description': 'md5:21032bae736421e89c2edf36d1936947'
             }
         },
         {
@@ -363,9 +363,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'WTF: Video Games Still Launch BROKEN?! - T.U.G.S.',
                 'upload_date': '20160219',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
-                'duration': '798',
-                'description': 'md5:TODO'
-            }
+                'duration': 798,
+                'description': 'md5:a1dbf12d9a3bd7cb4c5e33b27d77ffe7'
+            },
+            'expected_warnings': [
+                'unable to download capture webpage \(it may not be archived\)'
+            ]
         },
         {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
@@ -474,6 +477,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         description = (
             video_details.get('shortDescription')
             or YoutubeIE._get_text(microformats, 'description')
+            or clean_html(get_element_by_id('eow-description', webpage))  # 9e6dd23
             or search_meta(['description', 'og:description', 'twitter:description']))
 
         upload_date = unified_strdate(
@@ -572,7 +576,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 continue
             webpage = self._download_webpage(
                 (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture, video_id),
-                video_id=video_id, fatal=False, errnote='unable to download video webpage (it may not be archived)',
+                video_id=video_id, fatal=False, errnote='unable to download capture webpage (it may not be archived)',
                 note='Downloading capture webpage')
             _info_dict = self._extract_metadata(video_id, webpage or '')
             # Try avoid getting deleted video metadata
