@@ -593,10 +593,16 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
             return [], info
 
         filename = info['filepath']
+
+        # Disabled temporarily. There needs to be a way to overide this
+        # in case of duration actually mismatching in extractor
+        # See: https://github.com/yt-dlp/yt-dlp/issues/1870, https://github.com/yt-dlp/yt-dlp/issues/1385
+        '''
         if info.get('duration') and not info.get('__real_download') and self._duration_mismatch(
                 self._get_real_video_duration(filename, False), info['duration']):
             self.to_screen(f'Skipping {self.pp_key()} since the real and expected durations mismatch')
             return [], info
+        '''
 
         ext = info['ext']
         sub_langs, sub_names, sub_filenames = [], [], []
