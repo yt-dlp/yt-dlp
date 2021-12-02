@@ -367,7 +367,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'description': 'md5:a1dbf12d9a3bd7cb4c5e33b27d77ffe7'
             },
             'expected_warnings': [
-                'unable to download capture webpage \(it may not be archived\)'
+                r'unable to download capture webpage \(it may not be archived\)'
             ]
         },
         {
@@ -440,14 +440,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     def _extract_metadata(self, video_id, webpage):
 
-        search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None))
-                       if webpage else (lambda x: None))
+        search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None)) if webpage else (lambda x: None))
         player_response = self._extract_yt_initial_variable(
-            webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
-            video_id, 'initial player response') or {}
+            webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE, video_id, 'initial player response') or {}
         initial_data = self._extract_yt_initial_variable(
-            webpage, self._YT_INITIAL_DATA_RE,
-            video_id, 'initial player response') or {}
+            webpage, self._YT_INITIAL_DATA_RE, video_id, 'initial player response') or {}
 
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
@@ -483,10 +480,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
         upload_date = unified_strdate(
             dict_get(microformats, ('uploadDate', 'publishDate'))
             or search_meta(['uploadDate', 'datePublished'])
-            # https://github.com/ytdl-org/youtube-dl/blob/dc879c5a37dae588a5bb35d416635678356ad1b7/youtube_dl/extractor/youtube.py#L2202-L2205
             or self._search_regex(
                 [r'(?s)id="eow-date.*?>(.*?)</span>',
-                    r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],
+                 r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],  # 7998520
                 webpage, 'upload date', default=None))
 
         info = {
