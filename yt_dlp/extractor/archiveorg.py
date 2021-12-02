@@ -398,10 +398,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
     _YT_ALL_THUMB_SERVERS = orderedSet(
-        _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in range(0, 5)]])
+        _YT_DEFAULT_THUMB_SERVERS + ['img.youtube.com', *[f'{c}{n or ""}.ytimg.com' for c in ('i', 's') for n in (*range(0, 5), 9)]])
 
     _WAYBACK_BASE_URL = 'https://web.archive.org/web/%sif_/'
-    _EARLIEST_CAPTURE_DATE = 20050214000000
+    _OLDEST_CAPTURE_DATE = 20050214000000
     _NEWEST_CAPTURE_DATE = 205001010000000
 
     def _call_cdx_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note='Downloading CDX API JSON'):
@@ -511,7 +511,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             # TODO fix sorting
             thumbnails.extend(
                 {
-                    'url': (self._WAYBACK_BASE_URL % (int_or_none(thumbnail_dict.get('timestamp')) or self._EARLIEST_CAPTURE_DATE)) + thumbnail_dict.get('original'),
+                    'url': (self._WAYBACK_BASE_URL % (int_or_none(thumbnail_dict.get('timestamp')) or self._OLDEST_CAPTURE_DATE)) + thumbnail_dict.get('original'),
                     'filesize': int_or_none(thumbnail_dict.get('length')),
                     'id': int_or_none(thumbnail_dict.get('length'))  # TODO. Also large filesize != best quality
                 } for thumbnail_dict in response)
@@ -543,7 +543,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             capture_dates.extend(modern_captures + all_captures)
 
         # Fallbacks
-        capture_dates.extend([self._EARLIEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
+        capture_dates.extend([self._OLDEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
         return orderedSet(capture_dates)
 
     def _real_extract(self, url):
