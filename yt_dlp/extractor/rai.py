@@ -17,6 +17,7 @@ from ..utils import (
     get_element_by_class,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_list,
     remove_start,
@@ -312,12 +313,7 @@ class RaiPlayIE(RaiBaseIE):
         program_info = media.get('program_info') or {}
         season = media.get('season')
 
-        alt_title = media.get('subtitle')
-        toptitle = media.get('toptitle')
-        if alt_title and toptitle:
-            alt_title += ' - ' + toptitle
-        elif not alt_title:
-            alt_title = toptitle
+        alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
 
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
