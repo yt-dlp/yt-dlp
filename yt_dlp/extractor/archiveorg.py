@@ -11,6 +11,7 @@ from ..compat import (
     compat_HTTPError,
 )
 from ..utils import (
+    bug_reports_message,
     clean_html,
     dict_get,
     extract_attributes,
@@ -403,12 +404,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _EARLIEST_CAPTURE_DATE = 20050214000000
     _NEWEST_CAPTURE_DATE = 205001010000000
 
-    def _call_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note='Downloading CDX API JSON'):
-
-        def _format_cdx_response(res):
-            keys = try_get(res, lambda x: x[0], list) or []
-            values = try_get(res, lambda x: x[1:], list) or []
-            return list(dict(zip(keys, v)) for v in values)
+    def _call_cdx_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note='Downloading CDX API JSON'):
+        # CDX docs: https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
         query = {
             'url': url,
             'output': 'json',
@@ -418,8 +415,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'collapse': collapse or [],
             **(query or {})
         }
-        return _format_cdx_response(
-            self._download_json('https://web.archive.org/cdx/search/cdx', item_id, note, query=query))
+        res = self._download_json('https://web.archive.org/cdx/search/cdx', item_id, note, query=query)
+        if isinstance(res, list) and len(res) >= 2:
+            # format response to make it easier to use
+            return list(dict(zip(res[0], v)) for v in res[1:])
+        else:
+            self.report_warning('Error while parsing CDX API response' + bug_reports_message())
 
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
@@ -502,7 +503,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         thumbnails = []
         for ext, server, url in thumbnail_base_urls:
-            response = self._call_api(
+            response = self._call_cdx_api(
                 video_id, url, filters=['mimetype:image/(?:webp|jpeg)'],
                 collapse=['urlkey'], query={'matchType': 'prefix'})
             if not response:
@@ -526,7 +527,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
     def _get_capture_dates(self, video_id, url_date):
         capture_dates = []
         # Note: CDX API will not find watch pages with extra params in the url.
-        response = self._call_api(
+        response = self._call_cdx_api(
             video_id, f'https://www.youtube.com/watch?v={video_id}',
             filters=['mimetype:text/html'], collapse=['timestamp:6', 'digest'], query={'matchType': 'prefix'}) or []
         all_captures = sorted([int_or_none(r['timestamp']) for r in response if int_or_none(r['timestamp']) is not None])
