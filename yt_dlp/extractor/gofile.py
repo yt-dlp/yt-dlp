@@ -25,7 +25,6 @@ class GofileIE(InfoExtractor):
     }]
     _TOKEN = None
 
-
     def _real_initialize(self):
         token = self._get_cookies('https://gofile.io/').get('accountToken')
         if token:
@@ -34,7 +33,7 @@ class GofileIE(InfoExtractor):
 
         account_data = self._download_json(
             'https://api.gofile.io/createAccount', None, note='Getting a new guest account')
-        self._TOKEN = accountdata['data']['token']
+        self._TOKEN = account_data['data']['token']
         self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
@@ -44,7 +43,7 @@ class GofileIE(InfoExtractor):
 
         status = files['status']
         if status != 'ok':
-            raise ExtractorError('Received error from service, status: %s' % status, expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: status {status}', expected=True)
 
         found_files = False
         for file in (try_get(files, lambda x: x['data']['contents'], dict) or {}).values():
