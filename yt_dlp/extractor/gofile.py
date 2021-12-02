@@ -62,7 +62,7 @@ class GofileIE(InfoExtractor):
             }
 
         if not found_files:
-            self.raise_no_formats('No video/audio found at provided URL.', expected=True)
+            raise ExtractorError('No video/audio found at provided URL.', expected=True)
 
     def _real_extract(self, url):
         file_id = self._match_id(url)
