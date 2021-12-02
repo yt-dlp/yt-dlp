@@ -25,51 +25,45 @@ class GofileIE(InfoExtractor):
     }]
     _TOKEN = None
 
+
+    def _real_initialize(self):
+        token = self._get_cookies('https://gofile.io/').get('accountToken')
+        if token:
+            self._TOKEN = token.value
+            return
+
+        account_data = self._download_json(
+            'https://api.gofile.io/createAccount', None, note='Getting a new guest account')
+        self._TOKEN = accountdata['data']['token']
+        self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
+
     def _entries(self, file_id):
+        files = self._download_json(
+            f'https://api.gofile.io/getContent?contentId={file_id}&token={self._TOKEN}&websiteToken=websiteToken&cache=true',
+            'Gofile', note='Getting filelist')
 
-        # Get file list
-        requesturl = f'https://api.gofile.io/getContent?contentId={file_id}&token={self._TOKEN}&websiteToken=websiteToken&cache=true'
-        filelist = self._download_json(requesturl, 'Gofile', note='Getting filelist')
-
-        status = filelist['status']
+        status = files['status']
         if status != 'ok':
             raise ExtractorError('Received error from service, status: %s' % status, expected=True)
 
-        contents = try_get(filelist, lambda x: x['data']['contents'], dict)
-        foundfiles = False
-
-        for file in contents.values():
-
-            filetype, fileformat = file['mimetype'].split('/', 1)
-            if filetype != 'video' and filetype != 'audio' and fileformat != 'vnd.mts':
+        found_files = False
+        for file in (try_get(files, lambda x: x['data']['contents'], dict) or {}).values():
+            file_type, file_format = file.get('mimetype').split('/', 1)
+            if file_type not in ('video', 'audio') and file_format != 'vnd.mts':
                 continue
 
-            foundfiles = True
-            filedata = {
+            found_files = True
+            yield {
                 'id': file['id'],
                 'title': file['name'].rsplit('.', 1)[0],
                 'url': file['directLink'],
                 'filesize': file.get('size'),
                 'release_timestamp': file.get('createTime')
             }
-            yield filedata
 
-        if not foundfiles:
+        if not found_files:
             self.raise_no_formats('No video/audio found at provided URL.', expected=True)
-
-    def _real_initialize(self):
-
-        cookies = self._get_cookies('https://gofile.io/')
-        if cookies.get('accountToken'):
-            self._TOKEN = cookies['accountToken'].value
-            return
-
-        accountdata = self._download_json('https://api.gofile.io/createAccount', 'Gofile', note='Getting a new guest account')
-        self._TOKEN = accountdata['data']['token']
-        self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
 
     def _real_extract(self, url):
         file_id = self._match_id(url)
-
-        # Start extraction on entries
         return self.playlist_result(self._entries(file_id), playlist_id=file_id)
