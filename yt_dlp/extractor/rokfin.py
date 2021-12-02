@@ -12,21 +12,13 @@ from ..utils import (
 # and pending live streams and their recordings. Pre-made videos are called "posts".
 
 
-<<<<<<< HEAD
 class RokfinSingleVideoIE(InfoExtractor):
-=======
-class RokfinIE(InfoExtractor):
->>>>>>> 33fe0177a (New field: channel_url; code refactored)
     _META_DATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
     _RECOMMENDED_VIDEO_BASE_URL = 'https://rokfin.com/'
     _CHANNEL_BASE_URL = 'https://rokfin.com/'
 
 
-<<<<<<< HEAD
 class RokfinPostIE(RokfinSingleVideoIE):
-=======
-class RokfinPostIE(RokfinIE):
->>>>>>> 33fe0177a (New field: channel_url; code refactored)
     IE_NAME = 'rokfin:post'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>post/[^/]+)'
     _TESTS = [{
@@ -53,11 +45,7 @@ class RokfinPostIE(RokfinIE):
 
     def _real_extract(self, url_from_user):
         video_id = self._match_id(url_from_user)
-<<<<<<< HEAD
         downloaded_json = self._download_json(url_or_request=self._META_DATA_BASE_URL + video_id, video_id=video_id, note='Downloading video metadata', fatal=False)
-=======
-        downloaded_json = self._download_json(url_or_request=self._META_DATA_BASE_URL + video_id, video_id=video_id, note='Downloading video metadata')
->>>>>>> 33fe0177a (New field: channel_url; code refactored)
 
         def videoAvailability(y, dic):
             video_availability = dic['premiumPlan']
@@ -86,7 +74,6 @@ class RokfinPostIE(RokfinIE):
         else:
             frmts = None
 
-<<<<<<< HEAD
             if availability == 'premium_only':
                 # The video is premium only.
                 self.raise_no_formats(msg='downloading premium content is unsupported', expected=True)
@@ -124,39 +111,6 @@ class RokfinPostIE(RokfinIE):
             'formats': frmts or [],
             '__post_extractor': self.extract_comments(video_id=video_id)
         }
-=======
-            downloaded_json = downloaded_json.get
-            created_by = try_get(downloaded_json, lambda x: x('createdBy')).get
-            upload_date_time = try_get(downloaded_json, lambda x: x('creationDateTime'))
-            channel_name = try_get(created_by, lambda x: x('name'))
-
-            return {
-                'id': video_id,
-                'url': m3u8_url,
-                'title': content_subdict.get('contentTitle'),
-                'webpage_url': self._RECOMMENDED_VIDEO_BASE_URL + video_id,
-                'manifest_url': m3u8_url,
-                'is_live': False,
-                'was_live': False,
-                'live_status': 'not_live',
-                'duration': float_or_none(content_subdict.get('duration')),
-                'thumbnail': content_subdict.get('thumbnailUrl1'),
-                'description': content_subdict.get('contentDescription'),
-                'like_count': downloaded_json('likeCount'),
-                'dislike_count': downloaded_json('dislikeCount'),
-                'comment_count': downloaded_json('numComments'),
-                'availability': availability,
-                'creator': channel_name,
-                'channel_id': try_get(created_by, lambda x: x('id')),
-                'channel': channel_name,
-                'channel_url': try_get(created_by, lambda x: self._CHANNEL_BASE_URL + x('username')),
-                'timestamp': unified_timestamp(upload_date_time),
-                'upload_date': unified_strdate(upload_date_time),
-                'tags': [str(tag) for tag in try_get(downloaded_json, lambda x: x('tags')) or []],
-                'formats': frmts,
-                '__post_extractor': self.extract_comments(video_id=video_id)
-            }
->>>>>>> 33fe0177a (New field: channel_url; code refactored)
 
     def _get_comments(self, video_id):
         import itertools
@@ -185,7 +139,6 @@ class RokfinPostIE(RokfinIE):
 
         for page_of_comments in dnl_comments_incrementally(_COMMENTS_BASE_URL, video_id, _COMMENTS_PER_REQUEST):
             for comment in page_of_comments:
-<<<<<<< HEAD
                 comment_text = try_get(comment, lambda x: x['comment'])
 
                 if isinstance(comment_text, str):
@@ -202,21 +155,6 @@ class RokfinPostIE(RokfinIE):
 
 
 class RokfinStreamIE(RokfinSingleVideoIE):
-=======
-                yield {
-                    'text': comment['comment'],
-                    'author': comment['name'],
-                    'id': comment['commentId'],
-                    'author_id': comment['userId'],
-                    'parent': 'root',
-                    'like_count': comment['numLikes'],
-                    'dislike_count': comment['numDislikes'],
-                    'timestamp': try_get(comment, lambda x: unified_timestamp(x['postedAt']))
-                }
-
-
-class RokfinStreamIE(RokfinIE):
->>>>>>> 33fe0177a (New field: channel_url; code refactored)
     IE_NAME = 'rokfin:stream'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>stream/[^/]+)'
     _TESTS = [{
@@ -245,15 +183,8 @@ class RokfinStreamIE(RokfinIE):
         import datetime
 
         video_id = self._match_id(url_from_user)
-<<<<<<< HEAD
         downloaded_json = self._download_json(url_or_request=self._META_DATA_BASE_URL + video_id, video_id=video_id, note='Downloading video metadata', fatal=False)
         m3u8_url = try_get(downloaded_json, lambda x: url_or_none(x['url']))
-=======
-        downloaded_json = self._download_json(url_or_request=self._META_DATA_BASE_URL + video_id, video_id=video_id, note='Downloading video metadata')
-
-        m3u8_url = downloaded_json['url']
-
->>>>>>> 33fe0177a (New field: channel_url; code refactored)
         availability = try_get(self, lambda x: x._availability(
             needs_premium=True if downloaded_json['premium'] else False,
             is_private=False,
@@ -449,42 +380,8 @@ class RokfinChannelIE(RokfinPlaylistIE):
         channel_id = self._match_id(url_from_user)
         channel_info = self._download_json(url_or_request=_META_DATA_BASE_URL + channel_id, video_id=channel_id, note='Downloading channel info', fatal=False)
 
-<<<<<<< HEAD
         return self.playlist_result(
             entries=dnl_video_meta_data_incrementally(pagesz=_ENTRIES_PER_REQUEST, channel_id=channel_id),
             playlist_id=try_get(channel_info, lambda x: x['id']),
             playlist_description=try_get(channel_info, lambda x: x['description']),
             webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_id)
-=======
-            created_by = downloaded_json('creator').get
-            stream_ended_at_timestamp = try_get(stream_ended_at, lambda x: x.timestamp()) if include_time_fields else None
-            channel_name = try_get(created_by, lambda x: x('name'))
-
-            return {
-                'id': video_id,
-                'url': m3u8_url,
-                'title': downloaded_json('title'),
-                'webpage_url': self._RECOMMENDED_VIDEO_BASE_URL + video_id,
-                'manifest_url': m3u8_url,
-                'thumbnail': downloaded_json('thumbnail'),
-                'description': downloaded_json('description'),
-                'like_count': downloaded_json('likeCount'),
-                'dislike_count': downloaded_json('dislikeCount'),
-                'creator': channel_name,
-                'channel_id': try_get(created_by, lambda x: x('id')),
-                'uploader_id': try_get(created_by, lambda x: x('id')),
-                'channel': channel_name,
-                'channel_url': try_get(created_by, lambda x: self._CHANNEL_BASE_URL + x('username')),
-                'availability': availability,
-                'tags': [str(tag) for tag in try_get(downloaded_json, lambda x: x('tags')) or []],
-                'is_live': stream_ended_at is None,
-                'was_live': True if stream_ended_at else None,
-                'live_status': 'not_live' if stream_ended_at else 'is_live',
-                'start_time': stream_started_at,
-                'duration': duration(stream_started_at, stream_ended_at),
-                'timestamp': stream_ended_at_timestamp,
-                'release_timestamp': stream_ended_at_timestamp,
-                'release_date': stream_ended_at.strftime('%Y%m%d'),
-                'formats': frmts
-            }
->>>>>>> 33fe0177a (New field: channel_url; code refactored)
