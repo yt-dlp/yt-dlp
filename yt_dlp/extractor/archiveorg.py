@@ -268,7 +268,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
                 (?:https?(?::|%3[Aa])//)?
                 (?:
-                    (?:\w+\.)?youtube\.com/watch(?:\?|%3[fF])(?:[^\#]+(?:&|%26))?v(?:=|%3[dD])  # Youtube URL
+                    (?:\w+\.)?youtube\.com(?::(?:80|443))?/watch(?:\.php)?(?:\?|%3[fF])(?:[^\#]+(?:&|%26))?v(?:=|%3[dD])  # Youtube URL
                     |(?:wayback-fakeurl\.archive\.org/yt/)  # Or the internal fake url
                 )
                 (?P<id>[0-9A-Za-z_-]{11})(?:%26|\#|&|$)
@@ -381,15 +381,19 @@ class YoutubeWebArchiveIE(InfoExtractor):
         {
             # Video not archived, only capture is unavailable video page
             'url': 'https://web.archive.org/web/20210530071008/https://www.youtube.com/watch?v=lHJTf93HL1s&spfreload=10',
-            'only_matching': True,
+            'only_matching': True
         },
         {   # Encoded url
             'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fgl%3DUS%26v%3DAkhihxRKcrs%26hl%3Den',
-            'only_matching': True,
+            'only_matching': True
         },
         {
             'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fv%3DAkhihxRKcrs%26gl%3DUS%26hl%3Den',
-            'only_matching': True,
+            'only_matching': True
+        },
+        {
+            'url': 'https://web.archive.org/web/20060527081937/http://www.youtube.com:80/watch.php?v=ELTFsLT73fA&amp;search=soccer',
+            'only_matching': True
         }
     ]
     # TODO:
