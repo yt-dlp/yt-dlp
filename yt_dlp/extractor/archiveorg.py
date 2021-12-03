@@ -408,8 +408,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'only_matching': True
         }
     ]
-    # TODO:
-    # first page is 302 redirect (or bad capture), that is the only capture so fallback to video id for title
     _YT_INITIAL_DATA_RE = r'(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s' % YoutubeIE._YT_INITIAL_DATA_RE
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
     _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
@@ -420,7 +418,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     _WAYBACK_BASE_URL = 'https://web.archive.org/web/%sif_/'
     _OLDEST_CAPTURE_DATE = 20050214000000
-    _NEWEST_CAPTURE_DATE = 205001010000000
+    _NEWEST_CAPTURE_DATE = 20500101000000
 
     def _call_cdx_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note='Downloading CDX API JSON'):
         # CDX docs: https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
@@ -569,7 +567,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         try:
             urlh = self._request_webpage(
                 HEADRequest('https://web.archive.org/web/2oe_/http://wayback-fakeurl.archive.org/yt/%s' % video_id),
-                video_id, note='Fetching video file url', expected_status=True)
+                video_id, note='Fetching archived video file url', expected_status=True)
         except ExtractorError as e:
             # HTTP Error 404 is expected if the video is not saved.
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
