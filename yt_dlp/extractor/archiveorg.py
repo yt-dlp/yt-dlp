@@ -31,7 +31,7 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp,
-    urlhandle_detect_ext
+    urlhandle_detect_ext, url_or_none
 )
 
 
@@ -285,7 +285,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20110926',
                 'uploader': 'Zeurel',
                 'channel_id': 'UCukCyHaD-bK3in_pKpfH9Eg',
-                'duration': 32
+                'duration': 32,
+                'uploader_id': 'Zeurel',
+                'uploader_url': 'http://www.youtube.com/user/Zeurel'
             }
         },
         {
@@ -299,7 +301,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20190312',
                 'uploader': 'Veritasium',
                 'channel_id': 'UCHnyfMqiRRG1u-2MsSQLbXA',
-                'duration': 771
+                'duration': 771,
+                'uploader_id': '1veritasium',
+                'uploader_url': 'http://www.youtube.com/user/1veritasium'
             }
         },
         {
@@ -312,7 +316,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'Limited Run: Mondo\'s Modern Classic 1 of 3 (SDCC 2012)',
                 'upload_date': '20120712',
                 'duration': 398,
-                'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3'
+                'description': 'md5:ff4de6a7980cb65d951c2f6966a4f2f3',
+                'uploader_id': 'machinima',
+                'uploader_url': 'http://www.youtube.com/user/machinima'
             }
         },
         {
@@ -325,7 +331,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20050423',  # TODO: uploader?
                 'channel_id': 'UC4QobU6STFB0P71PMvOGN5A',
                 'duration': 19,
-                'description': 'md5:10436b12e07ac43ff8df65287a56efb4'
+                'description': 'md5:10436b12e07ac43ff8df65287a56efb4',
+                'uploader_id': 'jawed',
+                'uploader_url': 'http://www.youtube.com/user/jawed'
             }
         },
         {
@@ -338,7 +346,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader': 'Madeon',
                 'channel_id': 'UCqMDNf3Pn5L7pcNkuSEeO3w',
                 'duration': 204,
-                'description': 'md5:f7535343b6eda34a314eff8b85444680'
+                'description': 'md5:f7535343b6eda34a314eff8b85444680',
+                'uploader_id': 'itsmadeon',
+                'uploader_url': 'http://www.youtube.com/user/itsmadeon'
             }
         },
         {
@@ -351,7 +361,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20160218',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
                 'duration': 1236,
-                'description': 'md5:21032bae736421e89c2edf36d1936947'
+                'description': 'md5:21032bae736421e89c2edf36d1936947',
+                'uploader_id': 'MachinimaETC',
+                'uploader_url': 'http://www.youtube.com/user/MachinimaETC'
             }
         },
         {
@@ -364,7 +376,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'upload_date': '20160219',
                 'channel_id': 'UCdIaNUarhzLSXGoItz7BHVA',
                 'duration': 798,
-                'description': 'md5:a1dbf12d9a3bd7cb4c5e33b27d77ffe7'
+                'description': 'md5:a1dbf12d9a3bd7cb4c5e33b27d77ffe7',
+                'uploader_id': 'MachinimaETC',
+                'uploader_url': 'http://www.youtube.com/user/MachinimaETC'
             },
             'expected_warnings': [
                 r'unable to download capture webpage \(it may not be archived\)'
@@ -490,6 +504,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or clean_html(get_element_by_id('eow-description', webpage))  # 9e6dd23
             or search_meta(['description', 'og:description', 'twitter:description']))
 
+        uploader = video_details.get('author'),
+
+        # Uploader ID and URL
+        uploader_id = uploader_url = None
+        uploader_mobj = re.search(
+            r'<link itemprop="url" href="(?P<uploader_url>https?://www\.youtube\.com/(?:user|channel)/(?P<uploader_id>[^"]+))">',
+            webpage)
+        if uploader_mobj is not None:
+            uploader_id, uploader_url = uploader_mobj.group('uploader_id'), uploader_mobj.group('uploader_url')
+        else:
+            # a6211d2
+            uploader_url = url_or_none(microformats.get('ownerProfileUrl'))
+            uploader_id = self._search_regex(
+                r'(?:user|channel)/([^/]+)', uploader_url or '', 'uploader id', default=None)
+
         upload_date = unified_strdate(
             dict_get(microformats, ('uploadDate', 'publishDate'))
             or search_meta(['uploadDate', 'datePublished'])
@@ -502,9 +531,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'title': video_title,
             'description': description,
             'upload_date': upload_date,
-            'uploader': video_details.get('author'),
+            'uploader': uploader,
             'channel_id': channel_id,
-            'duration': duration
+            'duration': duration,
+            'uploader_url': uploader_url,
+            'uploader_id': uploader_id,
         }
         return info
 
