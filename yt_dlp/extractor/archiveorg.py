@@ -532,12 +532,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     def _extract_thumbnails(self, video_id):
         try_all = 'thumbnails' in self._configuration_arg('check_all')
-        thumbnail_base_urls = [(ext, server, 'http://{server}/vi{webp}/{video_id}'.format(
-            webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server))
+        thumbnail_base_urls = ['http://{server}/vi{webp}/{video_id}'.format(
+            webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server)
             for server in (self._YT_ALL_THUMB_SERVERS if try_all else self._YT_DEFAULT_THUMB_SERVERS) for ext in (('jpg', 'webp') if try_all else ('jpg',))]
 
         thumbnails = []
-        for ext, server, url in thumbnail_base_urls:
+        for url in thumbnail_base_urls:
             response = self._call_cdx_api(
                 video_id, url, filters=['mimetype:image/(?:webp|jpeg)'],
                 collapse=['urlkey'], query={'matchType': 'prefix'})
