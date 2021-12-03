@@ -16,8 +16,7 @@ class FranceCultureIE(InfoExtractor):
     _TESTS = [{
         # playlist
         'url': 'https://www.franceculture.fr/emissions/hasta-dente',
-        'playlist_mincount': 12,
-        'playlist_maxcount': 12,
+        'playlist_count': 12,
         'info_dict': {
             'id': 'hasta-dente',
             'title': 'Hasta Dente !',
