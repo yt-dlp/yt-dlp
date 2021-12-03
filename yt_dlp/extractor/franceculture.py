@@ -78,7 +78,7 @@ class FranceCultureIE(InfoExtractor):
 
             return self.playlist_result(entries, display_id, title, description)
 
-        video_url = travers_obj(video_data, 'data-url', 'data-asset-source')
+        video_url = traverse_obj(video_data, 'data-url', 'data-asset-source')
 
         thumbnail = self._search_regex(
             r'(?s)<figure[^>]+itemtype="https://schema.org/ImageObject"[^>]*>.*?<img[^>]+(?:data-dejavu-)?src="([^"]+)"',
