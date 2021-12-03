@@ -496,13 +496,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or search_meta('channelId')
             or self._search_regex(
                 r'data-channel-external-id=(["\'])(?P<id>(?:(?!\1).)+)\1',  # @b45a9e6
-                webpage, 'channel id', default=None, group='id')
-            )
+                webpage, 'channel id', default=None, group='id'))
         channel_url = f'http://www.youtube.com/channel/{channel_id}' if channel_id else None
+
         duration = int_or_none(
             video_details.get('lengthSeconds')
             or microformats.get('lengthSeconds')
-            or parse_duration(search_meta('duration'))) or None
+            or parse_duration(search_meta('duration')))
         description = (
             video_details.get('shortDescription')
             or YoutubeIE._get_text(microformats, 'description')
