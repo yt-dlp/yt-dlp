@@ -7,6 +7,7 @@ from ..utils import (
     determine_ext,
     extract_attributes,
     int_or_none,
+    traverse_obj,
 )
 
 
@@ -53,7 +54,7 @@ class FranceCultureIE(InfoExtractor):
             ''',
             webpage, 'video data'))
 
-        title = video_data.get('data-emission-title') or video_data.get('data-diffusion-title') or self._og_search_title(webpage)
+        title = traverse_obj(video_data, 'data-emission-title', 'data-diffusion-title', default=self._og_search_title(webpage))
         description = self._html_search_regex(
             r'(?s)<div[^>]+class="intro"[^>]*>.*?<h2>(.+?)</h2>',
             webpage, 'description', default=None)
@@ -77,7 +78,7 @@ class FranceCultureIE(InfoExtractor):
 
             return self.playlist_result(entries, display_id, title, description)
 
-        video_url = video_data.get('data-url') or video_data['data-asset-source']
+        video_url = travers_obj(video_data, 'data-url', 'data-asset-source')
 
         thumbnail = self._search_regex(
             r'(?s)<figure[^>]+itemtype="https://schema.org/ImageObject"[^>]*>.*?<img[^>]+(?:data-dejavu-)?src="([^"]+)"',
