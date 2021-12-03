@@ -504,10 +504,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or clean_html(get_element_by_id('eow-description', webpage))  # 9e6dd23
             or search_meta(['description', 'og:description', 'twitter:description']))
 
-        uploader = video_details.get('author'),
+        uploader = video_details.get('author')
 
         # Uploader ID and URL
-        uploader_id = uploader_url = None
         uploader_mobj = re.search(
             r'<link itemprop="url" href="(?P<uploader_url>https?://www\.youtube\.com/(?:user|channel)/(?P<uploader_id>[^"]+))">',
             webpage)
