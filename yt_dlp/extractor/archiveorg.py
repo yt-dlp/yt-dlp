@@ -531,7 +531,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                  r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],  # @7998520
                 webpage, 'upload date', default=None))
 
-        info = {
+        return {
             'title': video_title,
             'description': description,
             'upload_date': upload_date,
@@ -542,7 +542,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'uploader_url': uploader_url,
             'uploader_id': uploader_id,
         }
-        return info
 
     def _extract_thumbnails(self, video_id):
         try_all = 'thumbnails' in self._configuration_arg('checkall')
