@@ -1,14 +1,13 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     extract_attributes,
     int_or_none,
 )
-
-import re
 
 
 class FranceCultureIE(InfoExtractor):
@@ -70,9 +69,9 @@ class FranceCultureIE(InfoExtractor):
                 webpage, 'playlist data')
 
             entries = [
-                self.url_result(video_url, None, video_id, video_title)
+                self.url_result(video_url, FranceCultureIE.ie_key(), video_id, video_title)
                 for video_url, video_id, video_title in re.findall(
-                    r'''data-url="([^"]+)"[^>]*data-diffusion-path="([^"]+)"[^>]*data-diffusion-title="([^"]+)"''',
+                    r'data-url="([^"]+)"[^>]*data-diffusion-path="([^"]+)"[^>]*data-diffusion-title="([^"]+)"',
                     playlist_data)
             ]
 
@@ -87,9 +86,6 @@ class FranceCultureIE(InfoExtractor):
             r'(?s)"datePublished":\s*"(\d{4}-\d{2}-\d{2})',
             webpage, 'date', default=None)
 
-        if (upload_date):
-            upload_date = upload_date.replace("-", "")
-
         ext = determine_ext(video_url.lower())
 
         return {
@@ -101,6 +97,6 @@ class FranceCultureIE(InfoExtractor):
             'thumbnail': thumbnail,
             'ext': ext,
             'vcodec': 'none' if ext == 'mp3' else None,
-            'upload_date': upload_date,
+            'upload_date': upload_date.replace("-", "") if upload_date is not None else None,
             'duration': int_or_none(video_data.get('data-duration')),
         }
