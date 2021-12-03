@@ -370,6 +370,14 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 r'unable to download capture webpage \(it may not be archived\)'
             ]
         },
+        {   # Very old YouTube page, has - YouTube in title.
+            'url': 'http://web.archive.org/web/20070302011044/http://youtube.com/watch?v=-06-KB9XTzg',
+            'info_dict': {
+                'id': '-06-KB9XTzg',
+                'ext': 'flv',
+                'title': 'New Coin Hack!! 100% Safe!!'
+            }
+        },
         {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
@@ -394,11 +402,14 @@ class YoutubeWebArchiveIE(InfoExtractor):
         {
             'url': 'https://web.archive.org/web/20060527081937/http://www.youtube.com:80/watch.php?v=ELTFsLT73fA&amp;search=soccer',
             'only_matching': True
+        },
+        {
+            'url': 'https://web.archive.org/http://www.youtube.com:80/watch?v=-05VVye-ffg',
+            'only_matching': True
         }
     ]
     # TODO:
     # first page is 302 redirect (or bad capture), that is the only capture so fallback to video id for title
-    # examples using old title
     _YT_INITIAL_DATA_RE = r'(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s' % YoutubeIE._YT_INITIAL_DATA_RE
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
     _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
@@ -426,7 +437,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         if isinstance(res, list) and len(res) >= 2:
             # format response to make it easier to use
             return list(dict(zip(res[0], v)) for v in res[1:])
-        else:
+        elif not isinstance(res, list) or len(res) != 0:
             self.report_warning('Error while parsing CDX API response' + bug_reports_message())
 
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
