@@ -448,7 +448,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
     def _extract_webpage_title(self, webpage):
         page_title = self._html_search_regex(
             r'<title>([^<]*)</title>', webpage, 'title', default='')
-        # YouTube video pages appear to always have either 'YouTube -' as suffix or '- YouTube' as prefix.
+        # YouTube video pages appear to always have either 'YouTube -' as prefix or '- YouTube' as suffix.
         return self._html_search_regex(
             r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',
             page_title, 'title', default='')
@@ -557,7 +557,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         if 'captures' in self._configuration_arg('checkall'):
             capture_dates.extend(modern_captures + all_captures)
 
-        # Fallbacks
+        # Fallbacks if any of the above fail
         capture_dates.extend([self._OLDEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
         return orderedSet(capture_dates)
 
@@ -601,10 +601,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
         if urlh:
             url = compat_urllib_parse_unquote(urlh.url)
             video_file_url_qs = parse_qs(url)
-            # Attempt to recover any ext & format info from playback url
+            # Attempt to recover any ext & format info from playback url & response headers
             format = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}
             itag = try_get(video_file_url_qs, lambda x: x['itag'][0])
-            if itag and itag in YoutubeIE._formats:  # Naughty access but it works
+            if itag and itag in YoutubeIE._formats:
                 format.update(YoutubeIE._formats[itag])
                 format.update({'format_id': itag})
             else:
