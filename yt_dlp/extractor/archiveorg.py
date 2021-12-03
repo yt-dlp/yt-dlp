@@ -386,6 +386,21 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'title': 'New Coin Hack!! 100% Safe!!'
             }
         }, {
+            'url': 'web.archive.org/https://www.youtube.com/watch?v=dWW7qP423y8',
+            'info_dict': {
+                'id': 'dWW7qP423y8',
+                'ext': 'mp4',
+                'title': 'It\'s Bootleg AirPods Time.',
+                'upload_date': '20211021',
+                'channel_id': 'UC7Jwj9fkrf1adN4fMmTkpug',
+                'channel_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug',
+                'duration': 810,
+                'description': 'md5:7b567f898d8237b256f36c1a07d6d7bc',
+                'uploader': 'DankPods',
+                'uploader_id': 'UC7Jwj9fkrf1adN4fMmTkpug',
+                'uploader_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug'
+            }
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
         }, {
