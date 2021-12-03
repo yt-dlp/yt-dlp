@@ -69,7 +69,7 @@ class FranceCultureIE(InfoExtractor):
                 webpage, 'playlist data')
 
             entries = [
-                self.url_result(video_url, FranceCultureIE.ie_key(), video_id, video_title)
+                self.url_result(video_url, None, video_id, video_title)
                 for video_url, video_id, video_title in re.findall(
                     r'data-url="([^"]+)"[^>]*data-diffusion-path="([^"]+)"[^>]*data-diffusion-title="([^"]+)"',
                     playlist_data)
