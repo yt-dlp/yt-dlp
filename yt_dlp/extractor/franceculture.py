@@ -97,6 +97,6 @@ class FranceCultureIE(InfoExtractor):
             'thumbnail': thumbnail,
             'ext': ext,
             'vcodec': 'none' if ext == 'mp3' else None,
-            'upload_date': upload_date.replace("-", "") if upload_date is not None else None,
+            'upload_date': upload_date.replace('-', '') if upload_date is not None else None,
             'duration': int_or_none(video_data.get('data-duration')),
         }
