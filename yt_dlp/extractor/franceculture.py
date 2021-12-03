@@ -20,6 +20,7 @@ class FranceCultureIE(InfoExtractor):
         'info_dict': {
             'id': 'hasta-dente',
             'title': 'Hasta Dente !',
+            'description': None,
         }
     }, {
         'url': 'https://www.franceculture.fr/emissions/carnet-nomade/rendez-vous-au-pays-des-geeks',
@@ -31,6 +32,8 @@ class FranceCultureIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20140301',
             'vcodec': 'none',
+            'duration': 3569,
+            'description': None,
         }
     }, {
         # no thumbnail
@@ -53,7 +56,9 @@ class FranceCultureIE(InfoExtractor):
             ''',
             webpage, 'video data'))
 
-        title = traverse_obj(video_data, 'data-emission-title', 'data-diffusion-title', default=self._og_search_title(webpage))
+        title = self._html_search_regex(
+            r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>',
+            webpage, 'title', default=self._og_search_title(webpage))
         description = self._html_search_regex(
             r'(?s)<div[^>]+class="intro"[^>]*>.*?<h2>(.+?)</h2>',
             webpage, 'description', default=None)
@@ -64,7 +69,7 @@ class FranceCultureIE(InfoExtractor):
                 (.*?)
                 <div[^>]+class="[^"]*?see-more-anchor[^"]*?">
             ''',
-            webpage, 'playlist data', fatal=False)
+            webpage, 'playlist data', fatal=False, default=None)
 
         # page has playlist
         if (playlist_data is not None):
