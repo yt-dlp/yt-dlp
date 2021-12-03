@@ -8,7 +8,7 @@ from .youtube import YoutubeIE
 from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_unquote_plus,
-    compat_HTTPError,
+    compat_HTTPError
 )
 from ..utils import (
     bug_reports_message,
@@ -31,7 +31,8 @@ from ..utils import (
     try_get,
     unified_strdate,
     unified_timestamp,
-    urlhandle_detect_ext, url_or_none
+    urlhandle_detect_ext,
+    url_or_none
 )
 
 
@@ -289,8 +290,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'Zeurel',
                 'uploader_url': 'http://www.youtube.com/user/Zeurel'
             }
-        },
-        {
+        }, {
             # Internal link
             'url': 'https://web.archive.org/web/2oe/http://wayback-fakeurl.archive.org/yt/97t7Xj_iBv0',
             'info_dict': {
@@ -305,8 +305,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': '1veritasium',
                 'uploader_url': 'http://www.youtube.com/user/1veritasium'
             }
-        },
-        {
+        }, {
             # Video from 2012, webm format itag 45. Newest capture is deleted video, with an invalid description.
             # Should use the date in the link. Title ends with '- Youtube'. Capture has description in eow-description
             'url': 'https://web.archive.org/web/20120712231619/http://www.youtube.com/watch?v=AkhihxRKcrs&gl=US&hl=en',
@@ -320,8 +319,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'machinima',
                 'uploader_url': 'http://www.youtube.com/user/machinima'
             }
-        },
-        {
+        }, {
             # FLV video. Video file URL does not provide itag information
             'url': 'https://web.archive.org/web/20081211103536/http://www.youtube.com/watch?v=jNQXAC9IVRw',
             'info_dict': {
@@ -335,8 +333,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'jawed',
                 'uploader_url': 'http://www.youtube.com/user/jawed'
             }
-        },
-        {
+        }, {
             'url': 'https://web.archive.org/web/20110712231407/http://www.youtube.com/watch?v=lTx3G6h2xyA',
             'info_dict': {
                 'id': 'lTx3G6h2xyA',
@@ -350,8 +347,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'itsmadeon',
                 'uploader_url': 'http://www.youtube.com/user/itsmadeon'
             }
-        },
-        {
+        }, {
             # First capture is of dead video, second is the oldest from CDX response.
             'url': 'https://web.archive.org/https://www.youtube.com/watch?v=1JYutPM8O6E',
             'info_dict': {
@@ -365,8 +361,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_id': 'MachinimaETC',
                 'uploader_url': 'http://www.youtube.com/user/MachinimaETC'
             }
-        },
-        {
+        }, {
             # First capture of dead video, capture date in link links to dead capture.
             'url': 'https://web.archive.org/web/20180803221945/https://www.youtube.com/watch?v=6FPhZJGvf4E',
             'info_dict': {
@@ -383,41 +378,33 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'expected_warnings': [
                 r'unable to download capture webpage \(it may not be archived\)'
             ]
-        },
-        {   # Very old YouTube page, has - YouTube in title.
+        }, {   # Very old YouTube page, has - YouTube in title.
             'url': 'http://web.archive.org/web/20070302011044/http://youtube.com/watch?v=-06-KB9XTzg',
             'info_dict': {
                 'id': '-06-KB9XTzg',
                 'ext': 'flv',
                 'title': 'New Coin Hack!! 100% Safe!!'
             }
-        },
-        {
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
-        },
-        {
+        }, {
             'url': 'https://web.archive.org/web/20050214000000_if/http://www.youtube.com/watch?v=0altSZ96U4M',
             'only_matching': True
-        },
-        {
+        }, {
             # Video not archived, only capture is unavailable video page
             'url': 'https://web.archive.org/web/20210530071008/https://www.youtube.com/watch?v=lHJTf93HL1s&spfreload=10',
             'only_matching': True
-        },
-        {   # Encoded url
+        }, {   # Encoded url
             'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fgl%3DUS%26v%3DAkhihxRKcrs%26hl%3Den',
             'only_matching': True
-        },
-        {
+        }, {
             'url': 'https://web.archive.org/web/20120712231619/http%3A//www.youtube.com/watch%3Fv%3DAkhihxRKcrs%26gl%3DUS%26hl%3Den',
             'only_matching': True
-        },
-        {
+        }, {
             'url': 'https://web.archive.org/web/20060527081937/http://www.youtube.com:80/watch.php?v=ELTFsLT73fA&amp;search=soccer',
             'only_matching': True
-        },
-        {
+        }, {
             'url': 'https://web.archive.org/http://www.youtube.com:80/watch?v=-05VVye-ffg',
             'only_matching': True
         }
@@ -544,7 +531,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         }
 
     def _extract_thumbnails(self, video_id):
-        try_all = 'thumbnails' in self._configuration_arg('checkall')
+        try_all = 'thumbnails' in self._configuration_arg('check_all')
         thumbnail_base_urls = [(ext, server, 'http://{server}/vi{webp}/{video_id}'.format(
             webp='_webp' if ext == 'webp' else '', video_id=video_id, server=server))
             for server in (self._YT_ALL_THUMB_SERVERS if try_all else self._YT_DEFAULT_THUMB_SERVERS) for ext in (('jpg', 'webp') if try_all else ('jpg',))]
@@ -587,7 +574,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         if all_captures:
             capture_dates.append(all_captures[0])
 
-        if 'captures' in self._configuration_arg('checkall'):
+        if 'captures' in self._configuration_arg('check_all'):
             capture_dates.extend(modern_captures + all_captures)
 
         # Fallbacks if any of the above fail
@@ -626,7 +613,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             # Try avoid getting deleted video metadata
             if _info_dict.get('title'):
                 info = merge_dicts(info, _info_dict)
-                if 'captures' not in self._configuration_arg('checkall'):
+                if 'captures' not in self._configuration_arg('check_all'):
                     break
 
         info['thumbnails'] = self._extract_thumbnails(video_id)
