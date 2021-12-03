@@ -10,6 +10,7 @@ from ..utils import (
 
 import re
 
+
 class FranceCultureIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?franceculture\.fr/emissions/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
@@ -59,7 +60,7 @@ class FranceCultureIE(InfoExtractor):
             webpage, 'description', default=None)
 
         # page has playlist
-        if (re.search(r'<div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>', webpage) != None):
+        if (re.search(r'<div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>', webpage) is not None):
             playlist_data = self._search_regex(
                 r'''(?sx)
                     <div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>
