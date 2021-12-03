@@ -513,7 +513,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         # Uploader ID and URL
         uploader_mobj = re.search(
-            r'<link itemprop="url" href="(?P<uploader_url>https?://www\.youtube\.com/(?:user|channel)/(?P<uploader_id>[^"]+))">',
+            r'<link itemprop="url" href="(?P<uploader_url>https?://www\.youtube\.com/(?:user|channel)/(?P<uploader_id>[^"]+))">',  # @fd05024
             webpage)
         if uploader_mobj is not None:
             uploader_id, uploader_url = uploader_mobj.group('uploader_id'), uploader_mobj.group('uploader_url')
