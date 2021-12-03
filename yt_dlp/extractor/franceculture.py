@@ -58,16 +58,16 @@ class FranceCultureIE(InfoExtractor):
             r'(?s)<div[^>]+class="intro"[^>]*>.*?<h2>(.+?)</h2>',
             webpage, 'description', default=None)
 
-        # page has playlist
-        if (re.search(r'<div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>', webpage) is not None):
-            playlist_data = self._search_regex(
-                r'''(?sx)
-                    <div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>
-                    (.*?)
-                    <div[^>]+class="[^"]*?see-more-anchor[^"]*?">
-                ''',
-                webpage, 'playlist data')
+        playlist_data = self._search_regex(
+            r'''(?sx)
+                <div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>
+                (.*?)
+                <div[^>]+class="[^"]*?see-more-anchor[^"]*?">
+            ''',
+            webpage, 'playlist data', fatal=False)
 
+        # page has playlist
+        if (playlist_data is not None):
             entries = [
                 self.url_result(video_url, None, video_id, video_title)
                 for video_url, video_id, video_title in re.findall(
