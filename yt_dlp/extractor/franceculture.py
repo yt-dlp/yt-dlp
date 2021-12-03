@@ -8,11 +8,21 @@ from ..utils import (
     int_or_none,
 )
 
+import re
 
 class FranceCultureIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?franceculture\.fr/emissions/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
-        'url': 'http://www.franceculture.fr/emissions/carnet-nomade/rendez-vous-au-pays-des-geeks',
+        # playlist
+        'url': 'https://www.franceculture.fr/emissions/hasta-dente',
+        'playlist_mincount': 12,
+        'playlist_maxcount': 12,
+        'info_dict': {
+            'id': 'hasta-dente',
+            'title': 'Hasta Dente !',
+        }
+    }, {
+        'url': 'https://www.franceculture.fr/emissions/carnet-nomade/rendez-vous-au-pays-des-geeks',
         'info_dict': {
             'id': 'rendez-vous-au-pays-des-geeks',
             'display_id': 'rendez-vous-au-pays-des-geeks',
@@ -20,7 +30,6 @@ class FranceCultureIE(InfoExtractor):
             'title': 'Rendez-vous au pays des geeks',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20140301',
-            'timestamp': 1393700400,
             'vcodec': 'none',
         }
     }, {
@@ -44,18 +53,42 @@ class FranceCultureIE(InfoExtractor):
             ''',
             webpage, 'video data'))
 
-        video_url = video_data.get('data-url') or video_data['data-asset-source']
-        title = video_data.get('data-asset-title') or video_data.get('data-diffusion-title') or self._og_search_title(webpage)
-
+        title = video_data.get('data-emission-title') or video_data.get('data-diffusion-title') or self._og_search_title(webpage)
         description = self._html_search_regex(
             r'(?s)<div[^>]+class="intro"[^>]*>.*?<h2>(.+?)</h2>',
             webpage, 'description', default=None)
+
+        # page has playlist
+        if (re.search(r'<div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>', webpage) != None):
+            playlist_data = self._search_regex(
+                r'''(?sx)
+                    <div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>
+                    (.*?)
+                    <div[^>]+class="[^"]*?see-more-anchor[^"]*?">
+                ''',
+                webpage, 'playlist data')
+
+            entries = [
+                self.url_result(video_url, None, video_id, video_title)
+                for video_url, video_id, video_title in re.findall(
+                    r'''data-url="([^"]+)"[^>]*data-diffusion-path="([^"]+)"[^>]*data-diffusion-title="([^"]+)"''',
+                    playlist_data)
+            ]
+
+            return self.playlist_result(entries, display_id, title, description)
+
+        video_url = video_data.get('data-url') or video_data['data-asset-source']
+
         thumbnail = self._search_regex(
             r'(?s)<figure[^>]+itemtype="https://schema.org/ImageObject"[^>]*>.*?<img[^>]+(?:data-dejavu-)?src="([^"]+)"',
             webpage, 'thumbnail', default=None)
-        uploader = self._html_search_regex(
-            r'(?s)<span class="author">(.*?)</span>',
-            webpage, 'uploader', default=None)
+        upload_date = self._search_regex(
+            r'(?s)"datePublished":\s*"(\d{4}-\d{2}-\d{2})',
+            webpage, 'date', default=None)
+
+        if (upload_date):
+            upload_date = upload_date.replace("-", "")
+
         ext = determine_ext(video_url.lower())
 
         return {
@@ -67,7 +100,6 @@ class FranceCultureIE(InfoExtractor):
             'thumbnail': thumbnail,
             'ext': ext,
             'vcodec': 'none' if ext == 'mp3' else None,
-            'uploader': uploader,
-            'timestamp': int_or_none(video_data.get('data-start-time')) or int_or_none(video_data.get('data-asset-created-date')),
+            'upload_date': upload_date,
             'duration': int_or_none(video_data.get('data-duration')),
         }
