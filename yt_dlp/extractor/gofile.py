@@ -22,6 +22,19 @@ class GofileIE(InfoExtractor):
                 'title': 'nuuh'
             }
         }]
+    }, {  # URL to test mixed file types
+        'url': 'https://gofile.io/d/avt34h',
+        'info_dict': {
+            'id': 'avt34h',
+        },
+        'playlist_mincount': 1,
+    }, {  # URL to test no video/audio error
+        'url': 'https://gofile.io/d/aB03lZ',
+        'info_dict': {
+            'id': 'aB03lZ',
+        },
+        'playlist_count': 0,
+        'skip': 'No video/audio found at provided URL.',
     }]
     _TOKEN = None
 
@@ -52,13 +65,15 @@ class GofileIE(InfoExtractor):
                 continue
 
             found_files = True
-            yield {
-                'id': file['id'],
-                'title': file['name'].rsplit('.', 1)[0],
-                'url': file['directLink'],
-                'filesize': file.get('size'),
-                'release_timestamp': file.get('createTime')
-            }
+            file_url = file.get('directLink')
+            if file_url:
+                yield {
+                    'id': file['id'],
+                    'title': file['name'].rsplit('.', 1)[0],
+                    'url': file_url,
+                    'filesize': file.get('size'),
+                    'release_timestamp': file.get('createTime')
+                }
 
         if not found_files:
             raise ExtractorError('No video/audio found at provided URL.', expected=True)
