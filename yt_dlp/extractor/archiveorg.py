@@ -493,7 +493,12 @@ class YoutubeWebArchiveIE(InfoExtractor):
         channel_id = str_or_none(
             video_details.get('channelId')
             or microformats.get('externalChannelId')
-            or search_meta('channelId'))
+            or search_meta('channelId')
+            or self._search_regex(
+                r'data-channel-external-id=(["\'])(?P<id>(?:(?!\1).)+)\1',  # @b45a9e6
+                webpage, 'channel id', default=None, group='id')
+            )
+        channel_url = f'http://www.youtube.com/channel/{channel_id}' if channel_id else None
         duration = int_or_none(
             video_details.get('lengthSeconds')
             or microformats.get('lengthSeconds')
@@ -501,7 +506,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         description = (
             video_details.get('shortDescription')
             or YoutubeIE._get_text(microformats, 'description')
-            or clean_html(get_element_by_id('eow-description', webpage))  # 9e6dd23
+            or clean_html(get_element_by_id('eow-description', webpage))  # @9e6dd23
             or search_meta(['description', 'og:description', 'twitter:description']))
 
         uploader = video_details.get('author')
@@ -513,7 +518,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         if uploader_mobj is not None:
             uploader_id, uploader_url = uploader_mobj.group('uploader_id'), uploader_mobj.group('uploader_url')
         else:
-            # a6211d2
+            # @a6211d2
             uploader_url = url_or_none(microformats.get('ownerProfileUrl'))
             uploader_id = self._search_regex(
                 r'(?:user|channel)/([^/]+)', uploader_url or '', 'uploader id', default=None)
@@ -523,7 +528,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or search_meta(['uploadDate', 'datePublished'])
             or self._search_regex(
                 [r'(?s)id="eow-date.*?>(.*?)</span>',
-                 r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],  # 7998520
+                 r'(?:id="watch-uploader-info".*?>.*?|["\']simpleText["\']\s*:\s*["\'])(?:Published|Uploaded|Streamed live|Started) on (.+?)[<"\']'],  # @7998520
                 webpage, 'upload date', default=None))
 
         info = {
@@ -532,6 +537,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'upload_date': upload_date,
             'uploader': uploader,
             'channel_id': channel_id,
+            'channel_url': channel_url,
             'duration': duration,
             'uploader_url': uploader_url,
             'uploader_id': uploader_id,
