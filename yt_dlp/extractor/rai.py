@@ -17,6 +17,7 @@ from ..utils import (
     get_element_by_class,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_list,
     remove_start,
@@ -138,6 +139,9 @@ class RaiBaseIE(InfoExtractor):
                 return False if resp.url == url else resp.url
             return None
 
+        # filter out audio-only formats
+        fmts = [f for f in fmts if not f.get('vcodec') == 'none']
+
         def get_format_info(tbr):
             import math
             br = int_or_none(tbr)
@@ -229,7 +233,7 @@ class RaiPlayIE(RaiBaseIE):
             'id': 'cb27157f-9dd0-4aee-b788-b1f67643a391',
             'ext': 'mp4',
             'title': 'Report del 07/04/2014',
-            'alt_title': 'St 2013/14 - Espresso nel caffè - 07/04/2014',
+            'alt_title': 'St 2013/14 - Report - Espresso nel caffè - 07/04/2014',
             'description': 'md5:d730c168a58f4bb35600fc2f881ec04e',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai Gulp',
@@ -237,7 +241,7 @@ class RaiPlayIE(RaiBaseIE):
             'series': 'Report',
             'season': '2013/14',
             'subtitles': {
-                'it': 'count:2',
+                'it': 'count:4',
             },
         },
         'params': {
@@ -245,18 +249,18 @@ class RaiPlayIE(RaiBaseIE):
         },
     }, {
         # 1080p direct mp4 url
-        'url': 'https://www.raiplay.it/video/2021/03/Leonardo-S1E1-b5703b02-82ee-475a-85b6-c9e4a8adf642.html',
-        'md5': '2e501e8651d72f05ffe8f5d286ad560b',
+        'url': 'https://www.raiplay.it/video/2021/11/Blanca-S1E1-Senza-occhi-b1255a4a-8e72-4a2f-b9f3-fc1308e00736.html',
+        'md5': 'aeda7243115380b2dd5e881fd42d949a',
         'info_dict': {
-            'id': 'b5703b02-82ee-475a-85b6-c9e4a8adf642',
+            'id': 'b1255a4a-8e72-4a2f-b9f3-fc1308e00736',
             'ext': 'mp4',
-            'title': 'Leonardo - S1E1',
-            'alt_title': 'St 1 Ep 1 - Episodio 1',
-            'description': 'md5:f5360cd267d2de146e4e3879a5a47d31',
+            'title': 'Blanca - S1E1 - Senza occhi',
+            'alt_title': 'St 1 Ep 1 - Blanca - Senza occhi',
+            'description': 'md5:75f95d5c030ec8bac263b1212322e28c',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai 1',
-            'duration': 3229,
-            'series': 'Leonardo',
+            'duration': 6493,
+            'series': 'Blanca',
             'season': 'Season 1',
         },
     }, {
@@ -309,12 +313,14 @@ class RaiPlayIE(RaiBaseIE):
         program_info = media.get('program_info') or {}
         season = media.get('season')
 
+        alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
+
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
             'title': self._live_title(title) if relinker_info.get(
                 'is_live') else title,
-            'alt_title': strip_or_none(media.get('subtitle')),
+            'alt_title': strip_or_none(alt_title),
             'description': media.get('description'),
             'uploader': strip_or_none(media.get('channel')),
             'creator': strip_or_none(media.get('editor') or None),

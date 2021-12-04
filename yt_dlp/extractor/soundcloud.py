@@ -58,7 +58,149 @@ class SoundcloudEmbedIE(InfoExtractor):
         return self.url_result(api_url)
 
 
-class SoundcloudIE(InfoExtractor):
+class SoundcloudBaseIE(InfoExtractor):
+    _API_V2_BASE = 'https://api-v2.soundcloud.com/'
+    _BASE_URL = 'https://soundcloud.com/'
+
+    def _store_client_id(self, client_id):
+        self._downloader.cache.store('soundcloud', 'client_id', client_id)
+
+    def _update_client_id(self):
+        webpage = self._download_webpage('https://soundcloud.com/', None)
+        for src in reversed(re.findall(r'<script[^>]+src="([^"]+)"', webpage)):
+            script = self._download_webpage(src, None, fatal=False)
+            if script:
+                client_id = self._search_regex(
+                    r'client_id\s*:\s*"([0-9a-zA-Z]{32})"',
+                    script, 'client id', default=None)
+                if client_id:
+                    self._CLIENT_ID = client_id
+                    self._store_client_id(client_id)
+                    return
+        raise ExtractorError('Unable to extract client id')
+
+    def _download_json(self, *args, **kwargs):
+        non_fatal = kwargs.get('fatal') is False
+        if non_fatal:
+            del kwargs['fatal']
+        query = kwargs.get('query', {}).copy()
+        for _ in range(2):
+            query['client_id'] = self._CLIENT_ID
+            kwargs['query'] = query
+            try:
+                return super()._download_json(*args, **compat_kwargs(kwargs))
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
+                    self._store_client_id(None)
+                    self._update_client_id()
+                    continue
+                elif non_fatal:
+                    self.report_warning(error_to_compat_str(e))
+                    return False
+                raise
+
+    def _real_initialize(self):
+        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
+        self._login()
+
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
+    _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
+    _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
+    _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
+    _access_token = None
+    _HEADERS = {}
+    _NETRC_MACHINE = 'soundcloud'
+
+    def _login(self):
+        username, password = self._get_login_info()
+        if username is None:
+            return
+
+        if username == 'oauth' and password is not None:
+            self._access_token = password
+            query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
+            payload = {'session': {'access_token': self._access_token}}
+            token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
+            response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
+            if response is not False:
+                self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+                self.report_login()
+            else:
+                self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
+        elif username is not None:
+            self.report_warning(
+                'Login using username and password is not currently supported. '
+                'Use "--user oauth --password <oauth_token>" to login using an oauth token')
+
+        r'''
+        def genDevId():
+            def genNumBlock():
+                return ''.join([str(random.randrange(10)) for i in range(6)])
+            return '-'.join([genNumBlock() for i in range(4)])
+
+        payload = {
+            'client_id': self._CLIENT_ID,
+            'recaptcha_pubkey': 'null',
+            'recaptcha_response': 'null',
+            'credentials': {
+                'identifier': username,
+                'password': password
+            },
+            'signature': self.sign(username, password, self._CLIENT_ID),
+            'device_id': genDevId(),
+            'user_agent': self._USER_AGENT
+        }
+
+        query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
+        login = sanitized_Request(self._API_AUTH_URL_PW % query, json.dumps(payload).encode('utf-8'))
+        response = self._download_json(login, None)
+        self._access_token = response.get('session').get('access_token')
+        if not self._access_token:
+            self.report_warning('Unable to get access token, login may has failed')
+        else:
+            self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+        '''
+
+    # signature generation
+    def sign(self, user, pw, clid):
+        a = 33
+        i = 1
+        s = 440123
+        w = 117
+        u = 1800000
+        l = 1042
+        b = 37
+        k = 37
+        c = 5
+        n = '0763ed7314c69015fd4a0dc16bbf4b90'  # _KEY
+        y = '8'  # _REV
+        r = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'  # _USER_AGENT
+        e = user  # _USERNAME
+        t = clid  # _CLIENT_ID
+
+        d = '-'.join([str(mInt) for mInt in [a, i, s, w, u, l, b, k]])
+        p = n + y + d + r + e + t + d + n
+        h = p
+
+        m = 8011470
+        f = 0
+
+        for f in range(f, len(h)):
+            m = (m >> 1) + ((1 & m) << 23)
+            m += ord(h[f])
+            m &= 16777215
+
+        # c is not even needed
+        out = str(y) + ':' + str(d) + ':' + format(m, 'x') + ':' + str(c)
+
+        return out
+
+    @classmethod
+    def _resolv_url(cls, url):
+        return cls._API_V2_BASE + 'resolve?url=' + url
+
+
+class SoundcloudIE(SoundcloudBaseIE):
     """Information extractor for soundcloud.com
        To access the media, the uid of the song and a stream token
        must be extracted from the page source and the script must make
@@ -250,8 +392,6 @@ class SoundcloudIE(InfoExtractor):
         },
     ]
 
-    _API_V2_BASE = 'https://api-v2.soundcloud.com/'
-    _BASE_URL = 'https://soundcloud.com/'
     _IMAGE_REPL_RE = r'-([0-9a-z]+)\.jpg'
 
     _ARTWORK_MAP = {
@@ -266,143 +406,6 @@ class SoundcloudIE(InfoExtractor):
         't500x500': 500,
         'original': 0,
     }
-
-    def _store_client_id(self, client_id):
-        self._downloader.cache.store('soundcloud', 'client_id', client_id)
-
-    def _update_client_id(self):
-        webpage = self._download_webpage('https://soundcloud.com/', None)
-        for src in reversed(re.findall(r'<script[^>]+src="([^"]+)"', webpage)):
-            script = self._download_webpage(src, None, fatal=False)
-            if script:
-                client_id = self._search_regex(
-                    r'client_id\s*:\s*"([0-9a-zA-Z]{32})"',
-                    script, 'client id', default=None)
-                if client_id:
-                    self._CLIENT_ID = client_id
-                    self._store_client_id(client_id)
-                    return
-        raise ExtractorError('Unable to extract client id')
-
-    def _download_json(self, *args, **kwargs):
-        non_fatal = kwargs.get('fatal') is False
-        if non_fatal:
-            del kwargs['fatal']
-        query = kwargs.get('query', {}).copy()
-        for _ in range(2):
-            query['client_id'] = self._CLIENT_ID
-            kwargs['query'] = query
-            try:
-                return super(SoundcloudIE, self)._download_json(*args, **compat_kwargs(kwargs))
-            except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
-                    self._store_client_id(None)
-                    self._update_client_id()
-                    continue
-                elif non_fatal:
-                    self.report_warning(error_to_compat_str(e))
-                    return False
-                raise
-
-    def _real_initialize(self):
-        self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
-        self._login()
-
-    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
-    _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
-    _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
-    _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
-    _access_token = None
-    _HEADERS = {}
-    _NETRC_MACHINE = 'soundcloud'
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
-        if username == 'oauth' and password is not None:
-            self._access_token = password
-            query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-            payload = {'session': {'access_token': self._access_token}}
-            token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
-            response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
-            if response is not False:
-                self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
-                self.report_login()
-            else:
-                self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
-        elif username is not None:
-            self.report_warning(
-                'Login using username and password is not currently supported. '
-                'Use "--user oauth --password <oauth_token>" to login using an oauth token')
-
-        r'''
-        def genDevId():
-            def genNumBlock():
-                return ''.join([str(random.randrange(10)) for i in range(6)])
-            return '-'.join([genNumBlock() for i in range(4)])
-
-        payload = {
-            'client_id': self._CLIENT_ID,
-            'recaptcha_pubkey': 'null',
-            'recaptcha_response': 'null',
-            'credentials': {
-                'identifier': username,
-                'password': password
-            },
-            'signature': self.sign(username, password, self._CLIENT_ID),
-            'device_id': genDevId(),
-            'user_agent': self._USER_AGENT
-        }
-
-        query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-        login = sanitized_Request(self._API_AUTH_URL_PW % query, json.dumps(payload).encode('utf-8'))
-        response = self._download_json(login, None)
-        self._access_token = response.get('session').get('access_token')
-        if not self._access_token:
-            self.report_warning('Unable to get access token, login may has failed')
-        else:
-            self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
-        '''
-
-    # signature generation
-    def sign(self, user, pw, clid):
-        a = 33
-        i = 1
-        s = 440123
-        w = 117
-        u = 1800000
-        l = 1042
-        b = 37
-        k = 37
-        c = 5
-        n = '0763ed7314c69015fd4a0dc16bbf4b90'  # _KEY
-        y = '8'  # _REV
-        r = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'  # _USER_AGENT
-        e = user  # _USERNAME
-        t = clid  # _CLIENT_ID
-
-        d = '-'.join([str(mInt) for mInt in [a, i, s, w, u, l, b, k]])
-        p = n + y + d + r + e + t + d + n
-        h = p
-
-        m = 8011470
-        f = 0
-
-        for f in range(f, len(h)):
-            m = (m >> 1) + ((1 & m) << 23)
-            m += ord(h[f])
-            m &= 16777215
-
-        # c is not even needed
-        out = str(y) + ':' + str(d) + ':' + format(m, 'x') + ':' + str(c)
-
-        return out
-
-    @classmethod
-    def _resolv_url(cls, url):
-        return SoundcloudIE._API_V2_BASE + 'resolve?url=' + url
 
     def _extract_info_dict(self, info, full_title=None, secret_token=None):
         track_id = compat_str(info['id'])
@@ -581,7 +584,7 @@ class SoundcloudIE(InfoExtractor):
         return self._extract_info_dict(info, full_title, token)
 
 
-class SoundcloudPlaylistBaseIE(SoundcloudIE):
+class SoundcloudPlaylistBaseIE(SoundcloudBaseIE):
     def _extract_set(self, playlist, token=None):
         playlist_id = compat_str(playlist['id'])
         tracks = playlist.get('tracks') or []
@@ -654,7 +657,7 @@ class SoundcloudSetIE(SoundcloudPlaylistBaseIE):
         return self._extract_set(info, token)
 
 
-class SoundcloudPagedPlaylistBaseIE(SoundcloudIE):
+class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
     def _extract_playlist(self, base_url, playlist_id, playlist_title):
         return {
             '_type': 'playlist',
@@ -853,7 +856,7 @@ class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
         return self._extract_set(data, token)
 
 
-class SoundcloudSearchIE(SearchInfoExtractor, SoundcloudIE):
+class SoundcloudSearchIE(SoundcloudBaseIE, SearchInfoExtractor):
     IE_NAME = 'soundcloud:search'
     IE_DESC = 'Soundcloud search'
     _SEARCH_KEY = 'scsearch'

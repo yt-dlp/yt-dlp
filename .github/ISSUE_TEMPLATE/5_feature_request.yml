@@ -11,7 +11,7 @@ body:
       options:
         - label: I'm reporting a feature request
           required: true
-        - label: I've verified that I'm running yt-dlp version **2021.11.10.1**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
+        - label: I've verified that I'm running yt-dlp version **2021.12.01**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
           required: true
         - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues including closed ones. DO NOT post duplicates
           required: true

@@ -96,6 +96,7 @@ from .utils import (
     ReExtractInfo,
     register_socks_protocols,
     RejectedVideoReached,
+    remove_terminal_sequences,
     render_table,
     replace_extension,
     SameFileError,
@@ -327,7 +328,7 @@ class YoutubeDL(object):
     bidi_workaround:   Work around buggy terminals without bidirectional text
                        support, using fridibi
     debug_printtraffic:Print out sent and received HTTP traffic
-    include_ads:       Download ads as well
+    include_ads:       Download ads as well (deprecated)
     default_search:    Prepend this string if an input url is not valid.
                        'auto' for elaborate guessing
     encoding:          Use this encoding instead of the system-specified.
@@ -776,6 +777,7 @@ class YoutubeDL(object):
     def to_console_title(self, message):
         if not self.params.get('consoletitle', False):
             return
+        message = remove_terminal_sequences(message)
         if compat_os_name == 'nt':
             if ctypes.windll.kernel32.GetConsoleWindow():
                 # c_wchar_p() might not be necessary if `message` is

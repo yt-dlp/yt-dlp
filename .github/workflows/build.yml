@@ -119,7 +119,7 @@ jobs:
       with:
         tag_name: ${{ steps.bump_version.outputs.ytdlp_version }}
         release_name: yt-dlp ${{ steps.bump_version.outputs.ytdlp_version }}
-        commitish: ${{ steps.push_update.outputs.head_sha }}
+        commitish: ${{ steps.push_release.outputs.head_sha }}
         body: |
           #### [A description of the various files]((https://github.com/yt-dlp/yt-dlp#release-files)) are in the README
 

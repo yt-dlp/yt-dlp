@@ -108,6 +108,7 @@ class TrovoVodIE(TrovoBaseIE):
             'comments': 'mincount:8',
             'categories': ['Grand Theft Auto V'],
         },
+        'skip': '404'
     }, {
         'url': 'https://trovo.live/clip/lc-5285890810184026005',
         'only_matching': True,
@@ -198,7 +199,7 @@ class TrovoVodIE(TrovoBaseIE):
         return info
 
 
-class TrovoChannelBaseIE(InfoExtractor):
+class TrovoChannelBaseIE(TrovoBaseIE):
     def _get_vod_json(self, page, uid):
         raise NotImplementedError('This method must be implemented by subclasses')
 

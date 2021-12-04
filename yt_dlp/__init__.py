@@ -95,6 +95,7 @@ def _real_main(argv=None):
     if opts.batchfile is not None:
         try:
             if opts.batchfile == '-':
+                write_string('Reading URLs from stdin:\n')
                 batchfd = sys.stdin
             else:
                 batchfd = io.open(
