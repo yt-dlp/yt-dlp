@@ -950,7 +950,8 @@ Make chapter entries for, or remove various segments (sponsor,
                                      remove, remove takes precedence. The syntax
                                      and available categories are the same as
                                      for --sponsorblock-mark except that
-                                     "default" refers to "all,-filler"
+                                     "default" refers to "all,-filler" and
+                                     poi_highlight is not available
     --sponsorblock-chapter-title TEMPLATE
                                      The title template for SponsorBlock
                                      chapters created by --sponsorblock-mark.
