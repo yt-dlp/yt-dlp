@@ -740,6 +740,29 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def is_music_url(url):
         return re.match(r'https?://music\.youtube\.com/', url) is not None
 
+    @staticmethod
+    def _parse_date(value):
+        # a rough date as text isn't detailed. Good enough for quick exit with --date-after
+        upload_date = datetime.datetime.now()
+        items = value.split(' ')
+        if len(items) != 3:
+            return None
+        count = int(items[0])
+        unit = items[1]
+        if unit == "minutes":
+            upload_date = upload_date - datetime.timedelta(minutes=count)
+        elif unit == "hours":
+            upload_date = upload_date - datetime.timedelta(hours=count)
+        elif unit == "days":
+            upload_date = upload_date - datetime.timedelta(days=count)
+        elif unit == "weeks":
+            upload_date = upload_date - datetime.timedelta(weeks=count)
+        elif unit == "years":
+            upload_date = upload_date - datetime.timedelta(weeks=count * 52)
+        else:
+            return None
+        return upload_date.strftime("%Y%m%d")
+
     def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
         title = self._get_text(renderer, 'title')
@@ -750,6 +773,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         view_count = str_to_int(self._search_regex(
             r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
             'view count', default=None))
+        date = self._parse_date(renderer.get('publishedTimeText')['simpleText'])
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
 
@@ -763,6 +787,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'duration': duration,
             'view_count': view_count,
             'uploader': uploader,
+            'upload_date': date
         }
 
 
