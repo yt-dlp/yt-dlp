@@ -794,7 +794,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'view_count': view_count,
             'uploader': uploader,
             'channel_id': channel_id,  # TODO: validate?
-            'timestamp': timestamp,
             'upload_date': upload_date,
             'is_live': is_live,
             'was_live': False if is_live or is_upcoming else True if any(i in time_text.lower() for i in ('streamed', 'premiered')) else None,
