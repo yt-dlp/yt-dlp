@@ -130,6 +130,7 @@ class CBSIE(CBSBaseIE):
         title = xpath_text(video_data, 'videoTitle', 'title') or xpath_text(video_data, 'videotitle', 'title')
 
         asset_types = {}
+        has_drm = False
         for item in items_data.findall('.//item'):
             asset_type = xpath_text(item, 'assetType')
             query = {
@@ -144,12 +145,17 @@ class CBSIE(CBSBaseIE):
             if asset_type in asset_types:
                 continue
             elif any(excluded in asset_type for excluded in ('HLS_FPS', 'DASH_CENC', 'OnceURL')):
+                if 'DASH_CENC' in asset_type:
+                    has_drm = True
                 continue
             if asset_type.startswith('HLS') or 'StreamPack' in asset_type:
                 query['formats'] = 'MPEG4,M3U'
             elif asset_type in ('RTMP', 'WIFI', '3G'):
                 query['formats'] = 'MPEG4,FLV'
             asset_types[asset_type] = query
+
+        if not asset_types and has_drm:
+            self.report_drm(content_id)
 
         return self._extract_common_video_info(content_id, asset_types, mpx_acc, extra_info={
             'title': title,

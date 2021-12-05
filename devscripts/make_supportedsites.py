@@ -29,6 +29,9 @@ def main():
                 continue
             if ie_desc is not None:
                 ie_md += ': {0}'.format(ie.IE_DESC)
+            search_key = getattr(ie, 'SEARCH_KEY', None)
+            if search_key is not None:
+                ie_md += f'; "{ie.SEARCH_KEY}:" prefix'
             if not ie.working():
                 ie_md += ' (Currently broken)'
             yield ie_md

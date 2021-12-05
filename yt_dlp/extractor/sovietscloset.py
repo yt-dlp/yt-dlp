@@ -72,6 +72,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'upload_date': '20170413',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
+                'duration': 7007,
                 'was_live': True,
                 'availability': 'public',
                 'series': 'The Witcher',
@@ -96,6 +97,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'upload_date': '20160420',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
+                'duration': 8804,
                 'was_live': True,
                 'availability': 'public',
                 'series': 'Arma 3',
@@ -116,9 +118,16 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         m3u8_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.MEDIADELIVERY_REFERER)
         self._sort_formats(m3u8_formats)
 
+        if not m3u8_formats:
+            duration = None
+        else:
+            duration = self._extract_m3u8_vod_duration(
+                m3u8_formats[0]['url'], video_id, headers=self.MEDIADELIVERY_REFERER)
+
         return {
             'formats': m3u8_formats,
             'thumbnail': thumbnail_url,
+            'duration': duration,
         }
 
     def _real_extract(self, url):
@@ -167,6 +176,14 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
             },
             'playlist_mincount': 3,
         },
+        {
+            'url': 'https://sovietscloset.com/Total-War-Warhammer',
+            'info_dict': {
+                'id': 'Total-War-Warhammer',
+                'title': 'Total War: Warhammer - Greenskins',
+            },
+            'playlist_mincount': 33,
+        },
     ]
 
     def _real_extract(self, url):
@@ -188,7 +205,9 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
             category_slug = 'misc'
 
         game = next(game for game in sovietscloset if game['slug'].lower() == game_slug)
-        category = next(cat for cat in game['subcategories'] if cat['slug'].lower() == category_slug)
+        category = next((cat for cat in game['subcategories'] if cat.get('slug', '').lower() == category_slug),
+                        game['subcategories'][0])
+        category_slug = category.get('slug', '').lower() or category_slug
         playlist_title = game.get('name') or game_slug
         if category_slug != 'misc':
             playlist_title += f' - {category.get("name") or category_slug}'

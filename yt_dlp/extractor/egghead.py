@@ -86,7 +86,6 @@ class EggheadLessonIE(EggheadBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo',
         },
     }, {
         'url': 'https://egghead.io/api/v1/lessons/react-add-redux-to-a-react-application',

@@ -43,9 +43,6 @@ class TeleQuebecIE(TeleQuebecBaseIE):
             'uploader_id': '6150020952001',
             'upload_date': '20200512',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
         'add_ie': ['BrightcoveNew'],
     }, {
         'url': 'https://zonevideo.telequebec.tv/media/55267/le-soleil/passe-partout',
@@ -57,9 +54,6 @@ class TeleQuebecIE(TeleQuebecBaseIE):
             'uploader_id': '6150020952001',
             'upload_date': '20200625',
             'timestamp': 1593090307,
-        },
-        'params': {
-            'format': 'bestvideo',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
@@ -157,9 +151,6 @@ class TeleQuebecEmissionIE(InfoExtractor):
             'timestamp': 1588713424,
             'uploader_id': '6150020952001',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }, {
         'url': 'http://bancpublic.telequebec.tv/emissions/emission-49/31986/jeunes-meres-sous-pression',
         'only_matching': True,
@@ -219,9 +210,6 @@ class TeleQuebecVideoIE(TeleQuebecBaseIE):
             'upload_date': '20201019',
             'timestamp': 1603115930,
             'uploader_id': '6101674910001',
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }, {
         'url': 'https://video.telequebec.tv/player-live/28527',

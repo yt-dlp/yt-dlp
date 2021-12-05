@@ -485,7 +485,7 @@ class TwitterIE(TwitterBaseIE):
                 fmts, subs = self._extract_variant_formats(variant, twid)
                 subtitles = self._merge_subtitles(subtitles, subs)
                 formats.extend(fmts)
-            self._sort_formats(formats)
+            self._sort_formats(formats, ('res', 'br', 'size', 'proto'))  # The codec of http formats are unknown
 
             thumbnails = []
             media_url = media.get('media_url_https') or media.get('media_url')

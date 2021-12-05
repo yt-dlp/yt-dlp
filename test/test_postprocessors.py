@@ -461,11 +461,23 @@ class TestModifyChaptersPP(unittest.TestCase):
         self._remove_marked_arrange_sponsors_test_impl(
             chapters, self._chapters([2, 2.5], ['c1', 'c3']), cuts)
 
+    def test_remove_marked_arrange_sponsors_SingleTinyChapterIsPreserved(self):
+        cuts = [self._chapter(0.5, 2, remove=True)]
+        chapters = self._chapters([2], ['c']) + cuts
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([0.5], ['c']), cuts)
+
+    def test_remove_marked_arrange_sponsors_TinyChapterAtTheStartPrependedToTheNext(self):
+        cuts = [self._chapter(0.5, 2, remove=True)]
+        chapters = self._chapters([2, 4], ['c1', 'c2']) + cuts
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([2.5], ['c2']), cuts)
+
     def test_remove_marked_arrange_sponsors_TinyChaptersResultingFromSponsorOverlapAreIgnored(self):
         chapters = self._chapters([1, 3, 4], ['c1', 'c2', 'c3']) + [
             self._sponsor_chapter(1.5, 2.5, 'sponsor')]
         self._remove_marked_arrange_sponsors_test_impl(
-            chapters, self._chapters([1.5, 3, 4], ['c1', '[SponsorBlock]: Sponsor', 'c3']), [])
+            chapters, self._chapters([1.5, 2.5, 4], ['c1', '[SponsorBlock]: Sponsor', 'c3']), [])
 
     def test_remove_marked_arrange_sponsors_TinySponsorsOverlapsAreIgnored(self):
         chapters = self._chapters([2, 3, 5], ['c1', 'c2', 'c3']) + [
@@ -475,6 +487,26 @@ class TestModifyChaptersPP(unittest.TestCase):
         self._remove_marked_arrange_sponsors_test_impl(
             chapters, self._chapters([1, 3, 4, 5], [
                 'c1', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Unpaid/Self Promotion', 'c3']), [])
+
+    def test_remove_marked_arrange_sponsors_TinySponsorsPrependedToTheNextSponsor(self):
+        chapters = self._chapters([4], ['c']) + [
+            self._sponsor_chapter(1.5, 2, 'sponsor'),
+            self._sponsor_chapter(2, 4, 'selfpromo')
+        ]
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([1.5, 4], ['c', '[SponsorBlock]: Unpaid/Self Promotion']), [])
+
+    def test_remove_marked_arrange_sponsors_SmallestSponsorInTheOverlapGetsNamed(self):
+        self._pp._sponsorblock_chapter_title = '[SponsorBlock]: %(name)s'
+        chapters = self._chapters([10], ['c']) + [
+            self._sponsor_chapter(2, 8, 'sponsor'),
+            self._sponsor_chapter(4, 6, 'selfpromo')
+        ]
+        self._remove_marked_arrange_sponsors_test_impl(
+            chapters, self._chapters([2, 4, 6, 8, 10], [
+                'c', '[SponsorBlock]: Sponsor', '[SponsorBlock]: Unpaid/Self Promotion',
+                '[SponsorBlock]: Sponsor', 'c'
+            ]), [])
 
     def test_make_concat_opts_CommonCase(self):
         sponsor_chapters = [self._chapter(1, 2, 's1'), self._chapter(10, 20, 's2')]

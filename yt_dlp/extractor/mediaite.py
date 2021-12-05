@@ -5,7 +5,7 @@ from .common import InfoExtractor
 
 
 class MediaiteIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?mediaite.com/(?:tv|sports|politics|podcasts|opinion)/[\w-]+/'
+    _VALID_URL = r'https?://(?:www\.)?mediaite.com(?!/category)(?:/[\w-]+){2}'
     _TESTS = [{
         'url': 'https://www.mediaite.com/sports/bill-burr-roasts-nfl-for-promoting-black-lives-matter-while-scheduling-more-games-after-all-the-sht-they-know-about-cte/',
         'info_dict': {
@@ -69,6 +69,19 @@ class MediaiteIE(InfoExtractor):
             'duration': 52,
             'timestamp': 1631553328,
             'upload_date': '20210913',
+        },
+        'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.mediaite.com/news/watch-cnbcs-jim-cramer-says-nobody-wants-to-die-getting-infected-by-unvaccinated-coworker-even-for-22-an-hour/',
+        'info_dict': {
+            'id': 'nwpt1elX',
+            'ext': 'mp4',
+            'title': "CNBC's Jim Cramer Says Nobody Wants to Die Getting Infected by Unvaccinated Coworker 'Even for $22 an Hour'.mp4",
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'thumbnail': 'https://cdn.jwplayer.com/v2/media/nwpt1elX/poster.jpg?width=720',
+            'duration': 60,
+            'timestamp': 1633014214,
+            'upload_date': '20210930',
         },
         'params': {'skip_download': True}
     }]

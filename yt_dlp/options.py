@@ -17,6 +17,7 @@ from .utils import (
     get_executable_path,
     OUTTMPL_TYPES,
     preferredencoding,
+    remove_end,
     write_string,
 )
 from .cookies import SUPPORTED_BROWSERS
@@ -119,7 +120,7 @@ def parseOpts(overrideArguments=None):
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = getattr(parser.values, option.dest) if append else []
-        value = [process(value)] if delim is None else list(map(process, value.split(delim)))
+        value = list(filter(None, [process(value)] if delim is None else map(process, value.split(delim))))
         setattr(
             parser.values, option.dest,
             current + value if append is True else value + current)
@@ -150,25 +151,25 @@ def parseOpts(overrideArguments=None):
 
     def _dict_from_options_callback(
             option, opt_str, value, parser,
-            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True):
+            allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True,
+            process_key=str.lower):
 
         out_dict = getattr(parser.values, option.dest)
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
         mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
         if mobj is not None:
-            keys = [k.strip() for k in mobj.group('keys').lower().split(',')]
-            val = mobj.group('val')
+            keys, val = mobj.group('keys').split(','), mobj.group('val')
         elif default_key is not None:
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
                 'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
         try:
+            keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val
         except Exception as err:
-            raise optparse.OptionValueError(
-                'wrong %s formatting; %s' % (opt_str, err))
+            raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
             out_dict[key] = val
 
@@ -206,9 +207,13 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='update_self',
         help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
     general.add_option(
-        '-i', '--ignore-errors', '--no-abort-on-error',
-        action='store_true', dest='ignoreerrors', default=None,
-        help='Continue on download errors, for example to skip unavailable videos in a playlist (default) (Alias: --no-abort-on-error)')
+        '-i', '--ignore-errors',
+        action='store_true', dest='ignoreerrors',
+        help='Ignore download and postprocessing errors. The download will be considered successful even if the postprocessing fails')
+    general.add_option(
+        '--no-abort-on-error',
+        action='store_const', dest='ignoreerrors', const='only_download',
+        help='Continue with next video on download errors; e.g. to skip unavailable videos in a playlist (default)')
     general.add_option(
         '--abort-on-error', '--no-ignore-errors',
         action='store_false', dest='ignoreerrors',
@@ -254,9 +259,19 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='extract_flat',
         help='Extract the videos of a playlist')
     general.add_option(
+        '--wait-for-video',
+        dest='wait_for_video', metavar='MIN[-MAX]', default=None,
+        help=(
+            'Wait for scheduled streams to become available. '
+            'Pass the minimum number of seconds (or range) to wait between retries'))
+    general.add_option(
+        '--no-wait-for-video',
+        dest='wait_for_video', action='store_const', const=None,
+        help='Do not wait for scheduled streams (default)')
+    general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (YouTube only)')
+        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -273,7 +288,7 @@ def parseOpts(overrideArguments=None):
             'allowed_values': {
                 'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
-                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json',
+                'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
                 'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
@@ -363,10 +378,6 @@ def parseOpts(overrideArguments=None):
         dest='rejecttitle', metavar='REGEX',
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--max-downloads',
-        dest='max_downloads', metavar='NUMBER', type=int, default=None,
-        help='Abort after downloading NUMBER files')
-    selection.add_option(
         '--min-filesize',
         metavar='SIZE', dest='min_filesize', default=None,
         help='Do not download any videos smaller than SIZE (e.g. 50k or 44.6m)')
@@ -378,7 +389,7 @@ def parseOpts(overrideArguments=None):
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded in this date. '
+            'Download only videos uploaded on this date. '
             'The date can be "YYYYMMDD" or in the format '
             '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
     selection.add_option(
@@ -437,6 +448,14 @@ def parseOpts(overrideArguments=None):
         dest='download_archive',
         help='Download only videos not listed in the archive file. Record the IDs of all downloaded videos in it')
     selection.add_option(
+        '--no-download-archive',
+        dest='download_archive', action="store_const", const=None,
+        help='Do not use archive file (default)')
+    selection.add_option(
+        '--max-downloads',
+        dest='max_downloads', metavar='NUMBER', type=int, default=None,
+        help='Abort after downloading NUMBER files')
+    selection.add_option(
         '--break-on-existing',
         action='store_true', dest='break_on_existing', default=False,
         help='Stop the download process when encountering a file that is in the archive')
@@ -445,13 +464,17 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='break_on_reject', default=False,
         help='Stop the download process when encountering a file that has been filtered out')
     selection.add_option(
+        '--break-per-input',
+        action='store_true', dest='break_per_url', default=False,
+        help='Make --break-on-existing and --break-on-reject act only on the current input URL')
+    selection.add_option(
+        '--no-break-per-input',
+        action='store_false', dest='break_per_url',
+        help='--break-on-existing and --break-on-reject terminates the entire download queue')
+    selection.add_option(
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
         help='Number of allowed failures until the rest of the playlist is skipped')
-    selection.add_option(
-        '--no-download-archive',
-        dest='download_archive', action="store_const", const=None,
-        help='Do not use archive file (default)')
     selection.add_option(
         '--include-ads',
         dest='include_ads', action='store_true',
@@ -557,12 +580,16 @@ def parseOpts(overrideArguments=None):
         help="Don't give any special preference to free containers (default)")
     video_format.add_option(
         '--check-formats',
-        action='store_true', dest='check_formats', default=None,
-        help='Check that the formats selected are actually downloadable')
+        action='store_const', const='selected', dest='check_formats', default=None,
+        help='Check that the selected formats are actually downloadable')
+    video_format.add_option(
+        '--check-all-formats',
+        action='store_true', dest='check_formats',
+        help='Check all formats for whether they are actually downloadable')
     video_format.add_option(
         '--no-check-formats',
         action='store_false', dest='check_formats',
-        help='Do not check that the formats selected are actually downloadable')
+        help='Do not check that the formats are actually downloadable')
     video_format.add_option(
         '-F', '--list-formats',
         action='store_true', dest='listformats',
@@ -625,7 +652,7 @@ def parseOpts(overrideArguments=None):
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_list_from_options_callback,
         help=(
-            'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs en.*,ja) '
+            'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs "en.*,ja") '
             'You can prefix the language code with a "-" to exempt it from the requested languages. (Eg: --sub-langs all,-live_chat) '
             'Use --list-subs for a list of available language tags'))
 
@@ -763,7 +790,7 @@ def parseOpts(overrideArguments=None):
         dest='encoding', metavar='ENCODING',
         help='Force the specified encoding (experimental)')
     workarounds.add_option(
-        '--no-check-certificate',
+        '--no-check-certificates',
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
     workarounds.add_option(
@@ -783,7 +810,7 @@ def parseOpts(overrideArguments=None):
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'multiple_keys': False},
+        callback_kwargs={'multiple_keys': False, 'process_key': None},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
@@ -831,7 +858,7 @@ def parseOpts(overrideArguments=None):
         '--ignore-no-formats-error',
         action='store_true', dest='ignore_no_formats_error', default=False,
         help=(
-            'Ignore "No video formats" error. Usefull for extracting metadata '
+            'Ignore "No video formats" error. Useful for extracting metadata '
             'even if the videos are not actually available for download (experimental)'))
     verbosity.add_option(
         '--no-ignore-no-formats-error',
@@ -905,12 +932,30 @@ def parseOpts(overrideArguments=None):
         help='Output progress bar as new lines')
     verbosity.add_option(
         '--no-progress',
-        action='store_true', dest='noprogress', default=False,
+        action='store_true', dest='noprogress', default=None,
         help='Do not print progress bar')
+    verbosity.add_option(
+        '--progress',
+        action='store_false', dest='noprogress',
+        help='Show progress bar, even if in quiet mode')
     verbosity.add_option(
         '--console-title',
         action='store_true', dest='consoletitle', default=False,
         help='Display progress in console titlebar')
+    verbosity.add_option(
+        '--progress-template',
+        metavar='[TYPES:]TEMPLATE', dest='progress_template', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': '(download|postprocess)(-title)?',
+            'default_key': 'download'
+        }, help=(
+            'Template for progress outputs, optionally prefixed with one of "download:" (default), '
+            '"download-title:" (the console title), "postprocess:",  or "postprocess-title:". '
+            'The video\'s fields are accessible under the "info" key and '
+            'the progress attributes are accessible under "progress" key. E.g.: '
+            # TODO: Document the fields inside "progress"
+            '--console-title --progress-template "download-title:%(info.id)s-%(progress.eta)s"'))
     verbosity.add_option(
         '-v', '--verbose',
         action='store_true', dest='verbose', default=False,
@@ -948,6 +993,10 @@ def parseOpts(overrideArguments=None):
         dest='batchfile', metavar='FILE',
         help="File containing URLs to download ('-' for stdin), one URL per line. "
              "Lines starting with '#', ';' or ']' are considered as comments and ignored")
+    filesystem.add_option(
+        '--no-batch-file',
+        dest='batchfile', action='store_const', const=None,
+        help='Do not read URLs from batch file (default)')
     filesystem.add_option(
         '--id', default=False,
         action='store_true', dest='useid', help=optparse.SUPPRESS_HELP)
@@ -997,27 +1046,15 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--windows-filenames',
         action='store_true', dest='windowsfilenames', default=False,
-        help='Force filenames to be windows compatible')
+        help='Force filenames to be Windows-compatible')
     filesystem.add_option(
         '--no-windows-filenames',
         action='store_false', dest='windowsfilenames',
-        help='Make filenames windows compatible only if using windows (default)')
+        help='Make filenames Windows-compatible only if using Windows (default)')
     filesystem.add_option(
         '--trim-filenames', '--trim-file-names', metavar='LENGTH',
         dest='trim_file_name', default=0, type=int,
         help='Limit the filename length (excluding extension) to the specified number of characters')
-    filesystem.add_option(
-        '--auto-number',
-        action='store_true', dest='autonumber', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--title',
-        action='store_true', dest='usetitle', default=False,
-        help=optparse.SUPPRESS_HELP)
-    filesystem.add_option(
-        '--literal', default=False,
-        action='store_true', dest='usetitle',
-        help=optparse.SUPPRESS_HELP)
     filesystem.add_option(
         '-w', '--no-overwrites',
         action='store_false', dest='overwrites', default=None,
@@ -1117,7 +1154,7 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '--cookies',
         dest='cookiefile', metavar='FILE',
-        help='File to read cookies from and dump cookie jar in')
+        help='Netscape formatted file to read cookies from and dump cookie jar in')
     filesystem.add_option(
         '--no-cookies',
         action='store_const', const=None, dest='cookiefile', metavar='FILE',
@@ -1196,7 +1233,7 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality, insert a value between 0 (better) and 9 (worse) for VBR or a specific bitrate like 128K (default %default)')
+        help='Specify ffmpeg audio quality, insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
@@ -1268,7 +1305,9 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--embed-metadata', '--add-metadata',
         action='store_true', dest='addmetadata', default=False,
-        help='Embed metadata to the video file. Also adds chapters to file unless --no-add-chapters is used (Alias: --add-metadata)')
+        help=(
+            'Embed metadata to the video file. Also embeds chapters/infojson if present '
+            'unless --no-embed-chapters/--no-embed-info-json are used (Alias: --add-metadata)'))
     postproc.add_option(
         '--no-embed-metadata', '--no-add-metadata',
         action='store_false', dest='addmetadata',
@@ -1281,6 +1320,14 @@ def parseOpts(overrideArguments=None):
         '--no-embed-chapters', '--no-add-chapters',
         action='store_false', dest='addchapters',
         help='Do not add chapter markers (default) (Alias: --no-add-chapters)')
+    postproc.add_option(
+        '--embed-info-json',
+        action='store_true', dest='embed_infojson', default=None,
+        help='Embed the infojson as an attachment to mkv/mka video files')
+    postproc.add_option(
+        '--no-embed-info-json',
+        action='store_false', dest='embed_infojson',
+        help='Do not embed the infojson as an attachment to the video file')
     postproc.add_option(
         '--metadata-from-title',
         metavar='FORMAT', dest='metafromtitle',
@@ -1307,7 +1354,7 @@ def parseOpts(overrideArguments=None):
             'Automatically correct known faults of the file. '
             'One of never (do nothing), warn (only emit a warning), '
             'detect_or_warn (the default; fix file if we can, warn otherwise), '
-            'force (try fixing even if file already exists'))
+            'force (try fixing even if file already exists)'))
     postproc.add_option(
         '--prefer-avconv', '--no-prefer-ffmpeg',
         action='store_false', dest='prefer_ffmpeg',
@@ -1370,7 +1417,11 @@ def parseOpts(overrideArguments=None):
     postproc.add_option(
         '--remove-chapters',
         metavar='REGEX', dest='remove_chapters', action='append',
-        help='Remove chapters whose title matches the given regular expression. This option can be used multiple times')
+        help=(
+            'Remove chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
+            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
+            'This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
@@ -1385,6 +1436,25 @@ def parseOpts(overrideArguments=None):
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',
         help='Do not force keyframes around the chapters when cutting/splitting (default)')
+    _postprocessor_opts_parser = lambda key, val='': (
+        *(item.split('=', 1) for item in (val.split(';') if val else [])),
+        ('key', remove_end(key, 'PP')))
+    postproc.add_option(
+        '--use-postprocessor',
+        metavar='NAME[:ARGS]', dest='add_postprocessors', default=[], type='str',
+        action='callback', callback=_list_from_options_callback,
+        callback_kwargs={
+            'delim': None,
+            'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1)))
+        }, help=(
+            'The (case sensitive) name of plugin postprocessors to be enabled, '
+            'and (optionally) arguments to be passed to it, seperated by a colon ":". '
+            'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
+            'The "when" argument determines when the postprocessor is invoked. '
+            'It can be one of "pre_process" (after extraction), '
+            '"before_dl" (before video download), "post_process" (after video download; default) '
+            'or "after_move" (after moving file to their final locations). '
+            'This option can be used multiple times to add different postprocessors'))
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for, or remove various segments (sponsor, introductions, etc.) '
@@ -1549,6 +1619,9 @@ def parseOpts(overrideArguments=None):
                     current_path = os.path.join(path, '%s.conf' % package)
                     config = _readOptions(current_path, default=None)
                 if config is not None:
+                    current_path = os.path.realpath(current_path)
+                    if current_path in paths.values():
+                        return False
                     configs[name], paths[name] = config, current_path
                     return parser.parse_args(config)[0].ignoreconfig
             return False
@@ -1563,7 +1636,7 @@ def parseOpts(overrideArguments=None):
                     parser.error('config-location %s does not exist.' % location)
                 config = _readOptions(location, default=None)
                 if config:
-                    configs['custom'], paths['config'] = config, location
+                    configs['custom'], paths['custom'] = config, location
 
             if opts.ignoreconfig:
                 return
@@ -1583,7 +1656,7 @@ def parseOpts(overrideArguments=None):
         argv = configs['system'] + configs['user'] + configs['home'] + configs['portable'] + configs['custom'] + configs['command-line']
         opts, args = parser.parse_args(argv)
         if opts.verbose:
-            for label in ('System', 'User', 'Portable', 'Home', 'Custom', 'Command-line'):
+            for label in ('Command-line', 'Custom', 'Portable', 'Home', 'User', 'System'):
                 key = label.lower()
                 if paths.get(key):
                     write_string(f'[debug] {label} config file: {paths[key]}\n')

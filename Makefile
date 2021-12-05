@@ -1,4 +1,4 @@
-all: yt-dlp doc pypi-files
+all: lazy-extractors yt-dlp doc pypi-files
 clean: clean-test clean-dist clean-cache
 completions: completion-bash completion-fish completion-zsh
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
@@ -15,9 +15,11 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites com
 clean-test:
 	rm -rf *.3gp *.annotations.xml *.ape *.avi *.description *.dump *.flac *.flv *.frag *.frag.aria2 *.frag.urls \
 	*.info.json *.jpeg *.jpg *.live_chat.json *.m4a *.m4v *.mkv *.mp3 *.mp4 *.ogg *.opus *.part* *.png *.sbv *.srt \
-	*.swf *.swp *.ttml *.vtt *.wav *.webm *.webp *.ytdl test/testdata/player-*.js
+	*.swf *.swp *.ttml *.vtt *.wav *.webm *.webp *.mhtml *.mov *.unknown_video *.desktop *.url *.webloc *.ytdl \
+	test/testdata/player-*.js tmp/
 clean-dist:
-	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
+	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
+	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
 	find . -name "*.pyc" -o -name "*.class" -delete
 
@@ -31,7 +33,6 @@ DESTDIR ?= .
 BINDIR ?= $(PREFIX)/bin
 MANDIR ?= $(PREFIX)/man
 SHAREDIR ?= $(PREFIX)/share
-# make_supportedsites.py doesnot work correctly in python2
 PYTHON ?= /usr/bin/env python3
 
 # set SYSCONFDIR to /etc if PREFIX=/usr or PREFIX=/usr/local
@@ -40,9 +41,9 @@ SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then ech
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
 MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
-install: yt-dlp yt-dlp.1 completions
-	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)
-	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1
+install: lazy-extractors yt-dlp yt-dlp.1 completions
+	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)/yt-dlp
+	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1/yt-dlp.1
 	install -Dm644 completions/bash/yt-dlp $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
 	install -Dm644 completions/zsh/_yt-dlp $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
 	install -Dm644 completions/fish/yt-dlp.fish $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
@@ -78,12 +79,13 @@ README.md: yt_dlp/*.py yt_dlp/*/*.py
 CONTRIBUTING.md: README.md
 	$(PYTHON) devscripts/make_contributing.py README.md CONTRIBUTING.md
 
-issuetemplates: devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.md .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.md .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.md .github/ISSUE_TEMPLATE_tmpl/4_bug_report.md .github/ISSUE_TEMPLATE_tmpl/5_feature_request.md yt_dlp/version.py
-	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.md .github/ISSUE_TEMPLATE/1_broken_site.md
-	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.md .github/ISSUE_TEMPLATE/2_site_support_request.md
-	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.md .github/ISSUE_TEMPLATE/3_site_feature_request.md
-	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/4_bug_report.md .github/ISSUE_TEMPLATE/4_bug_report.md
-	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/5_feature_request.md .github/ISSUE_TEMPLATE/5_feature_request.md
+issuetemplates: devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.yml .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.yml .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.yml .github/ISSUE_TEMPLATE_tmpl/4_bug_report.yml .github/ISSUE_TEMPLATE_tmpl/5_feature_request.yml yt_dlp/version.py
+	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.yml .github/ISSUE_TEMPLATE/1_broken_site.yml
+	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.yml .github/ISSUE_TEMPLATE/2_site_support_request.yml
+	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.yml .github/ISSUE_TEMPLATE/3_site_feature_request.yml
+	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/4_bug_report.yml .github/ISSUE_TEMPLATE/4_bug_report.yml
+	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/5_feature_request.yml .github/ISSUE_TEMPLATE/5_feature_request.yml
+	$(PYTHON) devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/6_question.yml .github/ISSUE_TEMPLATE/6_question.yml
 
 supportedsites:
 	$(PYTHON) devscripts/make_supportedsites.py supportedsites.md
@@ -112,7 +114,7 @@ _EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 
-yt-dlp.tar.gz: yt-dlp README.md supportedsites.md yt-dlp.1 completions Changelog.md AUTHORS
+yt-dlp.tar.gz: all
 	@tar -czf $(DESTDIR)/yt-dlp.tar.gz --transform "s|^|yt-dlp/|" --owner 0 --group 0 \
 		--exclude '*.DS_Store' \
 		--exclude '*.kate-swp' \
@@ -121,12 +123,12 @@ yt-dlp.tar.gz: yt-dlp README.md supportedsites.md yt-dlp.1 completions Changelog
 		--exclude '*~' \
 		--exclude '__pycache__' \
 		--exclude '.git' \
-		--exclude 'docs/_build' \
 		-- \
-		devscripts test \
-		Changelog.md AUTHORS LICENSE README.md supportedsites.md \
-		Makefile MANIFEST.in yt-dlp.1 completions \
-		setup.py setup.cfg yt-dlp yt_dlp
+		README.md supportedsites.md Changelog.md LICENSE \
+		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
+		Makefile MANIFEST.in yt-dlp.1 README.txt completions \
+		setup.py setup.cfg yt-dlp yt_dlp requirements.txt \
+		devscripts test tox.ini pytest.ini
 
 AUTHORS: .mailmap
 	git shortlog -s -n | cut -f2 | sort > AUTHORS
