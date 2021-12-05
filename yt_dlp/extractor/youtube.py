@@ -775,9 +775,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'view count', default=None))
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
-        timestamp, _ = self._extract_time_text(renderer, 'publishedTimeText')
+        channel_id = traverse_obj(
+            renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'), expected_type=str, get_all=False)
+        timestamp, time_text = self._extract_time_text(renderer, 'publishedTimeText')
         upload_date = strftime_or_none(timestamp, '%Y%m%d')
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
+        overlay_style = traverse_obj(renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
+        is_upcoming = scheduled_timestamp is not None
+        is_live = True if overlay_style is not None and overlay_style == 'LIVE' else None
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -788,9 +793,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'duration': duration,
             'view_count': view_count,
             'uploader': uploader,
+            'channel_id': channel_id,  # TODO: validate?
             'timestamp': timestamp,
             'upload_date': upload_date,
-            'live_status': 'is_upcoming' if scheduled_timestamp is not None else None,
+            'is_live': is_live,
+            'was_live': False if is_live or is_upcoming else True if any(i in time_text.lower() for i in ('streamed', 'premiered')) else None,
+            'live_status': 'is_upcoming' if is_upcoming else None,
             'release_timestamp': scheduled_timestamp
         }
 
