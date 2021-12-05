@@ -15,6 +15,7 @@ from ..utils import (
     orderedSet,
     parse_codecs,
     qualities,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -172,6 +173,18 @@ class ZDFIE(ZDFBaseIE):
             'upload_date': '20160604',
         },
     }, {
+        'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
+        'md5': '3d6f1049e9682178a11c54b91f3dd065',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'video_funk_1770473',
+            'duration': 1278,
+            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
+            'title': 'Alles ist verzaubert',
+            'timestamp': 1635520560,
+            'upload_date': '20211029'
+        },
+    }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
         'url': 'https://www.zdf.de/politik/phoenix-sendungen/die-gesten-der-maechtigen-100.html',
         'only_matching': True,
@@ -202,8 +215,9 @@ class ZDFIE(ZDFBaseIE):
         ptmd_path = t.get('http://zdf.de/rels/streams/ptmd')
 
         if not ptmd_path:
-            ptmd_path = t[
-                'http://zdf.de/rels/streams/ptmd-template'].replace(
+            ptmd_path = traverse_obj(
+                t, ('streams', 'default', 'http://zdf.de/rels/streams/ptmd-template'),
+                'http://zdf.de/rels/streams/ptmd-template').replace(
                 '{playerId}', 'ngplayer_2_4')
 
         info = self._extract_ptmd(
