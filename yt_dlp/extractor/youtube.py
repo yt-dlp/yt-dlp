@@ -668,28 +668,26 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     return text
 
     @staticmethod
-    def parse_time_text(time_text):
+    def extract_relative_time(relative_time_text):
         """
-        Parse the comment time text
-        time_text is in the format 'X units ago (edited)'
+        Extracts a relative time from string and converts to dt object
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)'
         """
-        time_text_split = time_text.split(' ')
-        if len(time_text_split) >= 3:
+        mobj = re.search(r'(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+        if mobj:
             try:
-                return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
+                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')), precision='auto')
             except ValueError:
                 return None
 
     @classmethod
     def _extract_time_text(cls, renderer, *path_list):
-        time_text = cls._get_text(renderer, *path_list) or ''
-        for start in ('Streamed ',):
-            time_text = remove_start(time_text, start)
-        time_text_dt = cls.parse_time_text(time_text)
+        text = cls._get_text(renderer, *path_list) or ''
+        dt = cls.extract_relative_time(text)
         timestamp = None
-        if isinstance(time_text_dt, datetime.datetime):
-            timestamp = calendar.timegm(time_text_dt.timetuple())
-        return timestamp, time_text
+        if isinstance(dt, datetime.datetime):
+            timestamp = calendar.timegm(dt.timetuple())
+        return timestamp, text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
@@ -779,7 +777,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         timestamp, _ = self._extract_time_text(renderer, 'publishedTimeText')
         upload_date = strftime_or_none(timestamp, '%Y%m%d')
-
+        scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -791,7 +789,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'view_count': view_count,
             'uploader': uploader,
             'timestamp': timestamp,
-            'upload_date': upload_date
+            'upload_date': upload_date,
+            'live_status': 'is_upcoming' if scheduled_timestamp is not None else None,
+            'release_timestamp': scheduled_timestamp
         }
 
 
