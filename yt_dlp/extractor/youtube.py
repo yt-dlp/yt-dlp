@@ -777,11 +777,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'view count', default=None))
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
-        timestamp = None
-        upload_date = None
-        if 'estpubdate' in self._configuration_arg('experimental'):
-            timestamp, _ = self._extract_time_text(renderer, 'publishedTimeText')
-            upload_date = strftime_or_none(timestamp, '%Y%m%d')
+        timestamp, _ = self._extract_time_text(renderer, 'publishedTimeText')
+        upload_date = strftime_or_none(timestamp, '%Y%m%d')
 
         return {
             '_type': 'url',
