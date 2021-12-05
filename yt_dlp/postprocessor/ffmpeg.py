@@ -397,7 +397,7 @@ class FFmpegPostProcessor(PostProcessor):
         ffpmeg_stdout_buffer = ""
 
         while retval is None:
-            ffmpeg_stdout = proc.stdout.readline() if proc.stdout is not None else ""
+            ffmpeg_stdout = p.stdout.readline() if p.stdout is not None else ""
             if ffmpeg_stdout != "":
                 ffpmeg_stdout_buffer += ffmpeg_stdout
                 ffmpeg_prog_infos = re.match(progress_pattern, ffpmeg_stdout_buffer)
@@ -407,7 +407,7 @@ class FFmpegPostProcessor(PostProcessor):
                     ffmpeg_stdout = ""
                     speed = 0 if ffmpeg_prog_infos['speed'] == "N/A" else float(ffmpeg_prog_infos['speed'][:-1])
                     if speed != 0:
-                        eta_seconds = (total_time_to_dl - parse_ffmpeg_time_string(
+                        eta_seconds = (total_time_to_dl - self.parse_ffmpeg_time_string(
                             ffmpeg_prog_infos['out_time'])) / speed
                     else:
                         eta_seconds = 0
@@ -416,7 +416,7 @@ class FFmpegPostProcessor(PostProcessor):
                                             ffmpeg_prog_infos['bitrate'])
                     
                     if bitrate_str:
-                        bitrate_int = compute_prefix(bitrate_str)
+                        bitrate_int = self.compute_prefix(bitrate_str)
                     dl_bytes_str = re.match(r"\d+", ffmpeg_prog_infos['total_size'])
                     dl_bytes_int = int(ffmpeg_prog_infos['total_size']) if dl_bytes_str else 0
                     
