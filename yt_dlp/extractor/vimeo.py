@@ -212,6 +212,16 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
 
+        duration = int_or_none(video_data.get('duration'))
+        chapter_data = try_get(config, lambda x: x['embed']['chapters']) or []
+        chapters = [{
+            'title': current_chapter.get('title'),
+            'start_time': current_chapter.get('timecode'),
+            'end_time': next_chapter.get('timecode'),
+        } for current_chapter, next_chapter in zip(chapter_data, chapter_data[1:] + [{'timecode': duration}])]
+        if chapters and chapters[0]['start_time']:  # Chapters may not start from 0
+            chapters[:0] = [{'title': '<Untitled>', 'start_time': 0, 'end_time': chapters[0]['start_time']}]
+
         return {
             'id': str_or_none(video_data.get('id')) or video_id,
             'title': self._live_title(video_title) if is_live else video_title,
@@ -219,7 +229,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             'uploader_id': video_uploader_url.split('/')[-1] if video_uploader_url else None,
             'uploader_url': video_uploader_url,
             'thumbnails': thumbnails,
-            'duration': int_or_none(video_data.get('duration')),
+            'duration': duration,
+            'chapters': chapters or None,
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
