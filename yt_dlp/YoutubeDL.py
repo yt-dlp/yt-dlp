@@ -1454,6 +1454,7 @@ class YoutubeDL(object):
                     info_copy['id'] = ie.get_temp_id(ie_result['url'])
                 self.add_default_extra_info(info_copy, ie, ie_result['url'])
                 self.add_extra_info(info_copy, extra_info)
+                info_copy, _ = self.pre_process(info_copy)
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
                 if self.params.get('force_write_download_archive', False):
                     self.record_download_archive(info_copy)
