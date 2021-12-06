@@ -12,8 +12,8 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     sanitized_Request,
+    traverse_obj,
     unescapeHTML,
-    update_url_query,
     urlencode_postdata,
     USER_AGENTS,
 )
@@ -21,6 +21,8 @@ from ..utils import (
 
 class CeskaTelevizeIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady)/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
+    _IFRAME_HASH_URL = 'https://www.ceskatelevize.cz/v-api/iframe-hash/'
+    _IFRAME_URL = 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php'
     _TESTS = [{
         'url': 'http://www.ceskatelevize.cz/ivysilani/10441294653-hyde-park-civilizace/215411058090502/bonus/20641-bonus-01-en',
         'info_dict': {
@@ -99,11 +101,12 @@ class CeskaTelevizeIE(InfoExtractor):
             playlist_description = playlist_description.replace('\xa0', ' ')
 
         if parsed_url.path.startswith('/porady/'):
-            refer_url = update_url_query(unescapeHTML(self._search_regex(
-                (r'<span[^>]*\bdata-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
-                 r'<iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//(?:www\.)?ceskatelevize\.cz/ivysilani/embed/iFramePlayer\.php.*?)\1'),
-                webpage, 'iframe player url', group='url')), query={'autoStart': 'true'})
-            webpage = self._download_webpage(refer_url, playlist_id)
+            next_data = self._parse_json(unescapeHTML(self._search_regex(r'<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]+>([^<]*)</script>', webpage, 'IDEC id', playlist_id)), playlist_id)
+            idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'show', 'idec')) or traverse_obj(next_data, ('props', 'pageProps', 'data', 'mediaMeta', 'idec'))
+            if not idec:
+                raise ExtractorError('Failed to find IDEC id')
+            webpage = self._download_webpage(self._IFRAME_HASH_URL, playlist_id)
+            webpage = self._download_webpage(self._IFRAME_URL, playlist_id, query={'hash': webpage, 'origin': 'iVysilani', 'autoStart': 'true', 'IDEC': idec})
 
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
         if '%s</p>' % NOT_AVAILABLE_STRING in webpage:
