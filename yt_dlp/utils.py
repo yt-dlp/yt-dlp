@@ -3972,8 +3972,9 @@ def strftime_or_none(timestamp, date_format, default=None):
 def parse_duration(s):
     if not isinstance(s, compat_basestring):
         return None
-
     s = s.strip()
+    if not s:
+        return None
 
     days, hours, mins, secs, ms = [None] * 5
     m = re.match(r'(?:(?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?(?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?Z?$', s)

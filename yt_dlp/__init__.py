@@ -197,12 +197,11 @@ def _real_main(argv=None):
     if opts.concurrent_fragment_downloads <= 0:
         parser.error('Concurrent fragments must be positive')
     if opts.wait_for_video is not None:
-        mobj = re.match(r'(?P<min>\d+)(?:-(?P<max>\d+))?$', opts.wait_for_video)
-        if not mobj:
+        min_wait, max_wait, *_ = map(parse_duration, opts.wait_for_video.split('-', 1) + [None])
+        if min_wait is None or (max_wait is None and '-' in opts.wait_for_video):
             parser.error('Invalid time range to wait')
-        min_wait, max_wait = map(int_or_none, mobj.group('min', 'max'))
-        if max_wait is not None and max_wait < min_wait:
-            parser.error('Invalid time range to wait')
+        elif max_wait is not None and max_wait < min_wait:
+            parser.error('Minimum time range to wait must not be longer than the maximum')
         opts.wait_for_video = (min_wait, max_wait)
 
     def parse_retries(retries, name=''):
