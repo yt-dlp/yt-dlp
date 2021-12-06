@@ -559,13 +559,12 @@ def _real_main(argv=None):
             '_from_cli': True,
         })
     if opts.embedthumbnail:
-        already_have_thumbnail = opts.writethumbnail or opts.write_all_thumbnails
         postprocessors.append({
             'key': 'EmbedThumbnail',
             # already_have_thumbnail = True prevents the file from being deleted after embedding
-            'already_have_thumbnail': already_have_thumbnail
+            'already_have_thumbnail': opts.writethumbnail
         })
-        if not already_have_thumbnail:
+        if not opts.writethumbnail:
             opts.writethumbnail = True
             opts.outtmpl['pl_thumbnail'] = ''
     if opts.split_chapters:
@@ -695,8 +694,8 @@ def _real_main(argv=None):
         'allow_playlist_files': opts.allow_playlist_files,
         'clean_infojson': opts.clean_infojson,
         'getcomments': opts.getcomments,
-        'writethumbnail': opts.writethumbnail,
-        'write_all_thumbnails': opts.write_all_thumbnails,
+        'writethumbnail': opts.writethumbnail is True,
+        'write_all_thumbnails': opts.writethumbnail == 'all',
         'writelink': opts.writelink,
         'writeurllink': opts.writeurllink,
         'writewebloclink': opts.writewebloclink,

@@ -1187,7 +1187,10 @@ def parseOpts(overrideArguments=None):
     thumbnail = optparse.OptionGroup(parser, 'Thumbnail Options')
     thumbnail.add_option(
         '--write-thumbnail',
-        action='store_true', dest='writethumbnail', default=False,
+        action='callback', dest='writethumbnail', default=False,
+        # Should override --no-write-thumbnail, but not --write-all-thumbnail
+        callback=lambda option, _, __, parser: setattr(
+            parser.values, option.dest, getattr(parser.values, option.dest) or True),
         help='Write thumbnail image to disk')
     thumbnail.add_option(
         '--no-write-thumbnail',
@@ -1195,7 +1198,7 @@ def parseOpts(overrideArguments=None):
         help='Do not write thumbnail image to disk (default)')
     thumbnail.add_option(
         '--write-all-thumbnails',
-        action='store_true', dest='write_all_thumbnails', default=False,
+        action='store_const', dest='writethumbnail', const='all',
         help='Write all thumbnail image formats to disk')
     thumbnail.add_option(
         '--list-thumbnails',
