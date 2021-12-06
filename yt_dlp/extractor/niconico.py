@@ -675,15 +675,15 @@ class NicovideoSearchBaseIE(InfoExtractor):
             if not results:
                 break
 
+    def _search_results(self, query):
+        return self._entries(
+            self._proto_relative_url(f'//www.nicovideo.jp/search/{query}'), query)
+
 
 class NicovideoSearchIE(NicovideoSearchBaseIE, SearchInfoExtractor):
     IE_DESC = 'Nico video search'
     IE_NAME = 'nicovideo:search'
     _SEARCH_KEY = 'nicosearch'
-
-    def _search_results(self, query):
-        return self._entries(
-            self._proto_relative_url(f'//www.nicovideo.jp/search/{query}'), query)
 
 
 class NicovideoSearchURLIE(NicovideoSearchBaseIE):
