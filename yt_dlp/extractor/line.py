@@ -7,6 +7,7 @@ from ..compat import compat_str
 from ..utils import (
     int_or_none,
     js_to_json,
+    try_get,
     str_or_none,
 )
 
@@ -79,6 +80,10 @@ class LineTVIE(InfoExtractor):
             formats[0]['vcodec'] = 'none'
 
         title = self._og_search_title(webpage)
+        
+        # Cover art or thumbnail extraction
+        thumbnail = try_get(video_info, lambda x: x['meta']['cover']['source'])
+        thumbnail = thumbnail.split('?')[0] # Full Size Thumbnail
 
         # like_count requires an additional API request https://tv.line.me/api/likeit/getCount
 
@@ -88,8 +93,7 @@ class LineTVIE(InfoExtractor):
             'formats': formats,
             'extra_param_to_segment_url': extra_query[1:],
             'duration': duration,
-            'thumbnails': [{'url': thumbnail['source']}
-                           for thumbnail in video_info.get('thumbnails', {}).get('list', [])],
+            'thumbnail': thumbnail,
             'view_count': video_info.get('meta', {}).get('count'),
         }
 
