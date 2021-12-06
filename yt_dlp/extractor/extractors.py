@@ -1025,6 +1025,10 @@ from .ooyala import (
     OoyalaIE,
     OoyalaExternalIE,
 )
+from .opencast import (
+    OpencastIE,
+    OpencastPlaylistIE,
+)
 from .openrec import (
     OpenRecIE,
     OpenRecCaptureIE,
