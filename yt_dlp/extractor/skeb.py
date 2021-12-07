@@ -66,8 +66,7 @@ class SkebIE(InfoExtractor):
             'title': 'ヒロ。\n\n私のキャラク... by 諸々',
             'descripion': 'md5:aa6cbf2ba320b50bce219632de195f07',
             '_type': 'playlist',
-            'entries': [
-                {
+            'entries': [{
                 'id': '486430',
                 'title': 'ヒロ。\n\n私のキャラク... by 諸々',
                 'descripion': 'md5:aa6cbf2ba320b50bce219632de195f07',
@@ -141,7 +140,4 @@ class SkebIE(InfoExtractor):
                 '_type': 'playlist',
                 'entries': entries,
             })
-            import json
-            entries[0]['a'] = 'dummyvalue'
-            print(json.dumps(parent))
             return parent
