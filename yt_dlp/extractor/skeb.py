@@ -52,7 +52,6 @@ class SkebIE(InfoExtractor):
         if not entries:
             raise ExtractorError('No video attachment found in this commission.', expected=True)
         elif len(entries) == 1:
-            entries['id'] = parent['id']
             return entries[0]
         else:
             parent.update({
