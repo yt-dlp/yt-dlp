@@ -13,7 +13,6 @@ from ..utils import (
     float_or_none,
     sanitized_Request,
     traverse_obj,
-    unescapeHTML,
     urlencode_postdata,
     USER_AGENTS,
 )
@@ -101,12 +100,13 @@ class CeskaTelevizeIE(InfoExtractor):
             playlist_description = playlist_description.replace('\xa0', ' ')
 
         if parsed_url.path.startswith('/porady/'):
-            next_data = self._parse_json(unescapeHTML(self._search_regex(r'<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]+>([^<]*)</script>', webpage, 'IDEC id', playlist_id)), playlist_id)
-            idec = traverse_obj(next_data, ('props', 'pageProps', 'data', 'show', 'idec')) or traverse_obj(next_data, ('props', 'pageProps', 'data', 'mediaMeta', 'idec'))
+            next_data = self._search_nextjs_data(webpage, playlist_id)
+            idec = traverse_obj(next_data, ('props', 'pageProps', 'data', ('show', 'mediaMeta'), 'idec'), get_all=False)
             if not idec:
                 raise ExtractorError('Failed to find IDEC id')
-            webpage = self._download_webpage(self._IFRAME_HASH_URL, playlist_id)
-            webpage = self._download_webpage(self._IFRAME_URL, playlist_id, query={'hash': webpage, 'origin': 'iVysilani', 'autoStart': 'true', 'IDEC': idec})
+            iframe_hash = self._download_webpage('https://www.ceskatelevize.cz/v-api/iframe-hash/', playlist_id)
+            webpage = self._download_webpage('https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php', playlist_id,
+                                             query={'hash': iframe_hash, 'origin': 'iVysilani', 'autoStart': 'true', 'IDEC': idec})
 
         NOT_AVAILABLE_STRING = 'This content is not available at your territory due to limited copyright.'
         if '%s</p>' % NOT_AVAILABLE_STRING in webpage:
