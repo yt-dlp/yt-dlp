@@ -27,7 +27,7 @@ class SkebIE(InfoExtractor):
             vid_url = item.get('url')
             given_ext = traverse_obj(item, ('information', 'extension'))
             mimetype = ext2mimetype(given_ext)
-            if mimetype != 'image/gif' and mimetype.partition('/')[0] != 'video':
+            if mimetype != 'image/gif' and mimetype.partition('/')[0] != 'video' and not vid_url and not item.get('id'):
                 continue
             entries.append({
                 **parent,
