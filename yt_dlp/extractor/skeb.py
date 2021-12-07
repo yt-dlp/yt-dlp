@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, determine_ext, ext2mimetype, traverse_obj
-from ..compat import compat_str
 
 
 class SkebIE(InfoExtractor):
@@ -15,6 +14,7 @@ class SkebIE(InfoExtractor):
         nuxt_data = self._search_nuxt_data(webpage, video_id)
 
         parent = {
+            'id': video_id,
             'title': nuxt_data.get('title'),
             'descripion': nuxt_data.get('description'),
             'reply': nuxt_data.get('thanks'),
@@ -33,7 +33,7 @@ class SkebIE(InfoExtractor):
                 continue
             entries.append({
                 **parent,
-                'id': compat_str(item.get('id')),
+                'id': str(item['id']),
                 'url': vid_url,
                 'thumbnail': item.get('poster_url'),
                 'subtitles': {
