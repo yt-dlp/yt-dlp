@@ -17,7 +17,6 @@ class SkebIE(InfoExtractor):
             'id': video_id,
             'title': nuxt_data.get('title'),
             'descripion': nuxt_data.get('description'),
-            'reply': nuxt_data.get('thanks'),
             'uploader': traverse_obj(nuxt_data, ('creator', 'name')),
             'uploader_id': traverse_obj(nuxt_data, ('creator', 'screen_name')),
             'age_limit': 18 if nuxt_data.get('nsfw') else 0,
