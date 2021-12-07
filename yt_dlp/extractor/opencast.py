@@ -7,8 +7,8 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     parse_iso8601,
-    parse_resolution,
     int_or_none,
+    traverse_obj,
     try_get,
 )
 
@@ -71,79 +71,50 @@ class OpencastBaseIE(InfoExtractor):
                 if transport is not None:
                     track_obj.update({'format_note': track.get('transport')})
                     if transport == 'RTMP':
-                        m_obj = re.search(r'^(?:rtmp://[^/]+/(?P<app>[^/]+))/(?P<playpath>.+)$', href)
+                        m_obj = re.search(r'(?:rtmp://[^/]+/(?P<app>[^/]+))/(?P<ext>.+):(?P<playpath>.+)', href)
                         if not m_obj:
                             continue
                         track_obj.update(
                             {
                                 'app': m_obj.group('app'),
-                                'play_path': m_obj.group('playpath'),
+                                'ext': m_obj.group('ext'),
+                                'play_path': m_obj.group('ext') + ':' + m_obj.group('playpath'),
                                 'rtmp_live': True,
                                 'preference': -2,
                             }
                         )
-                        extention = m_obj.group('playpath').split(':')
-                        if len(extention) > 1:
-                            track_obj.update({'ext': extention[0]})
 
                 audio_info = track.get('audio')
                 if audio_info is not None:
-                    if 'bitrate' in audio_info:
-                        track_obj.update({'abr': int_or_none(audio_info.get('bitrate'), 1000)})
-                    if 'samplingrate' in audio_info:
-                        track_obj.update({'asr': int_or_none(audio_info.get('samplingrate'))})
-                    audio_encoder = audio_info.get('encoder', {})
-                    if 'type' in audio_encoder:
-                        track_obj.update({'acodec': audio_encoder.get('type')})
+                    track_obj.update({
+                        'abr': int_or_none(audio_info.get('bitrate'), 1000),
+                        'asr': int_or_none(audio_info.get('samplingrate')),
+                        'acodec': traverse_obj(audio_info, ('encoder', 'type')),
+                    })
 
                 video_info = track.get('video')
                 if video_info is not None:
-                    if 'resolution' in video_info:
-                        track_obj.update({'resolution': video_info.get('resolution')})
-                        resolution = parse_resolution(video_info.get('resolution'))
-                        track_obj.update(resolution)
-                    if 'framerate' in video_info:
-                        track_obj.update({'fps': int_or_none(video_info.get('framerate'))})
-                    if 'bitrate' in video_info:
-                        track_obj.update({'vbr': int_or_none(video_info.get('bitrate'), 1000)})
-                    video_encoder = video_info.get('encoder', {})
-                    if 'type' in video_encoder:
-                        track_obj.update({'vcodec': video_encoder.get('type')})
+                    track_obj.update({
+                        'resolution': video_info.get('resolution'),
+                        'fps': int_or_none(video_info.get('framerate')),
+                        'vbr': int_or_none(video_info.get('bitrate'), 1000),
+                        'vcodec': try_get(video_info, lambda x: x['encoder']['type']),
+                    })
 
                 formats.append(track_obj)
 
         self._sort_formats(formats)
 
-        result_obj = {'formats': formats}
-
-        result_obj.update({'id': video_id})
-
-        title = video.get('title')
-        if title is not None:
-            result_obj.update({'title': title})
-
-        series = video.get('seriestitle')
-        if series is not None:
-            result_obj.update({'series': series})
-
-        season_id = video.get('series')
-        if season_id is not None:
-            result_obj.update({'season_id': season_id})
-
-        creator = video.get('creators', {}).get('creator')
-        if creator is not None:
-            result_obj.update({'creator': creator})
-
-        timestamp = parse_iso8601(video.get('start'))
-        if timestamp is not None:
-            result_obj.update({'timestamp': timestamp})
-
-        attachments = video.get('attachments', {}).get('attachment', [])
-        if len(attachments) > 0:
-            thumbnail = attachments[0].get('url')
-            result_obj.update({'thumbnail': thumbnail})
-
-        return result_obj
+        return {
+            'id': video_id,
+            'formats': formats,
+            'title': video.get('title'),
+            'series': video.get('seriestitle'),
+            'season_id': video.get('series'),
+            'creator': traverse_obj(video, ('creators', 'creator')),
+            'timestamp': parse_iso8601(video.get('start')),
+            'thumbnail': traverse_obj(video, ('attachments', 'attachment', ..., 'url'), get_all=False),
+        }
 
 
 class OpencastIE(OpencastBaseIE):
