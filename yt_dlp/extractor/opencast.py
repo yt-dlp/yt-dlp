@@ -9,7 +9,7 @@ from ..utils import (
     parse_iso8601,
     parse_resolution,
     int_or_none,
-    ExtractorError,
+    try_get,
 )
 
 
@@ -39,11 +39,11 @@ class OpencastBaseIE(InfoExtractor):
                         )'''
     _UUID_RE = r'[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
 
-    def _call_api(self, host, video_id, path, note=None, errnote=None, fatal=True):
+    def _call_api(self, host, video_id, note=None, errnote=None, fatal=True):
         return self._download_json(self._API_BASE % (host, video_id), video_id, note=note, errnote=errnote, fatal=fatal)
 
     def _parse_mediapackage(self, video):
-        tracks = video.get('media', {}).get('track', [])
+        tracks = try_get(video, lambda x: x['media']['track'])
 
         video_id = video.get('id')
 
@@ -56,10 +56,10 @@ class OpencastBaseIE(InfoExtractor):
             transport = track.get('transport')
 
             if transport == 'DASH' or ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(href, video_id, mpd_id='dash', fatal=False))
+                formats.extend(self._extract_mpd_formats_and_subtitles(href, video_id, mpd_id='dash', fatal=False))
             elif transport == 'HLS' or ext == 'm3u8':
                 formats.extend(
-                    self._extract_m3u8_formats(href, video_id, m3u8_id='hls', entry_protocol='m3u8_native', fatal=False)
+                    self._extract_m3u8_formats_and_subtitles(href, video_id, m3u8_id='hls', entry_protocol='m3u8_native', fatal=False)
                 )
             elif transport == 'HDS' or ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(href, video_id, f4m_id='hds', fatal=False))
@@ -116,8 +116,7 @@ class OpencastBaseIE(InfoExtractor):
 
         result_obj = {'formats': formats}
 
-        if video_id is not None:
-            result_obj.update({'id': video_id})
+        result_obj.update({'id': video_id})
 
         title = video.get('title')
         if title is not None:
@@ -158,44 +157,35 @@ class OpencastIE(OpencastBaseIE):
 
     _API_BASE = 'https://%s/search/episode.json?id=%s'
 
-    _TEST = {
-        'url': 'https://oc-video1.ruhr-uni-bochum.de/paella/ui/watch.html?id=ed063cd5-72c8-46b5-a60a-569243edcea8',
-        'md5': '554c8e99a90f7be7e874619fcf2a3bc9',
-        'info_dict': {
-            'id': 'ed063cd5-72c8-46b5-a60a-569243edcea8',
-            'ext': 'mp4',
-            'title': '11 - Kryptographie - 24.11.2015',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'timestamp': 1606208400,
-            'upload_date': '20201124',
-        },
-    }
+    _TESTS = [
+        {
+            'url': 'https://oc-video1.ruhr-uni-bochum.de/paella/ui/watch.html?id=ed063cd5-72c8-46b5-a60a-569243edcea8',
+            'md5': '554c8e99a90f7be7e874619fcf2a3bc9',
+            'info_dict': {
+                'id': 'ed063cd5-72c8-46b5-a60a-569243edcea8',
+                'ext': 'mp4',
+                'title': '11 - Kryptographie - 24.11.2015',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'timestamp': 1606208400,
+                'upload_date': '20201124',
+            },
+        }
+    ]
 
     def _real_extract(self, url):
         mobj = re.match(self._VALID_URL, url)
         host = mobj.group('host')
         video_id = mobj.group('id')
 
-        api_json = self._call_api(host, video_id, '', note='Downloading video JSON')
+        video = self._call_api(host, video_id, note='Downloading video JSON')['search-results']['result']['mediapackage']
 
-        search_results = api_json.get('search-results', {})
-        if 'result' not in search_results:
-            raise ExtractorError('Video was not found')
-
-        result_dict = search_results.get('result', {})
-        if not isinstance(result_dict, dict):
-            raise ExtractorError('More than one video was unexpectedly returned.')
-
-        video = result_dict.get('mediapackage', {})
-
-        result_obj = self._parse_mediapackage(video)
-        return result_obj
+        return self._parse_mediapackage(video)
 
 
 class OpencastPlaylistIE(OpencastBaseIE):
     _VALID_URL = r'''(?x)
-                    https?://(?P<host>%s)/engage/ui/index.html\?.*?
-                    epFrom=(?P<id>%s)
+                            https?://(?P<host>%s)/engage/ui/index.html\?.*?
+                            epFrom=(?P<id>%s)
                     ''' % (
         OpencastBaseIE._INSTANCES_RE,
         OpencastBaseIE._UUID_RE,
@@ -223,29 +213,18 @@ class OpencastPlaylistIE(OpencastBaseIE):
     ]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host')
         video_id = mobj.group('id')
 
-        api_json = self._call_api(host, video_id, '', note='Downloading video JSON')
+        result_list = self._call_api(host, video_id, note='Downloading video JSON')['search-results']['result']
 
-        search_results = api_json.get('search-results', {})
-        if 'result' not in search_results:
-            raise ExtractorError('Playlist was not found')
-
-        result_list = search_results.get('result', {})
         if isinstance(result_list, dict):
             result_list = [result_list]
 
-        entries = []
-        for episode in result_list:
-            video = episode.get('mediapackage', {})
-            entries.append(self._parse_mediapackage(video))
+        entries = [
+            self._parse_mediapackage(episode['mediapackage'])
+            for episode in result_list
+            if episode.get('mediapackage')]
 
-        if len(entries) == 0:
-            raise ExtractorError('Playlist has no entries')
-
-        playlist_title = entries[0].get('series')
-
-        result_obj = self.playlist_result(entries, playlist_id=video_id, playlist_title=playlist_title)
-        return result_obj
+        return self.playlist_result(entries, playlist_id=video_id, playlist_title=try_get(entries, lambda x: x[0]['series']))
