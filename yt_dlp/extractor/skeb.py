@@ -59,6 +59,23 @@ class SkebIE(InfoExtractor):
             'vcodec': 'none',
             'abr': 128,
         },
+    }, {
+        'url': 'https://skeb.jp/@mollowmollow/works/6',
+        'info_dict': {
+            'id': '6',
+            'title': 'ヒロ。\n\n私のキャラク... by 諸々',
+            'descripion': 'md5:aa6cbf2ba320b50bce219632de195f07',
+            '_type': 'playlist',
+            'entries': [
+                {
+                'id': '486430',
+                'title': 'ヒロ。\n\n私のキャラク... by 諸々',
+                'descripion': 'md5:aa6cbf2ba320b50bce219632de195f07',
+            }, {
+                'id': '486431',
+                'title': 'ヒロ。\n\n私のキャラク... by 諸々',
+            }]
+        }
     }]
 
     def _real_extract(self, url):
@@ -118,13 +135,13 @@ class SkebIE(InfoExtractor):
         if not entries:
             raise ExtractorError('No video/audio attachment found in this commission.', expected=True)
         elif len(entries) == 1:
-            import json
-            entries[0]['a'] = 'dummyvalue'
-            print(json.dumps(entries[0]))
             return entries[0]
         else:
             parent.update({
-                '_type': 'multi_video',
+                '_type': 'playlist',
                 'entries': entries,
             })
+            import json
+            entries[0]['a'] = 'dummyvalue'
+            print(json.dumps(parent))
             return parent
