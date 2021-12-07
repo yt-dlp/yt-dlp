@@ -21,18 +21,43 @@ class SkebIE(InfoExtractor):
             'url': r're:https://skeb.+',
             'thumbnail': r're:https://skeb.+',
             'subtitles': {
-                'jpn': [
-                    {
-                        'url': r're:https://skeb.+',
-                        'ext': 'vtt'
-                    }
-                ]
+                'jpn': [{
+                    'url': r're:https://skeb.+',
+                    'ext': 'vtt'
+                }]
             },
             'width': 720,
             'height': 405,
             'duration': 313,
             'fps': 30,
             'ext': 'mp4',
+        },
+    }, {
+        'url': 'https://skeb.jp/@furukawa_nob/works/3',
+        'info_dict': {
+            'id': '489408',
+            'title': 'いつもお世話になってお... by 古川ノブ@音楽とVlo...',
+            'descripion': 'いつもお世話になっておりますきしをです。\n前回はステキなシチュボありがとう御座いました！\n\n今回は名指しで「おはようボイス」リクエストさせていただきます。\n\n・名指しNGでしたら、名指しなしでもOKです。\n・朝なかなか起きない相手を起こす。\n・仕事の日、遊びの日などシチュエーションはおまかせします。\n・尺は15秒〜30秒(オーバーでも大丈夫です)\n\n以上の内容でリクエストさせていただきます。\nご都合、ご内容問題御座いませんでしたら是非よろしくお願いいたします！',
+            'uploader': '古川ノブ@音楽とVlogのVtuber',
+            'uploader_id': 'furukawa_nob',
+            'age_limit': 0,
+            'tags': [
+                'よろしく', '大丈夫', 'お願い', 'でした',
+                '是非', 'O', 'バー', '遊び', 'おはよう',
+                'オーバ', 'ボイス',
+            ],
+            'url': r're:https://skeb.+',
+            'thumbnail': r're:https://skeb.+',
+            'subtitles': {
+                'jpn': [{
+                    'url': r're:https://skeb.+',
+                    'ext': 'vtt'
+                }]
+            },
+            'duration': 98,
+            'ext': 'mp3',
+            'vcodec': 'none',
+            'abr': 128,
         },
     }]
 
@@ -85,12 +110,17 @@ class SkebIE(InfoExtractor):
                 'duration': traverse_obj(item, ('information', 'duration')),
                 'fps': traverse_obj(item, ('information', 'frame_rate')),
                 'ext': preview_ext or given_ext,
-                'vcodec': 'none' if preview_ext == 'mp3' else None
+                'vcodec': 'none' if preview_ext == 'mp3' else None,
+                # you'll always get 128kbps MP3 for non-client viewers
+                'abr': 128 if preview_ext == 'mp3' else None,
             })
 
         if not entries:
-            raise ExtractorError('No video attachment found in this commission.', expected=True)
+            raise ExtractorError('No video/audio attachment found in this commission.', expected=True)
         elif len(entries) == 1:
+            import json
+            entries[0]['a'] = 'dummyvalue'
+            print(json.dumps(entries[0]))
             return entries[0]
         else:
             parent.update({
