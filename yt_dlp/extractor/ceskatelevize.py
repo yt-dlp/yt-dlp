@@ -20,8 +20,6 @@ from ..utils import (
 
 class CeskaTelevizeIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?ceskatelevize\.cz/(?:ivysilani|porady)/(?:[^/?#&]+/)*(?P<id>[^/#?]+)'
-    _IFRAME_HASH_URL = 'https://www.ceskatelevize.cz/v-api/iframe-hash/'
-    _IFRAME_URL = 'https://www.ceskatelevize.cz/ivysilani/embed/iFramePlayer.php'
     _TESTS = [{
         'url': 'http://www.ceskatelevize.cz/ivysilani/10441294653-hyde-park-civilizace/215411058090502/bonus/20641-bonus-01-en',
         'info_dict': {
