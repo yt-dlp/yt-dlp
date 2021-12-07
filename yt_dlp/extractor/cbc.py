@@ -315,39 +315,35 @@ class CBCGemIE(InfoExtractor):
         self._claims_token = self._downloader.cache.load(self._NETRC_MACHINE, 'claims_token')
 
     def _find_secret_formats(self, formats, video_id):
-        # Find a valid video url and convert it to the secret variant
-        url = ""
-        base_f = None
-        base_url = None
-        for f in formats:
-            if 'height' in f:
-                base_url = re.sub('(Manifest\\(.*?),filter=[\\w-]+(.*?\\))', '\\1\\2', f['url'])
-                url = re.sub('(Manifest\\(.*?),format=[\\w-]+(.*?\\))', '\\1\\2', base_url)
-                base_f = copy.deepcopy(f)
-                break
+        """ Find a valid video url and convert it to the secret variant """
+        base_format = next((f for f in formats if f.get('height')), None)
+        if not base_format:
+            return
 
-        # Download and parse the secret xml
+        base_url = re.sub(r'(Manifest\(.*?),filter=[\w-]+(.*?\))', r'\1\2', base_format['url'])
+        url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
+
         secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
         if not secret_xml:
             return
 
-        # Build all video formats from the xml
         for child in secret_xml:
-            if child.attrib.get('Type') == 'video':
-                for video_quality in child:
-                    if 'Index' not in video_quality.attrib:
-                        continue
-                    width = int(video_quality.attrib['MaxWidth'])
-                    height = int(video_quality.attrib['MaxHeight'])
-                    bitrate = int(video_quality.attrib['Bitrate'])
+            if child.attrib.get('Type') != 'video':
+                continue
+            for video_quality in child:
+                bitrate = int_or_none(video_quality.attrib.get('Bitrate'))
+                if not bitrate or 'Index' not in video_quality.attrib:
+                    continue
+                height = int_or_none(video_quality.attrib.get('MaxHeight'))
 
-                    new_f = copy.deepcopy(base_f)
-                    new_f['format_id'] = f"sec-{height}"
-                    new_f['url'] = re.sub('(QualityLevels\\()\\d+(\\))', f'\\g<1>{bitrate}\\2', base_url)
-                    new_f['tbr'] = bitrate / 1000.0
-                    new_f['width'] = width
-                    new_f['height'] = height
-                    formats.append(new_f)
+                yield {
+                    **base_format,
+                    'format_id': join_nonempty('sec', height),
+                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\1{bitrate}\2', base_url)
+                    'width': int_or_none(video_quality.attrib.get('MaxWidth')),
+                    'tbr': bitrate / 1000.0,
+                    'height': height
+                }
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -371,7 +367,7 @@ class CBCGemIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
         self._remove_duplicate_formats(formats)
-        self._find_secret_formats(formats, video_id)
+        formats.extend(self._find_secret_formats(formats, video_id))
 
         for format in formats:
             if format.get('vcodec') == 'none':
