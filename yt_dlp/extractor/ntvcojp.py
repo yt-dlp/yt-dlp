@@ -45,9 +45,8 @@ class NTVCoJpCUIE(InfoExtractor):
             og_title = self._og_search_title(webpage, fatal=False) or traverse_obj(player_config, ('player', 'title'))
             if og_title:
                 title = og_title.split('(', 1)[0].strip()
-        description = traverse_obj(player_config, ('movie', 'description'))
-        if not description:
-            description = self._html_search_meta(['description', 'og:description'], webpage)
+        description = (traverse_obj(player_config, ('movie', 'description'))
+                       or self._html_search_meta(['description', 'og:description'], webpage))
         return {
             '_type': 'url_transparent',
             'id': video_id,
