@@ -13,7 +13,7 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '466853',
             'title': '内容はおまかせします！ by 姫ノ森りぃる@一周年',
-            'descripion': '内容はおまかせします！',
+            'descripion': 'md5:1ec50901efc3437cfbfe3790468d532d',
             'uploader': '姫ノ森りぃる@一周年',
             'uploader_id': 'riiru_wm',
             'age_limit': 0,
@@ -37,7 +37,7 @@ class SkebIE(InfoExtractor):
         'info_dict': {
             'id': '489408',
             'title': 'いつもお世話になってお... by 古川ノブ@音楽とVlo...',
-            'descripion': 'いつもお世話になっておりますきしをです。\n前回はステキなシチュボありがとう御座いました！\n\n今回は名指しで「おはようボイス」リクエストさせていただきます。\n\n・名指しNGでしたら、名指しなしでもOKです。\n・朝なかなか起きない相手を起こす。\n・仕事の日、遊びの日などシチュエーションはおまかせします。\n・尺は15秒〜30秒(オーバーでも大丈夫です)\n\n以上の内容でリクエストさせていただきます。\nご都合、ご内容問題御座いませんでしたら是非よろしくお願いいたします！',
+            'descripion': 'md5:5adc2e41d06d33b558bf7b1faeb7b9c2',
             'uploader': '古川ノブ@音楽とVlogのVtuber',
             'uploader_id': 'furukawa_nob',
             'age_limit': 0,
