@@ -1315,6 +1315,7 @@ from .simplecast import (
 )
 from .sina import SinaIE
 from .sixplay import SixPlayIE
+from .skeb import SkebIE
 from .skyit import (
     SkyItPlayerIE,
     SkyItVideoIE,
