@@ -2,11 +2,39 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import ExtractorError, determine_ext, ext2mimetype, traverse_obj
+from ..utils import ExtractorError, determine_ext, parse_qs, traverse_obj
 
 
 class SkebIE(InfoExtractor):
     _VALID_URL = r'https?://skeb\.jp/@[^/]+/works/(?P<id>\d+)'
+
+    _TESTS = [{
+        'url': 'https://skeb.jp/@riiru_wm/works/10',
+        'info_dict': {
+            'id': '466853',
+            'title': '内容はおまかせします！ by 姫ノ森りぃる@一周年',
+            'descripion': '内容はおまかせします！',
+            'uploader': '姫ノ森りぃる@一周年',
+            'uploader_id': 'riiru_wm',
+            'age_limit': 0,
+            'tags': [],
+            'url': r're:https://skeb.+',
+            'thumbnail': r're:https://skeb.+',
+            'subtitles': {
+                'jpn': [
+                    {
+                        'url': r're:https://skeb.+',
+                        'ext': 'vtt'
+                    }
+                ]
+            },
+            'width': 720,
+            'height': 405,
+            'duration': 313,
+            'fps': 30,
+            'ext': 'mp4',
+        },
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -26,9 +54,21 @@ class SkebIE(InfoExtractor):
         for item in nuxt_data.get('previews') or []:
             vid_url = item.get('url')
             given_ext = traverse_obj(item, ('information', 'extension'))
-            mimetype = ext2mimetype(given_ext)
-            if mimetype != 'image/gif' and mimetype.partition('/')[0] != 'video' and not vid_url and not item.get('id'):
+            preview_ext = determine_ext(vid_url, default_ext=None)
+            if not preview_ext:
+                content_disposition = parse_qs(vid_url)['response-content-disposition'][0]
+                preview_ext = self._search_regex(
+                    r'filename="[^"]+\.([^\.]+?)"', content_disposition,
+                    'preview file extension', fatal=False, group=1)
+            if preview_ext not in ('mp4', 'mp3'):
                 continue
+            if not vid_url or not item.get('id'):
+                continue
+            width, height = traverse_obj(item, ('information', 'width')), traverse_obj(item, ('information', 'height'))
+            if width is not None and height is not None:
+                # the longest side is at most 720px for non-client viewers
+                max_size = max(width, height)
+                width, height = list(x * 720 // max_size for x in (width, height))
             entries.append({
                 **parent,
                 'id': str(item['id']),
@@ -40,12 +80,12 @@ class SkebIE(InfoExtractor):
                         'ext': 'vtt',
                     }]
                 } if item.get('vtt_url') else None,
-                'width': traverse_obj(item, ('information', 'width')),
-                'height': traverse_obj(item, ('information', 'height')),
+                'width': width,
+                'height': height,
                 'duration': traverse_obj(item, ('information', 'duration')),
-                'filesize': traverse_obj(item, ('information', 'byte_size')),
                 'fps': traverse_obj(item, ('information', 'frame_rate')),
-                'ext': determine_ext(vid_url) or given_ext,
+                'ext': preview_ext or given_ext,
+                'vcodec': 'none' if preview_ext == 'mp3' else None
             })
 
         if not entries:
