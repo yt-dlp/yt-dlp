@@ -90,9 +90,7 @@ class LineTVIE(InfoExtractor):
 
         subtitles = {}
         sub_fan = "-fan"
-        sub_dict = try_get(video_info, lambda x: x['captions']['list']) or {}
-
-        for sub_index in sub_dict:
+        for sub_index in try_get(video_info, lambda x: x['captions']['list']) or {}:
             sub_language = try_get(sub_index, lambda x: x['language'])
             sub_source = try_get(sub_index, lambda x: x['source'])
             sub_label = try_get(sub_index, lambda x: x['label'])
