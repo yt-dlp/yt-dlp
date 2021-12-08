@@ -38,12 +38,6 @@ class DigitalConcertHallIE(InfoExtractor):
         }
     }]
 
-    def debug_out(self, args):
-        if not self._downloader.params.get('verbose', False):
-            return
-
-        self.to_screen('[debug] %s' % args)
-
     def _login(self):
         username, password = self._get_login_info()
         if username is None:
@@ -76,7 +70,6 @@ class DigitalConcertHallIE(InfoExtractor):
                     if error:
                         msg += ': ' + error
             raise ExtractorError('Unable to obtain token: ' + msg)
-        self.debug_out("token_response: " + json.dumps(token_response))
         self._ACCESS_TOKEN = token_response.get('access_token')
         # now login
         data = {
@@ -109,11 +102,9 @@ class DigitalConcertHallIE(InfoExtractor):
         language, video_id = self._match_valid_url(url).groups()
         if not language:
             language = 'en'
-        self.debug_out("url: " + url + " video_id: " + video_id + " language: " + language)
         webpage = self._download_webpage(url, video_id)
         playlist_title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title') or \
             self._og_search_title(webpage)
-        self.debug_out("playlist_title: " + playlist_title)
 
         # use the API to get other information about the concert
         vid_info_dict = self._download_json(
@@ -131,13 +122,11 @@ class DigitalConcertHallIE(InfoExtractor):
                 else:
                     item['is_interview'] = 0
                 stream_href = traverse_obj(item,('_links','streams','href'))
-                self.debug_out("JSON URL: " + 'https:' + stream_href)
                 test_dict = self._download_json('https:' + stream_href, video_id,
                     headers={'Accept': 'application/json',
                     'Authorization': 'Bearer ' + self._ACCESS_TOKEN,
                     'Accept-Language': language})
                 m3u8_url = traverse_obj(test_dict, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
-                self.debug_out('stream URL: ' + m3u8_url)
 
                 formats = self._extract_m3u8_formats(
                     m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
@@ -151,7 +140,6 @@ class DigitalConcertHallIE(InfoExtractor):
                 key = item.get('id')
 
                 duration = item.get('duration_total')
-                self.debug_out("title: " + title)
                 timestamp = traverse_obj(item,('date','published'))
                 entries.append({
                     'id': key,
