@@ -19,10 +19,8 @@ from ..utils import (
 class DigitalConcertHallIE(InfoExtractor):
     IE_DESC = 'DigitalConcertHall extractor'
     _VALID_URL = r'https?://(?:www\.)?digitalconcerthall\.com/(?P<language>[a-z]+)/concert/(?P<id>[0-9]+)'
-    _LOGIN_URL = 'https://www.digitalconcerthall.com/en/login'
     _OAUTH_URL = 'https://api.digitalconcerthall.com/v2/oauth2/token'
     _ACCESS_TOKEN = 'none'
-    _CLIENT_SECRET = '2ySLN+2Fwb'
     _NETRC_MACHINE = 'digitalconcerthall'
     # if you don't login, all you will get is trailers
     _LOGIN_REQUIRED = True
@@ -45,20 +43,19 @@ class DigitalConcertHallIE(InfoExtractor):
                 raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
             return
         # first get JWT token
-        data = {
-            'affiliate': 'none',
-            'grant_type': 'device',
-            'device_vendor': 'unknown',
-            'device_model': 'unknown',
-            'app_id': 'dch.webapp',
-            'app_distributor': 'berlinphil',
-            'app_version': '1.0.0',
-            'client_secret': self._CLIENT_SECRET,
-        }
         try:
             token_response = self._download_json(
                 self._OAUTH_URL,
-                None, 'Obtaining token', data=urlencode_postdata(data), headers={
+                None, 'Obtaining token', data=urlencode_postdata({
+                    'affiliate': 'none',
+                    'grant_type': 'device',
+                    'device_vendor': 'unknown',
+                    'device_model': 'unknown',
+                    'app_id': 'dch.webapp',
+                    'app_distributor': 'berlinphil',
+                    'app_version': '1.0.0',
+                    'client_secret': '2ySLN+2Fwb',
+                }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
         except ExtractorError as e:
@@ -72,17 +69,16 @@ class DigitalConcertHallIE(InfoExtractor):
             raise ExtractorError('Unable to obtain token: ' + msg)
         self._ACCESS_TOKEN = token_response.get('access_token')
         # now login
-        data = {
-            'grant_type': 'password',
-            'username': username,
-            'password': password,
-        }
         try:
             self._download_json(
                 self._OAUTH_URL,
-                None, 'Logging in', data=urlencode_postdata(data), headers={
+                None, 'Logging in', data=urlencode_postdata({
+                    'grant_type': 'password',
+                    'username': username,
+                    'password': password,
+                }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'Referer': self._LOGIN_URL,
+                    'Referer': 'https://www.digitalconcerthall.com/en/login',
                     'Authorization': 'Bearer ' + self._ACCESS_TOKEN
                 })
         except ExtractorError as e:
