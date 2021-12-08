@@ -105,7 +105,6 @@ class DigitalConcertHallIE(InfoExtractor):
         self._login()
 
     def _real_extract(self, url):
-        MAX_TITLE_LENGTH = 128
         language, video_id = re.match(self._VALID_URL, url).groups()
         if not language:
             language = 'en'
@@ -151,8 +150,6 @@ class DigitalConcertHallIE(InfoExtractor):
                 key = item.get('id')
 
                 duration = item.get('duration_total')
-                # avoid filenames that exceed filesystem limits
-                title = (title[:MAX_TITLE_LENGTH] + '..') if len(title) > MAX_TITLE_LENGTH else title
                 # append the duration in minutes to the title
                 title = title + " (" + str(round(duration / 60)) + " min.)"
                 self.debug_out("title: " + title)
