@@ -77,7 +77,7 @@ class DigitalConcertHallIE(InfoExtractor):
                         msg += ': ' + error
             raise ExtractorError('Unable to obtain token: ' + msg)
         self.debug_out("token_response: " + json.dumps(token_response))
-        self._ACCCESS_TOKEN = token_response.get('access_token')
+        self._ACCESS_TOKEN = token_response.get('access_token')
         # now login
         data = {
             'grant_type': 'password',
@@ -90,7 +90,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 None, 'Logging in', data=urlencode_postdata(data), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Referer': self._LOGIN_URL,
-                    'Authorization': 'Bearer ' + self._ACCCESS_TOKEN
+                    'Authorization': 'Bearer ' + self._ACCESS_TOKEN
                 })
         except ExtractorError as e:
             msg = 'Unable to login'
@@ -134,7 +134,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 self.debug_out("JSON URL: " + 'https:' + stream_href)
                 test_dict = self._download_json('https:' + stream_href, video_id,
                     headers={'Accept': 'application/json',
-                    'Authorization': 'Bearer ' + self._ACCCESS_TOKEN,
+                    'Authorization': 'Bearer ' + self._ACCESS_TOKEN,
                     'Accept-Language': language})
                 m3u8_url = traverse_obj(test_dict, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
                 self.debug_out('stream URL: ' + m3u8_url)
