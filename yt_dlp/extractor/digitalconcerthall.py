@@ -24,7 +24,6 @@ class DigitalConcertHallIE(InfoExtractor):
     _ACCESS_TOKEN = 'none'
     _NETRC_MACHINE = 'digitalconcerthall'
     # if you don't login, all you will get is trailers
-    _LOGIN_REQUIRED = True
     _TESTS = [{
         'url': 'https://www.digitalconcerthall.com/en/concert/53785',
         'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
@@ -40,8 +39,7 @@ class DigitalConcertHallIE(InfoExtractor):
     def _login(self):
         username, password = self._get_login_info()
         if username is None:
-            if self._LOGIN_REQUIRED:
-                raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
+            raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
             return
         # first get JWT token
         try:
