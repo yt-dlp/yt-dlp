@@ -167,10 +167,9 @@ class DigitalConcertHallIE(InfoExtractor):
                 })
                 # use playlist description for video description by default
                 # but if the video has a description, use it
-                if test_dict.get('short_description'):
-                    entries[-1]['description'] = test_dict.get('short_description', "missing description")
-                if item.get('short_description'):
-                    entries[-1]['description'] = item.get('short_description', "missing description")
+                description = test_dict.get('short_description') or item.get('short_description')
+                if description:
+                    entries[-1]['description'] = description
                 if item.get('cuepoints'):
                     chapters = []
                     first_chapter = 1
