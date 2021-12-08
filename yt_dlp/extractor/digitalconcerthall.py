@@ -6,19 +6,14 @@ import json
 
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.compat import (
-    compat_kwargs,
     compat_HTTPError,
-    compat_str,
-    compat_urlparse,
 )
 
 from yt_dlp.utils import (
     ExtractorError,
     urlencode_postdata,
-    jwt_encode_hs256,
 )
 
-import secrets
 
 class DigitalConcertHallIE(InfoExtractor):
     IE_DESC = 'DigitalConcertHall extractor'
@@ -68,7 +63,7 @@ class DigitalConcertHallIE(InfoExtractor):
         try:
             token_response = self._download_json(
                 self._OAUTH_URL,
-                None, 'Obtaining token', data=urlencode_postdata(data), headers={ 
+                None, 'Obtaining token', data=urlencode_postdata(data), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
         except ExtractorError as e:
@@ -91,7 +86,7 @@ class DigitalConcertHallIE(InfoExtractor):
         try:
             self._download_json(
                 self._OAUTH_URL,
-                None, 'Logging in', data=urlencode_postdata(data), headers={ 
+                None, 'Logging in', data=urlencode_postdata(data), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Referer': self._LOGIN_URL,
                     'Authorization': 'Bearer ' + self._ACCCESS_TOKEN
@@ -138,7 +133,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 stream_href = item.get('_links').get('streams').get('href')
                 self.debug_out("JSON URL: " + 'https:' + stream_href)
                 test_dict = self._download_json('https:' + stream_href, video_id,
-                    headers={'Accept': 'application/json', 
+                    headers={'Accept': 'application/json',
                     'Authorization': 'Bearer ' + self._ACCCESS_TOKEN,
                     'Accept-Language': language})
                 m3u8_url = test_dict['channel']['vod_mixed_hls_h264_hevc_abr_uhd']['stream'][0]['url']
