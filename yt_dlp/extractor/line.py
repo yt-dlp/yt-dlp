@@ -8,6 +8,7 @@ from ..utils import (
     int_or_none,
     js_to_json,
     str_or_none,
+    try_get,
 )
 
 
@@ -82,14 +83,16 @@ class LineTVIE(InfoExtractor):
 
         # like_count requires an additional API request https://tv.line.me/api/likeit/getCount
 
+        thumbnail = try_get(video_info, lambda x: x['meta']['cover']['source']) or []
+        thumbnail = thumbnail.split('?')[0]#Full Size Thumbnail
+
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
             'extra_param_to_segment_url': extra_query[1:],
             'duration': duration,
-            'thumbnails': [{'url': thumbnail['source']}
-                           for thumbnail in video_info.get('thumbnails', {}).get('list', [])],
+            'thumbnail': thumbnail,
             'view_count': video_info.get('meta', {}).get('count'),
         }
 
