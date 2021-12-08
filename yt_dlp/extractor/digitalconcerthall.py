@@ -151,8 +151,6 @@ class DigitalConcertHallIE(InfoExtractor):
                 key = item.get('id')
 
                 duration = item.get('duration_total')
-                # append the duration in minutes to the title
-                title = title + " (" + str(round(duration / 60)) + " min.)"
                 self.debug_out("title: " + title)
                 timestamp = traverse_obj(item,('date','published'))
                 entries.append({
