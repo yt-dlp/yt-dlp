@@ -16,6 +16,7 @@ from ..compat import (
 )
 from ..utils import (
     clean_html,
+    dict_get,
     extract_attributes,
     ExtractorError,
     find_xpath_attr,
@@ -578,7 +579,7 @@ class BrightcoveNewIE(AdobePassIE):
             is_live = True
 
         common_res = [(160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
-        thumb_base_url = dict_get(json_data, ('poster', 'thumbnail')
+        thumb_base_url = dict_get(json_data, ('poster', 'thumbnail'))
         thumbnails = [{
             'url': re.sub(r'\d+x\d+', f'{w}x{h}', thumb_base_url), 
             'width': w,
