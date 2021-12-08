@@ -25,7 +25,7 @@ class DigitalConcertHallIE(InfoExtractor):
     _NETRC_MACHINE = 'digitalconcerthall'
     # if you don't login, all you will get is trailers
     _LOGIN_REQUIRED = True
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.digitalconcerthall.com/en/concert/53785',
         'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
         'info_dict': {
@@ -35,7 +35,7 @@ class DigitalConcertHallIE(InfoExtractor):
             'title': 'Video title goes here',
             'thumbnail': r're:^https?://.*/images/core/Phil.*\.jpg$',
         }
-    }
+    }]
 
     def debug_out(self, args):
         if not self._downloader.params.get('verbose', False):
