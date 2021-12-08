@@ -4,12 +4,12 @@ from __future__ import unicode_literals
 import re
 import json
 
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.compat import (
+from .common import InfoExtractor
+from ..compat import (
     compat_HTTPError,
 )
 
-from yt_dlp.utils import (
+from ..utils import (
     ExtractorError,
     urlencode_postdata,
 )
