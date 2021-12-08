@@ -42,36 +42,26 @@ class DigitalConcertHallIE(InfoExtractor):
             raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
             return
         # first get JWT token
-        try:
-            token_response = self._download_json(
-                self._OAUTH_URL,
-                None, 'Obtaining token', data=urlencode_postdata({
-                    'affiliate': 'none',
-                    'grant_type': 'device',
-                    'device_vendor': 'unknown',
-                    'device_model': 'unknown',
-                    'app_id': 'dch.webapp',
-                    'app_distributor': 'berlinphil',
-                    'app_version': '1.0.0',
-                    'client_secret': '2ySLN+2Fwb',
-                }), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                })
-        except ExtractorError as e:
-            msg = 'Unable to obtain token'
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                resp = self._parse_json(e.cause.read().decode(), None, fatal=False)
-                if resp:
-                    error = resp.get('extra_info') or resp.get('error_description') or resp.get('error')
-                    if error:
-                        msg += ': ' + error
-            raise ExtractorError('Unable to obtain token: ' + msg)
+        token_response = self._download_json(
+            self._OAUTH_URL,
+            None, 'Obtaining token', errnote='Unable to obtain token', data=urlencode_postdata({
+                'affiliate': 'none',
+                'grant_type': 'device',
+                'device_vendor': 'unknown',
+                'device_model': 'unknown',
+                'app_id': 'dch.webapp',
+                'app_distributor': 'berlinphil',
+                'app_version': '1.0.0',
+                'client_secret': '2ySLN+2Fwb',
+            }), headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+            })
         self._ACCESS_TOKEN = token_response.get('access_token')
         # now login
         try:
             self._download_json(
                 self._OAUTH_URL,
-                None, 'Logging in', data=urlencode_postdata({
+                None, 'Logging in', errnote='Unable to login', data=urlencode_postdata({
                     'grant_type': 'password',
                     'username': username,
                     'password': password,
