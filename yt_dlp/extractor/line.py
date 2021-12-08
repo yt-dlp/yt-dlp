@@ -83,8 +83,9 @@ class LineTVIE(InfoExtractor):
 
         # like_count requires an additional API request https://tv.line.me/api/likeit/getCount
 
-        thumbnail = try_get(video_info, lambda x: x['meta']['cover']['source']) or []
-        thumbnail = thumbnail.split('?')[0]#Full Size Thumbnail
+        thumbnail = url_or_none(try_get(video_info, lambda x: x['meta']['cover']['source']))
+        if thumbnail:
+            thumbnail = thumbnail.split('?')[0]
 
         return {
             'id': video_id,
