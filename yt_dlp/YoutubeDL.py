@@ -3394,7 +3394,8 @@ class YoutubeDL(object):
         def get_encoding(stream):
             ret = getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__)
             if not supports_terminal_sequences(stream):
-                ret += ' (No ANSI)'
+                from .compat import WINDOWS_VT_MODE
+                ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
             return ret
 
         encoding_str = 'Encodings: locale %s, fs %s, out %s, err %s, pref %s' % (

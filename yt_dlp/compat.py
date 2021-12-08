@@ -160,12 +160,20 @@ except ImportError:
         compat_pycrypto_AES = None
 
 
+WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+
+
 def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
     if compat_os_name != 'nt':
         return
+    global WINDOWS_VT_MODE
     startupinfo = subprocess.STARTUPINFO()
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    subprocess.Popen('', shell=True, startupinfo=startupinfo)
+    try:
+        subprocess.Popen('', shell=True, startupinfo=startupinfo)
+        WINDOWS_VT_MODE = True
+    except Exception:
+        pass
 
 
 #  Deprecated
@@ -226,6 +234,7 @@ compat_xml_parse_error = etree.ParseError
 # Set public objects
 
 __all__ = [
+    'WINDOWS_VT_MODE',
     'compat_HTMLParseError',
     'compat_HTMLParser',
     'compat_HTTPError',
