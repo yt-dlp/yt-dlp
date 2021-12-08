@@ -11,6 +11,7 @@ from ..compat import (
 
 from ..utils import (
     ExtractorError,
+    traverse_obj,
     urlencode_postdata,
 )
 
@@ -129,13 +130,13 @@ class DigitalConcertHallIE(InfoExtractor):
                     item['is_interview'] = 1
                 else:
                     item['is_interview'] = 0
-                stream_href = item.get('_links').get('streams').get('href')
+                stream_href = traverse_obj(item,('_links','streams','href'))
                 self.debug_out("JSON URL: " + 'https:' + stream_href)
                 test_dict = self._download_json('https:' + stream_href, video_id,
                     headers={'Accept': 'application/json',
                     'Authorization': 'Bearer ' + self._ACCCESS_TOKEN,
                     'Accept-Language': language})
-                m3u8_url = test_dict['channel']['vod_mixed_hls_h264_hevc_abr_uhd']['stream'][0]['url']
+                m3u8_url = traverse_obj(test_dict, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
                 self.debug_out('stream URL: ' + m3u8_url)
 
                 formats = self._extract_m3u8_formats(
@@ -153,7 +154,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 # append the duration in minutes to the title
                 title = title + " (" + str(round(duration / 60)) + " min.)"
                 self.debug_out("title: " + title)
-                timestamp = item.get('date').get('published')
+                timestamp = traverse_obj(item,('date','published'))
                 entries.append({
                     'id': key,
                     'title': title,
