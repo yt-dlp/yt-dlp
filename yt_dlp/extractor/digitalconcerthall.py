@@ -145,7 +145,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 self.debug_out('stream URL: ' + m3u8_url)
 
                 formats = self._extract_m3u8_formats(
-                    m3u8_url, item, 'mp4', 'm3u8_native', fatal=False)
+                    m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
                 self._sort_formats(formats)
 
                 if item.get('is_interview') == 1:
