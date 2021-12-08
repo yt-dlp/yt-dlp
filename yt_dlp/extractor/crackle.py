@@ -46,7 +46,10 @@ class CrackleIE(InfoExtractor):
         'params': {
             # m3u8 download
             'skip_download': True,
-        }
+        },
+        'expected_warnings': [
+            'Trying with a list of known countries'
+        ],
     }, {
         'url': 'https://www.sonycrackle.com/andromeda/2502343',
         'only_matching': True,
@@ -143,9 +146,9 @@ class CrackleIE(InfoExtractor):
         for e in media.get('MediaURLs') or []:
             if e.get('UseDRM'):
                 has_drm = True
-                if not allow_unplayable_formats:
-                    continue
-            format_url = url_or_none(e.get('Path'))
+                format_url = url_or_none(e.get('DRMPath'))
+            else:
+                format_url = url_or_none(e.get('Path'))
             if not format_url:
                 continue
             ext = determine_ext(format_url)
