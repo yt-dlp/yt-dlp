@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
-    js_to_json,
     try_get,
     unified_timestamp
 )
@@ -14,17 +13,7 @@ class SovietsClosetBaseIE(InfoExtractor):
 
     def parse_nuxt_jsonp(self, nuxt_jsonp_url, video_id, name):
         nuxt_jsonp = self._download_webpage(nuxt_jsonp_url, video_id, note=f'Downloading {name} __NUXT_JSONP__')
-        js, arg_keys, arg_vals = self._search_regex(
-            r'__NUXT_JSONP__\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)',
-            nuxt_jsonp, '__NUXT_JSONP__', group=['js', 'arg_keys', 'arg_vals'])
-
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
-
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
-
-        return self._parse_json(js_to_json(js, args), video_id)['data'][0]
+        return self._search_nuxt_data(nuxt_jsonp, video_id, '__NUXT_JSONP__')
 
     def video_meta(self, video_id, game_name, category_name, episode_number, stream_date):
         title = game_name
