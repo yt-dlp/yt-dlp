@@ -151,26 +151,13 @@ class DigitalConcertHallIE(InfoExtractor):
                 if description:
                     entries[-1]['description'] = description
                 if item.get('cuepoints'):
-                    chapters = []
-                    first_chapter = 1
-                    for chapter in item.get('cuepoints'):
-                        start_time = chapter.get('time')
-                        # Often, the first chapter does not start at zero.  In this case,
-                        # insert an intro chapter so that first chapter is the start of the music
-                        if (first_chapter == 1) and (start_time != 0):
-                            chapters.append({
-                                'start_time': 0,
-                                'end_time': start_time,
-                                'title': '0. Intro'
-                            })
-                        first_chapter = 0
-                        end_time = start_time + chapter.get('duration')
-                        chapter_title = chapter.get('text')
-                        chapters.append({
-                            'start_time': start_time,
-                            'end_time': end_time,
-                            'title': chapter_title
-                        })
+                    chapters = [{
+                        'start_time': chapter.get('time'),
+                        'end_time': try_get(chapter, lambda x: x['time'] + x['duration']),
+                        'title': chapter.get('text'),
+                    } for chapter in item.get('cuepoints') or []]
+                    if chapters and chapters[0]['start_time']:  # Chapters may not start from 0
+                        chapters[:0] = [{'title': '0. Intro', 'start_time': 0, 'end_time': chapters[0]['start_time']}]
                     entries[-1]['chapters'] = chapters
 
         return {
