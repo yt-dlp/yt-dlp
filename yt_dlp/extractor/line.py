@@ -110,10 +110,10 @@ class LineTVIE(InfoExtractor):
                 sub_lang = sub_language + "-" + sub_country
                 sub_name = sub_label
             subtitles.update({
-                sub_lang : [
+                sub_lang: [
                     {
-                        "ext" : "vtt",
-                        "url" : sub_source,
+                        "ext": "vtt",
+                        "url": sub_source,
                         "name": sub_name,
                     }
                 ]
