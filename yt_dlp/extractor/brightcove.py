@@ -581,11 +581,11 @@ class BrightcoveNewIE(AdobePassIE):
         common_res = [(160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
         thumb_base_url = dict_get(json_data, ('poster', 'thumbnail'))
         thumbnails = [{
-            'url': re.sub(r'\d+x\d+', f'{w}x{h}', thumb_base_url), 
+            'url': re.sub(r'\d+x\d+', f'{w}x{h}', thumb_base_url),
             'width': w,
             'height': h,
         } for w, h in common_res] if thumb_base_url else None
-            
+
         return {
             'id': video_id,
             'title': self._live_title(title) if is_live else title,
