@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import copy
 import re
 import json
 import base64
@@ -12,11 +11,13 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
+    int_or_none,
+    join_nonempty,
     js_to_json,
-    smuggle_url,
-    try_get,
     orderedSet,
+    smuggle_url,
     strip_or_none,
+    try_get,
     ExtractorError,
 )
 
@@ -316,7 +317,7 @@ class CBCGemIE(InfoExtractor):
 
     def _find_secret_formats(self, formats, video_id):
         """ Find a valid video url and convert it to the secret variant """
-        base_format = next((f for f in formats if f.get('height')), None)
+        base_format = next((f for f in formats if f.get('vcodec') != 'none'), None)
         if not base_format:
             return
 
@@ -339,7 +340,7 @@ class CBCGemIE(InfoExtractor):
                 yield {
                     **base_format,
                     'format_id': join_nonempty('sec', height),
-                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\1{bitrate}\2', base_url),
+                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\<1>{bitrate}\2', base_url),
                     'width': int_or_none(video_quality.attrib.get('MaxWidth')),
                     'tbr': bitrate / 1000.0,
                     'height': height,
