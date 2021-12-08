@@ -105,7 +105,7 @@ class DigitalConcertHallIE(InfoExtractor):
         self._login()
 
     def _real_extract(self, url):
-        language, video_id = re.match(self._VALID_URL, url).groups()
+        language, video_id = self._match_valid_url(url).groups()
         if not language:
             language = 'en'
         self.debug_out("url: " + url + " video_id: " + video_id + " language: " + language)
