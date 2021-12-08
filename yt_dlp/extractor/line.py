@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class LineTVIE(InfoExtractor):
-    _VALID_URL = r'https?://tv\.line\.me/(?:v|embed)/(?P<id>\d+)(?:_[^/]+-(?P<segment>ep\d+(?:-\d+|))|)'
+    _VALID_URL = r'https?://tv\.line\.me/(?:v|embed)/(?P<id>\d+)(?:_[^/]+-(?P<segment>ep\d+(?:-\d+)?))?'
 
     _TESTS = [{
         'url': 'https://tv.line.me/v/793123_goodbye-mrblack-ep1-1/list/69246',
