@@ -88,6 +88,37 @@ class LineTVIE(InfoExtractor):
         if thumbnail:
             thumbnail = thumbnail.split('?')[0]
 
+        subtitles = {}
+        sub_fan = "-fan"
+        sub_dict = try_get(video_info, lambda x: x['captions']['list']) or {}
+
+        for sub_index in sub_dict:
+            sub_language = try_get(sub_index, lambda x: x['language'])
+            sub_source = try_get(sub_index, lambda x: x['source'])
+            sub_label = try_get(sub_index, lambda x: x['label'])
+            sub_country = try_get(sub_index, lambda x: x['country'])
+            # Checking for fan provided subtitles in already provided languages
+            if subtitles:
+                for subtitle in subtitles.keys():
+                    if subtitle == sub_language + "-" + sub_country or subtitle == sub_language + "-" + sub_country + sub_fan:
+                        sub_lang = sub_language + "-" + sub_country + sub_fan
+                        sub_name = sub_label + sub_fan
+                    else:
+                        sub_lang = sub_language + "-" + sub_country
+                        sub_name = sub_label
+            else:
+                sub_lang = sub_language + "-" + sub_country
+                sub_name = sub_label
+            subtitles.update({
+                sub_lang : [
+                    {
+                        "ext" : "vtt",
+                        "url" : sub_source,
+                        "name": sub_name,
+                    }
+                ]
+            })
+
         return {
             'id': video_id,
             'title': title,
@@ -96,6 +127,7 @@ class LineTVIE(InfoExtractor):
             'duration': duration,
             'thumbnail': thumbnail,
             'view_count': video_info.get('meta', {}).get('count'),
+            'subtitles': subtitles,
         }
 
 
