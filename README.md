@@ -1580,6 +1580,9 @@ The following extractors use this feature:
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
+#### youtubewebarchive
+* `check_all`: Try to check more at the cost of more requests. One or more of `thumbnails`, `captures`
+
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
 
