@@ -46,9 +46,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 'affiliate': 'none',
                 'grant_type': 'device',
                 'device_vendor': 'unknown',
-                'device_model': 'unknown',
                 'app_id': 'dch.webapp',
-                'app_distributor': 'berlinphil',
                 'app_version': '1.0.0',
                 'client_secret': '2ySLN+2Fwb',
             }), headers={
