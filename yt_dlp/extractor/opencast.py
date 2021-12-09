@@ -6,8 +6,9 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
-    parse_iso8601,
+    ExtractorError,
     int_or_none,
+    parse_iso8601,
     traverse_obj,
     try_get,
 )
@@ -46,10 +47,14 @@ class OpencastBaseIE(InfoExtractor):
         tracks = try_get(video, lambda x: x['media']['track'])
 
         video_id = video.get('id')
+        if video_id is None:
+            raise ExtractorError('Video id was not found')
 
         formats = []
         for track in tracks:
-            href = track['url']
+            href = track.get('url')
+            if href is None:
+                continue
             ext = determine_ext(href, None)
             track_obj = {'url': href}
 
@@ -87,7 +92,7 @@ class OpencastBaseIE(InfoExtractor):
                 audio_info = track.get('audio')
                 if audio_info is not None:
                     track_obj.update({
-                        'abr': int_or_none(audio_info.get('bitrate'), 1000),
+                        'abr': int_or_none(audio_info.get('bitrate'), scale=1000),
                         'asr': int_or_none(audio_info.get('samplingrate')),
                         'acodec': traverse_obj(audio_info, ('encoder', 'type')),
                     })
@@ -97,7 +102,7 @@ class OpencastBaseIE(InfoExtractor):
                     track_obj.update({
                         'resolution': video_info.get('resolution'),
                         'fps': int_or_none(video_info.get('framerate')),
-                        'vbr': int_or_none(video_info.get('bitrate'), 1000),
+                        'vbr': int_or_none(video_info.get('bitrate'), scale=1000),
                         'vcodec': try_get(video_info, lambda x: x['encoder']['type']),
                     })
 
@@ -144,9 +149,7 @@ class OpencastIE(OpencastBaseIE):
     ]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
-        host = mobj.group('host')
-        video_id = mobj.group('id')
+        host, video_id = self._match_valid_url(url).groups()
 
         video = self._call_api(host, video_id, note='Downloading video JSON')['search-results']['result']['mediapackage']
 
@@ -184,9 +187,7 @@ class OpencastPlaylistIE(OpencastBaseIE):
     ]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        host = mobj.group('host')
-        video_id = mobj.group('id')
+        host, video_id = self._match_valid_url(url).groups()
 
         result_list = self._call_api(host, video_id, note='Downloading video JSON')['search-results']['result']
 
