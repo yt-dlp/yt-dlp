@@ -1,9 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-import json
-
 from .common import InfoExtractor
 from ..compat import (
     compat_HTTPError,
@@ -11,6 +8,7 @@ from ..compat import (
 
 from ..utils import (
     ExtractorError,
+    parse_resolution,
     traverse_obj,
     try_get,
     urlencode_postdata,
@@ -26,7 +24,6 @@ class DigitalConcertHallIE(InfoExtractor):
     # if you don't login, all you will get is trailers
     _TESTS = [{
         'url': 'https://www.digitalconcerthall.com/en/concert/53201',
-        'md5': 'ec02a4ae0a64f7012d98e95336697909',
         'info_dict': {
             'id': '53201-1',
             'ext': 'mp4',
@@ -34,7 +31,8 @@ class DigitalConcertHallIE(InfoExtractor):
             'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
             'upload_date': '20210624',
             'timestamp': 1624548600,
-        }
+        },
+        'params': {'skip_download': 'm3u8'},
     }]
 
     def _login(self):
@@ -89,8 +87,13 @@ class DigitalConcertHallIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         playlist_title = (self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
                           or self._og_search_title(webpage))
-        thumbnail_url = (self._html_search_regex(r'(https://images.digitalconcerthall.com/cms/thumbnails/.*\.jpg)', webpage, 'thumbnail'))
-        print(json.dumps(thumbnail_url))
+        thumbnails = []
+        thumbnail_url = (self._html_search_regex(r'(https://images.digitalconcerthall.com/cms/thumbnails/.*\.jpg)',
+                         webpage, 'thumbnail'))
+        thumbnails.append({
+            'url': thumbnail_url,
+            **parse_resolution(thumbnail_url)
+        })
 
         vid_info = self._download_json(
             f'https://api.digitalconcerthall.com/v2/concert/{video_id}', video_id, headers={
@@ -103,7 +106,7 @@ class DigitalConcertHallIE(InfoExtractor):
             # embed_type should be either 'work' or 'interview'
             # 'work' will be an array of one or more works
             for item in embedded.get(embed_type):
-                stream_href = traverse_obj(item,('_links','streams','href'))
+                stream_href = traverse_obj(item, ('_links', 'streams', 'href'))
                 stream_info = self._download_json('https:' + stream_href, video_id,
                     headers={'Accept': 'application/json',
                     'Authorization': 'Bearer ' + self._ACCESS_TOKEN,
@@ -118,11 +121,11 @@ class DigitalConcertHallIE(InfoExtractor):
                     title = "Interview - " + item.get('title', "unknown interview title")
                 else:
                     title = (item.get('name_composer') if item.get('name_composer')
-                            else 'unknown composer') + ' - ' + item.get('title', "unknown title")
+                             else 'unknown composer') + ' - ' + item.get('title', "unknown title")
                 key = item.get('id')
 
                 duration = item.get('duration_total')
-                timestamp = traverse_obj(item,('date','published'))
+                timestamp = traverse_obj(item, ('date', 'published'))
                 entries.append({
                     'id': key,
                     'title': title,
@@ -131,7 +134,7 @@ class DigitalConcertHallIE(InfoExtractor):
                     'duration': duration,
                     'timestamp': timestamp,
                     'description': stream_info.get('short_description') or item.get('short_description'),
-                    'thumbnail': thumbnail_url,
+                    'thumbnails': thumbnails,
                 })
                 if item.get('cuepoints'):
                     chapters = [{
@@ -148,5 +151,5 @@ class DigitalConcertHallIE(InfoExtractor):
             'id': video_id,
             'title': playlist_title,
             'entries': entries,
-            'thumbnail': thumbnail_url,
+            'thumbnails': thumbnails,
         }
