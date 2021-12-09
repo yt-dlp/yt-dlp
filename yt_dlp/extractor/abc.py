@@ -299,11 +299,9 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             webpage, 'initial state')
         video_data = self._parse_json(
             unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape'), show_id)
-        if self.get_param('noplaylist'):
-            url = video_data['route']['pageData']['_embedded']['highlightVideo']['shareUrl']
-            return self.url_result(url)
-        else:
-            series = video_data['route']['pageData']['_embedded']['selectedSeries']
+        video_data = video_data['route']['pageData']['_embedded']
+        if not self.get_param('noplaylist') and 'selectedSeries' in video_data:
+            series = video_data['selectedSeries']
             episodes = series['_embedded']['videoEpisodes']
             entries = [self.url_result(episode['shareUrl']) for episode in episodes]
             return self.playlist_result(
@@ -315,3 +313,8 @@ class ABCIViewShowSeriesIE(InfoExtractor):
                 season=series.get('title', series.get('displaySubtitle')),
                 thumbnail=series.get('thumbnail'),
             )
+        elif self.get_param('noplaylist') or 'highlightVideo' in video_data:
+            url = video_data['highlightVideo']['shareUrl']
+            return self.url_result(url)
+        else:
+            ExtractorError('No videos found')
