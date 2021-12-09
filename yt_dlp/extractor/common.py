@@ -1606,6 +1606,11 @@ class InfoExtractor(object):
             'res': {'type': 'multiple', 'field': ('height', 'width'),
                     'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
 
+            # For compatibility with youtube-dl
+            'format_id': {'type': 'alias', 'field': 'id'},
+            'preference': {'type': 'alias', 'field': 'ie_pref'},
+            'language_preference': {'type': 'alias', 'field': 'lang'},
+
             # Deprecated
             'dimension': {'type': 'alias', 'field': 'res'},
             'resolution': {'type': 'alias', 'field': 'res'},
@@ -1615,7 +1620,6 @@ class InfoExtractor(object):
             'video_bitrate': {'type': 'alias', 'field': 'vbr'},
             'audio_bitrate': {'type': 'alias', 'field': 'abr'},
             'framerate': {'type': 'alias', 'field': 'fps'},
-            'language_preference': {'type': 'alias', 'field': 'lang'},
             'protocol': {'type': 'alias', 'field': 'proto'},
             'source_preference': {'type': 'alias', 'field': 'source'},
             'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
@@ -1630,9 +1634,7 @@ class InfoExtractor(object):
             'audio': {'type': 'alias', 'field': 'hasaud'},
             'has_audio': {'type': 'alias', 'field': 'hasaud'},
             'extractor': {'type': 'alias', 'field': 'ie_pref'},
-            'preference': {'type': 'alias', 'field': 'ie_pref'},
             'extractor_preference': {'type': 'alias', 'field': 'ie_pref'},
-            'format_id': {'type': 'alias', 'field': 'id'},
         }
 
         def __init__(self, ie, field_preference):
@@ -1732,9 +1734,10 @@ class InfoExtractor(object):
                     continue
                 if self._get_field_setting(field, 'type') == 'alias':
                     alias, field = field, self._get_field_setting(field, 'field')
-                    self.ydl.deprecation_warning(
-                        f'Format sorting alias {alias} is deprecated '
-                        f'and may be removed in a future version. Please use {field} instead')
+                    if alias not in ('format_id', 'preference', 'language_preference'):
+                        self.ydl.deprecation_warning(
+                            f'Format sorting alias {alias} is deprecated '
+                            f'and may be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
