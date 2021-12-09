@@ -130,7 +130,7 @@ class SoundcloudBaseIE(InfoExtractor):
         elif username is not None:
             self.report_warning(
                 'Login using username and password is not currently supported. '
-                'Use "--user oauth --password <oauth_token>" to login using an oauth token')
+                'Use "--username oauth --password <oauth_token>" to login using an oauth token')
 
         r'''
         def genDevId():
