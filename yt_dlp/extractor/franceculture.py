@@ -110,20 +110,21 @@ class FranceCultureIE(InfoExtractor):
             entries = []
 
             for item, item_description in re.findall(
-                r'(?s)(<button[^<]*class="[^"]*replay-button[^>]*>).*?<p[^>]*class="[^"]*teaser-content-body[^>]*>(.*?)</p>',
-                playlist_data):
-                    item_attributes = extract_attributes(item)
+                    r'(?s)(<button[^<]*class="[^"]*replay-button[^>]*>).*?<p[^>]*class="[^"]*teaser-content-body[^>]*>(.*?)</p>',
+                    playlist_data):
 
-                    entries.append({
-                        'id': item_attributes.get('data-diffusion-path'),
-                        'url': item_attributes.get('data-url'),
-                        'title': item_attributes.get('data-diffusion-title'),
-                        'duration': int_or_none(traverse_obj(item_attributes, 'data-duration-seconds', 'data-duration-seconds')),
-                        'description': item_description,
-                        'timestamp': int_or_none(item_attributes.get('data-start-time')),
-                        'thumbnail': thumbnail,
-                        'uploader': uploader,
-                    })
+                item_attributes = extract_attributes(item)
+
+                entries.append({
+                    'id': item_attributes.get('data-diffusion-path'),
+                    'url': item_attributes.get('data-url'),
+                    'title': item_attributes.get('data-diffusion-title'),
+                    'duration': int_or_none(traverse_obj(item_attributes, 'data-duration-seconds', 'data-duration-seconds')),
+                    'description': item_description,
+                    'timestamp': int_or_none(item_attributes.get('data-start-time')),
+                    'thumbnail': thumbnail,
+                    'uploader': uploader,
+                })
 
             return self.playlist_result(entries, display_id, title, description, **infos)
 
