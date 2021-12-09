@@ -107,10 +107,11 @@ class DigitalConcertHallIE(InfoExtractor):
             # 'work' will be an array of one or more works
             for item in embedded.get(embed_type):
                 stream_href = traverse_obj(item, ('_links', 'streams', 'href'))
-                stream_info = self._download_json('https:' + stream_href, video_id,
+                stream_info = self._download_json(
+                    self._proto_relative_url(stream_href), video_id,
                     headers={'Accept': 'application/json',
-                    'Authorization': 'Bearer ' + self._ACCESS_TOKEN,
-                    'Accept-Language': language})
+                             'Authorization': 'Bearer ' + self._ACCESS_TOKEN,
+                             'Accept-Language': language})
                 m3u8_url = traverse_obj(stream_info, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
 
                 formats = self._extract_m3u8_formats(
