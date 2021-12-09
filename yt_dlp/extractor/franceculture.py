@@ -8,8 +8,9 @@ from ..utils import (
     extract_attributes,
     int_or_none,
     traverse_obj,
+    unified_strdate,
+    unified_timestamp,
 )
-
 
 class FranceCultureIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?franceculture\.fr/emissions/(?:[^/]+/)*(?P<id>[^/?#&]+)'
@@ -21,7 +22,23 @@ class FranceCultureIE(InfoExtractor):
             'id': 'hasta-dente',
             'title': 'Hasta Dente !',
             'description': None,
-        }
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'upload_date': '20190305',
+            'timestamp': 1551744000,
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '/emissions/hasta-dente/episode-1-jeudi-vous-avez-dit-bizarre',
+                'ext': 'mp3',
+                'title': 'Épisode 1. Jeudi, vous avez dit bizarre ?',
+                'description': 'md5:52ce4deeb6f3facba27f9fc4a546678b',
+                'duration': 604,
+                'timestamp': 1518486300,
+                'uploader': None,
+                'upload_date': '20180213',
+            },
+        },
+        ],
     }, {
         'url': 'https://www.franceculture.fr/emissions/carnet-nomade/rendez-vous-au-pays-des-geeks',
         'info_dict': {
@@ -34,7 +51,8 @@ class FranceCultureIE(InfoExtractor):
             'vcodec': 'none',
             'duration': 3569,
             'description': None,
-        }
+            'timestamp': 1393632000,
+        },
     }, {
         # no thumbnail
         'url': 'https://www.franceculture.fr/emissions/la-recherche-montre-en-main/la-recherche-montre-en-main-du-mercredi-10-octobre-2018',
@@ -71,37 +89,56 @@ class FranceCultureIE(InfoExtractor):
             ''',
             webpage, 'playlist data', fatal=False, default=None)
 
-        # page has playlist
-        if (playlist_data is not None):
-            entries = [
-                self.url_result(video_url, None, video_id, video_title)
-                for video_url, video_id, video_title in re.findall(
-                    r'data-url="([^"]+)"[^>]*data-diffusion-path="([^"]+)"[^>]*data-diffusion-title="([^"]+)"',
-                    playlist_data)
-            ]
-
-            return self.playlist_result(entries, display_id, title, description)
-
-        video_url = traverse_obj(video_data, 'data-url', 'data-asset-source')
-
-        thumbnail = self._search_regex(
-            r'(?s)<figure[^>]+itemtype="https://schema.org/ImageObject"[^>]*>.*?<img[^>]+(?:data-dejavu-)?src="([^"]+)"',
-            webpage, 'thumbnail', default=None)
+        thumbnail = self._og_search_thumbnail(webpage)
+        uploader = self._html_search_regex(
+            r'(?s)<span class="author">(.*?)</span>',
+            webpage, 'uploader', default=None)
         upload_date = self._search_regex(
             r'(?s)"datePublished":\s*"(\d{4}-\d{2}-\d{2})',
             webpage, 'date', default=None)
 
+        infos = {
+            'thumbnail': thumbnail,
+            'uploader': uploader,
+            'timestamp': unified_timestamp(upload_date) if upload_date is not None else None,
+            'upload_date': unified_strdate(upload_date) if upload_date is not None else None,
+        }
+
+        # page has playlist
+        if playlist_data is not None:
+            entries = []
+
+            for item, item_description in re.findall(
+                r'(?s)(<button[^<]*class="[^"]*replay-button[^>]*>).*?<p[^>]*class="[^"]*teaser-content-body[^>]*>(.*?)</p>',
+                playlist_data):
+                item_attributes = extract_attributes(item)
+
+                entries.append({
+                    'id': item_attributes.get('data-diffusion-path'),
+                    'url': item_attributes.get('data-url'),
+                    'title': item_attributes.get('data-diffusion-title'),
+                    'duration': int_or_none(traverse_obj(item_attributes, 'data-duration-seconds', 'data-duration-seconds')),
+                    'description': item_description,
+                    'timestamp': int_or_none(item_attributes.get('data-start-time')),
+                    'thumbnail': thumbnail,
+                    'uploader': uploader,
+                })
+
+            return self.playlist_result(entries, display_id, title, description, **infos)
+
+        video_url = traverse_obj(video_data, 'data-url', 'data-asset-source')
+
         ext = determine_ext(video_url.lower())
 
-        return {
+        infos.update({
             'id': display_id,
             'display_id': display_id,
             'url': video_url,
             'title': title,
             'description': description,
-            'thumbnail': thumbnail,
             'ext': ext,
             'vcodec': 'none' if ext == 'mp3' else None,
-            'upload_date': upload_date.replace('-', '') if upload_date is not None else None,
             'duration': int_or_none(video_data.get('data-duration')),
-        }
+        })
+
+        return infos
