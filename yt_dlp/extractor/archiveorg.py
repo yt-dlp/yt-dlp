@@ -401,6 +401,22 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'uploader_url': 'http://www.youtube.com/channel/UC7Jwj9fkrf1adN4fMmTkpug'
             }
         }, {
+            # player response contains '};' See: https://github.com/ytdl-org/youtube-dl/issues/27093
+            'url': 'https://web.archive.org/web/20200827003909if_/http://www.youtube.com/watch?v=6Dh-RL__uN4',
+            'info_dict': {
+                'id': '6Dh-RL__uN4',
+                'ext': 'mp4',
+                'title': 'bitch lasagna',
+                'upload_date': '20181005',
+                'channel_id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'channel_url': 'http://www.youtube.com/channel/UC-lHJZR3Gqxm24_Vd_AJ5Yw',
+                'duration': 135,
+                'description': 'md5:2dbe4051feeff2dab5f41f82bb6d11d0',
+                'uploader': 'PewDiePie',
+                'uploader_id': 'PewDiePie',
+                'uploader_url': 'http://www.youtube.com/user/PewDiePie'
+            }
+        }, {
             'url': 'https://web.archive.org/web/http://www.youtube.com/watch?v=kH-G_aIBlFw',
             'only_matching': True
         }, {
@@ -424,8 +440,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'only_matching': True
         }
     ]
-    _YT_INITIAL_DATA_RE = r'(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s' % YoutubeIE._YT_INITIAL_DATA_RE
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
+    _YT_INITIAL_DATA_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s)' % YoutubeIE._YT_INITIAL_DATA_RE
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s)' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
     _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
 
     _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
