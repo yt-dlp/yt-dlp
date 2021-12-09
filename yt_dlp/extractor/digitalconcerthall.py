@@ -88,7 +88,7 @@ class DigitalConcertHallIE(InfoExtractor):
         playlist_title = (self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
                           or self._og_search_title(webpage))
         thumbnails = []
-        thumbnail_url = (self._html_search_regex(r'(https://images.digitalconcerthall.com/cms/thumbnails/.*\.jpg)',
+        thumbnail_url = (self._html_search_regex(r'(https?://images\.digitalconcerthall\.com/cms/thumbnails/.*\.jpg)',
                          webpage, 'thumbnail'))
         thumbnails.append({
             'url': thumbnail_url,
