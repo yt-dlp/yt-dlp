@@ -41,7 +41,6 @@ class DigitalConcertHallIE(InfoExtractor):
         if username is None:
             raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
             return
-        # first get JWT token
         token_response = self._download_json(
             self._OAUTH_URL,
             None, 'Obtaining token', errnote='Unable to obtain token', data=urlencode_postdata({
@@ -57,7 +56,6 @@ class DigitalConcertHallIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
         self._ACCESS_TOKEN = token_response.get('access_token')
-        # now login
         try:
             self._download_json(
                 self._OAUTH_URL,
@@ -88,36 +86,32 @@ class DigitalConcertHallIE(InfoExtractor):
         if not language:
             language = 'en'
         webpage = self._download_webpage(url, video_id)
-        playlist_title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title') or \
-            self._og_search_title(webpage)
+        playlist_title = (self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
+                          or self._og_search_title(webpage))
 
-        # use the API to get other information about the concert
-        vid_info_dict = self._download_json(
-            'https://api.digitalconcerthall.com/v2/concert/'
-            + video_id, video_id, headers={'Accept': 'application/json',
-                                           'Accept-Language': language})
-        embedded = vid_info_dict.get('_embedded')
+        vid_info = self._download_json(
+            f'https://api.digitalconcerthall.com/v2/concert/{video_id}', video_id, headers={
+                'Accept': 'application/json',
+                'Accept-Language': language
+            })
+        embedded = vid_info.get('_embedded')
         entries = []
         for embed_type in embedded:
             # embed_type should be either 'work' or 'interview'
             # 'work' will be an array of one or more works
             for item in embedded.get(embed_type):
-                if embed_type == 'interview':
-                    item['is_interview'] = 1
-                else:
-                    item['is_interview'] = 0
                 stream_href = traverse_obj(item,('_links','streams','href'))
-                test_dict = self._download_json('https:' + stream_href, video_id,
+                stream_info = self._download_json('https:' + stream_href, video_id,
                     headers={'Accept': 'application/json',
                     'Authorization': 'Bearer ' + self._ACCESS_TOKEN,
                     'Accept-Language': language})
-                m3u8_url = traverse_obj(test_dict, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
+                m3u8_url = traverse_obj(stream_info, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
 
                 formats = self._extract_m3u8_formats(
                     m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
                 self._sort_formats(formats)
 
-                if item.get('is_interview') == 1:
+                if embed_type == 'interview':
                     title = "Interview - " + item.get('title', "unknown interview title")
                 else:
                     title = (item.get('name_composer') if item.get('name_composer')
@@ -136,7 +130,7 @@ class DigitalConcertHallIE(InfoExtractor):
                 })
                 # use playlist description for video description by default
                 # but if the video has a description, use it
-                description = test_dict.get('short_description') or item.get('short_description')
+                description = stream_info.get('short_description') or item.get('short_description')
                 if description:
                     entries[-1]['description'] = description
                 if item.get('cuepoints'):
