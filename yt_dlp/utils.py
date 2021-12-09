@@ -38,6 +38,7 @@ import time
 import traceback
 import xml.etree.ElementTree
 import zlib
+import mimetypes
 
 from .compat import (
     compat_HTMLParseError,
@@ -4715,6 +4716,14 @@ def mimetype2ext(mt):
     return subtype.replace('+', '.')
 
 
+def ext2mimetype(ext_or_url):
+    if not ext_or_url:
+        return None
+    if '.' not in ext_or_url:
+        ext_or_url = f'file.{ext_or_url}'
+    return mimetypes.guess_type(ext_or_url)[0]
+
+
 def parse_codecs(codecs_str):
     # http://tools.ietf.org/html/rfc6381
     if not codecs_str:
@@ -6592,7 +6601,8 @@ def jwt_decode_hs256(jwt):
 
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        if get_windows_version() < (10, 0, 10586):
+        from .compat import WINDOWS_VT_MODE  # Must be imported locally
+        if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
         return False
