@@ -98,14 +98,23 @@ class LineTVIE(InfoExtractor):
             # Checking for fan provided subtitles in already provided languages
             if subtitles:
                 for subtitle in subtitles.keys():
-                    if subtitle == sub_language + "-" + sub_country or subtitle == sub_language + "-" + sub_country + sub_fan:
-                        sub_lang = sub_language + "-" + sub_country + sub_fan
-                        sub_name = sub_label + sub_fan
+                    if sub_language in subtitle:
+                        if sub_country:
+                            sub_lang = f'{sub_language}-{sub_country}{sub_fan}'
+                        else:
+                            sub_lang = f'{sub_language}{sub_fan}'
+                        sub_name = f'{sub_label}{sub_fan}'
                     else:
-                        sub_lang = sub_language + "-" + sub_country
+                        if sub_country:
+                            sub_lang = f'{sub_language}-{sub_country}'
+                        else:
+                            sub_lang = sub_language
                         sub_name = sub_label
             else:
-                sub_lang = sub_language + "-" + sub_country
+                if sub_country:
+                    sub_lang = f'{sub_language}-{sub_country}'
+                else:
+                    sub_lang = sub_language
                 sub_name = sub_label
             subtitles.update({
                 sub_lang: [
