@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import re
 import json
 from .common import InfoExtractor
-from .youtube import YoutubeIE
+from .youtube import YoutubeIE, YoutubeBaseInfoExtractor
 from ..compat import (
     compat_urllib_parse_unquote,
     compat_urllib_parse_unquote_plus,
@@ -440,9 +440,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'only_matching': True
         }
     ]
-    _YT_INITIAL_DATA_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s)' % YoutubeIE._YT_INITIAL_DATA_RE
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s)' % YoutubeIE._YT_INITIAL_PLAYER_RESPONSE_RE
-    _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeIE._YT_INITIAL_BOUNDARY_RE
+    _YT_INITIAL_DATA_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_DATA_RE
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_PLAYER_RESPONSE_RE
+    _YT_INITIAL_BOUNDARY_RE = r'(?:(?:var\s+meta|</script|\n)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_BOUNDARY_RE
 
     _YT_DEFAULT_THUMB_SERVERS = ['i.ytimg.com']  # thumbnails most likely archived on these servers
     _YT_ALL_THUMB_SERVERS = orderedSet(
@@ -503,8 +503,8 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         video_title = (
             video_details.get('title')
-            or YoutubeIE._get_text(microformats, 'title')
-            or YoutubeIE._get_text(initial_data_video, 'title')
+            or YoutubeBaseInfoExtractor._get_text(microformats, 'title')
+            or YoutubeBaseInfoExtractor._get_text(initial_data_video, 'title')
             or self._extract_webpage_title(webpage)
             or search_meta(['og:title', 'twitter:title', 'title']))
 
@@ -523,7 +523,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
             or parse_duration(search_meta('duration')))
         description = (
             video_details.get('shortDescription')
-            or YoutubeIE._get_text(microformats, 'description')
+            or YoutubeBaseInfoExtractor._get_text(microformats, 'description')
             or clean_html(get_element_by_id('eow-description', webpage))  # @9e6dd23
             or search_meta(['description', 'og:description', 'twitter:description']))
 
