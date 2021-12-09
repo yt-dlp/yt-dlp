@@ -563,7 +563,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 {
                     'url': (self._WAYBACK_BASE_URL % (int_or_none(thumbnail_dict.get('timestamp')) or self._OLDEST_CAPTURE_DATE)) + thumbnail_dict.get('original'),
                     'filesize': int_or_none(thumbnail_dict.get('length')),
-                    'id': int_or_none(thumbnail_dict.get('length'))  # TODO. Also large filesize != best quality
+                    'preference': int_or_none(thumbnail_dict.get('length'))
                 } for thumbnail_dict in response)
             if not try_all:
                 break
