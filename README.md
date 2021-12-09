@@ -940,19 +940,21 @@ Make chapter entries for, or remove various segments (sponsor,
 
     --sponsorblock-mark CATS         SponsorBlock categories to create chapters
                                      for, separated by commas. Available
-                                     categories are all, sponsor, intro, outro,
-                                     selfpromo, interaction, preview,
-                                     music_offtopic. You can prefix the category
-                                     with a "-" to exempt it. See 
-                                     https://wiki.sponsor.ajay.app/index.php/Segment_Categories
-                                     for description of the categories. Eg:
-                                     --sponsorblock-query all,-preview
+                                     categories are all, default(=all), sponsor,
+                                     intro, outro, selfpromo, preview, filler,
+                                     interaction, music_offtopic, poi_highlight.
+                                     You can prefix the category with a "-" to
+                                     exempt it. See [1] for description of the
+                                     categories. Eg: --sponsorblock-mark all,-preview
+                                     [1] https://wiki.sponsor.ajay.app/w/Segment_Categories
     --sponsorblock-remove CATS       SponsorBlock categories to be removed from
                                      the video file, separated by commas. If a
                                      category is present in both mark and
                                      remove, remove takes precedence. The syntax
                                      and available categories are the same as
-                                     for --sponsorblock-mark
+                                     for --sponsorblock-mark except that
+                                     "default" refers to "all,-filler" and
+                                     poi_highlight is not available
     --sponsorblock-chapter-title TEMPLATE
                                      The title template for SponsorBlock
                                      chapters created by --sponsorblock-mark.
