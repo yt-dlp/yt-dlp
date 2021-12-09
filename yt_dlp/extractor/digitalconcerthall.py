@@ -25,14 +25,15 @@ class DigitalConcertHallIE(InfoExtractor):
     _NETRC_MACHINE = 'digitalconcerthall'
     # if you don't login, all you will get is trailers
     _TESTS = [{
-        'url': 'https://www.digitalconcerthall.com/en/concert/53785',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'url': 'https://www.digitalconcerthall.com/en/concert/53201',
+        'md5': 'ec02a4ae0a64f7012d98e95336697909',
         'info_dict': {
-            'id': '53785',
-            'language': 'en',
+            'id': '53201-1',
             'ext': 'mp4',
-            'title': 'Video title goes here',
-            'thumbnail': r're:^https?://.*/images/core/Phil.*\.jpg$',
+            'title': 'Kurt Weill - [Magic Night]',
+            'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
+            'upload_date': '20210624',
+            'timestamp': 1624548600,
         }
     }]
 
@@ -88,6 +89,8 @@ class DigitalConcertHallIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         playlist_title = (self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
                           or self._og_search_title(webpage))
+        thumbnail_url = (self._html_search_regex(r'(https://images.digitalconcerthall.com/cms/thumbnails/.*\.jpg)', webpage, 'thumbnail'))
+        print(json.dumps(thumbnail_url))
 
         vid_info = self._download_json(
             f'https://api.digitalconcerthall.com/v2/concert/{video_id}', video_id, headers={
@@ -127,12 +130,9 @@ class DigitalConcertHallIE(InfoExtractor):
                     'formats': formats,
                     'duration': duration,
                     'timestamp': timestamp,
+                    'description': stream_info.get('short_description') or item.get('short_description'),
+                    'thumbnail': thumbnail_url,
                 })
-                # use playlist description for video description by default
-                # but if the video has a description, use it
-                description = stream_info.get('short_description') or item.get('short_description')
-                if description:
-                    entries[-1]['description'] = description
                 if item.get('cuepoints'):
                     chapters = [{
                         'start_time': chapter.get('time'),
@@ -148,4 +148,5 @@ class DigitalConcertHallIE(InfoExtractor):
             'id': video_id,
             'title': playlist_title,
             'entries': entries,
+            'thumbnail': thumbnail_url,
         }
