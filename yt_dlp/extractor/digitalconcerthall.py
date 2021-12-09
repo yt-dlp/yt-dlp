@@ -54,7 +54,7 @@ class DigitalConcertHallIE(InfoExtractor):
             }), headers={
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
-        self._ACCESS_TOKEN = token_response.get('access_token')
+        self._ACCESS_TOKEN = token_response['access_token']
         try:
             self._download_json(
                 self._OAUTH_URL,
