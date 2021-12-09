@@ -16,6 +16,7 @@ from ..compat import (
 )
 from ..utils import (
     clean_html,
+    dict_get,
     extract_attributes,
     ExtractorError,
     find_xpath_attr,
@@ -577,11 +578,20 @@ class BrightcoveNewIE(AdobePassIE):
         if duration is not None and duration <= 0:
             is_live = True
 
+        common_res = [(160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
+        thumb_base_url = dict_get(json_data, ('poster', 'thumbnail'))
+        thumbnails = [{
+            'url': re.sub(r'\d+x\d+', f'{w}x{h}', thumb_base_url),
+            'width': w,
+            'height': h,
+        } for w, h in common_res] if thumb_base_url else None
+
         return {
             'id': video_id,
             'title': self._live_title(title) if is_live else title,
             'description': clean_html(json_data.get('description')),
             'thumbnail': json_data.get('thumbnail') or json_data.get('poster'),
+            'thumbnials': thumbnails,
             'duration': duration,
             'timestamp': parse_iso8601(json_data.get('published_at')),
             'uploader_id': json_data.get('account_id'),
