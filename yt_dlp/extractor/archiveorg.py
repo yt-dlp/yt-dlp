@@ -326,7 +326,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 'id': 'jNQXAC9IVRw',
                 'ext': 'flv',
                 'title': 'Me at the zoo',
-                'upload_date': '20050423',  # TODO: uploader?
+                'upload_date': '20050423',
                 'channel_id': 'UC4QobU6STFB0P71PMvOGN5A',
                 'duration': 19,
                 'description': 'md5:10436b12e07ac43ff8df65287a56efb4',
@@ -574,7 +574,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 collapse=['urlkey'], query={'matchType': 'prefix'})
             if not response:
                 continue
-            # TODO fix sorting
             thumbnails.extend(
                 {
                     'url': (self._WAYBACK_BASE_URL % (int_or_none(thumbnail_dict.get('timestamp')) or self._OLDEST_CAPTURE_DATE)) + thumbnail_dict.get('original'),
@@ -584,7 +583,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
             if not try_all:
                 break
 
-        # TODO: deal with duplicate files from different servers?
         self._remove_duplicate_formats(thumbnails)
         return thumbnails
 
