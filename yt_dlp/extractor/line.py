@@ -94,7 +94,7 @@ class LineTVIE(InfoExtractor):
             sub_language = try_get(sub_index, lambda x: x['language'])
             sub_source = try_get(sub_index, lambda x: x['source'])
             sub_label = try_get(sub_index, lambda x: x['label'])
-            sub_country = try_get(sub_index, lambda x: x['country'])
+            sub_country = str_or_none(try_get(sub_index, lambda x: x['country']))
             # Checking for fan provided subtitles in already provided languages
             if subtitles:
                 for subtitle in subtitles.keys():
