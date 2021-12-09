@@ -640,10 +640,10 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture, video_id),
                 video_id=video_id, fatal=False, errnote='unable to download capture webpage (it may not be archived)',
                 note='Downloading capture webpage')
-            _info_dict = self._extract_metadata(video_id, webpage or '')
+            current_info = self._extract_metadata(video_id, webpage or '')
             # Try avoid getting deleted video metadata
-            if _info_dict.get('title'):
-                info = merge_dicts(info, _info_dict)
+            if current_info.get('title'):
+                info = merge_dicts(info, current_info)
                 if 'captures' not in self._configuration_arg('check_all'):
                     break
 
