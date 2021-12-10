@@ -1513,6 +1513,9 @@ from .toggle import (
     ToggleIE,
     MeWatchIE,
 )
+from .toggo import (
+    ToggoIE,
+)
 from .tokentube import (
     TokentubeIE,
     TokentubeChannelIE
