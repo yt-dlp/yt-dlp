@@ -2,12 +2,8 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-)
 
 from ..utils import (
-    ExtractorError,
     parse_resolution,
     traverse_obj,
     try_get,
@@ -64,7 +60,7 @@ class DigitalConcertHallIE(InfoExtractor):
                     'Referer': 'https://www.digitalconcerthall.com',
                     'Authorization': 'Bearer ' + self._ACCESS_TOKEN
                 })
-        except:
+        except Exception as e:
             self.raise_login_required(msg='Login info incorrect')
 
     def _real_initialize(self):
