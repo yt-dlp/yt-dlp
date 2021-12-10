@@ -314,7 +314,7 @@ class FFmpegPostProcessor(PostProcessor):
             elif match.group('U') == 'k':
                 res *= 1_000
         return res
-        
+
     def real_run_ffmpeg(self, input_path_opts, output_path_opts, *, expected_retcodes=(0,), information):
         self.check_version()
 
@@ -347,12 +347,12 @@ class FFmpegPostProcessor(PostProcessor):
 
         # this is where we do the majority of the work, add content here for tracking
         stdout, stderr = p.communicate_or_kill()
-        
+
         if p.returncode not in variadic(expected_retcodes):
             stderr = stderr.decode('utf-8', 'replace').strip()
             self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.split('\n')[-1])
-        
+
         # move this back to ffmpeg
         # ffmpeg has access to the process and other content
         # ffmpeg is done in the try part
@@ -362,10 +362,10 @@ class FFmpegPostProcessor(PostProcessor):
         # Get ffmpeg progress by capturing and parsing the output with the '-progress' option
         if "duration" in information.keys() and information["duration"] is not None and information['duration'] != 0:
             start_time, end_time, total_time_to_dl = None, None, information['duration']
-            
+
             start_time = time.time()
             end_time = None
-            
+
             if start_time is not None and end_time is None:
                 total_time_to_dl = total_time_to_dl - start_time
             elif start_time is None and end_time is not None:
@@ -373,7 +373,7 @@ class FFmpegPostProcessor(PostProcessor):
             elif start_time is not None and end_time is not None:
                 total_time_to_dl = end_time - start_time
             started = time.time()
-            
+
             if "filesize" in information.keys() and information["filesize"] is not None:
                 total_filesize = information["filesize"] * total_time_to_dl / information['duration']
             elif "filesize_approx" in information.keys() and information["filesize_approx"] is not None:
@@ -382,17 +382,17 @@ class FFmpegPostProcessor(PostProcessor):
                 total_filesize = 0
         else:
             total_filesize = 0
-        
+
         status = {
             'filename': information['_filename'],
             'status': 'processing',
             'total_bytes': total_filesize,
             'elapsed': time.time() - started
         }
-        
+
         progress_pattern = re.compile(
             r'(frame=\s*(?P<frame>\S+)\nfps=\s*(?P<fps>\S+)\nstream_0_0_q=\s*(?P<stream_0_0_q>\S+)\n)?bitrate=\s*(?P<bitrate>\S+)\ntotal_size=\s*(?P<total_size>\S+)\nout_time_us=\s*(?P<out_time_us>\S+)\nout_time_ms=\s*(?P<out_time_ms>\S+)\nout_time=\s*(?P<out_time>\S+)\ndup_frames=\s*(?P<dup_frames>\S+)\ndrop_frames=\s*(?P<drop_frames>\S+)\nspeed=\s*(?P<speed>\S+)\nprogress=\s*(?P<progress>\S+)')
-        
+
         retval = p.poll()
         ffpmeg_stdout_buffer = ""
 
@@ -401,7 +401,7 @@ class FFmpegPostProcessor(PostProcessor):
             if ffmpeg_stdout != "":
                 ffpmeg_stdout_buffer += ffmpeg_stdout
                 ffmpeg_prog_infos = re.match(progress_pattern, ffpmeg_stdout_buffer)
-                
+
                 if ffmpeg_prog_infos:
                     sys.stdout.write(ffpmeg_stdout_buffer)
                     ffmpeg_stdout = ""
@@ -412,14 +412,13 @@ class FFmpegPostProcessor(PostProcessor):
                     else:
                         eta_seconds = 0
                     bitrate_int = None
-                    bitrate_str = re.match(r"(?P<E>\d+)(\.(?P<f>\d+))?(?P<U>g|m|k)?bits/s",
-                                            ffmpeg_prog_infos['bitrate'])
-                    
+                    bitrate_str = re.match(r"(?P<E>\d+)(\.(?P<f>\d+))?(?P<U>g|m|k)?bits/s", ffmpeg_prog_infos['bitrate'])
+
                     if bitrate_str:
                         bitrate_int = self.compute_prefix(bitrate_str)
                     dl_bytes_str = re.match(r"\d+", ffmpeg_prog_infos['total_size'])
                     dl_bytes_int = int(ffmpeg_prog_infos['total_size']) if dl_bytes_str else 0
-                    
+
                     status.update({
                         'processed_bytes': dl_bytes_int,
                         'speed': bitrate_int,
@@ -551,7 +550,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             FFmpegPostProcessor.run_ffmpeg(self, path, out_path, opts)
         except FFmpegPostProcessorError as err:
             raise AudioConversionError(err.msg)
-    
+
     @PostProcessor._restrict_to(images=False)
     def run(self, information):
         orig_path = path = information['filepath']
@@ -641,6 +640,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                 errnote='Cannot update utime of audio file')
 
         return [orig_path], information
+
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')

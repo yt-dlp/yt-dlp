@@ -588,6 +588,7 @@ def get_external_downloader(external_downloader):
     bn = os.path.splitext(os.path.basename(external_downloader))[0]
     return _BY_NAME.get(bn)
 
+
 def parse_ffmpeg_time_string(time_string):
     time = 0
     reg1 = re.match(r"((?P<H>\d\d?):)?((?P<M>\d\d?):)?(?P<S>\d\d?)(\.(?P<f>\d{1,3}))?", time_string)
