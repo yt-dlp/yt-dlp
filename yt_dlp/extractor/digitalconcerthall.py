@@ -60,7 +60,7 @@ class DigitalConcertHallIE(InfoExtractor):
                     'Referer': 'https://www.digitalconcerthall.com',
                     'Authorization': 'Bearer ' + self._ACCESS_TOKEN
                 })
-        except Exception as e:
+        except Exception:
             self.raise_login_required(msg='Login info incorrect')
 
     def _real_initialize(self):
