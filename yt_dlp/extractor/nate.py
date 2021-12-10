@@ -1,6 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
+
 from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
@@ -24,67 +26,9 @@ class NateIE(InfoExtractor):
             'duration': 73,
             'uploader': '2018 LCK 서머 스플릿(롤챔스)',
             'channel': '2018 LCK 서머 스플릿(롤챔스)',
-            'channel_id': 3606,
-            'uploader_id': 3606,
-            'tags': ['#B120189687_c',
-                     '#롤챔스',
-                     '#Griffin결승',
-                     '#kt결승',
-                     '#롤챔스결승전',
-                     '#서머결승전',
-                     '#LoL결승전',
-                     '#롤챔스서머',
-                     '#롤챔스서머스플릿',
-                     '#LCKSummer',
-                     '#엘씨케이',
-                     '#LCK',
-                     '#2018LoLChampionsKoreaSummer',
-                     '#KTRolster',
-                     '#룰러',
-                     '#Ruler',
-                     '#데프트',
-                     '#Deft',
-                     '#김혁규',
-                     '#알파카',
-                     '#스멥',
-                     '#송경호',
-                     '#스맵',
-                     '#마타',
-                     '#mata',
-                     '#리헨즈',
-                     '#lehends',
-                     '#score',
-                     '#Ucal',
-                     '#Viper',
-                     '#바이퍼',
-                     '#Sword',
-                     '#Tazan',
-                     '#Chovy',
-                     '#페이Split',
-                     '#LoL',
-                     '#리그오브레전',
-                     '#코동빈',
-                     '#코동빈성불',
-                     '#로얄로더',
-                     '#LeagueofLegends',
-                     '#esports',
-                     '#이스포츠',
-                     '#전용준',
-                     '#김동준',
-                     '#클템',
-                     '#이현우',
-                     '#클라우드템플러',
-                     '#단군',
-                     '#김의중',
-                     '#용준좌',
-                     '#동준좌',
-                     '#페이커',
-                     '#sktt1',
-                     '#뱅',
-                     '#배준식',
-                     '#젠지',
-                     '#킹존',
-                     '#아프리카프릭스']
+            'channel_id': '3606',
+            'uploader_id': '3606',
+            'tags': list,
         },
         'params': {'skip_download': True}
     }, {
@@ -100,28 +44,9 @@ class NateIE(InfoExtractor):
             'duration': 201,
             'uploader': '옷소매 붉은 끝동',
             'channel': '옷소매 붉은 끝동',
-            'channel_id': 27987,
-            'uploader_id': 27987,
-            'tags': ['이산',
-                     '성덕임',
-                     '홍덕로',
-                     '영조',
-                     '중전',
-                     '드라마',
-                     '사극',
-                     'The Red Sleeve',
-                     '옷소매 붉은 끝동',
-                     '이준호',
-                     '이세영',
-                     '강훈',
-                     '이덕화',
-                     '박지영',
-                     '장희진',
-                     '장혜진',
-                     '조희봉',
-                     '서효림',
-                     '강말금',
-                     '오대환']
+            'channel_id': '27987',
+            'uploader_id': '27987',
+            'tags': list,
         },
         'params': {'skip_download': True}
     }]
@@ -153,7 +78,42 @@ class NateIE(InfoExtractor):
             'formats': formats,
             'uploader': video_data.get('programTitle'),
             'channel': video_data.get('programTitle'),
-            'channel_id': video_data.get('programSeq'),
-            'uploader_id': video_data.get('programSeq'),
+            'channel_id': str(video_data.get('programSeq')),
+            'uploader_id': str(video_data.get('programSeq')),
             'tags': video_data['hashTag'].split(',') if video_data.get('hashTag') else None,
         }
+
+
+class NateProgramIE(InfoExtractor):
+    _VALID_URL = r'https?://tv\.nate\.com/program/clips/(?P<id>[0-9]+)'
+
+    _TESTS = [{
+        'url': 'https://tv.nate.com/program/clips/27987',
+        'playlist_mincount': 191,
+        'info_dict': {
+            'id': '27987',
+        },
+    }, {
+        'url': 'https://tv.nate.com/program/clips/3606',
+        'playlist_mincount': 15,
+        'info_dict': {
+            'id': '3606',
+        },
+    }]
+
+    def _entries(self, id):
+        for page_num in itertools.count(1):
+            program_data = self._download_json(f'https://tv.nate.com/api/v1/program/{id}/clip/ranking?size=20&page={page_num}',
+                                               id, note=f'Downloading page {page_num}')
+            for clip in program_data.get('content') or []:
+                clip_id = clip.get('clipSeq')
+                if clip_id:
+                    yield self.url_result(
+                        'https://tv.nate.com/clip/%s' % clip_id,
+                        ie=NateIE.ie_key(), video_id=clip_id)
+            if program_data.get('last'):
+                break
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        return self.playlist_result(self._entries(id), playlist_id=id)
