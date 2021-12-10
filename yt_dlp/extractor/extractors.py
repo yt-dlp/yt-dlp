@@ -1188,9 +1188,9 @@ from .radlive import (
 )
 from .rai import (
     RaiPlayIE,
-    RaiPlaySoundIE,
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
+    RaiPlaySoundIE,
     RaiPlaySoundPlaylistIE,
     RaiIE,
 )

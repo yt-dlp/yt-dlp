@@ -345,6 +345,69 @@ class RaiPlayIE(RaiBaseIE):
         return info
 
 
+class RaiPlayLiveIE(RaiPlayIE):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
+    _TESTS = [{
+        'url': 'http://www.raiplay.it/dirette/rainews24',
+        'info_dict': {
+            'id': 'd784ad40-e0ae-4a69-aa76-37519d238a9c',
+            'display_id': 'rainews24',
+            'ext': 'mp4',
+            'title': 're:^Diretta di Rai News 24 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
+            'description': 'md5:4d00bcf6dc98b27c6ec480de329d1497',
+            'uploader': 'Rai News 24',
+            'creator': 'Rai News 24',
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+
+class RaiPlayPlaylistIE(InfoExtractor):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))'
+    _TESTS = [{
+        'url': 'http://www.raiplay.it/programmi/nondirloalmiocapo/',
+        'info_dict': {
+            'id': 'nondirloalmiocapo',
+            'title': 'Non dirlo al mio capo',
+            'description': 'md5:98ab6b98f7f44c2843fd7d6f045f153b',
+        },
+        'playlist_mincount': 12,
+    }]
+
+    def _real_extract(self, url):
+        base, playlist_id = self._match_valid_url(url).groups()
+
+        program = self._download_json(
+            base + '.json', playlist_id, 'Downloading program JSON')
+
+        entries = []
+        for b in (program.get('blocks') or []):
+            for s in (b.get('sets') or []):
+                s_id = s.get('id')
+                if not s_id:
+                    continue
+                medias = self._download_json(
+                    '%s/%s.json' % (base, s_id), s_id,
+                    'Downloading content set JSON', fatal=False)
+                if not medias:
+                    continue
+                for m in (medias.get('items') or []):
+                    path_id = m.get('path_id')
+                    if not path_id:
+                        continue
+                    video_url = urljoin(url, path_id)
+                    entries.append(self.url_result(
+                        video_url, ie=RaiPlayIE.ie_key(),
+                        video_id=RaiPlayIE._match_id(video_url)))
+
+        return self.playlist_result(
+            entries, playlist_id, program.get('name'),
+            try_get(program, lambda x: x['program_info']['description']))
+
+
 class RaiPlaySoundIE(RaiBaseIE):
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
     _TESTS = [{
@@ -413,69 +476,6 @@ class RaiPlaySoundIE(RaiBaseIE):
             'formats': formats,
         })
         return info
-
-
-class RaiPlayLiveIE(RaiPlayIE):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
-    _TESTS = [{
-        'url': 'http://www.raiplay.it/dirette/rainews24',
-        'info_dict': {
-            'id': 'd784ad40-e0ae-4a69-aa76-37519d238a9c',
-            'display_id': 'rainews24',
-            'ext': 'mp4',
-            'title': 're:^Diretta di Rai News 24 [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
-            'description': 'md5:4d00bcf6dc98b27c6ec480de329d1497',
-            'uploader': 'Rai News 24',
-            'creator': 'Rai News 24',
-            'is_live': True,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }]
-
-
-class RaiPlayPlaylistIE(InfoExtractor):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))'
-    _TESTS = [{
-        'url': 'http://www.raiplay.it/programmi/nondirloalmiocapo/',
-        'info_dict': {
-            'id': 'nondirloalmiocapo',
-            'title': 'Non dirlo al mio capo',
-            'description': 'md5:98ab6b98f7f44c2843fd7d6f045f153b',
-        },
-        'playlist_mincount': 12,
-    }]
-
-    def _real_extract(self, url):
-        base, playlist_id = self._match_valid_url(url).groups()
-
-        program = self._download_json(
-            base + '.json', playlist_id, 'Downloading program JSON')
-
-        entries = []
-        for b in (program.get('blocks') or []):
-            for s in (b.get('sets') or []):
-                s_id = s.get('id')
-                if not s_id:
-                    continue
-                medias = self._download_json(
-                    '%s/%s.json' % (base, s_id), s_id,
-                    'Downloading content set JSON', fatal=False)
-                if not medias:
-                    continue
-                for m in (medias.get('items') or []):
-                    path_id = m.get('path_id')
-                    if not path_id:
-                        continue
-                    video_url = urljoin(url, path_id)
-                    entries.append(self.url_result(
-                        video_url, ie=RaiPlayIE.ie_key(),
-                        video_id=RaiPlayIE._match_id(video_url)))
-
-        return self.playlist_result(
-            entries, playlist_id, program.get('name'),
-            try_get(program, lambda x: x['program_info']['description']))
 
 
 class RaiPlaySoundPlaylistIE(InfoExtractor):
