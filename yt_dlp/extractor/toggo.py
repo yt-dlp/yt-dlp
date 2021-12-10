@@ -39,7 +39,7 @@ class ToggoIE(InfoExtractor):
         info = brightcove_ie._real_extract(
             f'http://players.brightcove.net/6057955896001/default_default/index.html?videoId={video_id}')
         for f in info['formats']:
-            if '/dash/live-baseurl/bccenc/' in f.get('manifest_url', ''):
+            if '/dash/live/cenc/' in f.get('fragment_base_url', ''):
                 # Get hidden non-DRM format
                 f['fragment_base_url'] = f['fragment_base_url'].replace('/cenc/', '/clear/')
                 f['has_drm'] = False
