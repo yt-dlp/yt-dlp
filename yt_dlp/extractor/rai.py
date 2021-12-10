@@ -37,7 +37,7 @@ class RaiBaseIE(InfoExtractor):
     _GEO_COUNTRIES = ['IT']
     _GEO_BYPASS = False
 
-    def _extract_relinker_info(self, relinker_url, video_id):
+    def _extract_relinker_info(self, relinker_url, video_id, audio_only=False):
         if not re.match(r'https?://', relinker_url):
             return {'formats': [{'url': relinker_url}]}
 
@@ -80,7 +80,15 @@ class RaiBaseIE(InfoExtractor):
             if (ext == 'm3u8' and platform != 'mon') or (ext == 'f4m' and platform != 'flash'):
                 continue
 
-            if ext == 'm3u8' or 'format=m3u8' in media_url or platform == 'mon':
+            if ext == 'mp3':
+                formats.append({
+                    'url': media_url,
+                    'vcodec': 'none',
+                    'acodec': 'mp3',
+                    'format_id': 'mp3',
+                })
+                break
+            elif ext == 'm3u8' or 'format=m3u8' in media_url or platform == 'mon':
                 formats.extend(self._extract_m3u8_formats(
                     media_url, video_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
@@ -101,7 +109,8 @@ class RaiBaseIE(InfoExtractor):
         if not formats and geoprotection is True:
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
-        formats.extend(self._create_http_urls(relinker_url, formats))
+        if not audio_only:
+            formats.extend(self._create_http_urls(relinker_url, formats))
 
         return dict((k, v) for k, v in {
             'is_live': is_live,
@@ -339,6 +348,76 @@ class RaiPlayIE(RaiBaseIE):
         return info
 
 
+class RaiPlaySoundIE(RaiBaseIE):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/.+?-(?P<id>%s))\.(?:html|json)' % RaiBaseIE._UUID_RE
+    _TESTS = [{
+        'url': 'https://www.raiplaysound.it/audio/2021/12/IL-RUGGITO-DEL-CONIGLIO-1ebae2a7-7cdb-42bb-842e-fe0d193e9707.html',
+        'md5': '8970abf8caf8aef4696e7b1f2adfc696',
+        'info_dict': {
+            'id': '1ebae2a7-7cdb-42bb-842e-fe0d193e9707',
+            'ext': 'mp4',
+            'title': 'Il Ruggito del Coniglio del 10/12/2021',
+            'description': 'md5:2a17d2107e59a4a8faa0e18334139ee2',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'uploader': 'rai radio 2',
+            'duration': 7414,
+            'series': 'Il Ruggito del Coniglio',
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        base, audio_id = self._match_valid_url(url).groups()
+
+        media = self._download_json(
+            base + '.json', audio_id, 'Downloading audio JSON')
+
+        info = {}
+        formats = []
+        relinkers = []
+        relinkers.append(try_get(media, lambda x: x['downloadable_audio']['url']))
+        relinkers.append(try_get(media, lambda x: x['audio']['url']))
+        # remove duplicates and None
+        relinkers = list(dict.fromkeys([r for r in relinkers if r]))
+        for r in relinkers:
+            info = self._extract_relinker_info(r, audio_id, True)
+            formats.extend(info.get('formats'))
+
+        date_published = media.get('create_date')
+        time_published = media.get('create_time')
+        if date_published and time_published:
+            date_published += ' ' + time_published
+
+        track_info = media.get('track_info') or {}
+        podcast_info = media.get('podcast_info') or {}
+        thumbnails = []
+        for _, value in podcast_info.get('images', {}).items():
+            if value:
+                thumbnails.append({
+                    'url': urljoin(url, value),
+                })
+
+        info.update({
+            'id': remove_start(media.get('uniquename'), 'ContentItem-') or audio_id,
+            'display_id': audio_id,
+            'title': media.get('title') or media.get('episode_title'),
+            'alt_title': track_info.get('media_name'),
+            'description': media.get('description'),
+            'uploader': strip_or_none(track_info.get('channel')),
+            'creator': strip_or_none(track_info.get('editor')),
+            'timestamp': unified_timestamp(date_published),
+            'thumbnails': thumbnails,
+            'series': podcast_info.get('title'),
+            'season_number': int_or_none(media.get('season')),
+            'episode': media.get('episode_title'),
+            'episode_number': int_or_none(media.get('episode')),
+            'formats': formats,
+        })
+        return info
+
+
 class RaiPlayLiveIE(RaiPlayIE):
     _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/dirette/(?P<id>[^/?#&]+))'
     _TESTS = [{
@@ -400,6 +479,38 @@ class RaiPlayPlaylistIE(InfoExtractor):
         return self.playlist_result(
             entries, playlist_id, program.get('name'),
             try_get(program, lambda x: x['program_info']['description']))
+
+
+class RaiPlaySoundPlaylistIE(InfoExtractor):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/programmi/(?P<id>[^/?#&]+))'
+    _TESTS = [{
+        'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio',
+        'info_dict': {
+            'id': 'ilruggitodelconiglio',
+            'title': 'Il Ruggito del Coniglio',
+            'description': 'md5:9f7064810ac5d48d51b2f2d7c838dfbf',
+        },
+        'playlist_mincount': 65,
+    }]
+
+    def _real_extract(self, url):
+        base, playlist_id = self._match_valid_url(url).groups()
+
+        program = self._download_json(
+            base + '.json', playlist_id, 'Downloading program JSON')
+
+        entries = []
+        for c in try_get(program, lambda x: x['block']['cards']) or []:
+            path_id = c.get('path_id')
+            if not path_id:
+                continue
+            audio_url = urljoin(base, path_id)
+            entries.append(self.url_result(
+                audio_url, ie=RaiPlaySoundIE.ie_key()))
+
+        return self.playlist_result(
+            entries, playlist_id, program.get('title'),
+            try_get(program, lambda x: x['podcast_info']['description']))
 
 
 class RaiIE(RaiBaseIE):
