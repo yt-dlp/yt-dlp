@@ -2,6 +2,7 @@ from copy import copy
 
 from .common import InfoExtractor
 from .extractors import BrightcoveNewIE
+from ..utils import try_get
 
 
 class ToggoIE(InfoExtractor):
@@ -25,10 +26,12 @@ class ToggoIE(InfoExtractor):
         slug = self._match_id(url)
 
         data = self._download_json(
-            f'https://production-n.toggo.de/api/assetstore/vod/asset/{slug}', slug)
+            f'https://production-n.toggo.de/api/assetstore/vod/asset/{slug}', slug)['data']
+
+        # print(json.dumps(data, indent=2))
 
         video_id = next(
-            x['value'] for x in data['data']['custom_fields'] if x['key'] == 'video-cloud-id')
+            x['value'] for x in data['custom_fields'] if x['key'] == 'video-cloud-id')
 
         brightcove_ie = BrightcoveNewIE()
         downloader = copy(self._downloader)
@@ -38,9 +41,27 @@ class ToggoIE(InfoExtractor):
 
         info = brightcove_ie._real_extract(
             f'http://players.brightcove.net/6057955896001/default_default/index.html?videoId={video_id}')
+
+        info.update({
+            'id': data.get('id'),
+            'title': data.get('title'),
+            'language': data.get('language'),
+            'thumbnail': try_get(data, lambda x: x['images']['Thumbnail']),  # TODO: Extract all thumbnails
+            'description': data.get('description'),
+            'release_timestamp': data.get('earliest_start_date'),
+            'series': data.get('series_title'),
+            'season': data.get('season_title'),
+            'season_number': data.get('season_no'),
+            'season_id': data.get('season_id'),
+            'episode': data.get('title'),
+            'episode_number': data.get('episode_no'),
+            'episode_id': data.get('id'),
+        })
+
         for f in info['formats']:
             if '/dash/live/cenc/' in f.get('fragment_base_url', ''):
                 # Get hidden non-DRM format
                 f['fragment_base_url'] = f['fragment_base_url'].replace('/cenc/', '/clear/')
                 f['has_drm'] = False
+
         return info
