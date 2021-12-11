@@ -10,15 +10,25 @@ class ToggoIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?toggo\.de/[\w-]+/folge/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.toggo.de/weihnachtsmann--co-kg/folge/ein-geschenk-fuer-zwei',
-        'md5': 'TODO',
+        'md5': 'fb55764928baa57d4b0eb03441b50804',
         'info_dict': {
-            'id': '6133142945001',
-            'ext': 'mp4',
+            'id': 'VEP2977',
+            'ext': 'ism',
             'title': 'Ein Geschenk für zwei',
-            'language': 'de',
-            'thumbnail': r're:^http://.*\.jpg',
-            'description': '',
-            'release_timestamp': 'TODO',
+            'language': 'en',
+            'thumbnail': r're:^https?://.*\.png',
+            'description': 'md5:b7715915bfa47824b4e4ad33fb5962f8',
+            'release_timestamp': 1637259179,
+            'series': 'Weihnachtsmann & Co. KG',
+            'season': 'Weihnachtsmann & Co. KG',
+            'season_number': 1,
+            'season_id': 'VST118',
+            'episode': 'Ein Geschenk für zwei',
+            'episode_number': 7,
+            'episode_id': 'VEP2977',
+            'timestamp': 1581935960,
+            'uploader_id': '6057955896001',
+            'upload_date': '20200217',
         }
     }]
 
