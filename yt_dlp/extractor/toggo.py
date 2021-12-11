@@ -38,8 +38,6 @@ class ToggoIE(InfoExtractor):
         data = self._download_json(
             f'https://production-n.toggo.de/api/assetstore/vod/asset/{slug}', slug)['data']
 
-        # print(json.dumps(data, indent=2))
-
         video_id = next(
             x['value'] for x in data['custom_fields'] if x['key'] == 'video-cloud-id')
 
