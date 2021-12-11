@@ -507,7 +507,7 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):
 
 
 class RaiPlaySoundPlaylistIE(InfoExtractor):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/programmi/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?:programmi|playlist|audiolibri)/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio',
         'info_dict': {
