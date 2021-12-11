@@ -122,8 +122,9 @@ class SonyLIVIE(InfoExtractor):
             self._HEADERS['device_id'] = self._get_device_id()
             self._HEADERS['content-type'] = 'application/json'
             self._login(username, password)
+            if not self._AUTH_TOKEN:
+                self.raise_login_required(self._LOGIN_HINT, method=None)
             self._HEADERS['authorization'] = self._AUTH_TOKEN
-            print(self._HEADERS)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
