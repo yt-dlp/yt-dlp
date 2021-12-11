@@ -89,7 +89,6 @@ class LineTVIE(InfoExtractor):
             thumbnail = thumbnail.split('?')[0]
 
         subtitles = {}
-        sub_fan = "-fan"
         for sub_index in try_get(video_info, lambda x: x['captions']['list']) or {}:
             sub_language = try_get(sub_index, lambda x: x['language'])
             sub_source = try_get(sub_index, lambda x: x['source'])
@@ -100,10 +99,10 @@ class LineTVIE(InfoExtractor):
                 for subtitle in subtitles.keys():
                     if sub_language in subtitle:
                         if sub_country:
-                            sub_lang = f'{sub_language}-{sub_country}{sub_fan}'
+                            sub_lang = f'{sub_language}-{sub_country}-fan'
                         else:
-                            sub_lang = f'{sub_language}{sub_fan}'
-                        sub_name = f'{sub_label}{sub_fan}'
+                            sub_lang = f'{sub_language}-fan'
+                        sub_name = f'{sub_label}-fan'
                     else:
                         if sub_country:
                             sub_lang = f'{sub_language}-{sub_country}'
