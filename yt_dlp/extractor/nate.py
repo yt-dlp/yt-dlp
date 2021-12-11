@@ -28,7 +28,7 @@ class NateIE(InfoExtractor):
             'channel': '2018 LCK 서머 스플릿(롤챔스)',
             'channel_id': '3606',
             'uploader_id': '3606',
-            'tags': list,
+            'tags': 'count:59',
         },
         'params': {'skip_download': True}
     }, {
@@ -46,7 +46,7 @@ class NateIE(InfoExtractor):
             'channel': '옷소매 붉은 끝동',
             'channel_id': '27987',
             'uploader_id': '27987',
-            'tags': list,
+            'tags': 'count:20',
         },
         'params': {'skip_download': True}
     }]
