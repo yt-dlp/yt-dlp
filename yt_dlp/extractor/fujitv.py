@@ -27,6 +27,89 @@ class FujiTVFODPlus7IE(InfoExtractor):
                     'height': wh[1],
                 })
         self._sort_formats(formats)
+        print(formats)
+
+        _TESTS = [{
+            'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810075',
+            'info_dict': {
+                'id': '5d40810075',
+                'ext': 'mp4',
+                'formats': [
+                    {
+                        'format_id': '800',
+                        'format_index': None,
+                        'url': 'https://fod-plus7.hls.wseod.stream.ne.jp/www08/fod-plus7/_definst_/mp4:video/56789/5d40/5d40810075me111e991.mp4/chunklist.m3u8',
+                        'manifest_url': 'http://i.fod.fujitv.co.jp/abr/tv_us7.hls.wseod.stream.ne.jp/www08/fod-plus7/_definst_/mp4:video/56789/5d40/5d40810075me111e991.mp4/chunklist.m3u8', 'manifest_url': 'http://i.fod.fujitv.co.jp/abr/tv_android/5d40810075.m3u8',
+                        'tbr': 800.0,
+                        'ext': 'mp4',
+                        'fps': None,
+                        'protocol': 'm3u8_native',
+                        'preference': None,
+                        'quality': None,
+                        'width': 640,
+                        'height': 360,
+                        'video_ext': 'mp4',
+                        'audio_ext': 'none',
+                        'vbr': 800.0,
+                        'abr': 0.0,
+                    },
+                    {
+                        'format_id': '4000',
+                        'format_index': None,
+                        'url': 'https://fod-plus7-high.hls.wseod.stream.ne.jp/www08/fod-plus7-high/_definst_/mp4:video/56789/5d40/5d40810075me112e991.mp4/chunklist.m3u8',
+                        'manifest_url': 'http://i.fod.fujitv.co.jp/abr/tv_android/5d40810075.m3u8',
+                        'tbr': 1200.0,
+                        'ext': 'mp4',
+                        'fps': None,
+                        'protocol': 'm3u8_native',
+                        'preference': None,
+                        'quality': None,
+                        'width': 1280,
+                        'height': 720,
+                        'video_ext': 'mp4',
+                        'audio_ext': 'none',
+                        'vbr': 1200.0,
+                        'abr': 0.0
+                    },
+                    {
+                        'format_id': '2000',
+                        'format_index': None,
+                        'url': 'https://fod-plus7-high.hls.wseod.stream.ne.jp/www08/fod-plus7-high/_definst_/mp4:video/56789/5d40/5d40810075me113e991.mp4/chunklist.m3u8',
+                        'manifest_url': 'http://i.fod.fujitv.co.jp/abr/tv_android/5d40810075.m3u8',
+                        'tbr': 2000.0,
+                        'ext': 'mp4',
+                        'fps': None,
+                        'protocol': 'm3u8_native',
+                        'preference': None,
+                        'quality': None,
+                        'width': 1280,
+                        'height': 720,
+                        'video_ext': 'mp4',
+                        'audio_ext': 'none',
+                        'vbr': 4000.0,
+                        'abr': 0.0
+                    },
+                    {
+                        'format_id': '4000',
+                        'format_index': None,
+                        'url': 'https://fod-plus7-high.hls.wseod.stream.ne.jp/www08/fod-plus7-high/_definst_/mp4:video/56789/5d40/5d40810075me115e991.mp4/chunklist.m3u8',
+                        'manifest_url': 'http://i.fod.fujitv.co.jp/abr/tv_android/5d40810075.m3u8',
+                        'tbr': 4000.0,
+                        'ext': 'mp4',
+                        'fps': None,
+                        'protocol': 'm3u8_native',
+                        'preference': None,
+                        'quality': None,
+                        'width': 1920,
+                        'height': 1080,
+                        'video_ext': 'mp4',
+                        'audio_ext': 'none',
+                        'vbr': 4000.0,
+                        'abr': 0.0
+                    }],
+                'thumbnail': self._BASE_URL + 'pc/image/wbtn/wbtn_%s.jpg' % video_id,
+            }
+        }]
 
         return {
             'id': video_id,
