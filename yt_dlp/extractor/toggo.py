@@ -27,6 +27,7 @@ class ToggoIE(InfoExtractor):
             'uploader_id': '6057955896001',
             'upload_date': '20200217',
         },
+        'params': {'skip_download': True},
     }]
 
     def _real_extract(self, url):
