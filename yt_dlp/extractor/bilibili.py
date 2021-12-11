@@ -16,6 +16,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     float_or_none,
+    mimetype2ext,
     parse_iso8601,
     traverse_obj,
     try_get,
@@ -150,6 +151,7 @@ class BiliBiliIE(InfoExtractor):
         av_id, bv_id = self._get_video_id_set(video_id, mobj.group('id_bv') is not None)
         video_id = av_id
 
+        info = {}
         anime_id = mobj.group('anime_id')
         page_id = mobj.group('page')
         webpage = self._download_webpage(url, video_id)
@@ -201,32 +203,42 @@ class BiliBiliIE(InfoExtractor):
         }
         headers.update(self.geo_verification_headers())
 
+        video_info = self._parse_json(
+            self._search_regex(r'window.__playinfo__\s*=\s*({.+?})</script>', webpage, 'video info', default=None),
+            video_id, fatal=False) or {}
+
+        durl = traverse_obj(video_info, ('data', 'dash', 'video'))
         entries = []
 
         RENDITIONS = ('qn=80&quality=80&type=', 'quality=2&type=mp4')
         for num, rendition in enumerate(RENDITIONS, start=1):
             payload = 'appkey=%s&cid=%s&otype=json&%s' % (self._APP_KEY, cid, rendition)
             sign = hashlib.md5((payload + self._BILIBILI_KEY).encode('utf-8')).hexdigest()
-
-            video_info = self._download_json(
-                'http://interface.bilibili.com/v2/playurl?%s&sign=%s' % (payload, sign),
-                video_id, note='Downloading video info page',
-                headers=headers, fatal=num == len(RENDITIONS))
-
             if not video_info:
-                continue
+                video_info = self._download_json(
+                    'http://interface.bilibili.com/v2/playurl?%s&sign=%s' % (payload, sign),
+                    video_id, note='Downloading video info page',
+                    headers=headers, fatal=num == len(RENDITIONS))
+                if not video_info:
+                    continue
 
-            if 'durl' not in video_info:
+            if not durl and 'durl' not in video_info:
                 if num < len(RENDITIONS):
                     continue
                 self._report_error(video_info)
 
-            for idx, durl in enumerate(video_info['durl']):
-                formats = [{
-                    'url': durl['url'],
-                    'filesize': int_or_none(durl['size']),
-                }]
-                for backup_url in durl.get('backup_url', []):
+            formats = []
+            for idx, durl in enumerate(durl or video_info['durl']):
+                formats.append({
+                    'url': durl.get('baseUrl') or durl.get('base_url') or durl['url'],
+                    'ext': mimetype2ext(durl.get('mimeType') or durl.get('mime_type')),
+                    'fps': int_or_none(durl.get('frameRate') or durl.get('frame_rate')),
+                    'width': int_or_none(durl.get('width')),
+                    'height': int_or_none(durl.get('height')),
+                    'tbr': float_or_none(durl.get('bandwidth'), scale=1000),
+                    'filesize': int_or_none(durl.get('size')),
+                })
+                for backup_url in durl.get('backup_url') or []:
                     formats.append({
                         'url': backup_url,
                         # backup URLs have lower priorities
@@ -238,14 +250,14 @@ class BiliBiliIE(InfoExtractor):
                         'Referer': url,
                     })
 
-                self._sort_formats(formats)
-
-                entries.append({
-                    'id': '%s_part%s' % (video_id, idx),
-                    'duration': float_or_none(durl.get('length'), 1000),
-                    'formats': formats,
-                })
+            info.update({
+                'id': video_id,
+                'duration': float_or_none(durl.get('length'), 1000),
+                'formats': formats,
+            })
             break
+
+        self._sort_formats(formats)
 
         title = self._html_search_regex(
             (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
@@ -270,7 +282,7 @@ class BiliBiliIE(InfoExtractor):
         thumbnail = self._html_search_meta(['og:image', 'thumbnailUrl'], webpage)
 
         # TODO 'view_count' requires deobfuscating Javascript
-        info = {
+        info.update({
             'id': str(video_id) if page_id is None else '%s_part%s' % (video_id, page_id),
             'cid': cid,
             'title': title,
@@ -278,7 +290,7 @@ class BiliBiliIE(InfoExtractor):
             'timestamp': timestamp,
             'thumbnail': thumbnail,
             'duration': float_or_none(video_info.get('timelength'), scale=1000),
-        }
+        })
 
         uploader_mobj = re.search(
             r'<a[^>]+href="(?:https?:)?//space\.bilibili\.com/(?P<id>\d+)"[^>]*>\s*(?P<name>[^<]+?)\s*<',
@@ -299,7 +311,7 @@ class BiliBiliIE(InfoExtractor):
                 video_id, fatal=False, note='Downloading tags'), ('data', ..., 'tag_name')),
         }
 
-        entries[0]['subtitles'] = {
+        info['subtitles'] = {
             'danmaku': [{
                 'ext': 'xml',
                 'url': f'https://comment.bilibili.com/{cid}.xml',
@@ -334,12 +346,10 @@ class BiliBiliIE(InfoExtractor):
             entry['id'] = '%s_part%d' % (video_id, (idx + 1))
 
         return {
-            '_type': 'multi_video',
             'id': str(video_id),
             'bv_id': bv_id,
             'title': title,
             'description': description,
-            'entries': entries,
             **info, **top_level_info
         }
 
