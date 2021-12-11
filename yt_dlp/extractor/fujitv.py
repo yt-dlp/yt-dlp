@@ -18,7 +18,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         formats = self._extract_m3u8_formats(
-            self._BASE_URL + 'abr/android_tv/%s.m3u8' % video_id, video_id, 'mp4')
+            self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         for f in formats:
             wh = self._BITRATE_MAP.get(f.get('tbr'))
             if wh:
