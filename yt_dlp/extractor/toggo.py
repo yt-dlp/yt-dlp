@@ -1,8 +1,9 @@
+import urllib.parse
 from copy import copy
 
 from .common import InfoExtractor
 from .extractors import BrightcoveNewIE
-from ..utils import try_get
+from ..utils import int_or_none
 
 
 class ToggoIE(InfoExtractor):
@@ -16,7 +17,7 @@ class ToggoIE(InfoExtractor):
             'ext': 'ism',
             'title': 'Ein Geschenk für zwei',
             'language': 'en',
-            'thumbnail': r're:^https?://.*\.png',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'description': 'md5:b7715915bfa47824b4e4ad33fb5962f8',
             'release_timestamp': 1637259179,
             'series': 'Weihnachtsmann & Co. KG',
@@ -50,11 +51,19 @@ class ToggoIE(InfoExtractor):
         info = brightcove_ie._real_extract(
             f'http://players.brightcove.net/6057955896001/default_default/index.html?videoId={video_id}')
 
+        thumbnails = []
+        for thumb in (data.get('images') or {}).values():
+            qs = urllib.parse.parse_qs(urllib.parse.urlparse(thumb).query)
+            thumbnails.append({
+                'url': thumb,
+                'width': int_or_none(next(iter(qs['width']), None)),
+            })
+
         info.update({
             'id': data.get('id'),
             'title': data.get('title'),
             'language': data.get('language'),
-            'thumbnail': try_get(data, lambda x: x['images']['Thumbnail']),  # TODO: Extract all thumbnails
+            'thumbnails': thumbnails,
             'description': data.get('description'),
             'release_timestamp': data.get('earliest_start_date'),
             'series': data.get('series_title'),
