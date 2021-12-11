@@ -439,6 +439,7 @@ class RaiPlaySoundIE(RaiBaseIE):
         relinkers = []
         relinkers.append(try_get(media, lambda x: x['downloadable_audio']['url']))
         relinkers.append(try_get(media, lambda x: x['audio']['url']))
+        relinkers.append(try_get(media, lambda x: x['live']['cards'][0]['audio']['url']))
         # remove duplicates and None
         relinkers = list(dict.fromkeys([r for r in relinkers if r]))
         for r in relinkers:
@@ -450,8 +451,11 @@ class RaiPlaySoundIE(RaiBaseIE):
         if date_published and time_published:
             date_published += ' ' + time_published
 
+        if not date_published:
+            date_published = try_get(media, lambda x: x['live']['create_date'])
+
         track_info = media.get('track_info') or {}
-        podcast_info = media.get('podcast_info') or {}
+        podcast_info = media.get('podcast_info') or try_get(media, lambda x: x['live']['cards'][0]) or {}
         thumbnails = []
         for _, value in podcast_info.get('images', {}).items():
             if value:
@@ -459,8 +463,13 @@ class RaiPlaySoundIE(RaiBaseIE):
                     'url': urljoin(url, value),
                 })
 
+        uid = media.get('uniquename')
+        if uid:
+            uid = remove_start(uid, 'ContentItem-')
+            uid = remove_start(uid, 'Page-')
+
         info.update({
-            'id': remove_start(media.get('uniquename'), 'ContentItem-') or audio_id,
+            'id': uid or audio_id,
             'display_id': audio_id,
             'title': media.get('title') or media.get('episode_title'),
             'alt_title': track_info.get('media_name'),
@@ -476,6 +485,25 @@ class RaiPlaySoundIE(RaiBaseIE):
             'formats': formats,
         })
         return info
+
+
+class RaiPlaySoundLiveIE(RaiPlaySoundIE):
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?P<id>[^/?#&]+)$)'
+    _TESTS = [{
+        'url': 'https://www.raiplaysound.it/radio2',
+        'info_dict': {
+            'id': 'b00a50e6-f404-4af6-8f8c-ff3b9af73a44',
+            'display_id': 'radio2',
+            'ext': 'mp4',
+            'title': 'Rai Radio 2',
+            'uploader': 'rai radio 2',
+            'creator': 'raiplaysound',
+            'is_live': True,
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
 
 
 class RaiPlaySoundPlaylistIE(InfoExtractor):

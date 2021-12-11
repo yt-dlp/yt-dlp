@@ -1191,6 +1191,7 @@ from .rai import (
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
     RaiPlaySoundIE,
+    RaiPlaySoundLiveIE,
     RaiPlaySoundPlaylistIE,
     RaiIE,
 )
