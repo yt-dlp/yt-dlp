@@ -51,16 +51,14 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://www.bilibili.com/video/av1074402/',
         'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
         'info_dict': {
-            'id': '1074402',
-            'ext': 'flv',
+            'id': '1074402_part1',
+            'ext': 'mp4',
             'title': '【金坷垃】金泡沫',
-            'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
-            'duration': 308.067,
-            'timestamp': 1398012678,
-            'upload_date': '20140420',
-            'thumbnail': r're:^https?://.+\.jpg',
-            'uploader': '菊子桑',
             'uploader_id': '156160',
+            'uploader': '菊子桑',
+            'upload_date': '20140420',
+            'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
+            'timestamp': 1398012678,
         },
     }, {
         # Tested in BiliBiliBangumiIE
@@ -81,42 +79,20 @@ class BiliBiliIE(InfoExtractor):
         },
         'skip': 'Geo-restricted to China',
     }, {
-        # Title with double quotes
         'url': 'http://www.bilibili.com/video/av8903802/',
         'info_dict': {
-            'id': '8903802',
-            'title': '阿滴英文｜英文歌分享#6 "Closer',
+            'id': '8903802_part1',
+            'ext': 'mp4',
+            'title': '161020 Closer  ',
+            'upload_date': '20170301',
             'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
+            'timestamp': 1488382634,
+            'uploader_id': '65880958',
+            'uploader': '阿滴英文',
         },
-        'playlist': [{
-            'info_dict': {
-                'id': '8903802_part1',
-                'ext': 'flv',
-                'title': '阿滴英文｜英文歌分享#6 "Closer',
-                'description': 'md5:3b1b9e25b78da4ef87e9b548b88ee76a',
-                'uploader': '阿滴英文',
-                'uploader_id': '65880958',
-                'timestamp': 1488382634,
-                'upload_date': '20170301',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        }, {
-            'info_dict': {
-                'id': '8903802_part2',
-                'ext': 'flv',
-                'title': '阿滴英文｜英文歌分享#6 "Closer',
-                'description': 'md5:3b1b9e25b78da4ef87e9b548b88ee76a',
-                'uploader': '阿滴英文',
-                'uploader_id': '65880958',
-                'timestamp': 1488382634,
-                'upload_date': '20170301',
-            },
-            'params': {
-                'skip_download': True,
-            },
-        }]
+        'params': {
+            'skip_download': True,
+        },
     }, {
         # new BV video id format
         'url': 'https://www.bilibili.com/video/BV1JE411F741',
@@ -206,8 +182,10 @@ class BiliBiliIE(InfoExtractor):
         video_info = self._parse_json(
             self._search_regex(r'window.__playinfo__\s*=\s*({.+?})</script>', webpage, 'video info', default=None),
             video_id, fatal=False) or {}
+        video_info = video_info.get('data') or {}
 
-        durl = traverse_obj(video_info, ('data', 'dash', 'video'))
+        durl = traverse_obj(video_info, ('dash', 'video'))
+        audios = traverse_obj(video_info, ('dash', 'audio')) or []
         entries = []
 
         RENDITIONS = ('qn=80&quality=80&type=', 'quality=2&type=mp4')
@@ -230,24 +208,43 @@ class BiliBiliIE(InfoExtractor):
             formats = []
             for idx, durl in enumerate(durl or video_info['durl']):
                 formats.append({
-                    'url': durl.get('baseUrl') or durl.get('base_url') or durl['url'],
+                    'url': durl.get('baseUrl') or durl.get('base_url') or durl.get('url'),
                     'ext': mimetype2ext(durl.get('mimeType') or durl.get('mime_type')),
                     'fps': int_or_none(durl.get('frameRate') or durl.get('frame_rate')),
                     'width': int_or_none(durl.get('width')),
                     'height': int_or_none(durl.get('height')),
+                    'vcodec': durl.get('codecs'),
+                    'acodec': 'none' if audios else None,
                     'tbr': float_or_none(durl.get('bandwidth'), scale=1000),
                     'filesize': int_or_none(durl.get('size')),
                 })
                 for backup_url in durl.get('backup_url') or []:
                     formats.append({
                         'url': backup_url,
-                        # backup URLs have lower priorities
-                        'quality': -2 if 'hd.mp4' in backup_url else -3,
+                        'quality': -3,
                     })
 
                 for a_format in formats:
                     a_format.setdefault('http_headers', {}).update({
                         'Referer': url,
+                    })
+            for audio in audios:
+                formats.append({
+                    'url': audio.get('baseUrl') or audio.get('base_url') or audio.get('url'),
+                    'ext': mimetype2ext(audio.get('mimeType') or audio.get('mime_type')),
+                    'fps': int_or_none(audio.get('frameRate') or audio.get('frame_rate')),
+                    'width': int_or_none(audio.get('width')),
+                    'height': int_or_none(audio.get('height')),
+                    'acodec': audio.get('codecs'),
+                    'vcodec': 'none',
+                    'tbr': float_or_none(audio.get('bandwidth'), scale=1000),
+                    'filesize': int_or_none(audio.get('size'))
+                })
+                for backup_url in audio.get('backup_url') or []:
+                    formats.append({
+                        'url': backup_url,
+                        # backup URLs have lower priorities
+                        'quality': -2 if 'hd.mp4' in backup_url else -3,
                     })
 
             info.update({
@@ -260,13 +257,14 @@ class BiliBiliIE(InfoExtractor):
         self._sort_formats(formats)
 
         title = self._html_search_regex(
-            (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
+            (r'<title[^>]+>(?P<title>.+?)</title>',
+             r'<h1[^>]+title=(["\'])(?P<title>[^"\']+)',
              r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
             group='title')
 
         # Get part title for anthologies
         if page_id is not None:
-            # TODO: The json is already downloaded by _extract_anthology_entries. Don't redownload for each video
+            # TODO: The json is already downloaded by _extract_anthology_entries. Don't redownload for each video.
             part_title = try_get(
                 self._download_json(
                     f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
