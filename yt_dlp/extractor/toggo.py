@@ -1,9 +1,5 @@
-import urllib.parse
-from copy import copy
-
-from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, parse_qs
 
 
 class ToggoIE(InfoExtractor):
@@ -14,9 +10,9 @@ class ToggoIE(InfoExtractor):
         'md5': 'fb55764928baa57d4b0eb03441b50804',
         'info_dict': {
             'id': 'VEP2977',
-            'ext': 'ism',
+            'ext': 'mp4',
             'title': 'Ein Geschenk für zwei',
-            'language': 'en',
+            'display_id': 'ein-geschenk-fuer-zwei',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'description': 'md5:b7715915bfa47824b4e4ad33fb5962f8',
             'release_timestamp': 1637259179,
@@ -30,33 +26,38 @@ class ToggoIE(InfoExtractor):
             'timestamp': 1581935960,
             'uploader_id': '6057955896001',
             'upload_date': '20200217',
-        }
+        },
     }]
 
     def _real_extract(self, url):
-        slug = self._match_id(url)
-
+        display_id = self._match_id(url)
         data = self._download_json(
-            f'https://production-n.toggo.de/api/assetstore/vod/asset/{slug}', slug)['data']
+            f'https://production-n.toggo.de/api/assetstore/vod/asset/{display_id}', display_id)['data']
 
-        video_id = next(
-            x['value'] for x in data['custom_fields'] if x['key'] == 'video-cloud-id')
-
-        brightcove_ie = BrightcoveNewIE(self._downloader)
-
+        brightcove_id = next(
+            x['value'] for x in data['custom_fields'] if x.get('key') == 'video-cloud-id')
         info = self._downloader.get_info_extractor('BrightcoveNew').extract(
-            f'http://players.brightcove.net/6057955896001/default_default/index.html?videoId={video_id}')
+            f'http://players.brightcove.net/6057955896001/default_default/index.html?videoId={brightcove_id}')
 
-        thumbnails = []
-        for thumb in (data.get('images') or {}).values():
-            qs = urllib.parse.parse_qs(urllib.parse.urlparse(thumb).query)
-            thumbnails.append({
-                'url': thumb,
-                'width': int_or_none(next(iter(qs['width']), None)),
-            })
+        for f in info['formats']:
+            if '/dash/live/cenc/' in f.get('fragment_base_url', ''):
+                # Get hidden non-DRM format
+                f['fragment_base_url'] = f['fragment_base_url'].replace('/cenc/', '/clear/')
+                f['has_drm'] = False
 
-        info.update({
+            if '/fairplay/' in f.get('manifest_url', ''):
+                f['has_drm'] = True
+
+        thumbnails = [{
+            'id': name,
+            'url': url,
+            'width': int_or_none(next(iter(parse_qs(url).get('width', [])), None)),
+        } for name, url in (data.get('images') or {}).items()]
+
+        return {
+            **info,
             'id': data.get('id'),
+            'display_id': display_id,
             'title': data.get('title'),
             'language': data.get('language'),
             'thumbnails': thumbnails,
@@ -69,15 +70,4 @@ class ToggoIE(InfoExtractor):
             'episode': data.get('title'),
             'episode_number': data.get('episode_no'),
             'episode_id': data.get('id'),
-        })
-
-        for f in info['formats']:
-            if '/dash/live/cenc/' in f.get('fragment_base_url', ''):
-                # Get hidden non-DRM format
-                f['fragment_base_url'] = f['fragment_base_url'].replace('/cenc/', '/clear/')
-                f['has_drm'] = False
-
-            if '/fairplay/' in f.get('manifest_url', ''):
-                f['has_drm'] = True
-
-        return info
+        }

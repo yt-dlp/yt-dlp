@@ -472,7 +472,6 @@ class BrightcoveNewIE(AdobePassIE):
     def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
         title = json_data['name'].strip()
 
-        num_drm_sources = 0
         formats, subtitles = [], {}
         sources = json_data.get('sources') or []
         for source in sources:
