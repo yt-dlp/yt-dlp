@@ -74,4 +74,7 @@ class ToggoIE(InfoExtractor):
                 f['fragment_base_url'] = f['fragment_base_url'].replace('/cenc/', '/clear/')
                 f['has_drm'] = False
 
+            if '/fairplay/' in f.get('manifest_url', ''):
+                f['has_drm'] = True
+
         return info
