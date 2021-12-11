@@ -1,8 +1,8 @@
 import urllib.parse
 from copy import copy
 
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from .extractors import BrightcoveNewIE
 from ..utils import int_or_none
 
 
