@@ -42,13 +42,9 @@ class ToggoIE(InfoExtractor):
         video_id = next(
             x['value'] for x in data['custom_fields'] if x['key'] == 'video-cloud-id')
 
-        brightcove_ie = BrightcoveNewIE()
-        downloader = copy(self._downloader)
-        # This is needed to ignore the DRM error because we're going to replace the fragment base URL later on
-        downloader.params = {'allow_unplayable_formats': True}
-        brightcove_ie.set_downloader(downloader)
+        brightcove_ie = BrightcoveNewIE(self._downloader)
 
-        info = brightcove_ie._real_extract(
+        info = self._downloader.get_info_extractor('BrightcoveNew').extract(
             f'http://players.brightcove.net/6057955896001/default_default/index.html?videoId={video_id}')
 
         thumbnails = []
