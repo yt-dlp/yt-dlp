@@ -79,9 +79,7 @@ class GlomexBaseIE(InfoExtractor):
         return info
 
     @staticmethod
-    def _extract_info(video, video_id=None, require_title=True):
-        title = video['title'] if require_title else video.get('title')
-
+    def _extract_info(video, video_id=None):
         def append_image_url(url, default='profile:player-960x540'):
             if url:
                 return '%s/%s' % (url, default)
@@ -96,7 +94,7 @@ class GlomexBaseIE(InfoExtractor):
 
         return {
             'id': video.get('clip_id') or video_id,
-            'title': title,
+            'title': video.get('title'),
             'description': video.get('description'),
             'thumbnail': thumbnail,
             'thumbnails': thumbnails,
