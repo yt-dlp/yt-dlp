@@ -9,6 +9,7 @@ from ..utils import (
     try_get,
 )
 
+
 class FujiTVFODPlus7IE(InfoExtractor):
     _VALID_URL = r'https?://fod\.fujitv\.co\.jp/title/[0-9a-z]{4}/(?P<id>[0-9a-z]+)'
     _BASE_URL = 'http://i.fod.fujitv.co.jp/'
