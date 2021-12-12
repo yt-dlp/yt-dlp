@@ -66,7 +66,7 @@ class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
 
     _TEST = {
         'url': 'https://www.ant1news.gr/watch/1506168/ant1-news-09112021-stis-18-45',
-        'md5': '60a984da5ffc98c9924e6d9dd46c6f04',
+        'md5': '95925e6b32106754235f2417e0d2dfab',
         'info_dict': {
             'id': '1506168',
             'ext': 'mp4',
@@ -92,7 +92,7 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
 
     _TESTS = [{
         'url': 'https://www.ant1news.gr/afieromata/article/549468/o-tzeims-mpont-sta-meteora-oi-apeiles-kai-o-xesikomos-ton-kalogeron',
-        'md5': 'eb635a194c15272c2611a751766b0200',
+        'md5': '294f18331bb516539d72d85a82887dcc',
         'info_dict': {
             'id': '_xvg/m_cmbatw=',
             'ext': 'mp4',
