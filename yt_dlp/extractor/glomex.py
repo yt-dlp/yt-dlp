@@ -74,7 +74,8 @@ class GlomexBaseIE(InfoExtractor):
         if video.get('error_code') == 'contentGeoblocked':
             self.raise_geo_restricted(countries=video['geo_locations'])
         info = self._extract_info(video, video_id)
-        info['formats'] = self._extract_formats(video, video_id)
+        info['formats'], info['subtitles'] = self._extract_formats_and_subs(
+            video, video_id)
         return info
 
     @staticmethod
@@ -103,14 +104,16 @@ class GlomexBaseIE(InfoExtractor):
             'timestamp': video.get('created_at'),
         }
 
-    def _extract_formats(self, options, video_id):
-        formats = []
+    def _extract_formats_and_subs(self, options, video_id):
+        formats, subs = [], {}
         for format_id, format_url in options['source'].items():
             ext = determine_ext(format_url)
             if ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
+                formats_, subs_ = self._extract_m3u8_formats_and_subtitles(
                     format_url, video_id, 'mp4', m3u8_id=format_id,
-                    fatal=False))
+                    fatal=False)
+                formats.extend(formats_)
+                subs.update(subs_)
             else:
                 formats.append({
                     'url': format_url,
@@ -120,7 +123,7 @@ class GlomexBaseIE(InfoExtractor):
             for format in formats:
                 format['language'] = options.get('language')
         self._sort_formats(formats)
-        return formats
+        return formats, subs
 
 
 class GlomexIE(GlomexBaseIE):
