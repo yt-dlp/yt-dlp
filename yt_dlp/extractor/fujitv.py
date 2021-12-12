@@ -35,7 +35,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
         formats = self._extract_m3u8_formats(
             self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         token = self._get_cookies(url).get('CT').value
-        token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJGT0QiLCJ1aWQiOiIiLCJkdl90eXBlIjoid2ViIiwiZHZfaWQiOiJNaWNyb3NvZnQgV2luZG93cyBOVCAxMC4wLjE0MzkzLjBfQ2hyb21lOTYuMCJ9.tmK0o79qfDaBNVm7prjCG39DYvldacx8t38WA7TRlBA'
         json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token}'})
         for f in formats:
             wh = self._BITRATE_MAP.get(f.get('tbr'))
