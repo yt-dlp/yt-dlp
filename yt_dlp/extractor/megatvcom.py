@@ -51,7 +51,7 @@ class MegaTVComIE(MegaTVComBaseIE):
 
     _TESTS = [{
         'url': 'https://www.megatv.com/2021/10/23/egkainia-gia-ti-nea-skini-omega-tou-dimotikou-theatrou-peiraia/',
-        'md5': '2ebe96661cb81854889053cebb661068',
+        'md5': '6546a1a37fff0dd51c9dce5f490b7d7d',
         'info_dict': {
             'id': '520979',
             'ext': 'mp4',
@@ -62,7 +62,7 @@ class MegaTVComIE(MegaTVComBaseIE):
         },
     }, {
         'url': 'https://www.megatv.com/tvshows/527800/epeisodio-65-12/',
-        'md5': '8ab0c9d664cea11678670202b87bb2b1',
+        'md5': 'cba2085d45c1abeb8e7e9b7e1d6c0072',
         'info_dict': {
             'id': '527800',
             'ext': 'mp4',
@@ -128,7 +128,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
 
     _TESTS = [{
         'url': 'https://www.megatv.com/embed/?p=2020520979',
-        'md5': '2ebe96661cb81854889053cebb661068',
+        'md5': '6546a1a37fff0dd51c9dce5f490b7d7d',
         'info_dict': {
             'id': '520979',
             'ext': 'mp4',
@@ -139,7 +139,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
         },
     }, {
         'url': 'https://www.megatv.com/embed/?p=2020534081',
-        'md5': 'f9a15e315acbf01b128e8efa3f75aab3',
+        'md5': '6ac8b3ce4dc6120c802f780a1e6b3812',
         'info_dict': {
             'id': '534081',
             'ext': 'mp4',
