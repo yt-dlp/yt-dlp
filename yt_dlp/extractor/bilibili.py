@@ -264,8 +264,8 @@ class BiliBiliIE(InfoExtractor):
         if page_id is not None:
             # TODO: The json is already downloaded by _extract_anthology_entries. Don't redownload for each video.
             part_info = traverse_obj(self._download_json(
-                    f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
-                    video_id, note='Extracting videos in anthology'), 'data', expected_type=list)
+                f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
+                video_id, note='Extracting videos in anthology'), 'data', expected_type=list)
             title = title if len(part_info) == 1 else traverse_obj(part_info, (int(page_id) - 1, 'part')) or title
 
         description = self._html_search_meta('description', webpage)
