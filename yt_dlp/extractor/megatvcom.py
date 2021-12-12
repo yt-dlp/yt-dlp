@@ -109,8 +109,9 @@ class MegaTVComIE(MegaTVComBaseIE):
             source = player_attrs['source']
         except KeyError:
             raise ExtractorError('no source found for %s' % video_id)
-        formats = self._extract_m3u8_formats(source, video_id, 'mp4') \
-            if determine_ext(source) == 'm3u8' else [source]
+        formats, subs = self._extract_m3u8_formats_and_subtitles(
+            source, video_id, 'mp4') \
+            if determine_ext(source) == 'm3u8' else ([source], {})
         self._sort_formats(formats)
         return {
             'id': video_id,
@@ -119,6 +120,7 @@ class MegaTVComIE(MegaTVComBaseIE):
             'thumbnail': thumbnail,
             'timestamp': timestamp,
             'formats': formats,
+            'subtitles': subs,
         }
 
 
