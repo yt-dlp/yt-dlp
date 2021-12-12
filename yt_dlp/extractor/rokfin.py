@@ -1,8 +1,11 @@
 # coding: utf-8
 import itertools
 from datetime import datetime
+import re
+import json
+import functools
 
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -254,3 +257,64 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
         return self.playlist_result(
             self._entries(channel_id, channel_name, self._TABS[tab]),
             f'{channel_id}-{tab}', f'{channel_name} - {tab.title()}', str_or_none(channel_info.get('description')))
+
+
+# E.g.: rkfnsearch5:"\"zelenko\"" or rkfnsearch5:"\"mollie james\""
+class RokfinSearchIE(SearchInfoExtractor):
+    IE_NAME = 'rokfin:search'
+    _SEARCH_KEY = 'rkfnsearch'
+    _TYPES = {
+        'video': (('id', 'raw'), 'post'),
+        'audio': (('id', 'raw'), 'post'),
+        'stream': (("content_id", 'raw'), 'stream'),
+        'dead_stream': (('content_id', 'raw'), 'stream'),
+        'stack': (('content_id', 'raw'), 'stack'),
+    }
+    _ENTRIES_PER_PAGE = 100
+    _BASE_URL = 'https://rokfin.com'
+    _service_url = None
+    _service_access_key = None
+
+    def _search_results(self, query):
+        def get_video_data(metadata):
+            for search_result in metadata.get('results', []):
+                video_id_ind, video_type = self._TYPES.get(str_or_none(traverse_obj(search_result, ('content_type', 'raw'))), (None, None))
+                video_id = traverse_obj(search_result, video_id_ind, expected_type=int_or_none)
+                if not video_id or not video_type:
+                    self.write_debug(msg=f'skipping {search_result}')
+                    continue
+                yield self.url_result(url=f'{self._BASE_URL}/{video_type}/{video_id}')
+        if not query:
+            return
+        if not self._service_url or not self._service_access_key:
+            self._service_url, self._service_access_key = self._get_access_credentials()
+        QUERY_DATA = {'query': query, 'page': {'size': self._ENTRIES_PER_PAGE, 'current': 1}}
+        total_pages = None
+        while True:
+            search_results = self._download_json(
+                self._service_url, self._SEARCH_KEY, headers={'authorization': self._service_access_key},
+                data=json.dumps(QUERY_DATA).encode('utf-8'), encoding='utf-8',
+                note='Downloading search results page %d%s' % (QUERY_DATA['page']['current'], (' of ~%d') % (total_pages,) if total_pages and total_pages >= QUERY_DATA['page']['current'] else ''),
+                fatal=False) or {}
+            QUERY_DATA['page']['current'] += 1
+            total_pages = traverse_obj(search_results, ('meta', 'page', 'total_pages'), expected_type=int_or_none)
+            yield from get_video_data(search_results)
+            if not search_results.get('results'):
+                return
+
+    def _get_access_credentials(self):
+        notfound_err_page = self._download_webpage('https://rokfin.com/discover', self._SEARCH_KEY, expected_status=404, fatal=False)
+        js = functools.reduce(
+            lambda result, m: result + self._download_webpage(
+                self._BASE_URL + m.group('path'), self._SEARCH_KEY,
+                note='Downloading JavaScript file', fatal=False) or '',
+            re.finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', notfound_err_page), '')
+        service_url = None
+        services_access_key = None
+        for m in re.finditer(r'(REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)")|(REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)")', js):
+            if m.group('url'):
+                service_url = m.group('url') + '/api/as/v1/engines/rokfin-search/search.json'
+            elif m.group('key'):
+                services_access_key = 'Bearer ' + m.group('key')
+            if service_url and services_access_key:
+                return (service_url, services_access_key)
