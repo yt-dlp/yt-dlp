@@ -5,6 +5,8 @@ import itertools
 
 from .common import InfoExtractor
 from ..utils import (
+    int_or_none,
+    str_or_none,
     traverse_obj,
     unified_strdate,
 )
@@ -20,7 +22,7 @@ class NateIE(InfoExtractor):
             'ext': 'mp4',
             'title': '[결승 오프닝 타이틀] 2018 LCK 서머 스플릿 결승전 kt Rolster VS Griffin',
             'description': 'md5:e1b79a7dcf0d8d586443f11366f50e6f',
-            'thumbnail': 'http://image.pip.cjenm.com/CLIP/GA/B120189687/B120189687_EPI0056_03_B.jpg',
+            'thumbnail': r're:^https?://.*\.jpg',
             'upload_date': '20180908',
             'age_limit': 15,
             'duration': 73,
@@ -38,7 +40,7 @@ class NateIE(InfoExtractor):
             'ext': 'mp4',
             'title': '[심쿵엔딩] 이준호x이세영, 서로를 기억하며 끌어안는 두 사람!💕, MBC 211204 방송',
             'description': 'md5:be1653502d9c13ce344ddf7828e089fa',
-            'thumbnail': 'http://d3gkeuh6j9q833.cloudfront.net/Attach/mbc/2021/12/04/TZ202112040078/clip_20211204231755_0.jpg',
+            'thumbnail': r're:^https?://.*\.jpg',
             'upload_date': '20211204',
             'age_limit': 15,
             'duration': 201,
@@ -64,9 +66,12 @@ class NateIE(InfoExtractor):
         id = self._match_id(url)
         video_data = self._download_json(f'https://tv.nate.com/api/v1/clip/{id}', id)
         formats = [{
+            'format_id': f_url[-2:],
             'url': f_url,
             'resolution': self._QUALITY.get(f_url[-2:]),
+            'quality': int_or_none(f_url[-2:]),
         } for f_url in video_data.get('smcUriList') or []]
+        self._sort_formats(formats)
         return {
             'id': id,
             'title': video_data.get('clipTitle'),
@@ -78,8 +83,8 @@ class NateIE(InfoExtractor):
             'formats': formats,
             'uploader': video_data.get('programTitle'),
             'channel': video_data.get('programTitle'),
-            'channel_id': str(video_data.get('programSeq')),
-            'uploader_id': str(video_data.get('programSeq')),
+            'channel_id': str_or_none(video_data.get('programSeq')),
+            'uploader_id': str_or_none(video_data.get('programSeq')),
             'tags': video_data['hashTag'].split(',') if video_data.get('hashTag') else None,
         }
 
