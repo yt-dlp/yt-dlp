@@ -54,12 +54,12 @@ class NateIE(InfoExtractor):
     }]
 
     _QUALITY = {
-        '36': '2160p',
-        '35': '1080p',
-        '34': '720p',
-        '33': '480p',
-        '32': '360p',
-        '31': '270p',
+        '36': 2160,
+        '35': 1080,
+        '34': 720,
+        '33': 480,
+        '32': 360,
+        '31': 270,
     }
 
     def _real_extract(self, url):
@@ -68,7 +68,7 @@ class NateIE(InfoExtractor):
         formats = [{
             'format_id': f_url[-2:],
             'url': f_url,
-            'resolution': self._QUALITY.get(f_url[-2:]),
+            'height': self._QUALITY.get(f_url[-2:]),
             'quality': int_or_none(f_url[-2:]),
         } for f_url in video_data.get('smcUriList') or []]
         self._sort_formats(formats)
