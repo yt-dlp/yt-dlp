@@ -1,10 +1,11 @@
 # coding: utf-8
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     unified_timestamp,
     try_get,
     float_or_none,
-    url_or_none
+    url_or_none,
+    preferredencoding
 )
 
 
@@ -119,23 +120,26 @@ class RokfinPostIE(RokfinSingleVideoIE):
         _COMMENTS_PER_REQUEST = 50  # 50 is the maximum Rokfin permits per request.
 
         def dnl_comments_incrementally(base_url, video_id, comments_per_page):
-            pagesTotal = None
+            pages_total = None
 
             for page_n in itertools.count(0):
                 raw_comments = self._download_json(
                     url_or_request=f'{base_url}?postId={video_id[5:]}&page={page_n}&size={comments_per_page}',
                     video_id=video_id,
-                    note=f'Downloading viewer comments (page {page_n + 1}' + (f' of {pagesTotal}' if pagesTotal else '') + ')',
+                    note=f'Downloading viewer comments (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')',
                     fatal=False)
 
                 comments = try_get(raw_comments, lambda x: x['content'])
-                pagesTotal = try_get(raw_comments, lambda x: x['totalPages'])
+                pages_total = try_get(raw_comments, lambda x: x['totalPages'])
+                is_last_page = try_get(raw_comments, lambda x: x['last'] is True)
+                max_page_count_reached = try_get(raw_comments, lambda x: page_n + 1 >= pages_total)
 
                 if comments:
                     yield comments
 
-                if try_get(raw_comments, lambda x: x['last'] is True) or try_get(raw_comments, lambda x: page_n >= pagesTotal):
+                if is_last_page or max_page_count_reached or ((is_last_page is None) and (max_page_count_reached is None)) or not(comments):
                     return
+                # The last two conditions are safety checks.
 
         for page_of_comments in dnl_comments_incrementally(_COMMENTS_BASE_URL, video_id, _COMMENTS_PER_REQUEST):
             for comment in page_of_comments:
@@ -290,28 +294,32 @@ class RokfinPlaylistIE(InfoExtractor):
         url_result = self.url_result
 
         for content in try_get(json_data, lambda x: x['content']) or []:
-            mediaType = try_get(content, lambda x: x['mediaType'])
+            media_type = try_get(content, lambda x: x['mediaType'])
 
-            if mediaType in ('video', 'audio'):
-                video_url = try_get(content, lambda x: video_base_url + f'post/{x["id"]}')
+            if media_type in ('video', 'audio'):
+                video_url = try_get(content, lambda x: f'{video_base_url}post/{x["id"]}')
                 if video_url is None:
                     write_debug(msg=f'video: could not process content entry: {content}')
-            elif mediaType in ('stream', 'dead_stream'):
-                video_url = try_get(content, lambda x: video_base_url + f'stream/{x["mediaId"]}')
+            elif media_type in ('stream', 'dead_stream'):
+                video_url = try_get(content, lambda x: f'{video_base_url}stream/{x["mediaId"]}')
                 if video_url is None:
                     write_debug(f'stream/dead_stream: could not process content entry: {content}')
-            elif mediaType == 'stack':
-                video_url = try_get(content, lambda x: video_base_url + f'stack/{x["mediaId"]}')
+            elif media_type == 'stack':
+                video_url = try_get(content, lambda x: f'{video_base_url}stack/{x["mediaId"]}')
                 if video_url is None:
                     write_debug(msg=f'stack: could not process content entry: {content}')
-            elif mediaType == 'article':
-                video_url = try_get(content, lambda x: video_base_url + f'article/{x["mediaId"]}')
+            elif media_type == 'article':
+                video_url = try_get(content, lambda x: f'{video_base_url}article/{x["mediaId"]}')
                 if video_url is None:
                     write_debug(msg=f'article: could not process content entry: {content}')
+            elif media_type == 'ranking':
+                video_url = try_get(content, lambda x: f'{video_base_url}ranking/{x["mediaId"]}')
+                if video_url is None:
+                    write_debug(msg=f'ranking: could not process content entry: {content}')
             else:
                 video_url = None
-                report_warning('skipping unsupported media type' + ('' if mediaType is None else f': {mediaType}') + '. Use --verbose to learn more')
-                write_debug(msg=f'could not process content entry: {content}')
+                report_warning('skipping unsupported media type' + ('' if media_type is None else f': {media_type}') + '. Use --verbose to learn more')
+                write_debug(f'could not process content entry: {content}')
 
             if video_url:
                 yield url_result(url=video_url)
@@ -366,16 +374,20 @@ class RokfinChannelIE(RokfinPlaylistIE):
         def dnl_video_meta_data_incrementally(pagesz, channel_id):
             _VIDEO_BASE_URL = 'https://rokfin.com/'
 
-            pagesTotal = None
+            pages_total = None
 
             for page_n in itertools.count(0):
-                downloaded_json = self._download_json(url_or_request=f'{_META_DATA_BASE_URL}{channel_id}/posts?page={page_n}&size={pagesz}', video_id=channel_id, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pagesTotal}' if pagesTotal else '') + ')', fatal=False)
+                downloaded_json = self._download_json(url_or_request=f'{_META_DATA_BASE_URL}{channel_id}/posts?page={page_n}&size={pagesz}', video_id=channel_id, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False)
 
-                pagesTotal = try_get(downloaded_json, lambda x: x['totalPages'])
                 yield from self._get_video_data(json_data=downloaded_json, video_base_url=_VIDEO_BASE_URL)
 
-                if try_get(downloaded_json, lambda x: x['last'] is True) or try_get(downloaded_json, lambda x: page_n >= pagesTotal):
+                pages_total = try_get(downloaded_json, lambda x: x['totalPages'])
+                is_last_page = try_get(downloaded_json, lambda x: x['last'] is True)
+                max_page_count_reached = try_get(downloaded_json, lambda x: page_n + 1 >= pages_total)
+
+                if is_last_page or max_page_count_reached or ((is_last_page is None) and (max_page_count_reached is None)):
                     return []
+                # The last condition is a safety check.
 
         channel_id = self._match_id(url_from_user)
         channel_info = self._download_json(url_or_request=_META_DATA_BASE_URL + channel_id, video_id=channel_id, note='Downloading channel info', fatal=False)
@@ -385,3 +397,96 @@ class RokfinChannelIE(RokfinPlaylistIE):
             playlist_id=try_get(channel_info, lambda x: x['id']),
             playlist_description=try_get(channel_info, lambda x: x['description']),
             webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_id)
+
+
+class RokfinSearchIE(SearchInfoExtractor):
+    IE_NAME = 'rokfin:search'
+    _SEARCH_KEY = 'rkfnsearch'
+
+    def _get_n_results(self, query, n_results):
+        import json
+        import math
+
+        def dnl_video_meta_data_incrementally(query, n_results):
+            import itertools
+
+            BASE_URL = 'https://rokfin.com/'
+            ENTRIES_PER_PAGE = 100
+
+            ACCESS_TOKEN = {'authorization': 'Bearer search-tztmtzbrdrkkpqmaj5o8cut6'}
+            # The access token is stored in https://www.rokfin.com/static/js/2.[version tag].chunk.js
+            # under the name REACT_APP_SEARCH_KEY. Finding the current version tag is easy since this
+            # JS file is referenced by every video's landing page. Surprisingly, this landing page coincides
+            # with the 404-page-not-found page. To see this for yourself, try curl -i <Rokfin-video-URL>
+            ACCESS_URL = 'https://82c4086574ca4a8fb588324b39a0464a.app-search.us-west-2.aws.found.io/api/as/v1/engines/rokfin-search/search.json'
+
+            if n_results <= 0:
+                return
+
+            enc = preferredencoding()
+            pages_to_download = None if n_results == float('inf') else math.ceil(n_results / ENTRIES_PER_PAGE)
+            url_result = self.url_result
+            _download_webpage = self._download_webpage
+            json_loads = json.loads
+            _SEARCH_KEY = self._SEARCH_KEY
+            report_warning = self.report_warning
+            write_debug = self.write_debug
+            ENTRIES_PER_PAGE_STR = str(ENTRIES_PER_PAGE)
+            result_counter = 0
+
+            for page_n in itertools.count(1) if n_results == float('inf') else range(1, pages_to_download + 1):
+                POST_DATA = '{"query":"' + query + '","facets":{"content_type":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"creator_name":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"premium_plan":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '}},"result_fields":{"creator_twitter":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_username":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_instagram":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_comments":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_text":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_description":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_title":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_updated_at":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_youtube":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_type":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_name":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_facebook":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"premium_plan":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}}},"page":{"size":' + ENTRIES_PER_PAGE_STR + ',"current":' + str(page_n) + '}}'
+
+                for (ind, content) in enumerate(try_get(
+                        _download_webpage(
+                            url_or_request=ACCESS_URL,
+                            headers=ACCESS_TOKEN,
+                            data=POST_DATA.encode(enc),
+                            encoding=enc,
+                            video_id=_SEARCH_KEY,
+                            note=f'Downloading search results (page {page_n}' + (f' of {pages_to_download}' if pages_to_download else '' + ')'),
+                            fatal=False),
+                        lambda x: json_loads(x)['results']) or [], start=1):
+                    content_type = try_get(content, lambda x: x['content_type']['raw'])
+
+                    if content_type in ('video', 'audio'):
+                        video_url = try_get(content, lambda x: f'{BASE_URL}post/{int(x["id"]["raw"])}')
+                        if video_url is None:
+                            write_debug(msg=f'video/audio: could not process content entry: {content}')
+                    elif content_type in ('stream', 'dead_stream'):
+                        video_url = try_get(content, lambda x: f'{BASE_URL}stream/{int(x["content_id"]["raw"])}')
+                        if video_url is None:
+                            write_debug(msg=f'stream/dead_stream: could not process content entry: {content}')
+                    elif content_type == 'stack':
+                        video_url = try_get(content, lambda x: f'{BASE_URL}stack/{int(x["content_id"]["raw"])}')
+                        if video_url is None:
+                            write_debug(msg=f'stack: could not process content entry: {content}')
+                    elif content_type == 'article':
+                        video_url = try_get(content, lambda x: f'{BASE_URL}article/{int(x["content_id"]["raw"])}')
+                        if video_url is None:
+                            write_debug(msg=f'article: could not process content entry: {content}')
+                    elif content_type == 'ranking':
+                        video_url = try_get(content, lambda x: f'{BASE_URL}ranking/{int(x["content_id"]["raw"])}')
+                        if video_url is None:
+                            write_debug(msg=f'ranking: could not process content entry: {content}')
+                    else:
+                        video_url = None
+
+                    if video_url:
+                        yield url_result(video_url)
+
+                        result_counter = result_counter + 1
+
+                        if result_counter >= n_results:
+                            return
+                    else:
+                        report_warning('skipping unsupported content type' + ('' if content_type is None else f': {content_type}') + '. Use --verbose to learn more')
+                        write_debug(f'could not process content entry: {content}')
+
+                # This is a safety feature. It'll have no effect 99% of the time:
+                if page_n * ENTRIES_PER_PAGE >= max(2 * n_results, 100):
+                    return
+
+        return self.playlist_result(
+            entries=dnl_video_meta_data_incrementally(query, n_results),
+            playlist_id=query)

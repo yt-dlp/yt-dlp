@@ -1326,6 +1326,7 @@ from .rokfin import (
     RokfinStreamIE,
     RokfinStackIE,
     RokfinChannelIE,
+    RokfinSearchIE,
 )
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
