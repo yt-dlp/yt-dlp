@@ -36,9 +36,9 @@ class FujiTVFODPlus7IE(InfoExtractor):
         self._download_webpage(url, video_id, fatal=False)
         formats = self._extract_m3u8_formats(
             self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
-        token = self._get_cookies(url).get('CT').value
-        if token is None:
+        if self._get_cookies(url).get('CT') is None:
             raise ExtractorError("fetch token failed")
+        token = self._get_cookies(url).get('CT').value
         json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token}'})
         for f in formats:
             wh = self._BITRATE_MAP.get(f.get('tbr'))
