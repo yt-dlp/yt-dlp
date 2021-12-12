@@ -8,9 +8,6 @@ from urllib.parse import (
 )
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
 from ..utils import (
     clean_html,
     determine_ext,
@@ -83,12 +80,12 @@ class MegaTVComIE(MegaTVComBaseIE):
             [^>]*?
         )+>
         '''
-        return compat_str(self._search_regex(ART_RE, webpage, 'article_id',
-                                             group='article'))
+        return self._search_regex(ART_RE, webpage, 'article_id',
+                                  group='article')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        _is_article = video_id == 'None'
+        _is_article = video_id is None
         webpage = self._download_webpage(url,
                                          'N/A' if _is_article else
                                          video_id)
