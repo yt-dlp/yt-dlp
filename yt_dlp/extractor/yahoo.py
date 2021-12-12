@@ -414,11 +414,14 @@ class YahooGyaOIE(InfoExtractor):
     IE_NAME = 'yahoo:gyao'
     _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:p|title(?:/[^/]+)?)|streaming\.yahoo\.co\.jp/p/y)/(?P<id>\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://gyao.yahoo.co.jp/p/00449/v03102/',
+        'url': 'https://gyao.yahoo.co.jp/title/%E3%83%80%E3%82%A6%E3%83%B3%E3%82%BF%E3%82%A6%E3%83%B3DX/5f7587a2-06c2-4e0e-8f2b-c3923fc0febf',
         'info_dict': {
-            'id': '00449:v03102',
+            'id': '5f7587a2-06c2-4e0e-8f2b-c3923fc0febf',
         },
-        'playlist_count': 2,
+        'playlist_mincount': 2,
+    }, {
+        'url': 'https://gyao.yahoo.co.jp/p/00449/v03102/',
+        'only_matching': True,
     }, {
         'url': 'https://streaming.yahoo.co.jp/p/y/01034/v00133/',
         'only_matching': True,
@@ -432,16 +435,29 @@ class YahooGyaOIE(InfoExtractor):
 
     def _real_extract(self, url):
         program_id = self._match_id(url).replace('/', ':')
-        videos = self._download_json(
-            'https://gyao.yahoo.co.jp/api/programs/%s/videos' % program_id, program_id)['videos']
         entries = []
-        for video in videos:
-            video_id = video.get('id')
-            if not video_id:
-                continue
-            entries.append(self.url_result(
-                'https://gyao.yahoo.co.jp/player/%s/' % video_id.replace(':', '/'),
-                YahooGyaOPlayerIE.ie_key(), video_id))
+        page = 1
+        while True:
+            playlist = self._download_json(
+                'https://gyao.yahoo.co.jp/api/programs/%s/videos?page=%d' % (program_id, page), program_id)
+            if not playlist:
+                break
+            for video in playlist.get('videos'):
+                video_id = video.get('id')
+                if not video_id:
+                    continue
+                if video.get('streamingAvailability') == 'notYet':
+                    continue
+                entries.append(self.url_result(
+                    'https://gyao.yahoo.co.jp/player/%s/' % video_id.replace(':', '/'),
+                    YahooGyaOPlayerIE.ie_key(), video_id))
+            ended = playlist.get('ended')
+            if ended is None:
+                self.report_warning("'ended' key was not found in playlist. Spec may have changed.")
+                break
+            if ended:
+                break
+            page += 1
         return self.playlist_result(entries, program_id)
 
 
