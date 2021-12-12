@@ -1265,6 +1265,7 @@ from .rutube import (
     RutubeMovieIE,
     RutubePersonIE,
     RutubePlaylistIE,
+    RutubeTagsIE,
 )
 from .rutv import RUTVIE
 from .ruutu import RuutuIE
