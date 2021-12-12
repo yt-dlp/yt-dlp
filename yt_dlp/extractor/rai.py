@@ -82,7 +82,7 @@ class RaiBaseIE(InfoExtractor):
                     'url': media_url,
                     'vcodec': 'none',
                     'acodec': 'mp3',
-                    'format_id': 'mp3',
+                    'format_id': 'http-mp3',
                 })
                 break
             elif ext == 'm3u8' or 'format=m3u8' in media_url or platform == 'mon':
@@ -507,7 +507,7 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):
 
 
 class RaiPlaySoundPlaylistIE(InfoExtractor):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?:programmi|playlist|audiolibri)/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?:programmi|playlist|audiolibri)/(?P<id>[^/?#&]+))/*(?P<extra_id>[^?#&]+)?$'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio',
         'info_dict': {
@@ -516,16 +516,31 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
             'description': 'md5:9f7064810ac5d48d51b2f2d7c838dfbf',
         },
         'playlist_mincount': 65,
+    }, {
+        'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio/puntate/prima-stagione-1995',
+        'info_dict': {
+            'id': 'ilruggitodelconiglio',
+            'title': 'Prima Stagione 1995',
+        },
+        'playlist_count': 1,
     }]
 
     def _real_extract(self, url):
-        base, playlist_id = self._match_valid_url(url).groups()
+        base, playlist_id, extra_id = self._match_valid_url(url).groups()
 
         program = self._download_json(
             base + '.json', playlist_id, 'Downloading program JSON')
 
+        if extra_id:
+            for c in try_get(program, lambda x: x['filters']) or []:
+                if extra_id in c.get('weblink'):
+                    program = self._download_json(
+                        urljoin('https://www.raiplaysound.it', c.get('path_id')),
+                        extra_id, 'Downloading program secondary JSON')
+
         entries = []
-        for c in try_get(program, lambda x: x['block']['cards']) or []:
+        for c in (try_get(program, lambda x: x['block']['cards'])
+                  or try_get(program, lambda x: x['cards']) or []):
             path_id = c.get('path_id')
             if not path_id:
                 continue
