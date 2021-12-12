@@ -61,7 +61,7 @@ class SonyLIVIE(InfoExtractor):
     _GEO_COUNTRIES = ['IN']
     _AUTH_TOKEN = None
     _HEADERS = {}
-    _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using auth token.'
+    _LOGIN_HINT = 'Use "--username <mobile_number>" to login using OTP or "--username token --password <auth_token>" to login using auth token.'
     _NETRC_MACHINE = 'sonyliv'
 
     def _get_device_id(self):
@@ -122,8 +122,6 @@ class SonyLIVIE(InfoExtractor):
             self._HEADERS['device_id'] = self._get_device_id()
             self._HEADERS['content-type'] = 'application/json'
             self._login(username, password)
-            if not self._AUTH_TOKEN:
-                self.raise_login_required(self._LOGIN_HINT, method=None)
             self._HEADERS['authorization'] = self._AUTH_TOKEN
 
     def _real_extract(self, url):
