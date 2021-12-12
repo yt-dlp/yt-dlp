@@ -23,7 +23,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'id': '5d40810075',
             'title': '#1317 『おっちゃんのまほうカード』の巻／『まるちゃん おばけ屋敷にいく』の巻',
             'series': 'ちびまる子ちゃん',
-            'description': 'md5:8e736b1eecb5c8fa88061e1e65e87e0a',
+            'description': 'md5:5b2225387a6deb94e55a1161f1c66abe',
             'ext': 'mp4',
             'format_id': '4000',
             'thumbnail': 'http://i.fod.fujitv.co.jp/pc/image/wbtn/wbtn_5d40810075.jpg'
