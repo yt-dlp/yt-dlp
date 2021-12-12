@@ -19,7 +19,6 @@ from ..utils import (
     mimetype2ext,
     parse_iso8601,
     traverse_obj,
-    try_get,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
@@ -83,7 +82,7 @@ class BiliBiliIE(InfoExtractor):
         'info_dict': {
             'id': '8903802_part1',
             'ext': 'mp4',
-            'title': '161020 Closer  ',
+            'title': '阿滴英文｜英文歌分享#6 "Closer',
             'upload_date': '20170301',
             'description': '滴妹今天唱Closer給你聽! 有史以来，被推最多次也是最久的歌曲，其实歌词跟我原本想像差蛮多的，不过还是好听！ 微博@阿滴英文',
             'timestamp': 1488382634,
@@ -257,20 +256,17 @@ class BiliBiliIE(InfoExtractor):
         self._sort_formats(formats)
 
         title = self._html_search_regex(
-            (r'<title[^>]+>(?P<title>.+?)</title>',
-             r'<h1[^>]+title=(["\'])(?P<title>[^"\']+)',
+            (r'<h1[^>]+title=(["\'])(?P<title>[^"\']+)',
              r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
             group='title')
 
         # Get part title for anthologies
         if page_id is not None:
             # TODO: The json is already downloaded by _extract_anthology_entries. Don't redownload for each video.
-            part_title = try_get(
-                self._download_json(
+            part_info = traverse_obj(self._download_json(
                     f'https://api.bilibili.com/x/player/pagelist?bvid={bv_id}&jsonp=jsonp',
-                    video_id, note='Extracting videos in anthology'),
-                lambda x: x['data'][int(page_id) - 1]['part'])
-            title = part_title or title
+                    video_id, note='Extracting videos in anthology'), 'data', expected_type=list)
+            title = title if len(part_info) == 1 else traverse_obj(part_info, (int(page_id) - 1, 'part')) or title
 
         description = self._html_search_meta('description', webpage)
         timestamp = unified_timestamp(self._html_search_regex(
@@ -488,9 +484,9 @@ class BilibiliChannelIE(InfoExtractor):
             data = self._download_json(
                 self._API_URL % (list_id, page_num), list_id, note=f'Downloading page {page_num}')['data']
 
-            max_count = max_count or try_get(data, lambda x: x['page']['count'])
+            max_count = max_count or traverse_obj(data, ('page', 'count'))
 
-            entries = try_get(data, lambda x: x['list']['vlist'])
+            entries = traverse_obj(data, ('list', 'vlist'))
             if not entries:
                 return
             for entry in entries:
@@ -528,7 +524,7 @@ class BilibiliCategoryIE(InfoExtractor):
             api_url, query, query={'Search_key': query, 'pn': page_num},
             note='Extracting results from page %s of %s' % (page_num, num_pages))
 
-        video_list = try_get(parsed_json, lambda x: x['data']['archives'], list)
+        video_list = traverse_obj(parsed_json, ('data', 'archives'), expected_type=list)
         if not video_list:
             raise ExtractorError('Failed to retrieve video list for page %d' % page_num)
 
@@ -558,7 +554,7 @@ class BilibiliCategoryIE(InfoExtractor):
 
         api_url = 'https://api.bilibili.com/x/web-interface/newlist?rid=%d&type=1&ps=20&jsonp=jsonp' % rid_value
         page_json = self._download_json(api_url, query, query={'Search_key': query, 'pn': '1'})
-        page_data = try_get(page_json, lambda x: x['data']['page'], dict)
+        page_data = traverse_obj(page_json, ('data', 'page'), expected_type=dict)
         count, size = int_or_none(page_data.get('count')), int_or_none(page_data.get('size'))
         if count is None or not size:
             raise ExtractorError('Failed to calculate either page count or size')
