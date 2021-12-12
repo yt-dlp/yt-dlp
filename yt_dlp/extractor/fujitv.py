@@ -51,8 +51,8 @@ class FujiTVFODPlus7IE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': try_get(json_info, lambda x: x['ep_title'], compat_str),
-            'description': try_get(json_info, lambda x: x['ep_description'], compat_str),
+            'title': json_info.get('ep_title'),
+            'description': json_info.get('ep_description'),
             'formats': formats,
             'thumbnail': self._BASE_URL + 'pc/image/wbtn/wbtn_%s.jpg' % video_id,
         }
