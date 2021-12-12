@@ -98,14 +98,14 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
             'ext': 'mp4',
             'title': 'md5:a93e8ecf2e4073bfdffcb38f59945411',
         },
-        'expected_warnings': [r'^[Uu]nable to extract JSON-LD'],
+        'expected_warnings': [r'[Uu]nable to extract JSON-LD'],
     }, {
         'url': 'https://ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn',
         'info_dict': {
             'id': '620286',
             'title': 'md5:91fe569e952e4d146485740ae927662b',
         },
-        'expected_warnings': [r'^[Uu]nable to extract JSON-LD'],
+        'expected_warnings': [r'[Uu]nable to extract JSON-LD'],
         'playlist_mincount': 2,
         'params': {
             'skip_download': True,
