@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import itertools
 import json
 import random
 import time
@@ -12,6 +11,7 @@ from ..utils import (
     dict_get,
     ExtractorError,
     strip_or_none,
+    traverse_obj,
     try_get
 )
 
@@ -26,7 +26,7 @@ class RCTIPlusBaseIE(InfoExtractor):
         json = self._download_json(
             url, video_id, note=note, headers={'Authorization': self._AUTH_KEY})
         if json.get('status', {}).get('code', 0) != 0:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, json["status"]["message_client"]), cause=json)
+            raise ExtractorError('%s said: %s' % (self.IE_NAME, json['status']['message_client']), cause=json)
         return json.get('data'), json.get('meta')
 
 
@@ -223,18 +223,26 @@ class RCTIPlusIE(RCTIPlusBaseIE):
 
 
 class RCTIPlusSeriesIE(RCTIPlusBaseIE):
-    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https://www\.rctiplus\.com/programs/(?P<id>\d+)/(?P<display_id>[^/?#&]+)(?:/(?P<type>episodes|extras|clips))?'
     _TESTS = [{
-        'url': 'https://www.rctiplus.com/programs/540/upin-ipin',
-        'playlist_mincount': 417,
+        'url': 'https://www.rctiplus.com/programs/829/putri-untuk-pangeran',
+        'playlist_mincount': 1019,
         'info_dict': {
-            'id': '540',
-            'title': 'Upin & Ipin',
-            'description': 'md5:22cc912381f389664416844e1ec4f86b',
+            'id': '829',
+            'title': 'Putri Untuk Pangeran',
+            'description': 'md5:aca7b54d05bd95a67d4f4613cc1d622d',
+            'age_limit': 2,
+            'cast': ['a', 'b', 'c']
         },
-    }, {
-        'url': 'https://www.rctiplus.com/programs/540/upin-ipin/episodes?utm_source=Rplusdweb&utm_medium=share_copy&utm_campaign=programsupin-ipin',
-        'only_matching': True,
+    }, {  # No episodes
+        'url': 'https://www.rctiplus.com/programs/615/inews-pagi',
+        'playlist_mincount': 388,
+        'info_dict': {
+            'id': '615',
+            'title': 'iNews Pagi',
+            'description': 'md5:f18ee3d4643cfb41c358e5a9b693ee04',
+            'age_limit': 2
+        }
     }]
     _AGE_RATINGS = {  # Based off https://id.wikipedia.org/wiki/Sistem_rating_konten_televisi with additional ratings
         'S-SU': 2,
@@ -269,47 +277,60 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 display_id, '%s page %s' % (note, page_num))[0] or []
 
             for video_json in episode_list:
-                link = video_json['share_link']
-                url_res = self.url_result(link, 'RCTIPlus', video_json.get('product_id'), video_json.get('title'))
-                url_res.update(metadata)
+                url_res = self.url_result(video_json['share_link'], 'RCTIPlus', video_json.get('product_id'), video_json.get('title'))
+                url_res.update({
+                    'display_id': video_json.get('title_code').replace('_', '-'),
+                    'description': video_json.get('summary'),
+                    'timestamp': video_json.get('release_date'),
+                    'duration': video_json.get('duration'),
+                    'season_number': video_json.get('season'),
+                    'episode_number': video_json.get('episode'),
+                    **metadata
+                })
                 yield url_res
 
+    def _series_entries(self, series_id, display_id=None, types=[], metadata={}):
+        if 'episodes' in types:
+            try:
+                seasons_list = self._call_api(
+                    'https://api.rctiplus.com/api/v1/program/%s/season' % series_id, display_id, 'Downloading seasons list JSON')[0]
+            except ExtractorError as e:
+                if 'not found' in str(e):
+                    seasons_list = []
+                else:
+                    raise e
+            for season in seasons_list:
+                yield from self._entries('https://api.rctiplus.com/api/v2/program/%s/episode?season=%s' % (series_id, season['season']),
+                                         display_id, 'Downloading season %s episode entries' % season['season'], metadata)
+        if 'extras' in types:
+            yield from self._entries('https://api.rctiplus.com/api/v2/program/%s/extra?content_id=0' % series_id,
+                                     display_id, 'Downloading extra entries', metadata)
+        if 'clips' in types:
+            yield from self._entries('https://api.rctiplus.com/api/v2/program/%s/clip?content_id=0' % series_id,
+                                     display_id, 'Downloading clip entries', metadata)
+
     def _real_extract(self, url):
-        series_id, display_id = self._match_valid_url(url).groups()
+        match = self._match_valid_url(url).groupdict()
+        series_id, display_id, url_video_type = match['id'], match['display_id'], match.get('type')
+
+        video_types = self._configuration_arg('video_types')
+        if not video_types:
+            if url_video_type:
+                self.report_warning(f'Only {url_video_type} will be downloaded. To download everything from the series, remove "/{url_video_type}" from the URL')
+                video_types = [url_video_type]
+            else:
+                video_types = ['episodes', 'extras', 'clips']
 
         series_meta, meta_paths = self._call_api(
             'https://api.rctiplus.com/api/v1/program/%s/detail' % series_id, display_id, 'Downloading series metadata')
         metadata = {
-            'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']])
+            'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']]),
+            'cast': traverse_obj(series_meta, (('starring', 'creator', 'writer'), ..., 'name'), expected_type=strip_or_none),
+            'tag': traverse_obj(series_meta, ('tag', ..., 'name'), expected_type=strip_or_none),
         }
-
-        cast = []
-        for star in series_meta.get('starring', []):
-            cast.append(strip_or_none(star.get('name')))
-        for star in series_meta.get('creator', []):
-            cast.append(strip_or_none(star.get('name')))
-        for star in series_meta.get('writer', []):
-            cast.append(strip_or_none(star.get('name')))
-        metadata['cast'] = cast
-
-        tags = []
-        for tag in series_meta.get('tag', []):
-            tags.append(strip_or_none(tag.get('name')))
-        metadata['tag'] = tags
-
-        entries = []
-        seasons_list = self._call_api(
-            'https://api.rctiplus.com/api/v1/program/%s/season' % series_id, display_id, 'Downloading seasons list JSON')[0]
-        for season in seasons_list:
-            entries.append(self._entries('https://api.rctiplus.com/api/v2/program/%s/episode?season=%s' % (series_id, season['season']),
-                                         display_id, 'Downloading season %s episode entries' % season['season'], metadata))
-
-        entries.append(self._entries('https://api.rctiplus.com/api/v2/program/%s/clip?content_id=0' % series_id,
-                                     display_id, 'Downloading clip entries', metadata))
-        entries.append(self._entries('https://api.rctiplus.com/api/v2/program/%s/extra?content_id=0' % series_id,
-                                     display_id, 'Downloading extra entries', metadata))
-
-        return self.playlist_result(itertools.chain(*entries), series_id, series_meta.get('title'), series_meta.get('summary'), **metadata)
+        return self.playlist_result(
+            self._series_entries(series_id, display_id, video_types, metadata), series_id,
+            series_meta.get('title'), series_meta.get('summary'), display_id=display_id, **metadata)
 
 
 class RCTIPlusTVIE(RCTIPlusBaseIE):
