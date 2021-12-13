@@ -4,7 +4,8 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    try_get
+    try_get,
+    js_to_json
 )
 
 
@@ -61,10 +62,8 @@ class OlympicsReplayIE(InfoExtractor):
         return {
             'id': uuid,
             'title': title,
-            'timestamp': json_ld.get('timestamp'),
-            'description': json_ld.get('description'),
             'thumbnails': thumbnails,
-            'duration': json_ld.get('duration'),
             'formats': formats,
             'subtitles': subtitles,
+            **json_ld
         }
