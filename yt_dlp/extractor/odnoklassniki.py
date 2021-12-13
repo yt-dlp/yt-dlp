@@ -294,7 +294,6 @@ class OdnoklassnikiIE(InfoExtractor):
             note='Downloading mobile webpage')
 
         error = self._search_regex(
-            # popular] video</a><div class="empty">[reason in russian]</div>
             r'видео</a>\s*<div\s+class="empty">(.+?)</div>',
             webpage, 'error', default=None)
         if error:
