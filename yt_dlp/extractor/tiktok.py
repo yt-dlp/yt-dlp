@@ -28,6 +28,7 @@ class TikTokBaseIE(InfoExtractor):
     _AID = 1180
     _API_HOSTNAME = 'api-t2.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
+    _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p')
 
     def _call_api(self, ep, query, video_id, fatal=True,
@@ -68,6 +69,9 @@ class TikTokBaseIE(InfoExtractor):
             'cp': 'cbfhckdckkde1',
         }
         self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
+        webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
+        if webpage_cookies and webpage_cookies.get('sid_tt'):
+            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies.get('sid_tt').value)
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
@@ -340,7 +344,9 @@ class TikTokIE(TikTokBaseIE):
 
     def _extract_aweme_app(self, aweme_id):
         aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
-                                      note='Downloading video details', errnote='Unable to download video details')['aweme_detail']
+                                      note='Downloading video details', errnote='Unable to download video details').get('aweme_detail')
+        if not aweme_detail:
+            raise ExtractorError('Video not available', video_id=video_id)
         return self._parse_aweme_video_app(aweme_detail)
 
     def _real_extract(self, url):
@@ -542,6 +548,7 @@ class DouyinIE(TikTokIE):
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'
     _UPLOADER_URL_FORMAT = 'https://www.douyin.com/user/%s'
+    _WEBPAGE_HOST = 'https://www.douyin.com/'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
