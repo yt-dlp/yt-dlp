@@ -70,8 +70,8 @@ class TikTokBaseIE(InfoExtractor):
         }
         self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
-        if webpage_cookies and webpage_cookies.get('sid_tt'):
-            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies.get('sid_tt').value)
+        if webpage_cookies.get('sid_tt'):
+            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
         return self._download_json(
             'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
             fatal=fatal, note=note, errnote=errnote, headers={
