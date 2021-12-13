@@ -26,7 +26,7 @@ class TikTokBaseIE(InfoExtractor):
     _MANIFEST_APP_VERSION = '291'
     _APP_NAME = 'trill'
     _AID = 1180
-    _API_HOSTNAME = 'api-t2.tiktokv.com'
+    _API_HOSTNAME = 'api-h2.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p')
@@ -346,7 +346,7 @@ class TikTokIE(TikTokBaseIE):
         aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
                                       note='Downloading video details', errnote='Unable to download video details').get('aweme_detail')
         if not aweme_detail:
-            raise ExtractorError('Video not available', video_id=video_id)
+            raise ExtractorError('Video not available', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
 
     def _real_extract(self, url):
