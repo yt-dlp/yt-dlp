@@ -564,10 +564,10 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
                     total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
                 episodes_json = season_json['data']
                 for episode in episodes_json:
-                    video_id = episode['attributes']['path']
+                    video_path = episode['attributes']['path']
                     yield self.url_result(
-                        '%svideos/%s' % (self._DOMAIN, video_id),
-                        ie=self._VIDEO_IE.ie_key(), video_id=video_id)
+                        '%svideos/%s' % (self._DOMAIN, video_path),
+                        ie=self._VIDEO_IE.ie_key(), video_id=episode.get('id') or video_path)
                 page_num += 1
 
     def _real_extract(self, url):
