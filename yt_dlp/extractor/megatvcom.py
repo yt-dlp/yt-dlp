@@ -24,19 +24,9 @@ class MegaTVComBaseIE(InfoExtractor):
     _PLAYER_DIV_ID = 'player_div_id'
 
     def _extract_player_attrs(self, webpage):
-        PLAYER_DIV_RE = r'''(?x)
-        <div(?:
-            id=(?P<_q1>["'])(?P<%(pdi)s>%(pdi)s)(?P=_q1)|
-            [^>]*?
-        )+>
-        ''' % {'pdi': self._PLAYER_DIV_ID}
-        for mobj in re.finditer(PLAYER_DIV_RE, webpage):
-            if mobj.group(self._PLAYER_DIV_ID):
-                player_el = mobj.group(0)
-                break
-        else:
-            raise ExtractorError('no <div id="%s"> element found in webpage' %
-                                 self._PLAYER_DIV_ID)
+        player_el = self._search_regex(
+            r'(<div[^>]*\sid=(?P<_q>["\'])%s(?P=_q)\s[^>]+>)' %
+            self._PLAYER_DIV_ID, webpage, 'player element')
         return {
             re.sub(r'^data-(?:kwik_)?', '', k): v
             for k, v in extract_attributes(player_el).items()
@@ -47,7 +37,7 @@ class MegaTVComBaseIE(InfoExtractor):
 class MegaTVComIE(MegaTVComBaseIE):
     IE_NAME = 'megatvcom'
     IE_DESC = 'megatv.com videos'
-    _VALID_URL = r'https?://(?:www\.)?megatv\.com/(?:(?!\d{4})[^/]+/(?P<id>\d+)/[^/]+|\d{4}/\d{2}/\d{2}/.+)'
+    _VALID_URL = r'https?://(?:www\.)?megatv\.com/(?:\d{4}/\d{2}/\d{2}|[^/]+/(?P<id>\d+))/(?P<slug>[^/]+)'
 
     _TESTS = [{
         'url': 'https://www.megatv.com/2021/10/23/egkainia-gia-ti-nea-skini-omega-tou-dimotikou-theatrou-peiraia/',
@@ -73,24 +63,13 @@ class MegaTVComIE(MegaTVComBaseIE):
         },
     }]
 
-    def _match_article_id(self, webpage):
-        ART_RE = r'''(?x)
-        <article(?:
-            id=(?P<_q2>["'])Article_(?P<article>\d+)(?P=_q2)|
-            [^>]*?
-        )+>
-        '''
-        return self._search_regex(ART_RE, webpage, 'article_id',
-                                  group='article')
-
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, display_id = self._match_valid_url(url).group('id', 'slug')
         _is_article = video_id is None
-        webpage = self._download_webpage(url,
-                                         'N/A' if _is_article else
-                                         video_id)
+        webpage = self._download_webpage(url, video_id or display_id)
         if _is_article:
-            video_id = self._match_article_id(webpage)
+            video_id = self._search_regex(
+                r'<article[^>]*\sid=["\']Article_(\d+)["\']', webpage, 'article id')
         player_attrs = self._extract_player_attrs(webpage)
         title = player_attrs.get('label') or self._og_search_title(webpage)
         description = clean_html(get_element_by_class(
@@ -98,20 +77,20 @@ class MegaTVComIE(MegaTVComBaseIE):
             webpage))
         if not description:
             description = self._og_search_description(webpage)
-        thumbnail = player_attrs.get('image') or \
-            self._og_search_thumbnail(webpage)
+        thumbnail = player_attrs.get('image') or self._og_search_thumbnail(webpage)
         timestamp = unified_timestamp(self._html_search_meta(
             'article:published_time', webpage))
-        try:
-            source = player_attrs['source']
-        except KeyError:
-            raise ExtractorError('no source found for %s' % video_id)
-        formats, subs = self._extract_m3u8_formats_and_subtitles(
-            source, video_id, 'mp4') \
-            if determine_ext(source) == 'm3u8' else ([source], {})
+        source = player_attrs.get('source')
+        if not source:
+            raise ExtractorError('No source found', video_id=video_id)
+        if determine_ext(source) == 'm3u8':
+            formats, subs = self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
+        else:
+            formats, subs = [source], {}
         self._sort_formats(formats)
         return {
             'id': video_id,
+            'display_id': display_id,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
@@ -124,7 +103,7 @@ class MegaTVComIE(MegaTVComBaseIE):
 class MegaTVComEmbedIE(MegaTVComBaseIE):
     IE_NAME = 'megatvcom:embed'
     IE_DESC = 'megatv.com embedded videos'
-    _VALID_URL = r'https?://(?:www\.)?megatv\.com/embed/?\?p=\d+'
+    _VALID_URL = r'https?://(?:www\.)?megatv\.com/embed/?\?p=(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.megatv.com/embed/?p=2020520979',
@@ -155,9 +134,9 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
         # make the scheme in _VALID_URL optional
         _URL_RE = r'(?:https?:)?//' + cls._VALID_URL.split('://', 1)[1]
         EMBED_RE = r'''(?x)
-            <iframe[^>]+?src=(?P<_q1>%(quot_re)s)
+            <iframe[^>]+?src=(?P<_q1>["'])
                 (?P<url>%(url_re)s)(?P=_q1)
-        ''' % {'quot_re': r'["\']', 'url_re': _URL_RE}
+        ''' % {'url_re': _URL_RE}
         for mobj in re.finditer(EMBED_RE, webpage):
             url = unescapeHTML(mobj.group('url'))
             if url.startswith('//'):
@@ -168,21 +147,21 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
     def _match_canonical_url(self, webpage):
         LINK_RE = r'''(?x)
         <link(?:
-            rel=(?P<_q1>%(quot_re)s)(?P<canonical>canonical)(?P=_q1)|
-            href=(?P<_q2>%(quot_re)s)(?P<href>(?:(?!(?P=_q2)).)+)(?P=_q2)|
+            rel=(?P<_q1>["'])(?P<canonical>canonical)(?P=_q1)|
+            href=(?P<_q2>["'])(?P<href>(?:(?!(?P=_q2)).)+)(?P=_q2)|
             [^>]*?
         )+>
-        ''' % {'quot_re': r'["\']'}
+        '''
         for mobj in re.finditer(LINK_RE, webpage):
             canonical, href = mobj.group('canonical', 'href')
             if canonical and href:
                 return unescapeHTML(href)
 
     def _real_extract(self, url):
-        webpage = self._download_webpage(url, 'N/A')
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
         player_attrs = self._extract_player_attrs(webpage)
-        canonical_url = player_attrs.get('share_url') or \
-            self._match_canonical_url(webpage)
+        canonical_url = player_attrs.get('share_url') or self._match_canonical_url(webpage)
         if not canonical_url:
             raise ExtractorError('canonical URL not found')
         video_id = parse_qs(urlparse(canonical_url).query)['p'][0]
@@ -194,8 +173,4 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
             HEADRequest(canonical_url), video_id,
             note='Resolve canonical URL',
             errnote='Could not resolve canonical URL').geturl()
-        return self.url_result(
-            canonical_url,
-            MegaTVComIE.ie_key(),
-            video_id
-        )
+        return self.url_result(canonical_url, MegaTVComIE.ie_key(), video_id)
