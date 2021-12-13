@@ -19,6 +19,7 @@ class OlympicsReplayIE(InfoExtractor):
             'upload_date': '20210801',
             'timestamp': 1627783200,
             'description': 'md5:c66af4a5bc7429dbcc43d15845ff03b3',
+            'uploader': 'International Olympic Committee',
         },
         'params': {
             'skip_download': True,
