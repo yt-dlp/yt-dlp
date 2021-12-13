@@ -507,7 +507,7 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):
 
 
 class RaiPlaySoundPlaylistIE(InfoExtractor):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?:programmi|playlist|audiolibri)/(?P<id>[^/?#&]+))/*(?P<extra_id>[^?#&]+)?$'
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplaysound\.it/(?:programmi|playlist|audiolibri)/(?P<id>[^/?#&]+))(?:/(?P<extra_id>[^?#&]+))?'
     _TESTS = [{
         'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio',
         'info_dict': {
@@ -532,15 +532,16 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
             base + '.json', playlist_id, 'Downloading program JSON')
 
         if extra_id:
-            for c in try_get(program, lambda x: x['filters']) or []:
+            for c in program.get('filters') or []:
                 if extra_id in c.get('weblink'):
                     program = self._download_json(
                         urljoin('https://www.raiplaysound.it', c.get('path_id')),
                         extra_id, 'Downloading program secondary JSON')
 
         entries = []
-        for c in (try_get(program, lambda x: x['block']['cards'])
-                  or try_get(program, lambda x: x['cards']) or []):
+        for c in (program.get('cards')
+                  or try_get(program, lambda x: x['block']['cards'])
+                  or []):
             path_id = c.get('path_id')
             if not path_id:
                 continue
