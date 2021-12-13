@@ -70,6 +70,13 @@ class RokfinPostIE(RokfinSingleVideoIE):
         availability = try_get(self, lambda x: videoAvailability(x, downloaded_json))
 
         if m3u8_url:
+            # Prior to adopting M3U, Rokfin stored videos directly in regular mp4 files:
+            if m3u8_url.endswith('.mp4'):
+                return self.url_result(url=m3u8_url)
+
+            if not(m3u8_url.endswith('.m3u8')):
+                self.raise_no_formats(msg=f'unsupported video URL {m3u8_url}', expected=False)
+
             frmts = self._extract_m3u8_formats(m3u8_url=m3u8_url, video_id=video_id, fatal=False)
             self._sort_formats(frmts)
         else:
