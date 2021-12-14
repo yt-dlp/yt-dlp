@@ -77,8 +77,7 @@ class GlomexBaseIE(InfoExtractor):
         info['formats'], info['subtitles'] = self._extract_formats_and_subs(video, video_id)
         return info
 
-    @staticmethod
-    def _extract_info(video, video_id=None):
+    def _extract_info(self, video, video_id=None):
         def append_image_url(url, default='profile:player-960x540'):
             if url:
                 return '%s/%s' % (url, default)
@@ -90,12 +89,14 @@ class GlomexBaseIE(InfoExtractor):
             'width': 960,
             'height': 540,
         } for image in video.get('images') or [] if image.get('url')]
+        if thumbnail:
+            thumbnails.append({'url': thumbnail})
+        self._remove_duplicate_formats(thumbnails)
 
         return {
             'id': video.get('clip_id') or video_id,
             'title': video.get('title'),
             'description': video.get('description'),
-            'thumbnail': thumbnail,
             'thumbnails': thumbnails,
             'duration': int_or_none(video.get('clip_duration')),
             'timestamp': video.get('created_at'),
