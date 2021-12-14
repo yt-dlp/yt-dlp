@@ -74,8 +74,7 @@ class GlomexBaseIE(InfoExtractor):
         if video.get('error_code') == 'contentGeoblocked':
             self.raise_geo_restricted(countries=video['geo_locations'])
         info = self._extract_info(video, video_id)
-        info['formats'], info['subtitles'] = self._extract_formats_and_subs(
-            video, video_id)
+        info['formats'], info['subtitles'] = self._extract_formats_and_subs(video, video_id)
         return info
 
     @staticmethod
@@ -85,12 +84,12 @@ class GlomexBaseIE(InfoExtractor):
                 return '%s/%s' % (url, default)
         thumbnail = append_image_url(try_get(video,
                                              lambda x: x['image']['url']))
-        thumbnails = [
-            dict(width=960, height=540,
-                 **{k: append_image_url(v) if k == 'url' else v
-                    for k, v in image.items() if k in ('id', 'url')})
-            for image in video.get('images', [])
-        ] or None
+        thumbnails = [{
+            'id': image.get('id'),
+            'url': append_image_url(image['url']),
+            'width': 960,
+            'height': 540,
+        } for image in video.get('images') or [] if image.get('url')]
 
         return {
             'id': video.get('clip_id') or video_id,
@@ -119,7 +118,7 @@ class GlomexBaseIE(InfoExtractor):
                 })
         if options.get('language'):
             for format in formats:
-                format['language'] = options.get('language')
+                format['language'] = options['language']
         self._sort_formats(formats)
         return formats, subs
 
@@ -128,10 +127,9 @@ class GlomexIE(GlomexBaseIE):
     IE_NAME = 'glomex'
     IE_DESC = 'Glomex videos'
     _VALID_URL = r'https?://video\.glomex\.com/[^/]+/(?P<id>v-[^-]+)'
-    # Hard-coded integration ID for video.glomex.com
     _INTEGRATION_ID = '19syy24xjn1oqlpc'
 
-    _TEST = {
+    _TESTS = [{
         'url': 'https://video.glomex.com/sport/v-cb24uwg77hgh-nach-2-0-sieg-guardiola-mit-mancity-vor-naechstem-titel',
         'md5': 'cec33a943c4240c9cb33abea8c26242e',
         'info_dict': {
@@ -144,18 +142,13 @@ class GlomexIE(GlomexBaseIE):
             'upload_date': '20210501',
             'age_limit': None,
         },
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        # Defer to glomex:embed IE: Build and return a player URL using the
-        # matched video ID and the hard-coded integration ID
         return self.url_result(
-            GlomexEmbedIE.build_player_url(video_id, self._INTEGRATION_ID,
-                                           url),
-            GlomexEmbedIE.ie_key(),
-            video_id
-        )
+            GlomexEmbedIE.build_player_url(video_id, self._INTEGRATION_ID, url),
+            GlomexEmbedIE.ie_key(), video_id)
 
 
 class GlomexEmbedIE(GlomexBaseIE):
@@ -268,13 +261,5 @@ class GlomexEmbedIE(GlomexBaseIE):
 
     def _real_extract(self, url):
         url, origin_url = self._unsmuggle_origin_url(url)
-        # must return a valid match since it was already tested when selecting the IE
-        try:
-            matches = self._VALID_URL_RE.match(url).groupdict()
-        except AttributeError:
-            matches = re.match(self._VALID_URL, url).groupdict()
-        # id is not enforced in the pattern, so do it now; ditto integration
-        video_id = matches['id']
-        integration = matches['integration']
-        return self._download_and_extract_api_data(video_id, integration,
-                                                   origin_url)
+        video_id, integration = self._match_valid_url(url).group('id', 'integration')
+        return self._download_and_extract_api_data(video_id, integration, origin_url)
