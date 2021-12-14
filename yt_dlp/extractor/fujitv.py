@@ -5,7 +5,7 @@ from .common import InfoExtractor
 
 
 class FujiTVFODPlus7IE(InfoExtractor):
-    _VALID_URL = r'https?://fod\.fujitv\.co\.jp/title/[0-9a-z]{4}/(?P<id>[0-9a-z]+)'
+    _VALID_URL = r'https?://fod\.fujitv\.co\.jp/title/(?P<sid>[0-9a-z]{4})/(?P<id>[0-9a-z]+)'
     _BASE_URL = 'http://i.fod.fujitv.co.jp/'
     _BITRATE_MAP = {
         300: (320, 180),
@@ -16,22 +16,28 @@ class FujiTVFODPlus7IE(InfoExtractor):
     }
 
     _TESTS = [{
-        'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810075',
+        'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810076',
         'info_dict': {
-            'id': '5d40810075',
-            'title': '#1317 『おっちゃんのまほうカード』の巻／『まるちゃん おばけ屋敷にいく』の巻',
+            'id': '5d40810076',
+            'ext': 'mp4',
+            'title': '#1318 『まる子、まぼろしの洋館を見る』の巻',
             'series': 'ちびまる子ちゃん',
-            'description': 'md5:7bed4cb3c3b1e3cfb2cadead352cb202',
+            'series_id': '5d40',
+            'description': 'md5:b3f51dbfdda162ac4f789e0ff4d65750',
             'ext': 'mp4',
             'format_id': '4000',
-            'thumbnail': 'http://i.fod.fujitv.co.jp/pc/image/wbtn/wbtn_5d40810075.jpg'
+            'thumbnail': 'http://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810076_a.jpg',
         },
-        'skip': 'Expires after a week'
+        'params': {'skip_download': True}
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+        series_id = self._match_valid_url(url).group('sid')
         self._download_webpage(url, video_id, fatal=False)
+        # TODO: extract thumbnail from webpage
+        # then remove trim part using regexp: \/(imf\/.*)\/img
+        # where the thumbnail is a img element with id of 'thumbnail'
         formats = self._extract_m3u8_formats(
             self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         if not self._get_cookies(url).get('CT') is None:
@@ -52,7 +58,8 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'id': video_id,
             'title': json_info.get('ep_title') or video_id,
             'series': json_info.get('lu_title'),
+            'series_id': series_id,
             'description': json_info.get('ep_description'),
             'formats': formats,
-            'thumbnail': self._BASE_URL + 'pc/image/wbtn/wbtn_%s.jpg' % video_id,
+            'thumbnail': self._BASE_URL + f'img/program/{series_id}/episode/{video_id}_a.jpg',
         }
