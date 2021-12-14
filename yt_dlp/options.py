@@ -13,11 +13,11 @@ from .compat import (
     compat_shlex_split,
 )
 from .utils import (
+    Config,
     expand_path,
     get_executable_path,
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
-    preferredencoding,
     remove_end,
     write_string,
 )
@@ -35,39 +35,16 @@ from .postprocessor import (
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
 
 
-def _hide_login_info(opts):
-    PRIVATE_OPTS = set(['-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'])
-    eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
+def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
+    parser = create_parser()
+    root = Config(parser)
 
-    def _scrub_eq(o):
-        m = eqre.match(o)
-        if m:
-            return m.group('key') + '=PRIVATE'
-        else:
-            return o
-
-    opts = list(map(_scrub_eq, opts))
-    for idx, opt in enumerate(opts):
-        if opt in PRIVATE_OPTS and idx + 1 < len(opts):
-            opts[idx + 1] = 'PRIVATE'
-    return opts
-
-
-def parseOpts(overrideArguments=None):
-    def _readOptions(filename_bytes, default=[]):
-        try:
-            optionf = open(filename_bytes)
-        except IOError:
-            return default  # silently skip if file is not present
-        try:
-            # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
-            contents = optionf.read()
-            if sys.version_info < (3,):
-                contents = contents.decode(preferredencoding())
-            res = compat_shlex_split(contents, comments=True)
-        finally:
-            optionf.close()
-        return res
+    if ignore_config_files == 'if_override':
+        ignore_config_files = overrideArguments is not None
+    if overrideArguments:
+        root.append_config(overrideArguments, label='Override')
+    else:
+        root.append_config(sys.argv[1:], label='Command-line')
 
     def _readUserConf(package_name, default=[]):
         # .config
@@ -75,7 +52,7 @@ def parseOpts(overrideArguments=None):
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
-        userConf = _readOptions(userConfFile, default=None)
+        userConf = Config.read_file(userConfFile, default=None)
         if userConf is not None:
             return userConf, userConfFile
 
@@ -83,24 +60,64 @@ def parseOpts(overrideArguments=None):
         appdata_dir = compat_getenv('appdata')
         if appdata_dir:
             userConfFile = os.path.join(appdata_dir, package_name, 'config')
-            userConf = _readOptions(userConfFile, default=None)
+            userConf = Config.read_file(userConfFile, default=None)
             if userConf is None:
                 userConfFile += '.txt'
-                userConf = _readOptions(userConfFile, default=None)
+                userConf = Config.read_file(userConfFile, default=None)
         if userConf is not None:
             return userConf, userConfFile
 
         # home
         userConfFile = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
-        userConf = _readOptions(userConfFile, default=None)
+        userConf = Config.read_file(userConfFile, default=None)
         if userConf is None:
             userConfFile += '.txt'
-            userConf = _readOptions(userConfFile, default=None)
+            userConf = Config.read_file(userConfFile, default=None)
         if userConf is not None:
             return userConf, userConfFile
 
         return default, None
 
+    def add_config(label, path, user=False):
+        """ Adds config and returns whether to continue """
+        if root.parse_args()[0].ignoreconfig:
+            return False
+        # Multiple package names can be given here
+        # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
+        # the configuration file of any of these three packages
+        for package in ('yt-dlp',):
+            if user:
+                args, current_path = _readUserConf(package, default=None)
+            else:
+                current_path = os.path.join(path, '%s.conf' % package)
+                args = Config.read_file(current_path, default=None)
+            if args is not None:
+                root.append_config(args, current_path, label=label)
+                return True
+        return True
+
+    def load_configs():
+        yield not ignore_config_files
+        yield add_config('Portable', get_executable_path())
+        yield add_config('Home', expand_path(root.parse_args()[0].paths.get('home', '')).strip())
+        yield add_config('User', None, user=True)
+        yield add_config('System', '/etc')
+
+    if all(load_configs()):
+        # If ignoreconfig is found inside the system configuration file,
+        # the user configuration is removed
+        if root.parse_args()[0].ignoreconfig:
+            user_conf = next((i for i, conf in enumerate(root.configs) if conf.label == 'User'), None)
+            if user_conf is not None:
+                root.configs.pop(user_conf)
+
+    opts, args = root.parse_args()
+    if opts.verbose:
+        write_string(f'\n{root}'.replace('\n| ', '\n[debug] ')[1:] + '\n')
+    return parser, opts, args
+
+
+def create_parser():
     def _format_option_string(option):
         ''' ('-o', '--option') -> -o, --format METAVAR'''
 
@@ -244,14 +261,20 @@ def parseOpts(overrideArguments=None):
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
         help=(
-            'Disable loading any configuration files except the one provided by --config-location. '
-            'When given inside a configuration file, no further configuration files are loaded. '
-            'Additionally, (for backward compatibility) if this option is found inside the '
-            'system configuration file, the user configuration is not loaded'))
+            'Disable loading any further configuration files except the one provided by --config-locations. '
+            'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded'))
     general.add_option(
-        '--config-location',
-        dest='config_location', metavar='PATH',
-        help='Location of the main configuration file; either the path to the config or its containing directory')
+        '--no-config-locations',
+        action='store_const', dest='config_locations', const=[],
+        help=(
+            'Do not load any custom configuration files (default). When given inside a '
+            'configuration file, ignore all previous --config-locations defined in the current file'))
+    general.add_option(
+        '--config-locations',
+        dest='config_locations', metavar='PATH', action='append',
+        help=(
+            'Location of the main configuration file; either the path to the config or its containing directory. '
+            'Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -1634,75 +1657,11 @@ def parseOpts(overrideArguments=None):
     parser.add_option_group(sponsorblock)
     parser.add_option_group(extractor)
 
-    if overrideArguments is not None:
-        opts, args = parser.parse_args(overrideArguments)
-        if opts.verbose:
-            write_string('[debug] Override config: ' + repr(overrideArguments) + '\n')
-    else:
-        def compat_conf(conf):
-            if sys.version_info < (3,):
-                return [a.decode(preferredencoding(), 'replace') for a in conf]
-            return conf
+    return parser
 
-        configs = {
-            'command-line': compat_conf(sys.argv[1:]),
-            'custom': [], 'home': [], 'portable': [], 'user': [], 'system': []}
-        paths = {'command-line': False}
 
-        def read_options(name, path, user=False):
-            ''' loads config files and returns ignoreconfig '''
-            # Multiple package names can be given here
-            # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-            # the configuration file of any of these three packages
-            for package in ('yt-dlp',):
-                if user:
-                    config, current_path = _readUserConf(package, default=None)
-                else:
-                    current_path = os.path.join(path, '%s.conf' % package)
-                    config = _readOptions(current_path, default=None)
-                if config is not None:
-                    current_path = os.path.realpath(current_path)
-                    if current_path in paths.values():
-                        return False
-                    configs[name], paths[name] = config, current_path
-                    return parser.parse_args(config)[0].ignoreconfig
-            return False
-
-        def get_configs():
-            opts, _ = parser.parse_args(configs['command-line'])
-            if opts.config_location is not None:
-                location = compat_expanduser(opts.config_location)
-                if os.path.isdir(location):
-                    location = os.path.join(location, 'yt-dlp.conf')
-                if not os.path.exists(location):
-                    parser.error('config-location %s does not exist.' % location)
-                config = _readOptions(location, default=None)
-                if config:
-                    configs['custom'], paths['custom'] = config, location
-
-            if opts.ignoreconfig:
-                return
-            if parser.parse_args(configs['custom'])[0].ignoreconfig:
-                return
-            if read_options('portable', get_executable_path()):
-                return
-            opts, _ = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])
-            if read_options('home', expand_path(opts.paths.get('home', '')).strip()):
-                return
-            if read_options('system', '/etc'):
-                return
-            if read_options('user', None, user=True):
-                configs['system'], paths['system'] = [], None
-
-        get_configs()
-        argv = configs['system'] + configs['user'] + configs['home'] + configs['portable'] + configs['custom'] + configs['command-line']
-        opts, args = parser.parse_args(argv)
-        if opts.verbose:
-            for label in ('Command-line', 'Custom', 'Portable', 'Home', 'User', 'System'):
-                key = label.lower()
-                if paths.get(key):
-                    write_string(f'[debug] {label} config file: {paths[key]}\n')
-                if paths.get(key) is not None:
-                    write_string(f'[debug] {label} config: {_hide_login_info(configs[key])!r}\n')
-
-    return parser, opts, args
+def _hide_login_info(opts):
+    write_string(
+        'DeprecationWarning: "yt_dlp.options._hide_login_info" is deprecated and may be removed in a future version. '
+        'Use "yt_dlp.utils.Config.hide_login_info" instead\n')
+    return Config.hide_login_info(opts)

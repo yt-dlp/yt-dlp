@@ -23,6 +23,7 @@ from yt_dlp.utils import (
     caesar,
     clean_html,
     clean_podcast_url,
+    Config,
     date_from_str,
     datetime_from_str,
     DateRange,
@@ -1700,6 +1701,15 @@ Line 1
         self.assertEqual(format_bytes(1024**6), '1.00EiB')
         self.assertEqual(format_bytes(1024**7), '1.00ZiB')
         self.assertEqual(format_bytes(1024**8), '1.00YiB')
+
+    def test_hide_login_info(self):
+        self.assertEqual(Config.hide_login_info(['-u', 'foo', '-p', 'bar']),
+                         ['-u', 'PRIVATE', '-p', 'PRIVATE'])
+        self.assertEqual(Config.hide_login_info(['-u']), ['-u'])
+        self.assertEqual(Config.hide_login_info(['-u', 'foo', '-u', 'bar']),
+                         ['-u', 'PRIVATE', '-u', 'PRIVATE'])
+        self.assertEqual(Config.hide_login_info(['--username=foo']),
+                         ['--username=PRIVATE'])
 
 
 if __name__ == '__main__':

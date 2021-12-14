@@ -58,6 +58,7 @@ from .compat import (
     compat_kwargs,
     compat_os_name,
     compat_parse_qs,
+    compat_shlex_split,
     compat_shlex_quote,
     compat_str,
     compat_struct_pack,
@@ -5100,3 +5101,90 @@ def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))
+
+
+class Config:
+    own_args = None
+    filename = None
+    __initialized = False
+
+    def __init__(self, parser, label=None):
+        self._parser, self.label = parser, label
+        self._loaded_paths, self.configs = set(), []
+
+    def init(self, args=None, filename=None):
+        assert not self.__initialized
+        if filename:
+            location = os.path.realpath(filename)
+            if location in self._loaded_paths:
+                return False
+            self._loaded_paths.add(location)
+
+        self.__initialized = True
+        self.own_args, self.filename = args, filename
+        for location in self._parser.parse_args(args)[0].config_locations or []:
+            location = compat_expanduser(location)
+            if os.path.isdir(location):
+                location = os.path.join(location, 'yt-dlp.conf')
+            if not os.path.exists(location):
+                self._parser.error(f'config location {location} does not exist')
+            self.append_config(self.read_file(location), location)
+        return True
+
+    def __str__(self):
+        label = join_nonempty(
+            self.label, 'config', f'"{self.filename}"' if self.filename else '',
+            delim=' ')
+        return join_nonempty(
+            self.own_args is not None and f'{label[0].upper()}{label[1:]}: {self.hide_login_info(self.own_args)}',
+            *(f'\n{c}'.replace('\n', '\n| ')[1:] for c in self.configs),
+            delim='\n')
+
+    @staticmethod
+    def read_file(filename, default=[]):
+        try:
+            optionf = open(filename)
+        except IOError:
+            return default  # silently skip if file is not present
+        try:
+            # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
+            contents = optionf.read()
+            if sys.version_info < (3,):
+                contents = contents.decode(preferredencoding())
+            res = compat_shlex_split(contents, comments=True)
+        finally:
+            optionf.close()
+        return res
+
+    @staticmethod
+    def hide_login_info(opts):
+        PRIVATE_OPTS = set(['-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'])
+        eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
+
+        def _scrub_eq(o):
+            m = eqre.match(o)
+            if m:
+                return m.group('key') + '=PRIVATE'
+            else:
+                return o
+
+        opts = list(map(_scrub_eq, opts))
+        for idx, opt in enumerate(opts):
+            if opt in PRIVATE_OPTS and idx + 1 < len(opts):
+                opts[idx + 1] = 'PRIVATE'
+        return opts
+
+    def append_config(self, *args, label=None):
+        config = type(self)(self._parser, label)
+        config._loaded_paths = self._loaded_paths
+        if config.init(*args):
+            self.configs.append(config)
+
+    @property
+    def all_args(self):
+        for config in reversed(self.configs):
+            yield from config.all_args
+        yield from self.own_args or []
+
+    def parse_args(self):
+        return self._parser.parse_args(list(self.all_args))
