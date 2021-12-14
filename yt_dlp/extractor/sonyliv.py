@@ -59,7 +59,6 @@ class SonyLIVIE(InfoExtractor):
         'only_matching': True,
     }]
     _GEO_COUNTRIES = ['IN']
-    _AUTH_TOKEN = None
     _HEADERS = {}
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using OTP or "--username token --password <auth_token>" to login using auth token.'
     _NETRC_MACHINE = 'sonyliv'
@@ -77,30 +76,30 @@ class SonyLIVIE(InfoExtractor):
         return ''.join(t) + '-' + str(int(time.time() * 1000))
 
     def _login(self, username, password):
-        if len(username) == 10 and username.isdigit() and self._AUTH_TOKEN is None:
-            self.report_login()
-            data = '''{"mobileNumber":"%s","channelPartnerID":"MSMIND","country":"IN","timestamp":"%s",
-            "otpSize":6,"loginType":"REGISTERORSIGNIN","isMobileMandatory":true}
-             ''' % (username, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
-            otp_request_json = self._download_json(
-                'https://apiv2.sonyliv.com/AGL/1.6/A/ENG/WEB/IN/HR/CREATEOTP-V2',
-                None, note='Sending OTP', data=data.encode(), headers=self._HEADERS)
-            if otp_request_json['resultCode'] == 'KO':
-                raise ExtractorError(otp_request_json['message'], expected=True)
-            otp_code = self._get_tfa_info('OTP')
-            data = '''{"channelPartnerID":"MSMIND","mobileNumber":"%s","country":"IN","otp":"%s",
-            "dmaId":"IN","ageConfirmation":true,"timestamp":"%s","isMobileMandatory":true}
-             ''' % (username, otp_code, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
-            otp_verify_json = self._download_json(
-                'https://apiv2.sonyliv.com/AGL/2.0/A/ENG/WEB/IN/HR/CONFIRMOTP-V2',
-                None, note='Verifying OTP', data=data.encode(), headers=self._HEADERS)
-            if otp_verify_json['resultCode'] == 'KO':
-                raise ExtractorError(otp_request_json['message'], expected=True)
-            self._AUTH_TOKEN = otp_verify_json['resultObj']['accessToken']
-            if not self._AUTH_TOKEN:
-                raise ExtractorError(otp_verify_json['message'], expected=True)
-        elif username.lower() == 'token' and len(password) > 1198:
-            self._AUTH_TOKEN = password
+        if username.lower() == 'token' and len(password) > 1198:
+            return password
+        elif len(username) != 10 or not username.isdigit():
+            raise ExtractorError(f'Invalid username/password; {self._LOGIN_HINT}')
+
+        self.report_login()
+        data = '''{"mobileNumber":"%s","channelPartnerID":"MSMIND","country":"IN","timestamp":"%s",
+        "otpSize":6,"loginType":"REGISTERORSIGNIN","isMobileMandatory":true}
+         ''' % (username, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
+        otp_request_json = self._download_json(
+            'https://apiv2.sonyliv.com/AGL/1.6/A/ENG/WEB/IN/HR/CREATEOTP-V2',
+            None, note='Sending OTP', data=data.encode(), headers=self._HEADERS)
+        if otp_request_json['resultCode'] == 'KO':
+            raise ExtractorError(otp_request_json['message'], expected=True)
+        otp_code = self._get_tfa_info('OTP')
+        data = '''{"channelPartnerID":"MSMIND","mobileNumber":"%s","country":"IN","otp":"%s",
+        "dmaId":"IN","ageConfirmation":true,"timestamp":"%s","isMobileMandatory":true}
+         ''' % (username, otp_code, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
+        otp_verify_json = self._download_json(
+            'https://apiv2.sonyliv.com/AGL/2.0/A/ENG/WEB/IN/HR/CONFIRMOTP-V2',
+            None, note='Verifying OTP', data=data.encode(), headers=self._HEADERS)
+        if otp_verify_json['resultCode'] == 'KO':
+            raise ExtractorError(otp_request_json['message'], expected=True)
+        return otp_verify_json['resultObj']['accessToken']
 
     def _call_api(self, version, path, video_id):
         try:
@@ -125,8 +124,7 @@ class SonyLIVIE(InfoExtractor):
         if username:
             self._HEADERS['device_id'] = self._get_device_id()
             self._HEADERS['content-type'] = 'application/json'
-            self._login(username, password)
-            self._HEADERS['authorization'] = self._AUTH_TOKEN
+            self._HEADERS['authorization'] = self._login(username, password)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
