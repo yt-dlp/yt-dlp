@@ -207,10 +207,47 @@ def expect_info_dict(self, got_dict, expected_dict):
     for key in ['webpage_url', 'extractor', 'extractor_key']:
         self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
 
-    # Are checkable fields missing from the test case definition?
-    test_info_dict = dict((key, value if not isinstance(value, compat_str) or len(value) < 250 else 'md5:' + md5(value))
-                          for key, value in got_dict.items()
-                          if value and key in ('id', 'title', 'description', 'uploader', 'upload_date', 'timestamp', 'uploader_id', 'location', 'age_limit'))
+    ignored_fields = (
+        # Format keys
+        'url', 'manifest_url', 'format', 'format_id', 'format_note', 'width', 'height', 'resolution',
+        'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'vbr', 'fps', 'vcodec', 'container', 'filesize',
+        'filesize_approx', 'player_url', 'protocol', 'fragment_base_url', 'fragments', 'preference',
+        'language', 'language_preference', 'quality', 'source_preference', 'http_headers',
+        'stretched_ratio', 'no_resume', 'has_drm', 'downloader_options',
+
+        # RTMP formats
+        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
+
+        # Lists
+        'formats', 'thumbnails', 'subtitles', 'automatic_captions', 'comments', 'entries',
+
+        # Auto-generated
+        'playlist', 'format_index', 'webpage_url', 'video_ext', 'audio_ext', 'duration_string', 'epoch', 'fulltitle',
+        'extractor', 'extractor_key', 'original_url', 'webpage_url_basename', 'filepath', 'infojson_filename',
+
+        # Only live_status needs to be checked
+        'is_live', 'was_live',
+    )
+
+    ignored_prefixes = ('', 'playlist', 'requested')
+
+    def sanitize(key, value):
+        if isinstance(value, str) and len(value) > 100:
+            return f'md5:{md5(value)}'
+        elif isinstance(value, list) and len(value) > 10:
+            return f'count:{len(value)}'
+        return value
+
+    test_info_dict = {
+        key: sanitize(key, value) for key, value in got_dict.items()
+        if value is not None and key not in ignored_fields and not any(
+            key.startswith(f'{prefix}_') for prefix in ignored_prefixes)
+    }
+
+    # display_id may be generated from id
+    if test_info_dict.get('display_id') == test_info_dict['id']:
+        test_info_dict.pop('display_id')
+
     missing_keys = set(test_info_dict.keys()) - set(expected_dict.keys())
     if missing_keys:
         def _repr(v):
