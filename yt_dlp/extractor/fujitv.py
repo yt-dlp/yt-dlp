@@ -24,11 +24,8 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'series': 'ちびまる子ちゃん',
             'series_id': '5d40',
             'description': 'md5:b3f51dbfdda162ac4f789e0ff4d65750',
-            'ext': 'mp4',
-            'format_id': '4000',
             'thumbnail': 'http://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810076_a.jpg',
         },
-        'params': {'skip_download': True}
     }]
 
     def _real_extract(self, url):
