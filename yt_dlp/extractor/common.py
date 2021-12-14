@@ -1509,7 +1509,7 @@ class InfoExtractor(object):
                     continue
                 else:
                     break
-        traverse_json_ld(json_ld, info)
+        traverse_json_ld(json_ld)
 
         return dict((k, v) for k, v in info.items() if v is not None)
 
