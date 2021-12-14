@@ -190,6 +190,7 @@ from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
 from .cableav import CableAVIE
+from .callin import CallinIE
 from .cam4 import CAM4IE
 from .camdemy import (
     CamdemyIE,
