@@ -35,12 +35,29 @@ def main():
 
     readme = re.sub(r'(?s)^.*?(?=# DESCRIPTION)', '', readme)
     readme = re.sub(r'\s+yt-dlp \[OPTIONS\] URL \[URL\.\.\.\]', '', readme)
+    readme = filter_excluded_sections(readme)
     readme = PREFIX + readme
 
     readme = filter_options(readme)
 
     with io.open(outfile, 'w', encoding='utf-8') as outf:
         outf.write(readme)
+
+
+def filter_excluded_sections(readme):
+    EXCLUDED_SECTION_BEGIN_STRING = '<!-- BEGIN EXCLUDE FROM MANPAGE -->'
+    EXCLUDED_SECTION_END_STRING = '<!-- END EXCLUDE FROM MANPAGE -->'
+    ret = []
+    in_section = False
+    for line in readme.split('\n'):
+        if EXCLUDED_SECTION_BEGIN_STRING in line:
+            in_section = True
+        if not in_section:
+            ret.append(line)
+        if EXCLUDED_SECTION_END_STRING in line:
+            in_section = False
+
+    return '\n'.join(ret)
 
 
 def filter_options(readme):

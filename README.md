@@ -1,3 +1,4 @@
+<!-- BEGIN EXCLUDE FROM MANPAGE -->
 <div align="center">
 
 [![YT-DLP](https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/.github/banner.svg)](#readme)
@@ -15,9 +16,11 @@
 [![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi&style=for-the-badge)](https://pypi.org/project/yt-dlp)
 
 </div>
+<!-- END EXCLUDE FROM MANPAGE -->
 
 yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
 
+<!-- BEGIN EXCLUDE FROM MANPAGE -->
 * [NEW FEATURES](#new-features)
     * [Differences in default behavior](#differences-in-default-behavior)
 * [INSTALLATION](#installation)
@@ -61,6 +64,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
     * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
 * [MORE](#more)
+<!-- END EXCLUDE FROM MANPAGE -->
 
 
 # NEW FEATURES
