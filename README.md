@@ -1727,6 +1727,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 **Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the example above
 
 
+<!-- MANPAGE: MOVE "NEW FEATURES" SECTION HERE -->
 # DEPRECATED OPTIONS
 
 These are all the deprecated options and the current alternative to achieve the same effect

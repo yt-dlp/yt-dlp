@@ -40,6 +40,7 @@ def main():
     readme = filter_excluded_sections(readme)
     readme = move_section('usage and options', readme)
     readme = move_section('installation', readme)
+    readme = move_section('new features', readme)
     readme = re.sub(r'^# USAGE AND OPTIONS$', '# OPTIONS', readme, 1, flags=re.M)
     readme = PREFIX + readme
 
