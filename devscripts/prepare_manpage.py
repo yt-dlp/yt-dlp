@@ -59,29 +59,22 @@ def filter_excluded_sections(readme):
 
 def move_section(section_name, readme):
     section_name = section_name.upper()
-    ret = []
-    section = []
-    readme_without_section = []
-    in_section = False
-    for line in readme.split('\n'):
-        if line.startswith('# '):
-            if line[2:].startswith(section_name):
-                in_section = True
-            else:
-                in_section = False
-        if in_section:
-            section.append(line)
-        else:
-            readme_without_section.append(line)
-    for line in readme_without_section:
-        if '<!-- MANPAGE: MOVE "%s" SECTION HERE -->' % section_name in line:
-            ret.extend(section)
-            section = None
-        else:
-            ret.append(line)
-    if section is not None:
-        raise Exception('Moving the "%s" section was requested, but no "<!-- MANPAGE: MOVE "%s" SECTION HERE --> marker was found.' % (section_name, section_name))
-    return '\n'.join(ret)
+    move_tag = '<!-- MANPAGE: MOVE \"%s\" SECTION HERE -->' % section_name
+    section_pattern = '(?sm)(^# %s.+?)^# ' % section_name
+    section = re.findall(section_pattern, readme)
+    if len(section) < 1:
+        raise Exception("The section %s does not exist" % section_name)
+    elif len(section) > 1:
+        raise Exception("There are multiple occurrences of section %s, this is unhandled" % section_name)
+    else:
+        pass
+    readme_without_section = re.sub(section_pattern, '', readme, 1)
+    if readme_without_section.count(move_tag) < 1:
+        raise Exception('Moving the "%s" section was requested, but no "%s" marker was found.' % (section_name, move_tag))
+    elif readme_without_section.count(move_tag) > 1:
+        raise Warning('There is more than one occurrence of "%s". This is probably an accident.' % move_tag)
+    return readme_without_section.replace(move_tag, section[0])
+
 
 def filter_options(readme):
     ret = ''
