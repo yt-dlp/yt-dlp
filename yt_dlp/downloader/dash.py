@@ -29,7 +29,11 @@ class DashSegmentsFD(FragmentFD):
         requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
         args = []
         for fmt in requested_formats or [info_dict]:
-            is_live, fragment_count = self._calculate_fragment_count(fmt)
+            is_live = fmt.get('is_live')
+            try:
+                fragment_count = 1 if self.params.get('test') else len(fmt['fragments'])
+            except TypeError:
+                fragment_count = None
             real_filename = fmt.get('filepath') or filename
             ctx = {
                 'filename': real_filename,
@@ -55,9 +59,6 @@ class DashSegmentsFD(FragmentFD):
             args.append([ctx, fragments_to_download, fmt])
 
         return self.download_and_append_fragments_multiple(*args)
-
-    def _calculate_fragment_count(self, info_dict):
-        return False, (1 if self.params.get('test', False) else len(info_dict['fragments']))
 
     def _resolve_fragments(self, fragments, ctx):
         fragments = fragments(ctx) if callable(fragments) else fragments
@@ -91,9 +92,6 @@ class DashSegmentsFD(FragmentFD):
 class YoutubeDlFromStartDashFD(DashSegmentsFD):
 
     FD_NAME = 'ytlivestartdash'
-
-    def _calculate_fragment_count(self, info_dict):
-        return True, None
 
     @staticmethod
     def _accept_live():
