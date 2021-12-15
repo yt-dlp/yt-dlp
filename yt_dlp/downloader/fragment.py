@@ -387,7 +387,9 @@ class FragmentFD(FileDownloader):
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress
             ctx['progress_idx'] = idx
-            return self.download_and_append_fragments(ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func, tpe=tpe, ignore_lethal_error=ignore_lethal_error, interrupt_trigger=interrupt_trigger)
+            return self.download_and_append_fragments(
+                ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func,
+                tpe=tpe, ignore_lethal_error=ignore_lethal_error, interrupt_trigger=interrupt_trigger)
 
         class FTPE(concurrent.futures.ThreadPoolExecutor):
             # has to stop this or it's going to wait on the worker thread itself
@@ -414,12 +416,17 @@ class FragmentFD(FileDownloader):
             raise kint or KeyboardInterrupt()
         return result
 
-    def download_and_append_fragments(self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None, tpe=None, ignore_lethal_error=False, interrupt_trigger=None):
+    def download_and_append_fragments(
+            self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None,
+            tpe=None, ignore_lethal_error=False, interrupt_trigger=None):
         if not interrupt_trigger:
             interrupt_trigger = (True, )
 
         fragment_retries = self.params.get('fragment_retries', 0)
-        is_fatal = (lambda idx: idx == 0) if self.params.get('skip_unavailable_fragments', True) or ignore_lethal_error else (lambda _: True)
+        is_fatal = (
+            (lambda _: False if info_dict.get('is_live') else lambda idx: idx == 0)
+            if self.params.get('skip_unavailable_fragments', True) else lambda _: True)
+
         if not pack_func:
             pack_func = lambda frag_content, _: frag_content
 

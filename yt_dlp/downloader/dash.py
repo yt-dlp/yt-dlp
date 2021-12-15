@@ -26,8 +26,9 @@ class DashSegmentsFD(FragmentFD):
         real_downloader = get_suitable_downloader(
             info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
+        requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
         args = []
-        for fmt in info_dict.get('requested_formats') or [info_dict]:
+        for fmt in requested_formats or [info_dict]:
             is_live, fragment_count = self._calculate_fragment_count(fmt)
             real_filename = fmt.get('filepath') or filename
             ctx = {
@@ -53,7 +54,7 @@ class DashSegmentsFD(FragmentFD):
 
             args.append([ctx, fragments_to_download, fmt])
 
-        return self.download_and_append_fragments_multiple(*args, ignore_lethal_error=self._ignore_lethal_error())
+        return self.download_and_append_fragments_multiple(*args)
 
     def _calculate_fragment_count(self, info_dict):
         return False, (1 if self.params.get('test', False) else len(info_dict['fragments']))
@@ -86,10 +87,6 @@ class DashSegmentsFD(FragmentFD):
     def _accept_live():
         return False
 
-    @staticmethod
-    def _ignore_lethal_error():
-        return False
-
 
 class YoutubeDlFromStartDashFD(DashSegmentsFD):
 
@@ -100,8 +97,4 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
 
     @staticmethod
     def _accept_live():
-        return True
-
-    @staticmethod
-    def _ignore_lethal_error():
         return True
