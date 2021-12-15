@@ -1738,7 +1738,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         last_segment_url, None, note=False, errnote=False, fatal=False)
                 except BaseException:
                     urlh = None
-                last_seq = try_get(urlh, lambda x: int_or_none(x.headers.['X-Head-Seqnum']))
+                last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if last_seq is None:
                     no_fragment_score += 1
                     last_segment_url = None
