@@ -19,16 +19,27 @@ class DigitalConcertHallIE(InfoExtractor):
     _NETRC_MACHINE = 'digitalconcerthall'
     # if you don't login, all you will get is trailers
     _TESTS = [{
+        'note': 'Playlist with only one video',
         'url': 'https://www.digitalconcerthall.com/en/concert/53201',
         'info_dict': {
             'id': '53201-1',
             'ext': 'mp4',
-            'title': 'Kurt Weill - [Magic Night]',
+            'composer': 'Kurt Weill',
+            'title': '[Magic Night]',
             'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
             'upload_date': '20210624',
             'timestamp': 1624548600,
         },
         'params': {'skip_download': 'm3u8'},
+    }, {
+        'note': 'Concert with several works and an interview',
+        'url': 'https://www.digitalconcerthall.com/en/concert/53785',
+        'info_dict': {
+            'id': '53785',
+            'title': 'Kirill Petrenko conducts Mendelssohn and Shostakovich',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'playlist_count': 3,
     }]
 
     def _login(self):
@@ -70,12 +81,9 @@ class DigitalConcertHallIE(InfoExtractor):
         language, video_id = self._match_valid_url(url).groups()
         if not language:
             language = 'en'
-        webpage = self._download_webpage(url, video_id)
-        playlist_title = (self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-                          or self._og_search_title(webpage))
         thumbnails = []
         thumbnail_url = (self._html_search_regex(r'(https?://images\.digitalconcerthall\.com/cms/thumbnails/.*\.jpg)',
-                         webpage, 'thumbnail'))
+                         self._download_webpage(url, video_id), 'thumbnail'))
         thumbnails.append({
             'url': thumbnail_url,
             **parse_resolution(thumbnail_url)
@@ -86,7 +94,9 @@ class DigitalConcertHallIE(InfoExtractor):
                 'Accept': 'application/json',
                 'Accept-Language': language
             })
+        playlist_title = vid_info.get('title')
         embedded = vid_info.get('_embedded')
+        album_artist = traverse_obj(vid_info, ('_links', 'artist', 0, 'name')) + " / " + traverse_obj(vid_info, ('_links', 'artist', 1, 'name'))
         entries = []
         for embed_type in embedded:
             # embed_type should be either 'work' or 'interview'
@@ -104,24 +114,22 @@ class DigitalConcertHallIE(InfoExtractor):
                     m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
                 self._sort_formats(formats)
 
-                if embed_type == 'interview':
-                    title = "Interview - " + item.get('title', "unknown interview title")
-                else:
-                    title = (item.get('name_composer') if item.get('name_composer')
-                             else 'unknown composer') + ' - ' + item.get('title', "unknown title")
+                title = item.get('title', None)
+                composer = item.get('name_composer', None)
                 key = item.get('id')
-
                 duration = item.get('duration_total')
                 timestamp = traverse_obj(item, ('date', 'published'))
                 entries.append({
                     'id': key,
                     'title': title,
+                    'composer': composer,
                     'url': m3u8_url,
                     'formats': formats,
                     'duration': duration,
                     'timestamp': timestamp,
-                    'description': stream_info.get('short_description') or item.get('short_description'),
+                    'description': item.get('short_description') or stream_info.get('short_description'),
                     'thumbnails': thumbnails,
+                    'album_artist': album_artist,
                 })
                 if item.get('cuepoints'):
                     chapters = [{
@@ -139,4 +147,5 @@ class DigitalConcertHallIE(InfoExtractor):
             'title': playlist_title,
             'entries': entries,
             'thumbnails': thumbnails,
+            'album_artist': album_artist,
         }
