@@ -227,7 +227,7 @@ class FragmentFD(FileDownloader):
 
     def _start_frag_download(self, ctx, info_dict):
         resume_len = ctx['complete_frags_downloaded_bytes']
-        total_frags = ctx.get('total_frags', 0)
+        total_frags = ctx['total_frags']
         ctx_id = ctx.get('ctx_id')
         # This dict stores the download progress, it's updated by the progress
         # hook
@@ -371,7 +371,7 @@ class FragmentFD(FileDownloader):
 
         return decrypt_fragment
 
-    def download_and_append_fragments_multiple(self, *args, pack_func=None, finish_func=None, ignore_lethal_error=False):
+    def download_and_append_fragments_multiple(self, *args, pack_func=None, finish_func=None):
         '''
         @params (ctx1, fragments1, info_dict1), (ctx2, fragments2, info_dict2), ...
                 all args must be either tuple or list
@@ -389,7 +389,7 @@ class FragmentFD(FileDownloader):
             ctx['progress_idx'] = idx
             return self.download_and_append_fragments(
                 ctx, fragments, info_dict, pack_func=pack_func, finish_func=finish_func,
-                tpe=tpe, ignore_lethal_error=ignore_lethal_error, interrupt_trigger=interrupt_trigger)
+                tpe=tpe, interrupt_trigger=interrupt_trigger)
 
         class FTPE(concurrent.futures.ThreadPoolExecutor):
             # has to stop this or it's going to wait on the worker thread itself
@@ -418,7 +418,7 @@ class FragmentFD(FileDownloader):
 
     def download_and_append_fragments(
             self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None,
-            tpe=None, ignore_lethal_error=False, interrupt_trigger=None):
+            tpe=None, interrupt_trigger=None):
         if not interrupt_trigger:
             interrupt_trigger = (True, )
 
@@ -473,7 +473,7 @@ class FragmentFD(FileDownloader):
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
-                if not is_fatal(frag_index - 1) or ignore_lethal_error:
+                if not is_fatal(frag_index - 1):
                     self.report_skip_fragment(frag_index, 'fragment not found')
                     return True
                 else:

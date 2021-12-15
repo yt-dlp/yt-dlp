@@ -2902,8 +2902,6 @@ class YoutubeDL(object):
                                     correct_ext(temp_filename, info_dict['ext']),
                                     'f%s' % f['format_id'], info_dict['ext'])
                                 downloaded.append(fname)
-                                if not self._ensure_dir_exists(fname):
-                                    return
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download

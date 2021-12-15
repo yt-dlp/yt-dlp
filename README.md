@@ -333,7 +333,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --live-from-start                Download livestreams from the start.
                                      Currently only supported for YouTube
     --no-live-from-start             Download livestreams from the current
-                                     position (default)
+                                     time (default)
     --wait-for-video MIN[-MAX]       Wait for scheduled streams to become
                                      available. Pass the minimum number of
                                      seconds (or range) to wait between retries

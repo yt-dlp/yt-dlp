@@ -1712,24 +1712,39 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._player_cache = {}
 
     def _live_dash_fragments(self, mpd_url, stream_number, live_start_time, ctx):
+        FETCH_SPAN, MAX_DURATION = 5, 432000
+
         begin_index = 0
-        fetch_span = 5000
         download_start_time = ctx.get('start') or (time_millis() / 1000)
 
-        lack_early = False
-        if live_start_time is not None and download_start_time - live_start_time > 432000:
-            self.report_warning('Starting downloading from recent 120 hours of live, because YouTube does not have the data. Please file an issue if you think it is wrong.', only_once=True)
-            lack_early = True
+        lack_early_segments = download_start_time - (live_start_time or download_start_time) > MAX_DURATION
+        if lack_early_segments:
+            self.report_warning(bug_reports_message(
+                'Starting download from the last 120 hours of the live stream since '
+                'YouTube does not have data beyond that. If you think this is wrong,'), only_once=True)
+            lack_early_segments = True
 
         known_idx = begin_index
         no_fragment_score = 0
-        prev_dl = time_millis()
         last_segment_url = None
         while True:
+            fetch_time = time_millis() / 1000
             if no_fragment_score > 30:
                 return
-            if not last_segment_url:
-                # method 1: obtain from MPD's maximum seq value
+            if last_segment_url:
+                # Obtain from "X-Head-Seqnum" header value from each segment
+                try:
+                    urlh = self._request_webpage(
+                        last_segment_url, None, note=False, errnote=False, fatal=False)
+                except BaseException:
+                    urlh = None
+                last_seq = try_get(urlh, lambda x: int_or_none(x.headers.['X-Head-Seqnum']))
+                if last_seq is None:
+                    no_fragment_score += 1
+                    last_segment_url = None
+                    continue
+            else:
+                # Obtain from MPD's maximum seq value
                 try:
                     fmts, _ = self._extract_mpd_formats_and_subtitles(
                         mpd_url, None, note=False, errnote=False, fatal=False)
@@ -1744,22 +1759,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 assert fragment_base_url
 
                 last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
-            else:
-                # method 2: obtain from "X-Head-Seqnum" header value from each segment
-                try:
-                    urlh = self._request_webpage(
-                        last_segment_url, None, note=False, errnote=False, fatal=False)
-                except BaseException:
-                    urlh = None
-                if not urlh:
-                    no_fragment_score += 1
-                    last_segment_url = None
-                    continue
-                last_seq = int_or_none(urlh.headers.get('X-Head-Seqnum'))
-                if last_seq is None:
-                    no_fragment_score += 1
-                    last_segment_url = None
-                    continue
+
             if known_idx > last_seq:
                 last_segment_url = None
                 continue
@@ -1769,9 +1769,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if begin_index < 0 and known_idx < 0:
                 # skip from the start when it's negative value
                 known_idx = last_seq + begin_index
-            if lack_early:
-                # when _get_fragments detects that it's longer than 5 days
-                known_idx = max(known_idx, last_seq - int(432000 // fragments[-1]['duration']))
+            if lack_early_segments:
+                known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragments[-1]['duration']))
             for idx in range(known_idx, last_seq):
                 last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
                 yield {
@@ -1783,11 +1782,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 no_fragment_score = 0
             known_idx = last_seq
 
-            now_time = time_millis()
-            elapsed = now_time - prev_dl
-            if elapsed > 0 and elapsed < fetch_span:
-                time.sleep((fetch_span - elapsed) / 1000)
-            prev_dl = now_time
+            time.sleep(max(0, FETCH_SPAN + fetch_time - (time_millis() / 1000)))
 
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(

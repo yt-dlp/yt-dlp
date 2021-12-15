@@ -265,7 +265,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
-        help='Download livestreams from the current position (default)')
+        help='Download livestreams from the current time (default)')
     general.add_option(
         '--wait-for-video',
         dest='wait_for_video', metavar='MIN[-MAX]', default=None,
