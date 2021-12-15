@@ -4,9 +4,7 @@ from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD
 
 from ..utils import (
-    int_or_none,
     time_millis,
-    traverse_obj,
     urljoin,
 )
 

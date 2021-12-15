@@ -1777,7 +1777,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 time.sleep((fetch_span - elapsed) / 1000)
             prev_dl = now_time
 
-
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(
             ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
