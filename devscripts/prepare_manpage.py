@@ -36,7 +36,7 @@ def main():
         readme = f.read()
 
     readme = re.sub(r'(?s)^.*?(?=# DESCRIPTION)', '', readme)
-    readme = re.sub(r'\s+yt-dlp \[OPTIONS\] URL \[URL\.\.\.\]', '', readme)
+    readme = re.sub(r'\s+yt-dlp \[OPTIONS\] \[--\] URL \[URL\.\.\.\]', '', readme)
     readme = filter_excluded_sections(readme)
     readme = move_section('usage and options', readme)
     readme = move_section('installation', readme)
