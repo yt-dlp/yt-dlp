@@ -53,7 +53,7 @@ def filter_excluded_sections(readme):
     EXCLUDED_SECTION_BEGIN_STRING = '<!-- MANPAGE: BEGIN EXCLUDED SECTION -->'
     EXCLUDED_SECTION_END_STRING = '<!-- MANPAGE: END EXCLUDED SECTION -->'
     return re.sub(
-        rf'(?s){re.escape(EXCLUDED_SECTION_BEGIN_STRING)}.+?{re.escape(EXCLUDED_SECTION_END_STRING)}\n'
+        rf'(?s){re.escape(EXCLUDED_SECTION_BEGIN_STRING)}.+?{re.escape(EXCLUDED_SECTION_END_STRING)}\n',
         '', readme)
 
 
