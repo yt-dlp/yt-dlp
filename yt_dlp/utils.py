@@ -4735,7 +4735,7 @@ def parse_codecs(codecs_str):
                     hdr = 'HDR10'
                 elif full_codec.replace('0', '').startswith('vp9.2'):
                     hdr = 'HDR10'
-        elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
+        elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
         else:
