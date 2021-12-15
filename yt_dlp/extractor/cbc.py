@@ -11,11 +11,13 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
+    int_or_none,
+    join_nonempty,
     js_to_json,
-    smuggle_url,
-    try_get,
     orderedSet,
+    smuggle_url,
     strip_or_none,
+    try_get,
     ExtractorError,
 )
 
@@ -313,6 +315,37 @@ class CBCGemIE(InfoExtractor):
             return
         self._claims_token = self._downloader.cache.load(self._NETRC_MACHINE, 'claims_token')
 
+    def _find_secret_formats(self, formats, video_id):
+        """ Find a valid video url and convert it to the secret variant """
+        base_format = next((f for f in formats if f.get('vcodec') != 'none'), None)
+        if not base_format:
+            return
+
+        base_url = re.sub(r'(Manifest\(.*?),filter=[\w-]+(.*?\))', r'\1\2', base_format['url'])
+        url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
+
+        secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
+        if not secret_xml:
+            return
+
+        for child in secret_xml:
+            if child.attrib.get('Type') != 'video':
+                continue
+            for video_quality in child:
+                bitrate = int_or_none(video_quality.attrib.get('Bitrate'))
+                if not bitrate or 'Index' not in video_quality.attrib:
+                    continue
+                height = int_or_none(video_quality.attrib.get('MaxHeight'))
+
+                yield {
+                    **base_format,
+                    'format_id': join_nonempty('sec', height),
+                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\<1>{bitrate}\2', base_url),
+                    'width': int_or_none(video_quality.attrib.get('MaxWidth')),
+                    'tbr': bitrate / 1000.0,
+                    'height': height,
+                }
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_info = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/assets/' + video_id, video_id)
@@ -335,6 +368,7 @@ class CBCGemIE(InfoExtractor):
 
         formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
         self._remove_duplicate_formats(formats)
+        formats.extend(self._find_secret_formats(formats, video_id))
 
         for format in formats:
             if format.get('vcodec') == 'none':

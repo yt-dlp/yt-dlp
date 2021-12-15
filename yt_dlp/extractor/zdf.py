@@ -15,6 +15,7 @@ from ..utils import (
     orderedSet,
     parse_codecs,
     qualities,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -135,19 +136,6 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
-        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
-        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
-        'md5': '34ec321e7eb34231fd88616c65c92db0',
-        'info_dict': {
-            'id': '210222_phx_nachgehakt_corona_protest',
-            'ext': 'mp4',
-            'title': 'Wohin führt der Protest in der Pandemie?',
-            'description': 'md5:7d643fe7f565e53a24aac036b2122fbd',
-            'duration': 1691,
-            'timestamp': 1613948400,
-            'upload_date': '20210221',
-        },
-    }, {
         # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
         'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
         'md5': '0aff3e7bc72c8813f5e0fae333316a1d',
@@ -172,6 +160,18 @@ class ZDFIE(ZDFBaseIE):
             'upload_date': '20160604',
         },
     }, {
+        'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
+        'md5': '3d6f1049e9682178a11c54b91f3dd065',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'video_funk_1770473',
+            'duration': 1278,
+            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
+            'title': 'Alles ist verzaubert',
+            'timestamp': 1635520560,
+            'upload_date': '20211029'
+        },
+    }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
         'url': 'https://www.zdf.de/politik/phoenix-sendungen/die-gesten-der-maechtigen-100.html',
         'only_matching': True,
@@ -192,6 +192,10 @@ class ZDFIE(ZDFBaseIE):
     }, {
         'url': 'https://www.zdf.de/dokumentation/planet-e/planet-e-uebersichtsseite-weitere-dokumentationen-von-planet-e-100.html',
         'only_matching': True,
+    }, {
+        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
+        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
+        'only_matching': True
     }]
 
     def _extract_entry(self, url, player, content, video_id):
@@ -202,8 +206,9 @@ class ZDFIE(ZDFBaseIE):
         ptmd_path = t.get('http://zdf.de/rels/streams/ptmd')
 
         if not ptmd_path:
-            ptmd_path = t[
-                'http://zdf.de/rels/streams/ptmd-template'].replace(
+            ptmd_path = traverse_obj(
+                t, ('streams', 'default', 'http://zdf.de/rels/streams/ptmd-template'),
+                'http://zdf.de/rels/streams/ptmd-template').replace(
                 '{playerId}', 'ngplayer_2_4')
 
         info = self._extract_ptmd(

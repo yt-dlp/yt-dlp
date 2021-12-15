@@ -160,7 +160,7 @@ class RTVEALaCartaIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'formats': formats,
             'thumbnail': info.get('image'),
             'subtitles': subtitles,
@@ -230,7 +230,7 @@ class RTVELiveIE(RTVEALaCartaIE):
 
         return {
             'id': video_id,
-            'title': self._live_title(title),
+            'title': title,
             'formats': self._extract_png_formats(vidplayer_id),
             'is_live': True,
         }

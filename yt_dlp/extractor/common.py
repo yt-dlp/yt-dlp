@@ -1513,6 +1513,24 @@ class InfoExtractor(object):
                 webpage, 'next.js data', **kw),
             video_id, **kw)
 
+    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__'):
+        ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
+        # not all website do this, but it can be changed
+        # https://stackoverflow.com/questions/67463109/how-to-change-or-hide-nuxt-and-nuxt-keyword-in-page-source
+        rectx = re.escape(context_name)
+        js, arg_keys, arg_vals = self._search_regex(
+            (r'<script>window\.%s=\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.+?)\)\);?</script>' % rectx,
+             r'%s\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)' % rectx),
+            webpage, context_name, group=['js', 'arg_keys', 'arg_vals'])
+
+        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
+
+        for key, val in args.items():
+            if val in ('undefined', 'void 0'):
+                args[key] = 'null'
+
+        return self._parse_json(js_to_json(js, args), video_id)['data'][0]
+
     @staticmethod
     def _hidden_inputs(html):
         html = re.sub(r'<!--(?:(?!<!--).)*-->', '', html)
@@ -1588,6 +1606,11 @@ class InfoExtractor(object):
             'res': {'type': 'multiple', 'field': ('height', 'width'),
                     'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
 
+            # For compatibility with youtube-dl
+            'format_id': {'type': 'alias', 'field': 'id'},
+            'preference': {'type': 'alias', 'field': 'ie_pref'},
+            'language_preference': {'type': 'alias', 'field': 'lang'},
+
             # Deprecated
             'dimension': {'type': 'alias', 'field': 'res'},
             'resolution': {'type': 'alias', 'field': 'res'},
@@ -1597,7 +1620,6 @@ class InfoExtractor(object):
             'video_bitrate': {'type': 'alias', 'field': 'vbr'},
             'audio_bitrate': {'type': 'alias', 'field': 'abr'},
             'framerate': {'type': 'alias', 'field': 'fps'},
-            'language_preference': {'type': 'alias', 'field': 'lang'},
             'protocol': {'type': 'alias', 'field': 'proto'},
             'source_preference': {'type': 'alias', 'field': 'source'},
             'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
@@ -1612,9 +1634,7 @@ class InfoExtractor(object):
             'audio': {'type': 'alias', 'field': 'hasaud'},
             'has_audio': {'type': 'alias', 'field': 'hasaud'},
             'extractor': {'type': 'alias', 'field': 'ie_pref'},
-            'preference': {'type': 'alias', 'field': 'ie_pref'},
             'extractor_preference': {'type': 'alias', 'field': 'ie_pref'},
-            'format_id': {'type': 'alias', 'field': 'id'},
         }
 
         def __init__(self, ie, field_preference):
@@ -1714,9 +1734,10 @@ class InfoExtractor(object):
                     continue
                 if self._get_field_setting(field, 'type') == 'alias':
                     alias, field = field, self._get_field_setting(field, 'field')
-                    self.ydl.deprecation_warning(
-                        f'Format sorting alias {alias} is deprecated '
-                        f'and may be removed in a future version. Please use {field} instead')
+                    if alias not in ('format_id', 'preference', 'language_preference'):
+                        self.ydl.deprecation_warning(
+                            f'Format sorting alias {alias} is deprecated '
+                            f'and may be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
@@ -3435,10 +3456,8 @@ class InfoExtractor(object):
         return formats
 
     def _live_title(self, name):
-        """ Generate the title for a live video """
-        now = datetime.datetime.now()
-        now_str = now.strftime('%Y-%m-%d %H:%M')
-        return name + ' ' + now_str
+        self._downloader.deprecation_warning('yt_dlp.InfoExtractor._live_title is deprecated and does not work as expected')
+        return name
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
@@ -3548,14 +3567,18 @@ class InfoExtractor(object):
 
         def extractor():
             comments = []
+            interrupted = True
             try:
                 while True:
                     comments.append(next(generator))
-            except KeyboardInterrupt:
-                interrupted = True
-                self.to_screen('Interrupted by user')
             except StopIteration:
                 interrupted = False
+            except KeyboardInterrupt:
+                self.to_screen('Interrupted by user')
+            except Exception as e:
+                if self.get_param('ignoreerrors') is not True:
+                    raise
+                self._downloader.report_error(e)
             comment_count = len(comments)
             self.to_screen(f'Extracted {comment_count} comments')
             return {

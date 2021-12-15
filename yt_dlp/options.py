@@ -1195,7 +1195,10 @@ def parseOpts(overrideArguments=None):
     thumbnail = optparse.OptionGroup(parser, 'Thumbnail Options')
     thumbnail.add_option(
         '--write-thumbnail',
-        action='store_true', dest='writethumbnail', default=False,
+        action='callback', dest='writethumbnail', default=False,
+        # Should override --no-write-thumbnail, but not --write-all-thumbnail
+        callback=lambda option, _, __, parser: setattr(
+            parser.values, option.dest, getattr(parser.values, option.dest) or True),
         help='Write thumbnail image to disk')
     thumbnail.add_option(
         '--no-write-thumbnail',
@@ -1203,7 +1206,7 @@ def parseOpts(overrideArguments=None):
         help='Do not write thumbnail image to disk (default)')
     thumbnail.add_option(
         '--write-all-thumbnails',
-        action='store_true', dest='write_all_thumbnails', default=False,
+        action='store_const', dest='writethumbnail', const='all',
         help='Write all thumbnail image formats to disk')
     thumbnail.add_option(
         '--list-thumbnails',
@@ -1470,20 +1473,29 @@ def parseOpts(overrideArguments=None):
     sponsorblock.add_option(
         '--sponsorblock-mark', metavar='CATS',
         dest='sponsorblock_mark', default=set(), action='callback', type='str',
-        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
-        help=(
+        callback=_set_from_options_callback, callback_kwargs={
+            'allowed_values': SponsorBlockPP.CATEGORIES.keys(),
+            'aliases': {'default': ['all']}
+        }, help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
-            'Available categories are all, %s. You can prefix the category with a "-" to exempt it. '
-            'See https://wiki.sponsor.ajay.app/index.php/Segment_Categories for description of the categories. '
-            'Eg: --sponsorblock-mark all,-preview' % ', '.join(SponsorBlockPP.CATEGORIES.keys())))
+            f'Available categories are all, default(=all), {", ".join(SponsorBlockPP.CATEGORIES.keys())}. '
+            'You can prefix the category with a "-" to exempt it. See [1] for description of the categories. '
+            'Eg: --sponsorblock-mark all,-preview [1] https://wiki.sponsor.ajay.app/w/Segment_Categories'))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
         dest='sponsorblock_remove', default=set(), action='callback', type='str',
-        callback=_set_from_options_callback, callback_kwargs={'allowed_values': SponsorBlockPP.CATEGORIES.keys()},
-        help=(
+        callback=_set_from_options_callback, callback_kwargs={
+            'allowed_values': set(SponsorBlockPP.CATEGORIES.keys()) - set(SponsorBlockPP.POI_CATEGORIES.keys()),
+            # Note: From https://wiki.sponsor.ajay.app/w/Types:
+            # The filler category is very aggressive.
+            # It is strongly recommended to not use this in a client by default.
+            'aliases': {'default': ['all', '-filler']}
+        }, help=(
             'SponsorBlock categories to be removed from the video file, separated by commas. '
             'If a category is present in both mark and remove, remove takes precedence. '
-            'The syntax and available categories are the same as for --sponsorblock-mark'))
+            'The syntax and available categories are the same as for --sponsorblock-mark '
+            'except that "default" refers to "all,-filler" '
+            f'and {", ".join(SponsorBlockPP.POI_CATEGORIES.keys())} is not available'))
     sponsorblock.add_option(
         '--sponsorblock-chapter-title', metavar='TEMPLATE',
         default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',

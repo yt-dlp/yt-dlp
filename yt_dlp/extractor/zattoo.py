@@ -187,7 +187,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             cid = self._extract_cid(video_id, channel_name)
             info_dict = {
                 'id': channel_name,
-                'title': self._live_title(channel_name),
+                'title': channel_name,
                 'is_live': True,
             }
         else:

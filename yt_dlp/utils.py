@@ -38,6 +38,7 @@ import time
 import traceback
 import xml.etree.ElementTree
 import zlib
+import mimetypes
 
 from .compat import (
     compat_HTMLParseError,
@@ -2608,8 +2609,8 @@ class ThrottledDownload(ReExtractInfo):
     """ Download speed below --throttled-rate. """
     msg = 'The download speed is below throttle limit'
 
-    def __init__(self, msg):
-        super().__init__(msg, expected=False)
+    def __init__(self):
+        super().__init__(self.msg, expected=False)
 
 
 class UnavailableVideoError(YoutubeDLError):
@@ -3972,8 +3973,9 @@ def strftime_or_none(timestamp, date_format, default=None):
 def parse_duration(s):
     if not isinstance(s, compat_basestring):
         return None
-
     s = s.strip()
+    if not s:
+        return None
 
     days, hours, mins, secs, ms = [None] * 5
     m = re.match(r'(?:(?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?(?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?Z?$', s)
@@ -4706,6 +4708,14 @@ def mimetype2ext(mt):
         return ext
 
     return subtype.replace('+', '.')
+
+
+def ext2mimetype(ext_or_url):
+    if not ext_or_url:
+        return None
+    if '.' not in ext_or_url:
+        ext_or_url = f'file.{ext_or_url}'
+    return mimetypes.guess_type(ext_or_url)[0]
 
 
 def parse_codecs(codecs_str):
@@ -6592,7 +6602,8 @@ def jwt_decode_hs256(jwt):
 
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        if get_windows_version() < (10, 0, 10586):
+        from .compat import WINDOWS_VT_MODE  # Must be imported locally
+        if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
         return False
