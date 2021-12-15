@@ -13,7 +13,7 @@ PREFIX = r'''%yt-dlp(1)
 
 # NAME
 
-youtube\-dl \- download videos from youtube.com or other video platforms
+yt\-dlp \- download videos from youtube.com or other video platforms
 
 # SYNOPSIS
 
