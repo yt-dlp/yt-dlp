@@ -2652,7 +2652,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         live_from_start = is_live and self.get_param('live_from_start')
         skip_manifests = self._configuration_arg('skip')
         if not self.get_param('youtube_include_hls_manifest', True):
-            skip_manifests.push('hls')
+            skip_manifests.append('hls')
         get_dash = 'dash' not in skip_manifests and (
             not is_live or live_from_start or self._configuration_arg('include_live_dash'))
         get_hls = not live_from_start and 'hls' not in skip_manifests
