@@ -136,7 +136,6 @@ from .extractor import (
 from .extractor.openload import PhantomJSwrapper
 from .downloader import (
     FFmpegFD,
-    YoutubeDlFromStartDashFD,
     get_suitable_downloader,
     shorten_protocol_name
 )
@@ -2890,27 +2889,21 @@ class YoutubeDL(object):
                     dl_filename = existing_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
 
-                    _protocols = set(determine_protocol(f) for f in requested_formats)
-                    if len(_protocols) == 1:  # All requested formats have same protocol
-                        info_dict['protocol'] = _protocols.pop()
                     downloaded = []
                     merger = FFmpegMergerPP(self)
 
+                    fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
-                    elif (len(set(x.get('manifest_url') for x in requested_formats)) == 1 and get_suitable_downloader(
-                            info_dict, self.params, to_stdout=(temp_filename == '-')) == YoutubeDlFromStartDashFD):
-                        for f in requested_formats:
-                            f['filepath'] = fname = prepend_extension(
-                                correct_ext(temp_filename, info_dict['ext']),
-                                'f%s' % f['format_id'], info_dict['ext'])
-                            downloaded.append(fname)
-                            if not self._ensure_dir_exists(fname):
-                                return
-                        info_dict['url'] = requested_formats[0]['url']
-                        success, real_download = self.dl(temp_filename, info_dict)
-                        info_dict['__real_download'] = real_download
-                    elif get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-'):
+                    elif fd:
+                        if fd != FFmpegFD and 'requested_formats' in info_dict:
+                            for f in info_dict['requested_formats']:
+                                f['filepath'] = fname = prepend_extension(
+                                    correct_ext(temp_filename, info_dict['ext']),
+                                    'f%s' % f['format_id'], info_dict['ext'])
+                                downloaded.append(fname)
+                                if not self._ensure_dir_exists(fname):
+                                    return
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download

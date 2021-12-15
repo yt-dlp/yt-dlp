@@ -2890,7 +2890,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         for f in formats:
             if not f.get('is_from_start'):
                 continue
-            f['protocol'] = 'youtube_dl_from_start_dash'
+            f['protocol'] = 'http_dash_segments_generator'
             f['fragments'] = functools.partial(
                 self._live_dash_fragments,
                 f['manifest_url'], f['manifest_stream_number'], live_starttime)
