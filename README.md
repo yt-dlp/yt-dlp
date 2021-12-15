@@ -1,4 +1,4 @@
-<!-- BEGIN EXCLUDE FROM MANPAGE -->
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 <div align="center">
 
 [![YT-DLP](https://raw.githubusercontent.com/yt-dlp/yt-dlp/master/.github/banner.svg)](#readme)
@@ -16,13 +16,13 @@
 [![PyPi Downloads](https://img.shields.io/pypi/dm/yt-dlp?label=PyPi&style=for-the-badge)](https://pypi.org/project/yt-dlp)
 
 </div>
-<!-- END EXCLUDE FROM MANPAGE -->
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
 
 <!-- MANPAGE: MOVE "USAGE AND OPTIONS" SECTION HERE -->
 
-<!-- BEGIN EXCLUDE FROM MANPAGE -->
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 * [NEW FEATURES](#new-features)
     * [Differences in default behavior](#differences-in-default-behavior)
 * [INSTALLATION](#installation)
@@ -66,9 +66,9 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
     * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
 * [MORE](#more)
-<!-- END EXCLUDE FROM MANPAGE -->
 
 
+<!-- MANPAGE: END EXCLUDED SECTION -->
 # NEW FEATURES
 
 * Based on **youtube-dl 2021.06.06 [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)** and **youtube-dlc 2020.11.11-3 [commit/98e248f](https://github.com/blackjack4494/yt-dlc/commit/98e248faa49e69d795abc60f7cdefcf91e2612aa)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)

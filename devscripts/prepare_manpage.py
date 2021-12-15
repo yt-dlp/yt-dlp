@@ -50,19 +50,11 @@ def main():
 
 
 def filter_excluded_sections(readme):
-    EXCLUDED_SECTION_BEGIN_STRING = '<!-- BEGIN EXCLUDE FROM MANPAGE -->'
-    EXCLUDED_SECTION_END_STRING = '<!-- END EXCLUDE FROM MANPAGE -->'
-    ret = []
-    in_section = False
-    for line in readme.split('\n'):
-        if EXCLUDED_SECTION_BEGIN_STRING in line:
-            in_section = True
-        if not in_section:
-            ret.append(line)
-        if EXCLUDED_SECTION_END_STRING in line:
-            in_section = False
-
-    return '\n'.join(ret)
+    EXCLUDED_SECTION_BEGIN_STRING = '<!-- MANPAGE: BEGIN EXCLUDED SECTION -->'
+    EXCLUDED_SECTION_END_STRING = '<!-- MANPAGE: END EXCLUDED SECTION -->'
+    return re.sub(
+        '(?s)%s.+?%s\n' % (EXCLUDED_SECTION_BEGIN_STRING, EXCLUDED_SECTION_END_STRING),
+        '', readme)
 
 
 def move_section(section_name, readme):
