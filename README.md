@@ -20,7 +20,7 @@
 
 yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on the now inactive [youtube-dlc](https://github.com/blackjack4494/yt-dlc). The main focus of this project is adding new features and patches while also keeping up to date with the original project
 
-<!-- MANPAGE: PUT USAGE HERE -->
+<!-- MANPAGE: MOVE "USAGE AND OPTIONS" SECTION HERE -->
 
 <!-- BEGIN EXCLUDE FROM MANPAGE -->
 * [NEW FEATURES](#new-features)
@@ -1595,7 +1595,7 @@ The following extractors use this feature:
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
-
+<!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
 # PLUGINS
 
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`). Plugins are currently not supported for the `pip` version

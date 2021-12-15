@@ -38,7 +38,8 @@ def main():
     readme = re.sub(r'(?s)^.*?(?=# DESCRIPTION)', '', readme)
     readme = re.sub(r'\s+yt-dlp \[OPTIONS\] URL \[URL\.\.\.\]', '', readme)
     readme = filter_excluded_sections(readme)
-    readme = move_usage(readme)
+    readme = move_section('usage and options', readme)
+    readme = move_section('installation', readme)
     readme = re.sub(r'^# USAGE AND OPTIONS$', '# OPTIONS', readme, 1, flags=re.M)
     readme = PREFIX + readme
 
@@ -64,29 +65,31 @@ def filter_excluded_sections(readme):
     return '\n'.join(ret)
 
 
-def move_usage(readme):
+def move_section(section_name, readme):
+    section_name = section_name.upper()
     ret = []
-    usage_section = []
-    readme_without_usage = []
+    section = []
+    readme_without_section = []
     in_section = False
     for line in readme.split('\n'):
         if line.startswith('# '):
-            if line[2:].startswith('USAGE AND OPTIONS'):
+            if line[2:].startswith(section_name):
                 in_section = True
             else:
                 in_section = False
-
         if in_section:
-            usage_section.append(line)
+            section.append(line)
         else:
-            readme_without_usage.append(line)
-    for line in readme_without_usage:
-        if '<!-- MANPAGE: PUT USAGE HERE -->' in line:
-            ret.extend(usage_section)
+            readme_without_section.append(line)
+    for line in readme_without_section:
+        if '<!-- MANPAGE: MOVE "%s" SECTION HERE -->' % section_name in line:
+            ret.extend(section)
+            section = None
         else:
             ret.append(line)
+    if section is not None:
+        raise Exception('Moving the "%s" section was requested, but no "<!-- MANPAGE: MOVE "%s" SECTION HERE --> marker was found.' % (section_name, section_name))
     return '\n'.join(ret)
-
 
 def filter_options(readme):
     ret = ''
