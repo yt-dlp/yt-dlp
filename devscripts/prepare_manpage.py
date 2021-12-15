@@ -68,7 +68,7 @@ def move_section(section_name, readme):
         raise Exception("There are multiple occurrences of section %s, this is unhandled" % section_name)
     else:
         pass
-    readme_without_section = re.sub(section_pattern, '', readme, 1)
+    readme_without_section = re.sub(section_pattern, '# ', readme, 1)
     if readme_without_section.count(move_tag) < 1:
         raise Exception('Moving the "%s" section was requested, but no "%s" marker was found.' % (section_name, move_tag))
     elif readme_without_section.count(move_tag) > 1:
