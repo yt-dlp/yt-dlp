@@ -261,11 +261,11 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='TODO')
+        help='Download livestreams from the start. Currently only supported for YouTube')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
-        help='TODO')
+        help='Download livestreams from the current position (default)')
     general.add_option(
         '--wait-for-video',
         dest='wait_for_video', metavar='MIN[-MAX]', default=None,
