@@ -5,7 +5,8 @@ from ..utils import (
     try_get,
     float_or_none,
     url_or_none,
-    preferredencoding
+    preferredencoding,
+    ExtractorError
 )
 
 
@@ -66,18 +67,18 @@ class RokfinPostIE(RokfinSingleVideoIE):
                 is_unlisted=False)
 
         content_subdict = try_get(downloaded_json, lambda x: x['content'])
-        m3u8_url = try_get(content_subdict, lambda x: url_or_none(x['contentUrl']))
+        video_formats_url = try_get(content_subdict, lambda x: url_or_none(x['contentUrl']))
         availability = try_get(self, lambda x: videoAvailability(x, downloaded_json))
 
-        if m3u8_url:
+        if video_formats_url:
             # Prior to adopting M3U, Rokfin stored videos directly in regular mp4 files:
-            if m3u8_url.endswith('.mp4'):
-                return self.url_result(url=m3u8_url)
+            if video_formats_url.endswith('.mp4'):
+                return self.url_result(url=video_formats_url)
 
-            if not(m3u8_url.endswith('.m3u8')):
-                self.raise_no_formats(msg=f'unsupported video URL {m3u8_url}', expected=False)
+            if not(video_formats_url.endswith('.m3u8')):
+                self.raise_no_formats(msg=f'unsupported video URL {video_formats_url}', expected=False)
 
-            frmts = self._extract_m3u8_formats(m3u8_url=m3u8_url, video_id=video_id, fatal=False)
+            frmts = self._extract_m3u8_formats(m3u8_url=video_formats_url, video_id=video_id, fatal=False)
             self._sort_formats(frmts)
         else:
             frmts = None
@@ -97,10 +98,10 @@ class RokfinPostIE(RokfinSingleVideoIE):
 
         return {
             'id': video_id,
-            'url': m3u8_url,
+            'url': video_formats_url,
             'title': try_get(content_subdict, lambda x: x('contentTitle')),
             'webpage_url': self._RECOMMENDED_VIDEO_BASE_URL + video_id,
-            'manifest_url': m3u8_url,
+            'manifest_url': video_formats_url,
             'is_live': False,
             'was_live': False,
             'duration': try_get(content_subdict, lambda x: float_or_none(x('duration'))),
@@ -228,7 +229,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
                 self.raise_no_formats(
                     msg='the ' + ('premium-only ' if availability == 'premium_only' else '')
                     + 'stream starts at '
-                    + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S' + ' (YYYY-MM-DD, 24H clock, GMT)'),
+                    + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S' + ' (YYYY-MM-DD, 24H clock, GMT). Consider adding --wait-for-video'),
                     expected=True)
 
             if availability == 'premium_only':
@@ -410,6 +411,9 @@ class RokfinSearchIE(SearchInfoExtractor):
     IE_NAME = 'rokfin:search'
     _SEARCH_KEY = 'rkfnsearch'
 
+    service_url = None
+    service_access_key = None
+
     def _get_n_results(self, query, n_results):
         import json
         import math
@@ -417,18 +421,13 @@ class RokfinSearchIE(SearchInfoExtractor):
         def dnl_video_meta_data_incrementally(query, n_results):
             import itertools
 
+            if n_results <= 0:
+                return
+
             BASE_URL = 'https://rokfin.com/'
             ENTRIES_PER_PAGE = 100
 
-            ACCESS_TOKEN = {'authorization': 'Bearer search-tztmtzbrdrkkpqmaj5o8cut6'}
-            # The access token is stored in https://www.rokfin.com/static/js/2.[version tag].chunk.js
-            # under the name REACT_APP_SEARCH_KEY. Finding the current version tag is easy since this
-            # JS file is referenced by every video's landing page. Surprisingly, this landing page coincides
-            # with the 404-page-not-found page. To see this for yourself, try curl -i <Rokfin-video-URL>
-            ACCESS_URL = 'https://82c4086574ca4a8fb588324b39a0464a.app-search.us-west-2.aws.found.io/api/as/v1/engines/rokfin-search/search.json'
-
-            if n_results <= 0:
-                return
+            (service_urls, service_access_keys) = self._get_access_credentials()
 
             enc = preferredencoding()
             pages_to_download = None if n_results == float('inf') else math.ceil(n_results / ENTRIES_PER_PAGE)
@@ -444,16 +443,42 @@ class RokfinSearchIE(SearchInfoExtractor):
             for page_n in itertools.count(1) if n_results == float('inf') else range(1, pages_to_download + 1):
                 POST_DATA = '{"query":"' + query + '","facets":{"content_type":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"creator_name":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"premium_plan":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '}},"result_fields":{"creator_twitter":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_username":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_instagram":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_comments":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_text":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_description":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_title":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_updated_at":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_youtube":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_type":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_name":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_facebook":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"premium_plan":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}}},"page":{"size":' + ENTRIES_PER_PAGE_STR + ',"current":' + str(page_n) + '}}'
 
-                for (ind, content) in enumerate(try_get(
-                        _download_webpage(
-                            url_or_request=ACCESS_URL,
-                            headers=ACCESS_TOKEN,
+                if self.service_url and self.service_access_key:
+                    srch_res = _download_webpage(
+                        url_or_request=self.service_url,
+                        headers={'authorization': self.service_access_key},
+                        data=POST_DATA.encode(enc),
+                        encoding=enc,
+                        video_id=_SEARCH_KEY,
+                        note=f'Downloading search results (page {page_n}' + (f' of {pages_to_download}' if pages_to_download else '') + ')',
+                        fatal=False)
+                else:
+                    write_debug(msg='gaining access')
+
+                    # Try all possible combinations between service_urls and service_access_keys and see which one works.
+                    # This should succeed on the first attempt, but no one knows for sure.
+                    for service_url, service_access_key in itertools.product(service_urls, service_access_keys):
+                        write_debug(msg=f'attempting to download 1st batch of search results from "{service_url}" using access key "{service_access_key}"')
+                        srch_res = _download_webpage(
+                            url_or_request=service_url,
+                            headers={'authorization': service_access_key},
                             data=POST_DATA.encode(enc),
                             encoding=enc,
                             video_id=_SEARCH_KEY,
-                            note=f'Downloading search results (page {page_n}' + (f' of {pages_to_download}' if pages_to_download else '' + ')'),
-                            fatal=False),
-                        lambda x: json_loads(x)['results']) or [], start=1):
+                            note=f'Downloading search results (page {page_n}' + (f' of {pages_to_download}' if pages_to_download else '') + ')',
+                            fatal=False)
+
+                        if type(srch_res) is str:
+                            self.service_url = service_url
+                            self.service_access_key = service_access_key
+                            write_debug(msg='download succeeded, access gained')
+                            break
+                        else:
+                            write_debug(msg='access denied. Still trying...')
+                    else:
+                        raise ExtractorError(msg='access denied', expected=False)
+
+                for (ind, content) in enumerate(try_get(srch_res, lambda x: json_loads(x)['results']), start=1):
                     content_type = try_get(content, lambda x: x['content_type']['raw'])
 
                     if content_type in ('video', 'audio'):
@@ -497,3 +522,43 @@ class RokfinSearchIE(SearchInfoExtractor):
         return self.playlist_result(
             entries=dnl_video_meta_data_incrementally(query, n_results),
             playlist_id=query)
+
+    def _get_access_credentials(self):
+        import re
+
+        if self.service_url and self.service_access_key:
+            return
+
+        STARTING_WP_URL = 'https://rokfin.com/discover'
+        SERVICE_URL_PATH = '/api/as/v1/engines/rokfin-search/search.json'
+        BASE_URL = 'https://rokfin.com'
+
+        # The following returns 404 (Not Found) which is intended:
+        starting_wp_content = self._download_webpage(
+            url_or_request=STARTING_WP_URL,
+            video_id=self._SEARCH_KEY,
+            note='Downloading webpage',
+            expected_status=404,
+            fatal=False)
+
+        js = ''
+        # <script src="/static/js/<filename>">
+        for m in try_get(starting_wp_content, lambda x: re.finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', x)) or []:
+            try:
+                js = js + try_get(m, lambda x: self._download_webpage(
+                    url_or_request=BASE_URL + x.group('path'),
+                    video_id=self._SEARCH_KEY,
+                    note='Downloading JavaScript file',
+                    fatal=False))
+            except TypeError:  # TypeError happens when try_get returns None.
+                pass
+
+        service_urls = []
+        services_access_keys = []
+        for m in re.finditer(r'(REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)")|(REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)")', js):
+            if m.group('url'):
+                service_urls.append(m.group('url') + SERVICE_URL_PATH)
+            elif m.group('key'):
+                services_access_keys.append('Bearer ' + m.group('key'))
+
+        return (service_urls, services_access_keys)
