@@ -280,7 +280,7 @@ class ARDMediathekIE(ARDMediathekBaseIE):
 
         info.update({
             'id': video_id,
-            'title': self._live_title(title) if info.get('is_live') else title,
+            'title': title,
             'description': description,
             'thumbnail': thumbnail,
         })

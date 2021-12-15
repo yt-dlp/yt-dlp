@@ -2673,6 +2673,9 @@ class YoutubeDL(object):
             if self._num_downloads >= int(max_downloads):
                 raise MaxDownloadsReached()
 
+        if info_dict.get('is_live'):
+            info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+
         # TODO: backward compatibility, to be removed
         info_dict['fulltitle'] = info_dict['title']
 

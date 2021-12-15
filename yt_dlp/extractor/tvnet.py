@@ -130,9 +130,6 @@ class TVNetIE(InfoExtractor):
                 r'data-image=(["\'])(?P<url>(?:https?:)?//.+?)\1', webpage,
                 'thumbnail', default=None, group='url'))
 
-        if is_live:
-            title = self._live_title(title)
-
         view_count = int_or_none(self._search_regex(
             r'(?s)<div[^>]+\bclass=["\'].*?view-count[^>]+>.*?(\d+).*?</div>',
             webpage, 'view count', default=None))

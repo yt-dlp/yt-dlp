@@ -2810,7 +2810,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         info = {
             'id': video_id,
-            'title': self._live_title(video_title) if is_live else video_title,
+            'title': video_title,
             'formats': formats,
             'thumbnails': thumbnails,
             # The best thumbnail that we are sure exists. Prevents unnecessary

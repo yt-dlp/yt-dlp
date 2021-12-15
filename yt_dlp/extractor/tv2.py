@@ -106,7 +106,7 @@ class TV2IE(InfoExtractor):
         return {
             'id': video_id,
             'url': video_url,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': strip_or_none(asset.get('description')),
             'thumbnails': thumbnails,
             'timestamp': parse_iso8601(asset.get('live_broadcast_time') or asset.get('update_time')),
@@ -271,7 +271,7 @@ class KatsomoIE(InfoExtractor):
         return {
             'id': video_id,
             'url': video_url,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': strip_or_none(asset.get('description')),
             'thumbnails': thumbnails,
             'timestamp': parse_iso8601(asset.get('createTime')),

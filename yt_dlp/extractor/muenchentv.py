@@ -33,7 +33,7 @@ class MuenchenTVIE(InfoExtractor):
         display_id = 'live'
         webpage = self._download_webpage(url, display_id)
 
-        title = self._live_title(self._og_search_title(webpage))
+        title = self._og_search_title(webpage)
 
         data_js = self._search_regex(
             r'(?s)\nplaylist:\s*(\[.*?}\]),',

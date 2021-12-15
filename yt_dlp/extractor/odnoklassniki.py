@@ -235,7 +235,7 @@ class OdnoklassnikiIE(InfoExtractor):
 
         assert title
         if provider == 'LIVE_TV_APP':
-            info['title'] = self._live_title(title)
+            info['title'] = title
 
         quality = qualities(('4', '0', '1', '2', '3', '5'))
 

@@ -59,9 +59,6 @@ class FreshLiveIE(InfoExtractor):
             stream_url, video_id, 'mp4',
             'm3u8_native', m3u8_id='hls')
 
-        if is_live:
-            title = self._live_title(title)
-
         return {
             'id': video_id,
             'formats': formats,
