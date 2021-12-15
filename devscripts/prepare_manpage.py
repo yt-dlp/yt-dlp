@@ -36,6 +36,7 @@ def main():
     readme = re.sub(r'(?s)^.*?(?=# DESCRIPTION)', '', readme)
     readme = re.sub(r'\s+yt-dlp \[OPTIONS\] URL \[URL\.\.\.\]', '', readme)
     readme = filter_excluded_sections(readme)
+    readme = move_usage(readme)
     readme = PREFIX + readme
 
     readme = filter_options(readme)
@@ -57,6 +58,30 @@ def filter_excluded_sections(readme):
         if EXCLUDED_SECTION_END_STRING in line:
             in_section = False
 
+    return '\n'.join(ret)
+
+
+def move_usage(readme):
+    ret = []
+    usage_section = []
+    readme_without_usage = []
+    in_section = False
+    for line in readme.split('\n'):
+        if line.startswith('# '):
+            if line[2:].startswith('USAGE AND OPTIONS'):
+                in_section = True
+            else:
+                in_section = False
+
+        if in_section:
+            usage_section.append(line)
+        else:
+            readme_without_usage.append(line)
+    for line in readme_without_usage:
+        if '<!-- MANPAGE: PUT USAGE HERE -->' in line:
+            ret.extend(usage_section)
+        else:
+            ret.append(line)
     return '\n'.join(ret)
 
 
