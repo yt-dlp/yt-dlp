@@ -1105,7 +1105,7 @@ class YoutubeDL(object):
         def _dumpjson_default(obj):
             if isinstance(obj, (set, LazyList)):
                 return list(obj)
-            raise TypeError(f'Object of type {type(obj).__name__} is not JSON serializable')
+            return repr(obj)
 
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
@@ -3114,10 +3114,17 @@ class YoutubeDL(object):
                 k.startswith('_') or k in remove_keys or v in empty_values)
         else:
             reject = lambda k, v: k in remove_keys
-        filter_fn = lambda obj: (
-            list(map(filter_fn, obj)) if isinstance(obj, (LazyList, list, tuple, set))
-            else obj if not isinstance(obj, dict)
-            else dict((k, filter_fn(v)) for k, v in obj.items() if not reject(k, v)))
+
+        def filter_fn(obj):
+            if isinstance(obj, dict):
+                return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
+            elif isinstance(obj, (list, tuple, set, LazyList)):
+                return list(map(filter_fn, obj))
+            elif obj is None or isinstance(obj, (str, int, float, bool)):
+                return obj
+            else:
+                return repr(obj)
+
         return filter_fn(info_dict)
 
     @staticmethod
