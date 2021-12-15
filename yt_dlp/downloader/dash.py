@@ -42,7 +42,7 @@ class DashSegmentsFD(FragmentFD):
                 self._prepare_and_start_frag_download(ctx, fmt)
             ctx['start'] = real_start
 
-            fragments_to_download = self._get_fragments(fmt, info_dict, ctx)
+            fragments_to_download = self._get_fragments(fmt, ctx)
 
             if real_downloader:
                 self.to_screen(
@@ -58,12 +58,14 @@ class DashSegmentsFD(FragmentFD):
     def _calculate_fragment_count(self, info_dict):
         return False, (1 if self.params.get('test', False) else len(info_dict['fragments']))
 
-    def _get_fragments(self, info_dict, root_info_dict, ctx):
-        fragment_base_url = info_dict.get('fragment_base_url')
-        fragments = info_dict['fragments'][:1] if self.params.get(
-            'test', False) else info_dict['fragments']
+    def _resolve_fragments(self, fragments, ctx):
+        fragments = fragments(ctx) if callable(fragments) else fragments
+        return [next(fragments)] if self.params.get('test') else fragments
 
-        fragments_to_download = []
+    def _get_fragments(self, fmt, ctx):
+        fragment_base_url = fmt.get('fragment_base_url')
+        fragments = self._resolve_fragments(fmt['fragments'], ctx)
+
         frag_index = 0
         for i, fragment in enumerate(fragments):
             frag_index += 1
@@ -74,13 +76,11 @@ class DashSegmentsFD(FragmentFD):
                 assert fragment_base_url
                 fragment_url = urljoin(fragment_base_url, fragment['path'])
 
-            fragments_to_download.append({
+            yield {
                 'frag_index': frag_index,
                 'index': i,
                 'url': fragment_url,
-            })
-
-        return fragments_to_download
+            }
 
     @staticmethod
     def _accept_live():
@@ -97,23 +97,6 @@ class YoutubeDlFromStartDashFD(DashSegmentsFD):
 
     def _calculate_fragment_count(self, info_dict):
         return True, None
-
-    def _get_fragments(self, info_dict, root_info_dict, ctx):
-        manifest_url = info_dict.get('manifest_url')
-        if not manifest_url:
-            self.report_error('URL for MPD manifest is not known; there is a problem in YoutubeIE code')
-
-        stream_number = info_dict.get('manifest_stream_number', 0)
-
-        download_start_time = ctx.get('start') or (time_millis() / 1000)
-        live_start_time = traverse_obj(root_info_dict, ('__original_infodict', 'release_timestamp'))
-        lack_early = False
-        if live_start_time is not None and download_start_time - live_start_time > 432000:
-            self.report_warning('Starting downloading from recent 120 hours of live, because YouTube does not have the data. Please file an issue if you think it is wrong.', only_once=True)
-            lack_early = True
-
-        ie = self.ydl.get_info_extractor('Youtube')
-        return ie._manifest_fragments(manifest_url, stream_number, lack_early=lack_early)
 
     @staticmethod
     def _accept_live():

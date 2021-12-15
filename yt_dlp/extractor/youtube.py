@@ -6,6 +6,7 @@ import base64
 import calendar
 import copy
 import datetime
+import functools
 import hashlib
 import itertools
 import json
@@ -1706,7 +1707,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._code_cache = {}
         self._player_cache = {}
 
-    def _manifest_fragments(self, mpd_url, stream_number, begin_index=0, fetch_span=5000, lack_early=False):
+    def _live_dash_fragments(self, mpd_url, stream_number, live_start_time, ctx):
+        begin_index = 0
+        fetch_span = 5000
+        download_start_time = ctx.get('start') or (time_millis() / 1000)
+
+        lack_early = False
+        if live_start_time is not None and download_start_time - live_start_time > 432000:
+            self.report_warning('Starting downloading from recent 120 hours of live, because YouTube does not have the data. Please file an issue if you think it is wrong.', only_once=True)
+            lack_early = True
+
         known_idx = begin_index
         no_fragment_score = 0
         prev_dl = time_millis()
@@ -1761,8 +1771,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for idx in range(known_idx, last_seq):
                 last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
                 yield {
-                    'frag_index': idx,
-                    'index': idx,
                     'url': last_segment_url,
                 }
             if known_idx == last_seq:
@@ -2680,7 +2688,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
                         if live_from_start:
                             f['is_from_start'] = True
-                            f['protocol'] = 'youtube_dl_from_start_dash'
+
                         yield f
 
     def _extract_storyboard(self, player_responses, duration):
@@ -2916,6 +2924,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         live_endtime = parse_iso8601(get_first(live_broadcast_details, 'endTimestamp'))
         if not duration and live_endtime and live_starttime:
             duration = live_endtime - live_starttime
+
+        for f in formats:
+            if not f.get('is_from_start'):
+                continue
+            f['protocol'] = 'youtube_dl_from_start_dash'
+            f['fragments'] = functools.partial(
+                self._live_dash_fragments,
+                f['manifest_url'], f['manifest_stream_number'], live_starttime)
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
