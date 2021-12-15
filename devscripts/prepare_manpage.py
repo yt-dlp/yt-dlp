@@ -37,6 +37,7 @@ def main():
     readme = re.sub(r'\s+yt-dlp \[OPTIONS\] URL \[URL\.\.\.\]', '', readme)
     readme = filter_excluded_sections(readme)
     readme = move_usage(readme)
+    readme = re.sub(r'^# USAGE AND OPTIONS$', '# OPTIONS', readme, 1, flags=re.M)
     readme = PREFIX + readme
 
     readme = filter_options(readme)
