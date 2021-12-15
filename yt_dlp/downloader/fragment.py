@@ -91,7 +91,7 @@ class FragmentFD(FileDownloader):
         self._start_frag_download(ctx, info_dict)
 
     def __do_ytdl_file(self, ctx):
-        return not ctx['live'] and not ctx['tmpfilename'] == '-' and not self.params.get('_no_ytdl_file')
+        return ctx['live'] is not True and ctx['tmpfilename'] != '-' and not self.params.get('_no_ytdl_file')
 
     def _read_ytdl_file(self, ctx):
         assert 'ytdl_corrupt' not in ctx
@@ -424,8 +424,8 @@ class FragmentFD(FileDownloader):
 
         fragment_retries = self.params.get('fragment_retries', 0)
         is_fatal = (
-            (lambda _: False if info_dict.get('is_live') else lambda idx: idx == 0)
-            if self.params.get('skip_unavailable_fragments', True) else lambda _: True)
+            ((lambda _: False) if info_dict.get('is_live') else (lambda idx: idx == 0))
+            if self.params.get('skip_unavailable_fragments', True) else (lambda _: True))
 
         if not pack_func:
             pack_func = lambda frag_content, _: frag_content

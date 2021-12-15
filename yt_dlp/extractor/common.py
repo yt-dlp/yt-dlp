@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import base64
 import collections
-import datetime
 import hashlib
 import itertools
 import json

@@ -29,15 +29,13 @@ class DashSegmentsFD(FragmentFD):
         requested_formats = [{**info_dict, **fmt} for fmt in info_dict.get('requested_formats', [])]
         args = []
         for fmt in requested_formats or [info_dict]:
-            is_live = fmt.get('is_live')
             try:
                 fragment_count = 1 if self.params.get('test') else len(fmt['fragments'])
             except TypeError:
                 fragment_count = None
-            real_filename = fmt.get('filepath') or filename
             ctx = {
-                'filename': real_filename,
-                'live': is_live,
+                'filename': fmt.get('filepath') or filename,
+                'live': 'is_from_start' if fmt.get('is_from_start') else fmt.get('is_live'),
                 'total_frags': fragment_count,
             }
 
