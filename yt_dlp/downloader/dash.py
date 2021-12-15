@@ -29,7 +29,7 @@ class DashSegmentsFD(FragmentFD):
         args = []
         for fmt in info_dict.get('requested_formats') or [info_dict]:
             is_live, fragment_count = self._calculate_fragment_count(fmt)
-            real_filename = fmt.get('filepath', ) or filename
+            real_filename = fmt.get('filepath') or filename
             ctx = {
                 'filename': real_filename,
                 'live': is_live,

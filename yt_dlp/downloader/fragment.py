@@ -1,10 +1,10 @@
 from __future__ import division, unicode_literals
 
+import http.client
+import json
+import math
 import os
 import time
-import json
-import http.client
-from math import ceil
 
 try:
     import concurrent.futures
@@ -380,7 +380,7 @@ class FragmentFD(FileDownloader):
         max_progress = len(args)
         if max_progress == 1:
             return self.download_and_append_fragments(*args[0], pack_func=pack_func, finish_func=finish_func)
-        max_workers = self.params.get('concurrent_fragment_downloads', max_progress)
+        max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if max_progress > 1:
             self._prepare_multiline_status(max_progress)
 
@@ -396,7 +396,7 @@ class FragmentFD(FileDownloader):
 
         spins = []
         for idx, (ctx, fragments, info_dict) in enumerate(args):
-            tpe = FTPE(ceil(max_workers / max_progress))
+            tpe = FTPE(math.ceil(max_workers / max_progress))
             job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
             spins.append((tpe, job))
 
@@ -479,7 +479,8 @@ class FragmentFD(FileDownloader):
 
         decrypt_fragment = self.decrypter(info_dict)
 
-        max_workers = self.params.get('concurrent_fragment_downloads', 1)
+        max_workers = math.ceil(
+            self.params.get('concurrent_fragment_downloads', 1) / ctx.get('max_progress', 1))
         if can_threaded_download and max_workers > 1:
 
             def _download_fragment(fragment):
