@@ -57,7 +57,6 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     str_to_int,
-    time_millis,
     traverse_obj,
     try_get,
     unescapeHTML,
@@ -1757,7 +1756,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         mpd_url, stream_number, is_live = None, None, True
 
         begin_index = 0
-        download_start_time = ctx.get('start') or (time_millis() / 1000)
+        download_start_time = ctx.get('start') or time.time()
 
         lack_early_segments = download_start_time - (live_start_time or download_start_time) > MAX_DURATION
         if lack_early_segments:
@@ -1768,7 +1767,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         known_idx, no_fragment_score, last_segment_url = begin_index, 0, None
         while is_live:
-            fetch_time = time_millis() / 1000
+            fetch_time = time.time()
             if no_fragment_score > 30:
                 return
             if last_segment_url:
@@ -1823,7 +1822,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 no_fragment_score = 0
             known_idx = last_seq
 
-            time.sleep(max(0, FETCH_SPAN + fetch_time - (time_millis() / 1000)))
+            time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(

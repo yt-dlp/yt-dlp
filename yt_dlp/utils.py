@@ -6567,13 +6567,6 @@ def variadic(x, allowed_types=(str, bytes)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
 
-def time_millis():
-    # https://stackoverflow.com/questions/5395872/how-can-i-create-a-python-timestamp-with-millisecond-granularity
-    now = datetime.datetime.now(datetime.timezone.utc)
-    epoch = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
-    return (now - epoch) / datetime.timedelta(milliseconds=1)
-
-
 # create a JSON Web Signature (jws) with HS256 algorithm
 # the resulting format is in JWS Compact Serialization
 # implemented following JWT https://www.rfc-editor.org/rfc/rfc7519.html

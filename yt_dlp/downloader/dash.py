@@ -1,10 +1,10 @@
 from __future__ import unicode_literals
+import time
 
 from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD
 
 from ..utils import (
-    time_millis,
     urljoin,
 )
 
@@ -21,7 +21,7 @@ class DashSegmentsFD(FragmentFD):
         if info_dict.get('is_live') and set(info_dict['protocol'].split('+')) != {'http_dash_segments_generator'}:
             self.report_error('Live DASH videos are not supported')
 
-        real_start = time_millis() / 1000
+        real_start = time.time()
         real_downloader = get_suitable_downloader(
             info_dict, self.params, None, protocol='dash_frag_urls', to_stdout=(filename == '-'))
 
