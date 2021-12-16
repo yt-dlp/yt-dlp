@@ -19,6 +19,9 @@ class GronkhIE(InfoExtractor):
             'upload_date': '20211001'
         },
         'params': {'skip_download': True}
+    }, {
+        'url': 'https://gronkh.tv/watch/stream/546',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
