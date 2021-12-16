@@ -1751,7 +1751,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 with lock:
                     mpd_feed.send((format_id, mpd_url, stream_number))
                     mpd_url, stream_number, is_live = next(mpd_feed, None)
-                    print(format_id)
                 try:
                     fmts, _ = self._extract_mpd_formats_and_subtitles(
                         mpd_url, None, note=False, errnote=False, fatal=False)
