@@ -223,7 +223,7 @@ def expect_info_dict(self, got_dict, expected_dict):
 
         # Auto-generated
         'playlist', 'format_index', 'webpage_url', 'video_ext', 'audio_ext', 'duration_string', 'epoch', 'fulltitle',
-        'extractor', 'extractor_key', 'original_url', 'webpage_url_basename', 'filepath', 'infojson_filename',
+        'extractor', 'extractor_key', 'original_url', 'webpage_url_basename', 'webpage_url_domain', 'filepath', 'infojson_filename',
 
         # Only live_status needs to be checked
         'is_live', 'was_live',
