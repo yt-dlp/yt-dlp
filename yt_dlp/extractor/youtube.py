@@ -16,6 +16,7 @@ import re
 import sys
 import time
 import traceback
+import threading
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -1711,8 +1712,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._code_cache = {}
         self._player_cache = {}
 
-    def _live_dash_fragments(self, mpd_url, stream_number, live_start_time, ctx):
+    def _live_dash_fragments(self, format_id, mpd_feed, lock, live_start_time, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
+
+        mpd_url, stream_number, is_live = None, None, True
 
         begin_index = 0
         download_start_time = ctx.get('start') or (time_millis() / 1000)
@@ -1727,7 +1730,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         known_idx = begin_index
         no_fragment_score = 0
         last_segment_url = None
-        while True:
+        while is_live:
             fetch_time = time_millis() / 1000
             if no_fragment_score > 30:
                 return
@@ -1745,6 +1748,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
             else:
                 # Obtain from MPD's maximum seq value
+                with lock:
+                    mpd_feed.send((format_id, mpd_url, stream_number))
+                    mpd_url, stream_number, is_live = next(mpd_feed, None)
+                    print(format_id)
                 try:
                     fmts, _ = self._extract_mpd_formats_and_subtitles(
                         mpd_url, None, note=False, errnote=False, fatal=False)
@@ -2683,12 +2690,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 } for j in range(math.ceil(fragment_count))],
             }
 
-    def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
-        video_id = self._match_id(url)
-
-        base_url = self.http_scheme() + '//www.youtube.com/'
-        webpage_url = base_url + 'watch?v=' + video_id
+    def _download_player_responses(self, url, smuggled_data, video_id, webpage_url):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             webpage = self._download_webpage(
@@ -2699,6 +2701,28 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_responses, player_url = self._extract_player_responses(
             self._get_requested_clients(url, smuggled_data),
             video_id, webpage, master_ytcfg)
+
+        return webpage, master_ytcfg, player_responses, player_url
+
+    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url):
+        live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
+        is_live = get_first(video_details, 'isLive')
+        if is_live is None:
+            is_live = get_first(live_broadcast_details, 'isLiveNow')
+
+        streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
+        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live))
+
+        return live_broadcast_details, is_live, streaming_data, formats
+
+    def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url, {})
+        video_id = self._match_id(url)
+
+        base_url = self.http_scheme() + '//www.youtube.com/'
+        webpage_url = base_url + 'watch?v=' + video_id
+
+        webpage, master_ytcfg, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
 
         playability_statuses = traverse_obj(
             player_responses, (..., 'playabilityStatus'), expected_type=dict, default=[])
@@ -2768,13 +2792,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return self.playlist_result(
                     entries, video_id, video_title, video_description)
 
-        live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
-        is_live = get_first(video_details, 'isLive')
-        if is_live is None:
-            is_live = get_first(live_broadcast_details, 'isLiveNow')
-
-        streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live))
+        live_broadcast_details, is_live, streaming_data, formats = self._list_formats(video_id, microformats, video_details, player_responses, player_url)
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -2882,13 +2900,48 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not duration and live_endtime and live_starttime:
             duration = live_endtime - live_starttime
 
+        def mpd_subscription_feed():
+            # content of returned tuples: (manifest url, stream number, should stop? (e.g. it isn't live anymore))
+            nonlocal formats
+            internal_formats, expiration, cache, is_live = formats, time.time() + 18000, {}, True
+            while True:
+                itag, old_url, old_stream = yield None
+                if time.time() > expiration:
+                    # invalidate and re-extract
+                    cache = {}
+                    _, _, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+                    video_details = traverse_obj(
+                        player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
+                    microformats = traverse_obj(
+                        player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
+                        expected_type=dict, default=[])
+                    _, is_live, _, internal_formats = self._list_formats(video_id, microformats, video_details, player_responses, player_url)
+                    expiration = time.time() + 18000
+
+                if itag in cache:
+                    f = internal_formats[cache[itag]]
+                    yield (f['manifest_url'], f['manifest_stream_number'], not is_live)
+                for i, f in enumerate(internal_formats):
+                    if f['format_id'] == itag:
+                        cache[itag] = i
+                        yield (f['manifest_url'], f['manifest_stream_number'], not is_live)
+                    else:
+                        # it's something strange!
+                        yield (old_url, old_stream, True)
+
+        is_from_start = any(traverse_obj(formats, (..., 'is_from_start'), default=[]))
+        if is_from_start:
+            mpd_feed = mpd_subscription_feed()
+            next(mpd_feed)
+            lock = threading.Lock()
+
         for f in formats:
             if not f.get('is_from_start'):
                 continue
             f['protocol'] = 'http_dash_segments_generator'
             f['fragments'] = functools.partial(
                 self._live_dash_fragments,
-                f['manifest_url'], f['manifest_stream_number'], live_starttime)
+                f['format_id'], mpd_feed, lock, live_starttime)
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
