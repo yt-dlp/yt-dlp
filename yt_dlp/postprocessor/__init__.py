@@ -9,6 +9,7 @@ from .ffmpeg import (
     FFmpegPostProcessor,
     FFmpegEmbedSubtitlePP,
     FFmpegExtractAudioPP,
+    FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
     FFmpegFixupStretchedPP,
     FFmpegFixupTimestampPP,

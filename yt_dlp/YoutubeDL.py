@@ -143,6 +143,7 @@ from .downloader.rtmp import rtmpdump_version
 from .postprocessor import (
     get_postprocessor,
     EmbedThumbnailPP,
+    FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
     FFmpegFixupM3u8PP,
     FFmpegFixupM4aPP,
