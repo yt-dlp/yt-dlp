@@ -917,6 +917,7 @@ class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
         self._fixup(self.MESSAGE, info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
         return [], info
 
+
 class FFmpegFixupDurationPP(FFmpegCopyStreamPostProcessor):
     MESSAGE = 'Fixing video duration'
 
