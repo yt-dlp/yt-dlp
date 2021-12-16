@@ -177,7 +177,7 @@ class Zee5SeriesIE(InfoExtractor):
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:tvshows|kids|zee5originals)(?:/[^#/?]+){2}/
                      )
-                     (?P<id>[^#/?]+)/?(?:$|[?#])
+                     (?P<id>[^#/?]+)(?:/episodes)?/?(?:$|[?#])
                      '''
     _TESTS = [{
         'url': 'https://www.zee5.com/kids/kids-shows/krishna-balram/0-6-1871',
@@ -209,8 +209,10 @@ class Zee5SeriesIE(InfoExtractor):
         'info_dict': {
             'id': '0-6-270',
         },
-    }
-    ]
+    }, {
+        'url': 'https://www.zee5.com/tvshows/details/chala-hawa-yeu-dya-ladies-zindabaad/0-6-2943/episodes',
+        'only_matching': True,
+    }]
 
     def _entries(self, show_id):
         access_token_request = self._download_json(
