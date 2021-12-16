@@ -1712,7 +1712,46 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._code_cache = {}
         self._player_cache = {}
 
-    def _live_dash_fragments(self, format_id, mpd_feed, lock, live_start_time, ctx):
+    def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data):
+        EXPIRATION_DURATION = 18_000
+        lock = threading.Lock()
+
+        is_live = True
+        expiration_time = time.time() + EXPIRATION_DURATION
+        formats = [f for f in formats if f.get('is_from_start')]
+
+        def refetch_manifest(format_id):
+            nonlocal formats, expiration_time, is_live
+            _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
+            video_details = traverse_obj(
+                prs, (..., 'videoDetails'), expected_type=dict, default=[])
+            microformats = traverse_obj(
+                prs, (..., 'microformat', 'playerMicroformatRenderer'),
+                expected_type=dict, default=[])
+            _, is_live, _, formats = self._list_formats(video_id, microformats, video_details, prs, player_url)
+            expiration_time = time.time() + EXPIRATION_DURATION
+
+        def mpd_feed(format_id):
+            """
+            @returns (manifest_url, manifest_stream_number, is_live) or None
+            """
+            if time.time() > expiration_time:
+                with lock:
+                    refetch_manifest(format_id)
+
+            f = next((f for f in formats if f['format_id'] == format_id), None)
+            if not f:
+                self.report_warning(
+                    f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}')
+                return None
+            return f['manifest_url'], f['manifest_stream_number'], is_live
+
+        for f in formats:
+            f['protocol'] = 'http_dash_segments_generator'
+            f['fragments'] = functools.partial(
+                self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed)
+
+    def _live_dash_fragments(self, format_id, live_start_time, mpd_feed, ctx):
         FETCH_SPAN, MAX_DURATION = 5, 432000
 
         mpd_url, stream_number, is_live = None, None, True
@@ -1724,12 +1763,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if lack_early_segments:
             self.report_warning(bug_reports_message(
                 'Starting download from the last 120 hours of the live stream since '
-                'YouTube does not have data beyond that. If you think this is wrong,'), only_once=True)
+                'YouTube does not have data before that. If you think this is wrong,'), only_once=True)
             lack_early_segments = True
 
-        known_idx = begin_index
-        no_fragment_score = 0
-        last_segment_url = None
+        known_idx, no_fragment_score, last_segment_url = begin_index, 0, None
         while is_live:
             fetch_time = time_millis() / 1000
             if no_fragment_score > 30:
@@ -1739,7 +1776,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 try:
                     urlh = self._request_webpage(
                         last_segment_url, None, note=False, errnote=False, fatal=False)
-                except BaseException:
+                except ExtractorError:
                     urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if last_seq is None:
@@ -1748,13 +1785,11 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     continue
             else:
                 # Obtain from MPD's maximum seq value
-                with lock:
-                    mpd_feed.send((format_id, mpd_url, stream_number))
-                    mpd_url, stream_number, is_live = next(mpd_feed, None)
+                mpd_url, stream_number, is_live = mpd_feed(format_id) or (mpd_url, stream_number, False)
                 try:
                     fmts, _ = self._extract_mpd_formats_and_subtitles(
                         mpd_url, None, note=False, errnote=False, fatal=False)
-                except BaseException:
+                except ExtractorError:
                     fmts = None
                 if not fmts:
                     no_fragment_score += 1
@@ -2894,53 +2929,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 is_live = False
         if is_upcoming is None and (live_content or is_live):
             is_upcoming = False
-        live_starttime = parse_iso8601(get_first(live_broadcast_details, 'startTimestamp'))
-        live_endtime = parse_iso8601(get_first(live_broadcast_details, 'endTimestamp'))
-        if not duration and live_endtime and live_starttime:
-            duration = live_endtime - live_starttime
+        live_start_time = parse_iso8601(get_first(live_broadcast_details, 'startTimestamp'))
+        live_end_time = parse_iso8601(get_first(live_broadcast_details, 'endTimestamp'))
+        if not duration and live_end_time and live_start_time:
+            duration = live_end_time - live_start_time
 
-        def mpd_subscription_feed():
-            # content of returned tuples: (manifest url, stream number, should stop? (e.g. it isn't live anymore))
-            nonlocal formats
-            internal_formats, expiration, cache, is_live = formats, time.time() + 18000, {}, True
-            while True:
-                itag, old_url, old_stream = yield None
-                if time.time() > expiration:
-                    # invalidate and re-extract
-                    cache = {}
-                    _, _, player_responses, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
-                    video_details = traverse_obj(
-                        player_responses, (..., 'videoDetails'), expected_type=dict, default=[])
-                    microformats = traverse_obj(
-                        player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
-                        expected_type=dict, default=[])
-                    _, is_live, _, internal_formats = self._list_formats(video_id, microformats, video_details, player_responses, player_url)
-                    expiration = time.time() + 18000
-
-                if itag in cache:
-                    f = internal_formats[cache[itag]]
-                    yield (f['manifest_url'], f['manifest_stream_number'], not is_live)
-                for i, f in enumerate(internal_formats):
-                    if f['format_id'] == itag:
-                        cache[itag] = i
-                        yield (f['manifest_url'], f['manifest_stream_number'], not is_live)
-                    else:
-                        # it's something strange!
-                        yield (old_url, old_stream, True)
-
-        is_from_start = any(traverse_obj(formats, (..., 'is_from_start'), default=[]))
-        if is_from_start:
-            mpd_feed = mpd_subscription_feed()
-            next(mpd_feed)
-            lock = threading.Lock()
-
-        for f in formats:
-            if not f.get('is_from_start'):
-                continue
-            f['protocol'] = 'http_dash_segments_generator'
-            f['fragments'] = functools.partial(
-                self._live_dash_fragments,
-                f['format_id'], mpd_feed, lock, live_starttime)
+        if is_live and self.get_param('live_from_start'):
+            self._prepare_live_from_start_formats(formats, video_id, live_start_time, url, webpage_url, smuggled_data)
 
         formats.extend(self._extract_storyboard(player_responses, duration))
 
@@ -2983,7 +2978,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                          else None if is_live is None or is_upcoming is None
                          else live_content),
             'live_status': 'is_upcoming' if is_upcoming else None,  # rest will be set by YoutubeDL
-            'release_timestamp': live_starttime,
+            'release_timestamp': live_start_time,
         }
 
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
