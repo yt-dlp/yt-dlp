@@ -366,26 +366,49 @@ class RaiPlayLiveIE(RaiPlayIE):
 
 
 class RaiPlayPlaylistIE(InfoExtractor):
-    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))'
+    _VALID_URL = r'(?P<base>https?://(?:www\.)?raiplay\.it/programmi/(?P<id>[^/?#&]+))(?:/(?P<extra_id>[^?#&]+))?'
     _TESTS = [{
-        'url': 'http://www.raiplay.it/programmi/nondirloalmiocapo/',
+        'url': 'https://www.raiplay.it/programmi/nondirloalmiocapo/',
         'info_dict': {
             'id': 'nondirloalmiocapo',
             'title': 'Non dirlo al mio capo',
             'description': 'md5:98ab6b98f7f44c2843fd7d6f045f153b',
         },
         'playlist_mincount': 12,
+    }, {
+        'url': 'https://www.raiplay.it/programmi/nondirloalmiocapo/episodi/stagione-2/',
+        'info_dict': {
+            'id': 'nondirloalmiocapo',
+            'title': 'Non dirlo al mio capo - Stagione 2',
+            'description': 'md5:98ab6b98f7f44c2843fd7d6f045f153b',
+        },
+        'playlist_mincount': 12,
     }]
 
     def _real_extract(self, url):
-        base, playlist_id = self._match_valid_url(url).groups()
+        base, playlist_id, extra_id = self._match_valid_url(url).groups()
 
         program = self._download_json(
             base + '.json', playlist_id, 'Downloading program JSON')
 
+        if extra_id:
+            extra_id = extra_id.upper().rstrip('/')
+
+        playlist_title = program.get('name')
         entries = []
         for b in (program.get('blocks') or []):
             for s in (b.get('sets') or []):
+                if extra_id:
+                    # create path from values in the json
+                    # to check if it's the same or not
+                    if extra_id != join_nonempty(
+                        b.get('name'), s.get('name'), delim='/'
+                    ).replace(' ', '-').upper():
+                        continue
+
+                    playlist_title = join_nonempty(
+                        playlist_title, s.get('name'), delim=' - ')
+
                 s_id = s.get('id')
                 if not s_id:
                     continue
@@ -404,7 +427,7 @@ class RaiPlayPlaylistIE(InfoExtractor):
                         video_id=RaiPlayIE._match_id(video_url)))
 
         return self.playlist_result(
-            entries, playlist_id, program.get('name'),
+            entries, playlist_id, playlist_title,
             try_get(program, lambda x: x['program_info']['description']))
 
 
@@ -532,6 +555,7 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
             base + '.json', playlist_id, 'Downloading program JSON')
 
         if extra_id:
+            extra_id = extra_id.rstrip('/')
             for c in program.get('filters') or []:
                 if extra_id in c.get('weblink'):
                     program = self._download_json(
