@@ -66,9 +66,9 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
     * [Developer Instructions](CONTRIBUTING.md#developer-instructions)
 * [MORE](#more)
-
-
 <!-- MANPAGE: END EXCLUDED SECTION -->
+
+
 # NEW FEATURES
 
 * Based on **youtube-dl 2021.06.06 [commit/379f52a](https://github.com/ytdl-org/youtube-dl/commit/379f52a4954013767219d25099cce9e0f9401961)** and **youtube-dlc 2020.11.11-3 [commit/98e248f](https://github.com/blackjack4494/yt-dlc/commit/98e248faa49e69d795abc60f7cdefcf91e2612aa)**: You get all the features and patches of [youtube-dlc](https://github.com/blackjack4494/yt-dlc) in addition to the latest [youtube-dl](https://github.com/ytdl-org/youtube-dl)
@@ -211,6 +211,7 @@ If you [installed with pip](#with-pip), simply re-run the same command that was 
 
 If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps/yt-dlp`
 
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
 
 #### Recommended
@@ -237,6 +238,7 @@ File|Description
 [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)|Source tarball. Also contains manpages, completions, etc
 [SHA2-512SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-512SUMS)|GNU-style SHA512 sums
 [SHA2-256SUMS](https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS)|GNU-style SHA256 sums
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 ## DEPENDENCIES
 Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
@@ -247,6 +249,7 @@ On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https:
 -->
 
 While all the other dependancies are optional, `ffmpeg` and `ffprobe` are highly recommended
+
 * [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging seperate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodomex**](https://github.com/Legrandin/pycryptodome) - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
@@ -287,11 +290,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 # USAGE AND OPTIONS
 
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
     yt-dlp [OPTIONS] [--] URL [URL...]
 
 `Ctrl+F` is your friend :D
-<!-- Auto generated -->
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
+<!-- Auto generated -->
 ## General Options:
     -h, --help                       Print this help text and exit
     --version                        Print program version and exit
@@ -1006,7 +1011,7 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
 
-    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to (`C:\Users\<user name>\AppData\Roaming`) and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
+    `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
 For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
@@ -1062,11 +1067,17 @@ It may however also contain special sequences that will be replaced when downloa
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
 1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
+
 1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
+
 1. **Date/time Formatting**: Date/time fields can be formatted according to [strftime formatting](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) by specifying it separated from the field name using a `>`. Eg: `%(duration>%H-%M-%S)s`, `%(upload_date>%Y-%m-%d)s`, `%(epoch-3600>%H-%M-%S)s`
+
 1. **Alternatives**: Alternate fields can be specified seperated with a `,`. Eg: `%(release_date>%Y,upload_date>%Y|Unknown)s`
+
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` seperator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
+
 1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q` can be used for converting to **B**ytes, **j**son (flag `#` for pretty-printing), a comma seperated **l**ist (flag `#` for `\n` newline-seperated) and a string **q**uoted for the terminal (flag `#` to split a list into different arguments), respectively
+
 1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. Eg: `%(title)+.100U` is NFKC
 
 To summarize, the general syntax for a field is:
@@ -1213,9 +1224,11 @@ The current default template is `%(title)s [%(id)s].%(ext)s`.
 
 In some cases, you don't want special characters such as 中, spaces, or &, such as when transferring the downloaded filename to a Windows system or the filename through an 8bit-unsafe channel. In these cases, add the `--restrict-filenames` flag to get a shorter title.
 
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 #### Output template and Windows batch files
 
 If you are using an output template inside a Windows batch file then you must escape plain percent characters (`%`) by doubling, so that `-o "%(title)s-%(id)s.%(ext)s"` should become `-o "%%(title)s-%%(id)s.%%(ext)s"`. However you should not touch `%`'s that are not plain characters, e.g. environment variables for expansion should stay intact: `-o "C:\%HOMEPATH%\Desktop\%%(title)s.%%(ext)s"`.
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 #### Output template examples
 
@@ -1597,6 +1610,7 @@ NOTE: These options may be changed/removed in the future without concern for bac
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
 
+
 # PLUGINS
 
 Plugins are loaded from `<root-dir>/ytdlp_plugins/<type>/__init__.py`; where `<root-dir>` is the directory of the binary (`<root-dir>/yt-dlp`), or the root directory of the module if you are running directly from source-code (`<root dir>/yt_dlp/__main__.py`). Plugins are currently not supported for the `pip` version
@@ -1728,6 +1742,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
 
 <!-- MANPAGE: MOVE "NEW FEATURES" SECTION HERE -->
+
 # DEPRECATED OPTIONS
 
 These are all the deprecated options and the current alternative to achieve the same effect
