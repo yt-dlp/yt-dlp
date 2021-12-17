@@ -105,8 +105,6 @@ class SteamIE(InfoExtractor):
                                 'format_id': ext + quality,
                                 'url': video_url,
                             })
-            if not formats and not self.get_param('ignore_no_formats'):
-                continue
             self._sort_formats(formats)
             entry['formats'] = formats
             entries.append(entry)
