@@ -97,7 +97,6 @@ from .utils import (
     preferredencoding,
     prepend_extension,
     ReExtractInfo,
-    register_socks_protocols,
     RejectedVideoReached,
     remove_terminal_sequences,
     render_table,
@@ -669,8 +668,6 @@ class YoutubeDL(object):
             self.add_post_processor(
                 get_postprocessor(pp_def.pop('key'))(self, **compat_kwargs(pp_def)),
                 when=when)
-
-        register_socks_protocols()
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""

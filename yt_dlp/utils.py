@@ -84,15 +84,6 @@ from .socks import (
 )
 
 
-def register_socks_protocols():
-    # "Register" SOCKS protocols
-    # In Python < 2.6.5, urlsplit() suffers from bug https://bugs.python.org/issue7904
-    # URLs with protocols not in urlparse.uses_netloc are not handled correctly
-    for scheme in ('socks', 'socks4', 'socks4a', 'socks5'):
-        if scheme not in compat_urlparse.uses_netloc:
-            compat_urlparse.uses_netloc.append(scheme)
-
-
 # This is not clearly defined otherwise
 compiled_regex_type = type(re.compile(''))
 
