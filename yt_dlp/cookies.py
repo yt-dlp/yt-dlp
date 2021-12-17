@@ -6,6 +6,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from hashlib import pbkdf2_hmac
 
@@ -44,6 +45,14 @@ except ImportError:
 except Exception as _err:
     KEYRING_AVAILABLE = False
     KEYRING_UNAVAILABLE_REASON = 'as the `keyring` module could not be initialized: %s' % _err
+try:
+    import secretstorage
+    SECRETSTORAGE_AVAILABLE = True
+except ImportError:
+    SECRETSTORAGE_AVAILABLE = False
+    SECRETSTORAGE_UNAVAILABLE_REASON = (
+        'as the `secretstorage` module is not installed. '
+        'Please install by running `python3 -m pip install secretstorage`.')
 
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
@@ -323,7 +332,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
         if KEYRING_AVAILABLE:
-            self._v11_key = self.derive_key(_get_linux_keyring_password(browser_keyring_name))
+            self._v11_key = self.derive_key(_get_linux_keyring_password(browser_keyring_name, logger))
         else:
             self._v11_key = None
 
@@ -577,18 +586,53 @@ def parse_safari_cookies(data, jar=None, logger=YDLLogger()):
     return jar
 
 
-def _get_linux_keyring_password(browser_keyring_name):
-    password = keyring.get_password('{} Keys'.format(browser_keyring_name),
-                                    '{} Safe Storage'.format(browser_keyring_name))
+def _get_linux_keyring_password(browser_keyring_name, logger):
+    # note: chrome/chromium can be run with the following flags to determine which keyring backend
+    # it has chosen to use
+    # chromium --enable-logging=stderr --v=1 2>&1 | grep key_storage_
+    # it is assumed that the keyring library will choose the same keyring.
+    # Chromium supports a flag: --password-store=<basic|gnome|kwallet> so the automatic detection
+    # will not be sufficient in all cases.
+
+    k = keyring.get_keyring()
+    logger.debug('reading from keyring: "{}"'.format(k.name))
+    password = k.get_password('{} Keys'.format(browser_keyring_name),
+                              '{} Safe Storage'.format(browser_keyring_name))
     if password is None:
-        # this sometimes occurs in KDE because chrome does not check hasEntry and instead
-        # just tries to read the value (which kwallet returns "") whereas keyring checks hasEntry
-        # to verify this:
-        # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
-        # while starting chrome.
-        # this may be a bug as the intended behaviour is to generate a random password and store
-        # it, but that doesn't matter here.
-        password = ''
+        logger.debug('no password found in keyring.')
+        if 'kwallet' in k.name.lower():
+            logger.debug('using empty string instead')
+            # this sometimes occurs in KDE because chrome does not check hasEntry and instead
+            # just tries to read the value (which kwallet returns "") whereas keyring checks hasEntry
+            # to verify this:
+            # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
+            # while starting chrome.
+            # this may be a bug as the intended behaviour is to generate a random password and store
+            # it, but that doesn't matter here.
+            password = ''
+
+        elif k.name == 'SecretService Keyring':
+            logger.debug('using secretstorage fallback')
+            if not SECRETSTORAGE_AVAILABLE:
+                logger.error('secretstorage not available {}'.format(SECRETSTORAGE_UNAVAILABLE_REASON))
+                return ''
+            # the Gnome keyring does not seem to organise keys in the same way as KWallet,
+            # using `dbus-monitor` during startup, it can be observed that chromium lists all keys
+            # and presumably searches for its key in the list. It appears that we must do the same.
+            # https://github.com/jaraco/keyring/issues/556
+            with closing(secretstorage.dbus_init()) as con:
+                col = secretstorage.get_default_collection(con)
+                for item in col.get_all_items():
+                    if item.get_label() == '{} Safe Storage'.format(browser_keyring_name):
+                        return item.get_secret()
+                else:
+                    logger.error('failed to read from keyring')
+                    password = ''
+
+        else:
+            logger.error('Unknown backend. Failed to obtain key')
+            password = ''
+
     return password.encode('utf-8')
 
 
