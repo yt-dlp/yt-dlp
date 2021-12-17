@@ -68,18 +68,18 @@ class SteamIE(InfoExtractor):
     def _real_extract(self, url):
         m = self._match_valid_url(url)
         playlist_id = self._match_valid_url(url).group('gameID')
-        videourl = self._VIDEO_PAGE_TEMPLATE % playlist_id
+        video_url = self._VIDEO_PAGE_TEMPLATE % playlist_id
 
         self._set_cookie('steampowered.com', 'wants_mature_content', '1')
         self._set_cookie('steampowered.com', 'birthtime', '944006401')
         self._set_cookie('steampowered.com', 'lastagecheckage', '1-0-2000')
 
-        webpage = self._download_webpage(videourl, playlist_id)
+        webpage = self._download_webpage(video_url, playlist_id)
 
         if re.search('<div[^>]+>Please enter your birth date to continue:</div>', webpage) is not None:
-            videourl = self._AGECHECK_TEMPLATE % playlist_id
+            video_url = self._AGECHECK_TEMPLATE % playlist_id
             self.report_age_confirmation()
-            webpage = self._download_webpage(videourl, playlist_id)
+            webpage = self._download_webpage(video_url, playlist_id)
 
         videos = re.findall(r'(<div[^>]+id=[\'"]highlight_movie_(\d+)[\'"][^>]+>)', webpage)
         entries = []
