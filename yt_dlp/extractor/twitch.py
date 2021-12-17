@@ -940,6 +940,8 @@ class TwitchClipsIE(TwitchBaseIE):
             'creator': 'EA',
             'uploader': 'stereotype_',
             'uploader_id': '43566419',
+            'vod_id': '72078016',
+            'vod_offset_seconds': 7694,
         },
     }, {
         # multiple formats
