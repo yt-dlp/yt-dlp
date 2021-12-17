@@ -1769,7 +1769,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         fragments, fragment_base_url = None, None
 
         def _extract_sequence_from_mpd(refresh_sequence):
-            nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragment_base_url
+            nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragments, fragment_base_url
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             mpd_url, stream_number, is_live = mpd_feed(format_id) or (mpd_url, stream_number, False)
