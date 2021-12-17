@@ -29,7 +29,7 @@ class SteamIE(InfoExtractor):
                     'id': '256785003',
                     'ext': 'mp4',
                     'title': 'Terraria video 256785003',
-                    'thumbnail': 're:^https://cdn\.[^\.]+\.steamstatic\.com',
+                    'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
                     'n_entries': 2,
                 }
             },
@@ -40,7 +40,7 @@ class SteamIE(InfoExtractor):
                     'ext': 'mp4',
                     'title': 'Terraria video 2040428',
                     'playlist_index': 2,
-                    'thumbnail': 're:^https://cdn\.[^\.]+\.steamstatic\.com',
+                    'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
                     'n_entries': 2,
                 }
             }
