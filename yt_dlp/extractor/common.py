@@ -1434,7 +1434,7 @@ class InfoExtractor(object):
             if not e.get('hasPart'):
                 return
             for idx, part in enumerate(e['hasPart']):
-                if part.get('@type') != 'Clip': # https://schema.org/Clip
+                if part.get('@type') != 'Clip':  # https://schema.org/Clip
                     continue
                 if idx == 0:
                     last_chapter = {
