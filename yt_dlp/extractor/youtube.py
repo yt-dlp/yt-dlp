@@ -1766,6 +1766,31 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             lack_early_segments = True
 
         known_idx, no_fragment_score, last_segment_url = begin_index, 0, None
+        fragments, fragment_base_url = None, None
+
+        def _extract_sequence_from_mpd(refresh_sequence):
+            nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragment_base_url
+            # Obtain from MPD's maximum seq value
+            old_mpd_url = mpd_url
+            mpd_url, stream_number, is_live = mpd_feed(format_id) or (mpd_url, stream_number, False)
+            if old_mpd_url == mpd_url and not refresh_sequence:
+                return True, last_seq
+            try:
+                fmts, _ = self._extract_mpd_formats_and_subtitles(
+                    mpd_url, None, note=False, errnote=False, fatal=False)
+            except ExtractorError:
+                fmts = None
+            if not fmts:
+                no_fragment_score += 1
+                return False, last_seq
+            fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
+            fragments = fmt_info['fragments']
+            fragment_base_url = fmt_info['fragment_base_url']
+            assert fragment_base_url
+
+            _last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
+            return True, _last_seq
+
         while is_live:
             fetch_time = time.time()
             if no_fragment_score > 30:
@@ -1783,22 +1808,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = None
                     continue
             else:
-                # Obtain from MPD's maximum seq value
-                mpd_url, stream_number, is_live = mpd_feed(format_id) or (mpd_url, stream_number, False)
-                try:
-                    fmts, _ = self._extract_mpd_formats_and_subtitles(
-                        mpd_url, None, note=False, errnote=False, fatal=False)
-                except ExtractorError:
-                    fmts = None
-                if not fmts:
-                    no_fragment_score += 1
+                should_retry, last_seq = _extract_sequence_from_mpd(True)
+                if not should_retry:
                     continue
-                fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
-                fragments = fmt_info['fragments']
-                fragment_base_url = fmt_info['fragment_base_url']
-                assert fragment_base_url
-
-                last_seq = int(re.search(r'(?:/|^)sq/(\d+)', fragments[-1]['path']).group(1))
 
             if known_idx > last_seq:
                 last_segment_url = None
@@ -1811,16 +1823,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 known_idx = last_seq + begin_index
             if lack_early_segments:
                 known_idx = max(known_idx, last_seq - int(MAX_DURATION // fragments[-1]['duration']))
-            for idx in range(known_idx, last_seq):
-                last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
-                yield {
-                    'url': last_segment_url,
-                }
-            if known_idx == last_seq:
-                no_fragment_score += 5
-            else:
-                no_fragment_score = 0
-            known_idx = last_seq
+            try:
+                for idx in range(known_idx, last_seq):
+                    # do not update sequence here or you'll get skipped some part of it
+                    should_retry, _ = _extract_sequence_from_mpd(False)
+                    if not should_retry:
+                        # retry when it gets weird state
+                        known_idx = idx - 1
+                        raise ExtractorError('breaking out of outer loop')
+                    last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
+                    yield {
+                        'url': last_segment_url,
+                    }
+                if known_idx == last_seq:
+                    no_fragment_score += 5
+                else:
+                    no_fragment_score = 0
+                known_idx = last_seq
+            except ExtractorError:
+                continue
 
             time.sleep(max(0, FETCH_SPAN + fetch_time - time.time()))
 
