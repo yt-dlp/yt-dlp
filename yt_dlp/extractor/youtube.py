@@ -1721,6 +1721,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         def refetch_manifest(format_id):
             nonlocal formats, expiration_time, is_live
+            if time.time() <= expiration_time:
+                # check expiration again inside lock
+                return
+
             _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
             video_details = traverse_obj(
                 prs, (..., 'videoDetails'), expected_type=dict, default=[])
