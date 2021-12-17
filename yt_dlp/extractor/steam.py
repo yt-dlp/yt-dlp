@@ -61,8 +61,7 @@ class SteamIE(InfoExtractor):
             'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
             'n_entries': 20,
         },
-    }
-    ]
+    }]
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
