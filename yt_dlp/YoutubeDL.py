@@ -1055,8 +1055,8 @@ class YoutubeDL(object):
             (?P<fields>{field})
             (?P<maths>(?:{math_op}{math_field})*)
             (?:>(?P<strf_format>.+?))?
-            (?P<alternate>(?<!\\),[^|)]+)?
-            (?:\&(?P<replacement>.+?))?
+            (?P<alternate>(?<!\\),[^|&)]+)?
+            (?:&(?P<replacement>.*?))?
             (?:\|(?P<default>.*?))?
             $'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
 
