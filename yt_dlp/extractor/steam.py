@@ -67,8 +67,14 @@ class SteamIE(InfoExtractor):
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
-        playlist_id = self._match_valid_url(url).group('gameID')
-        video_url = self._VIDEO_PAGE_TEMPLATE % playlist_id
+        fileID = m.group('fileID')
+        if fileID:
+            video_url = url
+            playlist_id = fileID
+        else:
+            gameID = m.group('gameID')
+            playlist_id = gameID
+            video_url = self._VIDEO_PAGE_TEMPLATE % playlist_id
 
         self._set_cookie('steampowered.com', 'wants_mature_content', '1')
         self._set_cookie('steampowered.com', 'birthtime', '944006401')
