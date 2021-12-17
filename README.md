@@ -520,9 +520,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      (Alias: --external-downloader-args)
 
 ## Filesystem Options:
-    -a, --batch-file FILE            File containing URLs to download ('-' for
+    -a, --batch-file FILE            File containing URLs to download ("-" for
                                      stdin), one URL per line. Lines starting
-                                     with '#', ';' or ']' are considered as
+                                     with "#", ";" or "]" are considered as
                                      comments and ignored
     --no-batch-file                  Do not read URLs from batch file (default)
     -P, --paths [TYPES:]PATH         The paths where the files should be
@@ -1089,7 +1089,7 @@ To summarize, the general syntax for a field is:
 %(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
 ```
 
-Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o '%(title)s.%(ext)s' -o 'thumbnail:%(title)s\%(title)s.%(ext)s'`  will put the thumbnails in a folder with the same name as the video. If any of the templates (except default) is empty, that type of file will not be written. Eg: `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates (except default) is empty, that type of file will not be written. Eg: `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
 The available fields are:
 
@@ -1120,11 +1120,11 @@ The available fields are:
  - `average_rating` (numeric): Average rating give by users, the scale used depends on the webpage
  - `comment_count` (numeric): Number of comments on the video (For some extractors, comments are only downloaded at the end, and so this field cannot be used)
  - `age_limit` (numeric): Age restriction for the video (years)
- - `live_status` (string): One of 'is_live', 'was_live', 'is_upcoming', 'not_live'
+ - `live_status` (string): One of "is_live", "was_live", "is_upcoming", "not_live"
  - `is_live` (boolean): Whether this video is a live stream or a fixed-length video
  - `was_live` (boolean): Whether this video was originally a live stream
  - `playable_in_embed` (string): Whether this video is allowed to play in embedded players on other sites
- - `availability` (string): Whether the video is 'private', 'premium_only', 'subscriber_only', 'needs_auth', 'unlisted' or 'public'
+ - `availability` (string): Whether the video is "private", "premium_only", "subscriber_only", "needs_auth", "unlisted" or "public"
  - `start_time` (numeric): Time in seconds where the reproduction should start, as specified in the URL
  - `end_time` (numeric): Time in seconds where the reproduction should end, as specified in the URL
  - `format` (string): A human-readable description of the format
@@ -1220,7 +1220,7 @@ Note that some of the sequences are not guaranteed to be present since they depe
 
 For numeric sequences you can use [numeric related formatting](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting), for example, `%(view_count)05d` will result in a string with view count padded with zeros up to 5 characters, like in `00042`.
 
-Output templates can also contain arbitrary hierarchical path, e.g. `-o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s'` which will result in downloading each video in a directory corresponding to this path template. Any missing directory will be automatically created for you.
+Output templates can also contain arbitrary hierarchical path, e.g. `-o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s"` which will result in downloading each video in a directory corresponding to this path template. Any missing directory will be automatically created for you.
 
 To use percent literals in an output template use `%%`. To output to stdout use `-o -`.
 
@@ -1236,35 +1236,33 @@ If you are using an output template inside a Windows batch file then you must es
 
 #### Output template examples
 
-Note that on Windows you need to use double quotes instead of single.
-
 ```bash
-$ yt-dlp --get-filename -o 'test video.%(ext)s' BaW_jenozKc
+$ yt-dlp --get-filename -o "test video.%(ext)s" BaW_jenozKc
 test video.webm    # Literal name with correct extension
 
-$ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc
+$ yt-dlp --get-filename -o "%(title)s.%(ext)s" BaW_jenozKc
 youtube-dl test video ''_ä↭𝕐.webm    # All kinds of weird characters
 
-$ yt-dlp --get-filename -o '%(title)s.%(ext)s' BaW_jenozKc --restrict-filenames
+$ yt-dlp --get-filename -o "%(title)s.%(ext)s" BaW_jenozKc --restrict-filenames
 youtube-dl_test_video_.webm    # Restricted file name
 
 # Download YouTube playlist videos in separate directory indexed by video order in a playlist
-$ yt-dlp -o '%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
+$ yt-dlp -o "%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
 
 # Download YouTube playlist videos in separate directories according to their uploaded year
-$ yt-dlp -o '%(upload_date>%Y)s/%(title)s.%(ext)s' https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re
+$ yt-dlp -o "%(upload_date>%Y)s/%(title)s.%(ext)s" "https://www.youtube.com/playlist?list=PLwiyx1dc3P2JR9N8gQaQN_BCvlSlap7re"
 
 # Prefix playlist index with " - " separator, but only if it is available
 $ yt-dlp -o '%(playlist_index|)s%(playlist_index& - |)s%(title)s.%(ext)s' BaW_jenozKc https://www.youtube.com/user/TheLinuxFoundation/playlists
 
 # Download all playlists of YouTube channel/user keeping each playlist in separate directory:
-$ yt-dlp -o '%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s' https://www.youtube.com/user/TheLinuxFoundation/playlists
+$ yt-dlp -o "%(uploader)s/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s" "https://www.youtube.com/user/TheLinuxFoundation/playlists"
 
 # Download Udemy course keeping each chapter in separate directory under MyVideos directory in your home
-$ yt-dlp -u user -p password -P '~/MyVideos' -o '%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s' https://www.udemy.com/java-tutorial/
+$ yt-dlp -u user -p password -P "~/MyVideos" -o "%(playlist)s/%(chapter_number)s - %(chapter)s/%(title)s.%(ext)s" "https://www.udemy.com/java-tutorial"
 
 # Download entire series season keeping each series and each season in separate directory under C:/MyVideos
-$ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" https://videomore.ru/kino_v_detalayah/5_sezon/367617
+$ yt-dlp -P "C:/MyVideos" -o "%(series)s/%(season_number)s - %(season)s/%(episode_number)s - %(episode)s.%(ext)s" "https://videomore.ru/kino_v_detalayah/5_sezon/367617"
 
 # Stream the video being downloaded to stdout
 $ yt-dlp -o - BaW_jenozKc
@@ -1349,7 +1347,7 @@ Note that none of the aforementioned meta fields are guaranteed to be present si
 
 Formats for which the value is not known are excluded unless you put a question mark (`?`) after the operator. You can combine format filters, so `-f "[height<=?720][tbr>500]"` selects up to 720p videos (or videos where the height is not known) with a bitrate of at least 500 KBit/s. You can also use the filters with `all` to download all formats that satisfy the filter. For example, `-f "all[vcodec=none]"` selects all audio-only formats.
 
-Format selectors can also be grouped using parentheses, for example if you want to download the best mp4 and webm formats with a height lower than 480 you can use `-f '(mp4,webm)[height<480]'`.
+Format selectors can also be grouped using parentheses, for example if you want to download the best pre-merged mp4 and webm formats with a height lower than 480 you can use `-f "(mp4,webm)[height<480]"`.
 
 ## Sorting Formats
 
@@ -1398,16 +1396,14 @@ If your format selector is `worst`, the last item is selected after sorting. Thi
 
 ## Format Selection examples
 
-Note that on Windows you may need to use double quotes instead of single.
-
 ```bash
 # Download and merge the best video-only format and the best audio-only format,
 # or download the best combined format if video-only format is not available
-$ yt-dlp -f 'bv+ba/b'
+$ yt-dlp -f "bv+ba/b"
 
 # Download best format that contains video,
 # and if it doesn't already have an audio stream, merge it with best audio-only format
-$ yt-dlp -f 'bv*+ba/b'
+$ yt-dlp -f "bv*+ba/b"
 
 # Same as above
 $ yt-dlp
@@ -1415,89 +1411,89 @@ $ yt-dlp
 # Download the best video-only format and the best audio-only format without merging them
 # For this case, an output template should be used since
 # by default, bestvideo and bestaudio will have the same file name.
-$ yt-dlp -f 'bv,ba' -o '%(title)s.f%(format_id)s.%(ext)s'
+$ yt-dlp -f "bv,ba" -o "%(title)s.f%(format_id)s.%(ext)s"
 
 # Download and merge the best format that has a video stream,
 # and all audio-only formats into one file
-$ yt-dlp -f 'bv*+mergeall[vcodec=none]' --audio-multistreams
+$ yt-dlp -f "bv*+mergeall[vcodec=none]" --audio-multistreams
 
 # Download and merge the best format that has a video stream,
 # and the best 2 audio-only formats into one file
-$ yt-dlp -f 'bv*+ba+ba.2' --audio-multistreams
+$ yt-dlp -f "bv*+ba+ba.2" --audio-multistreams
 
 
 # The following examples show the old method (without -S) of format selection
 # and how to use -S to achieve a similar but (generally) better result
 
 # Download the worst video available (old method)
-$ yt-dlp -f 'wv*+wa/w'
+$ yt-dlp -f "wv*+wa/w"
 
 # Download the best video available but with the smallest resolution
-$ yt-dlp -S '+res'
+$ yt-dlp -S "+res"
 
 # Download the smallest video available
-$ yt-dlp -S '+size,+br'
+$ yt-dlp -S "+size,+br"
 
 
 
 # Download the best mp4 video available, or the best video if no mp4 available
-$ yt-dlp -f 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b'
+$ yt-dlp -f "bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4] / bv*+ba/b"
 
 # Download the best video with the best extension
 # (For video, mp4 > webm > flv. For audio, m4a > aac > mp3 ...)
-$ yt-dlp -S 'ext'
+$ yt-dlp -S "ext"
 
 
 
 # Download the best video available but no better than 480p,
 # or the worst video if there is no video under 480p
-$ yt-dlp -f 'bv*[height<=480]+ba/b[height<=480] / wv*+ba/w'
+$ yt-dlp -f "bv*[height<=480]+ba/b[height<=480] / wv*+ba/w"
 
 # Download the best video available with the largest height but no better than 480p,
 # or the best video with the smallest resolution if there is no video under 480p
-$ yt-dlp -S 'height:480'
+$ yt-dlp -S "height:480"
 
 # Download the best video available with the largest resolution but no better than 480p,
 # or the best video with the smallest resolution if there is no video under 480p
 # Resolution is determined by using the smallest dimension.
 # So this works correctly for vertical videos as well
-$ yt-dlp -S 'res:480'
+$ yt-dlp -S "res:480"
 
 
 
 # Download the best video (that also has audio) but no bigger than 50 MB,
 # or the worst video (that also has audio) if there is no video under 50 MB
-$ yt-dlp -f 'b[filesize<50M] / w'
+$ yt-dlp -f "b[filesize<50M] / w"
 
 # Download largest video (that also has audio) but no bigger than 50 MB,
 # or the smallest video (that also has audio) if there is no video under 50 MB
-$ yt-dlp -f 'b' -S 'filesize:50M'
+$ yt-dlp -f "b" -S "filesize:50M"
 
 # Download best video (that also has audio) that is closest in size to 50 MB
-$ yt-dlp -f 'b' -S 'filesize~50M'
+$ yt-dlp -f "b" -S "filesize~50M"
 
 
 
 # Download best video available via direct link over HTTP/HTTPS protocol,
 # or the best video available via any protocol if there is no such video
-$ yt-dlp -f '(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)'
+$ yt-dlp -f "(bv*+ba/b)[protocol^=http][protocol!*=dash] / (bv*+ba/b)"
 
 # Download best video available via the best protocol
 # (https/ftps > http/ftp > m3u8_native > m3u8 > http_dash_segments ...)
-$ yt-dlp -S 'proto'
+$ yt-dlp -S "proto"
 
 
 
 # Download the best video with h264 codec, or the best video if there is no such video
-$ yt-dlp -f '(bv*+ba/b)[vcodec^=avc1] / (bv*+ba/b)'
+$ yt-dlp -f "(bv*+ba/b)[vcodec^=avc1] / (bv*+ba/b)"
 
 # Download the best video with best codec no better than h264,
 # or the best video with worst codec if there is no such video
-$ yt-dlp -S 'codec:h264'
+$ yt-dlp -S "codec:h264"
 
 # Download the best video with worst codec no worse than h264,
 # or the best video with best codec if there is no such video
-$ yt-dlp -S '+codec:h264'
+$ yt-dlp -S "+codec:h264"
 
 
 
@@ -1505,19 +1501,19 @@ $ yt-dlp -S '+codec:h264'
 
 # Download the best video no better than 720p preferring framerate greater than 30,
 # or the worst video (still preferring framerate greater than 30) if there is no such video
-$ yt-dlp -f '((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)'
+$ yt-dlp -f "((bv*[fps>30]/bv*)[height<=720]/(wv*[fps>30]/wv*)) + ba / (b[fps>30]/b)[height<=720]/(w[fps>30]/w)"
 
 # Download the video with the largest resolution no better than 720p,
 # or the video with the smallest resolution available if there is no such video,
 # preferring larger framerate for formats with the same resolution
-$ yt-dlp -S 'res:720,fps'
+$ yt-dlp -S "res:720,fps"
 
 
 
 # Download the video with smallest resolution no worse than 480p,
 # or the video with the largest resolution available if there is no such video,
 # preferring better codec and then larger total bitrate for the same resolution
-$ yt-dlp -S '+res:480,codec,br'
+$ yt-dlp -S "+res:480,codec,br"
 ```
 
 # MODIFYING METADATA
@@ -1558,26 +1554,24 @@ Metadata fields|From
 
 ## Modifying metadata examples
 
-Note that on Windows you may need to use double quotes instead of single.
-
 ```bash
 # Interpret the title as "Artist - Title"
-$ yt-dlp --parse-metadata 'title:%(artist)s - %(title)s'
+$ yt-dlp --parse-metadata "title:%(artist)s - %(title)s"
 
 # Regex example
-$ yt-dlp --parse-metadata 'description:Artist - (?P<artist>.+)'
+$ yt-dlp --parse-metadata "description:Artist - (?P<artist>.+)"
 
 # Set title as "Series name S01E05"
-$ yt-dlp --parse-metadata '%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s'
+$ yt-dlp --parse-metadata "%(series)s S%(season_number)02dE%(episode_number)02d:%(title)s"
 
 # Set "comment" field in video metadata using description instead of webpage_url
-$ yt-dlp --parse-metadata 'description:(?s)(?P<meta_comment>.+)' --add-metadata
+$ yt-dlp --parse-metadata "description:(?s)(?P<meta_comment>.+)" --add-metadata
 
 # Remove "formats" field from the infojson by setting it to an empty string
-$ yt-dlp --parse-metadata ':(?P<formats>)' -j
+$ yt-dlp --parse-metadata ":(?P<formats>)" -j
 
 # Replace all spaces and "_" in title and uploader with a `-`
-$ yt-dlp --replace-in-metadata 'title,uploader' '[ _]' '-'
+$ yt-dlp --replace-in-metadata "title,uploader" "[ _]" "-"
 
 ```
 

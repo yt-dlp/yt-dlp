@@ -991,8 +991,9 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '-a', '--batch-file',
         dest='batchfile', metavar='FILE',
-        help="File containing URLs to download ('-' for stdin), one URL per line. "
-             "Lines starting with '#', ';' or ']' are considered as comments and ignored")
+        help=(
+            'File containing URLs to download ("-" for stdin), one URL per line. '
+            'Lines starting with "#", ";" or "]" are considered as comments and ignored'))
     filesystem.add_option(
         '--no-batch-file',
         dest='batchfile', action='store_const', const=None,
