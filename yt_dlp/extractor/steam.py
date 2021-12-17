@@ -58,7 +58,7 @@ class SteamIE(InfoExtractor):
             'id': '256757115',
             'title': 'Grand Theft Auto V video 256757115',
             'ext': 'mp4',
-            'thumbnail': 're:^https://cdn\.[^\.]+\.steamstatic\.com',
+            'thumbnail': r're:^https://cdn\.[^\.]+\.steamstatic\.com',
             'n_entries': 20,
         },
     }
