@@ -1055,7 +1055,8 @@ class YoutubeDL(object):
             (?P<fields>{field})
             (?P<maths>(?:{math_op}{math_field})*)
             (?:>(?P<strf_format>.+?))?
-            (?P<alternate>(?<!\\),[^|)]+)?
+            (?P<alternate>(?<!\\),[^|&)]+)?
+            (?:&(?P<replacement>.*?))?
             (?:\|(?P<default>.*?))?
             $'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
 
@@ -1114,11 +1115,12 @@ class YoutubeDL(object):
             key = outer_mobj.group('key')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
             initial_field = mobj.group('fields').split('.')[-1] if mobj else ''
-            value, default = None, na
+            value, replacement, default = None, None, na
             while mobj:
                 mobj = mobj.groupdict()
                 default = mobj['default'] if mobj['default'] is not None else default
                 value = get_value(mobj)
+                replacement = mobj['replacement']
                 if value is None and mobj['alternate']:
                     mobj = re.match(INTERNAL_FORMAT_RE, mobj['alternate'][1:])
                 else:
@@ -1128,7 +1130,7 @@ class YoutubeDL(object):
             if fmt == 's' and value is not None and key in field_size_compat_map.keys():
                 fmt = '0{:d}d'.format(field_size_compat_map[key])
 
-            value = default if value is None else value
+            value = default if value is None else value if replacement is None else replacement
 
             flags = outer_mobj.group('conversion') or ''
             str_fmt = f'{fmt[:-1]}s'
