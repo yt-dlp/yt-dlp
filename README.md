@@ -1059,7 +1059,9 @@ The default location of the .netrc file is `$HOME` (`~`) in UNIX. On Windows, it
 
 The `-o` option is used to indicate a template for the output file names while `-P` option is used to specify the path each type of file should be saved to.
 
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 **tl;dr:** [navigate me to examples](#output-template-examples).
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 The simplest usage of `-o` is not to set any template arguments when downloading a single file, like in `yt-dlp -o funny_video.flv "https://some/video"` (hard-coding file extension like this is _not_ recommended and could break some post-processing).
 
@@ -1272,7 +1274,9 @@ This is generally equivalent to using `-f bestvideo*+bestaudio/best`. However, i
 
 The general syntax for format selection is `-f FORMAT` (or `--format FORMAT`) where `FORMAT` is a *selector expression*, i.e. an expression that describes format or formats you would like to download.
 
+<!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 **tl;dr:** [navigate me to examples](#format-selection-examples).
+<!-- MANPAGE: END EXCLUDED SECTION -->
 
 The simplest case is requesting a specific format, for example with `-f 22` you can download the format with format code equal to 22. You can get the list of available format codes for particular video using `--list-formats` or `-F`. Note that these format codes are extractor specific.
 
