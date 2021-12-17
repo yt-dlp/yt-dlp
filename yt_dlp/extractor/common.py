@@ -1428,6 +1428,39 @@ class InfoExtractor(object):
                     continue
                 info[count_key] = interaction_count
 
+        def extract_chapter_information(e):
+            chapters = []
+            last_chapter = {}
+            if not e.get('hasPart'):
+                return
+            for idx, part in enumerate(e['hasPart']):
+                if part.get('@type') != 'Clip': # https://schema.org/Clip
+                    continue
+                if idx == 0:
+                    last_chapter = {
+                        'start_time': part.get('startOffset') or 0,
+                        'end_time': part.get('endOffset'),
+                    }
+                    last_chapter.update({'title': part['name']} if part.get('name') else {})
+                else:
+                    # Fix up the previous chapter using this chapter's data
+                    last_chapter['end_time'] = last_chapter.get('end_time') or part.get('startOffset')
+                    if None in last_chapter.values():
+                        # If there's null values now, the chapter listing is broken somehow. Emit warning and bail.
+                        self.report_warning(f'Chapter {last_chapter.get("title") or idx} contains broken data. Not extracting chapters.')
+                        return
+                    else:
+                        chapters.append(last_chapter)
+                    last_chapter = {
+                        'start_time': part.get('startOffset') or last_chapter.get('end_time'),
+                        'end_time': part.get('endOffset')
+                    }
+                    last_chapter.update({'title': part['name']} if part.get('name') else {})
+            if chapters:
+                last_chapter.update({} if last_chapter.get('end_time') else {'end_time': info['duration']})
+                chapters.append(last_chapter)
+                info['chapters'] = chapters
+
         def extract_video_object(e):
             assert e['@type'] == 'VideoObject'
             author = e.get('author')
@@ -1450,6 +1483,7 @@ class InfoExtractor(object):
                 'view_count': int_or_none(e.get('interactionCount')),
             })
             extract_interaction_statistic(e)
+            extract_chapter_information(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
             for e in json_ld:
