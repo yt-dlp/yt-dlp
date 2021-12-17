@@ -268,9 +268,10 @@ class CueBlock(Block):
     _REGEX_ARROW = re.compile(r'[ \t]+-->[ \t]+')
     _REGEX_SETTINGS = re.compile(r'[ \t]+((?:(?!-->)[^\r\n])+)')
     _REGEX_PAYLOAD = re.compile(r'[^\r\n]+(?:\r\n|[\r\n])?')
+    _REGEX_NEWLINE_AND_TS = re.compile(r'\n[0-9]{2,}:[0-9]{2}:[0-9]{2}\.[0-9]{3}')
 
     @classmethod
-    def parse(cls, parser):
+    def parse(cls, parser, *, lenient=False):
         parser = parser.child()
 
         id = None
@@ -298,6 +299,14 @@ class CueBlock(Block):
         while True:
             m = parser.consume(cls._REGEX_PAYLOAD)
             if not m:
+                if lenient:
+                    if parser.match(_REGEX_EOF):
+                        break
+                    if parser.match(cls._REGEX_NEWLINE_AND_TS):
+                        break
+                    if parser.match(_REGEX_NL):
+                        parser.consume(_REGEX_NL)
+                        continue
                 break
             text.write(m.group(0))
 
@@ -353,7 +362,7 @@ class CueBlock(Block):
         return self.start <= self.end == other.start <= other.end
 
 
-def parse_fragment(frag_content):
+def parse_fragment(frag_content, *, lenient=False):
     """
     A generator that yields (partially) parsed WebVTT blocks when given
     a bytes object containing the raw contents of a WebVTT file.
@@ -390,7 +399,7 @@ def parse_fragment(frag_content):
         if block:
             yield block  # XXX: or skip
             continue
-        block = CueBlock.parse(parser)
+        block = CueBlock.parse(parser, lenient=lenient)
         if block:
             yield block
             continue

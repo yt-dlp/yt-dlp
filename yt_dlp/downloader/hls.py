@@ -63,6 +63,7 @@ class HlsFD(FragmentFD):
 
     def real_download(self, filename, info_dict):
         man_url = info_dict['url']
+        params = info_dict.get('_download_params', {})
         self.to_screen('[%s] Downloading m3u8 manifest' % self.FD_NAME)
 
         urlh = self.ydl.urlopen(self._prepare_url(info_dict, man_url))
@@ -262,12 +263,20 @@ class HlsFD(FragmentFD):
             return fd.real_download(filename, info_dict)
 
         if is_webvtt:
+            lenient = params.get('webvtt_lenient', False)
+            if lenient:
+                self.report_warning(bug_reports_message(
+                    'The extractor has signalled that this site may serve '
+                    'corrupt subtitles; a lenient parser that should be able '
+                    'to correct this has been activated. '
+                    'If the downloaded subtitles are still wrong,'))
+
             def pack_fragment(frag_content, frag_index):
                 output = io.StringIO()
                 adjust = 0
                 overflow = False
                 mpegts_last = None
-                for block in webvtt.parse_fragment(frag_content):
+                for block in webvtt.parse_fragment(frag_content, lenient=lenient):
                     if isinstance(block, webvtt.CueBlock):
                         extra_state['webvtt_mpegts_last'] = mpegts_last
                         if overflow:
