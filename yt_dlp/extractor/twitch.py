@@ -944,6 +944,23 @@ class TwitchClipsIE(TwitchBaseIE):
             'vod_offset_seconds': 7694,
         },
     }, {
+        'url': 'https://clips.twitch.tv/SpineyCleverPidgeonSwiftRage',
+        'md5': '1daf87320506728073b80adcd34f5341',
+        'info_dict': {
+            'id': '455099327',
+            'display_id': 'SpineyCleverPidgeonSwiftRage',
+            'ext': 'mp4',
+            'title': 'Duck yoinks the mic',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1557660810,
+            'upload_date': '20190512',
+            'creator': 'DashDucks',
+            'uploader': 'Michael_I_Guess',
+            'uploader_id': '57406191',
+            'vod_id': None,
+            'vod_offset_seconds': None,
+        },
+    }, {
         # multiple formats
         'url': 'https://clips.twitch.tv/rflegendary/UninterestedBeeDAESuppy',
         'only_matching': True,
