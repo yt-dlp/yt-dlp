@@ -17,6 +17,8 @@ class SteamIE(InfoExtractor):
             (?P<urltype>video|app)/ #If the page is only for videos or for a game
             (?P<gameID>\d+)/?
             (?P<videoID>\d*)(?P<extra>\??) # For urltype == video we sometimes get the videoID
+        |
+        https?://(?:www\.)?steamcommunity\.com/sharedfiles/filedetails/\?id=(?P<fileID>[0-9]+)
     """
     _VIDEO_PAGE_TEMPLATE = 'http://store.steampowered.com/video/%s/'
     _AGECHECK_TEMPLATE = 'http://store.steampowered.com/agecheck/video/%s/?snr=1_agecheck_agecheck__age-gate&ageDay=1&ageMonth=January&ageYear=1970'
