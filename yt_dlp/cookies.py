@@ -242,6 +242,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
                            'expires_utc, {} FROM cookies'.format(secure_column))
             jar = YoutubeDLCookieJar()
             failed_cookies = 0
+            unencrypted_cookies = 0
             for host_key, name, value, encrypted_value, path, expires_utc, is_secure in cursor.fetchall():
                 host_key = host_key.decode('utf-8')
                 name = name.decode('utf-8')
@@ -253,6 +254,8 @@ def _extract_chrome_cookies(browser_name, profile, logger):
                     if value is None:
                         failed_cookies += 1
                         continue
+                else:
+                    unencrypted_cookies += 1
 
                 cookie = compat_cookiejar_Cookie(
                     version=0, name=name, value=value, port=None, port_specified=False,
@@ -265,6 +268,9 @@ def _extract_chrome_cookies(browser_name, profile, logger):
             else:
                 failed_message = ''
             logger.info('Extracted {} cookies from {}{}'.format(len(jar), browser_name, failed_message))
+            counts = decryptor.cookie_counts.copy()
+            counts['unencrypted'] = unencrypted_cookies
+            logger.debug('cookie version breakdown: {}'.format(counts))
             return jar
         finally:
             if cursor is not None:
@@ -300,6 +306,10 @@ class ChromeCookieDecryptor:
     def decrypt(self, encrypted_value):
         raise NotImplementedError
 
+    @property
+    def cookie_counts(self):
+        raise NotImplementedError
+
 
 def get_cookie_decryptor(browser_root, browser_keyring_name, logger):
     if sys.platform in ('linux', 'linux2'):
@@ -317,7 +327,9 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
-        self._v11_key = self.derive_key(_get_linux_keyring_password(browser_keyring_name, logger))
+        password = _get_linux_keyring_password(browser_keyring_name, logger)
+        self._v11_key = None if password is None else self.derive_key(password)
+        self._cookie_counts = {'v10': 0, 'v11': 0, 'other': 0}
 
     @staticmethod
     def derive_key(password):
@@ -325,20 +337,27 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
         # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_linux.cc
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1, key_length=16)
 
+    @property
+    def cookie_counts(self):
+        return self._cookie_counts
+
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
         ciphertext = encrypted_value[3:]
 
         if version == b'v10':
+            self._cookie_counts['v10'] += 1
             return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
 
         elif version == b'v11':
+            self._cookie_counts['v11'] += 1
             if self._v11_key is None:
-                self._logger.warning(f'cannot decrypt cookie {KEYRING_UNAVAILABLE_REASON}', only_once=True)
+                self._logger.warning('cannot decrypt v11 cookies: no key found', only_once=True)
                 return None
             return _decrypt_aes_cbc(ciphertext, self._v11_key, self._logger)
 
         else:
+            self._cookie_counts['other'] += 1
             return None
 
 
@@ -347,6 +366,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
         self._logger = logger
         password = _get_mac_keyring_password(browser_keyring_name, logger)
         self._v10_key = None if password is None else self.derive_key(password)
+        self._cookie_counts = {'v10': 0, 'other': 0}
 
     @staticmethod
     def derive_key(password):
@@ -354,11 +374,16 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
         # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_mac.mm
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1003, key_length=16)
 
+    @property
+    def cookie_counts(self):
+        return self._cookie_counts
+
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
         ciphertext = encrypted_value[3:]
 
         if version == b'v10':
+            self._cookie_counts['v10'] += 1
             if self._v10_key is None:
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
@@ -366,6 +391,7 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_cbc(ciphertext, self._v10_key, self._logger)
 
         else:
+            self._cookie_counts['other'] += 1
             # other prefixes are considered 'old data' which were stored as plaintext
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_mac.mm
             return encrypted_value
@@ -375,12 +401,18 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_root, logger):
         self._logger = logger
         self._v10_key = _get_windows_v10_key(browser_root, logger)
+        self._cookie_counts = {'v10': 0, 'other': 0}
+
+    @property
+    def cookie_counts(self):
+        return self._cookie_counts
 
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
         ciphertext = encrypted_value[3:]
 
         if version == b'v10':
+            self._cookie_counts['v10'] += 1
             if self._v10_key is None:
                 self._logger.warning('cannot decrypt v10 cookies: no key found', only_once=True)
                 return None
@@ -400,6 +432,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             return _decrypt_aes_gcm(ciphertext, self._v10_key, nonce, authentication_tag, self._logger)
 
         else:
+            self._cookie_counts['other'] += 1
             # any other prefix means the data is DPAPI encrypted
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
             return _decrypt_windows_dpapi(encrypted_value, self._logger).decode('utf-8')
@@ -720,7 +753,8 @@ def _get_linux_keyring_password(browser_keyring_name, logger):
     elif chosen_keyring == _LinuxKeyrings.GnomeKeyring:
         return _get_gnome_keyring_password(browser_keyring_name, logger)
     elif chosen_keyring == _LinuxKeyrings.BasicText:
-        raise NotImplementedError
+        # when basic text is chosen, all cookies are stored as v10 (so no keyring password is required)
+        return None
     else:
         raise ValueError(chosen_keyring)
 
