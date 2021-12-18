@@ -9,7 +9,6 @@ from .vimeo import VHXEmbedIE
 class DropoutIE(InfoExtractor):
     _LOGIN_URL = 'https://www.dropout.tv/login'
     _NETRC_MACHINE = 'dropout'
-    _CONTAINS_IF_SUCCESSFUL = 'user_has_subscription: "true"'
 
     _VALID_URL = r'https?://(?:www\.)?dropout\.tv/videos/(?P<id>.+)'
     _TESTS = [{
@@ -56,7 +55,8 @@ class DropoutIE(InfoExtractor):
         # Log in and get embed_url of video
         with requests.Session() as session:
             response = self._login(session)
-            if not self._CONTAINS_IF_SUCCESSFUL in response.text:
+            if not self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']', 
+                response.text, 'success').lower() == 'true':
                 self.raise_login_required('Incorrect username/password, or account is not subscribed')
             webpage = session.get(url).text
         embed_url = self._html_search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
