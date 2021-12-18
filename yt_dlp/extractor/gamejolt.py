@@ -10,6 +10,7 @@ from ..utils import (
 
 class GameJoltBaseIE(InfoExtractor):
     _API_BASE = 'https://gamejolt.com/site-api/'
+
     def _call_api(self, endpoint, *args, **kwargs):
         return self._download_json(self._API_BASE + endpoint, *args, **kwargs)['payload']
 
@@ -25,7 +26,7 @@ class GameJoltBaseIE(InfoExtractor):
                 post_id, fatal=False)
             full_description = '%s\n%s' % (description, ''.join(traverse_obj(
                 article_content, ('content', ..., 'content', ..., 'text'), expected_type=str, default=[]))) if article_content else None
-            
+
         user_data = post_data.get('user') or {}
         info_dict = {
             'id': post_id,
@@ -77,6 +78,7 @@ class GameJoltBaseIE(InfoExtractor):
                         'width': media.get('width'),
                         'height': media.get('height'),
                         'filesize': media.get('filesize'),
+                        'acodec': 'none' if 'video-card' in media_url else None,
                     })
             info_dict.update({
                 'ie_key': GameJoltIE.ie_key(),
@@ -94,18 +96,27 @@ class GameJoltIE(GameJoltBaseIE):
     _VALID_URL = r'https?://gamejolt\.com/p/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://gamejolt.com/p/introducing-ramses-jackson-some-fnf-himbo-i-ve-been-animating-fo-c6achnzu',
-        'md5': 'asdf',
+        'md5': 'cd5f733258f6678b0ce500dd88166d86',
         'info_dict': {
             'id': 'c6achnzu',
+            'ie_key': 'GameJolt',
             'ext': 'mp4',
             'display_id': 'introducing-ramses-jackson-some-fnf-himbo-i-ve-been-animating-fo-c6achnzu',
-            'title': 'a',
-            'description': 'a',
+            'title': 'Introducing Ramses Jackson, some FNF himbo I’ve been animating for the past few days, hehe.\n#fnfmod #fridaynightfunkin',
+            'description': 'Introducing Ramses Jackson, some FNF himbo I’ve been animating for the past few days, hehe.\n#fnfmod #fridaynightfunkin',
             'uploader': 'Jakeneutron',
             'uploader_id': 'Jakeneutron',
             'uploader_url': 'https://gamejolt.com/@Jakeneutron',
-            'categories': ['abc'],
-            'tags': 'abcd',
+            'categories': ['Friday Night Funkin\''],
+            'tags': ['fnfmod', 'fridaynightfunkin'],
+            'timestamp': 1633499590,
+            'upload_date': '20211006',
+            'release_timestamp': 1633499655,
+            'release_date': '20211006',
+            'thumbnail': 're:^https?://.+wgch9mhq\.png$',
+            'like_count': int,
+            'comment_count': int,
+            'view_count': int,
         }
     }]
 
