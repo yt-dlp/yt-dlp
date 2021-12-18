@@ -14,23 +14,27 @@ class DropoutIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?dropout\.tv/videos/(?P<id>.+)'
     _TESTS = [{
         'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'md5': 'c30fa18999c5880d156339f13c953a26',
         'info_dict': {
-            'id': 'misfits-magic-holiday-special',
+            'id': '1915774',
+            'display_id': 'misfits-magic-holiday-special',
             'ext': 'mp4',
             'title': 'Misfits & Magic Holiday Special',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            # TODO more properties, either as:
-            # * A value
-            # * MD5 checksum; start the string with md5:
-            # * A regular expression; start the string with re:
-            # * Any Python type (for example int or float)
-        }
+            'description': 'The magical misfits spend Christmas break at Gowpenny, with an unwelcome visitor.',
+            'release_date': '20211215',
+            'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/d91ea8a6-b250-42ed-907e-b30fb1c65176-8e24b8e5.jpg',
+            'duration': 11698,
+            'uploader_id': 'user80538407',
+            'uploader_url': 'https://vimeo.com/user80538407',
+            'uploader': 'OTT Videos'
+        },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
     }]
 
     def _get_authenticity_token(self, session: requests.Session):
         signin_page = session.get(self._LOGIN_URL).text
-        authenticity_token = self._html_search_regex(r'name="authenticity_token" value="(.+?)"', signin_page, 'authenticity_token')
+        authenticity_token = self._html_search_regex(r'name="authenticity_token" value="(.+?)"', 
+            signin_page, 'authenticity_token')
         return authenticity_token
 
     def _login(self, session: requests.Session):
@@ -47,7 +51,7 @@ class DropoutIE(InfoExtractor):
         return session.post(self._LOGIN_URL, data=payload)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        display_id = self._match_id(url)
 
         # Log in and get embed_url of video
         with requests.Session() as session:
@@ -55,13 +59,30 @@ class DropoutIE(InfoExtractor):
             if not self._CONTAINS_IF_SUCCESSFUL in response.text:
                 self.raise_login_required('Incorrect username/password, or account is not subscribed')
             webpage = session.get(url).text
-        embed_url = self._html_search_regex(r'embed_url: "(.+?)"', webpage, 'url')
-        # More metadata
-        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
+        embed_url = self._html_search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
 
-        return self.url_result(
-            url=embed_url, 
-            ie=VHXEmbedIE.ie_key(), 
-            video_id=video_id, 
-            video_title=title
-        )
+        # More metadata
+        id = self._html_search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
+        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
+        if title: title = title.split(' - ')[0]
+        description = self._html_search_regex(
+            r'<meta name=["\']description["\'] content=["\'](.+?)["\']', 
+            webpage, 'description')
+        thumbnail = self._html_search_regex(r'<meta property="og:image" content="(.+?)\?', 
+            webpage, 'thumbnail')
+        release_date = self._html_search_regex(
+            r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']', 
+            webpage, 'release_date')
+        if release_date: release_date = release_date.replace('-','')
+
+        return {
+            '_type': 'url_transparent',
+            'ie_key': VHXEmbedIE.ie_key(),
+            'url': embed_url,
+            'id': id,
+            'display_id': display_id,
+            'title': title,
+            'description': description,
+            'thumbnail': thumbnail,
+            'release_date': release_date,
+        }
