@@ -8,6 +8,7 @@ import sys
 import tempfile
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
+from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
 from .aes import aes_cbc_decrypt_bytes, aes_gcm_decrypt_and_verify_bytes
@@ -16,7 +17,6 @@ from .compat import (
     compat_cookiejar_Cookie,
 )
 from .utils import (
-    bug_reports_message,
     expand_path,
     Popen,
     YoutubeDLCookieJar,
@@ -31,20 +31,6 @@ except ImportError:
     SQLITE_AVAILABLE = False
 
 
-try:
-    import keyring
-    KEYRING_AVAILABLE = True
-    KEYRING_UNAVAILABLE_REASON = f'due to unknown reasons{bug_reports_message()}'
-except ImportError:
-    KEYRING_AVAILABLE = False
-    KEYRING_UNAVAILABLE_REASON = (
-        'as the `keyring` module is not installed. '
-        'Please install by running `python3 -m pip install keyring`. '
-        'Depending on your platform, additional packages may be required '
-        'to access the keyring; see  https://pypi.org/project/keyring')
-except Exception as _err:
-    KEYRING_AVAILABLE = False
-    KEYRING_UNAVAILABLE_REASON = 'as the `keyring` module could not be initialized: %s' % _err
 try:
     import secretstorage
     SECRETSTORAGE_AVAILABLE = True
@@ -331,10 +317,7 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
     def __init__(self, browser_keyring_name, logger):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
-        if KEYRING_AVAILABLE:
-            self._v11_key = self.derive_key(_get_linux_keyring_password(browser_keyring_name, logger))
-        else:
-            self._v11_key = None
+        self._v11_key = self.derive_key(_get_linux_keyring_password(browser_keyring_name, logger))
 
     @staticmethod
     def derive_key(password):
@@ -586,6 +569,143 @@ def parse_safari_cookies(data, jar=None, logger=YDLLogger()):
     return jar
 
 
+class _LinuxDesktopEnvironment(Enum):
+    """
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/base/nix/xdg_util.h
+    DesktopEnvironment
+    """
+    OTHER = auto()
+    CINNAMON = auto()
+    GNOME = auto()
+    KDE = auto()
+    PANTHEON = auto()
+    UNITY = auto()
+    XFCE = auto()
+
+
+class _LinuxKeyrings(Enum):
+    """
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/key_storage_util_linux.h
+    SelectedLinuxBackend
+    """
+    KWallet = auto()
+    GnomeKeyring = auto()
+    BasicText = auto()
+
+
+def _get_linux_desktop_environment(env):
+    """
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/base/nix/xdg_util.cc
+    GetDesktopEnvironment
+    """
+    xdg_current_desktop = env.get('XDG_CURRENT_DESKTOP', None)
+    desktop_session = env.get('DESKTOP_SESSION', None)
+    if xdg_current_desktop is not None:
+        xdg_current_desktop = xdg_current_desktop.split(':')[0].strip()
+
+        if xdg_current_desktop == 'Unity':
+            if desktop_session is not None and 'gnome-fallback' in desktop_session:
+                return _LinuxDesktopEnvironment.GNOME
+            else:
+                return _LinuxDesktopEnvironment.UNITY
+        elif xdg_current_desktop == 'GNOME':
+            return _LinuxDesktopEnvironment.GNOME
+        elif xdg_current_desktop == 'X-Cinnamon':
+            return _LinuxDesktopEnvironment.CINNAMON
+        elif xdg_current_desktop == 'KDE':
+            return _LinuxDesktopEnvironment.KDE
+        elif xdg_current_desktop == 'Pantheon':
+            return _LinuxDesktopEnvironment.PANTHEON
+        elif xdg_current_desktop == 'XFCE':
+            return _LinuxDesktopEnvironment.XFCE
+    elif desktop_session is not None:
+        if desktop_session in ('mate', 'gnome'):
+            return _LinuxDesktopEnvironment.GNOME
+        elif 'kde' in desktop_session:
+            return _LinuxDesktopEnvironment.KDE
+        elif 'xfce' in desktop_session:
+            return _LinuxDesktopEnvironment.XFCE
+    else:
+        if 'GNOME_DESKTOP_SESSION_ID' in env:
+            return _LinuxDesktopEnvironment.GNOME
+        elif 'KDE_FULL_SESSION' in env:
+            return _LinuxDesktopEnvironment.KDE
+        else:
+            return _LinuxDesktopEnvironment.OTHER
+
+
+def _choose_linux_keyring(logger):
+    """
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/key_storage_util_linux.cc
+    SelectBackend
+    """
+    desktop_environment = _get_linux_desktop_environment(os.environ)
+    logger.debug('detected desktop environment: {}'.format(desktop_environment.name))
+    if desktop_environment == _LinuxDesktopEnvironment.KDE:
+        linux_keyring = _LinuxKeyrings.KWallet
+    elif desktop_environment == _LinuxDesktopEnvironment.OTHER:
+        linux_keyring = _LinuxKeyrings.BasicText
+    else:
+        linux_keyring = _LinuxKeyrings.GnomeKeyring
+    logger.debug('chosen keyring: {}'.format(linux_keyring.name))
+    return linux_keyring
+
+
+def _get_kwallet_password(browser_keyring_name, logger):
+    if shutil.which('kwallet-query') is None:
+        logger.error('kwallet-query command not found. Cannot read from kwallet')
+        return b''
+
+    logger.debug('using kwallet-query to obtain password from kwallet')
+    proc = Popen(['kwallet-query',
+                  '--read-password', '{} Safe Storage'.format(browser_keyring_name),
+                  '--folder', '{} Keys'.format(browser_keyring_name),
+                  'kdewallet'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        stdout, stderr = proc.communicate_or_kill()
+        if proc.returncode != 0:
+            logger.error('kwallet-query failed with return code {}. Please consult '
+                         'the kwallet-query man page for details'.format(proc.returncode))
+            return b''
+        else:
+            if stdout.lower().startswith(b'failed to read'):
+                logger.debug('failed to read password from kwallet. Using empty string instead')
+                # this sometimes occurs in KDE because chrome does not check hasEntry and instead
+                # just tries to read the value (which kwallet returns "") whereas keyring checks hasEntry
+                # to verify this:
+                # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
+                # while starting chrome.
+                # this may be a bug as the intended behaviour is to generate a random password and store
+                # it, but that doesn't matter here.
+                return b''
+            else:
+                logger.debug('password found')
+                if stdout[-1:] == b'\n':
+                    stdout = stdout[:-1]
+                return stdout
+    except BaseException as e:
+        logger.warning(f'exception running kwallet-query: {type(e).__name__}({e})')
+        return b''
+
+
+def _get_gnome_keyring_password(browser_keyring_name, logger):
+    if not SECRETSTORAGE_AVAILABLE:
+        logger.error('secretstorage not available {}'.format(SECRETSTORAGE_UNAVAILABLE_REASON))
+        return b''
+    # the Gnome keyring does not seem to organise keys in the same way as KWallet,
+    # using `dbus-monitor` during startup, it can be observed that chromium lists all keys
+    # and presumably searches for its key in the list. It appears that we must do the same.
+    # https://github.com/jaraco/keyring/issues/556
+    with closing(secretstorage.dbus_init()) as con:
+        col = secretstorage.get_default_collection(con)
+        for item in col.get_all_items():
+            if item.get_label() == '{} Safe Storage'.format(browser_keyring_name):
+                return item.get_secret()
+        else:
+            logger.error('failed to read from keyring')
+            return b''
+
+
 def _get_linux_keyring_password(browser_keyring_name, logger):
     # note: chrome/chromium can be run with the following flags to determine which keyring backend
     # it has chosen to use
@@ -594,69 +714,33 @@ def _get_linux_keyring_password(browser_keyring_name, logger):
     # Chromium supports a flag: --password-store=<basic|gnome|kwallet> so the automatic detection
     # will not be sufficient in all cases.
 
-    k = keyring.get_keyring()
-    logger.debug('reading from keyring: "{}"'.format(k.name))
-    password = k.get_password('{} Keys'.format(browser_keyring_name),
-                              '{} Safe Storage'.format(browser_keyring_name))
-    if password is None:
-        logger.debug('no password found in keyring.')
-        if 'kwallet' in k.name.lower():
-            logger.debug('using empty string instead')
-            # this sometimes occurs in KDE because chrome does not check hasEntry and instead
-            # just tries to read the value (which kwallet returns "") whereas keyring checks hasEntry
-            # to verify this:
-            # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
-            # while starting chrome.
-            # this may be a bug as the intended behaviour is to generate a random password and store
-            # it, but that doesn't matter here.
-            password = ''
-
-        elif k.name == 'SecretService Keyring':
-            logger.debug('using secretstorage fallback')
-            if not SECRETSTORAGE_AVAILABLE:
-                logger.error('secretstorage not available {}'.format(SECRETSTORAGE_UNAVAILABLE_REASON))
-                return b''
-            # the Gnome keyring does not seem to organise keys in the same way as KWallet,
-            # using `dbus-monitor` during startup, it can be observed that chromium lists all keys
-            # and presumably searches for its key in the list. It appears that we must do the same.
-            # https://github.com/jaraco/keyring/issues/556
-            with closing(secretstorage.dbus_init()) as con:
-                col = secretstorage.get_default_collection(con)
-                for item in col.get_all_items():
-                    if item.get_label() == '{} Safe Storage'.format(browser_keyring_name):
-                        return item.get_secret()
-                else:
-                    logger.error('failed to read from keyring')
-                    password = ''
-
-        else:
-            logger.error('Unknown backend. Failed to obtain key')
-            password = ''
-
-    return password.encode('utf-8')
+    chosen_keyring = _choose_linux_keyring(logger)
+    if chosen_keyring == _LinuxKeyrings.KWallet:
+        return _get_kwallet_password(browser_keyring_name, logger)
+    elif chosen_keyring == _LinuxKeyrings.GnomeKeyring:
+        return _get_gnome_keyring_password(browser_keyring_name, logger)
+    elif chosen_keyring == _LinuxKeyrings.BasicText:
+        raise NotImplementedError
+    else:
+        raise ValueError(chosen_keyring)
 
 
 def _get_mac_keyring_password(browser_keyring_name, logger):
-    if KEYRING_AVAILABLE:
-        logger.debug('using keyring to obtain password')
-        password = keyring.get_password('{} Safe Storage'.format(browser_keyring_name), browser_keyring_name)
-        return password.encode('utf-8')
-    else:
-        logger.debug('using find-generic-password to obtain password')
-        proc = Popen(
-            ['security', 'find-generic-password',
-             '-w',  # write password to stdout
-             '-a', browser_keyring_name,  # match 'account'
-             '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-        try:
-            stdout, stderr = proc.communicate_or_kill()
-            if stdout[-1:] == b'\n':
-                stdout = stdout[:-1]
-            return stdout
-        except BaseException as e:
-            logger.warning(f'exception running find-generic-password: {type(e).__name__}({e})')
-            return None
+    logger.debug('using find-generic-password to obtain password from OSX keychain')
+    proc = Popen(
+        ['security', 'find-generic-password',
+         '-w',  # write password to stdout
+         '-a', browser_keyring_name,  # match 'account'
+         '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    try:
+        stdout, stderr = proc.communicate_or_kill()
+        if stdout[-1:] == b'\n':
+            stdout = stdout[:-1]
+        return stdout
+    except BaseException as e:
+        logger.warning(f'exception running find-generic-password: {type(e).__name__}({e})')
+        return None
 
 
 def _get_windows_v10_key(browser_root, logger):
