@@ -31,7 +31,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         series_id = self._match_valid_url(url).group('sid')
-        self._download_webpage(url, video_id, fatal=False)
+        self._download_webpage(url, video_id)
         # TODO: extract thumbnail from webpage
         # then remove trim part using regexp: \/(imf\/.*)\/img
         # where the thumbnail is a img element with id of 'thumbnail'
@@ -39,7 +39,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
             self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         if not self._get_cookies(url).get('CT') is None:
             token = self._get_cookies(url).get('CT').value
-            json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token}'})
+            json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token}'}, fatal=False)
         else:
             print('token fetch failed')
         for f in formats:
