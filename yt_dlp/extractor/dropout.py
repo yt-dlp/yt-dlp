@@ -30,13 +30,13 @@ class DropoutIE(InfoExtractor):
 
     def _get_authenticity_token(self, session: requests.Session):
         signin_page = session.get(self._LOGIN_URL).text
-        authenticity_token = self._html_search_regex(r'name="authenticity_token" value="(.+?)"', 
-            signin_page, 'authenticity_token')
+        authenticity_token = self._html_search_regex(r'name="authenticity_token" value="(.+?)"',
+                                                     signin_page, 'authenticity_token')
         return authenticity_token
 
     def _login(self, session: requests.Session):
-        # Using a Session instead of the normal _download_webpage() because we 
-        # need to have cookies in order to download videos, and _download_webpage 
+        # Using a Session instead of the normal _download_webpage() because we
+        # need to have cookies in order to download videos, and _download_webpage
         # has no provisions for cookies (as far as I can tell)
 
         username, password = self._get_login_info()
@@ -58,8 +58,8 @@ class DropoutIE(InfoExtractor):
         with requests.Session() as session:
             response = self._login(session)
             # Make sure login was successful
-            if not self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']', 
-                response.text, 'success').lower() == 'true':
+            if not self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']',
+                                           response.text, 'success').lower() == 'true':
                 self.raise_login_required('Incorrect username/password, or account is not subscribed')
             webpage = session.get(url).text
         embed_url = self._html_search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
@@ -67,16 +67,18 @@ class DropoutIE(InfoExtractor):
         # More metadata
         id = self._html_search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
         title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-        if title: title = title.split(' - ')[0]
+        if title:
+            title = title.split(' - ')[0]
         description = self._html_search_regex(
-            r'<meta name=["\']description["\'] content=["\'](.+?)["\']', 
+            r'<meta name=["\']description["\'] content=["\'](.+?)["\']',
             webpage, 'description')
-        thumbnail = self._html_search_regex(r'<meta property="og:image" content="(.+?)\?', 
-            webpage, 'thumbnail')
+        thumbnail = self._html_search_regex(r'<meta property="og:image" content="(.+?)\?',
+                                            webpage, 'thumbnail')
         release_date = self._html_search_regex(
-            r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']', 
+            r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
             webpage, 'release_date')
-        if release_date: release_date = release_date.replace('-','')
+        if release_date:
+            release_date = release_date.replace('-', '')
 
         return {
             '_type': 'url_transparent',
