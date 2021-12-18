@@ -3484,11 +3484,12 @@ class YoutubeDL(object):
 
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
-        from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
+        from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE, SECRETSTORAGE_AVAILABLE
 
         lib_str = join_nonempty(
             compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
             KEYRING_AVAILABLE and 'keyring',
+            SECRETSTORAGE_AVAILABLE and 'secretstorage',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
             has_websockets and 'websockets',
