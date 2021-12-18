@@ -774,6 +774,7 @@ def _real_main(argv=None):
         'geo_bypass': opts.geo_bypass,
         'geo_bypass_country': opts.geo_bypass_country,
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
+        'show_title': opts.show_title,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
         'compat_opts': compat_opts,

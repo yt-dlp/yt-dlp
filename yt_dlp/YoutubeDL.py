@@ -3356,7 +3356,7 @@ class YoutubeDL(object):
             header_line = ['format code', 'extension', 'resolution', 'note']
 
         video_descriptor = info_dict['id']
-        if info_dict['title'] is not None:
+        if self.params.get('show_title') and info_dict['title'] is not None:
             if 'filename' in self.params.get('compat_opts', []):
                 video_descriptor = info_dict['title'] + '-' + video_descriptor
             else:

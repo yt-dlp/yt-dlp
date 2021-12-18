@@ -281,6 +281,10 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='no_color', default=False,
         help='Do not emit color codes in output')
     general.add_option(
+        '--show-title',
+        action='store_true', dest='show_title', default=False,
+        help='Show video title in output')
+    general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
         action='callback', callback=_set_from_options_callback,
