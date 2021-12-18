@@ -51,7 +51,7 @@ class GameJoltBaseIE(InfoExtractor):
         if embed_url:
             return self.url_result(embed_url)
 
-        video_data = traverse_obj(post_data, ('videos', ...), expected_type=dict, get_all=False, default={})
+        video_data = traverse_obj(post_data, ('videos', ...), expected_type=dict, get_all=False) or {}
         formats, thumbnails = [], []
         for media in video_data.get('media', []):
             media_url, mimetype, ext, media_id = media['img_url'], media.get('filetype', ''), determine_ext(media['img_url']), media.get('type')
@@ -168,9 +168,9 @@ class GameJoltIE(GameJoltBaseIE):
             'display_id': 'i-fuckin-broke-chaos-d56h3eue',
             'title': 'I fuckin broke Chaos.',
             'description': 'I moved my tab durning the cutscene so now it\'s stuck like this.',
-            'uploader': str,
-            'uploader_id': str,
-            'uploader_url': str,
+            'uploader': 'The_Nyesh_femboy',
+            'uploader_id': 'The_Nyesh_Man',
+            'uploader_url': 'https://gamejolt.com/@The_Nyesh_Man',
             'categories': ['Friday Night Funkin\' - Videos'],
             'timestamp': 1639800264,
             'upload_date': '20211218',
@@ -196,7 +196,7 @@ class GameJoltPostListBaseIE(GameJoltBaseIE):
         while items:
             for item in items:
                 yield self._parse_post(item['action_resource_model'])
-                scroll_id = item['scroll_id']
+            scroll_id = items[-1]['scroll_id']
             page_num += 1
             items = self._call_api(
                 endpoint, list_id, note='%s page %d' % (note, page_num), errnote=errnote, data=json.dumps({
