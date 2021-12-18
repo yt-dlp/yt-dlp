@@ -85,7 +85,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
 
             if availability == 'premium_only':
                 # The video is premium only.
-                self.raise_no_formats(msg='downloading premium content is unsupported', expected=True)
+                self.raise_no_formats(msg='unable to download premium content', expected=True)
             else:
                 # We don't know why there is no (valid) video URL present.
                 self.raise_no_formats(msg='unable to proceed due to missing meta data', expected=True)
@@ -234,7 +234,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
 
             if availability == 'premium_only':
                 # The stream is premium only.
-                self.raise_no_formats(msg='downloading premium content is unsupported', expected=True)
+                self.raise_no_formats(msg='unable to download premium content', expected=True)
 
             if not(stream_scheduled_for) and availability != 'premium_only':
                 # We don't know why there is no (valid) video URL present.
@@ -376,35 +376,47 @@ class RokfinChannelIE(RokfinPlaylistIE):
         import itertools
 
         _ENTRIES_PER_REQUEST = 50  # 50 is the maximum Rokfin permits per request.
-        _META_DATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/user/'
+        _META_DATA_BASE_URL1 = 'https://prod-api-v2.production.rokfin.com/api/v2/public/user/'
         _RECOMMENDED_CHANNEL_BASE_URL = 'https://rokfin.com/'
+        category_list = self._configuration_arg('category')
+        category_dic = {'new': 'posts', 'top': 'top', 'videos': 'video', 'podcasts': 'audio', 'streams': 'stream', 'articles': 'article', 'rankings': 'ranking', 'stacks': 'stack'}
 
-        def dnl_video_meta_data_incrementally(pagesz, channel_id):
+        if len(category_list) > 1 or (len(category_list) == 1 and category_list[0] not in category_dic.keys()):
+            raise ExtractorError(msg='usage: --extractor-args "rokfinchannel:category=[new|top|videos|podcasts|streams|articles|rankings|stacks]"', expected=True)
+
+        def dnl_video_meta_data_incrementally(pagesz, channel_id, category, channel_username):
             _VIDEO_BASE_URL = 'https://rokfin.com/'
+            _META_DATA_BASE_URL2 = 'https://prod-api-v2.production.rokfin.com/api/v2/public/post/search/'
 
             pages_total = None
 
             for page_n in itertools.count(0):
-                downloaded_json = self._download_json(url_or_request=f'{_META_DATA_BASE_URL}{channel_id}/posts?page={page_n}&size={pagesz}', video_id=channel_id, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False)
+                if category in ('posts', 'top'):
+                    data_url = f'{_META_DATA_BASE_URL1}{channel_username}/{category}?page={page_n}&size={pagesz}'
+                else:
+                    data_url = f'{_META_DATA_BASE_URL2}{category}?page={page_n}&size={pagesz}&creator={channel_id}'
+
+                downloaded_json = self._download_json(url_or_request=data_url, video_id=channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False)
 
                 yield from self._get_video_data(json_data=downloaded_json, video_base_url=_VIDEO_BASE_URL)
 
                 pages_total = try_get(downloaded_json, lambda x: x['totalPages'])
                 is_last_page = try_get(downloaded_json, lambda x: x['last'] is True)
-                max_page_count_reached = try_get(downloaded_json, lambda x: page_n + 1 >= pages_total)
+                max_page_count_reached = try_get(pages_total, lambda x: page_n + 1 >= x)
 
                 if is_last_page or max_page_count_reached or ((is_last_page is None) and (max_page_count_reached is None)):
                     return []
-                # The last condition is a safety check.
+                # The final and-condition is a mere safety check.
 
-        channel_id = self._match_id(url_from_user)
-        channel_info = self._download_json(url_or_request=_META_DATA_BASE_URL + channel_id, video_id=channel_id, note='Downloading channel info', fatal=False)
+        channel_username = self._match_id(url_from_user)
+        channel_info = self._download_json(url_or_request=_META_DATA_BASE_URL1 + channel_username, video_id=channel_username, note='Downloading channel info', fatal=False)
+        channel_id = try_get(channel_info, lambda x: x['id'])
 
         return self.playlist_result(
-            entries=dnl_video_meta_data_incrementally(pagesz=_ENTRIES_PER_REQUEST, channel_id=channel_id),
-            playlist_id=try_get(channel_info, lambda x: x['id']),
+            entries=dnl_video_meta_data_incrementally(pagesz=_ENTRIES_PER_REQUEST, category=category_dic[category_list[0] if category_list else "new"], channel_id=channel_id, channel_username=channel_username),
+            playlist_id=channel_id,
             playlist_description=try_get(channel_info, lambda x: x['description']),
-            webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_id)
+            webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username)
 
 
 class RokfinSearchIE(SearchInfoExtractor):

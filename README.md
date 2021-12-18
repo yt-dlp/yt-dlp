@@ -1694,6 +1694,9 @@ The following extractors use this feature:
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`. (e.g. `20.2.1`)
 * `manifest_app_version`: Numeric app version to call mobile APIs with. (e.g. `221`)
 
+#### rokfinchannel
+* `content`: what to download. One of: `new` (the channel's newest content; this is the default), `top` (most popular), `videos` (non-live videos), `podcasts` (non-live audios), `streams` (live, ex-live, and pending streams), `articles`, `rankings` (for sports), and `stacks` (aggregations of content sharing a common theme). E.g.: `rokfinchannel:content=streams`
+
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
