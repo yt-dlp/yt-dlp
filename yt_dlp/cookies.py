@@ -742,7 +742,6 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     # note: chrome/chromium can be run with the following flags to determine which keyring backend
     # it has chosen to use
     # chromium --enable-logging=stderr --v=1 2>&1 | grep key_storage_
-    # it is assumed that the keyring library will choose the same keyring.
     # Chromium supports a flag: --password-store=<basic|gnome|kwallet> so the automatic detection
     # will not be sufficient in all cases.
 
