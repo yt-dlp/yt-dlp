@@ -1,7 +1,5 @@
 # coding: utf-8
 import requests
-
-from yt_dlp.utils import ExtractorError
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 
@@ -37,6 +35,10 @@ class DropoutIE(InfoExtractor):
         return authenticity_token
 
     def _login(self, session: requests.Session):
+        # Using a Session instead of the normal _download_webpage() because we 
+        # need to have cookies in order to download videos, and _download_webpage 
+        # has no provisions for cookies (as far as I can tell)
+
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
@@ -55,6 +57,7 @@ class DropoutIE(InfoExtractor):
         # Log in and get embed_url of video
         with requests.Session() as session:
             response = self._login(session)
+            # Make sure login was successful
             if not self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']', 
                 response.text, 'success').lower() == 'true':
                 self.raise_login_required('Incorrect username/password, or account is not subscribed')
