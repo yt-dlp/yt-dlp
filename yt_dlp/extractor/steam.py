@@ -12,8 +12,8 @@ from ..utils import (
 
 class SteamIE(InfoExtractor):
     _VALID_URL = r"""(?x)
-        https?://store\.steampowered\.com/
-            (agecheck/)?
+        https?://(?:store\.steampowered|steamcommunity)\.com/
+            (?:agecheck/)?
             (?P<urltype>video|app)/ #If the page is only for videos or for a game
             (?P<gameID>\d+)/?
             (?P<videoID>\d*)(?P<extra>\??) # For urltype == video we sometimes get the videoID
@@ -114,6 +114,17 @@ class SteamIE(InfoExtractor):
             self._sort_formats(formats)
             entry['formats'] = formats
             entries.append(entry)
+        embeded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
+        for evideos in embeded_videos:
+            evideos = extract_attributes(evideos).get('src')
+            video_id = self._search_regex(r'youtube\.com/embed/([0-9A-Za-z_-]{11})', evideos, 'youtube_video_id', default=None)
+            if video_id:
+                entries.append({
+                    '_type': 'url_transparent',
+                    'id': video_id,
+                    'url': video_id,
+                    'ie_key': 'Youtube',
+                })
         if not entries:
             raise ExtractorError('Could not find any videos')
 
