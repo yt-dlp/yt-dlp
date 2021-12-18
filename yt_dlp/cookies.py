@@ -615,7 +615,7 @@ def _get_linux_keyring_password(browser_keyring_name, logger):
             logger.debug('using secretstorage fallback')
             if not SECRETSTORAGE_AVAILABLE:
                 logger.error('secretstorage not available {}'.format(SECRETSTORAGE_UNAVAILABLE_REASON))
-                return ''
+                return b''
             # the Gnome keyring does not seem to organise keys in the same way as KWallet,
             # using `dbus-monitor` during startup, it can be observed that chromium lists all keys
             # and presumably searches for its key in the list. It appears that we must do the same.
