@@ -505,6 +505,7 @@ from .gab import (
 )
 from .gaia import GaiaIE
 from .gameinformer import GameInformerIE
+from .gamejolt import GameJoltIE
 from .gamespot import GameSpotIE
 from .gamestar import GameStarIE
 from .gaskrank import GaskrankIE
