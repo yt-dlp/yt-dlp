@@ -118,7 +118,7 @@ class GameJoltIE(GameJoltBaseIE):
             'upload_date': '20211006',
             'release_timestamp': 1633499655,
             'release_date': '20211006',
-            'thumbnail': 're:^https?://.+wgch9mhq\.png$',
+            'thumbnail': 're:^https?://.+wgch9mhq.png$',
             'like_count': int,
             'comment_count': int,
             'view_count': int,
@@ -170,7 +170,7 @@ class GameJoltIE(GameJoltBaseIE):
             'upload_date': '20211218',
             'release_timestamp': 1639800330,
             'release_date': '20211218',
-            'thumbnail': 're:^https?://.+euksy8bd\.png$',
+            'thumbnail': 're:^https?://.+euksy8bd.png$',
             'like_count': int,
             'comment_count': int,
             'view_count': int,
@@ -182,6 +182,7 @@ class GameJoltIE(GameJoltBaseIE):
         post_data = self._call_api(
             'posts/view/%s' % post_id, post_id)['post']
         return self._parse_post(post_data)
+
 
 class GameJoltPostListBaseIE(GameJoltBaseIE):
     def _entries(self, endpoint, list_id, note='Downloading post list', errnote='Unable to download post list'):
@@ -250,6 +251,7 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
         return self.playlist_result(
             self._entries('posts/fetch/game/%s' % game_id, game_id, 'Downloading game posts', 'Unable to download game posts'),
             game_id, game_data.get('title'), description)
+
 
 class GameJoltCommunityIE(GameJoltPostListBaseIE):
     _VALID_URL = r'https?://gamejolt\.com/c/(?P<id>(?P<community>[\w-]+)(?:/(?P<channel>[\w-]+))?)(?:(?:\?|\#!?)(?:.*?[&;])??sort=(?P<sort>\w+))?'
