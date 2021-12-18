@@ -18,13 +18,19 @@ class GameJoltBaseIE(InfoExtractor):
         return self._download_json(self._API_BASE + endpoint, *args, **kwargs)['payload']
 
     def _parse_content_as_text(self, content):
-        contents, full_text = traverse_obj(content, ('content', ..., 'content', ...), expected_type=dict, default=[]), ''
-        for content in contents:
-            if content.get('text'):
-                full_text += content['text']
-            elif content.get('type') == 'hardBreak':
-                full_text += '\n'
-        return full_text
+        outer_contents, joined_contents = content.get('content') or [], []
+        for outer_content in outer_contents:
+            if outer_content.get('type') != 'paragraph':
+                continue
+            inner_contents, inner_content_text = outer_content.get('content') or [], ''
+            for inner_content in inner_contents:
+                if inner_content.get('text'):
+                    inner_content_text += inner_content['text']
+                elif inner_content.get('type') == 'hardBreak':
+                    inner_content_text += '\n'
+            joined_contents.append(inner_content_text)
+
+        return '\n'.join(joined_contents)
 
     def _parse_post(self, post_data):
         post_id = post_data['hash']
@@ -97,7 +103,7 @@ class GameJoltBaseIE(InfoExtractor):
 
 
 class GameJoltIE(GameJoltBaseIE):
-    _VALID_URL = r'https?://gamejolt\.com/p/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/p/(?P<id>[\w-]+)'
     _TESTS = [{
         # No audio
         'url': 'https://gamejolt.com/p/introducing-ramses-jackson-some-fnf-himbo-i-ve-been-animating-fo-c6achnzu',
@@ -200,19 +206,19 @@ class GameJoltPostListBaseIE(GameJoltBaseIE):
 
 
 class GameJoltUserIE(GameJoltPostListBaseIE):
-    _VALID_URL = r'https?://gamejolt\.com/@(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/@(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://gamejolt.com/@BlazikenSuperStar',
         'playlist_mincount': 1,
         'info_dict': {
             'id': '6116784',
             'title': 'S. Blaze',
-            'description': 'md5:1771f92a045d81004ce8450512c6d32a',
+            'description': 'md5:5ba7fbbb549e8ea2545aafbfe22eb03a',
         },
         'params': {
             'ignore_no_formats_error': True,
         },
-        'expected_warnings': ['skipping format'],
+        'expected_warnings': ['skipping format', 'No video formats found', 'Requested format is not available'],
     }]
 
     def _real_extract(self, url):
@@ -227,7 +233,7 @@ class GameJoltUserIE(GameJoltPostListBaseIE):
 
 
 class GameJoltGameIE(GameJoltPostListBaseIE):
-    _VALID_URL = r'https?://gamejolt\.com/games/[\w-]+/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/games/[\w-]+/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://gamejolt.com/games/Friday4Fun/655124',
         'playlist_mincount': 2,
@@ -239,7 +245,7 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
         'params': {
             'ignore_no_formats_error': True,
         },
-        'expected_warnings': ['skipping format'],
+        'expected_warnings': ['skipping format', 'No video formats found', 'Requested format is not available'],
     }]
 
     def _real_extract(self, url):
@@ -254,20 +260,20 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
 
 
 class GameJoltCommunityIE(GameJoltPostListBaseIE):
-    _VALID_URL = r'https?://gamejolt\.com/c/(?P<id>(?P<community>[\w-]+)(?:/(?P<channel>[\w-]+))?)(?:(?:\?|\#!?)(?:.*?[&;])??sort=(?P<sort>\w+))?'
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/c/(?P<id>(?P<community>[\w-]+)(?:/(?P<channel>[\w-]+))?)(?:(?:\?|\#!?)(?:.*?[&;])??sort=(?P<sort>\w+))?'
     _TESTS = [{
         'url': 'https://gamejolt.com/c/fnf/videos',
         'playlist_mincount': 50,
         'info_dict': {
             'id': 'fnf/videos',
             'title': 'Friday Night Funkin\' - Videos',
-            'description': 'md5:aa'
+            'description': 'md5:6ae7f5596d8850de7a36c86335a2a5e4'
         },
         'params': {
             'playlistend': 50,
             'ignore_no_formats_error': True,
         },
-        'expected_warnings': ['skipping format'],
+        'expected_warnings': ['skipping format', 'No video formats found', 'Requested format is not available'],
     }]
 
     def _real_extract(self, url):
@@ -282,7 +288,7 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         channel_data = traverse_obj(self._call_api(
             'communities/view-channel/%s/%s' % (community_id, channel_id), display_id, note='Downloading channel info', errnote='Unable to download channel info', fatal=False), 'channel') or {}
 
-        title = '%s - %s' % (community_data.get('title'), channel_data['display_name']) if channel_data.get('display_name') else community_data.get('title')
+        title = '%s - %s' % (community_data.get('name'), channel_data['display_title']) if channel_data.get('display_title') else community_data.get('name')
         description = self._parse_content_as_text(
             self._parse_json(community_data.get('description_content', '{}'), display_id, fatal=False) or {})
         return self.playlist_result(
