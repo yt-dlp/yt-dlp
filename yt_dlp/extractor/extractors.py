@@ -768,6 +768,7 @@ from .mediasite import (
 )
 from .medici import MediciIE
 from .megaphone import MegaphoneIE
+from .megatv import MegatvIE
 from .meipai import MeipaiIE
 from .melonvod import MelonVODIE
 from .meta import METAIE
