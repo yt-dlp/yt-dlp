@@ -535,7 +535,7 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
         }
 
 
-class InstagramStoryIE(InfoExtractor):
+class InstagramStoryIE(InstagramBaseIE):
     _VALID_URL = r'https?://(?:www\.)?instagram\.com/stories/(?P<user>[^/]+)/(?P<id>\d+)'
     IE_NAME = 'instagram:story'
 
