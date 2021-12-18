@@ -114,8 +114,8 @@ class SteamIE(InfoExtractor):
             self._sort_formats(formats)
             entry['formats'] = formats
             entries.append(entry)
-        embeded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
-        for evideos in embeded_videos:
+        embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
+        for evideos in embedded_videos:
             evideos = extract_attributes(evideos).get('src')
             video_id = self._search_regex(r'youtube\.com/embed/([0-9A-Za-z_-]{11})', evideos, 'youtube_video_id', default=None)
             if video_id:
