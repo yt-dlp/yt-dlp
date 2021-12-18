@@ -3355,8 +3355,14 @@ class YoutubeDL(object):
                 if f.get('preference') is None or f['preference'] >= -1000]
             header_line = ['format code', 'extension', 'resolution', 'note']
 
+        video_descriptor = info_dict['id']
+        if info_dict['title'] is not None:
+            if 'filename' in self.params.get('compat_opts', []):
+                video_descriptor = info_dict['title'] + '-' + video_descriptor
+            else:
+                video_descriptor = info_dict['title'] + ' [' + video_descriptor + ']'
         self.to_screen(
-            '[info] Available formats for %s:' % info_dict['id'])
+            '[info] Available formats for %s:' % video_descriptor)
         self.to_stdout(render_table(
             header_line, table,
             extra_gap=(0 if new_format else 1),
