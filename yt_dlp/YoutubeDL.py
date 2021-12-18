@@ -316,9 +316,8 @@ class YoutubeDL(object):
     break_per_url:     Whether break_on_reject and break_on_existing
                        should act on each input URL as opposed to for the entire queue
     cookiefile:        File name where cookies should be read from and dumped to
-    cookiesfrombrowser: A tuple containing the name of the browser and the profile
-                       name/path from where cookies are loaded.
-                       Eg: ('chrome', ) or ('vivaldi', 'default')
+    cookiesfrombrowser: A tuple containing the name of the browser, and a dictionary of options
+                       Eg: ('chrome', {}) or ('brave', {'keyring': 'KWallet'})
     nocheckcertificate:Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.

@@ -69,8 +69,8 @@ class YDLLogger:
 def load_cookies(cookie_file, browser_specification, ydl):
     cookie_jars = []
     if browser_specification is not None:
-        browser_name, profile = _parse_browser_specification(*browser_specification)
-        cookie_jars.append(extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl)))
+        browser_name, profile, keyring = _parse_browser_specification(*browser_specification)
+        cookie_jars.append(extract_cookies_from_browser(browser_name, profile, keyring, YDLLogger(ydl)))
 
     if cookie_file is not None:
         cookie_file = expand_path(cookie_file)
@@ -82,13 +82,13 @@ def load_cookies(cookie_file, browser_specification, ydl):
     return _merge_cookie_jars(cookie_jars)
 
 
-def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger()):
+def extract_cookies_from_browser(browser_name, profile=None, keyring=None, logger=YDLLogger()):
     if browser_name == 'firefox':
         return _extract_firefox_cookies(profile, logger)
     elif browser_name == 'safari':
         return _extract_safari_cookies(profile, logger)
     elif browser_name in CHROMIUM_BASED_BROWSERS:
-        return _extract_chrome_cookies(browser_name, profile, logger)
+        return _extract_chrome_cookies(browser_name, profile, keyring, logger)
     else:
         raise ValueError('unknown browser: {}'.format(browser_name))
 
@@ -202,7 +202,7 @@ def _get_chromium_based_browser_settings(browser_name):
     }
 
 
-def _extract_chrome_cookies(browser_name, profile, logger):
+def _extract_chrome_cookies(browser_name, profile, keyring, logger):
     logger.info('Extracting cookies from {}'.format(browser_name))
 
     if not SQLITE_AVAILABLE:
@@ -229,7 +229,7 @@ def _extract_chrome_cookies(browser_name, profile, logger):
         raise FileNotFoundError('could not find {} cookies database in "{}"'.format(browser_name, search_root))
     logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
-    decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger)
+    decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], keyring, logger)
 
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
@@ -311,9 +311,9 @@ class ChromeCookieDecryptor:
         raise NotImplementedError
 
 
-def get_cookie_decryptor(browser_root, browser_keyring_name, logger):
+def get_cookie_decryptor(browser_root, browser_keyring_name, keyring, logger):
     if sys.platform in ('linux', 'linux2'):
-        return LinuxChromeCookieDecryptor(browser_keyring_name, logger)
+        return LinuxChromeCookieDecryptor(browser_keyring_name, keyring, logger)
     elif sys.platform == 'darwin':
         return MacChromeCookieDecryptor(browser_keyring_name, logger)
     elif sys.platform == 'win32':
@@ -324,10 +324,10 @@ def get_cookie_decryptor(browser_root, browser_keyring_name, logger):
 
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
-    def __init__(self, browser_keyring_name, logger):
+    def __init__(self, browser_keyring_name, keyring, logger):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
-        password = _get_linux_keyring_password(browser_keyring_name, logger)
+        password = _get_linux_keyring_password(browser_keyring_name, keyring, logger)
         self._v11_key = None if password is None else self.derive_key(password)
         self._cookie_counts = {'v10': 0, 'v11': 0, 'other': 0}
 
@@ -616,7 +616,7 @@ class _LinuxDesktopEnvironment(Enum):
     XFCE = auto()
 
 
-class _LinuxKeyrings(Enum):
+class _LinuxKeyring(Enum):
     """
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/key_storage_util_linux.h
     SelectedLinuxBackend
@@ -675,12 +675,11 @@ def _choose_linux_keyring(logger):
     desktop_environment = _get_linux_desktop_environment(os.environ)
     logger.debug('detected desktop environment: {}'.format(desktop_environment.name))
     if desktop_environment == _LinuxDesktopEnvironment.KDE:
-        linux_keyring = _LinuxKeyrings.KWallet
+        linux_keyring = _LinuxKeyring.KWallet
     elif desktop_environment == _LinuxDesktopEnvironment.OTHER:
-        linux_keyring = _LinuxKeyrings.BasicText
+        linux_keyring = _LinuxKeyring.BasicText
     else:
-        linux_keyring = _LinuxKeyrings.GnomeKeyring
-    logger.debug('chosen keyring: {}'.format(linux_keyring.name))
+        linux_keyring = _LinuxKeyring.GnomeKeyring
     return linux_keyring
 
 
@@ -739,7 +738,7 @@ def _get_gnome_keyring_password(browser_keyring_name, logger):
             return b''
 
 
-def _get_linux_keyring_password(browser_keyring_name, logger):
+def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     # note: chrome/chromium can be run with the following flags to determine which keyring backend
     # it has chosen to use
     # chromium --enable-logging=stderr --v=1 2>&1 | grep key_storage_
@@ -747,12 +746,18 @@ def _get_linux_keyring_password(browser_keyring_name, logger):
     # Chromium supports a flag: --password-store=<basic|gnome|kwallet> so the automatic detection
     # will not be sufficient in all cases.
 
-    chosen_keyring = _choose_linux_keyring(logger)
-    if chosen_keyring == _LinuxKeyrings.KWallet:
+    if keyring is None:
+        chosen_keyring = _choose_linux_keyring(logger)
+    else:
+        chosen_keyring = _LinuxKeyring[keyring]
+
+    logger.debug('chosen keyring: {}'.format(chosen_keyring.name))
+
+    if chosen_keyring == _LinuxKeyring.KWallet:
         return _get_kwallet_password(browser_keyring_name, logger)
-    elif chosen_keyring == _LinuxKeyrings.GnomeKeyring:
+    elif chosen_keyring == _LinuxKeyring.GnomeKeyring:
         return _get_gnome_keyring_password(browser_keyring_name, logger)
-    elif chosen_keyring == _LinuxKeyrings.BasicText:
+    elif chosen_keyring == _LinuxKeyring.BasicText:
         # when basic text is chosen, all cookies are stored as v10 (so no keyring password is required)
         return None
     else:
@@ -898,10 +903,11 @@ def _is_path(value):
     return os.path.sep in value
 
 
-def _parse_browser_specification(browser_name, profile=None):
-    browser_name = browser_name.lower()
+def _parse_browser_specification(browser_name, parameters):
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')
+    keyring = parameters.get('keyring', None)
+    profile = parameters.get('profile')
     if profile is not None and _is_path(profile):
         profile = os.path.expanduser(profile)
-    return browser_name, profile
+    return browser_name, profile, keyring

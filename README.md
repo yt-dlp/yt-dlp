@@ -600,16 +600,22 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      from and dump cookie jar in
     --no-cookies                     Do not read/dump cookies from/to file
                                      (default)
-    --cookies-from-browser BROWSER[:PROFILE]
+    --cookies-from-browser BROWSER[:PARAMETERS]
                                      Load cookies from a user profile of the
                                      given web browser. Currently supported
                                      browsers are: brave, chrome, chromium,
-                                     edge, firefox, opera, safari, vivaldi. You
-                                     can specify the user profile name or
-                                     directory using "BROWSER:PROFILE_NAME" or
-                                     "BROWSER:PROFILE_PATH". If no profile is
-                                     given, the most recently accessed one is
-                                     used
+                                     edge, firefox, opera, safari, vivaldi.
+                                     additional parameters can be specified
+                                     such as the profile name/path and the
+                                     keyring to use. For example:
+                                     'chrome:profile=~/.config/chrome/Default'
+                                     'brave:keyring=KWallet,profile=Default'.
+                                     Possible keyring values are:
+                                     'KWallet', 'GnomeKeyring', 'BasicText'.
+                                     The keyring is automatically detected
+                                     in most cases. If no browser profile is
+                                     specified the most recently accessed one
+                                     is chosen.
     --no-cookies-from-browser        Do not load cookies from browser (default)
     --cache-dir DIR                  Location in the filesystem where youtube-dl
                                      can store some downloaded information (such
