@@ -21,6 +21,7 @@ class GameJoltBaseIE(InfoExtractor):
         outer_contents, joined_contents = content.get('content') or [], []
         for outer_content in outer_contents:
             if outer_content.get('type') != 'paragraph':
+                joined_contents.append(self._parse_content_as_text(outer_content))
                 continue
             inner_contents, inner_content_text = outer_content.get('content') or [], ''
             for inner_content in inner_contents:
@@ -240,7 +241,7 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': '655124',
             'title': 'Friday Night Funkin\': Friday 4 Fun',
-            'description': 'md5:4c53110368536a353229b72cc1fb2f5c'
+            'description': 'md5:576a7dd87912a2dcf33c50d2bd3966d3'
         },
         'params': {
             'ignore_no_formats_error': True,
@@ -267,7 +268,20 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         'info_dict': {
             'id': 'fnf/videos',
             'title': 'Friday Night Funkin\' - Videos',
-            'description': 'md5:6ae7f5596d8850de7a36c86335a2a5e4'
+            'description': 'md5:6d8c06f27460f7d35c1554757ffe53c8'
+        },
+        'params': {
+            'playlistend': 50,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': ['skipping format', 'No video formats found', 'Requested format is not available'],
+    }, {
+        'url': 'https://gamejolt.com/c/youtubers',
+        'playlist_mincount': 50,
+        'info_dict': {
+            'id': 'youtubers/featured',
+            'title': 'Youtubers',
+            'description': 'md5:53e5582c93dcc467ab597bfca4db17d4'
         },
         'params': {
             'playlistend': 50,
