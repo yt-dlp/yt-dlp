@@ -687,6 +687,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         timestamp = None
         if isinstance(dt, datetime.datetime):
             timestamp = calendar.timegm(dt.timetuple())
+        if timestamp is None:
+            self.report_warning( f'Cannot parse localised time text' + bug_reports_message(), only_once=True)
         return timestamp, text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
