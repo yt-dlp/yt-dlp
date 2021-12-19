@@ -37,7 +37,7 @@ class DropoutIE(InfoExtractor):
             signin_page, 'authenticity_token')
         return authenticity_token
 
-    def _login(self, id: str):
+    def _login(self):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
@@ -48,24 +48,24 @@ class DropoutIE(InfoExtractor):
             'authenticity_token': self._get_authenticity_token(id),
             'utf8': True
         }
-        response = self._download_webpage(self._LOGIN_URL, video_id=id,
+        response = self._download_webpage(self._LOGIN_URL, None,
                                           note='Logging in', data=urlencode_postdata(payload))
 
         user_has_subscription = self._search_regex(r'user_has_subscription: ["\'](.+?)["\']',
                                                    response, 'success', default='none')
         if user_has_subscription.lower() == 'true':
             return response
-        self._logout(id)
+        self._logout()
         if user_has_subscription.lower() == 'false':
             self.raise_login_required('Account is not subscribed')
         else:
             self.raise_login_required('Incorrect username/password')
 
-    def _logout(self, id):
-        self._download_webpage(self._LOGOUT_URL, id, note='Logging out')
+    def _logout(self):
+        self._download_webpage(self._LOGOUT_URL, None, note='Logging out')
 
     def _real_initialize(self):
-        self._login(None)
+        self._login()
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
