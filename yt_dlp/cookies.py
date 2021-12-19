@@ -74,7 +74,7 @@ def load_cookies(cookie_file, browser_specification, ydl):
     cookie_jars = []
     if browser_specification is not None:
         browser_name, profile, keyring = _parse_browser_specification(*browser_specification)
-        cookie_jars.append(extract_cookies_from_browser(browser_name, profile, keyring, YDLLogger(ydl)))
+        cookie_jars.append(extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring))
 
     if cookie_file is not None:
         cookie_file = expand_path(cookie_file)
@@ -86,7 +86,7 @@ def load_cookies(cookie_file, browser_specification, ydl):
     return _merge_cookie_jars(cookie_jars)
 
 
-def extract_cookies_from_browser(browser_name, profile=None, keyring=None, logger=YDLLogger()):
+def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(), keyring=None):
     if browser_name == 'firefox':
         return _extract_firefox_cookies(profile, logger)
     elif browser_name == 'safari':
@@ -317,7 +317,7 @@ class ChromeCookieDecryptor:
 
 def get_cookie_decryptor(browser_root, browser_keyring_name, keyring, logger):
     if sys.platform in ('linux', 'linux2'):
-        return LinuxChromeCookieDecryptor(browser_keyring_name, keyring, logger)
+        return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring)
     elif sys.platform == 'darwin':
         return MacChromeCookieDecryptor(browser_keyring_name, logger)
     elif sys.platform == 'win32':
@@ -328,7 +328,7 @@ def get_cookie_decryptor(browser_root, browser_keyring_name, keyring, logger):
 
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
-    def __init__(self, browser_keyring_name, keyring, logger):
+    def __init__(self, browser_keyring_name, logger, keyring):
         self._logger = logger
         self._v10_key = self.derive_key(b'peanuts')
         password = _get_linux_keyring_password(browser_keyring_name, keyring, logger)
