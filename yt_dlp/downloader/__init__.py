@@ -17,7 +17,9 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
 
     if set(downloaders) == {FFmpegFD} and FFmpegFD.can_merge_formats(info_copy, params):
         return FFmpegFD
-    elif set(downloaders) == {DashSegmentsFD} and set(protocols) == {'http_dash_segments_generator'}:
+    elif (set(downloaders) == {DashSegmentsFD}
+          and not (to_stdout and len(protocols) > 1)
+          and set(protocols) == {'http_dash_segments_generator'}):
         return DashSegmentsFD
     elif len(downloaders) == 1:
         return downloaders[0]

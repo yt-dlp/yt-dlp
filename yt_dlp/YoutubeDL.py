@@ -2661,6 +2661,8 @@ class YoutubeDL(object):
             urls = '", "'.join([f['url'] for f in info.get('requested_formats', [])] or [info['url']])
             self.write_debug('Invoking downloader on "%s"' % urls)
 
+        # Note: Ideally info should be a deep-copied so that hooks cannot modify it.
+        # But it may contain objects that are not deep-copyable
         new_info = self._copy_infodict(info)
         if new_info.get('http_headers') is None:
             new_info['http_headers'] = self._calc_headers(new_info)
@@ -2897,12 +2899,11 @@ class YoutubeDL(object):
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
                     elif fd:
-                        if fd != FFmpegFD and 'requested_formats' in info_dict:
-                            for f in info_dict['requested_formats']:
-                                f['filepath'] = fname = prepend_extension(
-                                    correct_ext(temp_filename, info_dict['ext']),
-                                    'f%s' % f['format_id'], info_dict['ext'])
-                                downloaded.append(fname)
+                        for f in requested_formats if fd != FFmpegFD else []:
+                            f['filepath'] = fname = prepend_extension(
+                                correct_ext(temp_filename, info_dict['ext']),
+                                'f%s' % f['format_id'], info_dict['ext'])
+                            downloaded.append(fname)
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
@@ -2918,7 +2919,7 @@ class YoutubeDL(object):
                                 'The formats won\'t be merged.')
 
                         if temp_filename == '-':
-                            reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict)
+                            reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict, self.params)
                                       else 'but the formats are incompatible for simultaneous download' if merger.available
                                       else 'but ffmpeg is not installed')
                             self.report_warning(
