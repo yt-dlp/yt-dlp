@@ -16,6 +16,7 @@ from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes
 from ..compat import (
+    compat_os_name,
     compat_urllib_error,
     compat_struct_pack,
 )
@@ -397,6 +398,9 @@ class FragmentFD(FileDownloader):
                 pass
 
         spins = []
+        if compat_os_name == 'nt':
+            self.report_warning('Ctrl+C does not work on Windows when used with parallel threads. '
+                                'This is a known issue and patches are welcome')
         for idx, (ctx, fragments, info_dict) in enumerate(args):
             tpe = FTPE(math.ceil(max_workers / max_progress))
             job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
