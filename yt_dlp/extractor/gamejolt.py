@@ -75,13 +75,17 @@ class GameJoltBaseIE(InfoExtractor):
             return self.url_result(embed_url)
 
         video_data = traverse_obj(post_data, ('videos', ...), expected_type=dict, get_all=False) or {}
-        formats, thumbnails = [], []
+        formats, subtitles, thumbnails = [], {}, []
         for media in video_data.get('media', []):
             media_url, mimetype, ext, media_id = media['img_url'], media.get('filetype', ''), determine_ext(media['img_url']), media.get('type')
             if mimetype == 'application/vnd.apple.mpegurl' or ext == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(media_url, post_id, 'mp4', m3u8_id=media_id))
+                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(media_url, post_id, 'mp4', m3u8_id=media_id)
+                formats.extend(hls_formats)
+                subtitles.update(hls_subs)
             elif mimetype == 'application/dash+xml' or ext == 'mpd':
-                formats.extend(self._extract_mpd_formats(media_url, post_id, mpd_id=media_id))
+                dash_formats, dash_subs = self._extract_mpd_formats_and_subtitles(media_url, post_id, mpd_id=media_id)
+                formats.extend(dash_formats)
+                subtitles.update(dash_subs)
             elif 'image' in mimetype:
                 thumbnails.append({
                     'id': media_id,
@@ -120,6 +124,7 @@ class GameJoltBaseIE(InfoExtractor):
             'timestamp': int_or_none(post_data.get('added_on'), scale=1000),
             'release_timestamp': int_or_none(post_data.get('published_on'), scale=1000),
             'formats': formats,
+            'subtitles': subtitles,
             'thumbnails': thumbnails,
             'view_count': int_or_none(video_data.get('view_count')),
             '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
