@@ -194,20 +194,8 @@ def expect_dict(self, got_dict, expected_dict):
         expect_value(self, got, expected, info_field)
 
 
-def expect_info_dict(self, got_dict, expected_dict):
-    expect_dict(self, got_dict, expected_dict)
-    # Check for the presence of mandatory fields
-    if got_dict.get('_type') not in ('playlist', 'multi_video'):
-        mandatory_fields = ['id', 'title']
-        if expected_dict.get('ext'):
-            mandatory_fields.extend(('url', 'ext'))
-        for key in mandatory_fields:
-            self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
-    # Check for mandatory fields that are automatically set by YoutubeDL
-    for key in ['webpage_url', 'extractor', 'extractor_key']:
-        self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
-
-    ignored_fields = (
+def sanitize_got_info_dict(got_dict):
+    IGNORED_FIELDS = (
         # Format keys
         'url', 'manifest_url', 'format', 'format_id', 'format_note', 'width', 'height', 'resolution',
         'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'vbr', 'fps', 'vcodec', 'container', 'filesize',
@@ -222,14 +210,14 @@ def expect_info_dict(self, got_dict, expected_dict):
         'formats', 'thumbnails', 'subtitles', 'automatic_captions', 'comments', 'entries',
 
         # Auto-generated
-        'playlist', 'format_index', 'webpage_url', 'video_ext', 'audio_ext', 'duration_string', 'epoch', 'fulltitle',
-        'extractor', 'extractor_key', 'original_url', 'webpage_url_basename', 'webpage_url_domain', 'filepath', 'infojson_filename',
+        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch',
+        'fulltitle', 'extractor', 'extractor_key', 'filepath', 'infojson_filename', 'original_url',
 
         # Only live_status needs to be checked
         'is_live', 'was_live',
     )
 
-    ignored_prefixes = ('', 'playlist', 'requested')
+    IGNORED_PREFIXES = ('', 'playlist', 'requested', 'webpage')
 
     def sanitize(key, value):
         if isinstance(value, str) and len(value) > 100:
@@ -240,13 +228,31 @@ def expect_info_dict(self, got_dict, expected_dict):
 
     test_info_dict = {
         key: sanitize(key, value) for key, value in got_dict.items()
-        if value is not None and key not in ignored_fields and not any(
-            key.startswith(f'{prefix}_') for prefix in ignored_prefixes)
+        if value is not None and key not in IGNORED_FIELDS and not any(
+            key.startswith(f'{prefix}_') for prefix in IGNORED_PREFIXES)
     }
 
     # display_id may be generated from id
     if test_info_dict.get('display_id') == test_info_dict['id']:
         test_info_dict.pop('display_id')
+
+    return test_info_dict
+
+
+def expect_info_dict(self, got_dict, expected_dict):
+    expect_dict(self, got_dict, expected_dict)
+    # Check for the presence of mandatory fields
+    if got_dict.get('_type') not in ('playlist', 'multi_video'):
+        mandatory_fields = ['id', 'title']
+        if expected_dict.get('ext'):
+            mandatory_fields.extend(('url', 'ext'))
+        for key in mandatory_fields:
+            self.assertTrue(got_dict.get(key), 'Missing mandatory field %s' % key)
+    # Check for mandatory fields that are automatically set by YoutubeDL
+    for key in ['webpage_url', 'extractor', 'extractor_key']:
+        self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
+
+    test_info_dict = sanitize_got_info_dict(got_dict)
 
     missing_keys = set(test_info_dict.keys()) - set(expected_dict.keys())
     if missing_keys:
