@@ -600,7 +600,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      from and dump cookie jar in
     --no-cookies                     Do not read/dump cookies from/to file
                                      (default)
-    --cookies-from-browser BROWSER[+PROFILE][:PROFILE]
+    --cookies-from-browser BROWSER[+KEYRING][:PROFILE]
                                      Load cookies from a user profile of the
                                      given web browser. Currently supported
                                      browsers are: brave, chrome, chromium,
