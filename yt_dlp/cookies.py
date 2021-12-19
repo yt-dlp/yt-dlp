@@ -711,8 +711,8 @@ def _get_kwallet_password(browser_keyring_name, logger):
             if stdout.lower().startswith(b'failed to read'):
                 logger.debug('failed to read password from kwallet. Using empty string instead')
                 # this sometimes occurs in KDE because chrome does not check hasEntry and instead
-                # just tries to read the value (which kwallet returns "") whereas keyring checks hasEntry
-                # to verify this:
+                # just tries to read the value (which kwallet returns "") whereas kwallet-query
+                # checks hasEntry to verify this:
                 # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
                 # while starting chrome.
                 # this may be a bug as the intended behaviour is to generate a random password and store
