@@ -74,17 +74,17 @@ class DropoutIE(InfoExtractor):
 
         id = self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
         title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-        title = ' - '.join(title.split(' - ')[0:-2]) # Allows for " - " in title
+        title = ' - '.join(title.split(' - ')[0:-2])  # Allows for " - " in title
         description = self._html_search_meta('description', webpage, display_name='description', fatal=False)
         thumbnail = self._og_search_thumbnail(webpage)
-        thumbnail = thumbnail.split('?')[0] if thumbnail else None # Ignore crop/downscale
+        thumbnail = thumbnail.split('?')[0] if thumbnail else None  # Ignore crop/downscale
         release_date = self._search_regex(
             r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
             webpage, 'release_date', fatal=False)
         release_date = release_date.replace('-', '') if release_date else None
-         # utils.get_element_by_attribute is not used because we want data-meta-field-value,
-         # not what's actually in the element (inside is something like "15Dec2021", which
-         # is much harder to parse than "2021-12-15")
+        # utils.get_element_by_attribute is not used because we want data-meta-field-value,
+        # not what's actually in the element (inside is something like "15Dec2021", which
+        # is much harder to parse than "2021-12-15")
 
         return {
             '_type': 'url_transparent',
