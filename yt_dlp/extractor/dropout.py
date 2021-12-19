@@ -63,10 +63,12 @@ class DropoutIE(InfoExtractor):
 
     def _logout(self, id):
         self._download_webpage(self._LOGOUT_URL, id, note='Logging out')
+    
+    def _real_initialize(self):
+        self._login(None)
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        self._login(display_id)
 
         webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
         self._logout(display_id)
