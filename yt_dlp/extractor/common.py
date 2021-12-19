@@ -294,7 +294,7 @@ class InfoExtractor(object):
                                                  the video uploader
     age_limit:      Age restriction for the video, as an integer (years)
     webpage_url:    The URL to the video webpage, if given to yt-dlp it
-                    should allow yt-dlp to get the same result again. (It will be set
+                    should allow to get the same result again. (It will be set
                     by YoutubeDL if it's missing)
     categories:     A list of categories that the video falls in, for example
                     ["Sports", "Berlin"]
