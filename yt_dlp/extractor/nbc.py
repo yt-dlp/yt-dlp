@@ -305,7 +305,7 @@ class NBCSportsStreamIE(AdobePassIE):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': live_source.get('description'),
             'formats': formats,
             'is_live': is_live,
@@ -545,8 +545,6 @@ class NBCOlympicsStreamIE(AdobePassIE):
 
         title = event_config['eventTitle']
         is_live = {'live': True, 'replay': False}.get(event_config.get('eventStatus'))
-        if is_live:
-            title = self._live_title(title)
 
         source_url = self._download_json(
             f'https://api-leap.nbcsports.com/feeds/assets/{pid}?application=NBCOlympics&platform=desktop&format=nbc-player&env=staging',

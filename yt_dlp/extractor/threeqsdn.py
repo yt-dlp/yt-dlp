@@ -148,7 +148,7 @@ class ThreeQSDNIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if live else title,
+            'title': title,
             'thumbnail': config.get('poster') or None,
             'description': config.get('description') or None,
             'timestamp': parse_iso8601(config.get('upload_date')),

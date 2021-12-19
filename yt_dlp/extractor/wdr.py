@@ -117,7 +117,7 @@ class WDRIE(InfoExtractor):
 
         return {
             'id': tracker_data.get('trackerClipId', video_id),
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'alt_title': tracker_data.get('trackerClipSubcategory'),
             'formats': formats,
             'subtitles': subtitles,

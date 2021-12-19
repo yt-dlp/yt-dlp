@@ -62,7 +62,7 @@ class TrovoIE(TrovoBaseIE):
             raise ExtractorError('%s is offline' % username, expected=True)
         program_info = live_info['programInfo']
         program_id = program_info['id']
-        title = self._live_title(program_info['title'])
+        title = program_info['title']
 
         formats = []
         for stream_info in (program_info.get('streamInfo') or []):

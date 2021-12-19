@@ -434,8 +434,6 @@ class VKIE(VKBaseIE):
         # 2 = live
         # 3 = post live (finished live)
         is_live = data.get('live') == 2
-        if is_live:
-            title = self._live_title(title)
 
         timestamp = unified_timestamp(self._html_search_regex(
             r'class=["\']mv_info_date[^>]+>([^<]+)(?:<|from)', info_page,

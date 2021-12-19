@@ -224,7 +224,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
         return {
             'id': str_or_none(video_data.get('id')) or video_id,
-            'title': self._live_title(video_title) if is_live else video_title,
+            'title': video_title,
             'uploader': owner.get('name'),
             'uploader_id': video_uploader_url.split('/')[-1] if video_uploader_url else None,
             'uploader_url': video_uploader_url,
