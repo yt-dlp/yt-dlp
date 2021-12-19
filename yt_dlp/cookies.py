@@ -689,11 +689,12 @@ def _get_kwallet_password(browser_keyring_name, logger):
         return b''
 
     logger.debug('using kwallet-query to obtain password from kwallet')
-    proc = Popen(['kwallet-query',
-                  '--read-password', '{} Safe Storage'.format(browser_keyring_name),
-                  '--folder', '{} Keys'.format(browser_keyring_name),
-                  'kdewallet'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     try:
+        proc = Popen(['kwallet-query',
+                      '--read-password', '{} Safe Storage'.format(browser_keyring_name),
+                      '--folder', '{} Keys'.format(browser_keyring_name),
+                      'kdewallet'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
         stdout, stderr = proc.communicate_or_kill()
         if proc.returncode != 0:
             logger.error('kwallet-query failed with return code {}. Please consult '
@@ -765,13 +766,14 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
 
 def _get_mac_keyring_password(browser_keyring_name, logger):
     logger.debug('using find-generic-password to obtain password from OSX keychain')
-    proc = Popen(
-        ['security', 'find-generic-password',
-         '-w',  # write password to stdout
-         '-a', browser_keyring_name,  # match 'account'
-         '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
-        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     try:
+        proc = Popen(
+            ['security', 'find-generic-password',
+             '-w',  # write password to stdout
+             '-a', browser_keyring_name,  # match 'account'
+             '-s', '{} Safe Storage'.format(browser_keyring_name)],  # match 'service'
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
         stdout, stderr = proc.communicate_or_kill()
         if stdout[-1:] == b'\n':
             stdout = stdout[:-1]
