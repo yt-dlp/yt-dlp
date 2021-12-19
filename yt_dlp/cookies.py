@@ -753,7 +753,12 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     if keyring is None:
         chosen_keyring = _choose_linux_keyring(logger)
     else:
-        chosen_keyring = _LinuxKeyring[keyring]
+        try:
+            chosen_keyring = _LinuxKeyring[keyring]
+        except KeyError:
+            logger.error('unknown keyring "{}". Options are {}. Choosing automatically'.format(
+                keyring, [k.name for k in _LinuxKeyring]))
+            chosen_keyring = _choose_linux_keyring(logger)
 
     logger.debug('chosen keyring: {}'.format(chosen_keyring.name))
 

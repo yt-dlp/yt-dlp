@@ -89,7 +89,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
     * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
 
-* **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[:PROFILE]`
+* **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE]`
 
 * **Split video by chapters**: Videos can be split into multiple files based on chapters using `--split-chapters`
 
@@ -600,22 +600,20 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      from and dump cookie jar in
     --no-cookies                     Do not read/dump cookies from/to file
                                      (default)
-    --cookies-from-browser BROWSER[:PARAMETERS]
+    --cookies-from-browser BROWSER[+PROFILE][:PROFILE]
                                      Load cookies from a user profile of the
                                      given web browser. Currently supported
                                      browsers are: brave, chrome, chromium,
                                      edge, firefox, opera, safari, vivaldi.
-                                     additional parameters can be specified
-                                     such as the profile name/path and the
-                                     keyring to use. For example:
-                                     'chrome:profile=~/.config/chrome/Default'
-                                     'brave:keyring=KWallet,profile=Default'.
-                                     Possible keyring values are:
-                                     'KWallet', 'GnomeKeyring', 'BasicText'.
+                                     By default, the most recently accessed
+                                     profile is used but alternatives can be
+                                     specified by name or by path.
+                                     For decrypting some cookies a password
+                                     is required from the system keyring.
                                      The keyring is automatically detected
-                                     in most cases. If no browser profile is
-                                     specified the most recently accessed one
-                                     is chosen.
+                                     in most cases. Valid PROFILE values are:
+                                     'KWallet', 'GnomeKeyring', 'BasicText'
+                                     and only apply on Linux.
     --no-cookies-from-browser        Do not load cookies from browser (default)
     --cache-dir DIR                  Location in the filesystem where youtube-dl
                                      can store some downloaded information (such

@@ -257,21 +257,22 @@ def _real_main(argv=None):
         if opts.convertthumbnails not in FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS:
             parser.error('invalid thumbnail format specified')
     if opts.cookiesfrombrowser is not None:
-        parts = opts.cookiesfrombrowser.split(':', 1)
-        browser_name = parts[0].strip().lower()
-        parameters = '' if len(parts) < 2 else parts[1].strip()
-        if browser_name not in SUPPORTED_BROWSERS:
-            parser.error('unsupported browser specified for cookies: {}'.format(browser_name))
-        if parameters:
-            parameters = [opt.split('=') for opt in parameters.split(',')]
-            if not all(len(p) == 2 for p in parameters):
-                parser.error('invalid browser parameters')
-            parameters = {k.strip().lower(): v for k, v in parameters}
-            if 'profile' in parameters:
-                parameters['profile'] = os.path.expanduser(parameters['profile'])
+        match = re.match(r'([^+:]+)([+][^:]*)?(:.*)?', str(opts.cookiesfrombrowser))
+        if match is None:
+            parser.error('invalid cookies from browser arguments: {}'.format(opts.cookiesfrombrowser))
         else:
-            parameters = {}
-        opts.cookiesfrombrowser = (browser_name, parameters)
+            browser_name = match.group(1)
+            if browser_name is None:
+                parser.error('invalid browser name')
+            browser_name = browser_name.lower()
+            keyring = match.group(2)
+            if keyring is not None:
+                keyring = keyring[1:]
+            profile = match.group(3)
+            if profile is not None:
+                profile = os.path.expanduser(profile[1:])
+            parameters = {'keyring': keyring, 'profile': profile}
+            opts.cookiesfrombrowser = (browser_name, parameters)
     geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
     if geo_bypass_code is not None:
         try:
