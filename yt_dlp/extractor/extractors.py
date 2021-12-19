@@ -509,7 +509,9 @@ from .gamejolt import (
     GameJoltIE,
     GameJoltUserIE,
     GameJoltGameIE,
+    GameJoltGameSoundtrackIE,
     GameJoltCommunityIE,
+    GameJoltSearchIE,
 )
 from .gamespot import GameSpotIE
 from .gamestar import GameStarIE

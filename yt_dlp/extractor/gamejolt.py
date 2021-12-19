@@ -1,8 +1,10 @@
 # coding: utf-8
 import itertools
 import json
+import math
 
 from .common import InfoExtractor
+from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
     int_or_none,
@@ -224,8 +226,8 @@ class GameJoltIE(GameJoltBaseIE):
 
 
 class GameJoltPostListBaseIE(GameJoltBaseIE):
-    def _entries(self, endpoint, list_id, note='Downloading post list', errnote='Unable to download post list'):
-        page_num, items, scroll_id = 1, self._call_api(endpoint, list_id, note=note, errnote=errnote)['items'], None
+    def _entries(self, endpoint, list_id, note='Downloading post list', errnote='Unable to download post list', initial_items=[]):
+        page_num, items, scroll_id = 1, initial_items or self._call_api(endpoint, list_id, note=note, errnote=errnote)['items'], None
         while items:
             for item in items:
                 yield self._parse_post(item['action_resource_model'])
@@ -292,6 +294,62 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
             game_id, game_data.get('title'), description)
 
 
+class GameJoltGameSoundtrackIE(GameJoltBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/get/soundtrack(?:\?|\#!?)(?:.*?[&;])??game=(?P<id>(?:\d+)+)'
+    _TESTS = [{
+        'url': 'https://gamejolt.com/get/soundtrack?foo=bar&game=657899',
+        'info_dict': {
+            'id': '657899',
+            'title': 'Friday Night Funkin\': Vs Oswald',
+            'n_entries': None,
+        },
+
+        'playlist': [{
+            'info_dict': {
+                'id': '184434',
+                'ext': 'mp3',
+                'title': 'Gettin\' Lucky (Menu Music)',
+                'url': r're:^https://.+vs-oswald-menu-music\.mp3$',
+                'release_timestamp': 1635190816,
+                'release_date': '20211025',
+                'n_entries': 3,
+            }
+        }, {
+            'info_dict': {
+                'id': '184435',
+                'ext': 'mp3',
+                'title': 'Rabbit\'s Luck (Extended Version)',
+                'url': r're:^https://.+rabbit-s-luck--full-version-\.mp3$',
+                'release_timestamp': 1635190841,
+                'release_date': '20211025',
+                'n_entries': 3,
+            }
+        }, {
+            'info_dict': {
+                'id': '185228',
+                'ext': 'mp3',
+                'title': 'Last Straw',
+                'url': r're:^https://.+last-straw\.mp3$',
+                'release_timestamp': 1635881104,
+                'release_date': '20211102',
+                'n_entries': 3,
+            }
+        }]
+    }]
+
+    def _real_extract(self, url):
+        game_id = self._match_id(url)
+        game_overview = self._call_api(
+            'web/discover/games/overview/%s' % game_id, game_id, note='Downloading soundtrack info', errnote='Unable to download soundtrack info')
+        return self.playlist_result(itertools.chain({
+            'id': str_or_none(song.get('id')),
+            'title': str_or_none(song.get('title')),
+            'url': str_or_none(song.get('url')),
+            'release_timestamp': int_or_none(song.get('posted_on'), scale=1000),
+        } for song in game_overview.get('songs') or []), game_id, traverse_obj(
+            game_overview, ('microdata', 'name'), (('twitter', 'fb'), 'title'), expected_type=str_or_none, get_all=False))
+
+
 class GameJoltCommunityIE(GameJoltPostListBaseIE):
     _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/c/(?P<id>(?P<community>[\w-]+)(?:/(?P<channel>[\w-]+))?)(?:(?:\?|\#!?)(?:.*?[&;])??sort=(?P<sort>\w+))?'
     _TESTS = [{
@@ -340,3 +398,68 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         return self.playlist_result(
             self._entries('web/posts/fetch/community/%s?channels[]=%s&channels[]=%s' % (community_id, sort_by, channel_id), display_id, 'Downloading community posts', 'Unable to download community posts'),
             '%s/%s' % (community_id, channel_id), title, description)
+
+
+class GameJoltSearchIE(GameJoltPostListBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/search(?:/(?P<filter>communities|users|games))?(?:\?|\#!?)(?:.*?[&;])??q=(?P<id>(?:[^&#]+)+)'
+    _URL_FORMATS = {
+        'users': 'https://gamejolt.com/@{username}',
+        'communities': 'https://gamejolt.com/c/{path}',
+        'games': 'https://gamejolt.com/games/{slug}/{id}',
+    }
+    _TESTS = [{
+        'url': 'https://gamejolt.com/search?foo=bar&q=%23fnf',
+        'playlist_mincount': 50,
+        'info_dict': {
+            'id': '#fnf',
+            'title': '#fnf',
+        },
+        'params': {
+            'playlistend': 50,
+            'ignore_no_formats_error': True,
+        },
+        'expected_warnings': ['skipping format', 'No video formats found', 'Requested format is not available'],
+    }, {
+        'url': 'https://gamejolt.com/search/communities?q=cookie%20run',
+        'playlist_mincount': 10,
+        'info_dict': {
+            'id': 'cookie run',
+            'title': 'cookie run',
+        },
+    }, {
+        'url': 'https://gamejolt.com/search/users?q=mlp',
+        'playlist_mincount': 278,
+        'info_dict': {
+            'id': 'mlp',
+            'title': 'mlp',
+        },
+    }, {
+        'url': 'https://gamejolt.com/search/games?q=roblox',
+        'playlist_mincount': 688,
+        'info_dict': {
+            'id': 'roblox',
+            'title': 'roblox',
+        },
+    }]
+
+    def _search_entries(self, query, filter_mode, display_query):
+        initial_search_data = self._call_api('web/search/%s?q=%s' % (filter_mode, query), display_query,
+                                             note='Downloading %s list' % filter_mode, errnote='Unable to download %s list' % filter_mode)
+        entries_num = initial_search_data.get('count', initial_search_data[filter_mode + 'Count'])
+        if not entries_num:
+            return
+        for page in range(1, math.ceil(entries_num / initial_search_data['perPage']) + 1):
+            search_results = self._call_api('web/search/%s?q=%s&page=%d' % (filter_mode, query, page), display_query,
+                                            note='Downloading %s list page %d' % (filter_mode, page), errnote='Unable to download %s list' % filter_mode)
+            for result in search_results[filter_mode]:
+                yield self.url_result(self._URL_FORMATS[filter_mode].format(**result))
+
+    def _real_extract(self, url):
+        filter_mode, query = self._match_valid_url(url).group('filter', 'id')
+        display_query = compat_urllib_parse_unquote(query)
+        return self.playlist_result(
+            self._search_entries(query, filter_mode, display_query) if filter_mode else self._entries(
+                'web/posts/fetch/search/%s' % query, display_query, initial_items=self._call_api(
+                    'web/search?q=%s' % query, display_query,
+                    note='Downloading initial post list', errnote='Unable to download initial post list')['posts']),
+            display_query, display_query)
