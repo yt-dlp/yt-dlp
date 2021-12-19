@@ -29,74 +29,69 @@ class DropoutIE(InfoExtractor):
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
     }]
 
-    def _get_authenticity_token(self):
-        signin_page = self._download_webpage(self._LOGIN_URL, video_id=self.display_id,
+    def _get_authenticity_token(self, id: str):
+        signin_page = self._download_webpage(self._LOGIN_URL, video_id=id,
                                              note='Getting authenticity token')
         authenticity_token = self._html_search_regex(
             r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']',
             signin_page, 'authenticity_token')
         return authenticity_token
 
-    def _login(self):
-        # Get & check username and password
+    def _login(self, id: str):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
 
-        # Make POST login request
         payload = {
             'email': username,
             'password': password,
-            'authenticity_token': self._get_authenticity_token(),
+            'authenticity_token': self._get_authenticity_token(id),
             'utf8': True
         }
-        response = self._download_webpage(self._LOGIN_URL, video_id=self.display_id,
+        response = self._download_webpage(self._LOGIN_URL, video_id=id,
                                           note='Logging in', data=urlencode_postdata(payload))
 
-        # Make sure login was successful
-        user_has_subscription = self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']',
-                                                        response, 'success')
-        if str(user_has_subscription).lower() == 'true':
+        user_has_subscription = self._search_regex(r'user_has_subscription: ["\'](.+?)["\']',
+                                                   response, 'success', default='none')
+        if user_has_subscription.lower() == 'true':
             return response
+        self._logout(id)
+        if user_has_subscription.lower() == 'false':
+            self.raise_login_required('Account is not subscribed')
         else:
-            self._logout()
-            self.raise_login_required('Incorrect username/password, or account is not subscribed')
+            self.raise_login_required('Incorrect username/password')
 
-    def _logout(self):
-        self._download_webpage(self._LOGOUT_URL, self.display_id, note='Logging out')
+    def _logout(self, id):
+        self._download_webpage(self._LOGOUT_URL, id, note='Logging out')
 
     def _real_extract(self, url):
-        self.display_id = self._match_id(url)
+        display_id = self._match_id(url)
+        self._login(display_id)
 
-        self._login()
+        webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
+        self._logout(display_id)
+        embed_url = self._search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
 
-        # Get webpage and embed_url, and log out
-        webpage = self._download_webpage(url, self.display_id, note='Downloading video webpage')
-        self._logout()
-        embed_url = self._html_search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
-
-        # More metadata
-        id = self._html_search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
+        id = self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
         title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-        if title:
-            title = title.split(' - ')[0]
-        description = self._html_search_regex(
-            r'<meta name=["\']description["\'] content=["\'](.+?)["\']',
-            webpage, 'description')
-        thumbnail = self._html_search_regex(r'<meta property="og:image" content="(.+?)\?',
-                                            webpage, 'thumbnail')
-        release_date = self._html_search_regex(
+        title = ' - '.join(title.split(' - ')[0:-2]) # Allows for " - " in title
+        description = self._html_search_meta('description', webpage, display_name='description', fatal=False)
+        thumbnail = self._og_search_thumbnail(webpage)
+        thumbnail = thumbnail.split('?')[0] if thumbnail else None # Ignore crop/downscale
+        release_date = self._search_regex(
             r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
-            webpage, 'release_date')
-        if release_date:
-            release_date = release_date.replace('-', '')
+            webpage, 'release_date', fatal=False)
+        release_date = release_date.replace('-', '') if release_date else None
+         # utils.get_element_by_attribute is not used because we want data-meta-field-value,
+         # not what's actually in the element (inside is something like "15Dec2021", which
+         # is much harder to parse than "2021-12-15")
 
         return {
             '_type': 'url_transparent',
             'ie_key': VHXEmbedIE.ie_key(),
             'url': embed_url,
             'id': id,
-            'display_id': self.display_id,
+            'display_id': display_id,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
