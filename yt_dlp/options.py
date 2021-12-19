@@ -1434,7 +1434,7 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
             'Force keyframes around the chapters before removing/splitting them. '
-            'Requires a reencode and thus is very slow, but the resulting video '
+            'Requires a re-encode and thus is very slow, but the resulting video '
             'may have fewer artifacts around the cuts'))
     postproc.add_option(
         '--no-force-keyframes-at-cuts',
@@ -1452,7 +1452,7 @@ def parseOpts(overrideArguments=None):
             'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1)))
         }, help=(
             'The (case sensitive) name of plugin postprocessors to be enabled, '
-            'and (optionally) arguments to be passed to it, seperated by a colon ":". '
+            'and (optionally) arguments to be passed to it, separated by a colon ":". '
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
             'It can be one of "pre_process" (after extraction), '

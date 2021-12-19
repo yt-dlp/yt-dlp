@@ -2730,7 +2730,7 @@ class YoutubeDL(object):
         _infojson_written = self._write_info_json('video', info_dict, infofn)
         if _infojson_written:
             info_dict['infojson_filename'] = infofn
-            # For backward compatability, even though it was a private field
+            # For backward compatibility, even though it was a private field
             info_dict['__infojson_filename'] = infofn
         elif _infojson_written is None:
             return
