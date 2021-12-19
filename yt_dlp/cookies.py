@@ -687,6 +687,37 @@ def _choose_linux_keyring(logger):
     return linux_keyring
 
 
+def _get_network_wallet_kwallet(logger) -> str:
+    """ The name of the wallet used to store network passwords.
+
+    https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/kwallet_dbus.cc
+    KWalletDBus::NetworkWallet
+    which corresponds to
+    https://api.kde.org/frameworks/kwallet/html/classKWallet_1_1Wallet.html
+    Wallet::NetworkWallet
+    """
+    default_wallet = 'kdewallet'
+    try:
+        proc = Popen([
+            'dbus-send', '--session', '--print-reply=literal',
+            '--dest=org.kde.kwalletd5',
+            '/modules/kwalletd5',
+            'org.kde.KWallet.networkWallet'
+        ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+        stdout, stderr = proc.communicate_or_kill()
+        if proc.returncode != 0:
+            logger.warning('failed to read NetworkWallet')
+            return default_wallet
+        else:
+            network_wallet = stdout.decode('utf-8').strip()
+            logger.debug('NetworkWallet = "{}"'.format(network_wallet))
+            return network_wallet
+    except BaseException as e:
+        logger.warning('exception while obtaining NetworkWallet: {}'.format(e))
+        return default_wallet
+
+
 def _get_kwallet_password(browser_keyring_name, logger):
     logger.debug('using kwallet-query to obtain password from kwallet')
 
@@ -696,11 +727,15 @@ def _get_kwallet_password(browser_keyring_name, logger):
                      'included in the kwallet package for your distribution')
         return b''
 
+    network_wallet = _get_network_wallet_kwallet(logger)
+
     try:
-        proc = Popen(['kwallet-query',
-                      '--read-password', '{} Safe Storage'.format(browser_keyring_name),
-                      '--folder', '{} Keys'.format(browser_keyring_name),
-                      'kdewallet'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        proc = Popen([
+            'kwallet-query',
+            '--read-password', '{} Safe Storage'.format(browser_keyring_name),
+            '--folder', '{} Keys'.format(browser_keyring_name),
+            network_wallet
+        ], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
         stdout, stderr = proc.communicate_or_kill()
         if proc.returncode != 0:
