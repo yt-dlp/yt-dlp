@@ -1722,7 +1722,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def refetch_manifest(format_id):
             nonlocal formats, expiration_time, is_live
             if time.time() <= expiration_time:
-                # check expiration again inside lock
                 return
 
             _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
@@ -1738,9 +1737,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
-            if time.time() > expiration_time:
-                with lock:
-                    refetch_manifest(format_id)
+            with lock:
+                refetch_manifest(format_id)
 
             f = next((f for f in formats if f['format_id'] == format_id), None)
             if not f:

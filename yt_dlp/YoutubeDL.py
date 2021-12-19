@@ -2940,6 +2940,7 @@ class YoutubeDL(object):
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             success = success and partial_success
+
                     if downloaded and merger.available and not self.params.get('allow_unplayable_formats'):
                         info_dict['__postprocessors'].append(merger)
                         info_dict['__files_to_merge'] = downloaded
