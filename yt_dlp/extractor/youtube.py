@@ -361,7 +361,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             consent_id = random.randint(100, 999)
         self._set_cookie('.youtube.com', 'CONSENT', 'YES+cb.20210328-17-p0.en+FX+%s' % consent_id)
 
+    def _initialize_pref(self):
+        cookies = self._get_cookies('https://www.youtube.com/')
+        pref_cookie = cookies.get('PREF')
+        pref = {}
+        if pref_cookie:
+            try:
+                pref = dict(compat_urlparse.parse_qsl(pref_cookie.value))
+            except ValueError:
+                self.report_warning('Failed to parse user PREF cookie' + bug_reports_message())
+        pref.update({'hl': 'en'})
+        self._set_cookie('.youtube.com', name='PREF', value=compat_urllib_parse_urlencode(pref))
+
     def _real_initialize(self):
+        self._initialize_pref()
         self._initialize_consent()
         self._login()
 
@@ -394,23 +407,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str, default_client)
 
     def _extract_context(self, ytcfg=None, default_client='web'):
-        _get_context = lambda y: try_get(y, lambda x: x['INNERTUBE_CONTEXT'], dict)
-        context = _get_context(ytcfg)
-        if context:
-            return context
-
-        context = _get_context(self._get_default_ytcfg(default_client))
-        if not ytcfg:
-            return context
-
-        # Recreate the client context (required)
-        context['client'].update({
-            'clientVersion': self._extract_client_version(ytcfg, default_client),
-            'clientName': self._extract_client_name(ytcfg, default_client),
-        })
-        visitor_data = try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str)
-        if visitor_data:
-            context['client']['visitorData'] = visitor_data
+        context = get_first(
+            (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
+        # Enforce language for extraction
+        traverse_obj(context, ('INNERTUBE_CONTEXT', 'client'), expected_type=dict, default={})['hl'] = 'en'
         return context
 
     _SAPISID = None
