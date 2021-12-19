@@ -39,6 +39,10 @@ except ImportError:
     SECRETSTORAGE_UNAVAILABLE_REASON = (
         'as the `secretstorage` module is not installed. '
         'Please install by running `python3 -m pip install secretstorage`.')
+except Exception as _err:
+    SECRETSTORAGE_AVAILABLE = False
+    SECRETSTORAGE_UNAVAILABLE_REASON = \
+        'as the `secretstorage` module could not be initialized. {}'.format(_err)
 
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
