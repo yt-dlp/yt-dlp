@@ -210,7 +210,7 @@ class VLiveIE(VLiveBaseIE):
                 self._sort_formats(formats)
                 info = get_common_fields()
                 info.update({
-                    'title': self._live_title(video['title']),
+                    'title': video['title'],
                     'id': video_id,
                     'formats': formats,
                     'is_live': True,

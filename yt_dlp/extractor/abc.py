@@ -233,8 +233,6 @@ class ABCIViewIE(InfoExtractor):
             }]
 
         is_live = video_params.get('livestream') == '1'
-        if is_live:
-            title = self._live_title(title)
 
         return {
             'id': video_id,

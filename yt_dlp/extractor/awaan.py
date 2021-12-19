@@ -41,7 +41,7 @@ class AWAANBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': video_data.get('description_en') or video_data.get('description_ar'),
             'thumbnail': 'http://admin.mangomolo.com/analytics/%s' % img if img else None,
             'duration': int_or_none(video_data.get('duration')),

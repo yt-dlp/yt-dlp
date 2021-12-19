@@ -836,6 +836,11 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title3)s', ('foo/bar\\test', 'foo_bar_test'))
         test('folder/%(title3)s', ('folder/foo/bar\\test', 'folder%sfoo_bar_test' % os.path.sep))
 
+        # Replacement
+        test('%(id&foo)s.bar', 'foo.bar')
+        test('%(title&foo)s.bar', 'NA.bar')
+        test('%(title&foo|baz)s.bar', 'baz.bar')
+
     def test_format_note(self):
         ydl = YoutubeDL()
         self.assertEqual(ydl._format_note({}), '')

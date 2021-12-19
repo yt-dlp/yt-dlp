@@ -212,8 +212,6 @@ class CeskaTelevizeIE(InfoExtractor):
 
                 if playlist_len == 1:
                     final_title = playlist_title or title
-                    if is_live:
-                        final_title = self._live_title(final_title)
                 else:
                     final_title = '%s (%s)' % (playlist_title, title)
 
