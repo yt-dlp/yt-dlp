@@ -232,7 +232,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'title': 'Putri Untuk Pangeran',
             'description': 'md5:aca7b54d05bd95a67d4f4613cc1d622d',
             'age_limit': 2,
-            'cast': ['a', 'b', 'c']
+            'cast': ['Verrel Bramasta', 'Ranty Maria', 'Riza Syah', 'Ivan Fadilla', 'Nicole Parham', 'Dll', 'Aviv Elham']
         },
     }, {  # No episodes
         'url': 'https://www.rctiplus.com/programs/615/inews-pagi',
