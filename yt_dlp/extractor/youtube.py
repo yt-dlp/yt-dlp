@@ -680,15 +680,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             except ValueError:
                 return None
 
-    @classmethod
-    def _extract_time_text(cls, renderer, *path_list):
-        text = cls._get_text(renderer, *path_list) or ''
-        dt = cls.extract_relative_time(text)
+    def _extract_time_text(self, renderer, *path_list):
+        text = self._get_text(renderer, *path_list) or ''
+        dt = self.extract_relative_time(text)
         timestamp = None
         if isinstance(dt, datetime.datetime):
             timestamp = calendar.timegm(dt.timetuple())
         if timestamp is None:
-            self.report_warning( f'Cannot parse localised time text' + bug_reports_message(), only_once=True)
+            self.report_warning(f'Cannot parse localized time text' + bug_reports_message(), only_once=True)
         return timestamp, text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
