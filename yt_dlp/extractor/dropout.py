@@ -38,18 +38,29 @@ class DropoutIE(InfoExtractor):
         return authenticity_token
 
     def _login(self):
+        # Get & check username and password
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
 
+        # Make POST login request
         payload = {
             'email': username,
             'password': password,
             'authenticity_token': self._get_authenticity_token(),
             'utf8': True
         }
-        return self._download_webpage(self._LOGIN_URL, video_id=self.display_id,
-                                      note='Logging in', data=urlencode_postdata(payload))
+        response = self._download_webpage(self._LOGIN_URL, video_id=self.display_id,
+                                          note='Logging in', data=urlencode_postdata(payload))
+
+        # Make sure login was successful
+        user_has_subscription = self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']',
+                                                        response, 'success')
+        if str(user_has_subscription).lower() == 'true':
+            return response
+        else:
+            self._logout()
+            self.raise_login_required('Incorrect username/password, or account is not subscribed')
 
     def _logout(self):
         self._download_webpage(self._LOGOUT_URL, self.display_id, note='Logging out')
@@ -57,17 +68,11 @@ class DropoutIE(InfoExtractor):
     def _real_extract(self, url):
         self.display_id = self._match_id(url)
 
-        # Log in and make sure login was successful
-        response = self._login()
-        if not self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']',
-                                       response, 'success').lower() == 'true':
-            self._logout()
-            self.raise_login_required('Incorrect username/password, or account is not subscribed')
+        self._login()
 
-        # Get webpage and embed_url
+        # Get webpage and embed_url, and log out
         webpage = self._download_webpage(url, self.display_id, note='Downloading video webpage')
         self._logout()
-
         embed_url = self._html_search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
 
         # More metadata
