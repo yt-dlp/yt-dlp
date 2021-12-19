@@ -87,14 +87,14 @@ class TestCookies(unittest.TestCase):
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v10\xccW%\xcd\xe6\xe6\x9fM" \xa7\xb0\xca\xe4\x07\xd6'
             value = 'USD'
-            decryptor = LinuxChromeCookieDecryptor('Chrome', None, Logger())
+            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_linux_v11(self):
         with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v11#\x81\x10>`w\x8f)\xc0\xb2\xc1\r\xf4\x1al\xdd\x93\xfd\xf8\xf8N\xf2\xa9\x83\xf1\xe9o\x0elVQd'
             value = 'tz=Europe.London'
-            decryptor = LinuxChromeCookieDecryptor('Chrome', None, Logger())
+            decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_windows_v10(self):
