@@ -1,11 +1,12 @@
 # coding: utf-8
-import requests
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
+from ..utils import urlencode_postdata
 
 
 class DropoutIE(InfoExtractor):
     _LOGIN_URL = 'https://www.dropout.tv/login'
+    _LOGOUT_URL = 'https://www.dropout.tv/logout'
     _NETRC_MACHINE = 'dropout'
 
     _VALID_URL = r'https?://(?:www\.)?dropout\.tv/videos/(?P<id>.+)'
@@ -28,17 +29,15 @@ class DropoutIE(InfoExtractor):
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
     }]
 
-    def _get_authenticity_token(self, session: requests.Session):
-        signin_page = session.get(self._LOGIN_URL).text
-        authenticity_token = self._html_search_regex(r'name="authenticity_token" value="(.+?)"',
-                                                     signin_page, 'authenticity_token')
+    def _get_authenticity_token(self):
+        signin_page = self._download_webpage(self._LOGIN_URL, video_id=self.display_id,
+                                             note='Getting authenticity token')
+        authenticity_token = self._html_search_regex(
+            r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']',
+            signin_page, 'authenticity_token')
         return authenticity_token
 
-    def _login(self, session: requests.Session):
-        # Using a Session instead of the normal _download_webpage() because we
-        # need to have cookies in order to download videos, and _download_webpage
-        # has no provisions for cookies (as far as I can tell)
-
+    def _login(self):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
@@ -46,22 +45,29 @@ class DropoutIE(InfoExtractor):
         payload = {
             'email': username,
             'password': password,
-            'authenticity_token': self._get_authenticity_token(session),
+            'authenticity_token': self._get_authenticity_token(),
             'utf8': True
         }
-        return session.post(self._LOGIN_URL, data=payload)
+        return self._download_webpage(self._LOGIN_URL, video_id=self.display_id,
+                                      note='Logging in', data=urlencode_postdata(payload))
+
+    def _logout(self):
+        self._download_webpage(self._LOGOUT_URL, self.display_id, note='Logging out')
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
+        self.display_id = self._match_id(url)
 
-        # Log in and get embed_url of video
-        with requests.Session() as session:
-            response = self._login(session)
-            # Make sure login was successful
-            if not self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']',
-                                           response.text, 'success').lower() == 'true':
-                self.raise_login_required('Incorrect username/password, or account is not subscribed')
-            webpage = session.get(url).text
+        # Log in and make sure login was successful
+        response = self._login()
+        if not self._html_search_regex(r'user_has_subscription: ["\'](.+?)["\']',
+                                       response, 'success').lower() == 'true':
+            self._logout()
+            self.raise_login_required('Incorrect username/password, or account is not subscribed')
+
+        # Get webpage and embed_url
+        webpage = self._download_webpage(url, self.display_id, note='Downloading video webpage')
+        self._logout()
+
         embed_url = self._html_search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
 
         # More metadata
@@ -85,7 +91,7 @@ class DropoutIE(InfoExtractor):
             'ie_key': VHXEmbedIE.ie_key(),
             'url': embed_url,
             'id': id,
-            'display_id': display_id,
+            'display_id': self.display_id,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
