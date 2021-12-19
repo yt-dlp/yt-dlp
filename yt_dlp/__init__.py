@@ -263,8 +263,12 @@ def _real_main(argv=None):
         else:
             browser_name = match.group(1)
             if browser_name is None:
-                parser.error('invalid browser name')
-            browser_name = browser_name.lower()
+                parser.error('invalid browser name: "{}"'.format(opts.cookiesfrombrowser))
+            else:
+                browser_name = browser_name.lower()
+                if browser_name not in SUPPORTED_BROWSERS:
+                    parser.error('unsupported browser specified for cookies: "{}". '
+                                 'Supported browsers are: {}'.format(browser_name, sorted(SUPPORTED_BROWSERS)))
             keyring = match.group(2)
             if keyring is not None:
                 keyring = keyring[1:]
