@@ -1,4 +1,5 @@
 # coding: utf-8
+import itertools
 import json
 
 from .common import InfoExtractor
@@ -12,7 +13,7 @@ from ..utils import (
 
 
 class GameJoltBaseIE(InfoExtractor):
-    _API_BASE = 'https://gamejolt.com/site-api/web/'
+    _API_BASE = 'https://gamejolt.com/site-api/'
 
     def _call_api(self, endpoint, *args, **kwargs):
         return self._download_json(self._API_BASE + endpoint, *args, **kwargs)['payload']
@@ -33,6 +34,27 @@ class GameJoltBaseIE(InfoExtractor):
 
         return '\n'.join(joined_contents)
 
+    def _get_comments(self, post_num_id, post_hash_id):
+        sort_by = self._configuration_arg('comment_sort', ['hot'])[0]
+        for page in itertools.count(1):
+            comments_data = self._call_api(
+                'comments/Fireside_Post/%s/%s?page=%d' % (str(post_num_id), sort_by, page),
+                post_hash_id, note='Downloading comments list page %d' % page)
+            if not comments_data.get('comments'):
+                break
+            for comment in traverse_obj(comments_data, (('comments', 'childComments'), ...), expected_type=dict, default=[]):
+                yield {
+                    'id': comment['id'],
+                    'text': self._parse_content_as_text(
+                        self._parse_json(comment['comment_content'], post_hash_id)),
+                    'timestamp': int_or_none(comment.get('posted_on'), scale=1000),
+                    'like_count': comment.get('votes'),
+                    'author': traverse_obj(comment, ('user', ('display_name', 'name')), expected_type=str_or_none, get_all=False),
+                    'author_id': traverse_obj(comment, ('user', 'username'), expected_type=str_or_none),
+                    'author_thumbnail': traverse_obj(comment, ('user', 'image_avatar'), expected_type=str_or_none),
+                    'parent': comment.get('parent_id') or None,
+                }
+
     def _parse_post(self, post_data):
         post_id = post_data['hash']
         lead_content = self._parse_json(post_data.get('lead_content') or '{}', post_id, fatal=False) or {}
@@ -40,7 +62,7 @@ class GameJoltBaseIE(InfoExtractor):
         if post_data.get('has_article'):
             article_content = self._parse_json(
                 post_data.get('article_content')
-                or self._call_api('posts/article/%s' % str_or_none(post_data.get('id')), post_id,
+                or self._call_api('web/posts/article/%s' % str_or_none(post_data.get('id')), post_id,
                                   note='Downloading article metadata', errnote='Unable to download article metadata', fatal=False).get('article'),
                 post_id, fatal=False)
             full_description = self._parse_content_as_text(article_content)
@@ -100,6 +122,7 @@ class GameJoltBaseIE(InfoExtractor):
             'formats': formats,
             'thumbnails': thumbnails,
             'view_count': int_or_none(video_data.get('view_count')),
+            '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
         }
 
 
@@ -187,7 +210,7 @@ class GameJoltIE(GameJoltBaseIE):
     def _real_extract(self, url):
         post_id = self._match_id(url).split('-')[-1]
         post_data = self._call_api(
-            'posts/view/%s' % post_id, post_id)['post']
+            'web/posts/view/%s' % post_id, post_id)['post']
         return self._parse_post(post_data)
 
 
@@ -225,11 +248,11 @@ class GameJoltUserIE(GameJoltPostListBaseIE):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         user_data = self._call_api(
-            'profile/@%s' % user_id, user_id, note='Downloading user info', errnote='Unable to download user info')['user']
+            'web/profile/@%s' % user_id, user_id, note='Downloading user info', errnote='Unable to download user info')['user']
         bio = self._parse_content_as_text(
             self._parse_json(user_data.get('bio_content', '{}'), user_id, fatal=False) or {})
         return self.playlist_result(
-            self._entries('posts/fetch/user/@%s?tab=active' % user_id, user_id, 'Downloading user posts', 'Unable to download user posts'),
+            self._entries('web/posts/fetch/user/@%s?tab=active' % user_id, user_id, 'Downloading user posts', 'Unable to download user posts'),
             str_or_none(user_data.get('id')), user_data.get('display_name') or user_data.get('name'), bio)
 
 
@@ -252,11 +275,11 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
     def _real_extract(self, url):
         game_id = self._match_id(url)
         game_data = self._call_api(
-            'discover/games/%s' % game_id, game_id, note='Downloading game info', errnote='Unable to download game info')['game']
+            'web/discover/games/%s' % game_id, game_id, note='Downloading game info', errnote='Unable to download game info')['game']
         description = self._parse_content_as_text(
             self._parse_json(game_data.get('description_content', '{}'), game_id, fatal=False) or {})
         return self.playlist_result(
-            self._entries('posts/fetch/game/%s' % game_id, game_id, 'Downloading game posts', 'Unable to download game posts'),
+            self._entries('web/posts/fetch/game/%s' % game_id, game_id, 'Downloading game posts', 'Unable to download game posts'),
             game_id, game_data.get('title'), description)
 
 
@@ -298,13 +321,13 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
             sort_by = 'new'
 
         community_data = self._call_api(
-            'communities/view/%s' % community_id, display_id, note='Downloading community info', errnote='Unable to download community info')['community']
+            'web/communities/view/%s' % community_id, display_id, note='Downloading community info', errnote='Unable to download community info')['community']
         channel_data = traverse_obj(self._call_api(
-            'communities/view-channel/%s/%s' % (community_id, channel_id), display_id, note='Downloading channel info', errnote='Unable to download channel info', fatal=False), 'channel') or {}
+            'web/communities/view-channel/%s/%s' % (community_id, channel_id), display_id, note='Downloading channel info', errnote='Unable to download channel info', fatal=False), 'channel') or {}
 
         title = '%s - %s' % (community_data.get('name'), channel_data['display_title']) if channel_data.get('display_title') else community_data.get('name')
         description = self._parse_content_as_text(
             self._parse_json(community_data.get('description_content', '{}'), display_id, fatal=False) or {})
         return self.playlist_result(
-            self._entries('posts/fetch/community/%s?channels[]=%s&channels[]=%s' % (community_id, sort_by, channel_id), display_id, 'Downloading community posts', 'Unable to download community posts'),
+            self._entries('web/posts/fetch/community/%s?channels[]=%s&channels[]=%s' % (community_id, sort_by, channel_id), display_id, 'Downloading community posts', 'Unable to download community posts'),
             '%s/%s' % (community_id, channel_id), title, description)
