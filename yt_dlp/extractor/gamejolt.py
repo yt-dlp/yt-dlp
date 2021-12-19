@@ -35,10 +35,12 @@ class GameJoltBaseIE(InfoExtractor):
         return '\n'.join(joined_contents)
 
     def _get_comments(self, post_num_id, post_hash_id):
-        sort_by = self._configuration_arg('comment_sort', ['hot'])[0]
+        sort_by, scroll_id = self._configuration_arg('comment_sort', ['hot'])[0], -1
+        is_scrolled = sort_by in ('new', 'you')
         for page in itertools.count(1):
             comments_data = self._call_api(
-                'comments/Fireside_Post/%s/%s?page=%d' % (str(post_num_id), sort_by, page),
+                'comments/Fireside_Post/%s/%s?%s=%d' % (str(post_num_id), sort_by,
+                                                        'scroll_id' if is_scrolled else 'page', scroll_id if is_scrolled else page),
                 post_hash_id, note='Downloading comments list page %d' % page)
             if not comments_data.get('comments'):
                 break
@@ -54,11 +56,13 @@ class GameJoltBaseIE(InfoExtractor):
                     'author_thumbnail': traverse_obj(comment, ('user', 'image_avatar'), expected_type=str_or_none),
                     'parent': comment.get('parent_id') or None,
                 }
+            scroll_id = int_or_none(comments_data['comments'][-1].get('posted_on'))
 
     def _parse_post(self, post_data):
         post_id = post_data['hash']
         lead_content = self._parse_json(post_data.get('lead_content') or '{}', post_id, fatal=False) or {}
-        description, full_description = post_data.get('leadStr'), None
+        description, full_description = post_data.get('leadStr') or self._parse_content_as_text(
+            self._parse_json(post_data.get('lead_content'), post_id)), None
         if post_data.get('has_article'):
             article_content = self._parse_json(
                 post_data.get('article_content')
