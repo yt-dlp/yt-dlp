@@ -233,7 +233,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
         raise FileNotFoundError('could not find {} cookies database in "{}"'.format(browser_name, search_root))
     logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
 
-    decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], keyring, logger)
+    decryptor = get_cookie_decryptor(config['browser_dir'], config['keyring_name'], logger, keyring=keyring)
 
     with tempfile.TemporaryDirectory(prefix='yt_dlp') as tmpdir:
         cursor = None
@@ -315,7 +315,7 @@ class ChromeCookieDecryptor:
         raise NotImplementedError
 
 
-def get_cookie_decryptor(browser_root, browser_keyring_name, keyring, logger):
+def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=None):
     if sys.platform in ('linux', 'linux2'):
         return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring)
     elif sys.platform == 'darwin':
