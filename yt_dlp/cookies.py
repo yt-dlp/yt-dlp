@@ -687,12 +687,12 @@ def _choose_linux_keyring(logger):
     return linux_keyring
 
 
-def _get_network_wallet_kwallet(logger) -> str:
+def _get_kwallet_network_wallet(logger) -> str:
     """ The name of the wallet used to store network passwords.
 
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/kwallet_dbus.cc
     KWalletDBus::NetworkWallet
-    which corresponds to
+    which does a dbus call to the following function:
     https://api.kde.org/frameworks/kwallet/html/classKWallet_1_1Wallet.html
     Wallet::NetworkWallet
     """
@@ -727,7 +727,7 @@ def _get_kwallet_password(browser_keyring_name, logger):
                      'included in the kwallet package for your distribution')
         return b''
 
-    network_wallet = _get_network_wallet_kwallet(logger)
+    network_wallet = _get_kwallet_network_wallet(logger)
 
     try:
         proc = Popen([
@@ -747,7 +747,7 @@ def _get_kwallet_password(browser_keyring_name, logger):
                 logger.debug('failed to read password from kwallet. Using empty string instead')
                 # this sometimes occurs in KDE because chrome does not check hasEntry and instead
                 # just tries to read the value (which kwallet returns "") whereas kwallet-query
-                # checks hasEntry to verify this:
+                # checks hasEntry. To verify this:
                 # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
                 # while starting chrome.
                 # this may be a bug as the intended behaviour is to generate a random password and store
