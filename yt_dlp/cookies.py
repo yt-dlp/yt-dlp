@@ -688,11 +688,14 @@ def _choose_linux_keyring(logger):
 
 
 def _get_kwallet_password(browser_keyring_name, logger):
+    logger.debug('using kwallet-query to obtain password from kwallet')
+
     if shutil.which('kwallet-query') is None:
-        logger.error('kwallet-query command not found. Cannot read from kwallet')
+        logger.error('kwallet-query command not found. KWallet and kwallet-query '
+                     'must be installed to read from KWallet. kwallet-query should be'
+                     'included in the kwallet package for your distribution')
         return b''
 
-    logger.debug('using kwallet-query to obtain password from kwallet')
     try:
         proc = Popen(['kwallet-query',
                       '--read-password', '{} Safe Storage'.format(browser_keyring_name),
