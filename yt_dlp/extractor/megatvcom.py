@@ -87,6 +87,8 @@ class MegaTVComIE(MegaTVComBaseIE):
             formats, subs = self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
         else:
             formats, subs = [source], {}
+        if player_attrs.get('subs'):
+            self._merge_subtitles({'und': [{'url': player_attrs['subs']}]}, target=subs)
         self._sort_formats(formats)
         return {
             'id': video_id,
