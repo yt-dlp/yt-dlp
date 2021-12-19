@@ -97,15 +97,16 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
             'id': '_xvg/m_cmbatw=',
             'ext': 'mp4',
             'title': 'md5:a93e8ecf2e4073bfdffcb38f59945411',
+            'timestamp': 1603092840,
+            'upload_date': '20201019',
+            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1920/756206d2-d640-40e2-b201-3555abdfc0db.jpg',
         },
-        'expected_warnings': [r'[Uu]nable to extract JSON-LD'],
     }, {
         'url': 'https://ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn',
         'info_dict': {
             'id': '620286',
             'title': 'md5:91fe569e952e4d146485740ae927662b',
         },
-        'expected_warnings': [r'[Uu]nable to extract JSON-LD'],
         'playlist_mincount': 2,
         'params': {
             'skip_download': True,
@@ -115,12 +116,7 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        info = self._search_json_ld(webpage, video_id,
-                                    expected_type='NewsArticle',
-                                    fatal=False)
-        # workaround as _json_ld does not recognize @graph nesting
-        if not info:
-            info['title'] = self._og_search_title(webpage)
+        info = self._search_json_ld(webpage, video_id, expected_type='NewsArticle')
         embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage, url, **info))
         if not embed_urls:
             raise ExtractorError('no videos found for %s' % video_id)
