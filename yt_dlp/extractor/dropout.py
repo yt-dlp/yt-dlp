@@ -161,11 +161,11 @@ class DropoutIE(InfoExtractor):
             'authenticity_token': self._get_authenticity_token(),
             'utf8': True
         }
-        response = self._download_webpage(self._LOGIN_URL, None,
-                                          note='Logging in', data=urlencode_postdata(payload))
+        response = self._download_webpage(self._LOGIN_URL, None, note='Logging in',
+                                          data=urlencode_postdata(payload))
 
         user_has_subscription = self._search_regex(r'user_has_subscription: ["\'](.+?)["\']',
-                                                   response, 'success', default='none')
+                                                   response, 'subscription_status', default='none')
         if user_has_subscription.lower() == 'true':
             return response
         self._logout()
