@@ -648,11 +648,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
     def _options(target_ext):
         yield from ('-map', '0', '-dn')
         if target_ext == 'm4a':
-            yield from ('-vn', '-acodec', 'copy', '-movflags', '+faststart')
-        elif target_ext in ['mp4', 'mov']:
-            yield from ('-c', 'copy', '-movflags', '+faststart')
+            yield from ('-vn', '-acodec', 'copy')
         else:
             yield from ('-c', 'copy')
+        if target_ext in ('mp4', 'mov', 'm4a'):
+            yield from ('-movflags', '+faststart')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
