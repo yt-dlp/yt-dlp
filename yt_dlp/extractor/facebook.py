@@ -23,9 +23,11 @@ from ..utils import (
     merge_dicts,
     network_exceptions,
     parse_count,
+    parse_qs,
     qualities,
     sanitized_Request,
     try_get,
+    url_or_none,
     urlencode_postdata,
     urljoin,
 )
@@ -746,3 +748,42 @@ class FacebookPluginsVideoIE(InfoExtractor):
         return self.url_result(
             compat_urllib_parse_unquote(self._match_id(url)),
             FacebookIE.ie_key())
+
+
+class FacebookRedirectURLIE(InfoExtractor):
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/flx/warn[/?]'
+    _TESTS = [{
+        'url': 'https://www.facebook.com/flx/warn/?h=TAQHsoToz&u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DpO8h3EaFRdo&s=1',
+        'info_dict': {
+            'id': 'pO8h3EaFRdo',
+            'ext': 'mp4',
+            'title': 'Tripeo Boiler Room x Dekmantel Festival DJ Set',
+            'description': 'md5:2d713ccbb45b686a1888397b2c77ca6b',
+            'channel_id': 'UCGBpxWJr9FNOcFYA5GkKrMg',
+            'playable_in_embed': True,
+            'categories': ['Music'],
+            'channel': 'Boiler Room',
+            'uploader_id': 'brtvofficial',
+            'uploader': 'Boiler Room',
+            'tags': 'count:11',
+            'duration': 3332,
+            'live_status': 'not_live',
+            'thumbnail': 'https://i.ytimg.com/vi/pO8h3EaFRdo/maxresdefault.jpg',
+            'channel_url': 'https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg',
+            'availability': 'public',
+            'uploader_url': 'http://www.youtube.com/user/brtvofficial',
+            'upload_date': '20150917',
+            'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+        },
+        'add_ie': ['Youtube'],
+        'params': {'skip_download': 'Youtube'},
+    }]
+
+    def _real_extract(self, url):
+        redirect_url = url_or_none(parse_qs(url).get('u', [None])[-1])
+        if not redirect_url:
+            raise ExtractorError('Invalid facebook redirect URL', expected=True)
+        return self.url_result(redirect_url)
