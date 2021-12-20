@@ -1,7 +1,13 @@
 # coding: utf-8
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
-from ..utils import urlencode_postdata
+from ..utils import (
+    urlencode_postdata,
+    get_element_by_id,
+    get_element_by_class,
+    clean_html
+)
+
 
 
 class DropoutIE(InfoExtractor):
@@ -9,28 +15,52 @@ class DropoutIE(InfoExtractor):
     _LOGOUT_URL = 'https://www.dropout.tv/logout'
     _NETRC_MACHINE = 'dropout'
 
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/videos/(?P<id>.+)'
-    _TESTS = [{
-        'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
-        'md5': 'c30fa18999c5880d156339f13c953a26',
-        'info_dict': {
-            'id': '1915774',
-            'display_id': 'misfits-magic-holiday-special',
-            'ext': 'mp4',
-            'title': 'Misfits & Magic Holiday Special',
-            'description': 'The magical misfits spend Christmas break at Gowpenny, with an unwelcome visitor.',
-            'release_date': '20211215',
-            'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/d91ea8a6-b250-42ed-907e-b30fb1c65176-8e24b8e5.jpg',
-            'duration': 11698,
-            'uploader_id': 'user80538407',
-            'uploader_url': 'https://vimeo.com/user80538407',
-            'uploader': 'OTT Videos'
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
+    _TESTS = [
+        {
+            'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1/videos/episode-1',
+            'md5': '712caf7c191f1c47c8f1879520c2fa5c',
+            'info_dict': {
+                'id': '320562',
+                'display_id': 'episode-1',
+                'ext': 'mp4',
+                'title': 'The Beginning Begins',
+                'description': 'The cast introduces their PCs, including a neurotic elf, a goblin PI, and a corn-worshipping cleric.',
+                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/4421ed0d-f630-4c88-9004-5251b2b8adfa.jpg',
+                'series': 'Dimension 20: Fantasy High',
+                'season_number': 1,
+                'season': 'Season 1',
+                'episode_number': 1,
+                'episode': 'The Beginning Begins',
+                'duration': 6838,
+                'uploader_id': 'user80538407',
+                'uploader_url': 'https://vimeo.com/user80538407',
+                'uploader': 'OTT Videos'
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
         },
-        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
-    }]
+        {
+            'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
+            'md5': 'c30fa18999c5880d156339f13c953a26',
+            'info_dict': {
+                'id': '1915774',
+                'display_id': 'misfits-magic-holiday-special',
+                'ext': 'mp4',
+                'title': 'Misfits & Magic Holiday Special',
+                'description': 'The magical misfits spend Christmas break at Gowpenny, with an unwelcome visitor.',
+                'release_date': '20211215',
+                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/d91ea8a6-b250-42ed-907e-b30fb1c65176-8e24b8e5.jpg',
+                'duration': 11698,
+                'uploader_id': 'user80538407',
+                'uploader_url': 'https://vimeo.com/user80538407',
+                'uploader': 'OTT Videos'
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
+        }
+    ]
 
     def _get_authenticity_token(self, id: str):
-        signin_page = self._download_webpage(self._LOGIN_URL, video_id=id,
+        signin_page = self._download_webpage(self._LOGIN_URL, None,
                                              note='Getting authenticity token')
         authenticity_token = self._html_search_regex(
             r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']',
@@ -70,23 +100,33 @@ class DropoutIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
-        self._logout(display_id)
-        embed_url = self._search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'url')
+        webpage = self._download_webpage(url, None, note='Downloading video webpage')
+        self._logout()
+        embed_url = self._search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'embed_url')
 
         id = self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
-        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
-        title = ' - '.join(title.split(' - ')[0:-2])  # Allows for " - " in title
         description = self._html_search_meta('description', webpage, display_name='description', fatal=False)
         thumbnail = self._og_search_thumbnail(webpage)
         thumbnail = thumbnail.split('?')[0] if thumbnail else None  # Ignore crop/downscale
+        watch_info = get_element_by_id('watch-info', webpage)
+        watch_info = watch_info if watch_info else ''
         release_date = self._search_regex(
             r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
-            webpage, 'release_date', fatal=False)
+            watch_info, 'release_date', default=None)  # TODO Really, this should be `fatal=False`, but that angers the tester
         release_date = release_date.replace('-', '') if release_date else None
         # utils.get_element_by_attribute is not used because we want data-meta-field-value,
         # not what's actually in the element (inside is something like "15Dec2021", which
         # is much harder to parse than "2021-12-15")
+        title = clean_html(get_element_by_class('video-title', watch_info))
+        series = clean_html(get_element_by_class('series-title', watch_info))
+        first_text = get_element_by_class('text', watch_info)
+        season_episode = get_element_by_class('site-font-secondary-color', first_text)
+        if season_episode:
+            season_episode = season_episode.strip()
+            season = self._search_regex(r'Season (.+?),', season_episode, 'season', default=None)
+            episode = self._search_regex(r'Episode (.+?)', season_episode, 'episode', default=None)
+        else:
+            season, episode = None
 
         return {
             '_type': 'url_transparent',
@@ -98,4 +138,9 @@ class DropoutIE(InfoExtractor):
             'description': description,
             'thumbnail': thumbnail,
             'release_date': release_date,
+            'series': series,
+            'season_number': int(season) if season else None,
+            'season': 'Season '+season if season else None,
+            'episode_number': int(episode) if episode else None,
+            'episode': title if episode else None
         }
