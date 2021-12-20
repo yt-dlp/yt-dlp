@@ -824,7 +824,7 @@ class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
 
 
 class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:(?:www|m)\.)?soundcloud\.com/(?P<uploader>[\w\d-]+)/(?P<title>[:\w\d-]+)/(?P<relation>albums|sets|recommended)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?soundcloud\.com/(?P<slug>[\w\d-]+/[\w\d-]+)/(?P<relation>albums|sets|recommended)'
     IE_NAME = 'soundcloud:related'
     _TESTS = [{
         'url': 'https://soundcloud.com/wajang/sexapil-pingers-5/recommended',
@@ -856,23 +856,19 @@ class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
     }
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        full_title = '%s/%s' % mobj.group('uploader', 'title')
+        slug, relation = self._match_valid_url(url).group('slug', 'relation')
 
         track = self._download_json(
-            self._resolv_url(self._BASE_URL + full_title),
-            full_title, 'Downloading track info', headers=self._HEADERS)
+            self._resolv_url(self._BASE_URL + slug),
+            slug, 'Downloading track info', headers=self._HEADERS)
 
-        if 'errors' in track:
-            msgs = (compat_str(err['error_message']) for err in track['errors'])
-            raise ExtractorError('unable to download video webpage: %s' % ','.join(msgs))
-
-        relation = mobj.group('relation')
+        if track.get('errors'):
+            raise ExtractorError(f'{self.IE_NAME} said: %s' % ','.join(
+                str(err['error_message']) for err in track['errors']), expected=True)
 
         return self._extract_playlist(
-            self._API_V2_BASE + self._BASE_URL_MAP[relation] % track['id'],
-            str_or_none(track.get('id')),
-            '%s (%s)' % (track['title'], relation.capitalize()))
+            self._API_V2_BASE + self._BASE_URL_MAP[relation] % track['id'], str(track['id']),
+            '%s (%s)' % (track.get('title') or slug, relation.capitalize()))
 
 
 class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):
