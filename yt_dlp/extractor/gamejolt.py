@@ -467,7 +467,7 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
             f'web/communities/view-channel/{community_id}/{channel_id}', display_id,
             note='Downloading channel info', errnote='Unable to download channel info', fatal=False), 'channel') or {}
 
-        title = '%s - %s' % (community_data.get('name'), channel_data['display_title']) if channel_data.get('display_title') else community_data.get('name')
+        title = f'{community_data.get("name") or community_id} - {channel_data.get("display_title") or channel_id}'
         description = self._parse_content_as_text(
             self._parse_json(community_data.get('description_content') or '{}', display_id, fatal=False) or {})
         return self.playlist_result(
