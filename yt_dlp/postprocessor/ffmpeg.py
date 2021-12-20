@@ -294,7 +294,9 @@ class FFmpegPostProcessor(PostProcessor):
 
         def make_args(file, args, name, number):
             keys = ['_%s%d' % (name, number), '_%s' % name]
-            if name == 'o' and number == 1:
+            if name == 'o':
+                args += ['-movflags', '+faststart']
+            elif number == 1:
                 keys.append('')
             args += self._configuration_args(self.basename, keys)
             if name == 'i':
@@ -368,7 +370,7 @@ class FFmpegPostProcessor(PostProcessor):
         out_flags = ['-c', 'copy']
         if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
             # For some reason, '-c copy' is not enough to copy subtitles
-            out_flags.extend(['-c:s', 'mov_text', '-movflags', '+faststart'])
+            out_flags.extend(['-c:s', 'mov_text'])
 
         try:
             self.real_run_ffmpeg(
@@ -571,10 +573,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        options = ['-c', 'copy', '-map', '0', '-dn']
-        if target_ext in ['mp4', 'm4a', 'mov']:
-            options.extend(['-movflags', '+faststart'])
-        return options
+        return ['-c', 'copy', '-map', '0', '-dn']
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
