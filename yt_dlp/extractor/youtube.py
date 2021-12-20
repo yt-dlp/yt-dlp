@@ -3634,9 +3634,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         view_count = self._get_count(primary_sidebar_renderer, ['stats', 1], name='playlist_view_count')
         if title is None:
-            title = (
-                try_get(data, lambda x: x['header']['hashtagHeaderRenderer']['hashtag']['simpleText'])
-                or playlist_id)
+            title = self._get_text(['header', 'hashtagHeaderRenderer', 'hashtag']) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
         title += format_field(selected_tab, 'expandedText', ' - %s')
         metadata = {
@@ -3648,11 +3646,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader_url': channel_url,
             'thumbnails': thumbnails,
             'tags': tags,
-            'view_count': view_count
+            'view_count': view_count,
+            'availability': self._extract_availability(data)
         }
-        availability = self._extract_availability(data)
-        if availability:
-            metadata['availability'] = availability
         if not channel_id:
             metadata.update(self._extract_uploader(data))
         metadata.update({
