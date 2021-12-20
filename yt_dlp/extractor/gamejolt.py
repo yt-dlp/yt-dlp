@@ -91,7 +91,7 @@ class GameJoltBaseIE(InfoExtractor):
             'tags': traverse_obj(
                 lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),
             'like_count': post_data.get('like_count'),
-            'comment_count': 0 if try_get(post_data, lambda x: x['comment_count'] == None) else post_data.get('comment_count'),
+            'comment_count': 0 if try_get(post_data, lambda x: x['comment_count'] is None) else post_data.get('comment_count'),
             'timestamp': int_or_none(post_data.get('added_on'), scale=1000),
             'release_timestamp': int_or_none(post_data.get('published_on'), scale=1000),
             '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
@@ -163,8 +163,8 @@ class GameJoltBaseIE(InfoExtractor):
         embed_url = traverse_obj(post_data, ('embeds', ..., 'url'), expected_type=str_or_none, get_all=False)
         if embed_url:
             return self.url_result(embed_url)
-
         return info_dict
+
 
 class GameJoltIE(GameJoltBaseIE):
     _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/p/(?P<id>[\w-]+)'
