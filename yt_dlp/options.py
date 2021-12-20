@@ -259,6 +259,14 @@ def parseOpts(overrideArguments=None):
         action='store_false', dest='extract_flat',
         help='Extract the videos of a playlist')
     general.add_option(
+        '--live-from-start',
+        action='store_true', dest='live_from_start',
+        help='Download livestreams from the start. Currently only supported for YouTube')
+    general.add_option(
+        '--no-live-from-start',
+        action='store_false', dest='live_from_start',
+        help='Download livestreams from the current time (default)')
+    general.add_option(
         '--wait-for-video',
         dest='wait_for_video', metavar='MIN[-MAX]', default=None,
         help=(

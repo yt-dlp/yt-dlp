@@ -908,11 +908,21 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
         return [], info
 
 
-class FFmpegFixupDurationPP(FFmpegFixupPostProcessor):
+class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
+    MESSAGE = 'Copying stream'
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup('Fixing video duration', info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
+        self._fixup(self.MESSAGE, info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
         return [], info
+
+
+class FFmpegFixupDurationPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing video duration'
+
+
+class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing duplicate MOOV atoms'
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):

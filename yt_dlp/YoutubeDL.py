@@ -5,7 +5,6 @@ from __future__ import absolute_import, unicode_literals
 
 import collections
 import contextlib
-import copy
 import datetime
 import errno
 import fileinput
@@ -144,6 +143,7 @@ from .downloader.rtmp import rtmpdump_version
 from .postprocessor import (
     get_postprocessor,
     EmbedThumbnailPP,
+    FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
     FFmpegFixupM3u8PP,
     FFmpegFixupM4aPP,
@@ -1107,7 +1107,7 @@ class YoutubeDL(object):
         def _dumpjson_default(obj):
             if isinstance(obj, (set, LazyList)):
                 return list(obj)
-            raise TypeError(f'Object of type {type(obj).__name__} is not JSON serializable')
+            return repr(obj)
 
         def create_key(outer_mobj):
             if not outer_mobj.group('has_key'):
@@ -2071,8 +2071,7 @@ class YoutubeDL(object):
                 selector_1, selector_2 = map(_build_selector_function, selector.selector)
 
                 def selector_function(ctx):
-                    for pair in itertools.product(
-                            selector_1(copy.deepcopy(ctx)), selector_2(copy.deepcopy(ctx))):
+                    for pair in itertools.product(selector_1(ctx), selector_2(ctx)):
                         yield _merge(pair)
 
             elif selector.type == SINGLE:  # atom
@@ -2142,7 +2141,7 @@ class YoutubeDL(object):
             filters = [self._build_format_filter(f) for f in selector.filters]
 
             def final_selector(ctx):
-                ctx_copy = copy.deepcopy(ctx)
+                ctx_copy = dict(ctx)
                 for _filter in filters:
                     ctx_copy['formats'] = list(filter(_filter, ctx_copy['formats']))
                 return selector_function(ctx_copy)
@@ -2353,6 +2352,10 @@ class YoutubeDL(object):
         info_dict['__has_drm'] = any(f.get('has_drm') for f in formats)
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
+
+        if info_dict.get('is_live'):
+            get_from_start = bool(self.params.get('live_from_start'))
+            formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
 
         if not formats:
             self.raise_no_formats(info_dict)
@@ -2660,7 +2663,9 @@ class YoutubeDL(object):
             urls = '", "'.join([f['url'] for f in info.get('requested_formats', [])] or [info['url']])
             self.write_debug('Invoking downloader on "%s"' % urls)
 
-        new_info = copy.deepcopy(self._copy_infodict(info))
+        # Note: Ideally info should be a deep-copied so that hooks cannot modify it.
+        # But it may contain objects that are not deep-copyable
+        new_info = self._copy_infodict(info)
         if new_info.get('http_headers') is None:
             new_info['http_headers'] = self._calc_headers(new_info)
         return fd.download(name, new_info, subtitle)
@@ -2675,7 +2680,7 @@ class YoutubeDL(object):
             if self._num_downloads >= int(max_downloads):
                 raise MaxDownloadsReached()
 
-        if info_dict.get('is_live'):
+        if info_dict.get('is_live') and not self.params.get('live_from_start'):
             info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
         # TODO: backward compatibility, to be removed
@@ -2889,15 +2894,22 @@ class YoutubeDL(object):
                     dl_filename = existing_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
 
+                    downloaded = []
+                    merger = FFmpegMergerPP(self)
+
+                    fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
-                    elif get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-'):
+                    elif fd:
+                        for f in requested_formats if fd != FFmpegFD else []:
+                            f['filepath'] = fname = prepend_extension(
+                                correct_ext(temp_filename, info_dict['ext']),
+                                'f%s' % f['format_id'], info_dict['ext'])
+                            downloaded.append(fname)
                         info_dict['url'] = '\n'.join(f['url'] for f in requested_formats)
                         success, real_download = self.dl(temp_filename, info_dict)
                         info_dict['__real_download'] = real_download
                     else:
-                        downloaded = []
-                        merger = FFmpegMergerPP(self)
                         if self.params.get('allow_unplayable_formats'):
                             self.report_warning(
                                 'You have requested merging of multiple formats '
@@ -2909,7 +2921,7 @@ class YoutubeDL(object):
                                 'The formats won\'t be merged.')
 
                         if temp_filename == '-':
-                            reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict)
+                            reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict, self.params)
                                       else 'but the formats are incompatible for simultaneous download' if merger.available
                                       else 'but ffmpeg is not installed')
                             self.report_warning(
@@ -2931,14 +2943,15 @@ class YoutubeDL(object):
                             partial_success, real_download = self.dl(fname, new_info)
                             info_dict['__real_download'] = info_dict['__real_download'] or real_download
                             success = success and partial_success
-                        if merger.available and not self.params.get('allow_unplayable_formats'):
-                            info_dict['__postprocessors'].append(merger)
-                            info_dict['__files_to_merge'] = downloaded
-                            # Even if there were no downloads, it is being merged only now
-                            info_dict['__real_download'] = True
-                        else:
-                            for file in downloaded:
-                                files_to_move[file] = None
+
+                    if downloaded and merger.available and not self.params.get('allow_unplayable_formats'):
+                        info_dict['__postprocessors'].append(merger)
+                        info_dict['__files_to_merge'] = downloaded
+                        # Even if there were no downloads, it is being merged only now
+                        info_dict['__real_download'] = True
+                    else:
+                        for file in downloaded:
+                            files_to_move[file] = None
                 else:
                     # Just a single file
                     dl_filename = existing_file(full_filename, temp_filename)
@@ -3005,9 +3018,14 @@ class YoutubeDL(object):
 
                     downloader = get_suitable_downloader(info_dict, self.params) if 'protocol' in info_dict else None
                     downloader = downloader.__name__ if downloader else None
-                    ffmpeg_fixup(info_dict.get('requested_formats') is None and downloader == 'HlsFD',
-                                 'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
-                                 FFmpegFixupM3u8PP)
+
+                    if info_dict.get('requested_formats') is None:  # Not necessary if doing merger
+                        ffmpeg_fixup(downloader == 'HlsFD',
+                                     'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
+                                     FFmpegFixupM3u8PP)
+                        ffmpeg_fixup(info_dict.get('is_live') and downloader == 'DashSegmentsFD',
+                                     'Possible duplicate MOOV atoms', FFmpegFixupDuplicateMoovPP)
+
                     ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed timestamps detected', FFmpegFixupTimestampPP)
                     ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed duration detected', FFmpegFixupDurationPP)
 
@@ -3104,10 +3122,17 @@ class YoutubeDL(object):
                 k.startswith('_') or k in remove_keys or v in empty_values)
         else:
             reject = lambda k, v: k in remove_keys
-        filter_fn = lambda obj: (
-            list(map(filter_fn, obj)) if isinstance(obj, (LazyList, list, tuple, set))
-            else obj if not isinstance(obj, dict)
-            else dict((k, filter_fn(v)) for k, v in obj.items() if not reject(k, v)))
+
+        def filter_fn(obj):
+            if isinstance(obj, dict):
+                return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
+            elif isinstance(obj, (list, tuple, set, LazyList)):
+                return list(map(filter_fn, obj))
+            elif obj is None or isinstance(obj, (str, int, float, bool)):
+                return obj
+            else:
+                return repr(obj)
+
         return filter_fn(info_dict)
 
     @staticmethod

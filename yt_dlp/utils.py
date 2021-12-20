@@ -2631,12 +2631,6 @@ class LazyList(collections.abc.Sequence):
     def __copy__(self):
         return type(self)(self.__iterable, reverse=self.__reversed, _cache=self.__cache)
 
-    def __deepcopy__(self, memo):
-        # FIXME: This is actually just a shallow copy
-        id_ = id(self)
-        memo[id_] = self.__copy__()
-        return memo[id_]
-
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
         return repr(self.exhaust())
