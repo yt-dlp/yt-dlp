@@ -4,9 +4,7 @@ import time
 from ..downloader import get_suitable_downloader
 from .fragment import FragmentFD
 
-from ..utils import (
-    urljoin,
-)
+from ..utils import rljoin
 
 
 class DashSegmentsFD(FragmentFD):
