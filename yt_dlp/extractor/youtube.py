@@ -793,7 +793,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'duration': duration,
             'view_count': view_count,
             'uploader': uploader,
-            'channel_id': channel_id,  # TODO: validate?
+            'channel_id': channel_id,
             'upload_date': strftime_or_none(timestamp, '%Y%m%d'),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
