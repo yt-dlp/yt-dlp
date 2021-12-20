@@ -410,17 +410,13 @@ class FragmentFD(FileDownloader):
         for tpe, job in spins:
             try:
                 result = result and job.result()
-            except KeyboardInterrupt as ex:
+            except KeyboardInterrupt:
                 interrupt_trigger[0] = False
-                kint = ex
             finally:
                 tpe.shutdown(wait=True)
-        is_live = any(arg[0].get('live') for arg in args)
-        if not interrupt_trigger[0] and not is_live:
-            # rethrow if it's not live
-            raise kint or KeyboardInterrupt()
-        # always consider it success for live streams
-        return result or is_live
+        if not interrupt_trigger[0]:
+            raise KeyboardInterrupt()
+        return result
 
     def download_and_append_fragments(
             self, ctx, fragments, info_dict, *, pack_func=None, finish_func=None,
