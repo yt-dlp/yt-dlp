@@ -463,6 +463,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      video data is re-extracted (e.g. 100K)
     -R, --retries RETRIES            Number of retries (default is 10), or
                                      "infinite"
+    --fileopen-retries RETRIES       Number of times to retry on file access error
+                                     (default is 10), or "infinite"
     --fragment-retries RETRIES       Number of retries for a fragment (default
                                      is 10), or "infinite" (DASH, hlsnative and
                                      ISM)

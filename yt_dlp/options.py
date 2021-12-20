@@ -682,6 +682,10 @@ def parseOpts(overrideArguments=None):
         dest='retries', metavar='RETRIES', default=10,
         help='Number of retries (default is %default), or "infinite"')
     downloader.add_option(
+        '--fileopen-retries',
+        dest='fileopen_retries', metavar='RETRIES', default=10,
+        help='Number of times to retry on file access error (default is %default), or "infinite"')
+    downloader.add_option(
         '--fragment-retries',
         dest='fragment_retries', metavar='RETRIES', default=10,
         help='Number of retries for a fragment (default is %default), or "infinite" (DASH, hlsnative and ISM)')
