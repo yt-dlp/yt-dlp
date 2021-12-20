@@ -38,7 +38,7 @@ class GameJoltBaseIE(InfoExtractor):
         return '\n'.join(joined_contents)
 
     def _get_comments(self, post_num_id, post_hash_id):
-        sort_by, scroll_id = self._configuration_arg('comment_sort', ['hot'])[0], -1
+        sort_by, scroll_id = self._configuration_arg('comment_sort', ['hot'], ie_key=GameJoltIE.ie_key())[0], -1
         is_scrolled = sort_by in ('new', 'you')
         for page in itertools.count(1):
             comments_data = self._call_api(
