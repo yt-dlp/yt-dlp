@@ -406,7 +406,7 @@ class FragmentFD(FileDownloader):
             job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
             spins.append((tpe, job))
 
-        result, kint = True, None
+        result = True
         for tpe, job in spins:
             try:
                 result = result and job.result()
