@@ -168,7 +168,7 @@ class GameJoltBaseIE(InfoExtractor):
 
 
 class GameJoltIE(GameJoltBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/p/(?P<id>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/p/[\w-]+-(?P<id>\w{8})'
     _TESTS = [{
         # No audio
         'url': 'https://gamejolt.com/p/introducing-ramses-jackson-some-fnf-himbo-i-ve-been-animating-fo-c6achnzu',
@@ -295,7 +295,7 @@ class GameJoltIE(GameJoltBaseIE):
     }]
 
     def _real_extract(self, url):
-        post_id = self._match_id(url).split('-')[-1]
+        post_id = self._match_id(url)
         post_data = self._call_api(
             f'web/posts/view/{post_id}', post_id)['post']
         return self._parse_post(post_data)
