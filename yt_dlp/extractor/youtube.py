@@ -686,7 +686,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         timestamp = None
         if isinstance(dt, datetime.datetime):
             timestamp = calendar.timegm(dt.timetuple())
-        if timestamp is None:
+        if text and timestamp is None:
             self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
         return timestamp, text
 
@@ -796,7 +796,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'channel_id': channel_id,  # TODO: validate?
             'upload_date': strftime_or_none(timestamp, '%Y%m%d'),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
-                            else 'was_live' if any(i in time_text.lower() for i in ('streamed', 'premiered'))
+                            else 'was_live' if 'streamed' in time_text.lower()
                             else 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges
                             else None),
             'release_timestamp': scheduled_timestamp,
