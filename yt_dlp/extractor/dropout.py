@@ -178,19 +178,21 @@ class DropoutIE(InfoExtractor):
         self._download_webpage(self._LOGOUT_URL, None, note='Logging out')
 
     def _real_extract(self, url):
-        self._login()
-        display_id = self._match_id(url)
+        try:
+            self._login()
+            webpage = self._download_webpage(url, None, note='Downloading video webpage')
+        finally:
+            self._logout()
 
-        webpage = self._download_webpage(url, None, note='Downloading video webpage')
-        self._logout()
         embed_url = self._search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'embed_url')
-
+        display_id = self._match_id(url)
         id = self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
         description = self._html_search_meta('description', webpage, display_name='description', fatal=False)
         thumbnail = self._og_search_thumbnail(webpage)
         thumbnail = thumbnail.split('?')[0] if thumbnail else None  # Ignore crop/downscale
         watch_info = get_element_by_id('watch-info', webpage)
         watch_info = watch_info if watch_info else ''
+        title = clean_html(get_element_by_class('video-title', watch_info))
         release_date = self._search_regex(
             r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
             watch_info, 'release_date', default=None)  # TODO Really, this should be `fatal=False`, but that angers the tester
@@ -198,7 +200,6 @@ class DropoutIE(InfoExtractor):
         # utils.get_element_by_attribute is not used because we want data-meta-field-value,
         # not what's actually in the element (inside is something like "15Dec2021", which
         # is much harder to parse than "2021-12-15")
-        title = clean_html(get_element_by_class('video-title', watch_info))
         series = clean_html(get_element_by_class('series-title', watch_info))
         first_text = get_element_by_class('text', watch_info)
         season_episode = get_element_by_class('site-font-secondary-color', first_text)
@@ -215,9 +216,9 @@ class DropoutIE(InfoExtractor):
             'url': embed_url,
             'id': id,
             'display_id': display_id,
-            'title': title,
             'description': description,
             'thumbnail': thumbnail,
+            'title': title,
             'release_date': release_date,
             'series': series,
             'season_number': int(season) if season else None,
