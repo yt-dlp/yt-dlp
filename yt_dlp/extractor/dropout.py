@@ -46,7 +46,8 @@ class DropoutSeasonIE(InfoExtractor):
         items = get_elements_by_class('js-collection-item', webpage)
         entries = []
         for item in items:
-            url = self._search_regex(r'a href="(.+?)" class="browse-item-link"', item, 'item_url')
+            url = self._search_regex(r'a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
+                                     item, 'item_url')
             entries.append(self.url_result(url))
 
         seasons = get_element_by_class('select-dropdown-wrapper', webpage)
