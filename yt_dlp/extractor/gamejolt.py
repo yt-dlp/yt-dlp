@@ -42,8 +42,9 @@ class GameJoltBaseIE(InfoExtractor):
         is_scrolled = sort_by in ('new', 'you')
         for page in itertools.count(1):
             comments_data = self._call_api(
-                'comments/Fireside_Post/%s/%s?%s=%d' % (str(post_num_id), sort_by,
-                                                        'scroll_id' if is_scrolled else 'page', scroll_id if is_scrolled else page),
+                'comments/Fireside_Post/%s/%s?%s=%d' % (
+                    post_num_id, sort_by,
+                    'scroll_id' if is_scrolled else 'page', scroll_id if is_scrolled else page),
                 post_hash_id, note='Downloading comments list page %d' % page)
             if not comments_data.get('comments'):
                 break
@@ -78,7 +79,7 @@ class GameJoltBaseIE(InfoExtractor):
         info_dict = {
             'ie_key': GameJoltIE.ie_key(),
             'extractor': 'GameJolt',
-            'webpage_url': str_or_none(post_data.get('url')) or 'https://gamejolt.com/p/' + post_id,
+            'webpage_url': str_or_none(post_data.get('url')) or f'https://gamejolt.com/p/{post_id}',
             'id': post_id,
             'title': description,
             'description': full_description or description,
@@ -90,8 +91,8 @@ class GameJoltBaseIE(InfoExtractor):
                            for category in post_data.get('communities' or [])],
             'tags': traverse_obj(
                 lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),
-            'like_count': post_data.get('like_count'),
-            'comment_count': 0 if try_get(post_data, lambda x: x['comment_count'] is None) else post_data.get('comment_count'),
+            'like_count': int_or_none(post_data.get('like_count')),
+            'comment_count': int_or_none(post_data.get('comment_count'), default=0),
             'timestamp': int_or_none(post_data.get('added_on'), scale=1000),
             'release_timestamp': int_or_none(post_data.get('published_on'), scale=1000),
             '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
@@ -100,7 +101,7 @@ class GameJoltBaseIE(InfoExtractor):
         # TODO: Handle multiple videos/embeds?
         video_data = traverse_obj(post_data, ('videos', ...), expected_type=dict, get_all=False) or {}
         formats, subtitles, thumbnails = [], {}, []
-        for media in video_data.get('media', []):
+        for media in video_data.get('media') or []:
             media_url, mimetype, ext, media_id = media['img_url'], media.get('filetype', ''), determine_ext(media['img_url']), media.get('type')
             if mimetype == 'application/vnd.apple.mpegurl' or ext == 'm3u8':
                 hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(media_url, post_id, 'mp4', m3u8_id=media_id)
@@ -457,21 +458,22 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
 
     def _real_extract(self, url):
         display_id, community_id, channel_id, sort_by = self._match_valid_url(url).group('id', 'community', 'channel', 'sort')
-        if not channel_id:
-            channel_id = 'featured'
-        if not sort_by:
-            sort_by = 'new'
+       channel_id, sort_by = channel_id or 'featured', sort_by or 'new'
 
         community_data = self._call_api(
-            'web/communities/view/%s' % community_id, display_id, note='Downloading community info', errnote='Unable to download community info')['community']
+            'web/communities/view/%s' % community_id, display_id,
+            note='Downloading community info', errnote='Unable to download community info')['community']
         channel_data = traverse_obj(self._call_api(
-            'web/communities/view-channel/%s/%s' % (community_id, channel_id), display_id, note='Downloading channel info', errnote='Unable to download channel info', fatal=False), 'channel') or {}
+            'web/communities/view-channel/%s/%s' % (community_id, channel_id), display_id,
+            note='Downloading channel info', errnote='Unable to download channel info', fatal=False), 'channel') or {}
 
         title = '%s - %s' % (community_data.get('name'), channel_data['display_title']) if channel_data.get('display_title') else community_data.get('name')
         description = self._parse_content_as_text(
-            self._parse_json(community_data.get('description_content', '{}'), display_id, fatal=False) or {})
+            self._parse_json(community_data.get('description_content') or '{}'), display_id, fatal=False) or {})
         return self.playlist_result(
-            self._entries('web/posts/fetch/community/%s?channels[]=%s&channels[]=%s' % (community_id, sort_by, channel_id), display_id, 'Downloading community posts', 'Unable to download community posts'),
+            self._entries(
+                'web/posts/fetch/community/%s?channels[]=%s&channels[]=%s' % (community_id, sort_by, channel_id),
+                display_id, 'Downloading community posts', 'Unable to download community posts'),
             '%s/%s' % (community_id, channel_id), title, description)
 
 
@@ -518,14 +520,16 @@ class GameJoltSearchIE(GameJoltPostListBaseIE):
     }]
 
     def _search_entries(self, query, filter_mode, display_query):
-        initial_search_data = self._call_api('web/search/%s?q=%s' % (filter_mode, query), display_query,
-                                             note='Downloading %s list' % filter_mode, errnote='Unable to download %s list' % filter_mode)
-        entries_num = initial_search_data.get('count', initial_search_data[filter_mode + 'Count'])
+        initial_search_data = self._call_api(
+            'web/search/%s?q=%s' % (filter_mode, query), display_query,
+            note='Downloading %s list' % filter_mode, errnote='Unable to download %s list' % filter_mode)
+        entries_num = traverse_obj(initial_search_data, 'count', f'{filter_mode}Count')
         if not entries_num:
             return
         for page in range(1, math.ceil(entries_num / initial_search_data['perPage']) + 1):
-            search_results = self._call_api('web/search/%s?q=%s&page=%d' % (filter_mode, query, page), display_query,
-                                            note='Downloading %s list page %d' % (filter_mode, page), errnote='Unable to download %s list' % filter_mode)
+            search_results = self._call_api(
+                'web/search/%s?q=%s&page=%d' % (filter_mode, query, page), display_query,
+                note='Downloading %s list page %d' % (filter_mode, page), errnote='Unable to download %s list' % filter_mode)
             for result in search_results[filter_mode]:
                 yield self.url_result(self._URL_FORMATS[filter_mode].format(**result))
 
