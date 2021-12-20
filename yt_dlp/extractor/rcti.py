@@ -289,8 +289,8 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 })
                 yield url_res
 
-    def _series_entries(self, series_id, display_id=None, types=[], metadata={}):
-        if 'episodes' in types:
+    def _series_entries(self, series_id, display_id=None, video_type=None, metadata={}):
+        if not video_type or 'episodes' == video_type:
             try:
                 seasons_list = self._call_api(
                     'https://api.rctiplus.com/api/v1/program/%s/season' % series_id, display_id, 'Downloading seasons list JSON')[0]
@@ -302,24 +302,17 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             for season in seasons_list:
                 yield from self._entries('https://api.rctiplus.com/api/v2/program/%s/episode?season=%s' % (series_id, season['season']),
                                          display_id, 'Downloading season %s episode entries' % season['season'], metadata)
-        if 'extras' in types:
+        if not video_type or 'extras' == video_type:
             yield from self._entries('https://api.rctiplus.com/api/v2/program/%s/extra?content_id=0' % series_id,
                                      display_id, 'Downloading extra entries', metadata)
-        if 'clips' in types:
+        if not video_type or 'clips' == video_type:
             yield from self._entries('https://api.rctiplus.com/api/v2/program/%s/clip?content_id=0' % series_id,
                                      display_id, 'Downloading clip entries', metadata)
 
     def _real_extract(self, url):
-        match = self._match_valid_url(url).groupdict()
-        series_id, display_id, url_video_type = match['id'], match['display_id'], match.get('type')
-
-        video_types = self._configuration_arg('video_types')
-        if not video_types:
-            if url_video_type:
-                self.report_warning(f'Only {url_video_type} will be downloaded. To download everything from the series, remove "/{url_video_type}" from the URL')
-                video_types = [url_video_type]
-            else:
-                video_types = ['episodes', 'extras', 'clips']
+        series_id, display_id, video_type = self._match_valid_url(url).group('id', 'display_id', 'type')
+        if video_type:
+            self.report_warning(f'Only {video_type} will be downloaded. To download everything from the series, remove "/{video_type}" from the URL')
 
         series_meta, meta_paths = self._call_api(
             'https://api.rctiplus.com/api/v1/program/%s/detail' % series_id, display_id, 'Downloading series metadata')
@@ -329,7 +322,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'tag': traverse_obj(series_meta, ('tag', ..., 'name'), expected_type=strip_or_none),
         }
         return self.playlist_result(
-            self._series_entries(series_id, display_id, video_types, metadata), series_id,
+            self._series_entries(series_id, display_id, video_type, metadata), series_id,
             series_meta.get('title'), series_meta.get('summary'), display_id=display_id, **metadata)
 
 
