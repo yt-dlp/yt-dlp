@@ -70,7 +70,7 @@ class GameJoltBaseIE(InfoExtractor):
         if post_data.get('has_article'):
             article_content = self._parse_json(
                 post_data.get('article_content')
-                or self._call_api('web/posts/article/%s' % str_or_none(post_data.get('id')), post_id,
+                or self._call_api(f'web/posts/article/{post_data.get("id", post_id)}', post_id,
                                   note='Downloading article metadata', errnote='Unable to download article metadata', fatal=False).get('article'),
                 post_id, fatal=False)
             full_description = self._parse_content_as_text(article_content)
@@ -297,20 +297,21 @@ class GameJoltIE(GameJoltBaseIE):
     def _real_extract(self, url):
         post_id = self._match_id(url).split('-')[-1]
         post_data = self._call_api(
-            'web/posts/view/%s' % post_id, post_id)['post']
+            f'web/posts/view/{post_id}', post_id)['post']
         return self._parse_post(post_data)
 
 
 class GameJoltPostListBaseIE(GameJoltBaseIE):
     def _entries(self, endpoint, list_id, note='Downloading post list', errnote='Unable to download post list', initial_items=[]):
-        page_num, items, scroll_id = 1, initial_items or self._call_api(endpoint, list_id, note=note, errnote=errnote)['items'], None
+        page_num, scroll_id = 1, None
+        items = initial_items or self._call_api(endpoint, list_id, note=note, errnote=errnote)['items']
         while items:
             for item in items:
                 yield self._parse_post(item['action_resource_model'])
             scroll_id = items[-1]['scroll_id']
             page_num += 1
             items = self._call_api(
-                endpoint, list_id, note='%s page %d' % (note, page_num), errnote=errnote, data=json.dumps({
+                endpoint, list_id, note=f'{note} page {page_num}', errnote=errnote, data=json.dumps({
                     'scrollDirection': 'from',
                     'scrollId': scroll_id,
                 }).encode('utf-8')).get('items')
@@ -335,11 +336,11 @@ class GameJoltUserIE(GameJoltPostListBaseIE):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         user_data = self._call_api(
-            'web/profile/@%s' % user_id, user_id, note='Downloading user info', errnote='Unable to download user info')['user']
+            f'web/profile/@{user_id}', user_id, note='Downloading user info', errnote='Unable to download user info')['user']
         bio = self._parse_content_as_text(
             self._parse_json(user_data.get('bio_content', '{}'), user_id, fatal=False) or {})
         return self.playlist_result(
-            self._entries('web/posts/fetch/user/@%s?tab=active' % user_id, user_id, 'Downloading user posts', 'Unable to download user posts'),
+            self._entries(f'web/posts/fetch/user/@{user_id}?tab=active', user_id, 'Downloading user posts', 'Unable to download user posts'),
             str_or_none(user_data.get('id')), user_data.get('display_name') or user_data.get('name'), bio)
 
 
@@ -362,11 +363,11 @@ class GameJoltGameIE(GameJoltPostListBaseIE):
     def _real_extract(self, url):
         game_id = self._match_id(url)
         game_data = self._call_api(
-            'web/discover/games/%s' % game_id, game_id, note='Downloading game info', errnote='Unable to download game info')['game']
+            f'web/discover/games/{game_id}', game_id, note='Downloading game info', errnote='Unable to download game info')['game']
         description = self._parse_content_as_text(
             self._parse_json(game_data.get('description_content', '{}'), game_id, fatal=False) or {})
         return self.playlist_result(
-            self._entries('web/posts/fetch/game/%s' % game_id, game_id, 'Downloading game posts', 'Unable to download game posts'),
+            self._entries(f'web/posts/fetch/game/{game_id}', game_id, 'Downloading game posts', 'Unable to download game posts'),
             game_id, game_data.get('title'), description)
 
 
@@ -379,7 +380,6 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
             'title': 'Friday Night Funkin\': Vs Oswald',
             'n_entries': None,
         },
-
         'playlist': [{
             'info_dict': {
                 'id': '184434',
@@ -416,13 +416,13 @@ class GameJoltGameSoundtrackIE(GameJoltBaseIE):
     def _real_extract(self, url):
         game_id = self._match_id(url)
         game_overview = self._call_api(
-            'web/discover/games/overview/%s' % game_id, game_id, note='Downloading soundtrack info', errnote='Unable to download soundtrack info')
-        return self.playlist_result(itertools.chain({
+            f'web/discover/games/overview/{game_id}', game_id, note='Downloading soundtrack info', errnote='Unable to download soundtrack info')
+        return self.playlist_result([{
             'id': str_or_none(song.get('id')),
             'title': str_or_none(song.get('title')),
             'url': str_or_none(song.get('url')),
             'release_timestamp': int_or_none(song.get('posted_on'), scale=1000),
-        } for song in game_overview.get('songs') or []), game_id, traverse_obj(
+        } for song in game_overview.get('songs') or []], game_id, traverse_obj(
             game_overview, ('microdata', 'name'), (('twitter', 'fb'), 'title'), expected_type=str_or_none, get_all=False))
 
 
@@ -458,23 +458,23 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
 
     def _real_extract(self, url):
         display_id, community_id, channel_id, sort_by = self._match_valid_url(url).group('id', 'community', 'channel', 'sort')
-       channel_id, sort_by = channel_id or 'featured', sort_by or 'new'
+        channel_id, sort_by = channel_id or 'featured', sort_by or 'new'
 
         community_data = self._call_api(
-            'web/communities/view/%s' % community_id, display_id,
+            f'web/communities/view/{community_id}', display_id,
             note='Downloading community info', errnote='Unable to download community info')['community']
         channel_data = traverse_obj(self._call_api(
-            'web/communities/view-channel/%s/%s' % (community_id, channel_id), display_id,
+            f'web/communities/view-channel/{community_id}/{channel_id}', display_id,
             note='Downloading channel info', errnote='Unable to download channel info', fatal=False), 'channel') or {}
 
         title = '%s - %s' % (community_data.get('name'), channel_data['display_title']) if channel_data.get('display_title') else community_data.get('name')
         description = self._parse_content_as_text(
-            self._parse_json(community_data.get('description_content') or '{}'), display_id, fatal=False) or {})
+            self._parse_json(community_data.get('description_content') or '{}', display_id, fatal=False) or {})
         return self.playlist_result(
             self._entries(
-                'web/posts/fetch/community/%s?channels[]=%s&channels[]=%s' % (community_id, sort_by, channel_id),
+                f'web/posts/fetch/community/{community_id}?channels[]={sort_by}&channels[]={channel_id}',
                 display_id, 'Downloading community posts', 'Unable to download community posts'),
-            '%s/%s' % (community_id, channel_id), title, description)
+            f'{community_id}/{channel_id}', title, description)
 
 
 class GameJoltSearchIE(GameJoltPostListBaseIE):
@@ -521,15 +521,15 @@ class GameJoltSearchIE(GameJoltPostListBaseIE):
 
     def _search_entries(self, query, filter_mode, display_query):
         initial_search_data = self._call_api(
-            'web/search/%s?q=%s' % (filter_mode, query), display_query,
-            note='Downloading %s list' % filter_mode, errnote='Unable to download %s list' % filter_mode)
+            f'web/search/{filter_mode}?q={query}', display_query,
+            note=f'Downloading {filter_mode} list', errnote=f'Unable to download {filter_mode} list')
         entries_num = traverse_obj(initial_search_data, 'count', f'{filter_mode}Count')
         if not entries_num:
             return
         for page in range(1, math.ceil(entries_num / initial_search_data['perPage']) + 1):
             search_results = self._call_api(
-                'web/search/%s?q=%s&page=%d' % (filter_mode, query, page), display_query,
-                note='Downloading %s list page %d' % (filter_mode, page), errnote='Unable to download %s list' % filter_mode)
+                f'web/search/{filter_mode}?q={query}&page={page}', display_query,
+                note=f'Downloading {filter_mode} list page {page}', errnote=f'Unable to download {filter_mode} list')
             for result in search_results[filter_mode]:
                 yield self.url_result(self._URL_FORMATS[filter_mode].format(**result))
 
@@ -538,7 +538,7 @@ class GameJoltSearchIE(GameJoltPostListBaseIE):
         display_query = compat_urllib_parse_unquote(query)
         return self.playlist_result(
             self._search_entries(query, filter_mode, display_query) if filter_mode else self._entries(
-                'web/posts/fetch/search/%s' % query, display_query, initial_items=self._call_api(
-                    'web/search?q=%s' % query, display_query,
+                f'web/posts/fetch/search/{query}', display_query, initial_items=self._call_api(
+                    f'web/search?q={query}', display_query,
                     note='Downloading initial post list', errnote='Unable to download initial post list')['posts']),
             display_query, display_query)
