@@ -29,11 +29,18 @@ class AudiomackIE(InfoExtractor):
             }
         },
         # audiomack wrapper around soundcloud song
-        # Needs new test URL.
-        {   # Song has been removed from the site.
+        {
             'add_ie': ['Soundcloud'],
             'url': 'http://www.audiomack.com/song/hip-hop-daily/black-mamba-freestyle',
-            'only_matching': True,
+            'info_dict': {
+                'id': '258901379',
+                'ext': 'mp3',
+                'description': 'mamba day freestyle for the legend Kobe Bryant ',
+                'title': 'Black Mamba Freestyle [Prod. By Danny Wolf]',
+                'uploader': 'ILOVEMAKONNEN',
+                'upload_date': '20160414',
+            },
+            'skip': 'Song has been removed from the site',
         },
     ]
 
@@ -89,16 +96,19 @@ class AudiomackAlbumIE(InfoExtractor):
             },
             'playlist': [{
                 'info_dict': {
+                    'title': 'PPP (Pistol P Project) - 8. Real (prod by SYK SENSE  )',
+                    'id': '837576',
+                    'ext': 'mp3',
+                    'uploader': 'Lil Herb a.k.a. G Herbo',
+                }
+            }, {
+                'info_dict': {
                     'title': 'PPP (Pistol P Project) - 10. 4 Minutes Of Hell Part 4 (prod by DY OF 808 MAFIA)',
                     'id': '837580',
                     'ext': 'mp3',
                     'uploader': 'Lil Herb a.k.a. G Herbo',
                 }
             }],
-            'params': {
-                'playliststart': 2,
-                'playlistend': 2,
-            }
         }
     ]
 
