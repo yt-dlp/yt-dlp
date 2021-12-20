@@ -182,7 +182,7 @@ class RTVEALaCartaIE(InfoExtractor):
 class RTVEAudioIE(RTVEALaCartaIE):
     IE_NAME = 'rtve.es:audio'
     IE_DESC = 'RTVE audio'
-    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/]+/[^/]+/(?P<id>[0-9]+)/'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/]+/[^/]+/(?P<id>[0-9]+)'
 
     _TESTS = [{
         'url': 'https://www.rtve.es/alacarta/audios/a-hombros-de-gigantes/palabra-ingeniero-codigos-informaticos-27-04-21/5889192/',
