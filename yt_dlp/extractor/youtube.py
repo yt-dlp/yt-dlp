@@ -795,9 +795,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader': uploader,
             'channel_id': channel_id,  # TODO: validate?
             'upload_date': strftime_or_none(timestamp, '%Y%m%d'),
-            'live_status': ('is_upcoming' if scheduled_timestamp is not None else None
-                            or 'was_live' if any(i in time_text.lower() for i in ('streamed', 'premiered')) else None
-                            or 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges else None),
+            'live_status': ('is_upcoming' if scheduled_timestamp is not None
+                            else 'was_live' if any(i in time_text.lower() for i in ('streamed', 'premiered'))
+                            else 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges
+                            else None),
             'release_timestamp': scheduled_timestamp,
             'availability': self._availability(needs_premium='premium' in badges, needs_subscription='members only' in badges)
         }
