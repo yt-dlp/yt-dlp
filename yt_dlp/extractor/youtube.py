@@ -410,7 +410,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         context = get_first(
             (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
         # Enforce language for extraction
-        traverse_obj(context, ('INNERTUBE_CONTEXT', 'client'), expected_type=dict, default={})['hl'] = 'en'
+        traverse_obj(context, 'client', expected_type=dict, default={})['hl'] = 'en'
         return context
 
     _SAPISID = None
