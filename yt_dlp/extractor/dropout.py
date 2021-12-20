@@ -74,7 +74,32 @@ class DropoutIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
     _TESTS = [
         {
+            'url': 'https://www.dropout.tv/game-changer/season:2/videos/yes-or-no',
+            'note': 'Episode in a series',
+            'md5': '5e000fdfd8d8fa46ff40456f1c2af04a',
+            'info_dict': {
+                'id': '738153',
+                'display_id': 'yes-or-no',
+                'ext': 'mp4',
+                'title': 'Yes or No',
+                'description': 'Ally, Brennan, and Zac are asked a simple question, but is there a correct answer?',
+                'release_date': '20200508',
+                'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/351e3f24-c4a3-459a-8b79-dc80f1e5b7fd.jpg',
+                'series': 'Game Changer',
+                'season_number': 2,
+                'season': 'Season 2',
+                'episode_number': 6,
+                'episode': 'Yes or No',
+                'duration': 1180,
+                'uploader_id': 'user80538407',
+                'uploader_url': 'https://vimeo.com/user80538407',
+                'uploader': 'OTT Videos'
+            },
+            'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
+        },
+        {
             'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1/videos/episode-1',
+            'note': 'Episode in a series (missing release_date)',
             'md5': '712caf7c191f1c47c8f1879520c2fa5c',
             'info_dict': {
                 'id': '320562',
@@ -97,6 +122,7 @@ class DropoutIE(InfoExtractor):
         },
         {
             'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
+            'note': 'Episode not in a series',
             'md5': 'c30fa18999c5880d156339f13c953a26',
             'info_dict': {
                 'id': '1915774',
