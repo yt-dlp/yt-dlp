@@ -18,7 +18,8 @@ class DropoutSeasonIE(InfoExtractor):
             'note': 'Multi-season series with the season in the url',
             'playlist_count': 17,
             'info_dict': {
-                'id': 'dimension-20-fantasy-high:season-1'
+                'id': 'dimension-20-fantasy-high:season-1',
+                'title': 'Dimension 20 Fantasy High - Season 1'
             }
         },
         {
@@ -26,7 +27,8 @@ class DropoutSeasonIE(InfoExtractor):
             'note': 'Multi-season series with the season not in the url',
             'playlist_count': 17,
             'info_dict': {
-                'id': 'dimension-20-fantasy-high:season-1'
+                'id': 'dimension-20-fantasy-high:season-1',
+                'title': 'Dimension 20 Fantasy High - Season 1'
             }
         },
         {
@@ -34,13 +36,15 @@ class DropoutSeasonIE(InfoExtractor):
             'note': 'Single-season series',
             'playlist_count': 4,
             'info_dict': {
-                'id': 'dimension-20-shriek-week:season-1'
+                'id': 'dimension-20-shriek-week:season-1',
+                'title': 'Dimension 20 Shriek Week - Season 1'
             }
         }
     ]
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
+        season_title = season_id.replace('-',' ').title()
         webpage = self._download_webpage(url, season_id)
 
         items = get_elements_by_class('js-collection-item', webpage)
@@ -56,12 +60,13 @@ class DropoutSeasonIE(InfoExtractor):
             current_season = self._search_regex(r'<option(?:.+?)selected>[ ]+(.+?)[ ]+</option>',
                                                 seasons, 'current_season', default=None)
             if current_season:
-                current_season = current_season.lower().replace(' ', '-')
-                season_id += ':' + current_season
+                season_id += ':' + current_season.lower().replace(' ', '-')
+                season_title += ' - ' + current_season
 
         return {
             '_type': 'playlist',
             'id': season_id,
+            'title': season_title,
             'playlist_count': len(entries),
             'entries': entries
         }
