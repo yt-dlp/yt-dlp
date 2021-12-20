@@ -186,7 +186,20 @@ class LBRYIE(LBRYBaseIE):
         result = self._resolve_url(uri, display_id, 'stream')
         result_value = result['value']
         if result_value.get('stream_type') not in self._SUPPORTED_STREAM_TYPES:
-            raise ExtractorError('Unsupported URL', expected=True)
+            if result.get('value_type') == 'stream' and result.get('name') == 'live':
+                claim_id = result['signing_channel']['claim_id']
+                live_json = self._download_json(f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id)['data']
+                return {
+                    'id': claim_id,
+                    'title': result_value['title'],
+                    'is_live': True,
+                    'formats': self._extract_m3u8_formats(live_json['url'], claim_id, live=True, headers={'referer': 'https://player.odysee.live/'}, ext='mp4'),
+                    'http_headers': {
+                        'referer': 'https://player.odysee.live/',
+                    },
+                }
+            else:
+                raise ExtractorError('Unsupported URL', expected=True)
         claim_id = result['claim_id']
         title = result_value['title']
         streaming_url = self._call_api_proxy(
