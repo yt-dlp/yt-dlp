@@ -193,6 +193,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'title': 'Códigos informáticos',
             'thumbnail': r're:https?://.+/1598856591583.jpg',
             'duration': 349.440,
+            'series': 'A hombros de gigantes',
         },
     }, {
         'url': 'https://www.rtve.es/play/audios/en-radio-3/ignatius-farray/5791165/',
@@ -203,6 +204,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'title': 'Ignatius Farray',
             'thumbnail': r're:https?://.+/1613243011863.jpg',
             'duration': 3559.559,
+            'series': 'En Radio 3'
         },
     }, {
         'url': 'https://www.rtve.es/play/audios/frankenstein-o-el-moderno-prometeo/capitulo-26-ultimo-muerte-victor-juan-jose-plans-mary-shelley/6082623/',
@@ -213,6 +215,7 @@ class RTVEAudioIE(RTVEALaCartaIE):
             'title': 'Capítulo 26 y último: La muerte de Victor',
             'thumbnail': r're:https?://.+/1632147445707.jpg',
             'duration': 3174.086,
+            'series': 'Frankenstein o el moderno Prometeo'
         },
     }]
 
