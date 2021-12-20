@@ -2288,8 +2288,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             _continuation = None
             for content in contents:
                 comments_header_renderer = traverse_obj(content, 'commentsHeaderRenderer')
-                expected_comment_count = parse_count(self._get_text(
-                    comments_header_renderer, 'countText', 'commentsCount', max_runs=1))
+                expected_comment_count = self._get_count(
+                    comments_header_renderer, 'countText', 'commentsCount', name='comment count')
 
                 if expected_comment_count:
                     tracker['est_total'] = expected_comment_count
