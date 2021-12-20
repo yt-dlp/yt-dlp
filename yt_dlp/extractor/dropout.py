@@ -44,7 +44,7 @@ class DropoutSeasonIE(InfoExtractor):
 
     def _real_extract(self, url):
         season_id = self._match_id(url)
-        season_title = season_id.replace('-',' ').title()
+        season_title = season_id.replace('-', ' ').title()
         webpage = self._download_webpage(url, season_id)
 
         items = get_elements_by_class('js-collection-item', webpage)
