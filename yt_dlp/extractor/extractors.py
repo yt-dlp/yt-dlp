@@ -1357,6 +1357,7 @@ from .soundcloud import (
     SoundcloudEmbedIE,
     SoundcloudIE,
     SoundcloudSetIE,
+    SoundcloudRelatedIE,
     SoundcloudUserIE,
     SoundcloudTrackStationIE,
     SoundcloudPlaylistIE,
