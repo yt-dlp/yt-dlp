@@ -2321,11 +2321,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield from self._comment_entries(renderer, ytcfg, video_id)
 
         max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0])
-        # Force English regardless of account setting to prevent parsing issues
-        # See: https://github.com/yt-dlp/yt-dlp/issues/532
-        ytcfg = copy.deepcopy(ytcfg)
-        traverse_obj(
-            ytcfg, ('INNERTUBE_CONTEXT', 'client'), expected_type=dict, default={})['hl'] = 'en'
         return itertools.islice(_real_comment_extract(contents), 0, max_comments)
 
     @staticmethod
