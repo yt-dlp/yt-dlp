@@ -18,6 +18,7 @@ class GameJoltBaseIE(InfoExtractor):
     _API_BASE = 'https://gamejolt.com/site-api/'
 
     def _call_api(self, endpoint, *args, **kwargs):
+        kwargs.setdefault('headers', {}).update({'Accept': 'image/webp,*/*'})
         return self._download_json(self._API_BASE + endpoint, *args, **kwargs)['payload']
 
     def _parse_content_as_text(self, content):
@@ -74,12 +75,29 @@ class GameJoltBaseIE(InfoExtractor):
             full_description = self._parse_content_as_text(article_content)
 
         user_data = post_data.get('user') or {}
+        info_dict = {
+            'ie_key': GameJoltIE.ie_key(),
+            'extractor': 'GameJolt',
+            'webpage_url': str_or_none(post_data.get('url')) or 'https://gamejolt.com/p/' + post_id,
+            'id': post_id,
+            'title': description,
+            'description': full_description or description,
+            'display_id': post_data.get('slug'),
+            'uploader': user_data.get('display_name') or user_data.get('name'),
+            'uploader_id': user_data.get('username'),
+            'uploader_url': 'https://gamejolt.com' + user_data['url'] if user_data.get('url') else None,
+            'categories': [try_get(category, lambda x: '%s - %s' % (x['community']['name'], x['channel'].get('display_title') or x['channel']['title']))
+                           for category in post_data.get('communities' or [])],
+            'tags': traverse_obj(
+                lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),
+            'like_count': post_data.get('like_count'),
+            'comment_count': 0 if try_get(post_data, lambda x: x['comment_count'] == None) else post_data.get('comment_count'),
+            'timestamp': int_or_none(post_data.get('added_on'), scale=1000),
+            'release_timestamp': int_or_none(post_data.get('published_on'), scale=1000),
+            '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
+        }
 
         # TODO: Handle multiple videos/embeds?
-        embed_url = traverse_obj(post_data, ('embeds', ..., 'url'), expected_type=str_or_none, get_all=False)
-        if embed_url:
-            return self.url_result(embed_url)
-
         video_data = traverse_obj(post_data, ('videos', ...), expected_type=dict, get_all=False) or {}
         formats, subtitles, thumbnails = [], {}, []
         for media in video_data.get('media', []):
@@ -110,32 +128,43 @@ class GameJoltBaseIE(InfoExtractor):
                     'acodec': 'none' if 'video-card' in media_url else None,
                 })
 
-        return {
-            'ie_key': GameJoltIE.ie_key(),
-            'extractor': 'GameJolt',
-            'webpage_url': str_or_none(post_data.get('url')) or 'https://gamejolt.com/p/' + post_id,
-            'id': post_id,
-            'title': description,
-            'description': full_description or description,
-            'display_id': post_data.get('slug'),
-            'uploader': user_data.get('display_name') or user_data.get('name'),
-            'uploader_id': user_data.get('username'),
-            'uploader_url': 'https://gamejolt.com' + user_data['url'] if user_data.get('url') else None,
-            'categories': [try_get(category, lambda x: '%s - %s' % (x['community']['name'], x['channel']['display_title']))
-                           for category in post_data.get('communities' or [])],
-            'tags': traverse_obj(
-                lead_content, ('content', ..., 'content', ..., 'marks', ..., 'attrs', 'tag'), expected_type=str_or_none),
-            'like_count': post_data.get('like_count'),
-            'comment_count': post_data.get('comment_count') or 0,
-            'timestamp': int_or_none(post_data.get('added_on'), scale=1000),
-            'release_timestamp': int_or_none(post_data.get('published_on'), scale=1000),
-            'formats': formats,
-            'subtitles': subtitles,
-            'thumbnails': thumbnails,
-            'view_count': int_or_none(video_data.get('view_count')),
-            '__post_extractor': self.extract_comments(post_data.get('id'), post_id)
-        }
+        if formats:
+            return {
+                **info_dict,
+                'formats': formats,
+                'subtitles': subtitles,
+                'thumbnails': thumbnails,
+                'view_count': int_or_none(video_data.get('view_count')),
+            }
 
+        gif_entries = []
+        for media in post_data.get('media', []):
+            if determine_ext(media['img_url']) != 'gif' or 'gif' not in media.get('filetype', ''):
+                continue
+            gif_entries.append({
+                'id': media['hash'],
+                'title': media['filename'].split('.')[0],
+                'formats': [{
+                    'format_id': url_key,
+                    'url': media[url_key],
+                    'width': media.get('width') if url_key == 'img_url' else None,
+                    'height': media.get('height') if url_key == 'img_url' else None,
+                    'filesize': media.get('filesize') if url_key == 'img_url' else None,
+                    'acodec': 'none',
+                } for url_key in ('img_url', 'mediaserver_url', 'mediaserver_url_mp4', 'mediaserver_url_webm') if media.get(url_key)]
+            })
+        if gif_entries:
+            return {
+                '_type': 'playlist',
+                **info_dict,
+                'entries': gif_entries,
+            }
+
+        embed_url = traverse_obj(post_data, ('embeds', ..., 'url'), expected_type=str_or_none, get_all=False)
+        if embed_url:
+            return self.url_result(embed_url)
+
+        return info_dict
 
 class GameJoltIE(GameJoltBaseIE):
     _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/p/(?P<id>[\w-]+)'
@@ -203,7 +232,7 @@ class GameJoltIE(GameJoltBaseIE):
             'display_id': 'i-fuckin-broke-chaos-d56h3eue',
             'title': 'I fuckin broke Chaos.',
             'description': 'I moved my tab durning the cutscene so now it\'s stuck like this.',
-            'uploader': 'The_Nyesh_femboy',
+            'uploader': 'Jeff____________',
             'uploader_id': 'The_Nyesh_Man',
             'uploader_url': 'https://gamejolt.com/@The_Nyesh_Man',
             'categories': ['Friday Night Funkin\' - Videos'],
@@ -216,6 +245,52 @@ class GameJoltIE(GameJoltBaseIE):
             'comment_count': int,
             'view_count': int,
         }
+    }, {
+        # Single GIF
+        'url': 'https://gamejolt.com/p/hello-everyone-i-m-developing-a-pixel-art-style-mod-for-fnf-and-i-vs4gdrd8',
+        'info_dict': {
+            'id': 'vs4gdrd8',
+            'ie_key': 'GameJolt',
+            'display_id': 'hello-everyone-i-m-developing-a-pixel-art-style-mod-for-fnf-and-i-vs4gdrd8',
+            'title': 'md5:cc3d8b031d9bc7ec2ec5a9ffc707e1f9',
+            'description': 'md5:cc3d8b031d9bc7ec2ec5a9ffc707e1f9',
+            'uploader': 'Quesoguy',
+            'uploader_id': 'CheeseguyDev',
+            'uploader_url': 'https://gamejolt.com/@CheeseguyDev',
+            'categories': ['Game Dev - General', 'Arts n\' Crafts - Creations', 'Pixel Art - showcase',
+                           'Friday Night Funkin\' - Mods', 'Newgrounds - Friday Night Funkin (13+)'],
+            'timestamp': 1639517122,
+            'release_timestamp': 1639519966,
+            'like_count': int,
+            'comment_count': int,
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': 'dszyjnwi',
+                'ext': 'webm',
+                'title': 'gif-presentacion-mejorado-dszyjnwi',
+                'n_entries': 1,
+            }
+        }]
+    }, {
+        # Multiple GIFs
+        'url': 'https://gamejolt.com/p/gif-yhsqkumq',
+        'playlist_count': 35,
+        'info_dict': {
+            'id': 'yhsqkumq',
+            'ie_key': 'GameJolt',
+            'display_id': 'gif-yhsqkumq',
+            'title': 'GIF',
+            'description': 'GIF',
+            'uploader': 'DaniilTvman',
+            'uploader_id': 'DaniilTvman',
+            'uploader_url': 'https://gamejolt.com/@DaniilTvman',
+            'categories': ['Five Nights At The AGK Studio Comunity - NEWS game'],
+            'timestamp': 1638721559,
+            'release_timestamp': 1638722276,
+            'like_count': int,
+            'comment_count': int,
+        },
     }]
 
     def _real_extract(self, url):
