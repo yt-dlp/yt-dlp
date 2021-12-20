@@ -55,6 +55,7 @@ from ..utils import (
     smuggle_url,
     str_or_none,
     str_to_int,
+    strftime_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
@@ -358,7 +359,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             consent_id = random.randint(100, 999)
         self._set_cookie('.youtube.com', 'CONSENT', 'YES+cb.20210328-17-p0.en+FX+%s' % consent_id)
 
+    def _initialize_pref(self):
+        cookies = self._get_cookies('https://www.youtube.com/')
+        pref_cookie = cookies.get('PREF')
+        pref = {}
+        if pref_cookie:
+            try:
+                pref = dict(compat_urlparse.parse_qsl(pref_cookie.value))
+            except ValueError:
+                self.report_warning('Failed to parse user PREF cookie' + bug_reports_message())
+        pref.update({'hl': 'en'})
+        self._set_cookie('.youtube.com', name='PREF', value=compat_urllib_parse_urlencode(pref))
+
     def _real_initialize(self):
+        self._initialize_pref()
         self._initialize_consent()
         self._login()
 
@@ -391,23 +405,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str, default_client)
 
     def _extract_context(self, ytcfg=None, default_client='web'):
-        _get_context = lambda y: try_get(y, lambda x: x['INNERTUBE_CONTEXT'], dict)
-        context = _get_context(ytcfg)
-        if context:
-            return context
-
-        context = _get_context(self._get_default_ytcfg(default_client))
-        if not ytcfg:
-            return context
-
-        # Recreate the client context (required)
-        context['client'].update({
-            'clientVersion': self._extract_client_version(ytcfg, default_client),
-            'clientName': self._extract_client_name(ytcfg, default_client),
-        })
-        visitor_data = try_get(ytcfg, lambda x: x['VISITOR_DATA'], compat_str)
-        if visitor_data:
-            context['client']['visitorData'] = visitor_data
+        context = get_first(
+            (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
+        # Enforce language for extraction
+        traverse_obj(context, 'client', expected_type=dict, default={})['hl'] = 'en'
         return context
 
     _SAPISID = None
@@ -664,6 +665,29 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if text:
                     return text
 
+    @staticmethod
+    def extract_relative_time(relative_time_text):
+        """
+        Extracts a relative time from string and converts to dt object
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)'
+        """
+        mobj = re.search(r'(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+        if mobj:
+            try:
+                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')), precision='auto')
+            except ValueError:
+                return None
+
+    def _extract_time_text(self, renderer, *path_list):
+        text = self._get_text(renderer, *path_list) or ''
+        dt = self.extract_relative_time(text)
+        timestamp = None
+        if isinstance(dt, datetime.datetime):
+            timestamp = calendar.timegm(dt.timetuple())
+        if text and timestamp is None:
+            self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
+        return timestamp, text
+
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
                           ytcfg=None, check_get_keys=None, ep='browse', fatal=True, api_hostname=None,
                           default_client='web'):
@@ -750,7 +774,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'view count', default=None))
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
-
+        channel_id = traverse_obj(
+            renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'), expected_type=str, get_all=False)
+        timestamp, time_text = self._extract_time_text(renderer, 'publishedTimeText')
+        scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
+        overlay_style = traverse_obj(
+            renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
+        badges = self._extract_badges(renderer)
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -761,6 +791,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'duration': duration,
             'view_count': view_count,
             'uploader': uploader,
+            'channel_id': channel_id,
+            'upload_date': strftime_or_none(timestamp, '%Y%m%d'),
+            'live_status': ('is_upcoming' if scheduled_timestamp is not None
+                            else 'was_live' if 'streamed' in time_text.lower()
+                            else 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges
+                            else None),
+            'release_timestamp': scheduled_timestamp,
+            'availability': self._availability(needs_premium='premium' in badges, needs_subscription='members only' in badges)
         }
 
 
@@ -2064,19 +2102,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             (r'%s\s*%s' % (regex, self._YT_INITIAL_BOUNDARY_RE),
              regex), webpage, name, default='{}'), video_id, fatal=False)
 
-    @staticmethod
-    def parse_time_text(time_text):
-        """
-        Parse the comment time text
-        time_text is in the format 'X units ago (edited)'
-        """
-        time_text_split = time_text.split(' ')
-        if len(time_text_split) >= 3:
-            try:
-                return datetime_from_str('now-%s%s' % (time_text_split[0], time_text_split[1]), precision='auto')
-            except ValueError:
-                return None
-
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
         if not comment_id:
@@ -2085,10 +2110,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         text = self._get_text(comment_renderer, 'contentText')
 
         # note: timestamp is an estimate calculated from the current time and time_text
-        time_text = self._get_text(comment_renderer, 'publishedTimeText') or ''
-        time_text_dt = self.parse_time_text(time_text)
-        if isinstance(time_text_dt, datetime.datetime):
-            timestamp = calendar.timegm(time_text_dt.timetuple())
+        timestamp, time_text = self._extract_time_text(comment_renderer, 'publishedTimeText')
         author = self._get_text(comment_renderer, 'authorText')
         author_id = try_get(comment_renderer,
                             lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
@@ -2261,11 +2283,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             yield from self._comment_entries(renderer, ytcfg, video_id)
 
         max_comments = int_or_none(self._configuration_arg('max_comments', [''])[0])
-        # Force English regardless of account setting to prevent parsing issues
-        # See: https://github.com/yt-dlp/yt-dlp/issues/532
-        ytcfg = copy.deepcopy(ytcfg)
-        traverse_obj(
-            ytcfg, ('INNERTUBE_CONTEXT', 'client'), expected_type=dict, default={})['hl'] = 'en'
         return itertools.islice(_real_comment_extract(contents), 0, max_comments)
 
     @staticmethod
