@@ -124,7 +124,7 @@ See [changelog](Changelog.md) or [commits](https://github.com/yt-dlp/yt-dlp/comm
 Some of yt-dlp's default options are different from that of youtube-dl and youtube-dlc:
 
 * The options `--auto-number` (`-A`), `--title` (`-t`) and `--literal` (`-l`), no longer work. See [removed options](#Removed) for details
-* `avconv` is not supported as as an alternative to `ffmpeg`
+* `avconv` is not supported as an alternative to `ffmpeg`
 * The default [output template](#output-template) is `%(title)s [%(id)s].%(ext)s`. There is no real reason for this change. This was changed before yt-dlp was ever made public and now there are no plans to change it back to `%(title)s-%(id)s.%(ext)s`. Instead, you may use `--compat-options filename`
 * The default [format sorting](#sorting-formats) is different from youtube-dl and prefers higher resolution and better codecs rather than higher bitrates. You can use the `--format-sort` option to change this to any order you prefer, or use `--compat-options format-sort` to use youtube-dl's sorting order
 * The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be preferred. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
@@ -250,7 +250,7 @@ On windows, [Microsoft Visual C++ 2010 SP1 Redistributable Package (x86)](https:
 
 While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly recommended
 
-* [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. Licence [depends on the build](https://www.ffmpeg.org/legal.html)
+* [**ffmpeg** and **ffprobe**](https://www.ffmpeg.org) - Required for [merging separate video and audio files](#format-selection) as well as for various [post-processing](#post-processing-options) tasks. License [depends on the build](https://www.ffmpeg.org/legal.html)
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodomex**](https://github.com/Legrandin/pycryptodome) - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licensed under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
@@ -449,7 +449,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 ## Download Options:
     -N, --concurrent-fragments N     Number of fragments of a dash/hlsnative
-                                     video that should be download concurrently
+                                     video that should be downloaded concurrently
                                      (default is 1)
     -r, --limit-rate RATE            Maximum download rate in bytes per second
                                      (e.g. 50K or 4.2M)
