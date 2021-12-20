@@ -85,6 +85,7 @@ class InstagramBaseIE(InfoExtractor):
                     raise e
                 tfa_method, tfa_code = 1, self._get_tfa_info('the code sent to your number via SMS')
             else:
+                self.report_warning('Unable to find a supported TFA method')
                 tfa_method, tfa_code = 2, self._get_tfa_info('one of the 8-digit backup codes')
             login = self._download_json('https://www.instagram.com/accounts/login/ajax/two_factor/', None, note='Sending TFA code', headers=login_headers, data=urlencode_postdata({
                 'identifier': tfa_identifier,
@@ -96,7 +97,10 @@ class InstagramBaseIE(InfoExtractor):
             }))
 
         if not login.get('authenticated'):
-            if login.get('message'):
+            if login.get('checkpoint_url'):
+                raise ExtractorError('Unable to login: This login attempt is detected as unusual. '
+                                     f'Follow the instructions at https://www.instagram.com{login["checkpoint_url"]} and try again.', expected=True)
+            elif login.get('message'):
                 raise ExtractorError(f'Unable to login: {login["message"]}')
             elif login.get('user'):
                 raise ExtractorError('Unable to login: Sorry, your password was incorrect. Please double-check your password.', expected=True)
