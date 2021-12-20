@@ -5,9 +5,65 @@ from ..utils import (
     urlencode_postdata,
     get_element_by_id,
     get_element_by_class,
+    get_elements_by_class,
     clean_html
 )
 
+
+class DropoutSeasonIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:[0-9]+/?$)'
+    _TESTS = [
+        {
+            'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
+            'note': 'Multi-season series with the season in the url',
+            'playlist_count': 17,
+            'info_dict': {
+                'id': 'dimension-20-fantasy-high:season-1'
+            }
+        },
+        {
+            'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
+            'note': 'Multi-season series with the season not in the url',
+            'playlist_count': 17,
+            'info_dict': {
+                'id': 'dimension-20-fantasy-high:season-1'
+            }
+        },
+        {
+            'url': 'https://www.dropout.tv/dimension-20-shriek-week',
+            'note': 'Single-season series',
+            'playlist_count': 4,
+            'info_dict': {
+                'id': 'dimension-20-shriek-week:season-1'
+            }
+        }
+    ]
+
+    def _real_extract(self, url):
+        season_id = self._match_id(url)
+        webpage = self._download_webpage(url, season_id)
+
+        items = get_elements_by_class('js-collection-item', webpage)
+        entries = []
+        for item in items:
+            url = self._search_regex(r'a href="(.+?)" class="browse-item-link"', item, 'item_url')
+            entries.append(self.url_result(url))
+
+        seasons = get_element_by_class('select-dropdown-wrapper', webpage)
+        if seasons:
+            seasons = seasons.strip().replace('\n', '')
+            current_season = self._search_regex(r'<option(?:.+?)selected>[ ]+(.+?)[ ]+</option>',
+                                                seasons, 'current_season', default=None)
+            if current_season:
+                current_season = current_season.lower().replace(' ', '-')
+                season_id += ':' + current_season
+
+        return {
+            '_type': 'playlist',
+            'id': season_id,
+            'playlist_count': len(entries),
+            'entries': entries
+        }
 
 
 class DropoutIE(InfoExtractor):
@@ -59,7 +115,7 @@ class DropoutIE(InfoExtractor):
         }
     ]
 
-    def _get_authenticity_token(self, id: str):
+    def _get_authenticity_token(self):
         signin_page = self._download_webpage(self._LOGIN_URL, None,
                                              note='Getting authenticity token')
         authenticity_token = self._html_search_regex(
@@ -75,7 +131,7 @@ class DropoutIE(InfoExtractor):
         payload = {
             'email': username,
             'password': password,
-            'authenticity_token': self._get_authenticity_token(id),
+            'authenticity_token': self._get_authenticity_token(),
             'utf8': True
         }
         response = self._download_webpage(self._LOGIN_URL, None,
@@ -94,10 +150,8 @@ class DropoutIE(InfoExtractor):
     def _logout(self):
         self._download_webpage(self._LOGOUT_URL, None, note='Logging out')
 
-    def _real_initialize(self):
-        self._login()
-
     def _real_extract(self, url):
+        self._login()
         display_id = self._match_id(url)
 
         webpage = self._download_webpage(url, None, note='Downloading video webpage')
@@ -140,7 +194,7 @@ class DropoutIE(InfoExtractor):
             'release_date': release_date,
             'series': series,
             'season_number': int(season) if season else None,
-            'season': 'Season '+season if season else None,
+            'season': 'Season ' + season if season else None,
             'episode_number': int(episode) if episode else None,
             'episode': title if episode else None
         }
