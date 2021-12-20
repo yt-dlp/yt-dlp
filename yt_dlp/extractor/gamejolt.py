@@ -168,7 +168,7 @@ class GameJoltBaseIE(InfoExtractor):
 
 
 class GameJoltIE(GameJoltBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/p/[\w-]+-(?P<id>\w{8})'
+    _VALID_URL = r'https?://(?:www\.)?gamejolt\.com/p/(?:[\w-]*-)?(?P<id>\w{8})'
     _TESTS = [{
         # No audio
         'url': 'https://gamejolt.com/p/introducing-ramses-jackson-some-fnf-himbo-i-ve-been-animating-fo-c6achnzu',
