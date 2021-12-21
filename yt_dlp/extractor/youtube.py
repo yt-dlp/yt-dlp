@@ -668,12 +668,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if text:
                     return text
 
-    def _get_count(self, data, *path_list, name='count'):
+    def _get_count(self, data, *path_list):
         count_text = self._get_text(data, *path_list) or ''
         count = parse_count(count_text)
         if count is None:
             count = str_to_int(
-                self._search_regex(r'^([\d,]+)', re.sub(r'\s', '', count_text), name, default=None))
+                self._search_regex(r'^([\d,]+)', re.sub(r'\s', '', count_text), 'count', default=None))
         return count
 
     @staticmethod
@@ -789,7 +789,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         description = self._get_text(renderer, 'descriptionSnippet')
         duration = parse_duration(self._get_text(
             renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
-        view_count = self._get_count(renderer, 'viewCountText', name='view count')
+        view_count = self._get_count(renderer, 'viewCountText')
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
@@ -3643,7 +3643,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if playlist_id is None:
             playlist_id = item_id
 
-        view_count = self._get_count(primary_sidebar_renderer, ['stats', 1], name='playlist_view_count')
+        view_count = self._get_count(primary_sidebar_renderer, ['stats', 1])
         if title is None:
             title = self._get_text(['header', 'hashtagHeaderRenderer', 'hashtag']) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
