@@ -2,6 +2,7 @@
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
+    int_or_none,
     urlencode_postdata,
     get_element_by_id,
     get_element_by_class,
@@ -95,7 +96,7 @@ class DropoutIE(InfoExtractor):
                 'season_number': 2,
                 'season': 'Season 2',
                 'episode_number': 6,
-                'episode': 'Yes or No',
+                'episode': 'Episode 6',
                 'duration': 1180,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
@@ -118,7 +119,7 @@ class DropoutIE(InfoExtractor):
                 'season_number': 1,
                 'season': 'Season 1',
                 'episode_number': 1,
-                'episode': 'The Beginning Begins',
+                'episode': 'Episode 1',
                 'duration': 6838,
                 'uploader_id': 'user80538407',
                 'uploader_url': 'https://vimeo.com/user80538407',
@@ -173,7 +174,6 @@ class DropoutIE(InfoExtractor):
                                                    response, 'subscription_status', default='none')
         if user_has_subscription.lower() == 'true':
             return response
-        self._logout()
         if user_has_subscription.lower() == 'false':
             self.raise_login_required('Account is not subscribed')
         else:
@@ -183,6 +183,7 @@ class DropoutIE(InfoExtractor):
         self._download_webpage(self._LOGOUT_URL, None, note='Logging out')
 
     def _real_extract(self, url):
+        display_id = self._match_id(url)
         try:
             self._login()
             webpage = self._download_webpage(url, None, note='Downloading video webpage')
@@ -190,13 +191,11 @@ class DropoutIE(InfoExtractor):
             self._logout()
 
         embed_url = self._search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'embed_url')
-        display_id = self._match_id(url)
         id = self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
         description = self._html_search_meta('description', webpage, display_name='description', fatal=False)
         thumbnail = self._og_search_thumbnail(webpage)
         thumbnail = thumbnail.split('?')[0] if thumbnail else None  # Ignore crop/downscale
-        watch_info = get_element_by_id('watch-info', webpage)
-        watch_info = watch_info if watch_info else ''
+        watch_info = get_element_by_id('watch-info', webpage) or ''
         title = clean_html(get_element_by_class('video-title', watch_info))
         release_date = self._search_regex(
             r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
@@ -207,27 +206,21 @@ class DropoutIE(InfoExtractor):
         # is much harder to parse than "2021-12-15")
         series = clean_html(get_element_by_class('series-title', watch_info))
         first_text = get_element_by_class('text', watch_info)
-        season_episode = get_element_by_class('site-font-secondary-color', first_text)
-        if season_episode:
-            season_episode = season_episode.strip()
-            season = self._search_regex(r'Season (.+?),', season_episode, 'season', default=None)
-            episode = self._search_regex(r'Episode (.+?)', season_episode, 'episode', default=None)
-        else:
-            season, episode = None
+        season_episode = (get_element_by_class('site-font-secondary-color', first_text) or '').strip()
+        season = self._search_regex(r'Season (\d+),', season_episode, 'season', default=None)
+        episode = self._search_regex(r'Episode (\d+)', season_episode, 'episode', default=None)
 
         return {
             '_type': 'url_transparent',
             'ie_key': VHXEmbedIE.ie_key(),
             'url': embed_url,
-            'id': id,
+            'id': self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id'),
             'display_id': display_id,
-            'description': description,
+            'description': self._html_search_meta('description', webpage, display_name='description', fatal=False),
             'thumbnail': thumbnail,
-            'title': title,
+            'title': clean_html(get_element_by_class('video-title', watch_info)),
             'release_date': release_date,
-            'series': series,
-            'season_number': int(season) if season else None,
-            'season': 'Season ' + season if season else None,
-            'episode_number': int(episode) if episode else None,
-            'episode': title if episode else None
+            'series': clean_html(get_element_by_class('series-title', watch_info)),
+            'season_number': int_or_none(season),
+            'episode_number': int_or_none(episode)
         }
