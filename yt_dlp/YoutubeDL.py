@@ -624,7 +624,7 @@ class YoutubeDL(object):
 
         # Creating format selector here allows us to catch syntax errors before the extraction
         self.format_selector = (
-            None if self.params.get('format') is None
+            self.params.get('format') if self.params.get('format') in (None, '-')
             else self.params['format'] if callable(self.params['format'])
             else self.build_format_selector(self.params['format']))
 
@@ -818,14 +818,15 @@ class YoutubeDL(object):
         if self.params.get('cookiefile') is not None:
             self.cookiejar.save(ignore_discard=True, ignore_expires=True)
 
-    def trouble(self, message=None, tb=None):
+    def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
 
         Depending on if the downloader has been configured to ignore
         download errors or not, this method may throw an exception or
         not when errors are found, after printing the message.
 
-        tb, if given, is additional traceback information.
+        @param tb          If given, is additional traceback information
+        @param is_error    Whether to raise error according to ignorerrors
         """
         if message is not None:
             self.to_stderr(message)
@@ -841,6 +842,8 @@ class YoutubeDL(object):
                     tb = ''.join(tb_data)
             if tb:
                 self.to_stderr(tb)
+        if not is_error:
+            return
         if not self.params.get('ignoreerrors'):
             if sys.exc_info()[0] and hasattr(sys.exc_info()[1], 'exc_info') and sys.exc_info()[1].exc_info[0]:
                 exc_info = sys.exc_info()[1].exc_info
@@ -900,12 +903,12 @@ class YoutubeDL(object):
         else:
             self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
 
-    def report_error(self, message, tb=None):
+    def report_error(self, message, *args, **kwargs):
         '''
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
         '''
-        self.trouble(f'{self._format_err("ERROR:", self.Styles.ERROR)} {message}', tb)
+        self.trouble(f'{self._format_err("ERROR:", self.Styles.ERROR)} {message}', *args, **kwargs)
 
     def write_debug(self, message, only_once=False):
         '''Log debug message or Print message to stderr'''
@@ -2448,20 +2451,21 @@ class YoutubeDL(object):
         # The pre-processors may have modified the formats
         formats = info_dict.get('formats', [info_dict])
 
+        list_only = self.params.get('simulate') is None and (
+            self.params.get('list_thumbnails') or self.params.get('listformats') or self.params.get('listsubtitles'))
+        interactive_format_selection = not list_only and self.format_selector == '-'
         if self.params.get('list_thumbnails'):
             self.list_thumbnails(info_dict)
-        if self.params.get('listformats'):
-            if not info_dict.get('formats') and not info_dict.get('url'):
-                self.to_screen('%s has no formats' % info_dict['id'])
-            else:
-                self.list_formats(info_dict)
         if self.params.get('listsubtitles'):
             if 'automatic_captions' in info_dict:
                 self.list_subtitles(
                     info_dict['id'], automatic_captions, 'automatic captions')
             self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
-        list_only = self.params.get('simulate') is None and (
-            self.params.get('list_thumbnails') or self.params.get('listformats') or self.params.get('listsubtitles'))
+        if self.params.get('listformats') or interactive_format_selection:
+            if not info_dict.get('formats') and not info_dict.get('url'):
+                self.to_screen('%s has no formats' % info_dict['id'])
+            else:
+                self.list_formats(info_dict)
         if list_only:
             # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
@@ -2473,33 +2477,48 @@ class YoutubeDL(object):
             self.write_debug('Default format spec: %s' % req_format)
             format_selector = self.build_format_selector(req_format)
 
-        # While in format selection we may need to have an access to the original
-        # format set in order to calculate some metrics or do some processing.
-        # For now we need to be able to guess whether original formats provided
-        # by extractor are incomplete or not (i.e. whether extractor provides only
-        # video-only or audio-only formats) for proper formats selection for
-        # extractors with such incomplete formats (see
-        # https://github.com/ytdl-org/youtube-dl/pull/5556).
-        # Since formats may be filtered during format selection and may not match
-        # the original formats the results may be incorrect. Thus original formats
-        # or pre-calculated metrics should be passed to format selection routines
-        # as well.
-        # We will pass a context object containing all necessary additional data
-        # instead of just formats.
-        # This fixes incorrect format selection issue (see
-        # https://github.com/ytdl-org/youtube-dl/issues/10083).
-        incomplete_formats = (
-            # All formats are video-only or
-            all(f.get('vcodec') != 'none' and f.get('acodec') == 'none' for f in formats)
-            # all formats are audio-only
-            or all(f.get('vcodec') == 'none' and f.get('acodec') != 'none' for f in formats))
+        while True:
+            if interactive_format_selection:
+                req_format = input(
+                    self._format_screen('\nEnter format selector: ', self.Styles.EMPHASIS))
+                try:
+                    format_selector = self.build_format_selector(req_format)
+                except SyntaxError as err:
+                    self.report_error(err, tb=False, is_error=False)
+                    continue
 
-        ctx = {
-            'formats': formats,
-            'incomplete_formats': incomplete_formats,
-        }
+            # While in format selection we may need to have an access to the original
+            # format set in order to calculate some metrics or do some processing.
+            # For now we need to be able to guess whether original formats provided
+            # by extractor are incomplete or not (i.e. whether extractor provides only
+            # video-only or audio-only formats) for proper formats selection for
+            # extractors with such incomplete formats (see
+            # https://github.com/ytdl-org/youtube-dl/pull/5556).
+            # Since formats may be filtered during format selection and may not match
+            # the original formats the results may be incorrect. Thus original formats
+            # or pre-calculated metrics should be passed to format selection routines
+            # as well.
+            # We will pass a context object containing all necessary additional data
+            # instead of just formats.
+            # This fixes incorrect format selection issue (see
+            # https://github.com/ytdl-org/youtube-dl/issues/10083).
+            incomplete_formats = (
+                # All formats are video-only or
+                all(f.get('vcodec') != 'none' and f.get('acodec') == 'none' for f in formats)
+                # all formats are audio-only
+                or all(f.get('vcodec') == 'none' and f.get('acodec') != 'none' for f in formats))
 
-        formats_to_download = list(format_selector(ctx))
+            ctx = {
+                'formats': formats,
+                'incomplete_formats': incomplete_formats,
+            }
+
+            formats_to_download = list(format_selector(ctx))
+            if interactive_format_selection and not formats_to_download:
+                self.report_error('Requested format is not available', tb=False, is_error=False)
+                continue
+            break
+
         if not formats_to_download:
             if not self.params.get('ignore_no_formats_error'):
                 raise ExtractorError('Requested format is not available', expected=True,

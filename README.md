@@ -1290,6 +1290,8 @@ The simplest case is requesting a specific format, for example with `-f 22` you 
 
 You can also use a file extension (currently `3gp`, `aac`, `flv`, `m4a`, `mp3`, `mp4`, `ogg`, `wav`, `webm` are supported) to download the best quality format of a particular file extension served as a single file, e.g. `-f webm` will download the best quality format with the `webm` extension served as a single file.
 
+You can use `-f -` to interactively provide the format selector *for each video*
+
 You can also use special names to select particular edge case formats:
 
  - `all`: Select **all formats** separately
