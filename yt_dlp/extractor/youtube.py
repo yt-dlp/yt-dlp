@@ -3646,7 +3646,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         playlist_stats = traverse_obj(primary_sidebar_renderer, 'stats')
         last_updated_unix, _ = self._extract_time_text(playlist_stats, 2)
         if title is None:
-            title = self._get_text(['header', 'hashtagHeaderRenderer', 'hashtag']) or playlist_id
+            title = self._get_text(data, ['header', 'hashtagHeaderRenderer', 'hashtag']) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
         title += format_field(selected_tab, 'expandedText', ' - %s')
 
