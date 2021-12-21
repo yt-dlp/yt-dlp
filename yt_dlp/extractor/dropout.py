@@ -2,75 +2,16 @@
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
+    ExtractorError,
     int_or_none,
+    join_nonempty,
     urlencode_postdata,
     get_element_by_id,
     get_element_by_class,
     get_elements_by_class,
-    clean_html
+    clean_html,
+    unified_strdate
 )
-
-
-class DropoutSeasonIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:[0-9]+/?$)'
-    _TESTS = [
-        {
-            'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
-            'note': 'Multi-season series with the season in the url',
-            'playlist_count': 17,
-            'info_dict': {
-                'id': 'dimension-20-fantasy-high:season-1',
-                'title': 'Dimension 20 Fantasy High - Season 1'
-            }
-        },
-        {
-            'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
-            'note': 'Multi-season series with the season not in the url',
-            'playlist_count': 17,
-            'info_dict': {
-                'id': 'dimension-20-fantasy-high:season-1',
-                'title': 'Dimension 20 Fantasy High - Season 1'
-            }
-        },
-        {
-            'url': 'https://www.dropout.tv/dimension-20-shriek-week',
-            'note': 'Single-season series',
-            'playlist_count': 4,
-            'info_dict': {
-                'id': 'dimension-20-shriek-week:season-1',
-                'title': 'Dimension 20 Shriek Week - Season 1'
-            }
-        }
-    ]
-
-    def _real_extract(self, url):
-        season_id = self._match_id(url)
-        season_title = season_id.replace('-', ' ').title()
-        webpage = self._download_webpage(url, season_id)
-
-        items = get_elements_by_class('js-collection-item', webpage)
-        entries = []
-        for item in items:
-            url = self._search_regex(r'a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
-                                     item, 'item_url')
-            entries.append(self.url_result(url, ie=DropoutIE.ie_key()))
-
-        seasons = get_element_by_class('select-dropdown-wrapper', webpage)
-        if seasons:
-            seasons = seasons.strip().replace('\n', '')
-            current_season = self._search_regex(r'<option(?:.+?)selected>[ ]+(.+?)[ ]+</option>',
-                                                seasons, 'current_season', default=None)
-            if current_season:
-                season_id += ':' + current_season.lower().replace(' ', '-')
-                season_title += ' - ' + current_season
-
-        return {
-            '_type': 'playlist',
-            'id': season_id,
-            'title': season_title,
-            'playlist_count': len(entries),
-            'entries': entries
-        }
 
 
 class DropoutIE(InfoExtractor):
@@ -148,67 +89,52 @@ class DropoutIE(InfoExtractor):
         }
     ]
 
-    def _get_authenticity_token(self):
-        signin_page = self._download_webpage(self._LOGIN_URL, None,
+    def _get_authenticity_token(self, id: str = None):
+        signin_page = self._download_webpage(self._LOGIN_URL, id,
                                              note='Getting authenticity token')
         authenticity_token = self._html_search_regex(
             r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']',
             signin_page, 'authenticity_token')
         return authenticity_token
 
-    def _login(self):
+    def _login(self, id: str = None):
         username, password = self._get_login_info()
         if not (username and password):
-            self.raise_login_required()
+            self.raise_login_required(method='password')
 
         payload = {
             'email': username,
             'password': password,
-            'authenticity_token': self._get_authenticity_token(),
+            'authenticity_token': self._get_authenticity_token(id),
             'utf8': True
         }
-        response = self._download_webpage(self._LOGIN_URL, None, note='Logging in',
+        response = self._download_webpage(self._LOGIN_URL, id, note='Logging in',
                                           data=urlencode_postdata(payload))
 
         user_has_subscription = self._search_regex(r'user_has_subscription: ["\'](.+?)["\']',
                                                    response, 'subscription_status', default='none')
         if user_has_subscription.lower() == 'true':
-            return response
+            return response  # This is what we want
         if user_has_subscription.lower() == 'false':
-            self.raise_login_required('Account is not subscribed')
+            raise ExtractorError(msg='Account is not subscribed')
         else:
-            self.raise_login_required('Incorrect username/password')
-
-    def _logout(self):
-        self._download_webpage(self._LOGOUT_URL, None, note='Logging out')
+            raise ExtractorError(msg='Incorrect username/password')
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
         try:
-            self._login()
-            webpage = self._download_webpage(url, None, note='Downloading video webpage')
+            self._login(display_id)
+            webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
         finally:
-            self._logout()
+            self._download_webpage(self._LOGOUT_URL, display_id, note='Logging out')
 
         embed_url = self._search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'embed_url')
-        id = self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id')
-        description = self._html_search_meta('description', webpage, display_name='description', fatal=False)
         thumbnail = self._og_search_thumbnail(webpage)
         thumbnail = thumbnail.split('?')[0] if thumbnail else None  # Ignore crop/downscale
         watch_info = get_element_by_id('watch-info', webpage) or ''
-        title = clean_html(get_element_by_class('video-title', watch_info))
-        release_date = self._search_regex(
-            r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
-            watch_info, 'release_date', default=None)  # TODO Really, this should be `fatal=False`, but that angers the tester
-        release_date = release_date.replace('-', '') if release_date else None
-        # utils.get_element_by_attribute is not used because we want data-meta-field-value,
-        # not what's actually in the element (inside is something like "15Dec2021", which
-        # is much harder to parse than "2021-12-15")
-        series = clean_html(get_element_by_class('series-title', watch_info))
-        first_text = get_element_by_class('text', watch_info)
-        season_episode = (get_element_by_class('site-font-secondary-color', first_text) or '').strip()
-        season = self._search_regex(r'Season (\d+),', season_episode, 'season', default=None)
-        episode = self._search_regex(r'Episode (\d+)', season_episode, 'episode', default=None)
+        season_episode = (get_element_by_class('site-font-secondary-color',
+                                               get_element_by_class('text', watch_info))
+                          or '').strip()
 
         return {
             '_type': 'url_transparent',
@@ -216,11 +142,74 @@ class DropoutIE(InfoExtractor):
             'url': embed_url,
             'id': self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id'),
             'display_id': display_id,
-            'description': self._html_search_meta('description', webpage, display_name='description', fatal=False),
+            'description': self._html_search_meta('description', webpage,
+                                                  display_name='description', fatal=False),
             'thumbnail': thumbnail,
             'title': clean_html(get_element_by_class('video-title', watch_info)),
-            'release_date': release_date,
+            'release_date': unified_strdate(self._search_regex(
+                                            r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
+                                            watch_info, 'release_date', fatal=False)),
             'series': clean_html(get_element_by_class('series-title', watch_info)),
-            'season_number': int_or_none(season),
-            'episode_number': int_or_none(episode)
+            'season_number': int_or_none(self._search_regex(r'Season (\d+),', season_episode,
+                                                            'season', default=None)),
+            'episode_number': int_or_none(self._search_regex(r'Episode (\d+)', season_episode,
+                                                             'episode', default=None))
+        }
+
+
+class DropoutSeasonIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?P<id>[^\/$&?#]+)(?:/?$|/season:[0-9]+/?$)'
+    _TESTS = [
+        {
+            'url': 'https://www.dropout.tv/dimension-20-fantasy-high/season:1',
+            'note': 'Multi-season series with the season in the url',
+            'playlist_count': 17,
+            'info_dict': {
+                'id': 'dimension-20-fantasy-high-season-1',
+                'title': 'Dimension 20 Fantasy High - Season 1'
+            }
+        },
+        {
+            'url': 'https://www.dropout.tv/dimension-20-fantasy-high',
+            'note': 'Multi-season series with the season not in the url',
+            'playlist_count': 17,
+            'info_dict': {
+                'id': 'dimension-20-fantasy-high-season-1',
+                'title': 'Dimension 20 Fantasy High - Season 1'
+            }
+        },
+        {
+            'url': 'https://www.dropout.tv/dimension-20-shriek-week',
+            'note': 'Single-season series',
+            'playlist_count': 4,
+            'info_dict': {
+                'id': 'dimension-20-shriek-week-season-1',
+                'title': 'Dimension 20 Shriek Week - Season 1'
+            }
+        }
+    ]
+
+    def _real_extract(self, url):
+        season_id = self._match_id(url)
+        season_title = season_id.replace('-', ' ').title()
+        webpage = self._download_webpage(url, season_id)
+
+        entries = [
+            self.url_result(
+                url=self._search_regex(r'a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
+                                       item, 'item_url'),
+                ie=DropoutIE.ie_key()
+            ) for item in get_elements_by_class('js-collection-item', webpage)
+        ]
+
+        seasons = (get_element_by_class('select-dropdown-wrapper', webpage) or '').strip().replace('\n', '')
+        current_season = self._search_regex(r'<option(?:.+?)selected>[ ]+(.+?)[ ]+</option>',
+                                            seasons, 'current_season', default=None)
+
+        return {
+            '_type': 'playlist',
+            'id': join_nonempty(season_id, current_season.lower().replace(' ', '-')),
+            'title': join_nonempty(season_title, current_season, delim=' - '),
+            'playlist_count': len(entries),
+            'entries': entries
         }
