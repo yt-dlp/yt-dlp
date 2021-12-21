@@ -3652,7 +3652,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         title += format_field(selected_tab, 'title', ' - %s')
         title += format_field(selected_tab, 'expandedText', ' - %s')
 
-
         metadata = {
             'playlist_id': playlist_id,
             'playlist_title': title,
