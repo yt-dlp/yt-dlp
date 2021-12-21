@@ -136,6 +136,11 @@ def _real_main(argv=None):
         sys.exit(0)
 
     # Conflicting, missing and erroneous options
+    if opts.format == 'best':
+        warnings.append('.\n         '.join(
+            '"-f best" selects the best pre-merged format which is often not the best option',
+            'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
+            'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning'))
     if opts.usenetrc and (opts.username is not None or opts.password is not None):
         parser.error('using .netrc conflicts with giving username/password')
     if opts.password is not None and opts.username is None:
