@@ -3660,7 +3660,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'thumbnails': thumbnails,
             'tags': tags,
             'view_count': view_count,
-            'availability': self._extract_availability(data)
+            'availability': self._extract_availability(data),
+            'last_updated_date': strftime_or_none(last_updated_unix, "%Y%m%d")
         }
         if not channel_id:
             metadata.update(self._extract_uploader(data))
