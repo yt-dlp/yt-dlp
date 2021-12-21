@@ -504,6 +504,12 @@ class InfoExtractor(object):
             self._real_initialize()
             self._ready = True
 
+    def exit(self):
+        """Cleans up an instance (logout, etc)."""
+        if self._ready:
+            self._real_exit()
+            self._ready = False
+
     def _initialize_geo_bypass(self, geo_bypass_context):
         """
         Initialize geo restriction bypass mechanism.
@@ -626,6 +632,8 @@ class InfoExtractor(object):
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
             raise ExtractorError('An extractor error has occurred.', cause=e, video_id=self.get_temp_id(url))
+        finally:
+            self.exit()
 
     def __maybe_fake_ip_and_retry(self, countries):
         if (not self.get_param('geo_bypass_country', None)
@@ -652,6 +660,10 @@ class InfoExtractor(object):
 
     def _real_extract(self, url):
         """Real extraction process. Redefine in subclasses."""
+        pass
+
+    def _real_exit(self):
+        """Real exit process. Redefine in subclasses."""
         pass
 
     @classmethod
