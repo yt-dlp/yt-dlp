@@ -148,7 +148,7 @@ class DropoutIE(InfoExtractor):
             'title': clean_html(get_element_by_class('video-title', watch_info)),
             'release_date': unified_strdate(self._search_regex(
                                             r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
-                                            watch_info, 'release_date', fatal=False)),
+                                            watch_info, 'release_date', default=None)),
             'series': clean_html(get_element_by_class('series-title', watch_info)),
             'season_number': int_or_none(self._search_regex(r'Season (\d+),', season_episode,
                                                             'season', default=None)),
