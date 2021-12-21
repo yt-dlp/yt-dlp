@@ -3644,8 +3644,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = item_id
 
         playlist_stats = traverse_obj(primary_sidebar_renderer, 'stats')
-        view_count = self._get_count(playlist_stats, 1)
-        playlist_count = self._get_count(playlist_stats, 0)
         last_updated_unix, _ = self._extract_time_text(playlist_stats, 2)
         if title is None:
             title = self._get_text(['header', 'hashtagHeaderRenderer', 'hashtag']) or playlist_id
@@ -3661,10 +3659,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader_url': channel_url,
             'thumbnails': thumbnails,
             'tags': tags,
-            'view_count': view_count,
+            'view_count': self._get_count(playlist_stats, 1),
             'availability': self._extract_availability(data),
             'last_modified_date': strftime_or_none(last_updated_unix, "%Y%m%d"),
-            'playlist_count': playlist_count
+            'playlist_count': self._get_count(playlist_stats, 0)
         }
         if not channel_id:
             metadata.update(self._extract_uploader(data))
