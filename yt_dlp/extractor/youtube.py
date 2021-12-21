@@ -703,7 +703,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
                 self._search_regex(
-                    (r'.+(?:streaming|live|ed)(?:\s*on)?\s*(.+)', r'\w+[\s,\.-]*\w+[\s,\.-]*20\d{2}'), text, 'time text', default=None)))
+                    (r'(?:.+|^)(?:streaming|live|ed)(?:\s*on)?\s*(.+)', r'\w+[\s,\.-]*\w+[\s,\.-]*20\d{2}'), text, 'time text', default=None)))
 
         if text and timestamp is None:
             self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
