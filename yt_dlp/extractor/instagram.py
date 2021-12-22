@@ -293,7 +293,9 @@ class InstagramIE(InstagramBaseIE):
         video_id, url = self._match_valid_url(url).group('id', 'url')
         webpage, urlh = self._download_webpage_handle(url, video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl():
-            self.raise_login_required('You need to log in to access this content')
+            self.report_warning('Main webpage is locked behind the login page.')
+            webpage = self._download_webpage(
+                'https://www.instagram.com/p/%s/embed/' % video_id, video_id, note='Downloading embed webpage')
 
         shared_data = self._parse_json(
             self._search_regex(
@@ -314,7 +316,10 @@ class InstagramIE(InstagramBaseIE):
                     r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*({.+?})\s*\)\s*;',
                     webpage, 'additional data', default='{}'),
                 video_id, fatal=False)
-            media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), expected_type=dict) or {}
+            media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
+
+        if not media and 'www.instagram.com/accounts/login' in urlh.geturl():
+            self.raise_login_required('You need to log in to access this content')
 
         uploader_id = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'uploader id', fatal=False)
@@ -354,7 +359,7 @@ class InstagramIE(InstagramBaseIE):
             'id': traverse_obj(comment_dict, ('node', 'id')),
             'text': traverse_obj(comment_dict, ('node', 'text')),
             'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
-        } for comment_dict in traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))]
+        } for comment_dict in traverse_obj(media, ('edge_media_to_parent_comment', 'edges')) or []]
 
         display_resources = (
             media.get('display_resources')
