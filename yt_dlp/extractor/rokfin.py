@@ -5,7 +5,6 @@ from ..utils import (
     try_get,
     float_or_none,
     url_or_none,
-    preferredencoding,
     ExtractorError
 )
 
@@ -67,7 +66,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
         availability = try_get(self, lambda x: videoAvailability(x, downloaded_json))
 
         if video_formats_url:
-            # Prior to adopting M3U, Rokfin stored videos directly in regular mp4 files:
+            # Prior to adopting M3U, Rokfin stored videos directly in mp4 files:
             if video_formats_url.endswith('.mp4'):
                 return self.url_result(url=video_formats_url, video_id=video_id, original_url=url_from_user)
 
@@ -81,7 +80,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
 
             if availability == 'premium_only':
                 # The video is premium only.
-                self.raise_no_formats(msg='unable to download premium content', expected=True)
+                self.raise_no_formats(msg='premium content', expected=True)
             else:
                 # We don't know why there is no (valid) video URL present.
                 self.raise_no_formats(msg='unable to proceed due to missing meta data', expected=True)
@@ -183,8 +182,10 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             'is_live': False,
             'was_live': True,
             'live_status': 'was_live',
+            'timestamp': 1635874720,
             'release_timestamp': 1635874720,
-            'release_date': '20211102'
+            'release_date': '20211102',
+            'upload_date': '20211102'
         }
     }]
 
@@ -231,7 +232,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
 
             if availability == 'premium_only':
                 # The stream is premium only.
-                self.raise_no_formats(msg='unable to download premium content', expected=True)
+                self.raise_no_formats(msg='premium content', expected=True)
 
             if not(stream_scheduled_for) and availability != 'premium_only':
                 # We don't know why there is no (valid) video URL present.
@@ -301,40 +302,38 @@ class RokfinPlaylistIE(InfoExtractor):
         report_warning = self.report_warning
         url_result = self.url_result
 
-        for content in try_get(json_data, lambda x: x['content']) or []:
+        def get_video_url(content):
             media_type = try_get(content, lambda x: x['mediaType'])
+            fn = try_get(media_type, lambda y: {
+                'video': lambda x: f'{video_base_url}post/{x["id"]}',
+                'audio': lambda x: f'{video_base_url}post/{x["id"]}',
+                'stream': lambda x: f'{video_base_url}stream/{x["mediaId"]}',
+                'dead_stream': lambda x: f'{video_base_url}stream/{x["mediaId"]}',
+                'stack': lambda x: f'{video_base_url}stack/{x["mediaId"]}',
+                'article': lambda x: f'{video_base_url}article/{x["mediaId"]}',
+                'ranking': lambda x: f'{video_base_url}ranking/{x["mediaId"]}'
+            }[y])
 
-            if media_type in ('video', 'audio'):
-                video_url = try_get(content, lambda x: f'{video_base_url}post/{x["id"]}')
-                if video_url is None:
-                    write_debug(msg=f'video: could not process content entry: {content}')
-            elif media_type in ('stream', 'dead_stream'):
-                video_url = try_get(content, lambda x: f'{video_base_url}stream/{x["mediaId"]}')
-                if video_url is None:
-                    write_debug(f'stream/dead_stream: could not process content entry: {content}')
-            elif media_type == 'stack':
-                video_url = try_get(content, lambda x: f'{video_base_url}stack/{x["mediaId"]}')
-                if video_url is None:
-                    write_debug(msg=f'stack: could not process content entry: {content}')
-            elif media_type == 'article':
-                video_url = try_get(content, lambda x: f'{video_base_url}article/{x["mediaId"]}')
-                if video_url is None:
-                    write_debug(msg=f'article: could not process content entry: {content}')
-            elif media_type == 'ranking':
-                video_url = try_get(content, lambda x: f'{video_base_url}ranking/{x["mediaId"]}')
-                if video_url is None:
-                    write_debug(msg=f'ranking: could not process content entry: {content}')
-            else:
-                video_url = None
+            if fn is None:
                 report_warning('skipping unsupported media type' + ('' if media_type is None else f': {media_type}') + '. Use --verbose to learn more')
                 write_debug(f'could not process content entry: {content}')
+                return
+
+            video_url = try_get(content, fn)
+            if video_url is None:
+                write_debug(f'{media_type}: could not process content entry: {content}')
+
+            return video_url
+
+        for content in try_get(json_data, lambda x: x['content']) or []:
+            video_url = get_video_url(content)
 
             if video_url:
                 yield url_result(url=video_url)
 
 
-# A stack is just a playlist. On the website, stacks are shown as a collection of videos stacked
-# over each other.
+# A stack is an aggregation of content. On the website, stacks are shown as a collection of videos
+# or other materials stacked over each other.
 class RokfinStackIE(RokfinPlaylistIE):
     IE_NAME = 'rokfin:stack'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/stack/(?P<id>[^/]+)'
@@ -376,21 +375,21 @@ class RokfinChannelIE(RokfinPlaylistIE):
     def _real_extract(self, url_from_user):
         import itertools
 
-        _ENTRIES_PER_REQUEST = 50  # 50 is the maximum Rokfin permits per request.
-        _META_DATA_BASE_URL1 = 'https://prod-api-v2.production.rokfin.com/api/v2/public/user/'
+        _CHANNEL_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/user/'
         _RECOMMENDED_CHANNEL_BASE_URL = 'https://rokfin.com/'
-        _download_json = self._download_json
-        _get_video_data = self._get_video_data
 
-        def dnl_video_meta_data_incrementally(channel_id, tab, channel_username):
+        def dnl_video_meta_data_incrementally(channel_id, tab, channel_username, channel_base_url):
             _VIDEO_BASE_URL = 'https://rokfin.com/'
             _META_DATA_BASE_URL2 = 'https://prod-api-v2.production.rokfin.com/api/v2/public/post/search/'
+            _ENTRIES_PER_REQUEST = 50  # 50 is the maximum Rokfin permits per request.
+            _download_json = self._download_json
+            _get_video_data = self._get_video_data
 
             pages_total = None
 
             for page_n in itertools.count(0):
                 if tab in ('posts', 'top'):
-                    data_url = f'{_META_DATA_BASE_URL1}{channel_username}/{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}'
+                    data_url = f'{channel_base_url}{channel_username}/{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}'
                 else:
                     data_url = f'{_META_DATA_BASE_URL2}{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}&creator={channel_id}'
 
@@ -413,18 +412,18 @@ class RokfinChannelIE(RokfinPlaylistIE):
             raise ExtractorError(msg='usage: --extractor-args "rokfinchannel:tab=[new|top|videos|podcasts|streams|articles|rankings|stacks]"', expected=True)
 
         channel_username = self._match_id(url_from_user)
-        channel_info = _download_json(url_or_request=_META_DATA_BASE_URL1 + channel_username, video_id=channel_username, note='Downloading channel info', fatal=False)
+        channel_info = self._download_json(url_or_request=_CHANNEL_BASE_URL + channel_username, video_id=channel_username, note='Downloading channel info', fatal=False)
         channel_id = try_get(channel_info, lambda x: x['id'])
 
         return self.playlist_result(
-            entries=dnl_video_meta_data_incrementally(tab=tab_dic[tabs[0] if tabs else "new"], channel_id=channel_id, channel_username=channel_username),
+            entries=dnl_video_meta_data_incrementally(tab=tab_dic[tabs[0] if tabs else "new"], channel_id=channel_id, channel_username=channel_username, channel_base_url=_CHANNEL_BASE_URL),
             playlist_id=channel_id,
             playlist_description=try_get(channel_info, lambda x: x['description']),
             webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username,
             original_url=url_from_user)
 
 
-# E.g.: "rkfnsearch100:molly james icu"
+# E.g.: rkfnsearch5:"dr mollie james" or rkfnsearch5:"\"dr mollie james\""
 class RokfinSearchIE(SearchInfoExtractor):
     IE_NAME = 'rokfin:search'
     _SEARCH_KEY = 'rkfnsearch'
@@ -442,12 +441,10 @@ class RokfinSearchIE(SearchInfoExtractor):
             if n_results <= 0:
                 return
 
-            BASE_URL = 'https://rokfin.com/'
             ENTRIES_PER_PAGE = 100
 
             (service_urls, service_access_keys) = self._get_access_credentials()
 
-            enc = preferredencoding()
             pages_to_download = None if n_results == float('inf') else math.ceil(n_results / ENTRIES_PER_PAGE)
             url_result = self.url_result
             _download_webpage = self._download_webpage
@@ -455,18 +452,20 @@ class RokfinSearchIE(SearchInfoExtractor):
             _SEARCH_KEY = self._SEARCH_KEY
             report_warning = self.report_warning
             write_debug = self.write_debug
-            ENTRIES_PER_PAGE_STR = str(ENTRIES_PER_PAGE)
+            ENTRIES_PER_PAGE_STR = json.dumps(ENTRIES_PER_PAGE)
             result_counter = 0
 
             for page_n in itertools.count(1) if n_results == float('inf') else range(1, pages_to_download + 1):
-                POST_DATA = '{"query":"' + query + '","facets":{"content_type":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"creator_name":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"premium_plan":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '}},"result_fields":{"creator_twitter":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_username":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_instagram":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_comments":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_text":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_description":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_title":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_updated_at":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_youtube":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_type":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_name":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_facebook":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"premium_plan":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}}},"page":{"size":' + ENTRIES_PER_PAGE_STR + ',"current":' + str(page_n) + '}}'
+                POST_DATA = json.loads('{"facets":{"content_type":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"creator_name":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"premium_plan":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '}},"result_fields":{"creator_twitter":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_username":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_instagram":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_comments":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_text":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_description":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_title":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_updated_at":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_youtube":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_type":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_name":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_facebook":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"premium_plan":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}}},"page":{"size":' + ENTRIES_PER_PAGE_STR + ',"current":' + str(page_n) + '}}')
+
+                POST_DATA['query'] = query
 
                 if self.service_url and self.service_access_key:
                     srch_res = _download_webpage(
                         url_or_request=self.service_url,
                         headers={'authorization': self.service_access_key},
-                        data=POST_DATA.encode(enc),
-                        encoding=enc,
+                        data=json.dumps(POST_DATA).encode('utf8'),
+                        encoding='utf8',
                         video_id=_SEARCH_KEY,
                         note=f'Downloading search results (page {page_n}' + (f' of {pages_to_download}' if pages_to_download else '') + ')',
                         fatal=False)
@@ -480,8 +479,8 @@ class RokfinSearchIE(SearchInfoExtractor):
                         srch_res = _download_webpage(
                             url_or_request=service_url,
                             headers={'authorization': service_access_key},
-                            data=POST_DATA.encode(enc),
-                            encoding=enc,
+                            data=json.dumps(POST_DATA).encode('utf8'),
+                            encoding='utf8',
                             video_id=_SEARCH_KEY,
                             note=f'Downloading search results (page {page_n}' + (f' of {pages_to_download}' if pages_to_download else '') + ')',
                             fatal=False)
@@ -496,42 +495,40 @@ class RokfinSearchIE(SearchInfoExtractor):
                     else:
                         raise ExtractorError(msg='access denied', expected=False)
 
-                for (ind, content) in enumerate(try_get(srch_res, lambda x: json_loads(x)['results']), start=1):
+                def get_video_url(content):
+                    BASE_URL = 'https://rokfin.com/'
                     content_type = try_get(content, lambda x: x['content_type']['raw'])
+                    fn = try_get(content_type, lambda y: {
+                        'video': lambda x: f'{BASE_URL}post/{int(x["id"]["raw"])}',
+                        'audio': lambda x: f'{BASE_URL}post/{int(x["id"]["raw"])}',
+                        'stream': lambda x: f'{BASE_URL}stream/{int(x["content_id"]["raw"])}',
+                        'dead_stream': lambda x: f'{BASE_URL}stream/{int(x["content_id"]["raw"])}',
+                        'stack': lambda x: f'{BASE_URL}stack/{int(x["content_id"]["raw"])}',
+                        'article': lambda x: f'{BASE_URL}article/{int(x["content_id"]["raw"])}',
+                        'ranking': lambda x: f'{BASE_URL}ranking/{int(x["content_id"]["raw"])}'
+                    }[y])
 
-                    if content_type in ('video', 'audio'):
-                        video_url = try_get(content, lambda x: f'{BASE_URL}post/{int(x["id"]["raw"])}')
-                        if video_url is None:
-                            write_debug(msg=f'video/audio: could not process content entry: {content}')
-                    elif content_type in ('stream', 'dead_stream'):
-                        video_url = try_get(content, lambda x: f'{BASE_URL}stream/{int(x["content_id"]["raw"])}')
-                        if video_url is None:
-                            write_debug(msg=f'stream/dead_stream: could not process content entry: {content}')
-                    elif content_type == 'stack':
-                        video_url = try_get(content, lambda x: f'{BASE_URL}stack/{int(x["content_id"]["raw"])}')
-                        if video_url is None:
-                            write_debug(msg=f'stack: could not process content entry: {content}')
-                    elif content_type == 'article':
-                        video_url = try_get(content, lambda x: f'{BASE_URL}article/{int(x["content_id"]["raw"])}')
-                        if video_url is None:
-                            write_debug(msg=f'article: could not process content entry: {content}')
-                    elif content_type == 'ranking':
-                        video_url = try_get(content, lambda x: f'{BASE_URL}ranking/{int(x["content_id"]["raw"])}')
-                        if video_url is None:
-                            write_debug(msg=f'ranking: could not process content entry: {content}')
-                    else:
-                        video_url = None
+                    if fn is None:
+                        report_warning('skipping unsupported content type' + ('' if content_type is None else f': {content_type}') + '. Use --verbose to learn more')
+                        write_debug(f'could not process content entry: {content}')
+                        return
+
+                    video_url = try_get(content, fn)
+                    if video_url is None:
+                        write_debug(f'{content_type}: could not process content entry: {content}')
+
+                    return video_url
+
+                for content in try_get(srch_res, lambda x: json_loads(x)['results']) or []:
+                    video_url = get_video_url(content)
 
                     if video_url:
                         yield url_result(video_url)
 
-                        result_counter = result_counter + 1
+                        result_counter += 1
 
                         if result_counter >= n_results:
                             return
-                    else:
-                        report_warning('skipping unsupported content type' + ('' if content_type is None else f': {content_type}') + '. Use --verbose to learn more')
-                        write_debug(f'could not process content entry: {content}')
 
                 # This is a safety feature. It'll have no effect 99% of the time:
                 if page_n * ENTRIES_PER_PAGE >= max(2 * n_results, 100):
