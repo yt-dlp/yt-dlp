@@ -57,7 +57,7 @@ class DashSegmentsFD(FragmentFD):
 
     def _resolve_fragments(self, fragments, ctx):
         fragments = fragments(ctx) if callable(fragments) else fragments
-        return [next(fragments)] if self.params.get('test') else fragments
+        return [next(iter(fragments))] if self.params.get('test') else fragments
 
     def _get_fragments(self, fmt, ctx):
         fragment_base_url = fmt.get('fragment_base_url')
