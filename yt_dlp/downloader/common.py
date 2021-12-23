@@ -218,15 +218,12 @@ class FileDownloader(object):
                 return sanitize_open(filename, open_mode)
             except (IOError, OSError) as err:
                 retry = retry + 1
-                if retry > file_access_retries:
+                if retry > file_access_retries or err.errno not in (errno.EACCES,):
                     raise
-                elif err.errno not in (errno.EACCES,):
-                    raise
-                else:
-                    self.to_screen(
-                        '[download] Got file access error. Retrying (attempt %d of %s)...'
-                        % (retry, self.format_retries(file_access_retries)))
-                    time.sleep(0.01)
+                self.to_screen(
+                    '[download] Got file access error. Retrying (attempt %d of %s) ...'
+                    % (retry, self.format_retries(file_access_retries)))
+                time.sleep(0.01)
 
     def try_rename(self, old_filename, new_filename):
         if old_filename == new_filename:
