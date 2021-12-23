@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     lowercase_escape,
     std_headers,
+    str_to_int,
     traverse_obj,
     url_or_none,
     urlencode_postdata,
@@ -380,7 +381,8 @@ class InstagramIE(InstagramBaseIE):
             'timestamp': traverse_obj(media, 'taken_at_timestamp', 'date', expected_type=int_or_none),
             'uploader_id': uploader_id,
             'uploader': traverse_obj(media, ('owner', 'full_name')),
-            'like_count': self._get_count(media, 'likes', 'preview_like'),
+            'like_count': self._get_count(media, 'likes', 'preview_like') or str_to_int(self._search_regex(
+                r'data-log-event="likeCountClick"[^>]*>[^\d]*([\d,\.]+)', webpage, 'like count', fatal=False)),
             'comment_count': self._get_count(media, 'comments', 'preview_comment', 'to_comment', 'to_parent_comment'),
             'comments': comments,
             'thumbnails': thumbnails,
