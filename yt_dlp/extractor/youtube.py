@@ -668,6 +668,31 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     return text
 
     @staticmethod
+    def _extract_thumbnails(data, *path_list):
+        """
+        Extract thumbnails from thumbnails dict
+        @param path_list:  path list to level where 'thumbnail' key is located
+        """
+        thumbnails = []
+        thumbnail_dicts = traverse_obj(
+            data, (*path_list, 'thumbnail', 'thumbnails', ...), expected_type=dict, default=[])
+        for thumbnail in thumbnail_dicts:
+            thumbnail_url = thumbnail.get('url')
+            if not thumbnail_url:
+                continue
+            # Sometimes youtube gives a wrong thumbnail URL. See:
+            # https://github.com/yt-dlp/yt-dlp/issues/233
+            # https://github.com/ytdl-org/youtube-dl/issues/28023
+            if 'maxresdefault' in thumbnail_url:
+                thumbnail_url = thumbnail_url.split('?')[0]
+            thumbnails.append({
+                'url': thumbnail_url,
+                'height': int_or_none(thumbnail.get('height')),
+                'width': int_or_none(thumbnail.get('width')),
+            })
+        return thumbnails
+
+    @staticmethod
     def extract_relative_time(relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
@@ -783,6 +808,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
+        thumbnails = self._extract_thumbnails(renderer)
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -794,6 +820,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'view_count': view_count,
             'uploader': uploader,
             'channel_id': channel_id,
+            'thumbnails': thumbnails,
             'upload_date': strftime_or_none(timestamp, '%Y%m%d'),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
@@ -2904,24 +2931,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                                 f['stretched_ratio'] = ratio
                         break
 
-        thumbnails = []
-        thumbnail_dicts = traverse_obj(
-            (video_details, microformats), (..., ..., 'thumbnail', 'thumbnails', ...),
-            expected_type=dict, default=[])
-        for thumbnail in thumbnail_dicts:
-            thumbnail_url = thumbnail.get('url')
-            if not thumbnail_url:
-                continue
-            # Sometimes youtube gives a wrong thumbnail URL. See:
-            # https://github.com/yt-dlp/yt-dlp/issues/233
-            # https://github.com/ytdl-org/youtube-dl/issues/28023
-            if 'maxresdefault' in thumbnail_url:
-                thumbnail_url = thumbnail_url.split('?')[0]
-            thumbnails.append({
-                'url': thumbnail_url,
-                'height': int_or_none(thumbnail.get('height')),
-                'width': int_or_none(thumbnail.get('width')),
-            })
+        thumbnails = self._extract_thumbnails((video_details, microformats), ..., ...)
         thumbnail_url = search_meta(['og:image', 'twitter:image'])
         if thumbnail_url:
             thumbnails.append({
