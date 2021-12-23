@@ -807,13 +807,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
-
         thumbnails = self._extract_thumbnails(renderer, 'thumbnail')
 
-        # also test:
-        # thumbnail = renderer['thumbnail']
-        # thumbnails = self._extract_thumbnails(thumbnail)
-        # thumbnails = self._extract_thumbnails(renderer, 'thumbnail', ('richThumbnail', 'movingThumbnailRenderer', 'movingThumbnailDetails'))
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -2935,7 +2930,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if f.get('vcodec') != 'none':
                                 f['stretched_ratio'] = ratio
                         break
-        # TODO: broken
         thumbnails = self._extract_thumbnails((video_details, microformats), (..., ..., 'thumbnail'))
         thumbnail_url = search_meta(['og:image', 'twitter:image'])
         if thumbnail_url:
