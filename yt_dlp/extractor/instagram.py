@@ -294,7 +294,8 @@ class InstagramIE(InstagramBaseIE):
         video_id, url = self._match_valid_url(url).group('id', 'url')
         webpage, urlh = self._download_webpage_handle(url, video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl():
-            self.report_warning('Main webpage is locked behind the login page.')
+            self.report_warning('Main webpage is locked behind the login page. '
+                                'Retrying with embed webpage (Note that some metadata might be missing)')
             webpage = self._download_webpage(
                 'https://www.instagram.com/p/%s/embed/' % video_id, video_id, note='Downloading embed webpage')
 
