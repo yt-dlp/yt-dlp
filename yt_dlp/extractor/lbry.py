@@ -193,9 +193,12 @@ class LBRYIE(LBRYBaseIE):
         elif result.get('value_type') == 'stream':
             claim_id, is_live = result['signing_channel']['claim_id'], True
             headers = {'referer': 'https://player.odysee.live/'}
-            streaming_url = final_url = self._download_json(
+            live_data = self._download_json(
                 f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id,
-                note='Downloading livestream JSON metadata')['data']['url']
+                note='Downloading livestream JSON metadata')['data']
+            if not live_data['live']:
+                raise ExtractorError('This stream is not live', expected=True)
+            streaming_url = final_url = live_data['url']
         else:
             raise ExtractorError('Unsupported URL', expected=True)
 
