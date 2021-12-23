@@ -227,6 +227,13 @@ After you have ensured this site is distributing its content legally, you can fo
 
 In any case, thank you very much for your contributions!
 
+**Tip:** To test extractors that require login information, create a file `test/local_parameters.json` and add `"usenetrc": true` or your username and password in it:
+```json
+{
+    "username": "your user name",
+    "password": "your password"
+}
+```
 
 ## yt-dlp coding conventions
 

@@ -258,8 +258,7 @@ class PornHubIE(PornHubBaseIE):
             webpage)
 
     def _extract_count(self, pattern, webpage, name):
-        return str_to_int(self._search_regex(
-            pattern, webpage, '%s count' % name, fatal=False))
+        return str_to_int(self._search_regex(pattern, webpage, '%s count' % name, default=None))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)

@@ -397,6 +397,7 @@ class FileDownloader(object):
                     'status': 'finished',
                     'total_bytes': os.path.getsize(encodeFilename(filename)),
                 }, info_dict)
+                self._finish_multiline_status()
                 return True, False
 
         if subtitle is False:

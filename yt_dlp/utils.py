@@ -1862,7 +1862,6 @@ def _windows_write_string(s, out):
     False if it has yet to be written out."""
     # Adapted from http://stackoverflow.com/a/3259271/35070
 
-    import ctypes
     import ctypes.wintypes
 
     WIN_OUTPUT_IDS = {
@@ -3193,29 +3192,28 @@ def parse_codecs(codecs_str):
         if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
                      'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
-                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1') else full_codec
+                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1', 'hvc1') else full_codec
                 if codec in ('dvh1', 'dvhe'):
                     hdr = 'DV'
                 elif codec == 'av1' and len(parts) > 3 and parts[3] == '10':
                     hdr = 'HDR10'
                 elif full_codec.replace('0', '').startswith('vp9.2'):
                     hdr = 'HDR10'
-        elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
+        elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
         else:
             write_string('WARNING: Unknown codec %s\n' % full_codec, sys.stderr)
-    if not vcodec and not acodec:
-        if len(split_codecs) == 2:
-            return {
-                'vcodec': split_codecs[0],
-                'acodec': split_codecs[1],
-            }
-    else:
+    if vcodec or acodec:
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
+        }
+    elif len(split_codecs) == 2:
+        return {
+            'vcodec': split_codecs[0],
+            'acodec': split_codecs[1],
         }
     return {}
 

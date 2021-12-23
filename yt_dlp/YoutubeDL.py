@@ -1495,7 +1495,7 @@ class YoutubeDL(object):
                 self.write_debug('Additional URLs: "%s"' % '", "'.join(additional_urls))
                 ie_result['additional_entries'] = [
                     self.extract_info(
-                        url, download, extra_info,
+                        url, download, extra_info=extra_info,
                         force_generic_extractor=self.params.get('force_generic_extractor'))
                     for url in additional_urls
                 ]
@@ -2474,10 +2474,7 @@ class YoutubeDL(object):
                     info_dict['id'], automatic_captions, 'automatic captions')
             self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
         if self.params.get('listformats') or interactive_format_selection:
-            if not info_dict.get('formats') and not info_dict.get('url'):
-                self.to_screen('%s has no formats' % info_dict['id'])
-            else:
-                self.list_formats(info_dict)
+            self.list_formats(info_dict)
         if list_only:
             # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
@@ -3361,6 +3358,11 @@ class YoutubeDL(object):
         return headers
 
     def list_formats(self, info_dict):
+        if not info_dict.get('formats') and not info_dict.get('url'):
+            self.to_screen('%s has no formats' % info_dict['id'])
+            return
+        self.to_screen('[info] Available formats for %s:' % info_dict['id'])
+
         formats = info_dict.get('formats', [info_dict])
         new_format = self.params.get('listformats_table', True) is not False
         if new_format:
@@ -3375,7 +3377,7 @@ class YoutubeDL(object):
                     delim,
                     format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
                     format_field(f, 'tbr', '\t%dk'),
-                    shorten_protocol_name(f.get('protocol', '').replace('native', 'n')),
+                    shorten_protocol_name(f.get('protocol', '')),
                     delim,
                     format_field(f, 'vcodec', default='unknown').replace(
                         'none',
@@ -3411,8 +3413,6 @@ class YoutubeDL(object):
                 if f.get('preference') is None or f['preference'] >= -1000]
             header_line = ['format code', 'extension', 'resolution', 'note']
 
-        self.to_screen(
-            '[info] Available formats for %s:' % info_dict['id'])
         self.to_stdout(render_table(
             header_line, table,
             extra_gap=(0 if new_format else 1),
