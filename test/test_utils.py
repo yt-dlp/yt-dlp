@@ -1156,9 +1156,16 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_count('1000'), 1000)
         self.assertEqual(parse_count('1.000'), 1000)
         self.assertEqual(parse_count('1.1k'), 1100)
+        self.assertEqual(parse_count('1.1 k'), 1100)
+        self.assertEqual(parse_count('1,1 k'), 1100)
         self.assertEqual(parse_count('1.1kk'), 1100000)
         self.assertEqual(parse_count('1.1kk '), 1100000)
+        self.assertEqual(parse_count('1,1kk'), 1100000)
+        self.assertEqual(parse_count('100 views'), 100)
+        self.assertEqual(parse_count('1,100 views'), 1100)
         self.assertEqual(parse_count('1.1kk views'), 1100000)
+        self.assertEqual(parse_count('10M views'), 10000000)
+        self.assertEqual(parse_count('has 10M views'), 10000000)
 
     def test_parse_resolution(self):
         self.assertEqual(parse_resolution(None), {})
