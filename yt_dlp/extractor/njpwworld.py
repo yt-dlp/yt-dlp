@@ -78,8 +78,7 @@ class NJPWWorldIE(InfoExtractor):
             player_path = '/intent?id=%s&type=url' % vid
             player_url = compat_urlparse.urljoin(url, player_path)
             formats += self._extract_m3u8_formats(
-                player_url, video_id, 'mp4',
-                entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+                player_url, video_id, 'mp4', 'm3u8_native', m3u8_id=kind, fatal=False, quality=int(kind == 'high'))
 
         self._sort_formats(formats)
 
