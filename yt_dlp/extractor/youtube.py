@@ -671,7 +671,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_thumbnails(data, *path_list):
         """
         Extract thumbnails from thumbnails dict
-        @param path_list:  path list to level where 'thumbnail' key is located
+        @param path_list:  path list to level where 'thumbnails' key is located
         """
         thumbnails = []
         for path in path_list or [None]:
