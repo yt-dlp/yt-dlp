@@ -67,6 +67,7 @@ from .utils import (
     float_or_none,
     format_bytes,
     format_field,
+    format_decimal_suffix,
     formatSeconds,
     GeoRestrictedError,
     get_domain,
@@ -1005,7 +1006,7 @@ class YoutubeDL(object):
     def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
         outtmpl = re.sub(
-            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqBU]'),
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqBUDF]'),
             lambda mobj: f'{mobj.group(0)[:-1]}s',
             cls._outtmpl_expandpath(outtmpl))
         try:
@@ -1021,8 +1022,12 @@ class YoutubeDL(object):
             info_dict.pop(key, None)
         return info_dict
 
-    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=None):
-        """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict """
+    def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False):
+        """ Make the outtmpl and info_dict suitable for substitution: ydl.escape_outtmpl(outtmpl) % info_dict
+        @param sanitize    Whether to sanitize the output as a filename.
+                           For backward compatibility, a function can also be passed
+        """
+
         info_dict.setdefault('epoch', int(time.time()))  # keep epoch consistent once set
 
         info_dict = self._copy_infodict(info_dict)
@@ -1043,7 +1048,7 @@ class YoutubeDL(object):
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqBU]'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqBUDF]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -1051,7 +1056,7 @@ class YoutubeDL(object):
         # Field is of the form key1.key2...
         # where keys (except first) can be string, int or slice
         FIELD_RE = r'\w*(?:\.(?:\w+|{num}|{num}?(?::{num}?){{1,2}}))*'.format(num=r'(?:-?\d+)')
-        MATH_FIELD_RE = r'''{field}|{num}'''.format(field=FIELD_RE, num=r'-?\d+(?:.\d+)?')
+        MATH_FIELD_RE = r'''(?:{field}|{num})'''.format(field=FIELD_RE, num=r'-?\d+(?:.\d+)?')
         MATH_OPERATORS_RE = r'(?:%s)' % '|'.join(map(re.escape, MATH_FUNCTIONS.keys()))
         INTERNAL_FORMAT_RE = re.compile(r'''(?x)
             (?P<negate>-)?
@@ -1107,6 +1112,13 @@ class YoutubeDL(object):
 
         na = self.params.get('outtmpl_na_placeholder', 'NA')
 
+        def filename_sanitizer(key, value, restricted=self.params.get('restrictfilenames')):
+            return sanitize_filename(str(value), restricted=restricted,
+                                     is_id=re.search(r'(^|[_.])id(\.|$)', key))
+
+        sanitizer = sanitize if callable(sanitize) else filename_sanitizer
+        sanitize = bool(sanitize)
+
         def _dumpjson_default(obj):
             if isinstance(obj, (set, LazyList)):
                 return list(obj)
@@ -1117,7 +1129,7 @@ class YoutubeDL(object):
                 return outer_mobj.group(0)
             key = outer_mobj.group('key')
             mobj = re.match(INTERNAL_FORMAT_RE, key)
-            initial_field = mobj.group('fields').split('.')[-1] if mobj else ''
+            initial_field = mobj.group('fields') if mobj else ''
             value, replacement, default = None, None, na
             while mobj:
                 mobj = mobj.groupdict()
@@ -1153,6 +1165,10 @@ class YoutubeDL(object):
                     # "+" = compatibility equivalence, "#" = NFD
                     'NF%s%s' % ('K' if '+' in flags else '', 'D' if '#' in flags else 'C'),
                     value), str_fmt
+            elif fmt[-1] == 'D':  # decimal suffix
+                value, fmt = format_decimal_suffix(value, f'%{fmt[:-1]}f%s' if fmt[:-1] else '%d%s'), 's'
+            elif fmt[-1] == 'F':  # filename sanitization
+                value, fmt = filename_sanitizer(initial_field, value, restricted='#' in flags), str_fmt
             elif fmt[-1] == 'c':
                 if value:
                     value = str(value)[0]
@@ -1169,7 +1185,7 @@ class YoutubeDL(object):
                     # So we convert it to repr first
                     value, fmt = repr(value), str_fmt
                 if fmt[-1] in 'csr':
-                    value = sanitize(initial_field, value)
+                    value = sanitizer(initial_field, value)
 
             key = '%s\0%s' % (key.replace('%', '%\0'), outer_mobj.group('format'))
             TMPL_DICT[key] = value
@@ -1183,12 +1199,8 @@ class YoutubeDL(object):
 
     def _prepare_filename(self, info_dict, tmpl_type='default'):
         try:
-            sanitize = lambda k, v: sanitize_filename(
-                compat_str(v),
-                restricted=self.params.get('restrictfilenames'),
-                is_id=(k == 'id' or k.endswith('_id')))
             outtmpl = self._outtmpl_expandpath(self.outtmpl_dict.get(tmpl_type, self.outtmpl_dict['default']))
-            filename = self.evaluate_outtmpl(outtmpl, info_dict, sanitize)
+            filename = self.evaluate_outtmpl(outtmpl, info_dict, True)
 
             force_ext = OUTTMPL_TYPES.get(tmpl_type)
             if filename and force_ext is not None:

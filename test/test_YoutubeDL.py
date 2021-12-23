@@ -717,6 +717,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', '.abcd', info={'id': '.abcd'})
         test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
         test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
+        test('%(id.0)s', '-', info={'id': '--'})
 
         # Invalid templates
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
@@ -777,6 +778,10 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
         test('%(title5)+U', 'áéí A')
         test('%(title5)+#U', 'a\u0301e\u0301i\u0301 A')
+        test('%(height)D', '1K')
+        test('%(height)5.2D', ' 1.08K')
+        test('%(title4).10F', ('foo \'bar\' ', 'foo \'bar\'#'))
+        test('%(title4)#F', 'foo_bar_test')
         if compat_os_name == 'nt':
             test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
             test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', "'id 1' 'id 2' 'id 3'"))
@@ -808,6 +813,11 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width-100,height+width|def)s', 'def')
         test('%(timestamp-x>%H\\,%M\\,%S,timestamp>%H\\,%M\\,%S)s', '12,00,00')
 
+        # Replacement
+        test('%(id&foo)s.bar', 'foo.bar')
+        test('%(title&foo)s.bar', 'NA.bar')
+        test('%(title&foo|baz)s.bar', 'baz.bar')
+
         # Laziness
         def gen():
             yield from range(5)
@@ -835,11 +845,6 @@ class TestYoutubeDL(unittest.TestCase):
         test('Hello %(title2)s', 'Hello %PATH%')
         test('%(title3)s', ('foo/bar\\test', 'foo_bar_test'))
         test('folder/%(title3)s', ('folder/foo/bar\\test', 'folder%sfoo_bar_test' % os.path.sep))
-
-        # Replacement
-        test('%(id&foo)s.bar', 'foo.bar')
-        test('%(title&foo)s.bar', 'NA.bar')
-        test('%(title&foo|baz)s.bar', 'baz.bar')
 
     def test_format_note(self):
         ydl = YoutubeDL()

@@ -2110,18 +2110,19 @@ def unsmuggle_url(smug_url, default=None):
     return url, data
 
 
+def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
+    """ Formats numbers with decimal sufixes like K, M, etc """
+    num, factor = float_or_none(num), float(factor)
+    if num is None:
+        return None
+    exponent = 0 if num == 0 else int(math.log(num, factor))
+    suffix = ['', *'KMGTPEZY'][exponent]
+    converted = num / (factor ** exponent)
+    return fmt % (converted, suffix)
+
+
 def format_bytes(bytes):
-    if bytes is None:
-        return 'N/A'
-    if type(bytes) is str:
-        bytes = float(bytes)
-    if bytes == 0.0:
-        exponent = 0
-    else:
-        exponent = int(math.log(bytes, 1024.0))
-    suffix = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'][exponent]
-    converted = float(bytes) / float(1024 ** exponent)
-    return '%.2f%s' % (converted, suffix)
+    return format_decimal_suffix(bytes, '%.2f%siB', factor=1024) or 'N/A'
 
 
 def lookup_unit_table(unit_table, s):
