@@ -674,33 +674,21 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         @param path_list:  path list to level where 'thumbnails' key is located
         """
         thumbnails = []
-        for path in path_list or [None]:
-            if path is None:
-                obj = [data]
-            else:
-                obj = traverse_obj(data, (*variadic(path), 'thumbnails'), default=[])
-                if not any(key is ... or isinstance(key, (list, tuple)) for key in variadic(path)):
-                    obj = [obj]
-            for item in obj:
-                pass
-
-        thumbnail_dicts = traverse_obj(
-            data, (path_list, 'thumbnails', ...), expected_type=dict, default=[])
-
-        for thumbnail in thumbnail_dicts:
-            thumbnail_url = thumbnail.get('url')
-            if not thumbnail_url:
-                continue
-            # Sometimes youtube gives a wrong thumbnail URL. See:
-            # https://github.com/yt-dlp/yt-dlp/issues/233
-            # https://github.com/ytdl-org/youtube-dl/issues/28023
-            if 'maxresdefault' in thumbnail_url:
-                thumbnail_url = thumbnail_url.split('?')[0]
-            thumbnails.append({
-                'url': thumbnail_url,
-                'height': int_or_none(thumbnail.get('height')),
-                'width': int_or_none(thumbnail.get('width')),
-            })
+        for path in path_list or [()]:
+            for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...), default=[]):
+                thumbnail_url = thumbnail.get('url')
+                if not thumbnail_url:
+                    continue
+                # Sometimes youtube gives a wrong thumbnail URL. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/233
+                # https://github.com/ytdl-org/youtube-dl/issues/28023
+                if 'maxresdefault' in thumbnail_url:
+                    thumbnail_url = thumbnail_url.split('?')[0]
+                thumbnails.append({
+                    'url': thumbnail_url,
+                    'height': int_or_none(thumbnail.get('height')),
+                    'width': int_or_none(thumbnail.get('width')),
+                })
         return thumbnails
 
     @staticmethod
