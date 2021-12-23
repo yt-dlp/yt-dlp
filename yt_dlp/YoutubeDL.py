@@ -1006,7 +1006,7 @@ class YoutubeDL(object):
     def validate_outtmpl(cls, outtmpl):
         ''' @return None or Exception object '''
         outtmpl = re.sub(
-            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqBUDF]'),
+            STR_FORMAT_RE_TMPL.format('[^)]*', '[ljqBUDS]'),
             lambda mobj: f'{mobj.group(0)[:-1]}s',
             cls._outtmpl_expandpath(outtmpl))
         try:
@@ -1048,7 +1048,7 @@ class YoutubeDL(object):
         }
 
         TMPL_DICT = {}
-        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqBUDF]'))
+        EXTERNAL_FORMAT_RE = re.compile(STR_FORMAT_RE_TMPL.format('[^)]*', f'[{STR_FORMAT_TYPES}ljqBUDS]'))
         MATH_FUNCTIONS = {
             '+': float.__add__,
             '-': float.__sub__,
@@ -1167,7 +1167,7 @@ class YoutubeDL(object):
                     value), str_fmt
             elif fmt[-1] == 'D':  # decimal suffix
                 value, fmt = format_decimal_suffix(value, f'%{fmt[:-1]}f%s' if fmt[:-1] else '%d%s'), 's'
-            elif fmt[-1] == 'F':  # filename sanitization
+            elif fmt[-1] == 'S':  # filename sanitization
                 value, fmt = filename_sanitizer(initial_field, value, restricted='#' in flags), str_fmt
             elif fmt[-1] == 'c':
                 if value:
