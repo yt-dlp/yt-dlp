@@ -232,7 +232,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'title': 'Putri Untuk Pangeran',
             'description': 'md5:aca7b54d05bd95a67d4f4613cc1d622d',
             'age_limit': 2,
-            'cast': ['Verrel Bramasta', 'Ranty Maria', 'Riza Syah', 'Ivan Fadilla', 'Nicole Parham', 'Dll', 'Aviv Elham']
+            'cast': ['Verrel Bramasta', 'Ranty Maria', 'Riza Syah', 'Ivan Fadilla', 'Nicole Parham', 'Dll', 'Aviv Elham'],
+            'display_id': 'putri-untuk-pangeran',
+            'tag': 'count:18',
         },
     }, {  # No episodes
         'url': 'https://www.rctiplus.com/programs/615/inews-pagi',
@@ -241,7 +243,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
             'id': '615',
             'title': 'iNews Pagi',
             'description': 'md5:f18ee3d4643cfb41c358e5a9b693ee04',
-            'age_limit': 2
+            'age_limit': 2,
+            'tag': 'count:11',
+            'display_id': 'inews-pagi',
         }
     }]
     _AGE_RATINGS = {  # Based off https://id.wikipedia.org/wiki/Sistem_rating_konten_televisi with additional ratings
@@ -293,7 +297,7 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 }
 
     def _series_entries(self, series_id, display_id=None, video_type=None, metadata={}):
-        if video_type in ('', 'episodes'):
+        if not video_type or video_type in 'episodes':
             try:
                 seasons_list = self._call_api(
                     f'https://api.rctiplus.com/api/v1/program/{series_id}/season',
@@ -306,11 +310,11 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
                 yield from self._entries(
                     f'https://api.rctiplus.com/api/v2/program/{series_id}/episode?season={season["season"]}',
                     display_id, f'Downloading season {season["season"]} episode entries', metadata)
-        if video_type in ('', 'extras'):
+        if not video_type or video_type in 'extras':
             yield from self._entries(
                 f'https://api.rctiplus.com/api/v2/program/{series_id}/extra?content_id=0',
                 display_id, 'Downloading extra entries', metadata)
-        if video_type in ('', 'clips'):
+        if not video_type or video_type in 'clips':
             yield from self._entries(
                 f'https://api.rctiplus.com/api/v2/program/{series_id}/clip?content_id=0',
                 display_id, 'Downloading clip entries', metadata)
@@ -327,8 +331,9 @@ class RCTIPlusSeriesIE(RCTIPlusBaseIE):
         metadata = {
             'age_limit': try_get(series_meta, lambda x: self._AGE_RATINGS[x['age_restriction'][0]['code']]),
             'cast': traverse_obj(series_meta, (('starring', 'creator', 'writer'), ..., 'name'),
-                                 expected_type=strip_or_none),
-            'tag': traverse_obj(series_meta, ('tag', ..., 'name'), expected_type=strip_or_none),
+                                 expected_type=lambda x: strip_or_none(x) or None),
+            'tag': traverse_obj(series_meta, ('tag', ..., 'name'),
+                                expected_type=lambda x: strip_or_none(x) or None),
         }
         return self.playlist_result(
             self._series_entries(series_id, display_id, video_type, metadata), series_id,
