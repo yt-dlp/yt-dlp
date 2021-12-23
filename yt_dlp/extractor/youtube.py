@@ -3593,7 +3593,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
         playlist_id = title = description = channel_url = channel_name = channel_id = None
-        thumbnails_list = []
         tags = []
 
         selected_tab = self._extract_selected_tab(tabs)
@@ -3612,26 +3611,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             description = renderer.get('description', '')
             playlist_id = channel_id
             tags = renderer.get('keywords', '').split()
-            thumbnails_list = (
-                try_get(renderer, lambda x: x['avatar']['thumbnails'], list)
-                or try_get(
-                    self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer'),
-                    lambda x: x['thumbnailRenderer']['playlistVideoThumbnailRenderer']['thumbnail']['thumbnails'],
-                    list)
-                or [])
 
-        thumbnails = []
-        for t in thumbnails_list:
-            if not isinstance(t, dict):
-                continue
-            thumbnail_url = url_or_none(t.get('url'))
-            if not thumbnail_url:
-                continue
-            thumbnails.append({
-                'url': thumbnail_url,
-                'width': int_or_none(t.get('width')),
-                'height': int_or_none(t.get('height')),
-            })
+        thumbnails = (
+            self._extract_thumbnails(renderer, 'avatar')
+            or self._extract_thumbnails(
+                self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer'),
+                ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
+
         if playlist_id is None:
             playlist_id = item_id
         if title is None:
