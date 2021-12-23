@@ -222,6 +222,8 @@ def _real_main(argv=None):
         return parsed_retries
     if opts.retries is not None:
         opts.retries = parse_retries(opts.retries)
+    if opts.file_access_retries is not None:
+        opts.file_access_retries = parse_retries(opts.file_access_retries, 'file access ')
     if opts.fragment_retries is not None:
         opts.fragment_retries = parse_retries(opts.fragment_retries, 'fragment ')
     if opts.extractor_retries is not None:
@@ -673,6 +675,7 @@ def _real_main(argv=None):
         'throttledratelimit': opts.throttledratelimit,
         'overwrites': opts.overwrites,
         'retries': opts.retries,
+        'file_access_retries': opts.file_access_retries,
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
