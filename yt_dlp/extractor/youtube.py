@@ -674,8 +674,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         @param path_list:  path list to level where 'thumbnail' key is located
         """
         thumbnails = []
+        for path in path_list or [None]:
+            if path is None:
+                obj = [data]
+            else:
+                obj = traverse_obj(data, (*variadic(path), 'thumbnails'), default=[])
+                if not any(key is ... or isinstance(key, (list, tuple)) for key in variadic(path)):
+                    obj = [obj]
+            for item in obj:
+                pass
+
         thumbnail_dicts = traverse_obj(
-            data, (*path_list, 'thumbnail', 'thumbnails', ...), expected_type=dict, default=[])
+            data, (path_list, 'thumbnails', ...), expected_type=dict, default=[])
+
         for thumbnail in thumbnail_dicts:
             thumbnail_url = thumbnail.get('url')
             if not thumbnail_url:
@@ -808,7 +819,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         overlay_style = traverse_obj(
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
-        thumbnails = self._extract_thumbnails(renderer)
+
+        thumbnails = self._extract_thumbnails(renderer, 'thumbnail')
+
+        # also test:
+        # thumbnail = renderer['thumbnail']
+        # thumbnails = self._extract_thumbnails(thumbnail)
+        # thumbnails = self._extract_thumbnails(renderer, 'thumbnail', ('richThumbnail', 'movingThumbnailRenderer', 'movingThumbnailDetails'))
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
@@ -2930,8 +2947,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             if f.get('vcodec') != 'none':
                                 f['stretched_ratio'] = ratio
                         break
-
-        thumbnails = self._extract_thumbnails((video_details, microformats), ..., ...)
+        # TODO: broken
+        thumbnails = self._extract_thumbnails((video_details, microformats), (..., ..., 'thumbnail'))
         thumbnail_url = search_meta(['og:image', 'twitter:image'])
         if thumbnail_url:
             thumbnails.append({
