@@ -354,13 +354,14 @@ class InstagramIE(InstagramBaseIE):
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
         self._sort_formats(formats)
 
+        comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
         comments = [{
             'author': traverse_obj(comment_dict, ('node', 'owner', 'username')),
             'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id')),
             'id': traverse_obj(comment_dict, ('node', 'id')),
             'text': traverse_obj(comment_dict, ('node', 'text')),
             'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
-        } for comment_dict in traverse_obj(media, ('edge_media_to_parent_comment', 'edges')) or []]
+        } for comment_dict in comment_data] if comment_data else None
 
         display_resources = (
             media.get('display_resources')
