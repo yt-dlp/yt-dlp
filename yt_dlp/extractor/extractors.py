@@ -1109,6 +1109,10 @@ from .picarto import (
 )
 from .piksel import PikselIE
 from .pinkbike import PinkbikeIE
+from .pixivsketch import (
+    PixivSketchIE,
+    PixivSketchUserIE,
+)
 from .pinterest import (
     PinterestIE,
     PinterestCollectionIE,
