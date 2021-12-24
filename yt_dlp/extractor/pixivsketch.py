@@ -10,8 +10,8 @@ from ..utils import (
 
 
 class PixivSketchBaseIE(InfoExtractor):
-    def _call_api(self, video_id, path, referer):
-        response = self._download_json(f'https://sketch.pixiv.net/api/{path}', video_id, headers={
+    def _call_api(self, video_id, path, referer, note='Downloading JSON metadata'):
+        response = self._download_json(f'https://sketch.pixiv.net/api/{path}', video_id, note=note, headers={
             'Referer': referer,
             'X-Requested-With': referer,
         })
@@ -114,9 +114,9 @@ class PixivSketchUserIE(PixivSketchBaseIE):
         if not traverse_obj(data, 'is_broadcasting'):
             is_offline = True
             try:
-                self._call_api('users/current.json')
+                self._call_api(user_id, 'users/current.json', url, 'Investigating reason for request failure')
             except ExtractorError as ex:
-                if ex.cause.code == 401:
+                if ex.cause and ex.cause.code == 401:
                     is_offline = False
             if is_offline:
                 raise ExtractorError('This user is offline', expected=True)
