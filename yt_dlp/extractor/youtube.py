@@ -671,12 +671,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_thumbnails(data, *path_list):
         """
         Extract thumbnails from thumbnails dict
-        @param path_list:  path list to level where 'thumbnails' key is located
+        @param path_list: path list to level that contains 'thumbnails' key
         """
         thumbnails = []
         for path in path_list or [()]:
             for thumbnail in traverse_obj(data, (*variadic(path), 'thumbnails', ...), default=[]):
-                thumbnail_url = thumbnail.get('url')
+                thumbnail_url = url_or_none(thumbnail.get('url'))
                 if not thumbnail_url:
                     continue
                 # Sometimes youtube gives a wrong thumbnail URL. See:
