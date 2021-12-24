@@ -68,8 +68,6 @@ class PixivSketchIE(PixivSketchBaseIE):
             raise ExtractorError(f'This live is offline. Use https://sketch.pixiv.net/@{uploader_id} for ongoing live.', expected=True)
 
         m3u8_url = traverse_obj(data, ('owner', 'hls_movie', 'url'))
-        if not m3u8_url:
-            raise ExtractorError('Failed to extract m3u8 URL')
         formats = self._extract_m3u8_formats(
             m3u8_url, video_id, ext='mp4',
             entry_protocol='m3u8_native', m3u8_id='hls')
@@ -81,7 +79,7 @@ class PixivSketchIE(PixivSketchBaseIE):
             'formats': formats,
             'uploader': traverse_obj(data, ('user', 'name'), ('owner', 'user', 'name')),
             'uploader_id': traverse_obj(data, ('user', 'unique_name'), ('owner', 'user', 'unique_name')),
-            'uploader_pixiv_id': traverse_obj(data, ('user', 'pixiv_user_id'), ('owner', 'user', 'pixiv_user_id')),
+            'channel_id': traverse_obj(data, ('user', 'pixiv_user_id'), ('owner', 'user', 'pixiv_user_id')),
             'age_limit': 18 if data.get('is_r18') else 15 if data.get('is_r15') else 0,
             'timestamp': unified_timestamp(data.get('created_at')),
             'is_live': True
