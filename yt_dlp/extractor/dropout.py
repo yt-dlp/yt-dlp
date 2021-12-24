@@ -2,21 +2,20 @@
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
+    clean_html,
     ExtractorError,
+    get_element_by_class,
+    get_element_by_id,
+    get_elements_by_class,
     int_or_none,
     join_nonempty,
+    unified_strdate,
     urlencode_postdata,
-    get_element_by_id,
-    get_element_by_class,
-    get_elements_by_class,
-    clean_html,
-    unified_strdate
 )
 
 
 class DropoutIE(InfoExtractor):
     _LOGIN_URL = 'https://www.dropout.tv/login'
-    _LOGOUT_URL = 'https://www.dropout.tv/logout'
     _NETRC_MACHINE = 'dropout'
 
     _VALID_URL = r'https?://(?:www\.)?dropout\.tv/(?:[^/]+/)*videos/(?P<id>[^/]+)/?$'
@@ -89,36 +88,34 @@ class DropoutIE(InfoExtractor):
         }
     ]
 
-    def _get_authenticity_token(self, id: str = None):
-        signin_page = self._download_webpage(self._LOGIN_URL, id,
-                                             note='Getting authenticity token')
-        authenticity_token = self._html_search_regex(
+    def _get_authenticity_token(self, display_id):
+        signin_page = self._download_webpage(
+            self._LOGIN_URL, display_id, note='Getting authenticity token')
+        return self._html_search_regex(
             r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']',
             signin_page, 'authenticity_token')
-        return authenticity_token
 
-    def _login(self, id: str = None):
+    def _login(self, display_id):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required(method='password')
 
-        payload = {
-            'email': username,
-            'password': password,
-            'authenticity_token': self._get_authenticity_token(id),
-            'utf8': True
-        }
-        response = self._download_webpage(self._LOGIN_URL, id, note='Logging in',
-                                          data=urlencode_postdata(payload))
+        response = self._download_webpage(
+            self._LOGIN_URL, display_id, note='Logging in', data=urlencode_postdata({
+                'email': username,
+                'password': password,
+                'authenticity_token': self._get_authenticity_token(id),
+                'utf8': True
+            }))
 
-        user_has_subscription = self._search_regex(r'user_has_subscription: ["\'](.+?)["\']',
-                                                   response, 'subscription_status', default='none')
+        user_has_subscription = self._search_regex(
+            r'user_has_subscription:\s*["\'](.+?)["\']', response, 'subscription status', default='none')
         if user_has_subscription.lower() == 'true':
-            return response  # This is what we want
-        if user_has_subscription.lower() == 'false':
-            raise ExtractorError(msg='Account is not subscribed')
+            return response
+        elif user_has_subscription.lower() == 'false':
+            raise ExtractorError('Account is not subscribed')
         else:
-            raise ExtractorError(msg='Incorrect username/password')
+            raise ExtractorError('Incorrect username/password')
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -126,15 +123,17 @@ class DropoutIE(InfoExtractor):
             self._login(display_id)
             webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
         finally:
-            self._download_webpage(self._LOGOUT_URL, display_id, note='Logging out')
+            self._download_webpage('https://www.dropout.tv/logout', display_id, note='Logging out')
 
-        embed_url = self._search_regex(r'embed_url: ["\'](.+?)["\']', webpage, 'embed_url')
+        embed_url = self._search_regex(r'embed_url:\s*["\'](.+?)["\']', webpage, 'embed url')
         thumbnail = self._og_search_thumbnail(webpage)
-        thumbnail = thumbnail.split('?')[0] if thumbnail else None  # Ignore crop/downscale
         watch_info = get_element_by_id('watch-info', webpage) or ''
-        season_episode = (get_element_by_class('site-font-secondary-color',
-                                               get_element_by_class('text', watch_info))
-                          or '').strip()
+
+        title = clean_html(get_element_by_class('video-title', watch_info))
+        season_episode = get_element_by_class(
+            'site-font-secondary-color', get_element_by_class('text', watch_info))
+        episode_number = int_or_none(self._search_regex(
+                r'Episode (\d+)', season_episode or '', 'episode', default=None))
 
         return {
             '_type': 'url_transparent',
@@ -142,18 +141,17 @@ class DropoutIE(InfoExtractor):
             'url': embed_url,
             'id': self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id'),
             'display_id': display_id,
-            'description': self._html_search_meta('description', webpage,
-                                                  display_name='description', fatal=False),
-            'thumbnail': thumbnail,
-            'title': clean_html(get_element_by_class('video-title', watch_info)),
-            'release_date': unified_strdate(self._search_regex(
-                                            r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
-                                            watch_info, 'release_date', default=None)),
+            'title': title,
+            'description': self._html_search_meta('description', webpage, fatal=False),
+            'thumbnail': thumbnail.split('?')[0] if thumbnail else None,  # Ignore crop/downscale
             'series': clean_html(get_element_by_class('series-title', watch_info)),
-            'season_number': int_or_none(self._search_regex(r'Season (\d+),', season_episode,
-                                                            'season', default=None)),
-            'episode_number': int_or_none(self._search_regex(r'Episode (\d+)', season_episode,
-                                                             'episode', default=None))
+            'episode_number': episode_number,
+            'episode': title if episode_number else None,
+            'season_number': int_or_none(self._search_regex(
+                r'Season (\d+),', season_episode or '', 'season', default=None)),
+            'release_date': unified_strdate(self._search_regex(
+                r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
+                 watch_info, 'release date', default=None)),
         }
 
 
@@ -196,20 +194,19 @@ class DropoutSeasonIE(InfoExtractor):
 
         entries = [
             self.url_result(
-                url=self._search_regex(r'a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
+                url=self._search_regex(r'<a href=["\'](.+?)["\'] class=["\']browse-item-link["\']',
                                        item, 'item_url'),
                 ie=DropoutIE.ie_key()
             ) for item in get_elements_by_class('js-collection-item', webpage)
         ]
 
         seasons = (get_element_by_class('select-dropdown-wrapper', webpage) or '').strip().replace('\n', '')
-        current_season = self._search_regex(r'<option(?:.+?)selected>[ ]+(.+?)[ ]+</option>',
-                                            seasons, 'current_season', default=None)
+        current_season = self._search_regex(r'<option[^>]+selected>([^<]+)</option>',
+                                            seasons, 'current_season', default='').strip()
 
         return {
             '_type': 'playlist',
             'id': join_nonempty(season_id, current_season.lower().replace(' ', '-')),
             'title': join_nonempty(season_title, current_season, delim=' - '),
-            'playlist_count': len(entries),
             'entries': entries
         }
