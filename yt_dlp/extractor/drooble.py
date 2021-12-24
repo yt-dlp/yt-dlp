@@ -12,13 +12,16 @@ from ..utils import (
 
 
 class DroobleIE(InfoExtractor):
-    _VALID_URL = r'https?://drooble\.com/(?:(?P<user>[^/]+)?/?(?P<kind>song|videos|music/albums)/(?P<id>\d+)|(?P<id_2>[^/]+)/(?P<kind_2>videos|music))'
+    _VALID_URL = r'''(?x)https?://drooble\.com/(?:
+        (?:(?P<user>[^/]+)/)?(?P<kind>song|videos|music/albums)/(?P<id>\d+)|
+        (?P<user_2>[^/]+)/(?P<kind_2>videos|music))
+    '''
     _TESTS = [{
         'url': 'https://drooble.com/song/2858030',
         'md5': '5ffda90f61c7c318dc0c3df4179eb064',
         'info_dict': {
             'id': '2858030',
-            'ext': 'unknown_video',
+            'ext': 'mp3',
             'title': 'Skankocillin',
             'upload_date': '20200801',
             'timestamp': 1596241390,
@@ -55,30 +58,29 @@ class DroobleIE(InfoExtractor):
         },
         'playlist_mincount': 8,
     }]
-    _API_BASE = 'https://drooble.com/api/dt/'
 
     def _call_api(self, method, video_id, data=None):
-        data = {'children': 10, 'order': 'old2new', 'url_slug': video_id} if data is None else data
-        response = self._download_json(self._API_BASE + method, video_id, data=json.dumps(data).encode())
+        response = self._download_json(
+            f'https://drooble.com/api/dt/{method}', video_id, data=json.dumps(data).encode())
         if not response[0]:
             raise ExtractorError('Unable to download JSON metadata')
         return response[1]
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        video_id = mobj.group('id') or mobj.group('id_2')
-        user = mobj.group('user') or mobj.group('id_2')
+        user = mobj.group('user') or mobj.group('user_2')
         kind = mobj.group('kind') or mobj.group('kind_2')
-        method = 'getMusicOverview' if kind in ('music/albums', 'music') else 'getElements'
-        data = None
-        if mobj.group('kind_2') == 'videos':
-            data = {'album': -1, 'from_user': video_id, 'limit': 18, 'offset': 0, 'order': 'new2old',
-                    'type': 'video'}
-        elif kind in ('music/albums', 'music'):
-            data = {'user': user, 'individual_limit': {'singles': 1, 'albums': 1, 'playlists': 1},
-                    'public_only': True}
-        json_data = self._call_api(method, video_id, data=data)
+        display_id = mobj.group('id') or user
 
+        if mobj.group('kind_2') == 'videos':
+            data = {'from_user': display_id, 'album': -1, 'limit': 18, 'offset': 0, 'order': 'new2old', 'type': 'video'}
+        elif kind in ('music/albums', 'music'):
+            data = {'user': user, 'public_only': True, 'individual_limit': {'singles': 1, 'albums': 1, 'playlists': 1}}
+        else:
+            data = {'url_slug': display_id, 'children': 10, 'order': 'old2new'}
+
+        method = 'getMusicOverview' if kind in ('music/albums', 'music') else 'getElements'
+        json_data = self._call_api(method, display_id, data=data)
         if kind in ('music/albums', 'music'):
             json_data = json_data['singles']['list']
 
@@ -87,11 +89,12 @@ class DroobleIE(InfoExtractor):
             url = media.get('external_media_url') or media.get('link')
             if url.startswith('https://www.youtube.com'):
                 entites.append({
-                    '_type': 'url_transparent',
+                    '_type': 'url',
                     'url': url,
                     'ie_key': 'Youtube'
                 })
                 continue
+            is_audio = (media.get('type') or '').lower() == 'audio'
             entites.append({
                 'url': url,
                 'id': media['id'],
@@ -103,10 +106,11 @@ class DroobleIE(InfoExtractor):
                 'uploader_id': try_get(media, lambda x: x['creator']['id']),
                 'thumbnail': media.get('image_comment'),
                 'like_count': int_or_none(media.get('likes')),
-                'vcodec': 'none' if (media.get('type') or '').lower() == 'audio' else None
+                'vcodec': 'none' if is_audio else None,
+                'ext': 'mp3' if is_audio else None,
             })
 
         if len(entites) > 1:
-            return self.playlist_result(entites, video_id)
+            return self.playlist_result(entites, display_id)
 
         return entites[0]
