@@ -362,7 +362,7 @@ class RokfinStackIE(RokfinPlaylistIE):
 
 class RokfinChannelIE(RokfinPlaylistIE):
     IE_NAME = 'rokfin:channel'
-    _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>[^/]+)/?$'
+    _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?!((feed/?)|(discover/?)|(channels/?))$)(?P<id>[^/]+)/?$'
     _TESTS = [{
         'url': 'https://rokfin.com/TheConvoCouch',
         'info_dict': {
@@ -405,11 +405,11 @@ class RokfinChannelIE(RokfinPlaylistIE):
                     return []
                 # The final and-condition is a mere safety check.
 
-        tabs = self._configuration_arg('tab')
+        tabs = self._configuration_arg('content')
         tab_dic = {'new': 'posts', 'top': 'top', 'videos': 'video', 'podcasts': 'audio', 'streams': 'stream', 'articles': 'article', 'rankings': 'ranking', 'stacks': 'stack'}
 
         if len(tabs) > 1 or (len(tabs) == 1 and tabs[0] not in tab_dic.keys()):
-            raise ExtractorError(msg='usage: --extractor-args "rokfinchannel:tab=[new|top|videos|podcasts|streams|articles|rankings|stacks]"', expected=True)
+            raise ExtractorError(msg='usage: --extractor-args "rokfinchannel:content=[new|top|videos|podcasts|streams|articles|rankings|stacks]"', expected=True)
 
         channel_username = self._match_id(url_from_user)
         channel_info = self._download_json(url_or_request=_CHANNEL_BASE_URL + channel_username, video_id=channel_username, note='Downloading channel info', fatal=False)
@@ -454,11 +454,13 @@ class RokfinSearchIE(SearchInfoExtractor):
             write_debug = self.write_debug
             ENTRIES_PER_PAGE_STR = json.dumps(ENTRIES_PER_PAGE)
             result_counter = 0
+            POST_DATA = json.loads('{"facets":{"content_type":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"creator_name":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"premium_plan":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '}},"result_fields":{"creator_twitter":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_username":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_instagram":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_comments":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_text":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_description":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_title":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_updated_at":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_youtube":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_type":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_name":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_facebook":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"premium_plan":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}}},"page":{"size":' + ENTRIES_PER_PAGE_STR + '}}')
+
+            POST_DATA['query'] = query
 
             for page_n in itertools.count(1) if n_results == float('inf') else range(1, pages_to_download + 1):
-                POST_DATA = json.loads('{"facets":{"content_type":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"creator_name":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '},"premium_plan":{"type":"value","size":' + ENTRIES_PER_PAGE_STR + '}},"result_fields":{"creator_twitter":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_username":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_instagram":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_comments":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_text":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_description":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_title":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"post_updated_at":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_youtube":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"content_type":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_name":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"creator_facebook":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"id":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}},"premium_plan":{"raw":{},"snippet":{"size":' + ENTRIES_PER_PAGE_STR + ',"fallback":true}}},"page":{"size":' + ENTRIES_PER_PAGE_STR + ',"current":' + str(page_n) + '}}')
-
-                POST_DATA['query'] = query
+                POST_DATA['page']['current'] = page_n
+                print(POST_DATA)
 
                 if self.service_url and self.service_access_key:
                     srch_res = _download_webpage(
@@ -519,7 +521,9 @@ class RokfinSearchIE(SearchInfoExtractor):
 
                     return video_url
 
-                for content in try_get(srch_res, lambda x: json_loads(x)['results']) or []:
+                results = try_get(srch_res, lambda x: json_loads(x)['results']) or []
+
+                for content in results:
                     video_url = get_video_url(content)
 
                     if video_url:
@@ -530,8 +534,8 @@ class RokfinSearchIE(SearchInfoExtractor):
                         if result_counter >= n_results:
                             return
 
-                # This is a safety feature. It'll have no effect 99% of the time:
-                if page_n * ENTRIES_PER_PAGE >= max(2 * n_results, 100):
+                if len(results) < ENTRIES_PER_PAGE:
+                    self.to_screen('All search results have been fetched. Therefore the remaining pages won\'t be downloaded')
                     return
 
         return self.playlist_result(
