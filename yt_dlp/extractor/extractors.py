@@ -357,6 +357,7 @@ from .dplay import (
     AnimalPlanetIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
+    DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
     DiscoveryPlusIndiaShowIE,
 )
