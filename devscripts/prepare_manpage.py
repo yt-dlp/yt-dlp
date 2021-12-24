@@ -53,7 +53,8 @@ def filter_excluded_sections(readme):
 
 def move_sections(readme):
     MOVE_TAG_TEMPLATE = '<!-- MANPAGE: MOVE "%s" SECTION HERE -->'
-    sections = re.findall(rf'(?m)^{re.escape(MOVE_TAG_TEMPLATE) % "(.+)"}$', readme)
+    sections = re.findall(r'(?m)^%s$' % (
+        re.escape(MOVE_TAG_TEMPLATE).replace(r'\%', '%') % '(.+)'), readme)
 
     for section_name in sections:
         move_tag = MOVE_TAG_TEMPLATE % section_name

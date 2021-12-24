@@ -18,6 +18,7 @@ from ..utils import (
     remove_end,
     remove_start,
     std_headers,
+    try_get,
 )
 
 _bytes_to_chr = (lambda x: x) if sys.version_info[0] == 2 else (lambda x: map(chr, x))
@@ -176,6 +177,93 @@ class RTVEALaCartaIE(InfoExtractor):
         return dict(
             (s['lang'], [{'ext': 'vtt', 'url': s['src']}])
             for s in subs)
+
+
+class RTVEAudioIE(RTVEALaCartaIE):
+    IE_NAME = 'rtve.es:audio'
+    IE_DESC = 'RTVE audio'
+    _VALID_URL = r'https?://(?:www\.)?rtve\.es/(alacarta|play)/audios/[^/]+/[^/]+/(?P<id>[0-9]+)'
+
+    _TESTS = [{
+        'url': 'https://www.rtve.es/alacarta/audios/a-hombros-de-gigantes/palabra-ingeniero-codigos-informaticos-27-04-21/5889192/',
+        'md5': 'ae06d27bff945c4e87a50f89f6ce48ce',
+        'info_dict': {
+            'id': '5889192',
+            'ext': 'mp3',
+            'title': 'Códigos informáticos',
+            'thumbnail': r're:https?://.+/1598856591583.jpg',
+            'duration': 349.440,
+            'series': 'A hombros de gigantes',
+        },
+    }, {
+        'url': 'https://www.rtve.es/play/audios/en-radio-3/ignatius-farray/5791165/',
+        'md5': '072855ab89a9450e0ba314c717fa5ebc',
+        'info_dict': {
+            'id': '5791165',
+            'ext': 'mp3',
+            'title': 'Ignatius Farray',
+            'thumbnail': r're:https?://.+/1613243011863.jpg',
+            'duration': 3559.559,
+            'series': 'En Radio 3'
+        },
+    }, {
+        'url': 'https://www.rtve.es/play/audios/frankenstein-o-el-moderno-prometeo/capitulo-26-ultimo-muerte-victor-juan-jose-plans-mary-shelley/6082623/',
+        'md5': '0eadab248cc8dd193fa5765712e84d5c',
+        'info_dict': {
+            'id': '6082623',
+            'ext': 'mp3',
+            'title': 'Capítulo 26 y último: La muerte de Victor',
+            'thumbnail': r're:https?://.+/1632147445707.jpg',
+            'duration': 3174.086,
+            'series': 'Frankenstein o el moderno Prometeo'
+        },
+    }]
+
+    def _extract_png_formats(self, audio_id):
+        """
+        This function retrieves media related png thumbnail which obfuscate
+        valuable information about the media. This information is decrypted
+        via base class _decrypt_url function providing media quality and
+        media url
+        """
+        png = self._download_webpage(
+            'http://www.rtve.es/ztnr/movil/thumbnail/%s/audios/%s.png' %
+            (self._manager, audio_id),
+            audio_id, 'Downloading url information', query={'q': 'v2'})
+        q = qualities(['Media', 'Alta', 'HQ', 'HD_READY', 'HD_FULL'])
+        formats = []
+        for quality, audio_url in self._decrypt_url(png):
+            ext = determine_ext(audio_url)
+            if ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(
+                    audio_url, audio_id, 'mp4', 'm3u8_native',
+                    m3u8_id='hls', fatal=False))
+            elif ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(
+                    audio_url, audio_id, 'dash', fatal=False))
+            else:
+                formats.append({
+                    'format_id': quality,
+                    'quality': q(quality),
+                    'url': audio_url,
+                })
+        self._sort_formats(formats)
+        return formats
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        info = self._download_json(
+            'https://www.rtve.es/api/audios/%s.json' % audio_id,
+            audio_id)['page']['items'][0]
+
+        return {
+            'id': audio_id,
+            'title': info['title'].strip(),
+            'thumbnail': info.get('thumbnail'),
+            'duration': float_or_none(info.get('duration'), 1000),
+            'series': try_get(info, lambda x: x['programInfo']['title']),
+            'formats': self._extract_png_formats(audio_id),
+        }
 
 
 class RTVEInfantilIE(RTVEALaCartaIE):

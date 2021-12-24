@@ -9,7 +9,7 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm asking a question and not reporting a bug/feature request
+        - label: I'm asking a question and **not** reporting a bug/feature request
           required: true
         - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
           required: true
@@ -24,7 +24,8 @@ body:
       description: |
         Ask your question in an arbitrary form.
         Please make sure it's worded well enough to be understood, see [is-the-description-of-the-issue-itself-sufficient](https://github.com/ytdl-org/youtube-dl#is-the-description-of-the-issue-itself-sufficient).
-        Provide any additional information and as much context and examples as possible
+        Provide any additional information and as much context and examples as possible.
+        If your question contains "isn't working" or "can you add", this is most likely the wrong template
       placeholder: WRITE QUESTION HERE
     validations:
       required: true

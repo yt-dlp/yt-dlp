@@ -18,6 +18,7 @@ from .options import (
 )
 from .compat import (
     compat_getpass,
+    compat_os_name,
     compat_shlex_quote,
     workaround_optparse_bug9161,
 )
@@ -95,7 +96,8 @@ def _real_main(argv=None):
     if opts.batchfile is not None:
         try:
             if opts.batchfile == '-':
-                write_string('Reading URLs from stdin:\n')
+                write_string('Reading URLs from stdin - EOF (%s) to end:\n' % (
+                    'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
                 batchfd = sys.stdin
             else:
                 batchfd = io.open(
@@ -136,6 +138,11 @@ def _real_main(argv=None):
         sys.exit(0)
 
     # Conflicting, missing and erroneous options
+    if opts.format == 'best':
+        warnings.append('.\n         '.join((
+            '"-f best" selects the best pre-merged format which is often not the best option',
+            'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
+            'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
     if opts.usenetrc and (opts.username is not None or opts.password is not None):
         parser.error('using .netrc conflicts with giving username/password')
     if opts.password is not None and opts.username is None:
@@ -215,6 +222,8 @@ def _real_main(argv=None):
         return parsed_retries
     if opts.retries is not None:
         opts.retries = parse_retries(opts.retries)
+    if opts.file_access_retries is not None:
+        opts.file_access_retries = parse_retries(opts.file_access_retries, 'file access ')
     if opts.fragment_retries is not None:
         opts.fragment_retries = parse_retries(opts.fragment_retries, 'fragment ')
     if opts.extractor_retries is not None:
@@ -513,7 +522,7 @@ def _real_main(argv=None):
             if len(dur) == 2 and all(t is not None for t in dur):
                 remove_ranges.append(tuple(dur))
                 continue
-            parser.error(f'invalid --remove-chapters time range {regex!r}. Must be of the form ?start-end')
+            parser.error(f'invalid --remove-chapters time range {regex!r}. Must be of the form *start-end')
         try:
             remove_chapters_patterns.append(re.compile(regex))
         except re.error as err:
@@ -666,6 +675,7 @@ def _real_main(argv=None):
         'throttledratelimit': opts.throttledratelimit,
         'overwrites': opts.overwrites,
         'retries': opts.retries,
+        'file_access_retries': opts.file_access_retries,
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,

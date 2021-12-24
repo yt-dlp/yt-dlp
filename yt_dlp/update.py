@@ -257,7 +257,7 @@ def update_self(to_screen, verbose, opener):
 
     write_string(
         'DeprecationWarning: "yt_dlp.update.update_self" is deprecated and may be removed in a future version. '
-        'Use "yt_dlp.update.run_update(ydl)" instead')
+        'Use "yt_dlp.update.run_update(ydl)" instead\n')
 
     class FakeYDL():
         _opener = opener

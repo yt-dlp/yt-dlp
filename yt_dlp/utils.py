@@ -210,6 +210,7 @@ DATE_FORMATS = (
     '%Y/%m/%d %H:%M:%S',
     '%Y%m%d%H%M',
     '%Y%m%d%H%M%S',
+    '%Y%m%d',
     '%Y-%m-%d %H:%M',
     '%Y-%m-%d %H:%M:%S',
     '%Y-%m-%d %H:%M:%S.%f',
@@ -1862,7 +1863,6 @@ def _windows_write_string(s, out):
     False if it has yet to be written out."""
     # Adapted from http://stackoverflow.com/a/3259271/35070
 
-    import ctypes
     import ctypes.wintypes
 
     WIN_OUTPUT_IDS = {
@@ -2110,18 +2110,19 @@ def unsmuggle_url(smug_url, default=None):
     return url, data
 
 
+def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
+    """ Formats numbers with decimal sufixes like K, M, etc """
+    num, factor = float_or_none(num), float(factor)
+    if num is None:
+        return None
+    exponent = 0 if num == 0 else int(math.log(num, factor))
+    suffix = ['', *'KMGTPEZY'][exponent]
+    converted = num / (factor ** exponent)
+    return fmt % (converted, suffix)
+
+
 def format_bytes(bytes):
-    if bytes is None:
-        return 'N/A'
-    if type(bytes) is str:
-        bytes = float(bytes)
-    if bytes == 0.0:
-        exponent = 0
-    else:
-        exponent = int(math.log(bytes, 1024.0))
-    suffix = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'][exponent]
-    converted = float(bytes) / float(1024 ** exponent)
-    return '%.2f%s' % (converted, suffix)
+    return format_decimal_suffix(bytes, '%.2f%siB', factor=1024) or 'N/A'
 
 
 def lookup_unit_table(unit_table, s):
@@ -3192,29 +3193,28 @@ def parse_codecs(codecs_str):
         if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
                      'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
-                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1') else full_codec
+                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1', 'hvc1') else full_codec
                 if codec in ('dvh1', 'dvhe'):
                     hdr = 'DV'
                 elif codec == 'av1' and len(parts) > 3 and parts[3] == '10':
                     hdr = 'HDR10'
                 elif full_codec.replace('0', '').startswith('vp9.2'):
                     hdr = 'HDR10'
-        elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
+        elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
         else:
             write_string('WARNING: Unknown codec %s\n' % full_codec, sys.stderr)
-    if not vcodec and not acodec:
-        if len(split_codecs) == 2:
-            return {
-                'vcodec': split_codecs[0],
-                'acodec': split_codecs[1],
-            }
-    else:
+    if vcodec or acodec:
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
+        }
+    elif len(split_codecs) == 2:
+        return {
+            'vcodec': split_codecs[0],
+            'acodec': split_codecs[1],
         }
     return {}
 

@@ -668,7 +668,7 @@ def parseOpts(overrideArguments=None):
     downloader.add_option(
         '-N', '--concurrent-fragments',
         dest='concurrent_fragment_downloads', metavar='N', default=1, type=int,
-        help='Number of fragments of a dash/hlsnative video that should be download concurrently (default is %default)')
+        help='Number of fragments of a dash/hlsnative video that should be downloaded concurrently (default is %default)')
     downloader.add_option(
         '-r', '--limit-rate', '--rate-limit',
         dest='ratelimit', metavar='RATE',
@@ -681,6 +681,10 @@ def parseOpts(overrideArguments=None):
         '-R', '--retries',
         dest='retries', metavar='RETRIES', default=10,
         help='Number of retries (default is %default), or "infinite"')
+    downloader.add_option(
+        '--file-access-retries',
+        dest='file_access_retries', metavar='RETRIES', default=10,
+        help='Number of times to retry on file access error (default is %default), or "infinite"')
     downloader.add_option(
         '--fragment-retries',
         dest='fragment_retries', metavar='RETRIES', default=10,
