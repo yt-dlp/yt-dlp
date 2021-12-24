@@ -1618,6 +1618,9 @@ The following extractors use this feature:
 #### youtubewebarchive
 * `check_all`: Try to check more at the cost of more requests. One or more of `thumbnails`, `captures`
 
+#### gamejolt
+* `comment_sort`: `hot` (default), `you` (cookies needed), `top`, `new` - choose comment sorting mode (on GameJolt's side)
+
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
