@@ -9,7 +9,6 @@ from ..utils import (
     date_from_str,
     determine_ext,
     ExtractorError,
-    error_to_compat_str,
     int_or_none,
     qualities,
     unified_strdate,
@@ -419,25 +418,6 @@ class AfreecaTVLiveIE(AfreecaTVIE):
     _STREAM_API_PATH = '/broad_stream_assign.html'
     _STATION_API_URL = 'https://st.afreecatv.com/api/get_station_status.php'
 
-    # various options the web player appears to be able to switch between
-    _CDNS = [
-        # "standard" CDNs
-        'gcp_cdn',
-        'azure_cdn',
-        'aws_cf',
-        'gs_cdn',
-        # "special" CDNs
-        'gs_cdn_pc_web',
-        'gs_cdn_pc_app',
-        'gs_cdn_mobile_web',
-        'gs_cdn_chromecast',
-        'kt_cdn',
-    ]
-    _STREAM_KEY_TYPES = [
-        'common',
-        'mobileweb',
-        'chromecast',
-    ]
     _QUALITIES = [
         'sd',
         'hd',
@@ -450,8 +430,6 @@ class AfreecaTVLiveIE(AfreecaTVIE):
         broadcaster_id = match.group('id')
         broadcast_no = match.group('bno')
 
-        # note: the only necessary input is "bid" in the form data
-        # the rest, including the query param, is just to keep parity with the website
         form_data = {
             'bid': broadcaster_id,
             'type': 'live',
@@ -472,12 +450,15 @@ class AfreecaTVLiveIE(AfreecaTVIE):
         )
         channel_info = info['CHANNEL']
         broadcast_no = channel_info.get('BNO') or broadcast_no
+        if not broadcast_no:
+            raise ExtractorError(
+                f'Unable to extract broadcast number ({broadcaster_id} may not be live)',
+                expected=True,
+            )
+
         form_data['bno'] = broadcast_no
         form_data['type'] = 'aid'
-
         formats = []
-        # TODO do we need to consider other stream key types for different formats?
-        stream_key_type = self._STREAM_KEY_TYPES[0]
         quality_key = qualities(self._QUALITIES)
         for quality_str in self._QUALITIES:
             try:
@@ -495,8 +476,8 @@ class AfreecaTVLiveIE(AfreecaTVIE):
                     channel_info.get('RMD', 'https://livestream-manager.afreecatv.com')
                     + self._STREAM_API_PATH
                 )
-                cdn = channel_info.get('CDN', self._CDNS[0])
-                stream_key = f'{broadcast_no}-{stream_key_type}-{quality_str}-hls'
+                cdn = channel_info.get('CDN', 'gcp_cdn')
+                stream_key = f'{broadcast_no}-common-{quality_str}-hls'
                 stream_info = self._download_json(
                     stream_info_url,
                     broadcast_no,
@@ -505,8 +486,6 @@ class AfreecaTVLiveIE(AfreecaTVIE):
                         'use_cors': True,
                         'cors_origin_url': 'play.afreecatv.com',
                         'broad_key': stream_key,
-                        # TODO the website passes a "time" parameter, but it's not obvious how it's derived
-                        # for now we can get away with ignoring it
                     },
                     note=f'Downloading metadata for {quality_str} stream',
                     errnote=f'Unable to download metadata for {quality_str} stream',
@@ -527,33 +506,23 @@ class AfreecaTVLiveIE(AfreecaTVIE):
                 continue
 
         self._sort_formats(formats)
-        info = {
+
+        station_info = self._download_json(
+            self._STATION_API_URL,
+            broadcaster_id,
+            query={
+                'szBjId': broadcaster_id,
+            },
+            note='Downloading channel metadata',
+            errnote='Unable to download channel metadata',
+            fatal=False,
+        ) or {}
+
+        return {
             'id': broadcast_no,
-            'title': channel_info.get('TITLE'),
-            'uploader': channel_info.get('BJNICK'),
-            'uploader_id': channel_info.get('BJID'),
+            'title': channel_info.get('TITLE') or station_info.get('station_title'),
+            'uploader': channel_info.get('BJNICK') or station_info.get('station_name'),
+            'uploader_id': channel_info.get('BJID') or broadcaster_id,
+            'upload_date': unified_strdate(station_info.get('broad_start')),
             'formats': formats,
         }
-
-        # try for a little bit of extra metadata
-        try:
-            station_info = self._download_json(
-                self._STATION_API_URL,
-                broadcaster_id,
-                query={
-                    'szBjId': broadcaster_id,
-                },
-                note='Downloading channel metadata',
-                errnote='Unable to download channel metadata',
-            )
-            info['upload_date'] = unified_strdate(station_info.get('broad_start'))
-
-            if not info['title']:
-                # not exactly equivalent to stream title, use only as fallback
-                info['title'] = station_info.get('station_title')
-            if not info['uploader']:
-                info['uploader'] = station_info.get('station_name')
-        except Exception as e:
-            self.report_warning('Failed to look up extra metadata: ' + error_to_compat_str(e))
-
-        return info
