@@ -10,7 +10,6 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     traverse_obj,
-    try_get,
     variadic,
 )
 
