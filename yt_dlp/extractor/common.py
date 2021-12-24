@@ -2332,7 +2332,7 @@ class InfoExtractor(object):
 
         if smil is False:
             assert not fatal
-            return []
+            return [], {}
 
         namespace = self._parse_smil_namespace(smil)
 
