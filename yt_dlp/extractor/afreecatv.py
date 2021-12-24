@@ -11,6 +11,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     qualities,
+    traverse_obj,
     unified_strdate,
     update_url_query,
     url_or_none,
@@ -418,81 +419,64 @@ class AfreecaTVLiveIE(AfreecaTVIE):
     _STREAM_API_PATH = '/broad_stream_assign.html'
     _STATION_API_URL = 'https://st.afreecatv.com/api/get_station_status.php'
 
-    _QUALITIES = [
-        'sd',
-        'hd',
-        'hd2k',
-        'original',
-    ]
+    _QUALITIES = ('sd', 'hd', 'hd2k', 'original')
 
     def _real_extract(self, url):
         match = self._match_valid_url(url)
         broadcaster_id = match.group('id')
         broadcast_no = match.group('bno')
 
-        form_data = {
-            'bid': broadcaster_id,
-            'type': 'live',
-            'player_type': 'html5',
-            'stream_type': 'common',
-            'mode': 'landing',
-            'from_api': 0,
-        }
-        if broadcast_no:
-            form_data['bno'] = broadcast_no
         info = self._download_json(
             self._LIVE_API_URL,
             broadcaster_id,
-            query={
-                'bjid': broadcaster_id,
-            },
-            data=urlencode_postdata(form_data),
-        )
-        channel_info = info['CHANNEL']
+            data=urlencode_postdata({
+                'bid': broadcaster_id,
+            }),
+            fatal=False)
+        channel_info = traverse_obj(info, ('CHANNEL',), {})
+        broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
         if not broadcast_no:
             raise ExtractorError(
                 f'Unable to extract broadcast number ({broadcaster_id} may not be live)',
-                expected=True,
-            )
+                expected=True)
 
-        form_data['bno'] = broadcast_no
-        form_data['type'] = 'aid'
         formats = []
         quality_key = qualities(self._QUALITIES)
         for quality_str in self._QUALITIES:
-            try:
-                form_data['quality'] = quality_str
-                aid_response = self._download_json(
-                    self._LIVE_API_URL,
-                    broadcaster_id,
-                    data=urlencode_postdata(form_data),
-                    note=f'Downloading access token for {quality_str} stream',
-                    errnote=f'Unable to download access token for {quality_str} stream',
-                )
-                aid = aid_response['CHANNEL']['AID']
+            aid_response = self._download_json(
+                self._LIVE_API_URL,
+                broadcast_no,
+                data=urlencode_postdata({
+                    'bno': broadcast_no,
+                    'stream_type': 'common',
+                    'type': 'aid',
+                    'quality': quality_str,
+                }),
+                note=f'Downloading access token for {quality_str} stream',
+                errnote=f'Unable to download access token for {quality_str} stream',
+                fatal=False)
+            aid = traverse_obj(aid_response, ('CHANNEL', 'AID'))
+            if not aid:
+                continue
 
-                stream_info_url = (
-                    channel_info.get('RMD', 'https://livestream-manager.afreecatv.com')
-                    + self._STREAM_API_PATH
-                )
-                cdn = channel_info.get('CDN', 'gcp_cdn')
-                stream_key = f'{broadcast_no}-common-{quality_str}-hls'
-                stream_info = self._download_json(
-                    stream_info_url,
-                    broadcast_no,
-                    query={
-                        'return_type': cdn,
-                        'use_cors': True,
-                        'cors_origin_url': 'play.afreecatv.com',
-                        'broad_key': stream_key,
-                    },
-                    note=f'Downloading metadata for {quality_str} stream',
-                    errnote=f'Unable to download metadata for {quality_str} stream',
-                    fatal=False,
-                )
-                view_url = stream_info['view_url']
+            stream_info_url = (
+                channel_info.get('RMD', 'https://livestream-manager.afreecatv.com')
+                + self._STREAM_API_PATH)
+            stream_key = f'{broadcast_no}-common-{quality_str}-hls'
+            stream_info = self._download_json(
+                stream_info_url,
+                broadcast_no,
+                query={
+                    'return_type': channel_info.get('CDN', 'gcp_cdn'),
+                    'broad_key': stream_key,
+                },
+                note=f'Downloading metadata for {quality_str} stream',
+                errnote=f'Unable to download metadata for {quality_str} stream',
+                fatal=False)
+            view_url = traverse_obj(stream_info, ('view_url',))
 
+            if view_url:
                 formats.append({
                     'format_id': quality_str,
                     'quality': quality_key(quality_str),
@@ -502,14 +486,12 @@ class AfreecaTVLiveIE(AfreecaTVIE):
                         'aid': aid,
                     }),
                 })
-            except (ExtractorError, KeyError):
-                continue
 
         self._sort_formats(formats)
 
         station_info = self._download_json(
             self._STATION_API_URL,
-            broadcaster_id,
+            broadcast_no,
             query={
                 'szBjId': broadcaster_id,
             },
@@ -522,7 +504,7 @@ class AfreecaTVLiveIE(AfreecaTVIE):
             'id': broadcast_no,
             'title': channel_info.get('TITLE') or station_info.get('station_title'),
             'uploader': channel_info.get('BJNICK') or station_info.get('station_name'),
-            'uploader_id': channel_info.get('BJID') or broadcaster_id,
+            'uploader_id': broadcaster_id,
             'upload_date': unified_strdate(station_info.get('broad_start')),
             'formats': formats,
         }
