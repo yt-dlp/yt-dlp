@@ -13,7 +13,6 @@ class PixivSketchBaseIE(InfoExtractor):
     def _call_api(self, video_id, path, referer):
         response = self._download_json(f'https://sketch.pixiv.net/api/{path}', video_id, headers={
             'Referer': referer,
-            # this is correct
             'X-Requested-With': referer,
         })
         errors = traverse_obj(response, ('errors', ..., 'message'))
