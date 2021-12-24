@@ -28,7 +28,7 @@ class PixivSketchIE(PixivSketchBaseIE):
         'url': 'https://sketch.pixiv.net/@nuhutya/lives/3654620468641830507',
         'info_dict': {
             'id': '7370666691623196569',
-            'title': 'まにあえクリスマス！ 2021-12-24 23:41',
+            'title': 'まにあえクリスマス！',
             'uploader': 'ぬふちゃ',
             'uploader_id': 'nuhutya',
             'channel_id': '9844815',
@@ -112,7 +112,15 @@ class PixivSketchUserIE(PixivSketchBaseIE):
         data = self._call_api(user_id, f'lives/users/@{user_id}.json', url)
 
         if not traverse_obj(data, 'is_broadcasting'):
-            # cannot differentiate the two just by only one request
-            raise ExtractorError('Either you are not logged in, or this user is really offline', expected=True)
+            is_offline = True
+            try:
+                self._call_api('users/current.json')
+            except ExtractorError as ex:
+                if ex.cause.code == 401:
+                    is_offline = False
+            if is_offline:
+                raise ExtractorError('This user is offline', expected=True)
+            else:
+                raise ExtractorError(f'Please log in, or use direct link like https://sketch.pixiv.net/@{user_id}/1234567890', expected=True)
 
         return self.url_result(f'https://sketch.pixiv.net/@{user_id}/lives/{data["id"]}')
