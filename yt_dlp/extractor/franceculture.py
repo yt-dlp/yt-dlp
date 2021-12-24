@@ -9,7 +9,6 @@ from ..utils import (
     int_or_none,
     traverse_obj,
     unified_strdate,
-    unified_timestamp,
 )
 
 
@@ -95,8 +94,8 @@ class FranceCultureIE(InfoExtractor):
                     'duration': int_or_none(traverse_obj(item_attributes, 'data-duration-seconds', 'data-duration-seconds')),
                     'description': item_description,
                     'timestamp': int_or_none(item_attributes.get('data-start-time')),
-                    'thumbnail': thumbnail,
-                    'uploader': uploader,
+                    'thumbnail': info['thumbnail'],
+                    'uploader': info['uploader'],
                 })
 
             return {
