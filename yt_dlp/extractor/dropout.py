@@ -133,7 +133,7 @@ class DropoutIE(InfoExtractor):
         season_episode = get_element_by_class(
             'site-font-secondary-color', get_element_by_class('text', watch_info))
         episode_number = int_or_none(self._search_regex(
-                r'Episode (\d+)', season_episode or '', 'episode', default=None))
+            r'Episode (\d+)', season_episode or '', 'episode', default=None))
 
         return {
             '_type': 'url_transparent',
@@ -151,7 +151,7 @@ class DropoutIE(InfoExtractor):
                 r'Season (\d+),', season_episode or '', 'season', default=None)),
             'release_date': unified_strdate(self._search_regex(
                 r'data-meta-field-name=["\']release_dates["\'] data-meta-field-value=["\'](.+?)["\']',
-                 watch_info, 'release date', default=None)),
+                watch_info, 'release date', default=None)),
         }
 
 
