@@ -11,6 +11,7 @@ from ..utils import (
     parse_iso8601,
     traverse_obj,
     try_get,
+    variadic,
 )
 
 
@@ -40,32 +41,28 @@ class OpencastBaseIE(InfoExtractor):
                         )'''
     _UUID_RE = r'[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}'
 
-    def _call_api(self, host, video_id, note=None, errnote=None, fatal=True):
-        return self._download_json(self._API_BASE % (host, video_id), video_id, note=note, errnote=errnote, fatal=fatal)
+    def _call_api(self, host, video_id, **kwargs):
+        return self._download_json(self._API_BASE % (host, video_id), video_id, **kwargs)
 
     def _parse_mediapackage(self, video):
-        tracks = try_get(video, lambda x: x['media']['track'])
-
         video_id = video.get('id')
         if video_id is None:
             raise ExtractorError('Video id was not found')
 
         formats = []
-        for track in tracks:
+        for track in variadic(traverse_obj(video, ('media', 'track')) or []):
             href = track.get('url')
             if href is None:
                 continue
             ext = determine_ext(href, None)
-            track_obj = {'url': href}
 
             transport = track.get('transport')
 
             if transport == 'DASH' or ext == 'mpd':
                 formats.extend(self._extract_mpd_formats_and_subtitles(href, video_id, mpd_id='dash', fatal=False))
             elif transport == 'HLS' or ext == 'm3u8':
-                formats.extend(
-                    self._extract_m3u8_formats_and_subtitles(href, video_id, m3u8_id='hls', entry_protocol='m3u8_native', fatal=False)
-                )
+                formats.extend(self._extract_m3u8_formats_and_subtitles(
+                    href, video_id, m3u8_id='hls', entry_protocol='m3u8_native', fatal=False))
             elif transport == 'HDS' or ext == 'f4m':
                 formats.extend(self._extract_f4m_formats(href, video_id, f4m_id='hds', fatal=False))
             elif transport == 'SMOOTH':
@@ -73,39 +70,30 @@ class OpencastBaseIE(InfoExtractor):
             elif ext == 'smil':
                 formats.extend(self._extract_smil_formats(href, video_id, fatal=False))
             else:
-                if transport is not None:
-                    track_obj.update({'format_note': track.get('transport')})
-                    if transport == 'RTMP':
-                        m_obj = re.search(r'(?:rtmp://[^/]+/(?P<app>[^/]+))/(?P<ext>.+):(?P<playpath>.+)', href)
-                        if not m_obj:
-                            continue
-                        track_obj.update(
-                            {
-                                'app': m_obj.group('app'),
-                                'ext': m_obj.group('ext'),
-                                'play_path': m_obj.group('ext') + ':' + m_obj.group('playpath'),
-                                'rtmp_live': True,
-                                'preference': -2,
-                            }
-                        )
+                track_obj = {
+                    'url': href,
+                    'ext': ext,
+                    'format_note': track.get('transport'),
+                    'resolution': traverse_obj(track, ('video', 'resolution')),
+                    'fps': int_or_none(traverse_obj(track, ('video', 'framerate'))),
+                    'vbr': int_or_none(traverse_obj(track, ('video', 'bitrate')), scale=1000),
+                    'vcodec': traverse_obj(track, ('video', 'encoder', 'type')) if track.get('video') else 'none',
+                    'abr': int_or_none(traverse_obj(track, ('audio', 'bitrate')), scale=1000),
+                    'asr': int_or_none(traverse_obj(track, ('audio', 'samplingrate'))),
+                    'acodec': traverse_obj(track, ('audio', 'encoder', 'type')) if track.get('audio') else 'none',
+                }
 
-                audio_info = track.get('audio')
-                if audio_info is not None:
+                if transport == 'RTMP':
+                    m_obj = re.search(r'(?:rtmp://[^/]+/(?P<app>[^/]+))/(?P<ext>.+):(?P<playpath>.+)', href)
+                    if not m_obj:
+                        continue
                     track_obj.update({
-                        'abr': int_or_none(audio_info.get('bitrate'), scale=1000),
-                        'asr': int_or_none(audio_info.get('samplingrate')),
-                        'acodec': traverse_obj(audio_info, ('encoder', 'type')),
+                        'app': m_obj.group('app'),
+                        'ext': m_obj.group('ext'),
+                        'play_path': m_obj.group('ext') + ':' + m_obj.group('playpath'),
+                        'rtmp_live': True,
+                        'preference': -2,
                     })
-
-                video_info = track.get('video')
-                if video_info is not None:
-                    track_obj.update({
-                        'resolution': video_info.get('resolution'),
-                        'fps': int_or_none(video_info.get('framerate')),
-                        'vbr': int_or_none(video_info.get('bitrate'), scale=1000),
-                        'vcodec': try_get(video_info, lambda x: x['encoder']['type']),
-                    })
-
                 formats.append(track_obj)
 
         self._sort_formats(formats)
@@ -126,10 +114,7 @@ class OpencastIE(OpencastBaseIE):
     _VALID_URL = r'''(?x)
                     https?://(?P<host>%s)/paella/ui/watch.html\?.*?
                     id=(?P<id>%s)
-                    ''' % (
-        OpencastBaseIE._INSTANCES_RE,
-        OpencastBaseIE._UUID_RE,
-    )
+                    ''' % (OpencastBaseIE._INSTANCES_RE, OpencastBaseIE._UUID_RE)
 
     _API_BASE = 'https://%s/search/episode.json?id=%s'
 
@@ -149,21 +134,16 @@ class OpencastIE(OpencastBaseIE):
     ]
 
     def _real_extract(self, url):
-        host, video_id = self._match_valid_url(url).groups()
-
-        video = self._call_api(host, video_id, note='Downloading video JSON')['search-results']['result']['mediapackage']
-
-        return self._parse_mediapackage(video)
+        host, video_id = self._match_valid_url(url).group('host', 'id')
+        return self._parse_mediapackage(
+            self._call_api(host, video_id)['search-results']['result']['mediapackage'])
 
 
 class OpencastPlaylistIE(OpencastBaseIE):
     _VALID_URL = r'''(?x)
                             https?://(?P<host>%s)/engage/ui/index.html\?.*?
                             epFrom=(?P<id>%s)
-                    ''' % (
-        OpencastBaseIE._INSTANCES_RE,
-        OpencastBaseIE._UUID_RE,
-    )
+                    ''' % (OpencastBaseIE._INSTANCES_RE, OpencastBaseIE._UUID_RE)
 
     _API_BASE = 'https://%s/search/episode.json?sid=%s'
 
@@ -182,21 +162,17 @@ class OpencastPlaylistIE(OpencastBaseIE):
                 'id': 'b1a54262-3684-403f-9731-8e77c3766f9a',
                 'title': 'inSTUDIES-Social movements and prefigurative politics in a global perspective',
             },
-            'playlist_mincount': 8,
+            'playlist_mincount': 6,
         },
     ]
 
     def _real_extract(self, url):
-        host, video_id = self._match_valid_url(url).groups()
-
-        result_list = self._call_api(host, video_id, note='Downloading video JSON')['search-results']['result']
-
-        if isinstance(result_list, dict):
-            result_list = [result_list]
+        host, video_id = self._match_valid_url(url).group('host', 'id')
 
         entries = [
             self._parse_mediapackage(episode['mediapackage'])
-            for episode in result_list
-            if episode.get('mediapackage')]
+            for episode in variadic(self._call_api(host, video_id)['search-results']['result'])
+            if episode.get('mediapackage')
+        ]
 
-        return self.playlist_result(entries, playlist_id=video_id, playlist_title=try_get(entries, lambda x: x[0]['series']))
+        return self.playlist_result(entries, video_id, traverse_obj(entries, (0, 'series')))
