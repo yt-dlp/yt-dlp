@@ -104,7 +104,7 @@ class DropoutIE(InfoExtractor):
             self._LOGIN_URL, display_id, note='Logging in', data=urlencode_postdata({
                 'email': username,
                 'password': password,
-                'authenticity_token': self._get_authenticity_token(id),
+                'authenticity_token': self._get_authenticity_token(display_id),
                 'utf8': True
             }))
 
