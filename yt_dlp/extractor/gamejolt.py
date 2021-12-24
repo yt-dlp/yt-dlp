@@ -77,7 +77,6 @@ class GameJoltBaseIE(InfoExtractor):
 
         user_data = post_data.get('user') or {}
         info_dict = {
-            'ie_key': GameJoltIE.ie_key(),
             'extractor_key': GameJoltIE.ie_key(),
             'extractor': 'GameJolt',
             'webpage_url': str_or_none(post_data.get('url')) or f'https://gamejolt.com/p/{post_id}',
@@ -176,7 +175,6 @@ class GameJoltIE(GameJoltBaseIE):
         'md5': 'cd5f733258f6678b0ce500dd88166d86',
         'info_dict': {
             'id': 'c6achnzu',
-            'ie_key': 'GameJolt',
             'ext': 'mp4',
             'display_id': 'introducing-ramses-jackson-some-fnf-himbo-i-ve-been-animating-fo-c6achnzu',
             'title': 'Introducing Ramses Jackson, some FNF himbo I’ve been animating for the past few days, hehe.\n#fnfmod #fridaynightfunkin',
@@ -229,7 +227,6 @@ class GameJoltIE(GameJoltBaseIE):
         'md5': '786c1ccf98fde02c03a2768acb4258d0',
         'info_dict': {
             'id': 'd56h3eue',
-            'ie_key': 'GameJolt',
             'ext': 'mp4',
             'display_id': 'i-fuckin-broke-chaos-d56h3eue',
             'title': 'I fuckin broke Chaos.',
@@ -252,7 +249,6 @@ class GameJoltIE(GameJoltBaseIE):
         'url': 'https://gamejolt.com/p/hello-everyone-i-m-developing-a-pixel-art-style-mod-for-fnf-and-i-vs4gdrd8',
         'info_dict': {
             'id': 'vs4gdrd8',
-            'ie_key': 'GameJolt',
             'display_id': 'hello-everyone-i-m-developing-a-pixel-art-style-mod-for-fnf-and-i-vs4gdrd8',
             'title': 'md5:cc3d8b031d9bc7ec2ec5a9ffc707e1f9',
             'description': 'md5:cc3d8b031d9bc7ec2ec5a9ffc707e1f9',
@@ -280,7 +276,6 @@ class GameJoltIE(GameJoltBaseIE):
         'playlist_count': 35,
         'info_dict': {
             'id': 'yhsqkumq',
-            'ie_key': 'GameJolt',
             'display_id': 'gif-yhsqkumq',
             'title': 'GIF',
             'description': 'GIF',
@@ -447,7 +442,7 @@ class GameJoltCommunityIE(GameJoltPostListBaseIE):
         'playlist_mincount': 50,
         'info_dict': {
             'id': 'youtubers/featured',
-            'title': 'Youtubers',
+            'title': 'Youtubers - featured',
             'description': 'md5:53e5582c93dcc467ab597bfca4db17d4'
         },
         'params': {
