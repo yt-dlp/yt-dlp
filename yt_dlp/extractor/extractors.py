@@ -1109,13 +1109,13 @@ from .picarto import (
 )
 from .piksel import PikselIE
 from .pinkbike import PinkbikeIE
-from .pixivsketch import (
-    PixivSketchIE,
-    PixivSketchUserIE,
-)
 from .pinterest import (
     PinterestIE,
     PinterestCollectionIE,
+)
+from .pixivsketch import (
+    PixivSketchIE,
+    PixivSketchUserIE,
 )
 from .pladform import PladformIE
 from .planetmarathi import PlanetMarathiIE
