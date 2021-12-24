@@ -343,8 +343,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-flat-playlist               Extract the videos of a playlist
     --live-from-start                Download livestreams from the start.
                                      Currently only supported for YouTube
-    --no-live-from-start             Download livestreams from the current
-                                     time (default)
+    --no-live-from-start             Download livestreams from the current time
+                                     (default)
     --wait-for-video MIN[-MAX]       Wait for scheduled streams to become
                                      available. Pass the minimum number of
                                      seconds (or range) to wait between retries
@@ -454,8 +454,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 ## Download Options:
     -N, --concurrent-fragments N     Number of fragments of a dash/hlsnative
-                                     video that should be download concurrently
-                                     (default is 1)
+                                     video that should be downloaded
+                                     concurrently (default is 1)
     -r, --limit-rate RATE            Maximum download rate in bytes per second
                                      (e.g. 50K or 4.2M)
     --throttled-rate RATE            Minimum download rate in bytes per second
@@ -463,8 +463,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      video data is re-extracted (e.g. 100K)
     -R, --retries RETRIES            Number of retries (default is 10), or
                                      "infinite"
-    --file-access-retries RETRIES    Number of times to retry on file access error
-                                     (default is 10), or "infinite"
+    --file-access-retries RETRIES    Number of times to retry on file access
+                                     error (default is 10), or "infinite"
     --fragment-retries RETRIES       Number of retries for a fragment (default
                                      is 10), or "infinite" (DASH, hlsnative and
                                      ISM)
@@ -887,7 +887,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      emit a warning), detect_or_warn (the
                                      default; fix file if we can, warn
                                      otherwise), force (try fixing even if file
-                                     already exists
+                                     already exists)
     --ffmpeg-location PATH           Location of the ffmpeg binary; either the
                                      path to the binary or its containing
                                      directory

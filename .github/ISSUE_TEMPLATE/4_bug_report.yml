@@ -1,6 +1,6 @@
 name: Bug report
 description: Report a bug unrelated to any particular site or extractor
-labels: [triage,bug]
+labels: [triage, bug]
 body:
   - type: checkboxes
     id: checklist
