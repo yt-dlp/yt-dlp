@@ -9,8 +9,11 @@ from ..utils import (
     date_from_str,
     determine_ext,
     ExtractorError,
+    error_to_compat_str,
     int_or_none,
+    qualities,
     unified_strdate,
+    update_url_query,
     url_or_none,
     urlencode_postdata,
     xpath_text,
@@ -378,5 +381,179 @@ class AfreecaTVIE(InfoExtractor):
                 'play_path': 'mp4:' + playpath,
                 'rtmp_live': True,  # downloading won't end without this
             })
+
+        return info
+
+
+class AfreecaTVLiveIE(AfreecaTVIE):
+    '''
+    Extractor for live streams on AfreecaTV.
+
+    Outstanding issues:
+      - when a streamer's connection drops for some period of time (roughly, more than 30 seconds
+        but less than 90), the server resets the M3U8 sequence numbers and timestamps when the
+        stream picks back up. In this case, ffmpeg will ignore the fragments with repeated
+        sequence numbers and timestamps, and consequently will fail to download part of the stream.
+    '''
+
+    IE_NAME = 'afreecatv:live'
+    _VALID_URL = r'''(?x)
+        https?://play\.afreeca(?:tv)?\.com(?::\d+)?
+        /(?P<id>[^/]+)
+        (?:/(?P<bno>\d+)/?)?
+    '''
+    _TESTS = [{
+        'url': 'https://play.afreecatv.com/pyh3646/237852185',
+        'info_dict': {
+            'id': '237852185',
+            'ext': 'mp4',
+            'title': '【 우루과이 오늘은 무슨일이? 】',
+            'uploader': '박진우[JINU]',
+            'uploader_id': 'pyh3646',
+            'upload_date': '20211223',
+        },
+        'skip': 'Livestream has ended',
+    }]
+
+    _LIVE_API_URL = 'https://live.afreecatv.com/afreeca/player_live_api.php'
+    _STREAM_API_PATH = '/broad_stream_assign.html'
+    _STATION_API_URL = 'https://st.afreecatv.com/api/get_station_status.php'
+
+    # various options the web player appears to be able to switch between
+    _CDNS = [
+        # "standard" CDNs
+        'gcp_cdn',
+        'azure_cdn',
+        'aws_cf',
+        'gs_cdn',
+        # "special" CDNs
+        'gs_cdn_pc_web',
+        'gs_cdn_pc_app',
+        'gs_cdn_mobile_web',
+        'gs_cdn_chromecast',
+        'kt_cdn',
+    ]
+    _STREAM_KEY_TYPES = [
+        'common',
+        'mobileweb',
+        'chromecast',
+    ]
+    _QUALITIES = [
+        'sd',
+        'hd',
+        'hd2k',
+        'original',
+    ]
+
+    def _real_extract(self, url):
+        match = self._match_valid_url(url)
+        broadcaster_id = match.group('id')
+        broadcast_no = match.group('bno')
+
+        # note: the only necessary input is "bid" in the form data
+        # the rest, including the query param, is just to keep parity with the website
+        form_data = {
+            'bid': broadcaster_id,
+            'type': 'live',
+            'player_type': 'html5',
+            'stream_type': 'common',
+            'mode': 'landing',
+            'from_api': 0,
+        }
+        if broadcast_no:
+            form_data['bno'] = broadcast_no
+        info = self._download_json(
+            self._LIVE_API_URL,
+            broadcaster_id,
+            query={
+                'bjid': broadcaster_id,
+            },
+            data=urlencode_postdata(form_data),
+        )
+        channel_info = info['CHANNEL']
+        broadcast_no = channel_info.get('BNO') or broadcast_no
+        form_data['bno'] = broadcast_no
+        form_data['type'] = 'aid'
+
+        formats = []
+        # TODO do we need to consider other stream key types for different formats?
+        stream_key_type = self._STREAM_KEY_TYPES[0]
+        quality_key = qualities(self._QUALITIES)
+        for quality_str in self._QUALITIES:
+            try:
+                form_data['quality'] = quality_str
+                aid_response = self._download_json(
+                    self._LIVE_API_URL,
+                    broadcaster_id,
+                    data=urlencode_postdata(form_data),
+                    note=f'Downloading access token for {quality_str} stream',
+                    errnote=f'Unable to download access token for {quality_str} stream',
+                )
+                aid = aid_response['CHANNEL']['AID']
+
+                stream_info_url = (
+                    channel_info.get('RMD', 'https://livestream-manager.afreecatv.com')
+                    + self._STREAM_API_PATH
+                )
+                cdn = channel_info.get('CDN', self._CDNS[0])
+                stream_key = f'{broadcast_no}-{stream_key_type}-{quality_str}-hls'
+                stream_info = self._download_json(
+                    stream_info_url,
+                    broadcast_no,
+                    query={
+                        'return_type': cdn,
+                        'use_cors': True,
+                        'cors_origin_url': 'play.afreecatv.com',
+                        'broad_key': stream_key,
+                        # TODO the website passes a "time" parameter, but it's not obvious how it's derived
+                        # for now we can get away with ignoring it
+                    },
+                    note=f'Downloading metadata for {quality_str} stream',
+                    errnote=f'Unable to download metadata for {quality_str} stream',
+                    fatal=False,
+                )
+                view_url = stream_info['view_url']
+
+                formats.append({
+                    'format_id': quality_str,
+                    'quality': quality_key(quality_str),
+                    'ext': 'mp4',
+                    'protocol': 'm3u8',
+                    'url': update_url_query(view_url, {
+                        'aid': aid,
+                    }),
+                })
+            except (ExtractorError, KeyError):
+                continue
+
+        self._sort_formats(formats)
+        info = {
+            'id': broadcast_no,
+            'title': channel_info.get('TITLE'),
+            'uploader': channel_info.get('BJNICK'),
+            'uploader_id': channel_info.get('BJID'),
+            'formats': formats,
+        }
+
+        # try for a little bit of extra metadata
+        try:
+            station_info = self._download_json(
+                self._STATION_API_URL,
+                broadcaster_id,
+                query={
+                    'szBjId': broadcaster_id,
+                },
+                note='Downloading channel metadata',
+                errnote='Unable to download channel metadata',
+            )
+            info['upload_date'] = unified_strdate(station_info.get('broad_start'))
+
+            if not info['title']:
+                # not exactly equivalent to stream title, use only as fallback
+                info['title'] = station_info.get('station_title')
+            if not info['uploader']:
+                info['uploader'] = station_info.get('station_name')
+        except Exception as e:
+            self.report_warning('Failed to look up extra metadata: ' + error_to_compat_str(e))
 
         return info

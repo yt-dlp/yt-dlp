@@ -40,6 +40,7 @@
  - **aenetworks:collection**
  - **aenetworks:show**
  - **afreecatv**: afreecatv.com
+ - **afreecatv:live**: afreecatv.com
  - **AirMozilla**
  - **AliExpressLive**
  - **AlJazeera**
