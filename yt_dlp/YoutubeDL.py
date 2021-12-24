@@ -1151,7 +1151,7 @@ class YoutubeDL(object):
             str_fmt = f'{fmt[:-1]}s'
             if fmt[-1] == 'l':  # list
                 delim = '\n' if '#' in flags else ', '
-                value, fmt = delim.join(variadic(value)), str_fmt
+                value, fmt = delim.join(variadic(value, allowed_types=(str, bytes))), str_fmt
             elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(value, default=_dumpjson_default, indent=4 if '#' in flags else None), str_fmt
             elif fmt[-1] == 'q':  # quoted
