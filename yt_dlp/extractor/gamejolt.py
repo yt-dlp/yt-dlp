@@ -78,6 +78,7 @@ class GameJoltBaseIE(InfoExtractor):
         user_data = post_data.get('user') or {}
         info_dict = {
             'ie_key': GameJoltIE.ie_key(),
+            'extractor_key': GameJoltIE.ie_key(),
             'extractor': 'GameJolt',
             'webpage_url': str_or_none(post_data.get('url')) or f'https://gamejolt.com/p/{post_id}',
             'id': post_id,
