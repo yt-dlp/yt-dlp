@@ -93,7 +93,6 @@ class RokfinPostIE(RokfinSingleVideoIE):
         return {
             'id': video_id,
             'url': video_formats_url,
-            'original_url': url_from_user,
             'title': try_get(content_subdict, lambda x: x('contentTitle')),
             'webpage_url': self._RECOMMENDED_VIDEO_BASE_URL + video_id,
             'manifest_url': video_formats_url,
