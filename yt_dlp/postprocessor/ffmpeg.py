@@ -296,8 +296,8 @@ class FFmpegPostProcessor(PostProcessor):
             keys = ['_%s%d' % (name, number), '_%s' % name]
             if name == 'o':
                 args += ['-movflags', '+faststart']
-            elif number == 1:
-                keys.append('')
+                if number == 1:
+                    keys.append('')
             args += self._configuration_args(self.basename, keys)
             if name == 'i':
                 args.append('-i')
