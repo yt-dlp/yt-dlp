@@ -460,7 +460,6 @@ class RokfinSearchIE(SearchInfoExtractor):
 
             for page_n in itertools.count(1) if n_results == float('inf') else range(1, pages_to_download + 1):
                 POST_DATA['page']['current'] = page_n
-                print(POST_DATA)
 
                 if self.service_url and self.service_access_key:
                     srch_res = _download_webpage(
