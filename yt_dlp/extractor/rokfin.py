@@ -95,7 +95,6 @@ class RokfinPostIE(RokfinSingleVideoIE):
             'url': video_formats_url,
             'title': try_get(content_subdict, lambda x: x('contentTitle')),
             'webpage_url': self._RECOMMENDED_VIDEO_BASE_URL + video_id,
-            'manifest_url': video_formats_url,
             'is_live': False,
             'was_live': False,
             'duration': try_get(content_subdict, lambda x: float_or_none(x('duration'))),
