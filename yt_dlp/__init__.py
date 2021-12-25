@@ -21,7 +21,7 @@ from .compat import (
     compat_shlex_quote,
     workaround_optparse_bug9161,
 )
-from .cookies import SUPPORTED_BROWSERS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .utils import (
     DateRange,
     decodeOption,
@@ -257,26 +257,20 @@ def _real_main(argv=None):
         if opts.convertthumbnails not in FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS:
             parser.error('invalid thumbnail format specified')
     if opts.cookiesfrombrowser is not None:
-        match = re.match(r'([^+:]+)([+][^:]*)?(:.*)?', str(opts.cookiesfrombrowser))
-        if match is None:
-            parser.error('invalid cookies from browser arguments: {}'.format(opts.cookiesfrombrowser))
-        else:
-            browser_name = match.group(1)
-            if browser_name is None:
-                parser.error('invalid browser name: "{}"'.format(opts.cookiesfrombrowser))
-            else:
-                browser_name = browser_name.lower()
-                if browser_name not in SUPPORTED_BROWSERS:
-                    parser.error('unsupported browser specified for cookies: "{}". '
-                                 'Supported browsers are: {}'.format(browser_name, sorted(SUPPORTED_BROWSERS)))
-            keyring = match.group(2)
-            if keyring is not None:
-                keyring = keyring[1:]
-            profile = match.group(3)
-            if profile is not None:
-                profile = os.path.expanduser(profile[1:])
-            parameters = {'keyring': keyring, 'profile': profile}
-            opts.cookiesfrombrowser = (browser_name, parameters)
+        mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
+        if mobj is None:
+            parser.error(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
+        browser_name, keyring, profile = mobj.group('name', 'keyring', 'profile')
+        browser_name = browser_name.lower()
+        if browser_name not in SUPPORTED_BROWSERS:
+            parser.error(f'unsupported browser specified for cookies: "{browser_name}". '
+                         f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
+        if keyring is not None:
+            keyring = keyring.upper()
+            if keyring not in SUPPORTED_KEYRINGS:
+                parser.error(f'unsupported keyring specified for cookies: "{keyring}". '
+                             f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
+        opts.cookiesfrombrowser = (browser_name, profile, keyring)
     geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
     if geo_bypass_code is not None:
         try:

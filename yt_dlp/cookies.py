@@ -1,3 +1,4 @@
+import contextlib
 import ctypes
 import json
 import os
@@ -6,7 +7,6 @@ import struct
 import subprocess
 import sys
 import tempfile
-from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
@@ -41,8 +41,7 @@ except ImportError:
         'Please install by running `python3 -m pip install secretstorage`.')
 except Exception as _err:
     SECRETSTORAGE_AVAILABLE = False
-    SECRETSTORAGE_UNAVAILABLE_REASON = \
-        'as the `secretstorage` module could not be initialized. {}'.format(_err)
+    SECRETSTORAGE_UNAVAILABLE_REASON = f'as the `secretstorage` module could not be initialized. {err}'
 
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
@@ -625,9 +624,12 @@ class _LinuxKeyring(Enum):
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/key_storage_util_linux.h
     SelectedLinuxBackend
     """
-    KWallet = auto()
-    GnomeKeyring = auto()
-    BasicText = auto()
+    KWALLET = auto()
+    GNOMEKEYRING = auto()
+    BASICTEXT = auto()
+
+
+SUPPORTED_KEYRINGS = _LinuxKeyring.__members__.keys()
 
 
 def _get_linux_desktop_environment(env):
@@ -679,15 +681,15 @@ def _choose_linux_keyring(logger):
     desktop_environment = _get_linux_desktop_environment(os.environ)
     logger.debug('detected desktop environment: {}'.format(desktop_environment.name))
     if desktop_environment == _LinuxDesktopEnvironment.KDE:
-        linux_keyring = _LinuxKeyring.KWallet
+        linux_keyring = _LinuxKeyring.KWALLET
     elif desktop_environment == _LinuxDesktopEnvironment.OTHER:
-        linux_keyring = _LinuxKeyring.BasicText
+        linux_keyring = _LinuxKeyring.BASICTEXT
     else:
-        linux_keyring = _LinuxKeyring.GnomeKeyring
+        linux_keyring = _LinuxKeyring.GNOMEKEYRING
     return linux_keyring
 
 
-def _get_kwallet_network_wallet(logger) -> str:
+def _get_kwallet_network_wallet(logger):
     """ The name of the wallet used to store network passwords.
 
     https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/kwallet_dbus.cc
@@ -771,7 +773,7 @@ def _get_gnome_keyring_password(browser_keyring_name, logger):
     # using `dbus-monitor` during startup, it can be observed that chromium lists all keys
     # and presumably searches for its key in the list. It appears that we must do the same.
     # https://github.com/jaraco/keyring/issues/556
-    with closing(secretstorage.dbus_init()) as con:
+    with contextlib.closing(secretstorage.dbus_init()) as con:
         col = secretstorage.get_default_collection(con)
         for item in col.get_all_items():
             if item.get_label() == '{} Safe Storage'.format(browser_keyring_name):
@@ -788,27 +790,17 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     # Chromium supports a flag: --password-store=<basic|gnome|kwallet> so the automatic detection
     # will not be sufficient in all cases.
 
-    if keyring is None:
-        chosen_keyring = _choose_linux_keyring(logger)
-    else:
-        try:
-            chosen_keyring = _LinuxKeyring[keyring]
-        except KeyError:
-            logger.error('unknown keyring "{}". Options are {}. Choosing automatically'.format(
-                keyring, [k.name for k in _LinuxKeyring]))
-            chosen_keyring = _choose_linux_keyring(logger)
+    keyring = _LinuxKeyring[keyring] or _choose_linux_keyring(logger)
+    logger.debug(f'Chosen keyring: {keyring.name}')
 
-    logger.debug('chosen keyring: {}'.format(chosen_keyring.name))
-
-    if chosen_keyring == _LinuxKeyring.KWallet:
+    if keyring == _LinuxKeyring.KWALLET:
         return _get_kwallet_password(browser_keyring_name, logger)
-    elif chosen_keyring == _LinuxKeyring.GnomeKeyring:
+    elif keyring == _LinuxKeyring.GNOMEKEYRING:
         return _get_gnome_keyring_password(browser_keyring_name, logger)
-    elif chosen_keyring == _LinuxKeyring.BasicText:
+    elif keyring == _LinuxKeyring.BASICTEXT:
         # when basic text is chosen, all cookies are stored as v10 (so no keyring password is required)
         return None
-    else:
-        raise ValueError(chosen_keyring)
+    assert False, f'Unknown keyring {keyring}'
 
 
 def _get_mac_keyring_password(browser_keyring_name, logger):
@@ -951,11 +943,11 @@ def _is_path(value):
     return os.path.sep in value
 
 
-def _parse_browser_specification(browser_name, parameters):
+def _parse_browser_specification(browser_name, profile=None, keyring=None):
     if browser_name not in SUPPORTED_BROWSERS:
         raise ValueError(f'unsupported browser: "{browser_name}"')
-    keyring = parameters.get('keyring', None)
-    profile = parameters.get('profile')
+    if keyring not in (None, *SUPPORTED_KEYRINGS):
+        raise ValueError(f'unsupported keyring: "{keyring}"')
     if profile is not None and _is_path(profile):
         profile = os.path.expanduser(profile)
     return browser_name, profile, keyring
