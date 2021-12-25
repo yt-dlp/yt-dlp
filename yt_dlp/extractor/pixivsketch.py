@@ -116,7 +116,7 @@ class PixivSketchUserIE(PixivSketchBaseIE):
                 self._call_api(user_id, 'users/current.json', url, 'Investigating reason for request failure')
             except ExtractorError as ex:
                 if ex.cause and ex.cause.code == 401:
-                    self.raise_login_required(f'Please log in, or use direct link like https://sketch.pixiv.net/@{user_id}/1234567890')
-            raise ExtractorError('This user is offline', expected=True)     
+                    self.raise_login_required(f'Please log in, or use direct link like https://sketch.pixiv.net/@{user_id}/1234567890', method='cookies')
+            raise ExtractorError('This user is offline', expected=True)
 
         return self.url_result(f'https://sketch.pixiv.net/@{user_id}/lives/{data["id"]}')
