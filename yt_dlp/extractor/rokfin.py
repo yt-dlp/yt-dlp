@@ -42,7 +42,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
 
     def _real_extract(self, url_from_user):
         video_id = self._match_id(url_from_user)
-        downloaded_json = self._download_json(url_or_request=self._META_DATA_BASE_URL + video_id, video_id=video_id, note='Downloading video metadata', fatal=False)
+        downloaded_json = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, note='Downloading video metadata', fatal=False) or {}
 
         def videoAvailability(y, dic):
             video_availability = dic['premiumPlan']
