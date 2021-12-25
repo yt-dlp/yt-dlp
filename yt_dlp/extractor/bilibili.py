@@ -19,14 +19,15 @@ from ..utils import (
     parse_iso8601,
     traverse_obj,
     try_get,
+    parse_count,
     smuggle_url,
     srt_subtitles_timecode,
     str_or_none,
-    str_to_int,
     strip_jsonp,
     unified_timestamp,
     unsmuggle_url,
     urlencode_postdata,
+    url_or_none,
     OnDemandPagedList
 )
 
@@ -722,10 +723,10 @@ class BiliBiliPlayerIE(InfoExtractor):
 
 
 class BiliIntlBaseIE(InfoExtractor):
-    _API_URL = 'https://api.bili{}/intl/gateway{}'
+    _API_URL = 'https://api.bilibili.tv/intl/gateway'
 
-    def _call_api(self, type, endpoint, id):
-        return self._download_json(self._API_URL.format(type, endpoint), id)['data']
+    def _call_api(self, endpoint, *args, **kwargs):
+        return self._download_json(self._API_URL + endpoint, *args, **kwargs)['data']
 
     def json2srt(self, json):
         data = '\n\n'.join(
@@ -733,29 +734,40 @@ class BiliIntlBaseIE(InfoExtractor):
             for i, line in enumerate(json['body']))
         return data
 
-    def _get_subtitles(self, type, ep_id):
-        sub_json = self._call_api(type, f'/m/subtitle?ep_id={ep_id}&platform=web', ep_id)
+    def _get_subtitles(self, ep_id):
+        sub_json = self._call_api(f'/web/v2/subtitle?episode_id={ep_id}&platform=web', ep_id)
         subtitles = {}
-        for sub in sub_json.get('subtitles', []):
+        for sub in sub_json.get('subtitles') or []:
             sub_url = sub.get('url')
             if not sub_url:
                 continue
-            sub_data = self._download_json(sub_url, ep_id, fatal=False)
+            sub_data = self._download_json(
+                sub_url, ep_id, errnote='Unable to download subtitles', fatal=False,
+                note='Downloading subtitles%s' % f' for {sub["lang"]}' if sub.get('lang') else '')
             if not sub_data:
                 continue
-            subtitles.setdefault(sub.get('key', 'en'), []).append({
+            subtitles.setdefault(sub.get('lang_key', 'en'), []).append({
                 'ext': 'srt',
                 'data': self.json2srt(sub_data)
             })
         return subtitles
 
-    def _get_formats(self, type, ep_id):
-        video_json = self._call_api(type, f'/web/playurl?ep_id={ep_id}&platform=web', ep_id)
-        if not video_json:
-            self.raise_login_required(method='cookies')
+    def _get_formats(self, ep_id):
+        video_json = self._call_api(f'/web/playurl?ep_id={ep_id}&platform=web', ep_id,
+                                    note='Downloading video formats', errnote='Unable to download video formats')
+        if video_json.get('code'):
+            if video_json['code'] in (10004004, 10004005, 10023006):
+                self.raise_login_required(method='cookies')
+            elif video_json['code'] == 10004001:
+                self.raise_geo_restricted()
+            elif video_json.get('message') and str(video_json['code']) != video_json['message']:
+                raise ExtractorError(
+                    f'Unable to download video formats: {self.IE_NAME} said: {video_json["message"]}', expected=True)
+            else:
+                raise ExtractorError('Unable to download video formats')
         video_json = video_json['playurl']
         formats = []
-        for vid in video_json.get('video', []):
+        for vid in video_json.get('video') or []:
             video_res = vid.get('video_resource') or {}
             video_info = vid.get('stream_info') or {}
             if not video_res.get('url'):
@@ -771,7 +783,7 @@ class BiliIntlBaseIE(InfoExtractor):
                 'vcodec': video_res.get('codecs'),
                 'filesize': video_res.get('size'),
             })
-        for aud in video_json.get('audio_resource', []):
+        for aud in video_json.get('audio_resource') or []:
             if not aud.get('url'):
                 continue
             formats.append({
@@ -786,85 +798,93 @@ class BiliIntlBaseIE(InfoExtractor):
         self._sort_formats(formats)
         return formats
 
-    def _extract_ep_info(self, type, episode_data, ep_id):
+    def _extract_ep_info(self, episode_data, ep_id):
         return {
             'id': ep_id,
-            'title': episode_data.get('long_title') or episode_data['title'],
+            'title': episode_data.get('title_display') or episode_data['title'],
             'thumbnail': episode_data.get('cover'),
-            'episode_number': str_to_int(episode_data.get('title')),
-            'formats': self._get_formats(type, ep_id),
-            'subtitles': self._get_subtitles(type, ep_id),
+            'episode_number': int_or_none(self._search_regex(
+                r'^E(\d+)(?:$| - )', episode_data.get('title_display'), 'episode number', default=None)),
+            'formats': self._get_formats(ep_id),
+            'subtitles': self._get_subtitles(ep_id),
             'extractor_key': BiliIntlIE.ie_key(),
         }
 
 
 class BiliIntlIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?P<type>bili\.tv|intl.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613/341736',
         'info_dict': {
             'id': '341736',
             'ext': 'mp4',
-            'title': 'The First Night',
-            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
+            'title': 'E2 - The First Night',
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 2,
-        },
-        'params': {
-            'format': 'bv',
-        },
+        }
+    }, {
+        'url': 'https://www.bilibili.tv/en/play/1033760/11005006',
+        'info_dict': {
+            'id': '11005006',
+            'ext': 'mp4',
+            'title': 'E3 - Who?',
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
+            'episode_number': 3,
+        }
     }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
-        'info_dict': {
-            'id': '341736',
-            'ext': 'mp4',
-            'title': 'The First Night',
-            'thumbnail': 'https://i0.hdslb.com/bfs/intl/management/91e30e5521235d9b163339a26a0b030ebda54310.png',
-            'episode_number': 2,
-        },
-        'params': {
-            'format': 'bv',
-        },
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        type, season_id, id = self._match_valid_url(url).groups()
-        data_json = self._call_api(type, f'/web/view/ogv_collection?season_id={season_id}', id)
-        episode_data = next(
-            episode for episode in data_json.get('episodes', [])
-            if str(episode.get('ep_id')) == id)
-        return self._extract_ep_info(type, episode_data, id)
+        season_id, video_id = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, video_id)
+        # Bstation layout
+        initial_data = self._parse_json(self._search_regex(
+            r'window\.__INITIAL_DATA__\s*=\s*({.+?});', webpage,
+            'preload state', default='{}'), video_id, fatal=False) or {}
+        episode_data = traverse_obj(initial_data, ('OgvVideo', 'epDetail'), expected_type=dict)
+
+        if not episode_data:
+            # Non-Bstation layout, read through episode list
+            season_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={season_id}&platform=web', video_id)
+            episode_data = next(
+                episode for episode in traverse_obj(season_json, ('sections', ..., 'episodes', ...), expected_type=dict)
+                if str(episode.get('episode_id')) == video_id)
+        return self._extract_ep_info(episode_data, video_id)
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?P<type>bili\.tv|intl.com)/(?:[a-z]{2}/)?play/(?P<id>\d+)$'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<id>\d+)$'
     _TESTS = [{
         'url': 'https://www.bilibili.tv/en/play/34613',
         'playlist_mincount': 15,
         'info_dict': {
             'id': '34613',
+            'title': 'Fly Me to the Moon',
+            'description': 'md5:a861ee1c4dc0acfad85f557cc42ac627',
+            'categories': ['Romance', 'Comedy', 'Slice of life'],
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
+            'view_count': int,
         },
         'params': {
             'skip_download': True,
-            'format': 'bv',
         },
     }, {
         'url': 'https://www.biliintl.com/en/play/34613',
-        'playlist_mincount': 15,
-        'info_dict': {
-            'id': '34613',
-        },
-        'params': {
-            'skip_download': True,
-            'format': 'bv',
-        },
+        'only_matching': True,
     }]
 
-    def _entries(self, id, type):
-        data_json = self._call_api(type, f'/web/view/ogv_collection?season_id={id}', id)
-        for episode in data_json.get('episodes', []):
-            episode_id = str(episode.get('ep_id'))
-            yield self._extract_ep_info(type, episode, episode_id)
+    def _entries(self, series_id):
+        series_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={series_id}&platform=web', series_id)
+        for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict, default=[]):
+            episode_id = str(episode.get('episode_id'))
+            yield self._extract_ep_info(episode, episode_id)
 
     def _real_extract(self, url):
-        type, id = self._match_valid_url(url).groups()
-        return self.playlist_result(self._entries(id, type), playlist_id=id)
+        series_id = self._match_id(url)
+        series_info = self._call_api(f'/web/v2/ogv/play/season_info?season_id={series_id}&platform=web', series_id).get('season') or {}
+        return self.playlist_result(
+            self._entries(series_id), series_id, series_info.get('title'), series_info.get('description'),
+            categories=traverse_obj(series_info, ('styles', ..., 'title'), expected_type=str_or_none),
+            thumbnail=url_or_none(series_info.get('horizontal_cover')), view_count=parse_count(series_info.get('view')))
