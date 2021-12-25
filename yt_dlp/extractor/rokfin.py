@@ -24,7 +24,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
             'id': 'post/57548',
             'ext': 'mp4',
             'title': 'Mitt Romney\'s Crazy Solution To Climate Change',
-            'thumbnail': 'https://img.production.rokfin.com/eyJidWNrZXQiOiJya2ZuLXByb2R1Y3Rpb24tbWVkaWEiLCJrZXkiOiIvdXNlci82NTQyOS9wb3N0L2RhMjBkOTYwLTI0OTMtNDA0My04ZDEwLTIwMjBlZDc3NjY0MC90aHVtYm5haWwvMGU3YzMyOTYtM2YwZi00ZmQ1LWIyODYtN2I5OGRmNjcyYmQyIiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjo2MDAsImhlaWdodCI6MzM3LCJmaXQiOiJjb3ZlciJ9fX0=',
+            'thumbnail': 're:https://img.production.rokfin.com/.+',
             'upload_date': '20211023',
             'timestamp': 1634998029,
             'creator': 'Jimmy Dore',
