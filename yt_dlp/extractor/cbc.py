@@ -340,7 +340,8 @@ class CBCGemIE(InfoExtractor):
                 yield {
                     **base_format,
                     'format_id': join_nonempty('sec', height),
-                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\1{bitrate}\2', base_url),
+                    # Note: \g<1> is necessary instead of \1 since bitrate is a number
+                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\g<1>{bitrate}\2', base_url),
                     'width': int_or_none(video_quality.attrib.get('MaxWidth')),
                     'tbr': bitrate / 1000.0,
                     'height': height,
