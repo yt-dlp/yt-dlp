@@ -742,8 +742,8 @@ class BiliIntlBaseIE(InfoExtractor):
             if not sub_url:
                 continue
             sub_data = self._download_json(
-                sub_url, ep_id,
-                note='Downloading subtitles%s' % f' for {sub["lang"]}' if sub.get('lang') else '', errnote='Unable to download subtitles', fatal=False)
+                sub_url, ep_id, errnote='Unable to download subtitles', fatal=False,
+                note='Downloading subtitles%s' % f' for {sub["lang"]}' if sub.get('lang') else '')
             if not sub_data:
                 continue
             subtitles.setdefault(sub.get('lang_key', 'en'), []).append({
