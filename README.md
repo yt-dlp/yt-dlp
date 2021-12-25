@@ -601,19 +601,18 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-cookies                     Do not read/dump cookies from/to file
                                      (default)
     --cookies-from-browser BROWSER[+KEYRING][:PROFILE]
-                                     Load cookies from a user profile of the
-                                     given web browser. Currently supported
-                                     browsers are: brave, chrome, chromium,
-                                     edge, firefox, opera, safari, vivaldi.
-                                     By default, the most recently accessed
-                                     profile is used but alternatives can be
-                                     specified by name or by path.
-                                     For decrypting some cookies a password
-                                     is required from the system keyring.
-                                     The keyring is automatically detected
-                                     in most cases. Valid PROFILE values are:
-                                     'KWallet', 'GnomeKeyring', 'BasicText'
-                                     and only apply on Linux.
+                                     The name of the browser and (optionally)
+                                     the name/path of the profile to load
+                                     cookies from, separated by a ":". Currently
+                                     supported browsers are: brave, chrome,
+                                     chromium, edge, firefox, opera, safari,
+                                     vivaldi. By default, the most recently
+                                     accessed profile is used. The keyring used
+                                     for decrypting Chromium cookies on Linux
+                                     can be (optionally) specified after the
+                                     browser name separated by a "+". Currently
+                                     supported keyrings are: basictext,
+                                     gnomekeyring, kwallet
     --no-cookies-from-browser        Do not load cookies from browser (default)
     --cache-dir DIR                  Location in the filesystem where youtube-dl
                                      can store some downloaded information (such

@@ -20,7 +20,7 @@ from .utils import (
     remove_end,
     write_string,
 )
-from .cookies import SUPPORTED_BROWSERS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .version import __version__
 
 from .downloader.external import list_external_downloaders
@@ -1161,14 +1161,15 @@ def parseOpts(overrideArguments=None):
         help='Do not read/dump cookies from/to file (default)')
     filesystem.add_option(
         '--cookies-from-browser',
-        dest='cookiesfrombrowser', metavar='BROWSER[:PROFILE]',
+        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE]',
         help=(
-            'Load cookies from a user profile of the given web browser. '
-            'Currently supported browsers are: {}. '
-            'You can specify the user profile name or directory using '
-            '"BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH". '
-            'If no profile is given, the most recently accessed one is used'.format(
-                ', '.join(sorted(SUPPORTED_BROWSERS)))))
+            'The name of the browser and (optionally) the name/path of '
+            'the profile to load cookies from, separated by a ":". '
+            f'Currently supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}. '
+            'By default, the most recently accessed profile is used. '
+            'The keyring used for decrypting Chromium cookies on Linux can be '
+            '(optionally) specified after the browser name separated by a "+". '
+            f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'))
     filesystem.add_option(
         '--no-cookies-from-browser',
         action='store_const', const=None, dest='cookiesfrombrowser',
