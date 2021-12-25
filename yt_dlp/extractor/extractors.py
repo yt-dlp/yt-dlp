@@ -195,6 +195,7 @@ from .camdemy import (
     CamdemyIE,
     CamdemyFolderIE
 )
+from .camhub import CamHubIE
 from .cammodels import CamModelsIE
 from .camwithher import CamWithHerIE
 from .canalalpha import CanalAlphaIE
