@@ -145,8 +145,43 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     self.report_warning('unable to embed using mutagen; %s' % error_to_compat_str(err))
                     success = False
 
-            # Method 2: Use ffmpeg+ffprobe
-            if not success and not prefer_atomicparsley:
+            # Method 2: Use AtomicParsley
+            if not success:
+                success = True
+                atomicparsley = next((
+                    x for x in ['AtomicParsley', 'atomicparsley']
+                    if check_executable(x, ['-v'])), None)
+                if atomicparsley is None:
+                    self.to_screen('Neither mutagen nor AtomicParsley was found. Falling back to ffmpeg')
+                    success = False
+                else:
+                    if not prefer_atomicparsley:
+                        self.to_screen('mutagen was not found. Falling back to AtomicParsley')
+                    cmd = [encodeFilename(atomicparsley, True),
+                           encodeFilename(filename, True),
+                           encodeArgument('--artwork'),
+                           encodeFilename(thumbnail_filename, True),
+                           encodeArgument('-o'),
+                           encodeFilename(temp_filename, True)]
+                    cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
+
+                    self._report_run('atomicparsley', filename)
+                    self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
+                    p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    stdout, stderr = p.communicate_or_kill()
+                    if p.returncode != 0:
+                        msg = stderr.decode('utf-8', 'replace').strip()
+                        self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {msg}')
+                    # for formats that don't support thumbnails (like 3gp) AtomicParsley
+                    # won't create to the temporary file
+                    if b'No changes' in stdout:
+                        self.report_warning('The file format doesn\'t support embedding a thumbnail')
+                        success = False
+
+            # Method 3: Use ffmpeg+ffprobe
+            # Thumbnails attached using this method doesn't show up as cover in some cases
+            # See https://github.com/yt-dlp/yt-dlp/issues/2125, https://github.com/yt-dlp/yt-dlp/issues/411
+            if not success:
                 success = True
                 try:
                     options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
@@ -161,38 +196,8 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     self._report_run('ffmpeg', filename)
                     self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
                 except PostProcessingError as err:
-                    self.report_warning('unable to embed using ffprobe & ffmpeg; %s' % error_to_compat_str(err))
                     success = False
-
-            # Method 3: Use AtomicParsley
-            if not success:
-                success = True
-                atomicparsley = next((
-                    x for x in ['AtomicParsley', 'atomicparsley']
-                    if check_executable(x, ['-v'])), None)
-                if atomicparsley is None:
-                    raise EmbedThumbnailPPError('AtomicParsley was not found. Please install')
-
-                cmd = [encodeFilename(atomicparsley, True),
-                       encodeFilename(filename, True),
-                       encodeArgument('--artwork'),
-                       encodeFilename(thumbnail_filename, True),
-                       encodeArgument('-o'),
-                       encodeFilename(temp_filename, True)]
-                cmd += [encodeArgument(o) for o in self._configuration_args('AtomicParsley')]
-
-                self._report_run('atomicparsley', filename)
-                self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
-                p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                stdout, stderr = p.communicate_or_kill()
-                if p.returncode != 0:
-                    msg = stderr.decode('utf-8', 'replace').strip()
-                    raise EmbedThumbnailPPError(msg)
-                # for formats that don't support thumbnails (like 3gp) AtomicParsley
-                # won't create to the temporary file
-                if b'No changes' in stdout:
-                    self.report_warning('The file format doesn\'t support embedding a thumbnail')
-                    success = False
+                    raise EmbedThumbnailPPError(f'Unable to embed using ffprobe & ffmpeg; {err}')
 
         elif info['ext'] in ['ogg', 'opus', 'flac']:
             if not has_mutagen:
