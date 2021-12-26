@@ -583,6 +583,13 @@ def _real_main(argv=None):
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
+    if opts.group:
+        postprocessors.append({
+            'key': 'Rename',
+            'group': opts.group,
+            # Run this only after the files have been moved to their final locations
+            'when': 'after_move'
+        })
     # Exec must be the last PP
     if opts.exec_cmd:
         postprocessors.append({

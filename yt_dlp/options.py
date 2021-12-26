@@ -1471,7 +1471,10 @@ def parseOpts(overrideArguments=None):
             '"before_dl" (before video download), "post_process" (after video download; default) '
             'or "after_move" (after moving file to their final locations). '
             'This option can be used multiple times to add different postprocessors'))
-
+    postproc.add_option(
+        '--group',
+        dest='group',
+        help='Group Name')
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
         'Make chapter entries for, or remove various segments (sponsor, introductions, etc.) '
         'from downloaded YouTube videos using the SponsorBlock API (https://sponsor.ajay.app)'))
