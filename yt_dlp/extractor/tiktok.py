@@ -464,6 +464,114 @@ class TikTokUserIE(TikTokBaseIE):
         return self.playlist_result(self._entries_api(webpage, user_id, user_name), user_id, user_name)
 
 
+class TikTokBaseListIE(TikTokBaseIE):
+    def _entries(self, list_id, display_id):
+        query = {
+            self._QUERY_NAME: list_id,
+            'cursor': 0,
+            'count': 20,
+            'type': 5,
+            'device_id': ''.join(random.choice(string.digits) for i in range(19))
+        }
+
+        max_retries = self.get_param('extractor_retries', 3)
+        for page in itertools.count(1):
+            for retries in itertools.count():
+                try:
+                    post_list = self._call_api(self._API_ENDPOINT, query, display_id,
+                                               note='Downloading video list page %d%s' % (page, f' (attempt {retries})' if retries != 0 else ''),
+                                               errnote='Unable to download video list')
+                except ExtractorError as e:
+                    if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0 and retries != max_retries:
+                        self.report_warning('%s. Retrying...' % str(e.cause or e.msg))
+                        continue
+                    raise
+                break
+            for video in post_list.get('aweme_list', []):
+                yield {
+                    **self._parse_aweme_video_app(video),
+                    'ie_key': TikTokIE.ie_key(),
+                    'extractor': 'TikTok',
+                    'webpage_url': f'https://tiktok.com/@_/video/{video["aweme_id"]}',
+                }
+            if not post_list.get('has_more'):
+                break
+            query['cursor'] = post_list['cursor']
+
+    def _real_extract(self, url):
+        list_id = self._match_id(url)
+        return self.playlist_result(self._entries(list_id, list_id), list_id)
+
+
+class TikTokSoundIE(TikTokBaseListIE):
+    IE_NAME = 'tiktok:sound'
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/music/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _QUERY_NAME = 'music_id'
+    _API_ENDPOINT = 'music/aweme'
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/music/Build-a-Btch-6956990112127585029?lang=en',
+        'playlist_mincount': 100,
+        'info_dict': {
+            'id': '6956990112127585029'
+        },
+        'expected_warnings': ['Retrying']
+    }, {
+        # Actual entries are less than listed video count
+        'url': 'https://www.tiktok.com/music/jiefei-soap-remix-7036843036118469381',
+        'playlist_mincount': 2182,
+        'info_dict': {
+            'id': '7036843036118469381'
+        },
+        'expected_warnings': ['Retrying']
+    }]
+
+
+class TikTokEffectIE(TikTokBaseListIE):
+    IE_NAME = 'tiktok:effect'
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/sticker/[\w\.-]+-(?P<id>[\d]+)[/?#&]?'
+    _QUERY_NAME = 'sticker_id'
+    _API_ENDPOINT = 'sticker/aweme'
+    _TESTS = [{
+        'url': 'https://www.tiktok.com/sticker/MATERIAL-GWOOORL-1258156',
+        'playlist_mincount': 100,
+        'info_dict': {
+            'id': '1258156',
+        },
+        'expected_warnings': ['Retrying']
+    }, {
+        # Different entries between mobile and web, depending on region
+        'url': 'https://www.tiktok.com/sticker/Elf-Friend-479565',
+        'only_matching': True
+    }]
+
+
+class TikTokTagIE(TikTokBaseListIE):
+    IE_NAME = 'tiktok:tag'
+    _VALID_URL = r'https?://(?:www\.)?tiktok\.com/tag/(?P<id>[^/?#&]+)'
+    _QUERY_NAME = 'ch_id'
+    _API_ENDPOINT = 'challenge/aweme'
+    _TESTS = [{
+        'url': 'https://tiktok.com/tag/hello2018',
+        'playlist_mincount': 39,
+        'info_dict': {
+            'id': '46294678',
+            'title': 'hello2018',
+        },
+        'expected_warnings': ['Retrying']
+    }, {
+        'url': 'https://tiktok.com/tag/fypシ?is_copy_url=0&is_from_webapp=v1',
+        'only_matching': True
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._match_id(url)
+        webpage = self._download_webpage(url, display_id, headers={
+            'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
+        })
+        tag_id = self._html_search_regex(r'snssdk\d*://challenge/detail/(\d+)', webpage, 'tag ID')
+        return self.playlist_result(self._entries(tag_id, display_id), tag_id, display_id)
+
+
 class DouyinIE(TikTokIE):
     _VALID_URL = r'https?://(?:www\.)?douyin\.com/video/(?P<id>[0-9]+)'
     _TESTS = [{
