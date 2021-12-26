@@ -1777,16 +1777,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         self._player_cache = {}
 
     def _prepare_live_from_start_formats(self, formats, video_id, live_start_time, url, webpage_url, smuggled_data):
-        EXPIRATION_DURATION = 18_000
         lock = threading.Lock()
 
         is_live = True
-        expiration_time = time.time() + EXPIRATION_DURATION
+        start_time = time.time()
         formats = [f for f in formats if f.get('is_from_start')]
 
-        def refetch_manifest(format_id):
-            nonlocal formats, expiration_time, is_live
-            if time.time() <= expiration_time:
+        def refetch_manifest(format_id, delay):
+            nonlocal formats, start_time, is_live
+            if time.time() <= start_time + delay:
                 return
 
             _, _, prs, player_url = self._download_player_responses(url, smuggled_data, video_id, webpage_url)
@@ -1796,19 +1795,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
                 expected_type=dict, default=[])
             _, is_live, _, formats = self._list_formats(video_id, microformats, video_details, prs, player_url)
-            expiration_time = time.time() + EXPIRATION_DURATION
+            start_time = time.time()
 
-        def mpd_feed(format_id):
+        def mpd_feed(format_id, delay):
             """
             @returns (manifest_url, manifest_stream_number, is_live) or None
             """
             with lock:
-                refetch_manifest(format_id)
+                refetch_manifest(format_id, delay)
 
             f = next((f for f in formats if f['format_id'] == format_id), None)
             if not f:
-                self.report_warning(
-                    f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}')
+                if not is_live:
+                    self.to_screen(f'{video_id}: Video is no longer live')
+                else:
+                    self.report_warning(
+                        f'Cannot find refreshed manifest for format {format_id}{bug_reports_message()}')
                 return None
             return f['manifest_url'], f['manifest_stream_number'], is_live
 
@@ -1839,9 +1841,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragments, fragment_base_url
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
-            mpd_url, stream_number, is_live = mpd_feed(format_id) or (mpd_url, stream_number, False)
-            if old_mpd_url == mpd_url and not refresh_sequence:
-                return True, last_seq
+            last_error = ctx.pop('last_error', None)
+            expire_fast = last_error and isinstance(last_error, compat_HTTPError) and last_error.code == 403
+            mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
+                                               or (mpd_url, stream_number, False))
+            if not refresh_sequence:
+                if expire_fast and not is_live:
+                    return False, last_seq
+                elif old_mpd_url == mpd_url:
+                    return True, last_seq
             try:
                 fmts, _ = self._extract_mpd_formats_and_subtitles(
                     mpd_url, None, note=False, errnote=False, fatal=False)
@@ -1875,8 +1883,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = None
                     continue
             else:
-                should_retry, last_seq = _extract_sequence_from_mpd(True)
-                if not should_retry:
+                should_continue, last_seq = _extract_sequence_from_mpd(True)
+                if not should_continue:
                     continue
 
             if known_idx > last_seq:
@@ -1893,9 +1901,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             try:
                 for idx in range(known_idx, last_seq):
                     # do not update sequence here or you'll get skipped some part of it
-                    should_retry, _ = _extract_sequence_from_mpd(False)
-                    if not should_retry:
-                        # retry when it gets weird state
+                    should_continue, _ = _extract_sequence_from_mpd(False)
+                    if not should_continue:
                         known_idx = idx - 1
                         raise ExtractorError('breaking out of outer loop')
                     last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
