@@ -1092,12 +1092,12 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         files_to_delete = []
         has_thumbnail = False
 
-        for idx, thumbnail_dict in enumerate(info['thumbnails']):
-            if 'filepath' not in thumbnail_dict:
+        for idx, thumbnail_dict in enumerate(info.get('thumbnails') or []):
+            original_thumbnail = thumbnail_dict.get('filepath')
+            if not original_thumbnail:
                 continue
             has_thumbnail = True
             self.fixup_webp(info, idx)
-            original_thumbnail = thumbnail_dict['filepath']
             _, thumbnail_ext = os.path.splitext(original_thumbnail)
             if thumbnail_ext:
                 thumbnail_ext = thumbnail_ext[1:].lower()
