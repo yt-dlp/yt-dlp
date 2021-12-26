@@ -444,7 +444,7 @@ def get_elements_by_attribute(attribute, value, html, escape_value=True, return_
          (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
          \s+%s=['"]?%s['"]?
          (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-        [^>]*>
+        \s*>
     ''' % (re.escape(attribute), value), html):
         whole, content = get_first_element_by_tag(m.group('tag'), html[m.start():])
 
