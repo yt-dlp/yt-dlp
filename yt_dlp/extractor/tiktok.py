@@ -496,7 +496,6 @@ class TikTokBaseListIE(TikTokBaseIE):
                 }
             if not post_list.get('has_more'):
                 break
-            print(query['cursor'], post_list['cursor'])
             query['cursor'] = post_list['cursor']
 
     def _real_extract(self, url):
