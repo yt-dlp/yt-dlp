@@ -447,7 +447,7 @@ class TikTokUserIE(TikTokBaseIE):
             for video in post_list.get('aweme_list', []):
                 yield {
                     **self._parse_aweme_video_app(video),
-                    'ie_key': TikTokIE.ie_key(),
+                    'extractor_key': TikTokIE.ie_key(),
                     'extractor': 'TikTok',
                     'webpage_url': f'https://tiktok.com/@{user_id}/video/{video["aweme_id"]}',
                 }
@@ -490,7 +490,7 @@ class TikTokBaseListIE(TikTokBaseIE):
             for video in post_list.get('aweme_list', []):
                 yield {
                     **self._parse_aweme_video_app(video),
-                    'ie_key': TikTokIE.ie_key(),
+                    'extractor_key': TikTokIE.ie_key(),
                     'extractor': 'TikTok',
                     'webpage_url': f'https://tiktok.com/@_/video/{video["aweme_id"]}',
                 }
