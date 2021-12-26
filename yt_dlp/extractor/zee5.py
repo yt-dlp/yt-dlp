@@ -23,7 +23,7 @@ class Zee5IE(InfoExtractor):
                         zee5:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
-                            (?:tvshows|kids|zee5originals)(?:/[^#/?]+){3}
+                            (?:tv-shows|kids|zee5originals)(?:/[^#/?]+){3}
                             |movies/[^#/?]+
                         )/(?P<display_id>[^#/?]+)/
                      )
@@ -37,48 +37,50 @@ class Zee5IE(InfoExtractor):
             'display_id': 'krishna-the-birth',
             'title': 'Krishna - The Birth',
             'duration': 4368,
-            'average_rating': 4,
             'description': compat_str,
             'alt_title': 'Krishna - The Birth',
             'uploader': 'Zee Entertainment Enterprises Ltd',
             'release_date': '20060101',
             'upload_date': '20060101',
             'timestamp': 1136073600,
-            'thumbnail': 'https://akamaividz.zee5.com/resources/0-0-63098/list/270x152/0063098_list_80888170.jpg',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'episode_number': 0,
+            'episode': 'Episode 0',
             'tags': list
         },
         'params': {
             'format': 'bv',
         },
     }, {
-        'url': 'https://zee5.com/tvshows/details/krishna-balram/0-6-1871/episode-1-the-test-of-bramha/0-1-233402',
+        'url': 'https://www.zee5.com/kids/kids-shows/bandbudh-aur-budbak/0-6-1899/yoga-se-hoga-bandbudh-aur-budbak/0-1-239839',
         'info_dict': {
-            'id': '0-1-233402',
+            'id': '0-1-239839',
             'ext': 'mp4',
-            'display_id': 'episode-1-the-test-of-bramha',
-            'title': 'Episode 1 - The Test Of Bramha',
-            'duration': 1336,
-            'average_rating': 4,
+            'display_id': 'yoga-se-hoga-bandbudh-aur-budbak',
+            'title': 'Yoga Se Hoga-Bandbudh aur Budbak',
+            'duration': 659,
             'description': compat_str,
-            'alt_title': 'Episode 1 - The Test Of Bramha',
+            'alt_title': 'Yoga Se Hoga-Bandbudh aur Budbak',
             'uploader': 'Zee Entertainment Enterprises Ltd',
-            'release_date': '20090101',
-            'upload_date': '20090101',
-            'timestamp': 1230768000,
-            'thumbnail': 'https://akamaividz.zee5.com/resources/0-1-233402/list/270x152/01233402_list.jpg',
-            'series': 'Krishna Balram',
+            'release_date': '20150101',
+            'upload_date': '20150101',
+            'timestamp': 1420070400,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'series': 'Bandbudh Aur Budbak',
             'season_number': 1,
             'episode_number': 1,
+            'episode': 'Episode 1',
+            'season': 'Season 1',
             'tags': list,
         },
         'params': {
             'format': 'bv',
         },
     }, {
-        'url': 'https://www.zee5.com/hi/tvshows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730?country=IN',
+        'url': 'https://www.zee5.com/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730?country=IN',
         'only_matching': True
     }, {
-        'url': 'https://www.zee5.com/global/hi/tvshows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
+        'url': 'https://www.zee5.com/global/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
         'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
@@ -153,7 +155,6 @@ class Zee5IE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'duration': int_or_none(asset_data.get('duration')),
-            'average_rating': int_or_none(asset_data.get('rating')),
             'description': str_or_none(asset_data.get('description')),
             'alt_title': str_or_none(asset_data.get('original_title')),
             'uploader': str_or_none(asset_data.get('content_owner')),
@@ -175,42 +176,42 @@ class Zee5SeriesIE(InfoExtractor):
                      (?:
                         zee5:series:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
-                        (?:tvshows|kids|zee5originals)(?:/[^#/?]+){2}/
+                        (?:tv-shows|kids|zee5originals)(?:/[^#/?]+){2}/
                      )
                      (?P<id>[^#/?]+)(?:/episodes)?/?(?:$|[?#])
                      '''
     _TESTS = [{
-        'url': 'https://www.zee5.com/kids/kids-shows/krishna-balram/0-6-1871',
-        'playlist_mincount': 43,
+        'url': 'https://www.zee5.com/kids/kids-shows/bandbudh-aur-budbak/0-6-1899',
+        'playlist_mincount': 156,
         'info_dict': {
-            'id': '0-6-1871',
+            'id': '0-6-1899',
         },
     }, {
-        'url': 'https://www.zee5.com/tvshows/details/bhabi-ji-ghar-par-hai/0-6-199',
+        'url': 'https://www.zee5.com/tv-shows/details/bhabi-ji-ghar-par-hai/0-6-199',
         'playlist_mincount': 1500,
         'info_dict': {
             'id': '0-6-199',
         },
     }, {
-        'url': 'https://www.zee5.com/tvshows/details/agent-raghav-crime-branch/0-6-965',
+        'url': 'https://www.zee5.com/tv-shows/details/agent-raghav-crime-branch/0-6-965',
         'playlist_mincount': 24,
         'info_dict': {
             'id': '0-6-965',
         },
     }, {
-        'url': 'https://www.zee5.com/ta/tvshows/details/nagabhairavi/0-6-3201',
+        'url': 'https://www.zee5.com/ta/tv-shows/details/nagabhairavi/0-6-3201',
         'playlist_mincount': 3,
         'info_dict': {
             'id': '0-6-3201',
         },
     }, {
-        'url': 'https://www.zee5.com/global/hi/tvshows/details/khwaabon-ki-zamin-par/0-6-270',
+        'url': 'https://www.zee5.com/global/hi/tv-shows/details/khwaabon-ki-zamin-par/0-6-270',
         'playlist_mincount': 150,
         'info_dict': {
             'id': '0-6-270',
         },
     }, {
-        'url': 'https://www.zee5.com/tvshows/details/chala-hawa-yeu-dya-ladies-zindabaad/0-6-2943/episodes',
+        'url': 'https://www.zee5.com/tv-shows/details/chala-hawa-yeu-dya-ladies-zindabaad/0-6-2943/episodes',
         'only_matching': True,
     }]
 
