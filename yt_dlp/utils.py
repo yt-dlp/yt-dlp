@@ -2118,11 +2118,11 @@ def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     exponent = 0 if num == 0 else int(math.log(num, factor))
     suffix = ['', *'KMGTPEZY'][exponent]
     converted = num / (factor ** exponent)
-    return fmt % (converted, suffix)
+    return fmt % (converted, f'{suffix}i' if suffix and factor == 1024 else suffix)
 
 
 def format_bytes(bytes):
-    return format_decimal_suffix(bytes, '%.2f%siB', factor=1024) or 'N/A'
+    return format_decimal_suffix(bytes, '%.2f%sB', factor=1024) or 'N/A'
 
 
 def lookup_unit_table(unit_table, s):
