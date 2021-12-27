@@ -410,31 +410,67 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
     return n.attrib[key]
 
 
-def get_element_by_id(id, html, return_content=True):
-    """Return the content or the tag with the specified ID in the passed HTML document"""
-    return get_element_by_attribute('id', id, html, return_content=return_content)
+def get_element_by_id(id, html):
+    """Return the content of the tag with the specified ID in the passed HTML document"""
+    return get_element_by_attribute('id', id, html)
 
 
-def get_element_by_class(class_name, html, return_content=True):
-    """Return the content or the first tag with the specified class in the passed HTML document"""
-    retval = get_elements_by_class(class_name, html, return_content)
+def get_element_html_by_id(id, html):
+    """Return the html of the tag with the specified ID in the passed HTML document"""
+    return get_element_html_by_attribute('id', id, html)
+
+
+def get_element_by_class(class_name, html):
+    """Return the content of the first tag with the specified class in the passed HTML document"""
+    retval = get_elements_by_class(class_name, html)
     return retval[0] if retval else None
 
 
-def get_element_by_attribute(attribute, value, html, escape_value=True, return_content=True):
-    retval = get_elements_by_attribute(attribute, value, html, escape_value, return_content)
+def get_element_html_by_class(class_name, html):
+    """Return the html of the first tag with the specified class in the passed HTML document"""
+    retval = get_elements_html_by_class(class_name, html)
     return retval[0] if retval else None
 
 
-def get_elements_by_class(class_name, html, return_content=True):
-    """Return the content or all tags with the specified class in the passed HTML document as a list"""
+def get_element_by_attribute(attribute, value, html, escape_value=True):
+    retval = get_elements_by_attribute(attribute, value, html, escape_value)
+    return retval[0] if retval else None
+
+
+def get_element_html_by_attribute(attribute, value, html, escape_value=True):
+    retval = get_elements_html_by_attribute(attribute, value, html, escape_value)
+    return retval[0] if retval else None
+
+
+def get_elements_by_class(class_name, html):
+    """Return the content of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_by_attribute(
         'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
-        html, escape_value=False, return_content=return_content)
+        html, escape_value=False)
 
 
-def get_elements_by_attribute(attribute, value, html, escape_value=True, return_content=True):
-    """Return the content or the tag with the specified attribute in the passed HTML document"""
+def get_elements_html_by_class(class_name, html):
+    """Return the html of all tags with the specified class in the passed HTML document as a list"""
+    return get_elements_html_by_attribute(
+        'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
+        html, escape_value=False)
+
+
+def get_elements_by_attribute(*args, **kwargs):
+    """Return the content of the tag with the specified attribute in the passed HTML document"""
+    return [content for content, _ in get_elements_text_and_html_by_attribute(*args, **kwargs)]
+
+
+def get_elements_html_by_attribute(*args, **kwargs):
+    """Return the html of the tag with the specified attribute in the passed HTML document"""
+    return [whole for _, whole in get_elements_text_and_html_by_attribute(*args, **kwargs)]
+
+
+def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value=True):
+    """
+    Return the text (content) and the html (whole) of the tag with the specified
+    attribute in the passed HTML document
+    """
 
     value = re.escape(value) if escape_value else value
 
@@ -446,14 +482,12 @@ def get_elements_by_attribute(attribute, value, html, escape_value=True, return_
          (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
         \s*>
     ''' % {'attribute': re.escape(attribute), 'value': value}, html):
-        whole, content = get_first_element_by_tag(m.group('tag'), html[m.start():])
+        content, whole = get_first_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
-        if return_content:
-            res = unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<_>.*)(?P=q)$', r'\g<_>', content))
-        else:
-            res = whole
-
-        retlist.append(res)
+        retlist.append((
+            unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<_>.*)(?P=q)$', r'\g<_>', content)),
+            whole,
+        ))
 
     return retlist
 
@@ -495,10 +529,10 @@ class HTMLBreakOnClosingTagParser(compat_HTMLParser):
             raise HTMLBreakOnClosingTagException()
 
 
-def get_first_element_by_tag(tag, html):
+def get_first_element_text_and_html_by_tag(tag, html):
     """
     For the first element with the specified tag in the passed HTML document
-    return the whole element and its content
+    return its' content (text) and the whole element (html)
     """
     def find_or_raise(haystack, needle, exc):
         try:
@@ -525,8 +559,8 @@ def get_first_element_by_tag(tag, html):
                 parser.feed(html[offset:offset + next_closing_tag_end])
                 offset += next_closing_tag_end
             except HTMLBreakOnClosingTagException:
-                return html[whole_start:offset + next_closing_tag_end], \
-                    html[content_start:offset + next_closing_tag_start]
+                return html[content_start:offset + next_closing_tag_start], \
+                    html[whole_start:offset + next_closing_tag_end]
         raise compat_HTMLParseError('unexpected end of html')
 
 
