@@ -11,6 +11,24 @@
 -->
 
 
+### 2021.12.27
+
+* Avoid recursion error when re-extracting info
+* [ffmpeg] Fix position of `--ppa`
+* [aria2c] Don't show progress when `--no-progress`
+* [cookies] Support other keyrings by [mbway](https://github.com/mbway)
+* [EmbedThumbnail] Prefer AtomicParsley over ffmpeg if available
+* [generic] Fix HTTP KVS Player by [git-anony-mouse](https://github.com/git-anony-mouse)
+* [ThumbnailsConvertor] Fix for when there are no thumbnails
+* [docs] Add examples for using `TYPES:` in `-P`/`-o`
+* [PixivSketch] Add extractors by [nao20010128nao](https://github.com/nao20010128nao)
+* [tiktok] Add music, sticker and tag IEs by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [BiliIntl] Fix extractor by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [CBC] Fix URL regex
+* [tiktok] Fix `extractor_key` used in archive
+* [youtube] **End `live-from-start` properly when stream ends with 403**
+* [Zee5] Fix VALID_URL for tv-shows by [Ashish0804](https://github.com/Ashish0804)
+
 ### 2021.12.25
 
 * [dash,youtube] **Download live from start to end** by [nao20010128nao](https://github.com/nao20010128nao), [pukkandan](https://github.com/pukkandan)
@@ -104,7 +122,7 @@
 * [youtube:comments] Add more options for limiting number of comments extracted by [coletdjnz](https://github.com/coletdjnz)
 * [youtube:tab] Extract more metadata from feeds/channels/playlists by [coletdjnz](https://github.com/coletdjnz)
 * [youtube:tab] Extract video thumbnails from playlist by [coletdjnz](https://github.com/coletdjnz), [pukkandan](https://github.com/pukkandan)
-* [youtube:tab] Ignore query when redirecting channel to playlist and cleanup of related code Closes #2046
+* [youtube:tab] Ignore query when redirecting channel to playlist and cleanup of related code
 * [youtube] Fix `ytsearchdate`
 * [zdf] Support videos with different ptmd location by [iw0nderhow](https://github.com/iw0nderhow)
 * [zee5] Support /episodes in URL
