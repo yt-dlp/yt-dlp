@@ -317,10 +317,10 @@ class YoutubeDL(object):
     break_per_url:     Whether break_on_reject and break_on_existing
                        should act on each input URL as opposed to for the entire queue
     cookiefile:        File name where cookies should be read from and dumped to
-    cookiesfrombrowser: A tuple containing the name of the browser and the profile
-                       name/path from where cookies are loaded.
-                       Eg: ('chrome', ) or ('vivaldi', 'default')
-    nocheckcertificate:Do not verify SSL certificates
+    cookiesfrombrowser:  A tuple containing the name of the browser, the profile
+                       name/pathfrom where cookies are loaded, and the name of the
+                       keyring. Eg: ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
+    nocheckcertificate:  Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
     proxy:             URL of the proxy server to use
@@ -3542,11 +3542,11 @@ class YoutubeDL(object):
 
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
-        from .cookies import SQLITE_AVAILABLE, KEYRING_AVAILABLE
+        from .cookies import SQLITE_AVAILABLE, SECRETSTORAGE_AVAILABLE
 
         lib_str = join_nonempty(
             compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
-            KEYRING_AVAILABLE and 'keyring',
+            SECRETSTORAGE_AVAILABLE and 'secretstorage',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
             has_websockets and 'websockets',
