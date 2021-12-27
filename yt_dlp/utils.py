@@ -441,11 +441,11 @@ def get_elements_by_attribute(attribute, value, html, escape_value=True, return_
     retlist = []
     for m in re.finditer(r'''(?xs)
         <(?P<tag>[a-zA-Z0-9:._-]+)
-         (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-         \s+%s=['"]?%s['"]?
-         (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
+         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
+         \s+%(attribute)s(?:=%(value)s|\s*=\s*(?P<_q>['"]?)%(value)s(?P=_q))
+         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
         \s*>
-    ''' % (re.escape(attribute), value), html):
+    ''' % {'attribute': re.escape(attribute), 'value': value}, html):
         whole, content = get_first_element_by_tag(m.group('tag'), html[m.start():])
 
         if return_content:
