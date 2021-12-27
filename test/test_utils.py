@@ -111,6 +111,7 @@ from yt_dlp.utils import (
     parse_codecs,
     iri_to_uri,
     LazyList,
+    format_bytes
 )
 from yt_dlp.compat import (
     compat_chr,
@@ -1687,6 +1688,38 @@ Line 1
         test(ll, 10, 10, range(11))
         ll = reversed(ll)
         test(ll, -15, 14, range(15))
+
+
+class TestFormatBytes(unittest.TestCase):
+    def test_0(self):
+        self.assertEqual(format_bytes(0), '0.00B')
+
+    def test_byte(self):
+        self.assertEqual(format_bytes(1000), '1000.00B')
+
+    def test_kibibyte(self):
+        self.assertEqual(format_bytes(1024), '1.00KiB')
+
+    def test_mebibyte(self):
+        self.assertEqual(format_bytes(1024**2), '1.00MiB')
+
+    def test_gibibyte(self):
+        self.assertEqual(format_bytes(1024**3), '1.00GiB')
+
+    def test_tebibyte(self):
+        self.assertEqual(format_bytes(1024**4), '1.00TiB')
+
+    def test_pebibyte(self):
+        self.assertEqual(format_bytes(1024**5), '1.00PiB')
+
+    def test_exbibyte(self):
+        self.assertEqual(format_bytes(1024**6), '1.00EiB')
+
+    def test_zebibyte(self):
+        self.assertEqual(format_bytes(1024**7), '1.00ZiB')
+
+    def test_yobibyte(self):
+        self.assertEqual(format_bytes(1024**8), '1.00YiB')
 
 
 if __name__ == '__main__':
