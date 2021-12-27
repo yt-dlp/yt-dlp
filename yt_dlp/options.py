@@ -1023,7 +1023,7 @@ def parseOpts(overrideArguments=None):
         }, help=(
             'The paths where the files should be downloaded. '
             'Specify the type of file and the path separated by a colon ":". '
-            'All the same types as --output are supported. '
+            'All the same TYPES as --output are supported. '
             'Additionally, you can also provide "home" (default) and "temp" paths. '
             'All intermediary files are first downloaded to the temp path and '
             'then the final files are moved over to the home path after download is finished. '
