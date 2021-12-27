@@ -2109,9 +2109,11 @@ def unsmuggle_url(smug_url, default=None):
     data = json.loads(jsond)
     return url, data
 
+
 # See: https://en.wikipedia.org/wiki/Byte#Multiple-byte_units
 BYTE_UNITS = ('B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
 BYTE_UNITS_METRIC = ('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB')
+
 
 def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     """ Formats numbers with decimal sufixes like K, M, etc """
