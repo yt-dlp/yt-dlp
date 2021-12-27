@@ -3147,9 +3147,8 @@ class YoutubeDL(object):
                 'requested_formats', 'requested_subtitles', 'requested_entries', 'entries',
                 'filepath', 'infojson_filename', 'original_url', 'playlist_autonumber',
             }
-            empty_values = (None, {}, [], set(), tuple())
             reject = lambda k, v: k not in keep_keys and (
-                k.startswith('_') or k in remove_keys or v in empty_values)
+                k.startswith('_') or k in remove_keys or v is None)
         else:
             reject = lambda k, v: k in remove_keys
 
