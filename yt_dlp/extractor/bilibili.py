@@ -19,7 +19,6 @@ from ..utils import (
     mimetype2ext,
     parse_iso8601,
     traverse_obj,
-    try_get,
     parse_count,
     smuggle_url,
     srt_subtitles_timecode,
