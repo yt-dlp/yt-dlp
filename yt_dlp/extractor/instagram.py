@@ -590,14 +590,11 @@ class InstagramStoryIE(InstagramBaseIE):
             if dash_manifest_raw:
                 formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, story_id), mpd_id='dash'))
             self._sort_formats(formats)
-            thumbnails = []
-            thumbnails_list = traverse_obj(video_info, ('image_versions2', 'candidates')) or []
-            for thumbnail in thumbnails_list:
-                thumbnails.append({
-                    'url': thumbnail.get('url'),
-                    'width': thumbnail.get('width'),
-                    'height': thumbnail.get('height')
-                })
+            thumbnails = [{
+                'url': thumbnail.get('url'),
+                'width': thumbnail.get('width'),
+                'height': thumbnail.get('height')
+            } for thumbnail in traverse_obj(video_info, ('image_versions2', 'candidates')) or []]
             entites.append({
                 'id': video_info.get('id'),
                 'title': f'Story by {username}',
