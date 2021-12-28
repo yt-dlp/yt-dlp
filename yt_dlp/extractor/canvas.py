@@ -76,7 +76,7 @@ class CanvasIE(InfoExtractor):
                     'vrtPlayerToken': vrtPlayerToken,
                     'client': 'null',
                 }, expected_status=400)
-            if "title" not in data:
+            if 'title' not in data:
                 code = data.get('code')
                 if code == 'AUTHENTICATION_REQUIRED':
                     self.raise_login_required()
