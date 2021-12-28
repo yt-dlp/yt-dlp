@@ -13,6 +13,7 @@ from ..utils import (
     qualities,
     traverse_obj,
     unified_strdate,
+    unified_timestamp,
     update_url_query,
     url_or_none,
     urlencode_postdata,
@@ -410,7 +411,8 @@ class AfreecaTVLiveIE(AfreecaTVIE):
             'title': '【 우루과이 오늘은 무슨일이? 】',
             'uploader': '박진우[JINU]',
             'uploader_id': 'pyh3646',
-            'upload_date': '20211223',
+            'timestamp': 1640661495,
+            'is_live': True,
         },
         'skip': 'Livestream has ended',
     }]
@@ -505,6 +507,7 @@ class AfreecaTVLiveIE(AfreecaTVIE):
             'title': channel_info.get('TITLE') or station_info.get('station_title'),
             'uploader': channel_info.get('BJNICK') or station_info.get('station_name'),
             'uploader_id': broadcaster_id,
-            'upload_date': unified_strdate(station_info.get('broad_start')),
+            'timestamp': unified_timestamp(station_info.get('broad_start')),
             'formats': formats,
+            'is_live': True,
         }
