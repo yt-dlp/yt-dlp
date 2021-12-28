@@ -570,7 +570,7 @@ class InstagramStoryIE(InstagramBaseIE):
         })['reels']
         entites = []
 
-        videos = traverse_obj(videos, (f'highlight:{story_id}', 'items')) or traverse_obj(videos, (str(user_id), 'items'))
+        videos = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
         for video_info in videos:
             formats = []
             if isinstance(video_info, list):
