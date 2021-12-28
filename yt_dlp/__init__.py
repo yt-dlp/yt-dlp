@@ -18,10 +18,11 @@ from .options import (
 )
 from .compat import (
     compat_getpass,
+    compat_os_name,
     compat_shlex_quote,
     workaround_optparse_bug9161,
 )
-from .cookies import SUPPORTED_BROWSERS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .utils import (
     DateRange,
     decodeOption,
@@ -95,7 +96,8 @@ def _real_main(argv=None):
     if opts.batchfile is not None:
         try:
             if opts.batchfile == '-':
-                write_string('Reading URLs from stdin:\n')
+                write_string('Reading URLs from stdin - EOF (%s) to end:\n' % (
+                    'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
                 batchfd = sys.stdin
             else:
                 batchfd = io.open(
@@ -136,6 +138,11 @@ def _real_main(argv=None):
         sys.exit(0)
 
     # Conflicting, missing and erroneous options
+    if opts.format == 'best':
+        warnings.append('.\n         '.join((
+            '"-f best" selects the best pre-merged format which is often not the best option',
+            'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
+            'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
     if opts.usenetrc and (opts.username is not None or opts.password is not None):
         parser.error('using .netrc conflicts with giving username/password')
     if opts.password is not None and opts.username is None:
@@ -215,6 +222,8 @@ def _real_main(argv=None):
         return parsed_retries
     if opts.retries is not None:
         opts.retries = parse_retries(opts.retries)
+    if opts.file_access_retries is not None:
+        opts.file_access_retries = parse_retries(opts.file_access_retries, 'file access ')
     if opts.fragment_retries is not None:
         opts.fragment_retries = parse_retries(opts.fragment_retries, 'fragment ')
     if opts.extractor_retries is not None:
@@ -257,10 +266,20 @@ def _real_main(argv=None):
         if opts.convertthumbnails not in FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS:
             parser.error('invalid thumbnail format specified')
     if opts.cookiesfrombrowser is not None:
-        opts.cookiesfrombrowser = [
-            part.strip() or None for part in opts.cookiesfrombrowser.split(':', 1)]
-        if opts.cookiesfrombrowser[0].lower() not in SUPPORTED_BROWSERS:
-            parser.error('unsupported browser specified for cookies')
+        mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
+        if mobj is None:
+            parser.error(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
+        browser_name, keyring, profile = mobj.group('name', 'keyring', 'profile')
+        browser_name = browser_name.lower()
+        if browser_name not in SUPPORTED_BROWSERS:
+            parser.error(f'unsupported browser specified for cookies: "{browser_name}". '
+                         f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
+        if keyring is not None:
+            keyring = keyring.upper()
+            if keyring not in SUPPORTED_KEYRINGS:
+                parser.error(f'unsupported keyring specified for cookies: "{keyring}". '
+                             f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
+        opts.cookiesfrombrowser = (browser_name, profile, keyring)
     geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
     if geo_bypass_code is not None:
         try:
@@ -513,7 +532,7 @@ def _real_main(argv=None):
             if len(dur) == 2 and all(t is not None for t in dur):
                 remove_ranges.append(tuple(dur))
                 continue
-            parser.error(f'invalid --remove-chapters time range {regex!r}. Must be of the form ?start-end')
+            parser.error(f'invalid --remove-chapters time range {regex!r}. Must be of the form *start-end')
         try:
             remove_chapters_patterns.append(re.compile(regex))
         except re.error as err:
@@ -666,6 +685,7 @@ def _real_main(argv=None):
         'throttledratelimit': opts.throttledratelimit,
         'overwrites': opts.overwrites,
         'retries': opts.retries,
+        'file_access_retries': opts.file_access_retries,
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
@@ -745,6 +765,7 @@ def _real_main(argv=None):
         'youtube_include_hls_manifest': opts.youtube_include_hls_manifest,
         'encoding': opts.encoding,
         'extract_flat': opts.extract_flat,
+        'live_from_start': opts.live_from_start,
         'wait_for_video': opts.wait_for_video,
         'mark_watched': opts.mark_watched,
         'merge_output_format': opts.merge_output_format,

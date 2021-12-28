@@ -903,7 +903,7 @@ class TwitchStreamIE(TwitchBaseIE):
         return {
             'id': stream_id,
             'display_id': channel_name,
-            'title': self._live_title(title),
+            'title': title,
             'description': description,
             'thumbnail': thumbnail,
             'uploader': uploader,

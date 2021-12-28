@@ -2345,6 +2345,18 @@ class GenericIE(InfoExtractor):
             }
         },
         {
+            # KVS Player (for sites that serve kt_player.js via non-https urls)
+            'url': 'http://www.camhub.world/embed/389508',
+            'md5': 'fbe89af4cfb59c8fd9f34a202bb03e32',
+            'info_dict': {
+                'id': '389508',
+                'display_id': 'syren-de-mer-onlyfans-05-07-2020have-a-happy-safe-holiday5f014e68a220979bdb8cd-source',
+                'ext': 'mp4',
+                'title': 'Syren De Mer  onlyfans_05-07-2020Have_a_happy_safe_holiday5f014e68a220979bdb8cd_source / Embed плеер',
+                'thumbnail': 'http://www.camhub.world/contents/videos_screenshots/389000/389508/preview.mp4.jpg',
+            }
+        },
+        {
             # Reddit-hosted video that will redirect and be processed by RedditIE
             # Redirects to https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/
             'url': 'https://v.redd.it/zv89llsvexdz',
@@ -3653,6 +3665,10 @@ class GenericIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url'):
             self.report_detected('JSON LD')
+            if determine_ext(json_ld.get('url')) == 'm3u8':
+                json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
+                    json_ld['url'], video_id, 'mp4')
+                json_ld.pop('url')
             return merge_dicts(json_ld, info_dict)
 
         def check_video(vurl):
@@ -3685,7 +3701,7 @@ class GenericIE(InfoExtractor):
                 self.report_detected('JW Player embed')
         if not found:
             # Look for generic KVS player
-            found = re.search(r'<script [^>]*?src="https://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
+            found = re.search(r'<script [^>]*?src="https?://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
             if found:
                 self.report_detected('KWS Player')
                 if found.group('maj_ver') not in ['4', '5']:

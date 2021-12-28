@@ -40,7 +40,7 @@ def main():
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
         '--noconfirm',
-        *dependancy_options(),
+        *dependency_options(),
         *opts,
         'yt_dlp/__main__.py',
     ]
@@ -73,11 +73,11 @@ def version_to_list(version):
     return list(map(int, version_list)) + [0] * (4 - len(version_list))
 
 
-def dependancy_options():
-    dependancies = [pycryptodome_module(), 'mutagen'] + collect_submodules('websockets')
+def dependency_options():
+    dependencies = [pycryptodome_module(), 'mutagen'] + collect_submodules('websockets')
     excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
 
-    yield from (f'--hidden-import={module}' for module in dependancies)
+    yield from (f'--hidden-import={module}' for module in dependencies)
     yield from (f'--exclude-module={module}' for module in excluded_modules)
 
 
