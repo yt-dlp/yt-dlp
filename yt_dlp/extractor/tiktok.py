@@ -348,7 +348,6 @@ class TikTokIE(TikTokBaseIE):
     }]
 
     def _extract_aweme_app(self, aweme_id):
-        aweme_detail = {}
         try:
             aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
                                           note='Downloading video details', errnote='Unable to download video details').get('aweme_detail')
