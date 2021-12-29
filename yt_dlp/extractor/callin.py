@@ -50,11 +50,8 @@ class CallinIE(InfoExtractor):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        json_string = self._html_search_regex(
-            '<script\\s+id\\s*=\\s*["\']__NEXT_DATA__["\'].*?>(.+?)</script>',
-            webpage, 'json')
-        j = self._parse_json(json_string, display_id)
-        episode = j['props']['pageProps']['episode']
+        next_data = self._search_nextjs_data(webpage, display_id)
+        episode = next_data['props']['pageProps']['episode']
 
         id = episode['id']
         title = episode.get('title')
@@ -73,7 +70,7 @@ class CallinIE(InfoExtractor):
                 webpage, 'app slug', fatal=False)
             if app_slug is None:
                 # this sometimes works, but sometimes seems to lag changes in the actual urls used.
-                app_slug = j['buildId']
+                app_slug = next_data['buildId']
             show_slug = episode['show']['linkObj']['resourceUrl'].rsplit('/', 1)[1]
             show_json_url = f'https://www.callin.com/_next/data/{app_slug}/show/{show_slug}.json'
 
@@ -91,14 +88,11 @@ class CallinIE(InfoExtractor):
         host_nick = traverse_obj(host, ('linkObj', 'resourceUrl'))
         host_nick = host_nick.rsplit('/', 1)[1] if (host_nick and '/' in host_nick) else None
 
-        categories = list(filter(None, [
-            c.get('name') for c in
-            traverse_obj(episode, ('show', 'categorizations')) or []
-        ]))
+        categories = traverse_obj(episode, ('show', 'categorizations', ..., 'name'))
 
         cast = list(filter(None, [
             self.try_get_user_name(u) for u in
-            ((episode.get('speakers') or []) + (episode.get('callerTags') or []))
+            traverse_obj(episode, (('speakers', 'callerTags'), ...)) or []
         ]))
 
         episode_list = traverse_obj(show_json, ('pageProps', 'show', 'episodes')) or []
