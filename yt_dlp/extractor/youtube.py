@@ -168,7 +168,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '16.20',
+                'clientVersion': '16.46',
+                'deviceModel': 'iPhone14,3',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
@@ -179,7 +180,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '16.20',
+                'clientVersion': '16.46',
+                'deviceModel': 'iPhone14,3',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
