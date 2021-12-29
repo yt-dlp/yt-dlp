@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class UtreonIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://)(?:www\.)?utreon.com/v/(?P<id>[a-zA-Z0-9_-]+)'
+    _VALID_URL = r'https?://(?:www\.)?utreon.com/v/(?P<id>[a-zA-Z0-9_-]+)'
     _TESTS = [{
         'url': 'https://utreon.com/v/z_I7ikQbuDw',
         'info_dict': {

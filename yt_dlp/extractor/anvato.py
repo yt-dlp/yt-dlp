@@ -16,6 +16,7 @@ from ..utils import (
     determine_ext,
     intlist_to_bytes,
     int_or_none,
+    join_nonempty,
     strip_jsonp,
     unescapeHTML,
     unsmuggle_url,
@@ -303,13 +304,13 @@ class AnvatoIE(InfoExtractor):
             tbr = int_or_none(published_url.get('kbps'))
             a_format = {
                 'url': video_url,
-                'format_id': ('-'.join(filter(None, ['http', published_url.get('cdn_name')]))).lower(),
-                'tbr': tbr if tbr != 0 else None,
+                'format_id': join_nonempty('http', published_url.get('cdn_name')).lower(),
+                'tbr': tbr or None,
             }
 
             if media_format == 'm3u8' and tbr is not None:
                 a_format.update({
-                    'format_id': '-'.join(filter(None, ['hls', compat_str(tbr)])),
+                    'format_id': join_nonempty('hls', tbr),
                     'ext': 'mp4',
                 })
             elif media_format == 'm3u8-variant' or ext == 'm3u8':

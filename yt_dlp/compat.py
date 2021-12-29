@@ -19,6 +19,7 @@ import shlex
 import shutil
 import socket
 import struct
+import subprocess
 import sys
 import tokenize
 import urllib
@@ -33,6 +34,8 @@ class compat_HTMLParseError(Exception):
     pass
 
 
+# compat_ctypes_WINFUNCTYPE = ctypes.WINFUNCTYPE
+# will not work since ctypes.WINFUNCTYPE does not exist in UNIX machines
 def compat_ctypes_WINFUNCTYPE(*args, **kwargs):
     return ctypes.WINFUNCTYPE(*args, **kwargs)
 
@@ -130,6 +133,49 @@ except AttributeError:
     asyncio.run = compat_asyncio_run
 
 
+# Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
+# See https://github.com/yt-dlp/yt-dlp/issues/792
+# https://docs.python.org/3/library/os.path.html#os.path.expanduser
+if compat_os_name in ('nt', 'ce') and 'HOME' in os.environ:
+    _userhome = os.environ['HOME']
+
+    def compat_expanduser(path):
+        if not path.startswith('~'):
+            return path
+        i = path.replace('\\', '/', 1).find('/')  # ~user
+        if i < 0:
+            i = len(path)
+        userhome = os.path.join(os.path.dirname(_userhome), path[1:i]) if i > 1 else _userhome
+        return userhome + path[i:]
+else:
+    compat_expanduser = os.path.expanduser
+
+
+try:
+    from Cryptodome.Cipher import AES as compat_pycrypto_AES
+except ImportError:
+    try:
+        from Crypto.Cipher import AES as compat_pycrypto_AES
+    except ImportError:
+        compat_pycrypto_AES = None
+
+
+WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+
+
+def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+    if compat_os_name != 'nt':
+        return
+    global WINDOWS_VT_MODE
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    try:
+        subprocess.Popen('', shell=True, startupinfo=startupinfo)
+        WINDOWS_VT_MODE = True
+    except Exception:
+        pass
+
+
 #  Deprecated
 
 compat_basestring = str
@@ -152,7 +198,6 @@ compat_cookies = http.cookies
 compat_cookies_SimpleCookie = compat_cookies.SimpleCookie
 compat_etree_Element = etree.Element
 compat_etree_register_namespace = etree.register_namespace
-compat_expanduser = os.path.expanduser
 compat_get_terminal_size = shutil.get_terminal_size
 compat_getenv = os.getenv
 compat_getpass = getpass.getpass
@@ -189,6 +234,7 @@ compat_xml_parse_error = etree.ParseError
 # Set public objects
 
 __all__ = [
+    'WINDOWS_VT_MODE',
     'compat_HTMLParseError',
     'compat_HTMLParser',
     'compat_HTTPError',
@@ -224,6 +270,7 @@ __all__ = [
     'compat_os_name',
     'compat_parse_qs',
     'compat_print',
+    'compat_pycrypto_AES',
     'compat_realpath',
     'compat_setenv',
     'compat_shlex_quote',
@@ -252,5 +299,6 @@ __all__ = [
     'compat_xml_parse_error',
     'compat_xpath',
     'compat_zip',
+    'windows_enable_vt_mode',
     'workaround_optparse_bug9161',
 ]

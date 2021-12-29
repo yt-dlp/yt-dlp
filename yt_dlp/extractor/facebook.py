@@ -23,9 +23,11 @@ from ..utils import (
     merge_dicts,
     network_exceptions,
     parse_count,
+    parse_qs,
     qualities,
     sanitized_Request,
     try_get,
+    url_or_none,
     urlencode_postdata,
     urljoin,
 )
@@ -35,7 +37,7 @@ class FacebookIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                 (?:
                     https?://
-                        (?:[\w-]+\.)?(?:facebook\.com|facebookcorewwwi\.onion)/
+                        (?:[\w-]+\.)?(?:facebook\.com|facebookwkhpilnemxj7asaniu7vnjjbiltxjqhye3mhbshg7kx5tfyd\.onion)/
                         (?:[^#]*?\#!/)?
                         (?:
                             (?:
@@ -226,7 +228,7 @@ class FacebookIE(InfoExtractor):
         'only_matching': True,
     }, {
         # data.video
-        'url': 'https://www.facebookcorewwwi.onion/video.php?v=274175099429670',
+        'url': 'https://www.facebookwkhpilnemxj7asaniu7vnjjbiltxjqhye3mhbshg7kx5tfyd.onion/video.php?v=274175099429670',
         'only_matching': True,
     }, {
         # no title
@@ -479,7 +481,7 @@ class FacebookIE(InfoExtractor):
             for f in formats:
                 f.setdefault('http_headers', {})['User-Agent'] = 'facebookexternalhit/1.1'
 
-            self._sort_formats(formats)
+            self._sort_formats(formats, ('res', 'quality'))
 
         def extract_relay_data(_filter):
             return self._parse_json(self._search_regex(
@@ -687,13 +689,14 @@ class FacebookIE(InfoExtractor):
                 for src_type in ('src', 'src_no_ratelimit'):
                     src = f[0].get('%s_%s' % (quality, src_type))
                     if src:
-                        preference = -10 if format_id == 'progressive' else 0
+                        preference = -10 if format_id == 'progressive' else -1
                         if quality == 'hd':
                             preference += 5
                         formats.append({
                             'format_id': '%s_%s_%s' % (format_id, quality, src_type),
                             'url': src,
                             'quality': preference,
+                            'height': 720 if quality == 'hd' else None
                         })
             extract_dash_manifest(f[0], formats)
             subtitles_src = f[0].get('subtitles_src')
@@ -745,3 +748,42 @@ class FacebookPluginsVideoIE(InfoExtractor):
         return self.url_result(
             compat_urllib_parse_unquote(self._match_id(url)),
             FacebookIE.ie_key())
+
+
+class FacebookRedirectURLIE(InfoExtractor):
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/flx/warn[/?]'
+    _TESTS = [{
+        'url': 'https://www.facebook.com/flx/warn/?h=TAQHsoToz&u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DpO8h3EaFRdo&s=1',
+        'info_dict': {
+            'id': 'pO8h3EaFRdo',
+            'ext': 'mp4',
+            'title': 'Tripeo Boiler Room x Dekmantel Festival DJ Set',
+            'description': 'md5:2d713ccbb45b686a1888397b2c77ca6b',
+            'channel_id': 'UCGBpxWJr9FNOcFYA5GkKrMg',
+            'playable_in_embed': True,
+            'categories': ['Music'],
+            'channel': 'Boiler Room',
+            'uploader_id': 'brtvofficial',
+            'uploader': 'Boiler Room',
+            'tags': 'count:11',
+            'duration': 3332,
+            'live_status': 'not_live',
+            'thumbnail': 'https://i.ytimg.com/vi/pO8h3EaFRdo/maxresdefault.jpg',
+            'channel_url': 'https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg',
+            'availability': 'public',
+            'uploader_url': 'http://www.youtube.com/user/brtvofficial',
+            'upload_date': '20150917',
+            'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+        },
+        'add_ie': ['Youtube'],
+        'params': {'skip_download': 'Youtube'},
+    }]
+
+    def _real_extract(self, url):
+        redirect_url = url_or_none(parse_qs(url).get('u', [None])[-1])
+        if not redirect_url:
+            raise ExtractorError('Invalid facebook redirect URL', expected=True)
+        return self.url_result(redirect_url)

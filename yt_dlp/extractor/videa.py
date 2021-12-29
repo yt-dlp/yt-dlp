@@ -47,10 +47,24 @@ class VideaIE(InfoExtractor):
         },
     }, {
         'url': 'http://videa.hu/videok/origo/jarmuvek/supercars-elozes-jAHDWfWSJH5XuFhH',
-        'only_matching': True,
+        'md5': 'd57ccd8812c7fd491d33b1eab8c99975',
+        'info_dict': {
+            'id': 'jAHDWfWSJH5XuFhH',
+            'ext': 'mp4',
+            'title': 'Supercars előzés',
+            'thumbnail': r're:^https?://.*',
+            'duration': 64,
+        },
     }, {
         'url': 'http://videa.hu/player?v=8YfIAjxwWGwT8HVQ',
-        'only_matching': True,
+        'md5': '97a7af41faeaffd9f1fc864a7c7e7603',
+        'info_dict': {
+            'id': '8YfIAjxwWGwT8HVQ',
+            'ext': 'mp4',
+            'title': 'Az őrült kígyász 285 kígyót enged szabadon',
+            'thumbnail': r're:^https?://.*',
+            'duration': 21,
+        },
     }, {
         'url': 'http://videa.hu/player/v/8YfIAjxwWGwT8HVQ?autoplay=1',
         'only_matching': True,
@@ -100,10 +114,14 @@ class VideaIE(InfoExtractor):
 
         video_page = self._download_webpage(url, video_id)
 
-        player_url = self._search_regex(
-            r'<iframe.*?src="(/player\?[^"]+)"', video_page, 'player url')
-        player_url = urljoin(url, player_url)
-        player_page = self._download_webpage(player_url, video_id)
+        if 'videa.hu/player' in url:
+            player_url = url
+            player_page = video_page
+        else:
+            player_url = self._search_regex(
+                r'<iframe.*?src="(/player\?[^"]+)"', video_page, 'player url')
+            player_url = urljoin(url, player_url)
+            player_page = self._download_webpage(player_url, video_id)
 
         nonce = self._search_regex(
             r'_xt\s*=\s*"([^"]+)"', player_page, 'nonce')
@@ -134,7 +152,7 @@ class VideaIE(InfoExtractor):
         sources = xpath_element(
             info, './video_sources', 'sources', fatal=True)
         hash_values = xpath_element(
-            info, './hash_values', 'hash values', fatal=True)
+            info, './hash_values', 'hash values', fatal=False)
 
         title = xpath_text(video, './title', fatal=True)
 
@@ -143,15 +161,16 @@ class VideaIE(InfoExtractor):
             source_url = source.text
             source_name = source.get('name')
             source_exp = source.get('exp')
-            if not (source_url and source_name and source_exp):
+            if not (source_url and source_name):
                 continue
-            hash_value = xpath_text(hash_values, 'hash_value_' + source_name)
-            if not hash_value:
-                continue
-            source_url = update_url_query(source_url, {
-                'md5': hash_value,
-                'expires': source_exp,
-            })
+            hash_value = None
+            if hash_values:
+                hash_value = xpath_text(hash_values, 'hash_value_' + source_name)
+            if hash_value and source_exp:
+                source_url = update_url_query(source_url, {
+                    'md5': hash_value,
+                    'expires': source_exp,
+                })
             f = parse_codecs(source.get('codecs'))
             f.update({
                 'url': self._proto_relative_url(source_url),

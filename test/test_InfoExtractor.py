@@ -99,10 +99,10 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertRaises(RegexNotFoundError, ie._html_search_meta, ('z', 'x'), html, None, fatal=True)
 
     def test_search_json_ld_realworld(self):
-        # https://github.com/ytdl-org/youtube-dl/issues/23306
-        expect_dict(
-            self,
-            self.ie._search_json_ld(r'''<script type="application/ld+json">
+        _TESTS = [
+            # https://github.com/ytdl-org/youtube-dl/issues/23306
+            (
+                r'''<script type="application/ld+json">
 {
 "@context": "http://schema.org/",
 "@type": "VideoObject",
@@ -135,17 +135,86 @@ class TestInfoExtractor(unittest.TestCase):
 "name": "Kleio Valentien",
 "url": "https://www.eporner.com/pornstar/kleio-valentien/"
 }]}
-</script>''', None),
-            {
-                'title': '1 On 1 With Kleio',
-                'description': 'Kleio Valentien',
-                'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
-                'timestamp': 1449347075,
-                'duration': 743.0,
-                'view_count': 1120958,
-                'width': 1920,
-                'height': 1080,
-            })
+                </script>''',
+                {
+                    'title': '1 On 1 With Kleio',
+                    'description': 'Kleio Valentien',
+                    'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
+                    'timestamp': 1449347075,
+                    'duration': 743.0,
+                    'view_count': 1120958,
+                    'width': 1920,
+                    'height': 1080,
+                },
+                {},
+            ),
+            (
+                r'''<script type="application/ld+json">
+      {
+      "@context": "https://schema.org",
+      "@graph": [
+      {
+      "@type": "NewsArticle",
+      "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://www.ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn"
+      },
+      "headline": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
+      "name": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
+      "description": "Τα παιδιά δέχθηκαν την επίθεση επειδή αρνήθηκαν να γίνουν μέλη της συμμορίας, ανέφερε ο Γ. Ζαχαρόπουλος.",
+      "image": {
+      "@type": "ImageObject",
+      "url": "https://ant1media.azureedge.net/imgHandler/1100/a635c968-be71-447c-bf9c-80d843ece21e.jpg",
+      "width": 1100,
+      "height": 756            },
+      "datePublished": "2021-11-10T08:50:00+03:00",
+      "dateModified": "2021-11-10T08:52:53+03:00",
+      "author": {
+      "@type": "Person",
+      "@id": "https://www.ant1news.gr/",
+      "name": "Ant1news",
+      "image": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
+      "url": "https://www.ant1news.gr/"
+      },
+      "publisher": {
+      "@type": "Organization",
+      "@id": "https://www.ant1news.gr#publisher",
+      "name": "Ant1news",
+      "url": "https://www.ant1news.gr",
+      "logo": {
+      "@type": "ImageObject",
+      "url": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
+      "width": 400,
+      "height": 400                },
+      "sameAs": [
+      "https://www.facebook.com/Ant1news.gr",
+      "https://twitter.com/antennanews",
+      "https://www.youtube.com/channel/UC0smvAbfczoN75dP0Hw4Pzw",
+      "https://www.instagram.com/ant1news/"
+      ]
+      },
+
+      "keywords": "μαχαίρωμα,συμμορία ανηλίκων,ΕΙΔΗΣΕΙΣ,ΕΙΔΗΣΕΙΣ ΣΗΜΕΡΑ,ΝΕΑ,Κοινωνία - Ant1news",
+
+
+      "articleSection": "Κοινωνία"
+      }
+      ]
+      }
+                </script>''',
+                {
+                    'timestamp': 1636523400,
+                    'title': 'md5:91fe569e952e4d146485740ae927662b',
+                },
+                {'expected_type': 'NewsArticle'},
+            ),
+        ]
+        for html, expected_dict, search_json_ld_kwargs in _TESTS:
+            expect_dict(
+                self,
+                self.ie._search_json_ld(html, None, **search_json_ld_kwargs),
+                expected_dict
+            )
 
     def test_download_json(self):
         uri = encode_data_uri(b'{"foo": "blah"}', 'application/json')

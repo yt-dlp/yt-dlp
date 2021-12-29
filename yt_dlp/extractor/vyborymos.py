@@ -44,11 +44,11 @@ class VyboryMosIE(InfoExtractor):
         info = self._download_json(
             'http://vybory.mos.ru/json/voting_stations/%s/%s.json'
             % (compat_str(station_id)[:3], station_id),
-            station_id, 'Downloading station JSON', fatal=False)
+            station_id, 'Downloading station JSON', fatal=False) or {}
 
         return {
             'id': station_id,
-            'title': self._live_title(info['name'] if info else station_id),
+            'title': info.get('name') or station_id,
             'description': info.get('address'),
             'is_live': True,
             'formats': formats,

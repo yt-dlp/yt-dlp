@@ -55,7 +55,6 @@ class CorusIE(ThePlatformFeedIE):
             'timestamp': 1486392197,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to parse JSON'],

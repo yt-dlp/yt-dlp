@@ -67,6 +67,7 @@ class NickIE(MTVServicesInfoExtractor):
             'description': 'md5:9d65a66df38e02254852794b2809d1cf',
             'title': 'Blue\'s Imagination Station',
         },
+        'skip': 'Not accessible?'
     }]
 
     def _get_feed_query(self, uri):
@@ -74,10 +75,6 @@ class NickIE(MTVServicesInfoExtractor):
             'feed': 'nick_arc_player_prime',
             'mgid': uri,
         }
-
-    def _extract_mgid(self, webpage):
-        mgid = self._search_regex(r'"media":{"video":{"config":{"uri":"(mgid:.*?)"', webpage, 'mgid', default=None)
-        return mgid
 
     def _real_extract(self, url):
         domain, video_type, display_id = self._match_valid_url(url).groups()

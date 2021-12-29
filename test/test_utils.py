@@ -37,6 +37,7 @@ from yt_dlp.utils import (
     ExtractorError,
     find_xpath_attr,
     fix_xml_ampersands,
+    format_bytes,
     float_or_none,
     get_element_by_class,
     get_element_by_attribute,
@@ -848,30 +849,52 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_codecs('avc1.77.30, mp4a.40.2'), {
             'vcodec': 'avc1.77.30',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.2'), {
             'vcodec': 'none',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.5,avc1.42001e'), {
             'vcodec': 'avc1.42001e',
             'acodec': 'mp4a.40.5',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('avc3.640028'), {
             'vcodec': 'avc3.640028',
             'acodec': 'none',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs(', h264,,newcodec,aac'), {
             'vcodec': 'h264',
             'acodec': 'aac',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('av01.0.05M.08'), {
             'vcodec': 'av01.0.05M.08',
             'acodec': 'none',
+            'dynamic_range': None,
+        })
+        self.assertEqual(parse_codecs('vp9.2'), {
+            'vcodec': 'vp9.2',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('av01.0.12M.10.0.110.09.16.09.0'), {
+            'vcodec': 'av01.0.12M.10',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('dvhe'), {
+            'vcodec': 'dvhe',
+            'acodec': 'none',
+            'dynamic_range': 'DV',
         })
         self.assertEqual(parse_codecs('theora, vorbis'), {
             'vcodec': 'theora',
             'acodec': 'vorbis',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('unknownvcodec, unknownacodec'), {
             'vcodec': 'unknownvcodec',
@@ -1134,19 +1157,29 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_count('1000'), 1000)
         self.assertEqual(parse_count('1.000'), 1000)
         self.assertEqual(parse_count('1.1k'), 1100)
+        self.assertEqual(parse_count('1.1 k'), 1100)
+        self.assertEqual(parse_count('1,1 k'), 1100)
         self.assertEqual(parse_count('1.1kk'), 1100000)
         self.assertEqual(parse_count('1.1kk '), 1100000)
+        self.assertEqual(parse_count('1,1kk'), 1100000)
+        self.assertEqual(parse_count('100 views'), 100)
+        self.assertEqual(parse_count('1,100 views'), 1100)
         self.assertEqual(parse_count('1.1kk views'), 1100000)
+        self.assertEqual(parse_count('10M views'), 10000000)
+        self.assertEqual(parse_count('has 10M views'), 10000000)
 
     def test_parse_resolution(self):
         self.assertEqual(parse_resolution(None), {})
         self.assertEqual(parse_resolution(''), {})
-        self.assertEqual(parse_resolution('1920x1080'), {'width': 1920, 'height': 1080})
-        self.assertEqual(parse_resolution('1920×1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution(' 1920x1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
+        self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('ep1x2'), {})
+        self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)
@@ -1197,11 +1230,48 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
     def test_render_table(self):
         self.assertEqual(
             render_table(
-                ['a', 'bcd'],
-                [[123, 4], [9999, 51]]),
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]]),
+            'a    empty bcd\n'
+            '123        4\n'
+            '9999       51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]],
+                hide_empty=True),
             'a    bcd\n'
             '123  4\n'
             '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['\ta', 'bcd'],
+                [['1\t23', 4], ['\t9999', 51]]),
+            '   a bcd\n'
+            '1 23 4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-'),
+            'a    bcd\n'
+            '--------\n'
+            '123  4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-', extra_gap=2),
+            'a      bcd\n'
+            '----------\n'
+            '123    4\n'
+            '9999   51')
 
     def test_match_str(self):
         # Unary
@@ -1231,6 +1301,7 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertFalse(match_str('x>2K', {'x': 1200}))
         self.assertTrue(match_str('x>=1200 & x < 1300', {'x': 1200}))
         self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
+        self.assertTrue(match_str('x > 1:0:0', {'x': 3700}))
 
         # String
         self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
@@ -1367,21 +1438,21 @@ The first line
   </body>
 </tt>'''.encode('utf-8')
         srt_data = '''1
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <font color="white" face="sansSerif" size="16">default style<font color="red">custom style</font></font>
 
 2
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <b><font color="cyan" face="sansSerif" size="16"><font color="lime">part 1
 </font>part 2</font></b>
 
 3
-00:00:05,839 --> 00:00:09,560
+00:00:05,840 --> 00:00:09,560
 <u><font color="lime">line 3
 part 3</font></u>
 
 4
-00:00:09,560 --> 00:00:12,359
+00:00:09,560 --> 00:00:12,360
 <i><u><font color="yellow"><font color="lime">inner
  </font>style</font></u></i>
 
@@ -1594,9 +1665,9 @@ Line 1
         self.assertEqual(repr(LazyList(it)), repr(it))
         self.assertEqual(str(LazyList(it)), str(it))
 
-        self.assertEqual(list(LazyList(it).reverse()), it[::-1])
-        self.assertEqual(list(LazyList(it).reverse()[1:3:7]), it[::-1][1:3:7])
-        self.assertEqual(list(LazyList(it).reverse()[::-1]), it)
+        self.assertEqual(list(LazyList(it, reverse=True)), it[::-1])
+        self.assertEqual(list(reversed(LazyList(it))[::-1]), it)
+        self.assertEqual(list(reversed(LazyList(it))[1:3:7]), it[::-1][1:3:7])
 
     def test_LazyList_laziness(self):
 
@@ -1609,14 +1680,26 @@ Line 1
         test(ll, 5, 5, range(6))
         test(ll, -3, 7, range(10))
 
-        ll = LazyList(range(10)).reverse()
+        ll = LazyList(range(10), reverse=True)
         test(ll, -1, 0, range(1))
         test(ll, 3, 6, range(10))
 
         ll = LazyList(itertools.count())
         test(ll, 10, 10, range(11))
-        ll.reverse()
+        ll = reversed(ll)
         test(ll, -15, 14, range(15))
+
+    def test_format_bytes(self):
+        self.assertEqual(format_bytes(0), '0.00B')
+        self.assertEqual(format_bytes(1000), '1000.00B')
+        self.assertEqual(format_bytes(1024), '1.00KiB')
+        self.assertEqual(format_bytes(1024**2), '1.00MiB')
+        self.assertEqual(format_bytes(1024**3), '1.00GiB')
+        self.assertEqual(format_bytes(1024**4), '1.00TiB')
+        self.assertEqual(format_bytes(1024**5), '1.00PiB')
+        self.assertEqual(format_bytes(1024**6), '1.00EiB')
+        self.assertEqual(format_bytes(1024**7), '1.00ZiB')
+        self.assertEqual(format_bytes(1024**8), '1.00YiB')
 
 
 if __name__ == '__main__':

@@ -51,7 +51,7 @@ class VKBaseIE(InfoExtractor):
         self._apply_first_set_cookie_header(url_handle, 'remixlhk')
 
         login_page = self._download_webpage(
-            'https://login.vk.com/?act=login', None,
+            'https://vk.com/login', None,
             note='Logging in',
             data=urlencode_postdata(login_form))
 
@@ -434,8 +434,6 @@ class VKIE(VKBaseIE):
         # 2 = live
         # 3 = post live (finished live)
         is_live = data.get('live') == 2
-        if is_live:
-            title = self._live_title(title)
 
         timestamp = unified_timestamp(self._html_search_regex(
             r'class=["\']mv_info_date[^>]+>([^<]+)(?:<|from)', info_page,
@@ -471,6 +469,13 @@ class VKIE(VKBaseIE):
                 })
         self._sort_formats(formats)
 
+        subtitles = {}
+        for sub in data.get('subs') or {}:
+            subtitles.setdefault(sub.get('lang', 'en'), []).append({
+                'ext': sub.get('title', '.srt').split('.')[-1],
+                'url': url_or_none(sub.get('url')),
+            })
+
         return {
             'id': video_id,
             'formats': formats,
@@ -484,6 +489,7 @@ class VKIE(VKBaseIE):
             'like_count': int_or_none(mv_data.get('likes')),
             'comment_count': int_or_none(mv_data.get('commcount')),
             'is_live': is_live,
+            'subtitles': subtitles,
         }
 
 
