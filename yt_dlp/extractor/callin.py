@@ -66,7 +66,7 @@ class CallinIE(InfoExtractor):
         show_id = traverse_obj(episode, ('show', 'id'))
 
         # get the show metadata for some supplementary info
-        sj = None
+        show_json = None
         try:
             app_slug = self._html_search_regex(
                 '<script\\s+src=["\']/_next/static/([a-zA-Z0-9_]+)/_',
@@ -75,18 +75,18 @@ class CallinIE(InfoExtractor):
                 # this sometimes works, but sometimes seems to lag changes in the actual urls used.
                 app_slug = j['buildId']
             show_slug = episode['show']['linkObj']['resourceUrl'].rsplit('/', 1)[1]
-            show_json_url = "https://www.callin.com/_next/data/" + app_slug + "/show/" + show_slug + ".json"
+            show_json_url = f'https://www.callin.com/_next/data/{app_slug}/show/{show_slug}.json'
 
-            sj = self._download_json(show_json_url, id)
+            show_json = self._download_json(show_json_url, id)
         except (KeyError, IndexError, ExtractorError):
             pass
 
-        host = traverse_obj(sj, ('pageProps', 'show', 'hosts', 0))
-        if host is None:
-            # guess that it's the first speaker listed
-            host = traverse_obj(episode, ('speakers', 0))
+        # if we don't have the show metadata to tell us the host explicitly,
+        # guess that it's the first speaker listed for the episode
+        host = (traverse_obj(show_json, ('pageProps', 'show', 'hosts', 0))
+            or traverse_obj(episode, ('speakers', 0)))
 
-        host_url = traverse_obj(sj, ('pageProps', 'show', 'url'))
+        host_url = traverse_obj(show_json, ('pageProps', 'show', 'url'))
 
         host_nick = traverse_obj(host, ('linkObj', 'resourceUrl'))
         host_nick = host_nick.rsplit('/', 1)[1] if (host_nick and '/' in host_nick) else None
@@ -101,13 +101,11 @@ class CallinIE(InfoExtractor):
             ((episode.get('speakers') or []) + (episode.get('callerTags') or []))
         ]))
 
-        episode_number = None
-        if sj:
-            episode_list = traverse_obj(sj, ('pageProps', 'show', 'episodes')) or []
-            for (i, e) in enumerate(episode_list):
-                if e.get('id') == id:
-                    episode_number = len(episode_list) - i
-                    break
+        episode_list = traverse_obj(show_json, ('pageProps', 'show', 'episodes')) or []
+        episode_number = next(
+            (len(episode_list) - i for (i, e) in enumerate(episode_list) if e.get('id') == id),
+            None
+        )
 
         return {
             'id': id,
