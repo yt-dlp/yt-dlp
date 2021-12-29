@@ -22,8 +22,8 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSION = '20.9.3'
-    _MANIFEST_APP_VERSION = '291'
+    _APP_VERSION = '20.1.0'
+    _MANIFEST_APP_VERSION = '200'
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-h2.tiktokv.com'
@@ -342,9 +342,51 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
         }
     }, {
-        # Promoted content/ad
-        'url': 'https://www.tiktok.com/@MS4wLjABAAAAAR29F6J2Ktu0Daw03BJyXPNoRQ-W7U5a0Mn3lVCq2rQhjOd_WNLclHUoFgwX8Eno/video/6932675057474981122',
-        'only_matching': True,
+        # Banned audio, only available on the app
+        'url': 'https://www.tiktok.com/@barudakhb_/video/6984138651336838402',
+        'info_dict': {
+            'id': '6984138651336838402',
+            'ext': 'mp4',
+            'title': 'Balas @yolaaftwsr hayu yu ? #SquadRandom_ 🔥',
+            'description': 'Balas @yolaaftwsr hayu yu ? #SquadRandom_ 🔥',
+            'uploader': 'barudakhb_',
+            'creator': 'md5:29f238c49bc0c176cb3cef1a9cea9fa6',
+            'uploader_id': '6974687867511718913',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAbhBwQC-R1iKoix6jDFsF-vBdfx2ABoDjaZrM9fX6arU3w71q3cOWgWuTXn1soZ7d',
+            'track': 'Boka Dance',
+            'artist': 'md5:29f238c49bc0c176cb3cef1a9cea9fa6',
+            'timestamp': 1626121503,
+            'duration': 18,
+            'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
+            'upload_date': '20210712',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        }
+    }, {
+        # Sponsored video, only available with feed workaround
+        'url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_/video/7042692929109986561',
+        'info_dict': {
+            'id': '7042692929109986561',
+            'ext': 'mp4',
+            'title': 'Slap and Run!',
+            'description': 'Slap and Run!',
+            'uploader': 'user440922249',
+            'creator': 'Slap And Run',
+            'uploader_id': '7036055384943690754',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
+            'track': 'Promoted Music',
+            'timestamp': 1639754738,
+            'duration': 30,
+            'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
+            'upload_date': '20211217',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+        'expected_warnings': ['Video not available']
     }]
 
     def _extract_aweme_app(self, aweme_id):
