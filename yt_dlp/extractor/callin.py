@@ -83,12 +83,8 @@ class CallinIE(InfoExtractor):
         host = (traverse_obj(show_json, ('pageProps', 'show', 'hosts', 0))
             or traverse_obj(episode, ('speakers', 0)))
 
-        host_url = traverse_obj(show_json, ('pageProps', 'show', 'url'))
-
         host_nick = traverse_obj(host, ('linkObj', 'resourceUrl'))
         host_nick = host_nick.rsplit('/', 1)[1] if (host_nick and '/' in host_nick) else None
-
-        categories = traverse_obj(episode, ('show', 'categorizations', ..., 'name'))
 
         cast = list(filter(None, [
             self.try_get_user_name(u) for u in
@@ -111,13 +107,13 @@ class CallinIE(InfoExtractor):
             'uploader': self.try_get_user_name(host) if host else None,
             'timestamp': episode.get('publishedAt'),
             'uploader_id': host_nick,
-            'uploader_url': host_url,
+            'uploader_url': traverse_obj(show_json, ('pageProps', 'show', 'url')),
             'channel': show,
             'channel_id': show_id,
             'channel_url': traverse_obj(episode, ('show', 'linkObj', 'resourceUrl')),
             'duration': float_or_none(episode.get('runtime')),
             'view_count': int_or_none(episode.get('plays')),
-            'categories': categories if categories else None,
+            'categories': traverse_obj(episode, ('show', 'categorizations', ..., 'name')),
             'cast': cast if cast else None,
             'series': show,
             'series_id': show_id,
