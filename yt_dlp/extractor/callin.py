@@ -64,19 +64,17 @@ class CallinIE(InfoExtractor):
 
         # get the show metadata for some supplementary info
         show_json = None
-        try:
-            app_slug = self._html_search_regex(
+        app_slug = (self._html_search_regex(
                 '<script\\s+src=["\']/_next/static/([a-zA-Z0-9_]+)/_',
-                webpage, 'app slug', fatal=False)
-            if app_slug is None:
-                # this sometimes works, but sometimes seems to lag changes in the actual urls used.
-                app_slug = next_data['buildId']
-            show_slug = episode['show']['linkObj']['resourceUrl'].rsplit('/', 1)[1]
+                webpage, 'app slug', fatal=False
+            )
+            # this sometimes works, but sometimes seems to lag changes in the actual urls used.
+            or next_data.get('buildId'))
+        show_slug = traverse_obj(episode, ('show', 'linkObj', 'resourceUrl'))
+        if app_slug and show_slug and '/' in show_slug:
+            show_slug = show_slug.rsplit('/', 1)[1]
             show_json_url = f'https://www.callin.com/_next/data/{app_slug}/show/{show_slug}.json'
-
-            show_json = self._download_json(show_json_url, id)
-        except (KeyError, IndexError, ExtractorError):
-            pass
+            show_json = self._download_json(show_json_url, display_id, fatal=False)
 
         # if we don't have the show metadata to tell us the host explicitly,
         # guess that it's the first speaker listed for the episode
