@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import json
 
 from .common import InfoExtractor
+from ..utils import std_headers
 
 
 class PlaySuisseIE(InfoExtractor):
@@ -35,19 +36,30 @@ class PlaySuisseIE(InfoExtractor):
                 'id': '817193',
                 'ext': 'mp4',
                 'title': 'Die Einweihungsparty',
+                'series': 'Nr. 47',
+                'season_number': 1,
+                'episode': 'Die Einweihungsparty',
+                'episode_number': 1,
                 'description': 'md5:91ebf04d3a42cb3ab70666acf750a930'
             }
         }
     ]
 
     def _get_media_data(self, media_id):
+        locale = std_headers.get('locale', 'de').strip()
+        # TODO find out why the locale has no effect in request, eg. passing:
+        # --add-header 'locale: fr'
+        # In the web app, the "locale" header is used to switch between languages,
+        # because the languages are multiplexed into the same media_id. However
+        # this doesn't seem to take effect using passing the header here.
         response = self._download_json(
             'https://4bbepzm4ef.execute-api.eu-central-1.amazonaws.com/prod/graphql',
             media_id, data=json.dumps({
                 'operationName': 'AssetWatch',
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id}
-            }).encode('utf-8'), headers={'Content-Type': 'application/json'})
+            }).encode('utf-8'),
+            headers={'Content-Type': 'application/json', 'locale': locale})
 
         return response['data']['asset']
 
@@ -66,18 +78,8 @@ class PlaySuisseIE(InfoExtractor):
                 continue
             f, subs = self._extract_m3u8_formats_and_subtitles(
                 media['url'], media_id, 'mp4', 'm3u8_native', m3u8_id='HLS', fatal=False)
-            formats.append(f)
+            formats.extend(f)
             self._merge_subtitles(subs, target=subtitles)
-
-        for media in media_data['medias']:
-            if media['type'] == 'HLS':
-                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-                    media['url'],
-                    media_id,
-                    'mp4',
-                    'm3u8_native',
-                    m3u8_id="HLS",
-                    fatal=False)
 
         info = {
             'id': media_id,
