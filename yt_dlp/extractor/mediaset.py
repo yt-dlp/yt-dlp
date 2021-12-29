@@ -95,6 +95,26 @@ class MediasetIE(ThePlatformBaseIE):
             'uploader_id': 'I1',
         },
     }, {
+        # movie
+        'url': 'https://www.mediasetplay.mediaset.it/movie/selvaggi/selvaggi_F006474501000101',
+        'md5': '720440187a2ae26af8148eb9e6b901ed',
+        'info_dict': {
+            'id': 'F006474501000101',
+            'ext': 'mp4',
+            'title': 'Selvaggi',
+            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'duration': 5233.01,
+            'upload_date': '20210729',
+            'timestamp': 1627594716,
+            'uploader': 'Cine34',
+            'uploader_id': 'B6',
+            'chapters': [{'start_time': 0.0, 'end_time': 1938.56}, {'start_time': 1938.56, 'end_time': 5233.01}],
+            'series': 'Selvaggi',
+            'episode': 'Episode 1',
+            'episode_number': 1,
+        },
+    }, {
         # clip
         'url': 'https://www.mediasetplay.mediaset.it/video/gogglebox/un-grande-classico-della-commedia-sexy_FAFU000000661680',
         'only_matching': True,
@@ -160,6 +180,25 @@ class MediasetIE(ThePlatformBaseIE):
             video.attrib['src'] = re.sub(r'(https?://vod05)t(-mediaset-it\.akamaized\.net/.+?.mpd)\?.+', r'\1\2', video.attrib['src'])
         return super(MediasetIE, self)._parse_smil_formats(smil, smil_url, video_id, namespace, f4m_params, transform_rtmp_url)
 
+    def _check_drm_formats(self, tp_formats, video_id):
+        # get all manifest urls and remove duplicates
+        manifests = [f.get('manifest_url') for f in tp_formats]
+        manifests = list(dict.fromkeys(filter(None, manifests)))
+
+        # return original formats if not DRM manifest is found
+        if manifests == [] or len(manifests) != 1 or (
+                len(manifests) == 1 and '_sampleaes/' not in manifests[0]):
+            return tp_formats
+
+        nodrm_manifest = re.sub(
+            r'_sampleaes/(\w+)_fp_', r'/\1_no_', manifests[0])
+
+        if nodrm_manifest == manifests[0]:
+            return tp_formats
+
+        return self._extract_m3u8_formats(
+            nodrm_manifest, video_id, m3u8_id='hls')
+
     def _real_extract(self, url):
         guid = self._match_id(url)
         tp_path = 'PR1GhC/media/guid/2702976343/' + guid
@@ -170,7 +209,7 @@ class MediasetIE(ThePlatformBaseIE):
         first_e = None
         asset_type = 'geoNo:HD,browser,geoIT|geoNo:HD,geoIT|geoNo:SD,browser,geoIT|geoNo:SD,geoIT|geoNo|HD|SD'
         # TODO: fixup ISM+none manifest URLs
-        for f in ('MPEG4', 'MPEG-DASH+none', 'M3U+none'):
+        for f in ('MPEG4', 'M3U'):
             try:
                 tp_formats, tp_subtitles = self._extract_theplatform_smil(
                     update_url_query('http://link.theplatform.%s/s/%s' % (self._TP_TLD, tp_path), {
@@ -181,7 +220,8 @@ class MediasetIE(ThePlatformBaseIE):
             except ExtractorError as e:
                 if not first_e:
                     first_e = e
-                break
+                continue
+            tp_formats = self._check_drm_formats(tp_formats, guid)
             formats.extend(tp_formats)
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
         if first_e and not formats:
