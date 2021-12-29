@@ -37,26 +37,24 @@ class MainStreamingIE(InfoExtractor):
         if content_info.get('drmEnabled'):
              self.report_drm(video_id)
 
-        # Normal video content?
-        if content_info.get('contentType') == 10:
-            base_normal_url = f"https://{content_info['host']}/vod/{content_info['contentID']}/%s"
-            formats.extend(self._extract_m3u8_formats(base_normal_url % 'playlist.m3u8', video_id=video_id))
-            formats.extend(self._extract_mpd_formats(base_normal_url % 'manifest.mpd', video_id=video_id))
         # Live content
-        elif content_info.get('contentType') == 20:
+        if content_info.get('contentType') == 20:
             dvr_enabled = traverse_obj(content_info, ('playerSettings', 'dvrEnabled'), expected_type=bool)  # TODO
-            base_live_url = f"https://{content_info['host']}/live/{content_info['liveSourceID']}/{content_info['contentID']}/%s"
-            base_live_url += '?DVR' if dvr_enabled else ''
-
-            formats.extend(self._extract_m3u8_formats(base_live_url % 'playlist.m3u8', video_id=video_id))
-            formats.extend(self._extract_mpd_formats(base_live_url % 'manifest.mpd', video_id=video_id))
+            base_format_url = f"https://{content_info['host']}/live/{content_info['liveSourceID']}/{content_info['contentID']}/%s{'?DVR' if dvr_enabled else ''}"
             is_live = True
+        # Normal video content? (contentType == 10)
+        else:
+            base_format_url = f"https://{content_info['host']}/vod/{content_info['contentID']}/%s"
+        m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(base_format_url % 'playlist.m3u8', video_id=video_id)
+        mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(base_format_url % 'manifest.mpd', video_id=video_id)
 
+        subtitles = self._merge_subtitles(m3u8_subs, mpd_subs)
+        formats = m3u8_formats+mpd_formats
+        self._sort_formats(formats)
         # TODO: Progressive formats
         # TODO: "playlist contents"
         # TODO: subtitles (in subtitlesPath)
         # TODO: thumbnails
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
