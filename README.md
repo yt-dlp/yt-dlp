@@ -1,3 +1,4 @@
+
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 <div align="center">
 
@@ -178,6 +179,25 @@ sudo chmod a+rx /usr/local/bin/yt-dlp
 
 PS: The manpages, shell completion files etc. are available in [yt-dlp.tar.gz](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 
+### With [APT](https://en.wikipedia.org/wiki/APT_(software))
+
+You can download and install pre-compiled bleeding edge daily snapshot packages for Ubuntu and other related Debian-based distros by adding the [unstable PPA](https://code.launchpad.net/~yt-dlp/+archive/ubuntu/unstable) to your system's package manager like so:
+```
+sudo add-apt-repository ppa:yt-dlp/unstable
+```
+
+If you wish to use [stable](https://launchpad.net/~yt-dlp/+archive/ubuntu/stable) packages only, use the stable repository instead:
+```
+sudo add-apt-repository ppa:yt-dlp/stable
+```
+
+To install the package you can then run:
+```
+sudo apt update
+sudo apt install yt-dlp
+```
+Your system's package manager will now automatically download the correct dependencies and keep the package updated with the rest of your system.
+
 ### With [PIP](https://pypi.org/project/pip)
 
 You can install the [PyPI package](https://pypi.org/project/yt-dlp) with:
@@ -208,9 +228,11 @@ brew install yt-dlp/taps/yt-dlp
 ## UPDATE
 You can use `yt-dlp -U` to update if you are [using the provided release](#using-the-release-binary)
 
-If you [installed with pip](#with-pip), simply re-run the same command that was used to install the program
+If you [installed with APT](#with-apt), the package will be updated with the rest of your system whenever you run `sudo apt update && sudo apt upgrade`.
 
-If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps/yt-dlp`
+If you [installed with pip](#with-pip), simply re-run the same command that was used to install the program.
+
+If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps/yt-dlp`.
 
 <!-- MANPAGE: BEGIN EXCLUDED SECTION -->
 ## RELEASE FILES
