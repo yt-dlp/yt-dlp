@@ -16,7 +16,7 @@ class CallinIE(InfoExtractor):
             'id': '218b979630a35ead12c6fd096f2996c56c37e4d0dc1f6dc0feada32dcf7b31cd',
             'title': 'The Title IX Regime and the Long March Through and Beyond the Institutions',
             'url': 'https://d26nqus0kmgkkk.cloudfront.net/25246512e4b374daea3a23397483c50d241329ff8af4a5bafae02dae06cb0d5f/25246512e4b374daea3a23397483c50d241329ff8af4a5bafae02dae06cb0d5f.m3u8',
-            'ext': 'mp3',
+            'ext': 'ts',
             'display_id': 'the-title-ix-regime-and-the-long-march-through-EBfXYSrsjc',
             'thumbnail': 'https://d2xpqol0sc5yi.cloudfront.net/82cf84f4f7b70e3e1f9e36505cce56d97a31d3bd0589156595f362d25e012e06.png',
             'description': 'First episode',
@@ -56,7 +56,7 @@ class CallinIE(InfoExtractor):
         id = episode['id']
         title = episode.get('title')
         url = episode['m3u8']
-        formats = self._extract_m3u8_formats(url, id, ext='mp3')
+        formats = self._extract_m3u8_formats(url, display_id, ext='ts')
         self._sort_formats(formats)
 
         show = traverse_obj(episode, ('show', 'title'))
