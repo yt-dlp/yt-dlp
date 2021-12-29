@@ -682,6 +682,7 @@ from .la7 import (
     LA7PodcastEpisodeIE,
     LA7PodcastIE,
 )
+from .lactv import LaCTVIE
 from .laola1tv import (
     Laola1TvEmbedIE,
     Laola1TvIE,
@@ -755,6 +756,7 @@ from .mailru import (
     MailRuMusicIE,
     MailRuMusicSearchIE,
 )
+from .mainstreaming import MainStreamingIE
 from .malltv import MallTVIE
 from .mangomolo import (
     MangomoloVideoIE,
