@@ -43,7 +43,7 @@ class CallinIE(InfoExtractor):
     def try_get_user_name(self, d):
         names = [d.get(n) for n in ('first', 'last')]
         if None in names:
-            return None
+            return next((n for n in names if n), default=None)
         return ' '.join(names)
 
     def _real_extract(self, url):
@@ -54,7 +54,9 @@ class CallinIE(InfoExtractor):
         episode = next_data['props']['pageProps']['episode']
 
         id = episode['id']
-        title = episode.get('title')
+        title = (episode.get('title')
+            or self._og_search_title(webpage, fatal=False)
+            or self._html_search_regex('<title>(.*?)</title>', webpage, 'title'))
         url = episode['m3u8']
         formats = self._extract_m3u8_formats(url, display_id, ext='ts')
         self._sort_formats(formats)
