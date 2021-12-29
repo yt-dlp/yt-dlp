@@ -37,7 +37,7 @@ class MediasetIE(ThePlatformBaseIE):
             'id': 'F310575103000102',
             'ext': 'mp4',
             'title': 'Episodio 1',
-            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'description': 'md5:e8017b7d7194e9bfb75299c2b8d81e02',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 2682.0,
             'upload_date': '20210530',
@@ -45,6 +45,11 @@ class MediasetIE(ThePlatformBaseIE):
             'timestamp': 1622413946,
             'uploader': 'Canale 5',
             'uploader_id': 'C5',
+            'season': 'Season 1',
+            'episode': 'Episode 1',
+            'season_number': 1,
+            'episode_number': 1,
+            'chapters': [{'start_time': 0.0, 'end_time': 439.88}, {'start_time': 439.88, 'end_time': 1685.84}, {'start_time': 1685.84, 'end_time': 2682.0}],
         },
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/video/matrix/puntata-del-25-maggio_F309013801000501',
@@ -53,7 +58,7 @@ class MediasetIE(ThePlatformBaseIE):
             'id': 'F309013801000501',
             'ext': 'mp4',
             'title': 'Puntata del 25 maggio',
-            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'description': 'md5:ee2e456e3eb1dba5e814596655bb5296',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 6565.008,
             'upload_date': '20200903',
@@ -61,6 +66,11 @@ class MediasetIE(ThePlatformBaseIE):
             'timestamp': 1599172492,
             'uploader': 'Canale 5',
             'uploader_id': 'C5',
+            'season': 'Season 5',
+            'episode': 'Episode 5',
+            'season_number': 5,
+            'episode_number': 5,
+            'chapters': [{'start_time': 0.0, 'end_time': 3409.08}, {'start_time': 3409.08, 'end_time': 6565.008}],
         },
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/video/cameracafe5/episodio-69-pezzo-di-luna_F303843101017801',
@@ -69,7 +79,7 @@ class MediasetIE(ThePlatformBaseIE):
             'id': 'F303843101017801',
             'ext': 'mp4',
             'title': 'Episodio 69 - Pezzo di luna',
-            'description': '',
+            'description': 'md5:7c32c8ec4118b72588b9412f11353f73',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 263.008,
             'upload_date': '20200902',
@@ -77,6 +87,11 @@ class MediasetIE(ThePlatformBaseIE):
             'timestamp': 1599064700,
             'uploader': 'Italia 1',
             'uploader_id': 'I1',
+            'season': 'Season 5',
+            'episode': 'Episode 178',
+            'season_number': 5,
+            'episode_number': 178,
+            'chapters': [{'start_time': 0.0, 'end_time': 261.88}, {'start_time': 261.88, 'end_time': 263.008}],
         },
     }, {
         'url': 'https://www.mediasetplay.mediaset.it/video/cameracafe5/episodio-51-tu-chi-sei_F303843107000601',
@@ -85,7 +100,7 @@ class MediasetIE(ThePlatformBaseIE):
             'id': 'F303843107000601',
             'ext': 'mp4',
             'title': 'Episodio 51 - Tu chi sei?',
-            'description': '',
+            'description': 'md5:42ef006e56824cc31787a547590923f4',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 367.021,
             'upload_date': '20200902',
@@ -93,6 +108,11 @@ class MediasetIE(ThePlatformBaseIE):
             'timestamp': 1599069817,
             'uploader': 'Italia 1',
             'uploader_id': 'I1',
+            'season': 'Season 5',
+            'episode': 'Episode 6',
+            'season_number': 5,
+            'episode_number': 6,
+            'chapters': [{'start_time': 0.0, 'end_time': 358.68}, {'start_time': 358.68, 'end_time': 367.021}],
         },
     }, {
         # movie
@@ -102,7 +122,7 @@ class MediasetIE(ThePlatformBaseIE):
             'id': 'F006474501000101',
             'ext': 'mp4',
             'title': 'Selvaggi',
-            'description': 'md5:d41d8cd98f00b204e9800998ecf8427e',
+            'description': 'md5:cfdedbbfdd12d4d0e5dcf1fa1b75284f',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 5233.01,
             'upload_date': '20210729',
@@ -110,9 +130,6 @@ class MediasetIE(ThePlatformBaseIE):
             'uploader': 'Cine34',
             'uploader_id': 'B6',
             'chapters': [{'start_time': 0.0, 'end_time': 1938.56}, {'start_time': 1938.56, 'end_time': 5233.01}],
-            'series': 'Selvaggi',
-            'episode': 'Episode 1',
-            'episode_number': 1,
         },
     }, {
         # clip
@@ -241,14 +258,21 @@ class MediasetIE(ThePlatformBaseIE):
                     break
 
             info.update({
-                'episode_number': int_or_none(feed_data.get('tvSeasonEpisodeNumber')),
-                'season_number': int_or_none(feed_data.get('tvSeasonNumber')),
-                'series': feed_data.get('mediasetprogram$brandTitle'),
+                'description': info.get('description') or feed_data.get('description') or feed_data.get('longDescription'),
                 'uploader': publish_info.get('description'),
                 'uploader_id': publish_info.get('channel'),
                 'view_count': int_or_none(feed_data.get('mediasetprogram$numberOfViews')),
                 'thumbnail': thumbnail,
             })
+
+            if feed_data.get('programType') == 'episode':
+                info.update({
+                    'episode_number': int_or_none(
+                        feed_data.get('tvSeasonEpisodeNumber')),
+                    'season_number': int_or_none(
+                        feed_data.get('tvSeasonNumber')),
+                    'series': feed_data.get('mediasetprogram$brandTitle'),
+                })
 
         info.update({
             'id': guid,
