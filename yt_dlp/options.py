@@ -1572,7 +1572,8 @@ def parseOpts(overrideArguments=None):
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
         help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
-    _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [val.strip() for val in vals.split(',')])
+    _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [
+        val.replace(r'\,', ',').strip() for val in re.split(r'(?<!\\),', vals)])
     extractor.add_option(
         '--extractor-args',
         metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',
