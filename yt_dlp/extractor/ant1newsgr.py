@@ -2,11 +2,7 @@
 from __future__ import unicode_literals
 
 import re
-from urllib.parse import (
-    parse_qs,
-    urlparse,
-    urlunparse,
-)
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -31,7 +27,7 @@ class Ant1NewsGrBaseIE(InfoExtractor):
 
     def _download_api_data(self, netloc, cid, scheme='https'):
         url_parts = (scheme, netloc, self._API_PATH, None, None, None)
-        url = urlunparse(url_parts)
+        url = urllib.parse.urlunparse(url_parts)
         query = {'cid': cid}
         return self._download_json(
             url, cid,
@@ -78,7 +74,7 @@ class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        scheme, netloc, _, _, _, _ = urlparse(url)
+        scheme, netloc, _, _, _, _ = urllib.parse.urlparse(url)
         info = self._download_and_extract_api_data(
             video_id, netloc, video_id, scheme=scheme)
         info['description'] = self._og_search_description(webpage)
@@ -158,7 +154,7 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
         for mobj in re.finditer(EMBED_RE, webpage):
             url = unescapeHTML(mobj.group('url'))
             if url.startswith('//'):
-                scheme = urlparse(origin_url).scheme if origin_url else 'https'
+                scheme = urllib.parse.urlparse(origin_url).scheme if origin_url else 'https'
                 url = '%s:%s' % (scheme, url)
             if not cls.suitable(url):
                 continue
@@ -173,8 +169,8 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
             HEADRequest(url), video_id,
             note='Resolve canonical player URL',
             errnote='Could not resolve canonical player URL').geturl()
-        scheme, netloc, _, _, query, _ = urlparse(canonical_url)
-        query = parse_qs(query)
+        scheme, netloc, _, _, query, _ = urllib.parse.urlparse(canonical_url)
+        query = urllib.parse.parse_qs(query)
         cid = query['cid'][0]
 
         info = self._download_and_extract_api_data(
