@@ -2116,9 +2116,11 @@ def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     if num is None:
         return None
     exponent = 0 if num == 0 else int(math.log(num, factor))
-    suffix = ['', *'KMGTPEZY'][exponent]
+    suffix = ['', *'kMGTPEZY'][exponent]
+    if factor == 1024:
+        suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
     converted = num / (factor ** exponent)
-    return fmt % (converted, f'{suffix}i' if suffix and factor == 1024 else suffix)
+    return fmt % (converted, suffix)
 
 
 def format_bytes(bytes):

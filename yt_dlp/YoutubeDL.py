@@ -1166,7 +1166,9 @@ class YoutubeDL(object):
                     'NF%s%s' % ('K' if '+' in flags else '', 'D' if '#' in flags else 'C'),
                     value), str_fmt
             elif fmt[-1] == 'D':  # decimal suffix
-                value, fmt = format_decimal_suffix(value, f'%{fmt[:-1]}f%s' if fmt[:-1] else '%d%s'), 's'
+                num_fmt, fmt = fmt[:-1].replace('#', ''), 's'
+                value = format_decimal_suffix(value, f'%{num_fmt}f%s' if num_fmt else '%d%s',
+                                              factor=1024 if '#' in flags else 1000)
             elif fmt[-1] == 'S':  # filename sanitization
                 value, fmt = filename_sanitizer(initial_field, value, restricted='#' in flags), str_fmt
             elif fmt[-1] == 'c':
