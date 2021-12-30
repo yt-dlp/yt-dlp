@@ -73,8 +73,11 @@ class MainStreamingIE(InfoExtractor):
         return host
 
     def _call_api(self, host: str, path: str, item_id: str, query=None, note='Downloading API JSON', fatal=False):
+        return self._call_webtools_api(host, '/api/v2/'+path, item_id, query, note, fatal)
+
+    def _call_webtools_api(self, host: str, path: str, item_id: str, query=None, note='Downloading webtools API JSON', fatal=False):
         return self._download_json(
-            urljoin(f'https://{self._get_webtools_host(host)}/api/v2/', path), item_id, query=query, note=note, fatal=fatal)
+            urljoin(f'https://{self._get_webtools_host(host)}/', path), item_id, query=query, note=note, fatal=fatal)
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
