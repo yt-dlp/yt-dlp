@@ -319,7 +319,7 @@ class MediasetShowIE(MediasetIE):
             'id': '000000002763',
             'title': 'Le Iene',
         },
-        'playlist_count': 7,
+        'playlist_count_min': 7,
     }, {
         # TV Show specific playlist (single page)
         'url': 'https://www.mediasetplay.mediaset.it/serie-tv/fireforce/episodi_SE000000001556,ST000000002738,sb100013107',
@@ -327,7 +327,7 @@ class MediasetShowIE(MediasetIE):
             'id': '100013107',
             'title': 'Episodi',
         },
-        'playlist_count': 4,
+        'playlist_count_min': 1,
     }, {
         # TV Show specific playlist (with multiple pages)
         'url': 'https://www.mediasetplay.mediaset.it/programmi-tv/leiene/iservizi_SE000000000061,ST000000002763,sb100013375',
@@ -335,7 +335,7 @@ class MediasetShowIE(MediasetIE):
             'id': '100013375',
             'title': 'I servizi',
         },
-        'playlist_count': 53,
+        'playlist_count_min': 50,
     }]
 
     _BY_SUBBRAND = 'https://feed.entertainment.tv.theplatform.eu/f/PR1GhC/mediaset-prod-all-programs-v2?byCustomValue={subBrandId}{%s}&sort=:publishInfo_lastPublished|desc,tvSeasonEpisodeNumber|desc&range=%d-%d'
