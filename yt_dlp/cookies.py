@@ -790,7 +790,7 @@ def _get_linux_keyring_password(browser_keyring_name, keyring, logger):
     # Chromium supports a flag: --password-store=<basic|gnome|kwallet> so the automatic detection
     # will not be sufficient in all cases.
 
-    keyring = _LinuxKeyring[keyring] or _choose_linux_keyring(logger)
+    keyring = _LinuxKeyring[keyring] if keyring else _choose_linux_keyring(logger)
     logger.debug(f'Chosen keyring: {keyring.name}')
 
     if keyring == _LinuxKeyring.KWALLET:
