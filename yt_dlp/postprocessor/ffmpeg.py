@@ -294,8 +294,10 @@ class FFmpegPostProcessor(PostProcessor):
 
         def make_args(file, args, name, number):
             keys = ['_%s%d' % (name, number), '_%s' % name]
-            if name == 'o' and number == 1:
-                keys.append('')
+            if name == 'o':
+                args += ['-movflags', '+faststart']
+                if number == 1:
+                    keys.append('')
             args += self._configuration_args(self.basename, keys)
             if name == 'i':
                 args.append('-i')
@@ -368,7 +370,7 @@ class FFmpegPostProcessor(PostProcessor):
         out_flags = ['-c', 'copy']
         if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
             # For some reason, '-c copy' is not enough to copy subtitles
-            out_flags.extend(['-c:s', 'mov_text', '-movflags', '+faststart'])
+            out_flags.extend(['-c:s', 'mov_text'])
 
         try:
             self.real_run_ffmpeg(
@@ -571,10 +573,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        options = ['-c', 'copy', '-map', '0', '-dn']
-        if target_ext in ['mp4', 'm4a', 'mov']:
-            options.extend(['-movflags', '+faststart'])
-        return options
+        return ['-c', 'copy', '-map', '0', '-dn']
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
@@ -909,11 +908,21 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
         return [], info
 
 
-class FFmpegFixupDurationPP(FFmpegFixupPostProcessor):
+class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
+    MESSAGE = 'Copying stream'
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup('Fixing video duration', info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
+        self._fixup(self.MESSAGE, info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
         return [], info
+
+
+class FFmpegFixupDurationPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing video duration'
+
+
+class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing duplicate MOOV atoms'
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
@@ -1083,12 +1092,12 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         files_to_delete = []
         has_thumbnail = False
 
-        for idx, thumbnail_dict in enumerate(info['thumbnails']):
-            if 'filepath' not in thumbnail_dict:
+        for idx, thumbnail_dict in enumerate(info.get('thumbnails') or []):
+            original_thumbnail = thumbnail_dict.get('filepath')
+            if not original_thumbnail:
                 continue
             has_thumbnail = True
             self.fixup_webp(info, idx)
-            original_thumbnail = thumbnail_dict['filepath']
             _, thumbnail_ext = os.path.splitext(original_thumbnail)
             if thumbnail_ext:
                 thumbnail_ext = thumbnail_ext[1:].lower()

@@ -89,7 +89,7 @@ class NFLBaseIE(InfoExtractor):
                     'ext': determine_ext(image_url, 'jpg'),
                 }]
             info.update({
-                'title': self._live_title(title) if is_live else title,
+                'title': title,
                 'is_live': is_live,
                 'description': clean_html(item.get('description')),
                 'thumbnails': thumbnails,

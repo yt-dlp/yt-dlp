@@ -159,7 +159,7 @@ class LineLiveBaseIE(InfoExtractor):
 
         return {
             'id': broadcast_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'thumbnails': thumbnails,
             'timestamp': int_or_none(item.get('createdAt')),
             'channel': channel.get('name'),

@@ -264,7 +264,7 @@ class YahooIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'formats': formats,
             'thumbnails': thumbnails,
             'description': clean_html(video.get('description')),

@@ -348,7 +348,7 @@ class HGTVDeIE(DPlayBaseIE):
 
 
 class DiscoveryPlusIE(DPlayBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/video/property-brothers-forever-home/food-and-family',
         'info_dict': {
@@ -564,15 +564,27 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
                     total_pages = try_get(season_json, lambda x: x['meta']['totalPages'], int) or 1
                 episodes_json = season_json['data']
                 for episode in episodes_json:
-                    video_id = episode['attributes']['path']
+                    video_path = episode['attributes']['path']
                     yield self.url_result(
-                        '%svideos/%s' % (self._DOMAIN, video_id),
-                        ie=self._VIDEO_IE.ie_key(), video_id=video_id)
+                        '%svideos/%s' % (self._DOMAIN, video_path),
+                        ie=self._VIDEO_IE.ie_key(), video_id=episode.get('id') or video_path)
                 page_num += 1
 
     def _real_extract(self, url):
         show_name = self._match_valid_url(url).group('show_name')
         return self.playlist_result(self._entries(show_name), playlist_id=show_name)
+
+
+class DiscoveryPlusItalyIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/it/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.discoveryplus.com/it/video/i-signori-della-neve/stagione-2-episodio-1-i-preparativi',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        return self.url_result(f'https://discoveryplus.it/video/{video_id}', DPlayIE.ie_key(), video_id)
 
 
 class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):

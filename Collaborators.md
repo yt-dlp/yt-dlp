@@ -28,6 +28,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 [![gh-sponsor](https://img.shields.io/badge/_-Sponsor-red.svg?logo=githubsponsors&labelColor=555555&style=for-the-badge)](https://github.com/sponsors/coletdjnz)
 
 * YouTube improvements including: age-gate bypass, private playlists, multiple-clients (to avoid throttling) and a lot of under-the-hood improvements
+* Added support for downloading YoutubeWebArchive videos
 
 
 

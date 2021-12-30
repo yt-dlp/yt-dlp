@@ -20,7 +20,7 @@ from .utils import (
     remove_end,
     write_string,
 )
-from .cookies import SUPPORTED_BROWSERS
+from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .version import __version__
 
 from .downloader.external import list_external_downloaders
@@ -258,6 +258,14 @@ def parseOpts(overrideArguments=None):
         '--no-flat-playlist',
         action='store_false', dest='extract_flat',
         help='Extract the videos of a playlist')
+    general.add_option(
+        '--live-from-start',
+        action='store_true', dest='live_from_start',
+        help='Download livestreams from the start. Currently only supported for YouTube')
+    general.add_option(
+        '--no-live-from-start',
+        action='store_false', dest='live_from_start',
+        help='Download livestreams from the current time (default)')
     general.add_option(
         '--wait-for-video',
         dest='wait_for_video', metavar='MIN[-MAX]', default=None,
@@ -660,7 +668,7 @@ def parseOpts(overrideArguments=None):
     downloader.add_option(
         '-N', '--concurrent-fragments',
         dest='concurrent_fragment_downloads', metavar='N', default=1, type=int,
-        help='Number of fragments of a dash/hlsnative video that should be download concurrently (default is %default)')
+        help='Number of fragments of a dash/hlsnative video that should be downloaded concurrently (default is %default)')
     downloader.add_option(
         '-r', '--limit-rate', '--rate-limit',
         dest='ratelimit', metavar='RATE',
@@ -673,6 +681,10 @@ def parseOpts(overrideArguments=None):
         '-R', '--retries',
         dest='retries', metavar='RETRIES', default=10,
         help='Number of retries (default is %default), or "infinite"')
+    downloader.add_option(
+        '--file-access-retries',
+        dest='file_access_retries', metavar='RETRIES', default=10,
+        help='Number of times to retry on file access error (default is %default), or "infinite"')
     downloader.add_option(
         '--fragment-retries',
         dest='fragment_retries', metavar='RETRIES', default=10,
@@ -991,8 +1003,9 @@ def parseOpts(overrideArguments=None):
     filesystem.add_option(
         '-a', '--batch-file',
         dest='batchfile', metavar='FILE',
-        help="File containing URLs to download ('-' for stdin), one URL per line. "
-             "Lines starting with '#', ';' or ']' are considered as comments and ignored")
+        help=(
+            'File containing URLs to download ("-" for stdin), one URL per line. '
+            'Lines starting with "#", ";" or "]" are considered as comments and ignored'))
     filesystem.add_option(
         '--no-batch-file',
         dest='batchfile', action='store_const', const=None,
@@ -1010,7 +1023,7 @@ def parseOpts(overrideArguments=None):
         }, help=(
             'The paths where the files should be downloaded. '
             'Specify the type of file and the path separated by a colon ":". '
-            'All the same types as --output are supported. '
+            'All the same TYPES as --output are supported. '
             'Additionally, you can also provide "home" (default) and "temp" paths. '
             'All intermediary files are first downloaded to the temp path and '
             'then the final files are moved over to the home path after download is finished. '
@@ -1161,14 +1174,15 @@ def parseOpts(overrideArguments=None):
         help='Do not read/dump cookies from/to file (default)')
     filesystem.add_option(
         '--cookies-from-browser',
-        dest='cookiesfrombrowser', metavar='BROWSER[:PROFILE]',
+        dest='cookiesfrombrowser', metavar='BROWSER[+KEYRING][:PROFILE]',
         help=(
-            'Load cookies from a user profile of the given web browser. '
-            'Currently supported browsers are: {}. '
-            'You can specify the user profile name or directory using '
-            '"BROWSER:PROFILE_NAME" or "BROWSER:PROFILE_PATH". '
-            'If no profile is given, the most recently accessed one is used'.format(
-                ', '.join(sorted(SUPPORTED_BROWSERS)))))
+            'The name of the browser and (optionally) the name/path of '
+            'the profile to load cookies from, separated by a ":". '
+            f'Currently supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}. '
+            'By default, the most recently accessed profile is used. '
+            'The keyring used for decrypting Chromium cookies on Linux can be '
+            '(optionally) specified after the browser name separated by a "+". '
+            f'Currently supported keyrings are: {", ".join(map(str.lower, sorted(SUPPORTED_KEYRINGS)))}'))
     filesystem.add_option(
         '--no-cookies-from-browser',
         action='store_const', const=None, dest='cookiesfrombrowser',
@@ -1433,7 +1447,7 @@ def parseOpts(overrideArguments=None):
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
             'Force keyframes around the chapters before removing/splitting them. '
-            'Requires a reencode and thus is very slow, but the resulting video '
+            'Requires a re-encode and thus is very slow, but the resulting video '
             'may have fewer artifacts around the cuts'))
     postproc.add_option(
         '--no-force-keyframes-at-cuts',
@@ -1451,7 +1465,7 @@ def parseOpts(overrideArguments=None):
             'process': lambda val: dict(_postprocessor_opts_parser(*val.split(':', 1)))
         }, help=(
             'The (case sensitive) name of plugin postprocessors to be enabled, '
-            'and (optionally) arguments to be passed to it, seperated by a colon ":". '
+            'and (optionally) arguments to be passed to it, separated by a colon ":". '
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
             'It can be one of "pre_process" (after extraction), '
@@ -1558,7 +1572,8 @@ def parseOpts(overrideArguments=None):
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
         help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
-    _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [val.strip() for val in vals.split(',')])
+    _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [
+        val.replace(r'\,', ',').strip() for val in re.split(r'(?<!\\),', vals)])
     extractor.add_option(
         '--extractor-args',
         metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',

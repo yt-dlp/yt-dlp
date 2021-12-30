@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import copy
 import functools
 import os
 
@@ -18,7 +17,7 @@ class PostProcessorMetaClass(type):
     def run_wrapper(func):
         @functools.wraps(func)
         def run(self, info, *args, **kwargs):
-            info_copy = copy.deepcopy(self._copy_infodict(info))
+            info_copy = self._copy_infodict(info)
             self._hook_progress({'status': 'started'}, info_copy)
             ret = func(self, info, *args, **kwargs)
             if ret is not None:
