@@ -133,15 +133,13 @@ class MixcloudIE(MixcloudBaseIE):
         if not cloudcast:
             raise ExtractorError('Track not found', expected=True)
 
-        if cloudcast['restrictedReason']:
-            reason = cloudcast['restrictedReason']
-            if reason == "tracklist":
-                raise ExtractorError('Track unavailable in your country due to licensing restrictions', expected=True)
-            elif reason == "repeat_play":
-                # https://help.mixcloud.com/hc/en-us/articles/360010592220-Why-can-I-only-replay-a-show-three-times-
-                raise ExtractorError('You have reached your play limit for this track', expected=True)
-            else:
-                raise ExtractorError('Track is restricted', expected=True)
+        reason = cloudcast.get('restrictedReason')
+        if reason == 'tracklist':
+            raise ExtractorError('Track unavailable in your country due to licensing restrictions', expected=True)
+        elif reason == 'repeat_play':
+            raise ExtractorError('You have reached your play limit for this track', expected=True)
+        elif reason:
+            raise ExtractorError('Track is restricted', expected=True)
 
         title = cloudcast['name']
 
