@@ -72,7 +72,6 @@ class RokfinPostIE(RokfinSingleVideoIE):
                 needs_auth=False,
                 is_unlisted=False)
 
-        # content_subdict = try_get(downloaded_json, lambda x: x['content'])
         video_formats_url = url_or_none(traverse_obj(downloaded_json, ('content', 'contentUrl')))
         availability = try_get(self, lambda x: videoAvailability(x, downloaded_json))
 
@@ -113,7 +112,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
             'description': content_subdict('contentDescription'),
             'like_count': downloaded_json_get('likeCount'),
             'dislike_count': downloaded_json_get('dislikeCount'),
-            # 'comment_count': downloaded_json_get('numComments'), # Uncomment when Rf starts reporting the correct value.
+            # 'comment_count': downloaded_json_get('numComments'), # Uncomment when Rf corrects the 'numComments' value.
             'availability': availability,
             'creator': channel_name,
             'channel_id': created_by('id'),
@@ -212,18 +211,15 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             is_unlisted=False))
         downloaded_json = downloaded_json.get
 
-        # Determine if the stream is pending:
         stream_scheduled_for = try_get(downloaded_json, lambda x: datetime.datetime.strptime(x('scheduledAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
-        # None: the stream is not pending.
-        # A valid datetime object: the stream will start at the given time.
+        # 'scheduledAt' is set to None after the stream becomes live.
 
         stream_ended_at = try_get(
             downloaded_json,
             lambda x: datetime.datetime.strptime(
                 x('stoppedAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
-        # None: the stream is either live or pending.
-        # A valid datetime object: the stream has ended at the given time.
-        # This value is potentially incorrect. See the note below.
+        # 'stoppedAt' is null unless the stream is finished. 'stoppedAt' likely contains an incorrect value,
+        # so what matters to us is whether or not this field is *present*.
 
         if m3u8_url:
             frmts = self._extract_m3u8_formats(m3u8_url=m3u8_url, video_id=video_id, fatal=False, live=(stream_ended_at is None))
@@ -231,48 +227,30 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         else:
             frmts = None
 
+        if not frmts:
             if stream_scheduled_for:
                 # The stream is pending.
                 self.raise_no_formats(
                     msg='the ' + ('premium-only ' if availability == 'premium_only' else '')
-                    + 'stream starts at '
-                    + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S' + ' (YYYY-MM-DD, 24H clock, GMT). Consider adding --wait-for-video'),
+                    + 'stream is/was expected to start at '
+                    + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S') + ' (YYYY-MM-DD, 24H clock, GMT)' + ('' if self.get_param('wait_for_video') else '. Consider adding --wait-for-video'),
+                    video_id=video_id,
                     expected=True)
+            elif availability == 'premium_only':
+                self.raise_no_formats(msg='premium content', video_id=video_id, expected=True)
+            elif m3u8_url:
+                self.raise_no_formats(msg='unable to download: missing meta data', video_id=video_id, expected=True)
+            else:
+                # We don't know why there is no (valid) meta data present.
+                self.raise_no_formats(msg='unable to download: don\'t know where to find meta data', video_id=video_id, expected=True)
 
-            if availability == 'premium_only':
-                # The stream is premium only.
-                self.raise_no_formats(msg='premium content', expected=True)
+            # Self-reminder: --wait-for-video causes raise_no_formats(... expected=True ...) to print a warning message
+            # and quit without raising ExtractorError.
 
-            if not(stream_scheduled_for) and availability != 'premium_only':
-                # We don't know why there is no (valid) video URL present.
-                self.raise_no_formats(msg='unable to download: missing meta data', expected=True)
-
-        include_duration = False
-        # If True, 'duration' will be added to the dictionary.
-        #
-        # As of November 2021, the 'stoppedAt' field in the meta data may be incorrect. This field contains
-        # the end time of the stream. The error will cause the duration calculated from this meta data to be off,
-        # as well. In one case, I've seen the duration being off by 5 minutes, for example. The only way to
-        # get the correct value for the end time is by using the manifest. Doing this, however, would slow the
-        # program down. As a compromise, I decided that omitting the duration is preferable to initializing it
-        # with a wrong value (which the user will probably view as a bug anyway).
-
-        # The 'postedAtMilli' field shows when the stream was posted. If the stream went live immediately, then
-        # this field contains the starting time. If, however, the stream is pending, then its starting time
-        # will be different, so the field is ignored. 'postedAtMilli' will contain the actual starting time,
-        # once the stream has started.
-        stream_started_at_timestamp = try_get(downloaded_json, lambda x: x('postedAtMilli') / 1000) if frmts or stream_ended_at else None
+        # 'postedAtMilli' shows when the stream (live or pending) appeared on Rokfin. As soon as a pending stream goes live,
+        # the value of 'postedAtMilli' will change to reflect the stream's starting time.
+        stream_started_at_timestamp = try_get(downloaded_json, lambda x: x('postedAtMilli') / 1000) if stream_scheduled_for is None else None
         stream_started_at = try_get(stream_started_at_timestamp, lambda x: datetime.datetime.utcfromtimestamp(x).replace(tzinfo=datetime.timezone.utc))
-
-        if frmts or stream_ended_at:
-            stream_scheduled_for = None
-
-        def duration(started_at, ended_at):
-            if started_at and ended_at:
-                return (ended_at - started_at).total_seconds()
-
-            return None
-
         created_by = lambda x: try_get(downloaded_json, lambda y: y('creator').get(x))
         channel_name = created_by('name')
         channel_id = created_by('id')
@@ -297,10 +275,11 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             'channel_url': try_get(created_by, lambda x: self._CHANNEL_BASE_URL + x('username')),
             'availability': availability,
             'tags': [str(tag) for tag in downloaded_json('tags') or []],
-            'is_live': (stream_ended_at is None) and bool(frmts),
-            'was_live': m3u8_url is not None,
-            'live_status': 'is_upcoming' if stream_scheduled_for and (m3u8_url is None) else None,
-            'duration': duration(stream_started_at, stream_ended_at) if include_duration else None,
+            'live_status': 'was_live' if stream_ended_at else
+                           'is_live' if stream_scheduled_for is None else
+                           'is_upcoming',
+            # Remove the 'False and' part when Rokfin corrects the 'stoppedAt' value:
+            'duration': (stream_ended_at - stream_started_at).total_seconds() if False and stream_started_at and stream_ended_at else None,
             'timestamp': release_timestamp,
             'release_timestamp': release_timestamp,
             'formats': frmts or []
@@ -310,7 +289,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
 class RokfinPlaylistIE(InfoExtractor):
     def _get_video_data(self, json_data, video_base_url):
         write_debug = self.write_debug
-        report_warning = self.report_warning
+        to_screen = self.to_screen
         url_result = self.url_result
 
         def get_video_url(content):
@@ -326,7 +305,7 @@ class RokfinPlaylistIE(InfoExtractor):
             }[y])
 
             if fn is None:
-                report_warning('skipping unsupported media type' + ('' if media_type is None else f': {media_type}') + '. Use --verbose to learn more')
+                to_screen('skipping unsupported media type' + ('' if media_type is None else f': {media_type}') + ('' if self.get_param('verbose') else '. Use --verbose to learn more'))
                 write_debug(f'could not process content entry: {content}')
                 return
 
@@ -454,6 +433,7 @@ class RokfinSearchIE(SearchInfoExtractor):
             _SEARCH_KEY = self._SEARCH_KEY
             report_warning = self.report_warning
             write_debug = self.write_debug
+            to_screen = self.to_screen
             pages_total = None  # The # of pages containing search results, as reported by Rokfin.
             pages_total_printed = False  # Makes sure pages_total is not printed more than once.
             results_total_printed = False  # Makes sure the total number of search results is not printed more than once.
@@ -514,7 +494,7 @@ class RokfinSearchIE(SearchInfoExtractor):
                     }[y])
 
                     if fn is None:
-                        report_warning('skipping unsupported content type' + ('' if content_type is None else f': {content_type}') + '. Use --verbose to learn more')
+                        to_screen('skipping unsupported content type' + ('' if content_type is None else f': {content_type}') + ('' if not self.get_param('verbose') else '. Use --verbose to learn more'))
                         write_debug(f'could not process content entry: {content}')
                         return
 
@@ -528,14 +508,14 @@ class RokfinSearchIE(SearchInfoExtractor):
                 if pages_total is None:
                     report_warning(msg='unknown total # of pages of search results. This may be a bug', only_once=True)
                 elif (pages_total_printed is False) and max_pages_to_download is not None:
-                    self.to_screen(msg=f'Pages to download: {min(pages_total, max_pages_to_download)}')
+                    to_screen(msg=f'Pages to download: {min(pages_total, max_pages_to_download)}')
                     pages_total_printed = True
 
                 results_total = int_or_none(traverse_obj(srch_res, ('meta', 'page', 'total_results')))
                 if results_total is None:
                     report_warning(msg='unknown total # of search results. This may be a bug', only_once=True)
                 elif results_total_printed is False:
-                    self.to_screen(msg=f'Search results available: {results_total}')
+                    to_screen(msg=f'Search results available: {results_total}')
                     results_total_printed = True
 
                 for content in srch_res.get('results') or []:
