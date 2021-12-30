@@ -6,7 +6,7 @@ from ..utils import js_to_json, traverse_obj, base_url, urljoin, try_get, parse_
 
 
 class MainStreamingIE(InfoExtractor):
-    _VALID_URL = 'https?://[A-Za-z0-9-]+\.msvdn.net/(?:embed|amp_embed|content)/(?P<id>[^/?#]+)'
+    _VALID_URL = 'https?://[A-Za-z0-9-]+\.msvdn.net/(?:embed|amp_embed|content)/(?P<id>\w+)'
     # examples: https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/MfuWmzL2lGkA?autoPlay=false
     # https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/HVvPMzy?autoplay=true&skinid=6c2d8b44-9903-493c-bf85-ec27e4d04684&T=1639390944 live DVR (playlist.m3u8?DVR), content type = 20. has live source id.
   # live video (/live/id/playlist.m3u8): https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/zPnHWY2?autoPlay=true&skinId=6c2d8b44-9903-493c-bf85-ec27e4d04684, content type = 20, has live source id, dvr is disabled
@@ -15,7 +15,13 @@ class MainStreamingIE(InfoExtractor):
         # one site hit the api directly https://webtools-859c1818ed614cc5b0047439470927b0.msvdn.net/api/v2/content/tDoFkZD3T1Lw
     # https://video.milanofinanza.it and milanofinanza.it, youtg.net
     #
-
+    @staticmethod
+    def _extract_urls(webpage):
+        mobj = re.findall(
+            r'<iframe[^>]+?src=["\']?(?P<url>%s)["\']?' % MainStreamingIE._VALID_URL, webpage)
+        if mobj:
+            return [group[0] for group in mobj]
+        # TODO: we could extract the thumbnails (e.g. for https://video.milanofinanza.it/video/pnrr-le-sfide-del-2022-LPwjYU4lOOR4) and get the id that way
     def _real_extract(self, url):
         video_id = self._match_id(url)
         content_info = try_get(self._download_json(
@@ -36,12 +42,19 @@ class MainStreamingIE(InfoExtractor):
 
         if content_info.get('drmEnabled'):
              self.report_drm(video_id)
-
+        alternative_content_id = content_info.get('alternativeContentId')
+        if content_info.get('alternativeContentId'):
+            self.report_warning(f'Found alternative contentId: {content_info.get("alternativeContentId")}')
         # Live content
         if content_info.get('contentType') == 20:
             dvr_enabled = traverse_obj(content_info, ('playerSettings', 'dvrEnabled'), expected_type=bool)  # TODO
             base_format_url = f"https://{content_info['host']}/live/{content_info['liveSourceID']}/{content_info['contentID']}/%s{'?DVR' if dvr_enabled else ''}"
             is_live = True
+            heartbeat = self._download_json(urljoin(base_url(url), f'/api/v2/heartbeat/{video_id}'), video_id, note='Checking stream status', fatal=False) or {}
+            if heartbeat.get('heartBeatUp') is False:
+                self.raise_no_formats(f'MainStreaming said: {heartbeat.get("responseMessage")}', expected=True)
+                # TODO: if stream does not exist, grab alternative content id?
+
         # Normal video content? (contentType == 10)
         else:
             base_format_url = f"https://{content_info['host']}/vod/{content_info['contentID']}/%s"
@@ -50,9 +63,13 @@ class MainStreamingIE(InfoExtractor):
 
         subtitles = self._merge_subtitles(m3u8_subs, mpd_subs)
         formats = m3u8_formats+mpd_formats
+        # There is original.mp3, but it returns a video? I can specify any extension and I'd get the same video :/
+        formats.extend([{
+            'url': base_format_url % 'original.mp4',
+        }])
         self._sort_formats(formats)
         # TODO: Progressive formats
-        # TODO: "playlist contents"
+        # TODO: "playlist contents" - https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/WDAF1KOWUpH3
         # TODO: subtitles (in subtitlesPath)
         # TODO: thumbnails
 

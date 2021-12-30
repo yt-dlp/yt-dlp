@@ -137,7 +137,7 @@ from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
-
+from .mainstreaming import MainStreamingIE
 
 class GenericIE(InfoExtractor):
     IE_DESC = 'Generic downloader that works on some sites'
@@ -3571,6 +3571,11 @@ class GenericIE(InfoExtractor):
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
+
+        # Look for MainStreaming embeds
+        mainstreaming_urls = MainStreamingIE._extract_urls(webpage)
+        if mainstreaming_urls:
+            return self.playlist_from_matches(mainstreaming_urls, video_id, video_title, ie=MainStreamingIE.ie_key())
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
