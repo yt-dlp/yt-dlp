@@ -7,6 +7,7 @@ import re
 from .theplatform import ThePlatformBaseIE
 from ..utils import (
     ExtractorError,
+    GeoRestrictedError,
     int_or_none,
     OnDemandPagedList,
     parse_qs,
@@ -223,7 +224,7 @@ class MediasetIE(ThePlatformBaseIE):
 
         formats = []
         subtitles = {}
-        first_e = None
+        first_e = geo_e = None
         asset_type = 'geoNo:HD,browser,geoIT|geoNo:HD,geoIT|geoNo:SD,browser,geoIT|geoNo:SD,geoIT|geoNo|HD|SD'
         # TODO: fixup ISM+none manifest URLs
         has_drm = False
@@ -236,6 +237,8 @@ class MediasetIE(ThePlatformBaseIE):
                         'assetTypes': asset_type,
                     }), guid, 'Downloading %s SMIL data' % (f.split('+')[0]))
             except ExtractorError as e:
+                if not geo_e and isinstance(e, GeoRestrictedError):
+                    geo_e = e
                 if not first_e:
                     first_e = e
                 continue
@@ -249,8 +252,8 @@ class MediasetIE(ThePlatformBaseIE):
         # check for errors and report them
         if has_drm and not formats:
             self.report_drm(guid)
-        if first_e and not formats:
-            raise first_e
+        if (first_e or geo_e) and not formats:
+            raise geo_e or first_e
 
         self._sort_formats(formats)
 
