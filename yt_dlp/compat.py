@@ -13,7 +13,6 @@ import http.cookiejar
 import http.cookies
 import http.server
 import itertools
-import optparse
 import os
 import re
 import shlex
@@ -85,28 +84,6 @@ else:
 def compat_print(s):
     assert isinstance(s, compat_str)
     print(s)
-
-
-# Fix https://github.com/ytdl-org/youtube-dl/issues/4223
-# See http://bugs.python.org/issue9161 for what is broken
-def workaround_optparse_bug9161():
-    op = optparse.OptionParser()
-    og = optparse.OptionGroup(op, 'foo')
-    try:
-        og.add_option('-t')
-    except TypeError:
-        real_add_option = optparse.OptionGroup.add_option
-
-        def _compat_add_option(self, *args, **kwargs):
-            enc = lambda v: (
-                v.encode('ascii', 'replace') if isinstance(v, compat_str)
-                else v)
-            bargs = [enc(a) for a in args]
-            bkwargs = dict(
-                (k, enc(v)) for k, v in kwargs.items())
-            return real_add_option(self, *bargs, **bkwargs)
-        optparse.OptionGroup.add_option = _compat_add_option
-
 
 try:
     compat_Pattern = re.Pattern
@@ -207,6 +184,7 @@ compat_numeric_types = (int, float, complex)
 compat_str = str
 compat_xpath = lambda xpath: xpath
 compat_zip = zip
+workaround_optparse_bug9161 = lambda: None
 
 compat_collections_abc = collections.abc
 compat_HTMLParser = html.parser.HTMLParser

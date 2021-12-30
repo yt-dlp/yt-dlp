@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 import os
 import re
-import sys
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
@@ -4011,9 +4010,6 @@ class GenericIE(InfoExtractor):
                 # Look also in Refresh HTTP header
                 refresh_header = head_response.headers.get('Refresh')
                 if refresh_header:
-                    # In python 2 response HTTP headers are bytestrings
-                    if sys.version_info < (3, 0) and isinstance(refresh_header, str):
-                        refresh_header = refresh_header.decode('iso-8859-1')
                     found = re.search(REDIRECT_REGEX, refresh_header)
             if found:
                 new_url = compat_urlparse.urljoin(url, unescapeHTML(found.group(1)))

@@ -50,7 +50,6 @@ from .compat import (
     compat_brotli,
     compat_chr,
     compat_cookiejar,
-    compat_ctypes_WINFUNCTYPE,
     compat_etree_fromstring,
     compat_expanduser,
     compat_html_entities,
@@ -288,37 +287,9 @@ def preferredencoding():
 def write_json_file(obj, fn):
     """ Encode obj as JSON and write it to fn, atomically if possible """
 
-    fn = encodeFilename(fn)
-    if sys.version_info < (3, 0) and sys.platform != 'win32':
-        encoding = get_filesystem_encoding()
-        # os.path.basename returns a bytes object, but NamedTemporaryFile
-        # will fail if the filename contains non ascii characters unless we
-        # use a unicode object
-        path_basename = lambda f: os.path.basename(fn).decode(encoding)
-        # the same for os.path.dirname
-        path_dirname = lambda f: os.path.dirname(fn).decode(encoding)
-    else:
-        path_basename = os.path.basename
-        path_dirname = os.path.dirname
-
-    args = {
-        'suffix': '.tmp',
-        'prefix': path_basename(fn) + '.',
-        'dir': path_dirname(fn),
-        'delete': False,
-    }
-
-    # In Python 2.x, json.dump expects a bytestream.
-    # In Python 3.x, it writes to a character stream
-    if sys.version_info < (3, 0):
-        args['mode'] = 'wb'
-    else:
-        args.update({
-            'mode': 'w',
-            'encoding': 'utf-8',
-        })
-
-    tf = tempfile.NamedTemporaryFile(**compat_kwargs(args))
+    tf = tempfile.NamedTemporaryFile(
+        prefix=f'{os.path.basename(fn)}.', dir=os.path.dirname(fn),
+        suffix='.tmp', delete=False, mode='w', encoding='utf-8')
 
     try:
         with tf:
@@ -345,20 +316,11 @@ def write_json_file(obj, fn):
         raise
 
 
-if sys.version_info >= (2, 7):
-    def find_xpath_attr(node, xpath, key, val=None):
-        """ Find the xpath xpath[@key=val] """
-        assert re.match(r'^[a-zA-Z_-]+$', key)
-        expr = xpath + ('[@%s]' % key if val is None else "[@%s='%s']" % (key, val))
-        return node.find(expr)
-else:
-    def find_xpath_attr(node, xpath, key, val=None):
-        for f in node.findall(compat_xpath(xpath)):
-            if key not in f.attrib:
-                continue
-            if val is None or f.attrib.get(key) == val:
-                return f
-        return None
+def find_xpath_attr(node, xpath, key, val=None):
+    """ Find the xpath xpath[@key=val] """
+    assert re.match(r'^[a-zA-Z_-]+$', key)
+    expr = xpath + ('[@%s]' % key if val is None else "[@%s='%s']" % (key, val))
+    return node.find(expr)
 
 # On python2.6 the xml.etree.ElementTree.Element methods don't support
 # the namespace parameter
@@ -626,8 +588,6 @@ def extract_attributes(html_element):
         'empty': '', 'noval': None, 'entity': '&',
         'sq': '"', 'dq': '\''
     }.
-    NB HTMLParser is stricter in Python 2.6 & 3.2 than in later versions,
-    but the cases in the unit test will work for all of 2.6, 2.7, 3.2-3.5.
     """
     parser = HTMLAttributeParser()
     try:
@@ -763,8 +723,6 @@ def sanitize_path(s, force=False):
     if sys.platform == 'win32':
         force = False
         drive_or_unc, _ = os.path.splitdrive(s)
-        if sys.version_info < (2, 7) and not drive_or_unc:
-            drive_or_unc, _ = os.path.splitunc(s)
     elif force:
         drive_or_unc = ''
     else:
@@ -922,51 +880,23 @@ def get_subprocess_encoding():
 
 
 def encodeFilename(s, for_subprocess=False):
-    """
-    @param s The name of the file
-    """
-
-    assert type(s) == compat_str
-
-    # Python 3 has a Unicode API
-    if sys.version_info >= (3, 0):
-        return s
-
-    # Pass '' directly to use Unicode APIs on Windows 2000 and up
-    # (Detecting Windows NT 4 is tricky because 'major >= 4' would
-    # match Windows 9x series as well. Besides, NT 4 is obsolete.)
-    if not for_subprocess and sys.platform == 'win32' and sys.getwindowsversion()[0] >= 5:
-        return s
-
-    # Jython assumes filenames are Unicode strings though reported as Python 2.x compatible
-    if sys.platform.startswith('java'):
-        return s
-
-    return s.encode(get_subprocess_encoding(), 'ignore')
+    assert type(s) == str
+    return s
 
 
 def decodeFilename(b, for_subprocess=False):
-
-    if sys.version_info >= (3, 0):
-        return b
-
-    if not isinstance(b, bytes):
-        return b
-
-    return b.decode(get_subprocess_encoding(), 'ignore')
+    return b
 
 
 def encodeArgument(s):
-    if not isinstance(s, compat_str):
-        # Legacy code that uses byte strings
-        # Uncomment the following line after fixing all post processors
-        # assert False, 'Internal error: %r should be of type %r, is %r' % (s, compat_str, type(s))
-        s = s.decode('ascii')
-    return encodeFilename(s, True)
+    # Legacy code that uses byte strings
+    # Uncomment the following line after fixing all post processors
+    # assert isinstance(s, str), 'Internal error: %r should be of type %r, is %r' % (s, compat_str, type(s))
+    return s if isinstance(s, str) else s.decode('ascii')
 
 
 def decodeArgument(b):
-    return decodeFilename(b, True)
+    return b
 
 
 def decodeOption(optval):
@@ -1263,11 +1193,6 @@ class XAttrUnavailableError(YoutubeDLError):
 
 
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
-    # Working around python 2 bug (see http://bugs.python.org/issue17849) by limiting
-    # expected HTTP responses to meet HTTP/1.0 or later (see also
-    # https://github.com/ytdl-org/youtube-dl/issues/6727)
-    if sys.version_info < (3, 0):
-        kwargs['strict'] = True
     hc = http_class(*args, **compat_kwargs(kwargs))
     source_address = ydl_handler._params.get('source_address')
 
@@ -1309,20 +1234,7 @@ def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
                 raise socket.error('getaddrinfo returns an empty list')
         if hasattr(hc, '_create_connection'):
             hc._create_connection = _create_connection
-        sa = (source_address, 0)
-        if hasattr(hc, 'source_address'):  # Python 2.7+
-            hc.source_address = sa
-        else:  # Python 2.6
-            def _hc_connect(self, *args, **kwargs):
-                sock = _create_connection(
-                    (self.host, self.port), self.timeout, sa)
-                if is_https:
-                    self.sock = ssl.wrap_socket(
-                        sock, self.key_file, self.cert_file,
-                        ssl_version=ssl.PROTOCOL_TLSv1)
-                else:
-                    self.sock = sock
-            hc.connect = functools.partial(_hc_connect, hc)
+        hc.source_address = (source_address, 0)
 
     return hc
 
@@ -1413,11 +1325,6 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
 
         req.headers = handle_youtubedl_headers(req.headers)
 
-        if sys.version_info < (2, 7) and '#' in req.get_full_url():
-            # Python 2.6 is brain-dead when it comes to fragments
-            req._Request__original = req._Request__original.partition('#')[0]
-            req._Request__r_type = req._Request__r_type.partition('#')[0]
-
         return req
 
     def http_response(self, req, resp):
@@ -1461,15 +1368,10 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             location = resp.headers.get('Location')
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
-                if sys.version_info >= (3, 0):
-                    location = location.encode('iso-8859-1').decode('utf-8')
-                else:
-                    location = location.decode('utf-8')
+                location = location.encode('iso-8859-1').decode('utf-8')
                 location_escaped = escape_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
-                    if sys.version_info < (3, 0):
-                        location_escaped = location_escaped.encode('utf-8')
                     resp.headers['Location'] = location_escaped
         return resp
 
@@ -1668,19 +1570,6 @@ class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
         compat_urllib_request.HTTPCookieProcessor.__init__(self, cookiejar)
 
     def http_response(self, request, response):
-        # Python 2 will choke on next HTTP request in row if there are non-ASCII
-        # characters in Set-Cookie HTTP header of last response (see
-        # https://github.com/ytdl-org/youtube-dl/issues/6769).
-        # In order to at least prevent crashing we will percent encode Set-Cookie
-        # header before HTTPCookieProcessor starts processing it.
-        # if sys.version_info < (3, 0) and response.headers:
-        #     for set_cookie_header in ('Set-Cookie', 'Set-Cookie2'):
-        #         set_cookie = response.headers.get(set_cookie_header)
-        #         if set_cookie:
-        #             set_cookie_escaped = compat_urllib_parse.quote(set_cookie, b"%/;:@&=+$,!~*'()?#[] ")
-        #             if set_cookie != set_cookie_escaped:
-        #                 del response.headers[set_cookie_header]
-        #                 response.headers[set_cookie_header] = set_cookie_escaped
         return compat_urllib_request.HTTPCookieProcessor.http_response(self, request, response)
 
     https_request = compat_urllib_request.HTTPCookieProcessor.http_request
@@ -1723,12 +1612,6 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         # from the user (of urllib.request, in this case).  In practice,
         # essentially all clients do redirect in this case, so we do
         # the same.
-
-        # On python 2 urlh.geturl() may sometimes return redirect URL
-        # as byte string instead of unicode. This workaround allows
-        # to force it always return unicode.
-        if sys.version_info[0] < 3:
-            newurl = compat_str(newurl)
 
         # Be conciliant with URIs containing a space.  This is mainly
         # redundant with the more complete encoding done in http_error_302(),
@@ -2013,91 +1896,12 @@ def get_windows_version():
         return None
 
 
-def _windows_write_string(s, out):
-    """ Returns True if the string was written using special methods,
-    False if it has yet to be written out."""
-    # Adapted from http://stackoverflow.com/a/3259271/35070
-
-    import ctypes.wintypes
-
-    WIN_OUTPUT_IDS = {
-        1: -11,
-        2: -12,
-    }
-
-    try:
-        fileno = out.fileno()
-    except AttributeError:
-        # If the output stream doesn't have a fileno, it's virtual
-        return False
-    except io.UnsupportedOperation:
-        # Some strange Windows pseudo files?
-        return False
-    if fileno not in WIN_OUTPUT_IDS:
-        return False
-
-    GetStdHandle = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.HANDLE, ctypes.wintypes.DWORD)(
-        ('GetStdHandle', ctypes.windll.kernel32))
-    h = GetStdHandle(WIN_OUTPUT_IDS[fileno])
-
-    WriteConsoleW = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE, ctypes.wintypes.LPWSTR,
-        ctypes.wintypes.DWORD, ctypes.POINTER(ctypes.wintypes.DWORD),
-        ctypes.wintypes.LPVOID)(('WriteConsoleW', ctypes.windll.kernel32))
-    written = ctypes.wintypes.DWORD(0)
-
-    GetFileType = compat_ctypes_WINFUNCTYPE(ctypes.wintypes.DWORD, ctypes.wintypes.DWORD)(('GetFileType', ctypes.windll.kernel32))
-    FILE_TYPE_CHAR = 0x0002
-    FILE_TYPE_REMOTE = 0x8000
-    GetConsoleMode = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE,
-        ctypes.POINTER(ctypes.wintypes.DWORD))(
-        ('GetConsoleMode', ctypes.windll.kernel32))
-    INVALID_HANDLE_VALUE = ctypes.wintypes.DWORD(-1).value
-
-    def not_a_console(handle):
-        if handle == INVALID_HANDLE_VALUE or handle is None:
-            return True
-        return ((GetFileType(handle) & ~FILE_TYPE_REMOTE) != FILE_TYPE_CHAR
-                or GetConsoleMode(handle, ctypes.byref(ctypes.wintypes.DWORD())) == 0)
-
-    if not_a_console(h):
-        return False
-
-    def next_nonbmp_pos(s):
-        try:
-            return next(i for i, c in enumerate(s) if ord(c) > 0xffff)
-        except StopIteration:
-            return len(s)
-
-    while s:
-        count = min(next_nonbmp_pos(s), 1024)
-
-        ret = WriteConsoleW(
-            h, s, count if count else 2, ctypes.byref(written), None)
-        if ret == 0:
-            raise OSError('Failed to write string')
-        if not count:  # We just wrote a non-BMP character
-            assert written.value == 2
-            s = s[1:]
-        else:
-            assert written.value > 0
-            s = s[written.value:]
-    return True
-
-
 def write_string(s, out=None, encoding=None):
     if out is None:
         out = sys.stderr
     assert type(s) == compat_str
 
-    if sys.platform == 'win32' and encoding is None and hasattr(out, 'fileno'):
-        if _windows_write_string(s, out):
-            return
-
-    if ('b' in getattr(out, 'mode', '')
-            or sys.version_info[0] < 3):  # Python 2 lies about mode of sys.stderr
+    if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
         out.write(byt)
     elif hasattr(out, 'buffer'):
@@ -2985,8 +2789,6 @@ def lowercase_escape(s):
 
 def escape_rfc3986(s):
     """Escape non-ASCII characters as suggested by RFC 3986"""
-    if sys.version_info < (3, 0) and isinstance(s, compat_str):
-        s = s.encode('utf-8')
     return compat_urllib_parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
 
 
@@ -3335,12 +3137,7 @@ def args_to_str(args):
 
 
 def error_to_compat_str(err):
-    err_str = str(err)
-    # On python 2 error byte string must be decoded with proper
-    # encoding rather than ascii
-    if sys.version_info[0] < 3:
-        err_str = err_str.decode(preferredencoding())
-    return err_str
+    return str(err)
 
 
 def error_to_str(err):
@@ -5144,7 +4941,7 @@ def get_executable_path():
     from zipimport import zipimporter
     if hasattr(sys, 'frozen'):  # Running from PyInstaller
         path = os.path.dirname(sys.executable)
-    elif isinstance(globals().get('__loader__'), zipimporter):  # Running from ZIP
+    elif isinstance(__loader__, zipimporter):  # Running from ZIP
         path = os.path.join(os.path.dirname(__file__), '../..')
     else:
         path = os.path.join(os.path.dirname(__file__), '..')
@@ -5436,8 +5233,6 @@ class Config:
         try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read()
-            if sys.version_info < (3,):
-                contents = contents.decode(preferredencoding())
             res = compat_shlex_split(contents, comments=True)
         finally:
             optionf.close()

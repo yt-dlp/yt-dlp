@@ -15,22 +15,6 @@ from .utils import encode_compat_str, Popen, write_string
 from .version import __version__
 
 
-'''  # Not signed
-def rsa_verify(message, signature, key):
-    from hashlib import sha256
-    assert isinstance(message, bytes)
-    byte_size = (len(bin(key[0])) - 2 + 8 - 1) // 8
-    signature = ('%x' % pow(int(signature, 16), key[1], key[0])).encode()
-    signature = (byte_size * 2 - len(signature)) * b'0' + signature
-    asn1 = b'3031300d060960864801650304020105000420'
-    asn1 += sha256(message).hexdigest().encode()
-    if byte_size < len(asn1) // 2 + 11:
-        return False
-    expected = b'0001' + (byte_size - len(asn1) // 2 - 3) * b'ff' + b'00' + asn1
-    return expected == signature
-'''
-
-
 def detect_variant():
     if hasattr(sys, 'frozen'):
         prefix = 'mac' if sys.platform == 'darwin' else 'win'
@@ -39,7 +23,7 @@ def detect_variant():
                 return f'{prefix}_dir'
             return f'{prefix}_exe'
         return 'py2exe'
-    elif isinstance(globals().get('__loader__'), zipimporter):
+    elif isinstance(__loader__, zipimporter):
         return 'zip'
     elif os.path.basename(sys.argv[0]) == '__main__.py':
         return 'source'
@@ -230,24 +214,6 @@ def run_update(ydl):
         return
 
     assert False, f'Unhandled variant: {variant}'
-
-
-'''  # UNUSED
-def get_notes(versions, fromVersion):
-    notes = []
-    for v, vdata in sorted(versions.items()):
-        if v > fromVersion:
-            notes.extend(vdata.get('notes', []))
-    return notes
-
-
-def print_notes(to_screen, versions, fromVersion=__version__):
-    notes = get_notes(versions, fromVersion)
-    if notes:
-        to_screen('PLEASE NOTE:')
-        for note in notes:
-            to_screen(note)
-'''
 
 
 # Deprecated

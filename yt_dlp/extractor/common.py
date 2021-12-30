@@ -3606,9 +3606,7 @@ class InfoExtractor(object):
         for header, cookies in url_handle.headers.items():
             if header.lower() != 'set-cookie':
                 continue
-            if sys.version_info[0] >= 3:
-                cookies = cookies.encode('iso-8859-1')
-            cookies = cookies.decode('utf-8')
+            cookies = cookies.encode('iso-8859-1').decode('utf-8')
             cookie_value = re.search(
                 r'%s=(.+?);.*?\b[Dd]omain=(.+?)(?:[,;]|$)' % cookie, cookies)
             if cookie_value:

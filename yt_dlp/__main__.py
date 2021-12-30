@@ -2,8 +2,7 @@
 from __future__ import unicode_literals
 
 # Execute with
-# $ python yt_dlp/__main__.py (2.6+)
-# $ python -m yt_dlp          (2.7+)
+# $ python -m yt_dlp
 
 import sys
 

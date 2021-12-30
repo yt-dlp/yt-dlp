@@ -32,17 +32,6 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'video/mp4')
             self.end_headers()
             self.wfile.write(b'\x00\x00\x00\x00\x20\x66\x74[video]')
-        elif self.path == '/302':
-            if sys.version_info[0] == 3:
-                # XXX: Python 3 http server does not allow non-ASCII header values
-                self.send_response(404)
-                self.end_headers()
-                return
-
-            new_url = 'http://127.0.0.1:%d/中文.html' % http_server_port(self.server)
-            self.send_response(302)
-            self.send_header(b'Location', new_url.encode('utf-8'))
-            self.end_headers()
         elif self.path == '/%E4%B8%AD%E6%96%87.html':
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -72,15 +61,6 @@ class TestHTTP(unittest.TestCase):
         self.server_thread.daemon = True
         self.server_thread.start()
 
-    def test_unicode_path_redirection(self):
-        # XXX: Python 3 http server does not allow non-ASCII header values
-        if sys.version_info[0] == 3:
-            return
-
-        ydl = YoutubeDL({'logger': FakeLogger()})
-        r = ydl.extract_info('http://127.0.0.1:%d/302' % self.port)
-        self.assertEqual(r['entries'][0]['url'], 'http://127.0.0.1:%d/vid.mp4' % self.port)
-
 
 class TestHTTPS(unittest.TestCase):
     def setUp(self):
@@ -95,11 +75,10 @@ class TestHTTPS(unittest.TestCase):
         self.server_thread.start()
 
     def test_nocheckcertificate(self):
-        if sys.version_info >= (2, 7, 9):  # No certificate checking anyways
-            ydl = YoutubeDL({'logger': FakeLogger()})
-            self.assertRaises(
-                Exception,
-                ydl.extract_info, 'https://127.0.0.1:%d/video.html' % self.port)
+        ydl = YoutubeDL({'logger': FakeLogger()})
+        self.assertRaises(
+            Exception,
+            ydl.extract_info, 'https://127.0.0.1:%d/video.html' % self.port)
 
         ydl = YoutubeDL({'logger': FakeLogger(), 'nocheckcertificate': True})
         r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
