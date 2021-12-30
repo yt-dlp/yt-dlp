@@ -220,12 +220,13 @@ class TikTokBaseIE(InfoExtractor):
 
     def _parse_aweme_video_web(self, aweme_detail, webpage_url):
         video_info = aweme_detail['video']
-        author_info = traverse_obj(aweme_detail, 'author', 'authorInfo', default={})
+        author_info = traverse_obj(aweme_detail, 'authorInfo', 'author', expected_type=dict, default={})
         music_info = aweme_detail.get('music') or {}
         stats_info = aweme_detail.get('stats') or {}
         user_url = self._UPLOADER_URL_FORMAT % (traverse_obj(author_info,
                                                              'secUid', 'id', 'uid', 'uniqueId',
-                                                             expected_type=str_or_none, get_all=False))
+                                                             expected_type=str_or_none, get_all=False)
+                                                or aweme_detail.get('authorSecId'))
 
         formats = []
         play_url = video_info.get('playAddr')
@@ -277,8 +278,8 @@ class TikTokBaseIE(InfoExtractor):
             'comment_count': int_or_none(stats_info.get('commentCount')),
             'timestamp': int_or_none(aweme_detail.get('createTime')),
             'creator': str_or_none(author_info.get('nickname')),
-            'uploader': str_or_none(author_info.get('uniqueId')),
-            'uploader_id': str_or_none(author_info.get('id')),
+            'uploader': str_or_none(author_info.get('uniqueId') or aweme_detail.get('author')),
+            'uploader_id': str_or_none(author_info.get('id') or aweme_detail.get('authorId')),
             'uploader_url': user_url,
             'track': str_or_none(music_info.get('title')),
             'album': str_or_none(music_info.get('album')) or None,
@@ -415,19 +416,26 @@ class TikTokIE(TikTokBaseIE):
         # If we only call once, we get a 403 when downlaoding the video.
         self._download_webpage(url, video_id)
         webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
-        json_string = self._search_regex(
-            r'id=\"__NEXT_DATA__\"\s+type=\"application\/json\"\s*[^>]+>\s*(?P<json_string_ld>[^<]+)',
-            webpage, 'json_string', group='json_string_ld')
-        json_data = self._parse_json(json_string, video_id)
-        props_data = try_get(json_data, lambda x: x['props'], expected_type=dict)
+        next_json = self._search_regex(
+            r'id=\"__NEXT_DATA__\"\s+type=\"application\/json\"\s*[^>]+>\s*(?P<next_data>[^<]+)',
+            webpage, 'next data', group='next_data', default=None)
 
-        # Chech statusCode for success
-        status = props_data.get('pageProps').get('statusCode')
+        if next_json:
+            next_data = self._parse_json(next_json, video_id)
+            status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
+            video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
+        else:
+            sigi_json = self._search_regex(
+                r'>\s*window\[[\'"]SIGI_STATE[\'"]\]\s*=\s*(?P<sigi_state>{.+});',
+                webpage, 'sigi data', group='sigi_state')
+            sigi_data = self._parse_json(sigi_json, video_id)
+            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode'), expected_type=int) or 0
+            video_data = traverse_obj(sigi_data, ('ItemModule', video_id), expected_type=dict)
+
         if status == 0:
-            return self._parse_aweme_video_web(props_data['pageProps']['itemInfo']['itemStruct'], url)
+            return self._parse_aweme_video_web(video_data, url)
         elif status == 10216:
             raise ExtractorError('This video is private', expected=True)
-
         raise ExtractorError('Video not available', video_id=video_id)
 
 
