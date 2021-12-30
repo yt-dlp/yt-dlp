@@ -129,7 +129,7 @@ class MixcloudIE(MixcloudBaseIE):
     }
     restrictedReason
     id''', track_id, username, slug)
-           
+
         if not cloudcast:
             raise ExtractorError('Track not found', expected=True)
 
@@ -141,7 +141,7 @@ class MixcloudIE(MixcloudBaseIE):
                 # https://help.mixcloud.com/hc/en-us/articles/360010592220-Why-can-I-only-replay-a-show-three-times-
                 raise ExtractorError('You have reached your play limit for this track', expected=True)
             else:
-                raise ExtractorError('Track is restricted', expected=True)            
+                raise ExtractorError('Track is restricted', expected=True)
 
         title = cloudcast['name']
 
