@@ -203,7 +203,7 @@ class MediasetIE(ThePlatformBaseIE):
         manifests = list(dict.fromkeys(filter(None, manifests)))
 
         # return original formats if not DRM manifest is found
-        if manifests == [] or len(manifests) != 1 or (
+        if len(manifests) != 1 or (
                 len(manifests) == 1 and '_sampleaes/' not in manifests[0]):
             return tp_formats
 
@@ -214,7 +214,7 @@ class MediasetIE(ThePlatformBaseIE):
             return tp_formats
 
         return self._extract_m3u8_formats(
-            nodrm_manifest, video_id, m3u8_id='hls')
+            nodrm_manifest, video_id, m3u8_id='hls', fatal=False) or 'DRM'
 
     def _real_extract(self, url):
         guid = self._match_id(url)
@@ -226,6 +226,7 @@ class MediasetIE(ThePlatformBaseIE):
         first_e = None
         asset_type = 'geoNo:HD,browser,geoIT|geoNo:HD,geoIT|geoNo:SD,browser,geoIT|geoNo:SD,geoIT|geoNo|HD|SD'
         # TODO: fixup ISM+none manifest URLs
+        has_drm = False
         for f in ('MPEG4', 'M3U'):
             try:
                 tp_formats, tp_subtitles = self._extract_theplatform_smil(
@@ -239,10 +240,18 @@ class MediasetIE(ThePlatformBaseIE):
                     first_e = e
                 continue
             tp_formats = self._check_drm_formats(tp_formats, guid)
-            formats.extend(tp_formats)
+            if tp_formats == 'DRM':
+                has_drm = True
+            else:
+                formats.extend(tp_formats)
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
+
+        # check for errors and report them
+        if has_drm and not formats:
+            self.report_drm(guid)
         if first_e and not formats:
             raise first_e
+
         self._sort_formats(formats)
 
         feed_data = self._download_json(
