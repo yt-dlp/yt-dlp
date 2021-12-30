@@ -153,7 +153,3 @@ class MainStreamingIE(InfoExtractor):
             'tags': content_info.get('tags'),
             'subtitles': subtitles
         }
-
-    # if live:
-    # if DVR: generate DVR live link (dash + mpd)
-    # else: generate normal live link (dash + mpd)
