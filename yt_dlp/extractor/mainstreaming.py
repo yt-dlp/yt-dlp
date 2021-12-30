@@ -2,7 +2,9 @@
 import re
 
 from .common import InfoExtractor
-from ..utils import js_to_json, traverse_obj, base_url, urljoin, try_get, parse_duration, int_or_none
+from ..compat import compat_urllib_parse_unquote
+from ..utils import js_to_json, traverse_obj, base_url, urljoin, try_get, parse_duration, int_or_none, HEADRequest, \
+    parse_qs
 
 
 class MainStreamingIE(InfoExtractor):
@@ -73,9 +75,11 @@ class MainStreamingIE(InfoExtractor):
         return host
 
     def _call_api(self, host: str, path: str, item_id: str, query=None, note='Downloading API JSON', fatal=False):
+        # JSON API, does not appear to be documented
         return self._call_webtools_api(host, '/api/v2/'+path, item_id, query, note, fatal)
 
     def _call_webtools_api(self, host: str, path: str, item_id: str, query=None, note='Downloading webtools API JSON', fatal=False):
+        # webtools docs: https://webtools.msvdn.net/
         return self._download_json(
             urljoin(f'https://{self._get_webtools_host(host)}/', path), item_id, query=query, note=note, fatal=fatal)
 
@@ -83,7 +87,7 @@ class MainStreamingIE(InfoExtractor):
         host, video_id = self._match_valid_url(url).groups()
         content_info = try_get(
             self._call_api(
-                host, f'content/{video_id}', video_id, note='Downloading content info API JSON'),lambda x: x['playerContentInfo'])
+                host, f'content/{video_id}', video_id, note='Downloading content info API JSON'), lambda x: x['playerContentInfo'])
         # Fallback
         if not content_info:
             webpage = self._download_webpage(url, video_id)
@@ -127,10 +131,9 @@ class MainStreamingIE(InfoExtractor):
         # Normal video content?
         elif content_type == 10:
             format_base_url = f"https://{host}/vod/{video_id}/%s"
-
-            # Progressive format
-            # There is original.mp3, but it returns a video? I can specify any extension and I'd get the same video :/
-            formats.append({format_base_url % 'original.mp4'})
+            # Progressive format: in https://webtools.msvdn.net/loader/playerV2.js there is mention of original.mp3 format,
+            # however that seems to be the same as original.mp4.
+            formats.append({'url': format_base_url % 'original.mp4'})
         else:
             self.raise_no_formats(f'Unknown content type {content_type}')
 
@@ -142,9 +145,7 @@ class MainStreamingIE(InfoExtractor):
             formats.extend(m3u8_formats+mpd_formats)
 
         self._sort_formats(formats)
-        # TODO: Progressive formats
         # TODO: subtitles (in subtitlesPath)
-        # TODO: thumbnails
 
         return {
             'id': video_id,
@@ -154,5 +155,6 @@ class MainStreamingIE(InfoExtractor):
             'is_live': is_live,
             'duration': parse_duration(content_info.get('duration')),
             'tags': content_info.get('tags'),
-            'subtitles': subtitles
+            'subtitles': subtitles,
+            'thumbnail': f'https://{self._get_webtools_host(host)}/image/{video_id}/poster'  # Note: does not always exist
         }
