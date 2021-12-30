@@ -42,9 +42,9 @@ class MainStreamingIE(InfoExtractor):
 
         if content_info.get('drmEnabled'):
              self.report_drm(video_id)
-        alternative_content_id = content_info.get('alternativeContentId')
-        if content_info.get('alternativeContentId'):
-            self.report_warning(f'Found alternative contentId: {content_info.get("alternativeContentId")}')
+        alternative_content_id = content_info.get('alternativeContentID')
+        if alternative_content_id:
+            self.report_warning(f'Found alternative content ID: {alternative_content_id}')
         # Live content
         if content_info.get('contentType') == 20:
             dvr_enabled = traverse_obj(content_info, ('playerSettings', 'dvrEnabled'), expected_type=bool)  # TODO
