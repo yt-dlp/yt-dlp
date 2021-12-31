@@ -161,6 +161,10 @@ class TikTokBaseIE(InfoExtractor):
                 }))
 
         self._remove_duplicate_formats(formats)
+        auth_cookie = self._get_cookies(self._WEBPAGE_HOST).get('sid_tt')
+        if auth_cookie:
+            for f in formats:
+                self._set_cookie(f['url'], 'sid_tt', auth_cookie.value)
         self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
