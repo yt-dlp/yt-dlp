@@ -84,7 +84,7 @@ class CanvasIE(InfoExtractor):
                     self.raise_geo_restricted(countries=['BE'])
                 raise ExtractorError(data.get('message') or code, expected=True)
 
-        title = data['title']
+        title = data['title'] or f'{site_id} {video_id}'
         description = data.get('description')
 
         formats = []
