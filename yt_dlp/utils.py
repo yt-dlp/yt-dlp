@@ -513,12 +513,18 @@ class HTMLBreakOnClosingTagParser(compat_HTMLParser):
     def __exit__(self, *_):
         self.close()
 
+    def close(self):
+        # handle_endtag does not return upon raising HTMLBreakOnClosingTagException,
+        # so data remains buffered; we no longer have any interest in it, thus
+        # override this method to discard it
+        pass
+
     def handle_starttag(self, tag, _):
         self.tagstack.append(tag)
 
     def handle_endtag(self, tag):
         if not self.tagstack:
-            return
+            raise compat_HTMLParseError('no tags in the stack')
         while self.tagstack:
             inner_tag = self.tagstack.pop()
             if inner_tag == tag:
