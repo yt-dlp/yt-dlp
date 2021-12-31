@@ -68,6 +68,7 @@ class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
             'ext': 'mp4',
             'title': 'md5:0ad00fa66ecf8aa233d26ab0dba7514a',
             'description': 'md5:18665af715a6dcfeac1d6153a44f16b0',
+            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1000/26d46bf6-8158-4f02-b197-7096c714b2de.jpg',
         },
     }
 
