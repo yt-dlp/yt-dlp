@@ -315,37 +315,29 @@ class MediasetShowIE(MediasetIE):
                         https?://
                             (?:(?:www|static3)\.)?mediasetplay\.mediaset\.it/
                             (?:
-                                (?:fiction|programmi-tv|serie-tv)/(?:.+?/)?
-                                    (?:[a-z]+)_SE(?P<id>\d{12})
+                                (?:fiction|programmi-tv|serie-tv|kids)/(?:.+?/)?
+                                    (?:[a-z-]+)_SE(?P<id>\d{12})
                                     (?:,ST(?P<st>\d{12}))?
                                     (?:,sb(?P<sb>\d{9}))?$
                             )
                     )
                     '''
     _TESTS = [{
-        # TV Show webpage (with a single playlist)
-        'url': 'https://www.mediasetplay.mediaset.it/serie-tv/fireforce/episodi_SE000000001556',
+        # TV Show webpage (general webpage)
+        'url': 'https://www.mediasetplay.mediaset.it/programmi-tv/leiene/leiene_SE000000000061',
         'info_dict': {
-            'id': '000000001556',
-            'title': 'Fire Force',
+            'id': '000000000061',
+            'title': 'Le Iene',
         },
-        'playlist_count': 1,
+        'playlist_mincount': 7,
     }, {
-        # TV Show webpage (with multiple playlists)
+        # TV Show webpage (specific season)
         'url': 'https://www.mediasetplay.mediaset.it/programmi-tv/leiene/leiene_SE000000000061,ST000000002763',
         'info_dict': {
             'id': '000000002763',
             'title': 'Le Iene',
         },
         'playlist_mincount': 7,
-    }, {
-        # TV Show specific playlist (single page)
-        'url': 'https://www.mediasetplay.mediaset.it/serie-tv/fireforce/episodi_SE000000001556,ST000000002738,sb100013107',
-        'info_dict': {
-            'id': '100013107',
-            'title': 'Episodi',
-        },
-        'playlist_mincount': 1,
     }, {
         # TV Show specific playlist (with multiple pages)
         'url': 'https://www.mediasetplay.mediaset.it/programmi-tv/leiene/iservizi_SE000000000061,ST000000002763,sb100013375',
@@ -372,7 +364,7 @@ class MediasetShowIE(MediasetIE):
     def _real_extract(self, url):
         playlist_id, st, sb = self._match_valid_url(url).group('id', 'st', 'sb')
         if not sb:
-            page = self._download_webpage(url, playlist_id)
+            page = self._download_webpage(url, st or playlist_id)
             entries = [self.url_result(urljoin('https://www.mediasetplay.mediaset.it', url))
                        for url in re.findall(r'href="([^<>=]+SE\d{12},ST\d{12},sb\d{9})">[^<]+<', page)]
             title = (self._html_search_regex(r'(?s)<h1[^>]*>(.+?)</h1>', page, 'title', default=None)
