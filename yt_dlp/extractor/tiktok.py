@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
+    srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
     try_get,
@@ -163,6 +164,25 @@ class TikTokBaseIE(InfoExtractor):
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
+        # TODO: Extract text positioning info
+        subtitles = {}
+        captions_info = traverse_obj(
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
+        for caption in captions_info:
+            caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
+            if not caption_url:
+                continue
+            caption_json = self._download_json(
+                caption_url, aweme_id, note='Downloading captions', errnote='Unable to download captions', fatal=False)
+            if not caption_json:
+                continue
+            subtitles.setdefault(caption.get('language', 'en'), []).append({
+                'ext': 'srt',
+                'data': '\n\n'.join(
+                    f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
+                    for i, line in enumerate(caption_json['utterances']) if line.get('text'))
+            })
+
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
                          'origin_cover', 'dynamic_cover'):
@@ -210,6 +230,7 @@ class TikTokBaseIE(InfoExtractor):
             'artist': music_author,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
+            'subtitles': subtitles,
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
             'availability': self._availability(
