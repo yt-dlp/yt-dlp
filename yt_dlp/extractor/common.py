@@ -2716,8 +2716,6 @@ class InfoExtractor(object):
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
-                        # XXX: is this okay for mixed streams (video+audio, audio+subtitle)?
-                        # is it even possible to ever encounter them?
                         elif codecs['vcodec'] != 'none':
                             content_type = 'video'
                         elif codecs['acodec'] != 'none':
@@ -2768,8 +2766,8 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
+                            **codecs
                         }
-                        f.update(codecs)
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
