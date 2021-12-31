@@ -267,36 +267,17 @@ def write_json_file(obj, fn):
     """ Encode obj as JSON and write it to fn, atomically if possible """
 
     fn = encodeFilename(fn)
-    if sys.version_info < (3, 0) and sys.platform != 'win32':
-        encoding = get_filesystem_encoding()
-        # os.path.basename returns a bytes object, but NamedTemporaryFile
-        # will fail if the filename contains non ascii characters unless we
-        # use a unicode object
-        path_basename = lambda f: os.path.basename(fn).decode(encoding)
-        # the same for os.path.dirname
-        path_dirname = lambda f: os.path.dirname(fn).decode(encoding)
-    else:
-        path_basename = os.path.basename
-        path_dirname = os.path.dirname
+    path_basename = os.path.basename
+    path_dirname = os.path.dirname
 
-    args = {
-        'suffix': '.tmp',
-        'prefix': path_basename(fn) + '.',
-        'dir': path_dirname(fn),
-        'delete': False,
-    }
-
-    # In Python 2.x, json.dump expects a bytestream.
-    # In Python 3.x, it writes to a character stream
-    if sys.version_info < (3, 0):
-        args['mode'] = 'wb'
-    else:
-        args.update({
-            'mode': 'w',
-            'encoding': 'utf-8',
-        })
-
-    tf = tempfile.NamedTemporaryFile(**compat_kwargs(args))
+    tf = tempfile.NamedTemporaryFile(
+        suffix='.tmp',
+        prefix=path_basename(fn) + '.',
+        dir=path_dirname(fn),
+        delete=False,
+        mode='w',
+        encoding='utf-8'
+    )
 
     try:
         with tf:
@@ -733,8 +714,6 @@ def sanitize_path(s, force=False):
     if sys.platform == 'win32':
         force = False
         drive_or_unc, _ = os.path.splitdrive(s)
-        if sys.version_info < (2, 7) and not drive_or_unc:
-            drive_or_unc, _ = os.path.splitunc(s)
     elif force:
         drive_or_unc = ''
     else:
@@ -899,31 +878,11 @@ def encodeFilename(s, for_subprocess=False):
     assert type(s) == compat_str
 
     # Python 3 has a Unicode API
-    if sys.version_info >= (3, 0):
-        return s
-
-    # Pass '' directly to use Unicode APIs on Windows 2000 and up
-    # (Detecting Windows NT 4 is tricky because 'major >= 4' would
-    # match Windows 9x series as well. Besides, NT 4 is obsolete.)
-    if not for_subprocess and sys.platform == 'win32' and sys.getwindowsversion()[0] >= 5:
-        return s
-
-    # Jython assumes filenames are Unicode strings though reported as Python 2.x compatible
-    if sys.platform.startswith('java'):
-        return s
-
-    return s.encode(get_subprocess_encoding(), 'ignore')
+    return s
 
 
 def decodeFilename(b, for_subprocess=False):
-
-    if sys.version_info >= (3, 0):
-        return b
-
-    if not isinstance(b, bytes):
-        return b
-
-    return b.decode(get_subprocess_encoding(), 'ignore')
+    return b
 
 
 def encodeArgument(s):
@@ -1229,11 +1188,6 @@ class XAttrUnavailableError(YoutubeDLError):
 
 
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
-    # Working around python 2 bug (see http://bugs.python.org/issue17849) by limiting
-    # expected HTTP responses to meet HTTP/1.0 or later (see also
-    # https://github.com/ytdl-org/youtube-dl/issues/6727)
-    if sys.version_info < (3, 0):
-        kwargs['strict'] = True
     hc = http_class(*args, **compat_kwargs(kwargs))
     source_address = ydl_handler._params.get('source_address')
 
@@ -1370,11 +1324,6 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
 
         req.headers = handle_youtubedl_headers(req.headers)
 
-        if sys.version_info < (2, 7) and '#' in req.get_full_url():
-            # Python 2.6 is brain-dead when it comes to fragments
-            req._Request__original = req._Request__original.partition('#')[0]
-            req._Request__r_type = req._Request__r_type.partition('#')[0]
-
         return req
 
     def http_response(self, req, resp):
@@ -1412,15 +1361,10 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             location = resp.headers.get('Location')
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
-                if sys.version_info >= (3, 0):
-                    location = location.encode('iso-8859-1').decode('utf-8')
-                else:
-                    location = location.decode('utf-8')
+                location = location.encode('iso-8859-1').decode('utf-8')
                 location_escaped = escape_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
-                    if sys.version_info < (3, 0):
-                        location_escaped = location_escaped.encode('utf-8')
                     resp.headers['Location'] = location_escaped
         return resp
 
@@ -1619,19 +1563,6 @@ class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
         compat_urllib_request.HTTPCookieProcessor.__init__(self, cookiejar)
 
     def http_response(self, request, response):
-        # Python 2 will choke on next HTTP request in row if there are non-ASCII
-        # characters in Set-Cookie HTTP header of last response (see
-        # https://github.com/ytdl-org/youtube-dl/issues/6769).
-        # In order to at least prevent crashing we will percent encode Set-Cookie
-        # header before HTTPCookieProcessor starts processing it.
-        # if sys.version_info < (3, 0) and response.headers:
-        #     for set_cookie_header in ('Set-Cookie', 'Set-Cookie2'):
-        #         set_cookie = response.headers.get(set_cookie_header)
-        #         if set_cookie:
-        #             set_cookie_escaped = compat_urllib_parse.quote(set_cookie, b"%/;:@&=+$,!~*'()?#[] ")
-        #             if set_cookie != set_cookie_escaped:
-        #                 del response.headers[set_cookie_header]
-        #                 response.headers[set_cookie_header] = set_cookie_escaped
         return compat_urllib_request.HTTPCookieProcessor.http_response(self, request, response)
 
     https_request = compat_urllib_request.HTTPCookieProcessor.http_request
@@ -1674,12 +1605,6 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         # from the user (of urllib.request, in this case).  In practice,
         # essentially all clients do redirect in this case, so we do
         # the same.
-
-        # On python 2 urlh.geturl() may sometimes return redirect URL
-        # as byte string instead of unicode. This workaround allows
-        # to force it always return unicode.
-        if sys.version_info[0] < 3:
-            newurl = compat_str(newurl)
 
         # Be conciliant with URIs containing a space.  This is mainly
         # redundant with the more complete encoding done in http_error_302(),
@@ -2047,8 +1972,7 @@ def write_string(s, out=None, encoding=None):
         if _windows_write_string(s, out):
             return
 
-    if ('b' in getattr(out, 'mode', '')
-            or sys.version_info[0] < 3):  # Python 2 lies about mode of sys.stderr
+    if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
         out.write(byt)
     elif hasattr(out, 'buffer'):
@@ -2886,8 +2810,6 @@ def lowercase_escape(s):
 
 def escape_rfc3986(s):
     """Escape non-ASCII characters as suggested by RFC 3986"""
-    if sys.version_info < (3, 0) and isinstance(s, compat_str):
-        s = s.encode('utf-8')
     return compat_urllib_parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
 
 
@@ -3233,12 +3155,7 @@ def args_to_str(args):
 
 
 def error_to_compat_str(err):
-    err_str = str(err)
-    # On python 2 error byte string must be decoded with proper
-    # encoding rather than ascii
-    if sys.version_info[0] < 3:
-        err_str = err_str.decode(preferredencoding())
-    return err_str
+    return str(err)
 
 
 def mimetype2ext(mt):
@@ -5265,8 +5182,6 @@ class Config:
         try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read()
-            if sys.version_info < (3,):
-                contents = contents.decode(preferredencoding())
             res = compat_shlex_split(contents, comments=True)
         finally:
             optionf.close()
