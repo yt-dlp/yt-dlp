@@ -731,7 +731,7 @@ class BiliIntlBaseIE(InfoExtractor):
         json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
         if json.get('code'):
             if json['code'] in (10004004, 10004005, 10023006):
-                self.raise_login_required(method='cookies')
+                self.raise_login_required()
             elif json['code'] == 10004001:
                 self.raise_geo_restricted()
             else:
