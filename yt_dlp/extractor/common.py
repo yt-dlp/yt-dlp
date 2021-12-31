@@ -2712,11 +2712,15 @@ class InfoExtractor(object):
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    codecs = representation_attrib.get('codecs', '')
+                    codecs = parse_codecs(representation_attrib.get('codecs', ''))
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
-                        elif codecs.split('.')[0] == 'stpp':
+                        elif codecs['vcodec'] != 'none':
+                            content_type = 'video'
+                        elif codecs['acodec'] != 'none':
+                            content_type = 'audio'
+                        elif codecs.get('tcodec', 'none') != 'none':
                             content_type = 'text'
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
@@ -2762,8 +2766,8 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
+                            **codecs
                         }
-                        f.update(parse_codecs(codecs))
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),

@@ -3196,7 +3196,7 @@ def parse_codecs(codecs_str):
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec, hdr = None, None, None
+    vcodec, acodec, tcodec, hdr = None, None, None, None
     for full_codec in split_codecs:
         parts = full_codec.split('.')
         codec = parts[0].replace('0', '')
@@ -3213,13 +3213,17 @@ def parse_codecs(codecs_str):
         elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
+        elif codec in ('stpp', 'wvtt',):
+            if not tcodec:
+                tcodec = full_codec
         else:
             write_string('WARNING: Unknown codec %s\n' % full_codec, sys.stderr)
-    if vcodec or acodec:
+    if vcodec or acodec or tcodec:
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
+            **({'tcodec': tcodec} if tcodec is not None else {}),
         }
     elif len(split_codecs) == 2:
         return {
