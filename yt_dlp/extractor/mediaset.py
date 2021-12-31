@@ -224,7 +224,6 @@ class MediasetIE(ThePlatformBaseIE):
         first_e = geo_e = None
         asset_type = 'geoNo:HD,browser,geoIT|geoNo:HD,geoIT|geoNo:SD,browser,geoIT|geoNo:SD,geoIT|geoNo|HD|SD'
         # TODO: fixup ISM+none manifest URLs
-        has_drm = False
         for f in ('MPEG4', 'M3U'):
             try:
                 tp_formats, tp_subtitles = self._extract_theplatform_smil(
