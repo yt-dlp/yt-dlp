@@ -88,12 +88,14 @@ class RokfinPostIE(RokfinSingleVideoIE):
         else:
             frmts = None
 
+        if not frmts:
             if availability == 'premium_only':
-                # The video is premium only.
-                self.raise_no_formats(msg='premium content', expected=True)
+                self.raise_no_formats(msg='premium content', video_id=video_id, expected=True)
+            elif video_formats_url:
+                self.raise_no_formats(msg='unable to download: missing meta data', video_id=video_id, expected=True)
             else:
-                # We don't know why there is no (valid) video URL present.
-                self.raise_no_formats(msg='unable to download: missing meta data', expected=True)
+                # We don't know why there is no (valid) meta data present.
+                self.raise_no_formats(msg='unable to download: don\'t know where to find meta data', video_id=video_id, expected=True)
 
         content_subdict = lambda key: traverse_obj(downloaded_json, ('content', key))
         created_by = lambda key: traverse_obj(downloaded_json, ('createdBy', key))
@@ -247,13 +249,15 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             # Self-reminder: --wait-for-video causes raise_no_formats(... expected=True ...) to print a warning message
             # and quit without raising ExtractorError.
 
-        # 'postedAtMilli' shows when the stream (live or pending) appeared on Rokfin. As soon as a pending stream goes live,
-        # the value of 'postedAtMilli' will change to reflect the stream's starting time.
+        # 'postedAtMilli' shows when the stream (live or pending) appeared on Rokfin. As soon as the pending stream goes live,
+        # the value of 'postedAtMilli' changes to reflect the stream's starting time.
         stream_started_at_timestamp = try_get(downloaded_json, lambda x: x('postedAtMilli') / 1000) if stream_scheduled_for is None else None
         stream_started_at = try_get(stream_started_at_timestamp, lambda x: datetime.datetime.utcfromtimestamp(x).replace(tzinfo=datetime.timezone.utc))
         created_by = lambda x: try_get(downloaded_json, lambda y: y('creator').get(x))
         channel_name = created_by('name')
         channel_id = created_by('id')
+
+        # The stream's actual (if live or finished) or announced (if pending) starting time:
         release_timestamp = try_get(stream_scheduled_for, lambda x: unified_timestamp(datetime.datetime.strftime(x, '%Y-%m-%dT%H:%M:%S'))) or stream_started_at_timestamp
 
         return {
@@ -275,15 +279,20 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             'channel_url': try_get(created_by, lambda x: self._CHANNEL_BASE_URL + x('username')),
             'availability': availability,
             'tags': [str(tag) for tag in downloaded_json('tags') or []],
-            'live_status': 'was_live' if stream_ended_at else
-                           'is_live' if stream_scheduled_for is None else
-                           'is_upcoming',
+            'live_status': 'was_live' if (stream_scheduled_for is None) and (stream_ended_at is not None) else
+                           'is_live' if stream_scheduled_for is None else  # stream_scheduled_for=stream_ended_at=None
+                           'is_upcoming' if stream_ended_at is None else   # stream_scheduled_for is not None
+                           None,  # Both stream_scheduled_for and stream_ended_at are not None: inconsistent data.
             # Remove the 'False and' part when Rokfin corrects the 'stoppedAt' value:
             'duration': (stream_ended_at - stream_started_at).total_seconds() if False and stream_started_at and stream_ended_at else None,
             'timestamp': release_timestamp,
             'release_timestamp': release_timestamp,
-            'formats': frmts or []
+            'formats': frmts or [],
+            '__post_extractor': self.extract_comments(video_id=video_id)
         }
+
+    def _get_comments(self, video_id):
+        raise ExtractorError(msg='downloading live-stream chat is unsupported', expected=True)
 
 
 class RokfinPlaylistIE(InfoExtractor):
@@ -551,12 +560,11 @@ class RokfinSearchIE(SearchInfoExtractor):
         SERVICE_URL_PATH = '/api/as/v1/engines/rokfin-search/search.json'
         BASE_URL = 'https://rokfin.com'
 
-        # The following returns 404 (Not Found) which is intended:
         starting_wp_content = self._download_webpage(
             url_or_request=STARTING_WP_URL,
             video_id=self._SEARCH_KEY,
             note='Downloading webpage',
-            expected_status=404,
+            expected_status=404,  # 'Not Found' is the expected outcome here.
             fatal=False)
 
         js = ''
