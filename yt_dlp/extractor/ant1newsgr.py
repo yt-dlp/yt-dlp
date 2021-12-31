@@ -149,8 +149,8 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
         # src, the URL will be matched again
         _URL_RE = _URL_RE.split(r'\?', 1)[0] + r'\?(?:(?!(?P=_q1)).)+'
         EMBED_RE = r'''(?x)
-            <iframe[^>]+?src=(?P<_q1>%(quot_re)s)(?P<url>%(url_re)s)(?P=_q1)
-        ''' % {'quot_re': r'["\']', 'url_re': _URL_RE}
+            <iframe[^>]+?src=(?P<_q1>["'])(?P<url>%(url_re)s)(?P=_q1)
+        ''' % {'url_re': _URL_RE}
         for mobj in re.finditer(EMBED_RE, webpage):
             url = unescapeHTML(mobj.group('url'))
             if url.startswith('//'):
