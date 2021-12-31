@@ -1631,6 +1631,11 @@ The following extractors use this feature:
 #### gamejolt
 * `comment_sort`: `hot` (default), `you` (cookies needed), `top`, `new` - choose comment sorting mode (on GameJolt's side)
 
+#### hotstar
+* `res`: resolution to ignore - one or more of `sd`, `hd`, `fhd`
+* `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
+* `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
+
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
