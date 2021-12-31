@@ -57,7 +57,7 @@ class Ant1NewsGrBaseIE(InfoExtractor):
 class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
     IE_NAME = 'ant1newsgr:watch'
     IE_DESC = 'ant1news.gr videos'
-    _VALID_URL = r'https?://(?:www\.)?ant1news\.gr/watch/(?P<id>\d+)/'
+    _VALID_URL = r'(?P<scheme>https?)://(?P<netloc>(?:www\.)?ant1news\.gr)/watch/(?P<id>\d+)/'
     _API_PATH = '/templates/data/player'
 
     _TEST = {
@@ -73,9 +73,8 @@ class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
     }
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, scheme, netloc = self._match_valid_url(url).group('id', 'scheme', 'netloc')
         webpage = self._download_webpage(url, video_id)
-        scheme, netloc, _, _, _, _ = urllib.parse.urlparse(url)
         info = self._download_and_extract_api_data(
             video_id, netloc, video_id, scheme=scheme)
         info['description'] = self._og_search_description(webpage)
