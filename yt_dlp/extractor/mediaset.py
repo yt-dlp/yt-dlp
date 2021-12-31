@@ -199,23 +199,20 @@ class MediasetIE(ThePlatformBaseIE):
         return super(MediasetIE, self)._parse_smil_formats(smil, smil_url, video_id, namespace, f4m_params, transform_rtmp_url)
 
     def _check_drm_formats(self, tp_formats, video_id):
-        # get all manifest urls and remove duplicates
-        manifests = [f.get('manifest_url') for f in tp_formats]
-        manifests = list(dict.fromkeys(filter(None, manifests)))
+        has_nondrm, drm_manifest = False, ''
+        for f in tp_formats:
+            if '_sampleaes/' in (f.get('manifest_url') or ''):
+                drm_manifest = drm_manifest or f['manifest_url']
+                f['has_drm'] = True
+            if not f.get('has_drm') and f.get('manifest_url'):
+                has_nondrm = True
 
-        # return original formats if not DRM manifest is found
-        if len(manifests) != 1 or (
-                len(manifests) == 1 and '_sampleaes/' not in manifests[0]):
-            return tp_formats
+        nodrm_manifest = re.sub(r'_sampleaes/(\w+)_fp_', r'/\1_no_', drm_manifest)
+        if has_nondrm or nodrm_manifest == drm_manifest:
+            return
 
-        nodrm_manifest = re.sub(
-            r'_sampleaes/(\w+)_fp_', r'/\1_no_', manifests[0])
-
-        if nodrm_manifest == manifests[0]:
-            return tp_formats
-
-        return self._extract_m3u8_formats(
-            nodrm_manifest, video_id, m3u8_id='hls', fatal=False) or 'DRM'
+        tp_formats.extend(self._extract_m3u8_formats(
+            nodrm_manifest, video_id, m3u8_id='hls', fatal=False) or [])
 
     def _real_extract(self, url):
         guid = self._match_id(url)
@@ -242,16 +239,11 @@ class MediasetIE(ThePlatformBaseIE):
                 if not first_e:
                     first_e = e
                 continue
-            tp_formats = self._check_drm_formats(tp_formats, guid)
-            if tp_formats == 'DRM':
-                has_drm = True
-            else:
-                formats.extend(tp_formats)
+            self._check_drm_formats(tp_formats, guid)
+            formats.extend(tp_formats)
             subtitles = self._merge_subtitles(subtitles, tp_subtitles)
 
         # check for errors and report them
-        if has_drm and not formats:
-            self.report_drm(guid)
         if (first_e or geo_e) and not formats:
             raise geo_e or first_e
 
