@@ -1436,6 +1436,8 @@ class InfoExtractor(object):
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
+                'thumbnails': [{'url': url_or_none(url)}
+                               for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))],
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
                 # author can be an instance of 'Organization' or 'Person' types.
@@ -1449,16 +1451,6 @@ class InfoExtractor(object):
                 'height': int_or_none(e.get('height')),
                 'view_count': int_or_none(e.get('interactionCount')),
             })
-
-            # set single thumbnail or multiple thumbnails
-            thumb = e.get('thumbnailUrl') or e.get('thumbnailURL')
-            key = 'thumbnail'
-            if isinstance(thumb, list):
-                thumb = [{'url': url_or_none(t)} for t in thumb]
-                key += 's'
-            else:
-                thumb = url_or_none(thumb)
-            info.update({key: thumb})
 
             extract_interaction_statistic(e)
 
