@@ -8,7 +8,6 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
-    traverse_dict,
     traverse_obj,
     try_get,
     url_basename,
@@ -57,7 +56,7 @@ class DropboxIE(InfoExtractor):
 
             else:
                 raise ExtractorError('Password protected video, use --video-password <password>')
-        
+
         json_string = self._html_search_regex(r'InitReact\.mountComponent.+ "props":(.+), "elem_id"', webpage, 'Info JSON')
         info_json = self._parse_json(json_string, video_id)
         transcode_url = traverse_obj(info_json, ((None, 'preview'), 'file', 'preview', 'content', 'transcode_url'), get_all=False)
