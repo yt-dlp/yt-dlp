@@ -208,6 +208,32 @@ class TestInfoExtractor(unittest.TestCase):
                 },
                 {'expected_type': 'NewsArticle'},
             ),
+            (
+                # test multiple thumbnails in a list
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":["https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"]}
+</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                },
+                {},
+            ),
+            (
+                # test single thumbnail
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":"https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"}
+</script>''',
+                {
+                    'thumbnail': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg',
+                },
+                {},
+            )
         ]
         for html, expected_dict, search_json_ld_kwargs in _TESTS:
             expect_dict(
