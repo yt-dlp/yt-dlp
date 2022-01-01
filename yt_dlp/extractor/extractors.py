@@ -779,7 +779,6 @@ from .mediaite import MediaiteIE
 from .mediaklikk import MediaKlikkIE
 from .mediaset import (
     MediasetIE,
-    MediasetClipIE,
     MediasetShowIE,
 )
 from .mediasite import (

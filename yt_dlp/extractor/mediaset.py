@@ -285,29 +285,6 @@ class MediasetIE(ThePlatformBaseIE):
         return info
 
 
-class MediasetClipIE(MediasetIE):
-    _VALID_URL = r'''(?x)
-                     https?://
-                         (?:www\.)?\w+\.mediaset\.it/
-                             video/[\w-]+_(?P<id>\d{5,})\.s?html?
-                 '''
-
-    _TESTS = [{
-        'url': 'https://www.grandefratello.mediaset.it/video/ventinovesima-puntata_27071.shtml',
-        'info_dict': {
-            'id': 'F310293901002901',
-            'ext': 'mp4',
-        },
-        'skip': 'DRM content only',
-    }]
-
-    def _real_extract(self, url):
-        clip_id = self._match_id(url)
-        webpage = self._download_webpage(url, clip_id)
-        guid = self._search_regex(r'''var\s*_onplay_guid\s*=\s*(?P<q>'|"|\b)(?P<guid>[\dA-Z]{16,})(?P=q)\s*;''', webpage, 'clip GUID', group='guid')
-        return self.url_result('mediaset:%s' % guid, ie='Mediaset', video_id=clip_id)
-
-
 class MediasetShowIE(MediasetIE):
     _VALID_URL = r'''(?x)
                     (?:
