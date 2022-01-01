@@ -438,12 +438,12 @@ class RaiPlaySoundIE(RaiBaseIE):
         'md5': '8970abf8caf8aef4696e7b1f2adfc696',
         'info_dict': {
             'id': '1ebae2a7-7cdb-42bb-842e-fe0d193e9707',
-            'ext': 'mp4',
+            'ext': 'mp3',
             'title': 'Il Ruggito del Coniglio del 10/12/2021',
             'description': 'md5:2a17d2107e59a4a8faa0e18334139ee2',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'rai radio 2',
-            'duration': 7414,
+            'duration': 5685,
             'series': 'Il Ruggito del Coniglio',
         },
         'params': {
@@ -536,7 +536,7 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
         'info_dict': {
             'id': 'ilruggitodelconiglio',
             'title': 'Il Ruggito del Coniglio',
-            'description': 'md5:9f7064810ac5d48d51b2f2d7c838dfbf',
+            'description': 'md5:1bbaf631245a7ab1ec4d9fbb3c7aa8f3',
         },
         'playlist_mincount': 65,
     }, {
