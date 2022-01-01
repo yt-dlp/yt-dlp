@@ -1429,36 +1429,22 @@ class InfoExtractor(object):
                 info[count_key] = interaction_count
 
         def extract_chapter_information(e):
-            chapters = []
-            last_chapter = {}
-            if not e.get('hasPart'):
-                return
-            for idx, part in enumerate(e['hasPart']):
-                if part.get('@type') != 'Clip':  # https://schema.org/Clip
-                    continue
-                if idx == 0:
-                    last_chapter = {
-                        'start_time': part.get('startOffset') or 0,
-                        'end_time': part.get('endOffset'),
-                    }
-                    last_chapter.update({'title': part['name']} if part.get('name') else {})
-                else:
-                    # Fix up the previous chapter using this chapter's data
-                    last_chapter['end_time'] = last_chapter.get('end_time') or part.get('startOffset')
-                    if None in last_chapter.values():
-                        # If there's null values now, the chapter listing is broken somehow. Emit warning and bail.
-                        self.report_warning(f'Chapter {last_chapter.get("title") or idx} contains broken data. Not extracting chapters.')
-                        return
-                    else:
-                        chapters.append(last_chapter)
-                    last_chapter = {
-                        'start_time': part.get('startOffset') or last_chapter.get('end_time'),
-                        'end_time': part.get('endOffset')
-                    }
-                    last_chapter.update({'title': part['name']} if part.get('name') else {})
+            chapters = [{
+                'title': part.get('name'),
+                'start_time': part.get('startOffset'),
+                'end_time': part.get('endOffset'),
+            } for part in e.get('hasPart', []) if part.get('@type') == 'Clip']
+            if chapters and chapters[0]['start_time'] != 0:
+                chapters[:0] = [{'title': '<Untitled>', 'start_time': 0, 'end_time': None}]
+            for idx, (last_c, current_c, next_c) in enumerate(zip(
+                    [{'end_time': 0}] + chapters, chapters, chapters[1:])):
+                current_c['end_time'] = current_c['end_time'] or next_c['start_time']
+                current_c['start_time'] = current_c['start_time'] or last_c['end_time']
+                if None in current_c.values():
+                    self.report_warning(f'Chapter {idx} contains broken data. Not extracting chapters')
+                    return
             if chapters:
-                last_chapter.update({} if last_chapter.get('end_time') else {'end_time': info['duration']})
-                chapters.append(last_chapter)
+                chapters[-1]['end_time'] = chapters[-1]['end_time'] or info['duration']
                 info['chapters'] = chapters
 
         def extract_video_object(e):
