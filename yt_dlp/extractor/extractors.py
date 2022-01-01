@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from .abc import (
     ABCIE,
     ABCIViewIE,
+    ABCIViewShowSeriesIE,
 )
 from .abcnews import (
     AbcNewsIE,
@@ -356,6 +357,7 @@ from .dplay import (
     AnimalPlanetIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
+    DiscoveryPlusItalyIE,
     DiscoveryPlusItalyShowIE,
     DiscoveryPlusIndiaShowIE,
 )
@@ -384,6 +386,10 @@ from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
 from .doodstream import DoodStreamIE
 from .dropbox import DropboxIE
+from .dropout import (
+    DropoutSeasonIE,
+    DropoutIE
+)
 from .dw import (
     DWIE,
     DWArticleIE,
@@ -434,6 +440,7 @@ from .eyedotv import EyedoTVIE
 from .facebook import (
     FacebookIE,
     FacebookPluginsVideoIE,
+    FacebookRedirectURLIE,
 )
 from .fancode import (
     FancodeVodIE,
@@ -505,6 +512,14 @@ from .gab import (
 )
 from .gaia import GaiaIE
 from .gameinformer import GameInformerIE
+from .gamejolt import (
+    GameJoltIE,
+    GameJoltUserIE,
+    GameJoltGameIE,
+    GameJoltGameSoundtrackIE,
+    GameJoltCommunityIE,
+    GameJoltSearchIE,
+)
 from .gamespot import GameSpotIE
 from .gamestar import GameStarIE
 from .gaskrank import GaskrankIE
@@ -563,6 +578,10 @@ from .hrti import (
     HRTiIE,
     HRTiPlaylistIE,
 )
+from .hse import (
+    HSEShowIE,
+    HSEProductIE,
+)
 from .huajiao import HuajiaoIE
 from .huffpost import HuffPostIE
 from .hungama import (
@@ -602,6 +621,7 @@ from .instagram import (
     InstagramIOSIE,
     InstagramUserIE,
     InstagramTagIE,
+    InstagramStoryIE,
 )
 from .internazionale import InternazionaleIE
 from .internetvideoarchive import InternetVideoArchiveIE
@@ -636,6 +656,7 @@ from .kankan import KankanIE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
+from .kelbyone import KelbyOneIE
 from .ketnet import KetnetIE
 from .khanacademy import (
     KhanAcademyIE,
@@ -1030,6 +1051,10 @@ from .ooyala import (
     OoyalaIE,
     OoyalaExternalIE,
 )
+from .opencast import (
+    OpencastIE,
+    OpencastPlaylistIE,
+)
 from .openrec import (
     OpenRecIE,
     OpenRecCaptureIE,
@@ -1102,6 +1127,10 @@ from .pinkbike import PinkbikeIE
 from .pinterest import (
     PinterestIE,
     PinterestCollectionIE,
+)
+from .pixivsketch import (
+    PixivSketchIE,
+    PixivSketchUserIE,
 )
 from .pladform import PladformIE
 from .planetmarathi import PlanetMarathiIE
@@ -1254,7 +1283,13 @@ from .rtl2 import (
 from .rtp import RTPIE
 from .rtrfm import RTRFMIE
 from .rts import RTSIE
-from .rtve import RTVEALaCartaIE, RTVELiveIE, RTVEInfantilIE, RTVELiveIE, RTVETelevisionIE
+from .rtve import (
+    RTVEALaCartaIE,
+    RTVEAudioIE,
+    RTVELiveIE,
+    RTVEInfantilIE,
+    RTVETelevisionIE,
+)
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
 from .ruhd import RUHDIE
@@ -1357,6 +1392,7 @@ from .soundcloud import (
     SoundcloudEmbedIE,
     SoundcloudIE,
     SoundcloudSetIE,
+    SoundcloudRelatedIE,
     SoundcloudUserIE,
     SoundcloudTrackStationIE,
     SoundcloudPlaylistIE,
@@ -1504,6 +1540,9 @@ from .threeqsdn import ThreeQSDNIE
 from .tiktok import (
     TikTokIE,
     TikTokUserIE,
+    TikTokSoundIE,
+    TikTokEffectIE,
+    TikTokTagIE,
     DouyinIE,
 )
 from .tinypic import TinyPicIE
@@ -1654,6 +1693,7 @@ from .dlive import (
     DLiveVODIE,
     DLiveStreamIE,
 )
+from .drooble import DroobleIE
 from .umg import UMGDeIE
 from .unistra import UnistraIE
 from .unity import UnityIE

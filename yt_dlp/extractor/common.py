@@ -163,9 +163,8 @@ class InfoExtractor(object):
                     * filesize_approx  An estimate for the number of bytes
                     * player_url SWF Player URL (used for rtmpdump).
                     * protocol   The protocol that will be used for the actual
-                                 download, lower-case.
-                                 "http", "https", "rtsp", "rtmp", "rtmp_ffmpeg", "rtmpe",
-                                 "m3u8", "m3u8_native" or "http_dash_segments".
+                                 download, lower-case. One of "http", "https" or
+                                 one of the protocols defined in downloader.PROTOCOL_MAP
                     * fragment_base_url
                                  Base URL for fragments. Each fragment's path
                                  value (if present) will be relative to
@@ -181,6 +180,8 @@ class InfoExtractor(object):
                                             fragment_base_url
                                  * "duration" (optional, int or float)
                                  * "filesize" (optional, int)
+                    * is_from_start  Is a live format that can be downloaded
+                                from the start. Boolean
                     * preference Order number of this format. If this field is
                                  present and not None, the formats get sorted
                                  by this field, regardless of all other values.
@@ -615,7 +616,7 @@ class InfoExtractor(object):
             kwargs = {
                 'video_id': e.video_id or self.get_temp_id(url),
                 'ie': self.IE_NAME,
-                'tb': e.traceback,
+                'tb': e.traceback or sys.exc_info()[2],
                 'expected': e.expected,
                 'cause': e.cause
             }
@@ -1452,7 +1453,8 @@ class InfoExtractor(object):
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnail': url_or_none(e.get('thumbnailUrl') or e.get('thumbnailURL')),
+                'thumbnails': [{'url': url_or_none(url)}
+                               for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))],
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
                 # author can be an instance of 'Organization' or 'Person' types.
@@ -1591,7 +1593,7 @@ class InfoExtractor(object):
             'vcodec': {'type': 'ordered', 'regex': True,
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -2349,7 +2351,7 @@ class InfoExtractor(object):
 
         if smil is False:
             assert not fatal
-            return []
+            return [], {}
 
         namespace = self._parse_smil_namespace(smil)
 
@@ -2729,11 +2731,15 @@ class InfoExtractor(object):
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    codecs = representation_attrib.get('codecs', '')
+                    codecs = parse_codecs(representation_attrib.get('codecs', ''))
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
-                        elif codecs.split('.')[0] == 'stpp':
+                        elif codecs['vcodec'] != 'none':
+                            content_type = 'video'
+                        elif codecs['acodec'] != 'none':
+                            content_type = 'audio'
+                        elif codecs.get('tcodec', 'none') != 'none':
                             content_type = 'text'
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
@@ -2779,8 +2785,8 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
+                            **codecs
                         }
-                        f.update(parse_codecs(codecs))
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
@@ -3680,7 +3686,7 @@ class InfoExtractor(object):
             else 'public' if all_known
             else None)
 
-    def _configuration_arg(self, key, default=NO_DEFAULT, casesense=False):
+    def _configuration_arg(self, key, default=NO_DEFAULT, *, ie_key=None, casesense=False):
         '''
         @returns            A list of values for the extractor argument given by "key"
                             or "default" if no such key is present
@@ -3688,7 +3694,7 @@ class InfoExtractor(object):
         @param casesense    When false, the values are converted to lower case
         '''
         val = traverse_obj(
-            self._downloader.params, ('extractor_args', self.ie_key().lower(), key))
+            self._downloader.params, ('extractor_args', (ie_key or self.ie_key()).lower(), key))
         if val is None:
             return [] if default is NO_DEFAULT else default
         return list(val) if casesense else [x.lower() for x in val]

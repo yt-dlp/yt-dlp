@@ -4,12 +4,14 @@ import os
 import re
 import time
 import random
+import errno
 
 from ..utils import (
     decodeArgument,
     encodeFilename,
     error_to_compat_str,
     format_bytes,
+    sanitize_open,
     shell_quote,
     timeconvert,
     timetuple_from_msec,
@@ -39,6 +41,7 @@ class FileDownloader(object):
     ratelimit:          Download speed limit, in bytes/sec.
     throttledratelimit: Assume the download is being throttled below this speed (bytes/sec)
     retries:            Number of times to retry for HTTP error 5xx
+    file_access_retries:   Number of times to retry on file access error
     buffersize:         Size of download buffer in bytes.
     noresizebuffer:     Do not automatically resize the download buffer.
     continuedl:         Try to continue downloads if possible.
@@ -206,6 +209,21 @@ class FileDownloader(object):
 
     def ytdl_filename(self, filename):
         return filename + '.ytdl'
+
+    def sanitize_open(self, filename, open_mode):
+        file_access_retries = self.params.get('file_access_retries', 10)
+        retry = 0
+        while True:
+            try:
+                return sanitize_open(filename, open_mode)
+            except (IOError, OSError) as err:
+                retry = retry + 1
+                if retry > file_access_retries or err.errno not in (errno.EACCES,):
+                    raise
+                self.to_screen(
+                    '[download] Got file access error. Retrying (attempt %d of %s) ...'
+                    % (retry, self.format_retries(file_access_retries)))
+                time.sleep(0.01)
 
     def try_rename(self, old_filename, new_filename):
         if old_filename == new_filename:
@@ -397,6 +415,7 @@ class FileDownloader(object):
                     'status': 'finished',
                     'total_bytes': os.path.getsize(encodeFilename(filename)),
                 }, info_dict)
+                self._finish_multiline_status()
                 return True, False
 
         if subtitle is False:

@@ -1,6 +1,6 @@
 name: Broken site support
 description: Report broken or misfunctioning site
-labels: [triage, extractor-bug]
+labels: [triage, site-bug]
 body:
   - type: checkboxes
     id: checklist

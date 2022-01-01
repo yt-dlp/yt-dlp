@@ -184,28 +184,38 @@ class LBRYIE(LBRYBaseIE):
         display_id = compat_urllib_parse_unquote(display_id)
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
-        result_value = result['value']
-        if result_value.get('stream_type') not in self._SUPPORTED_STREAM_TYPES:
+        if result['value'].get('stream_type') in self._SUPPORTED_STREAM_TYPES:
+            claim_id, is_live, headers = result['claim_id'], False, None
+            streaming_url = self._call_api_proxy(
+                'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
+            final_url = self._request_webpage(
+                streaming_url, display_id, note='Downloading streaming redirect url info').geturl()
+        elif result.get('value_type') == 'stream':
+            claim_id, is_live = result['signing_channel']['claim_id'], True
+            headers = {'referer': 'https://player.odysee.live/'}
+            live_data = self._download_json(
+                f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id,
+                note='Downloading livestream JSON metadata')['data']
+            if not live_data['live']:
+                raise ExtractorError('This stream is not live', expected=True)
+            streaming_url = final_url = live_data['url']
+        else:
             raise ExtractorError('Unsupported URL', expected=True)
-        claim_id = result['claim_id']
-        title = result_value['title']
-        streaming_url = self._call_api_proxy(
-            'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
+
         info = self._parse_stream(result, url)
-        urlh = self._request_webpage(
-            streaming_url, display_id, note='Downloading streaming redirect url info')
-        if determine_ext(urlh.geturl()) == 'm3u8':
+        if determine_ext(final_url) == 'm3u8':
             info['formats'] = self._extract_m3u8_formats(
-                urlh.geturl(), display_id, 'mp4', entry_protocol='m3u8_native',
-                m3u8_id='hls')
+                final_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live, headers=headers)
             self._sort_formats(info['formats'])
         else:
             info['url'] = streaming_url
-        info.update({
+        return {
+            **info,
             'id': claim_id,
-            'title': title,
-        })
-        return info
+            'title': result['value']['title'],
+            'is_live': is_live,
+            'http_headers': headers,
+        }
 
 
 class LBRYChannelIE(LBRYBaseIE):

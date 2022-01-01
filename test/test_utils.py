@@ -37,6 +37,7 @@ from yt_dlp.utils import (
     ExtractorError,
     find_xpath_attr,
     fix_xml_ampersands,
+    format_bytes,
     float_or_none,
     get_element_by_class,
     get_element_by_attribute,
@@ -1156,9 +1157,16 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_count('1000'), 1000)
         self.assertEqual(parse_count('1.000'), 1000)
         self.assertEqual(parse_count('1.1k'), 1100)
+        self.assertEqual(parse_count('1.1 k'), 1100)
+        self.assertEqual(parse_count('1,1 k'), 1100)
         self.assertEqual(parse_count('1.1kk'), 1100000)
         self.assertEqual(parse_count('1.1kk '), 1100000)
+        self.assertEqual(parse_count('1,1kk'), 1100000)
+        self.assertEqual(parse_count('100 views'), 100)
+        self.assertEqual(parse_count('1,100 views'), 1100)
         self.assertEqual(parse_count('1.1kk views'), 1100000)
+        self.assertEqual(parse_count('10M views'), 10000000)
+        self.assertEqual(parse_count('has 10M views'), 10000000)
 
     def test_parse_resolution(self):
         self.assertEqual(parse_resolution(None), {})
@@ -1680,6 +1688,18 @@ Line 1
         test(ll, 10, 10, range(11))
         ll = reversed(ll)
         test(ll, -15, 14, range(15))
+
+    def test_format_bytes(self):
+        self.assertEqual(format_bytes(0), '0.00B')
+        self.assertEqual(format_bytes(1000), '1000.00B')
+        self.assertEqual(format_bytes(1024), '1.00KiB')
+        self.assertEqual(format_bytes(1024**2), '1.00MiB')
+        self.assertEqual(format_bytes(1024**3), '1.00GiB')
+        self.assertEqual(format_bytes(1024**4), '1.00TiB')
+        self.assertEqual(format_bytes(1024**5), '1.00PiB')
+        self.assertEqual(format_bytes(1024**6), '1.00EiB')
+        self.assertEqual(format_bytes(1024**7), '1.00ZiB')
+        self.assertEqual(format_bytes(1024**8), '1.00YiB')
 
 
 if __name__ == '__main__':

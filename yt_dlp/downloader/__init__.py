@@ -12,10 +12,15 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
     info_copy = info_dict.copy()
     info_copy['to_stdout'] = to_stdout
 
-    downloaders = [_get_suitable_downloader(info_copy, proto, params, default)
-                   for proto in (protocol or info_copy['protocol']).split('+')]
+    protocols = (protocol or info_copy['protocol']).split('+')
+    downloaders = [_get_suitable_downloader(info_copy, proto, params, default) for proto in protocols]
+
     if set(downloaders) == {FFmpegFD} and FFmpegFD.can_merge_formats(info_copy, params):
         return FFmpegFD
+    elif (set(downloaders) == {DashSegmentsFD}
+          and not (to_stdout and len(protocols) > 1)
+          and set(protocols) == {'http_dash_segments_generator'}):
+        return DashSegmentsFD
     elif len(downloaders) == 1:
         return downloaders[0]
     return None
@@ -49,6 +54,7 @@ PROTOCOL_MAP = {
     'rtsp': RtspFD,
     'f4m': F4mFD,
     'http_dash_segments': DashSegmentsFD,
+    'http_dash_segments_generator': DashSegmentsFD,
     'ism': IsmFD,
     'mhtml': MhtmlFD,
     'niconico_dmc': NiconicoDmcFD,
@@ -63,6 +69,7 @@ def shorten_protocol_name(proto, simplify=False):
         'm3u8_native': 'm3u8_n',
         'rtmp_ffmpeg': 'rtmp_f',
         'http_dash_segments': 'dash',
+        'http_dash_segments_generator': 'dash_g',
         'niconico_dmc': 'dmc',
         'websocket_frag': 'WSfrag',
     }
@@ -71,6 +78,7 @@ def shorten_protocol_name(proto, simplify=False):
             'https': 'http',
             'ftps': 'ftp',
             'm3u8_native': 'm3u8',
+            'http_dash_segments_generator': 'dash',
             'rtmp_ffmpeg': 'rtmp',
             'm3u8_frag_urls': 'm3u8',
             'dash_frag_urls': 'dash',

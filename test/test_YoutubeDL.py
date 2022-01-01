@@ -645,6 +645,7 @@ class TestYoutubeDL(unittest.TestCase):
         'ext': 'mp4',
         'width': None,
         'height': 1080,
+        'filesize': 1024,
         'title1': '$PATH',
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
@@ -717,6 +718,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', '.abcd', info={'id': '.abcd'})
         test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
         test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
+        test('%(id.0)s', '-', info={'id': '--'})
 
         # Invalid templates
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
@@ -777,6 +779,11 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
         test('%(title5)+U', 'áéí A')
         test('%(title5)+#U', 'a\u0301e\u0301i\u0301 A')
+        test('%(height)D', '1k')
+        test('%(filesize)#D', '1Ki')
+        test('%(height)5.2D', ' 1.08k')
+        test('%(title4)#S', 'foo_bar_test')
+        test('%(title4).10S', ('foo \'bar\' ', 'foo \'bar\'' + ('#' if compat_os_name == 'nt' else ' ')))
         if compat_os_name == 'nt':
             test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
             test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', "'id 1' 'id 2' 'id 3'"))
@@ -807,6 +814,11 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width-100,height+20|def)d', '1100')
         test('%(width-100,height+width|def)s', 'def')
         test('%(timestamp-x>%H\\,%M\\,%S,timestamp>%H\\,%M\\,%S)s', '12,00,00')
+
+        # Replacement
+        test('%(id&foo)s.bar', 'foo.bar')
+        test('%(title&foo)s.bar', 'NA.bar')
+        test('%(title&foo|baz)s.bar', 'baz.bar')
 
         # Laziness
         def gen():

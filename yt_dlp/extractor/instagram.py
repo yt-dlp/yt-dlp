@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     lowercase_escape,
     std_headers,
+    str_to_int,
     traverse_obj,
     url_or_none,
     urlencode_postdata,
@@ -293,7 +294,10 @@ class InstagramIE(InstagramBaseIE):
         video_id, url = self._match_valid_url(url).group('id', 'url')
         webpage, urlh = self._download_webpage_handle(url, video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl():
-            self.raise_login_required('You need to log in to access this content')
+            self.report_warning('Main webpage is locked behind the login page. '
+                                'Retrying with embed webpage (Note that some metadata might be missing)')
+            webpage = self._download_webpage(
+                'https://www.instagram.com/p/%s/embed/' % video_id, video_id, note='Downloading embed webpage')
 
         shared_data = self._parse_json(
             self._search_regex(
@@ -314,7 +318,10 @@ class InstagramIE(InstagramBaseIE):
                     r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*({.+?})\s*\)\s*;',
                     webpage, 'additional data', default='{}'),
                 video_id, fatal=False)
-            media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), expected_type=dict) or {}
+            media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
+
+        if not media and 'www.instagram.com/accounts/login' in urlh.geturl():
+            self.raise_login_required('You need to log in to access this content')
 
         uploader_id = traverse_obj(media, ('owner', 'username')) or self._search_regex(
             r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'uploader id', fatal=False)
@@ -348,13 +355,14 @@ class InstagramIE(InstagramBaseIE):
             formats.extend(self._parse_mpd_formats(self._parse_xml(dash, video_id), mpd_id='dash'))
         self._sort_formats(formats)
 
+        comment_data = traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))
         comments = [{
             'author': traverse_obj(comment_dict, ('node', 'owner', 'username')),
             'author_id': traverse_obj(comment_dict, ('node', 'owner', 'id')),
             'id': traverse_obj(comment_dict, ('node', 'id')),
             'text': traverse_obj(comment_dict, ('node', 'text')),
             'timestamp': traverse_obj(comment_dict, ('node', 'created_at'), expected_type=int_or_none),
-        } for comment_dict in traverse_obj(media, ('edge_media_to_parent_comment', 'edges'))]
+        } for comment_dict in comment_data] if comment_data else None
 
         display_resources = (
             media.get('display_resources')
@@ -375,7 +383,8 @@ class InstagramIE(InstagramBaseIE):
             'timestamp': traverse_obj(media, 'taken_at_timestamp', 'date', expected_type=int_or_none),
             'uploader_id': uploader_id,
             'uploader': traverse_obj(media, ('owner', 'full_name')),
-            'like_count': self._get_count(media, 'likes', 'preview_like'),
+            'like_count': self._get_count(media, 'likes', 'preview_like') or str_to_int(self._search_regex(
+                r'data-log-event="likeCountClick"[^>]*>[^\d]*([\d,\.]+)', webpage, 'like count', fatal=False)),
             'comment_count': self._get_count(media, 'comments', 'preview_comment', 'to_comment', 'to_parent_comment'),
             'comments': comments,
             'thumbnails': thumbnails,
@@ -533,3 +542,77 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
             'tag_name':
                 data['entry_data']['TagPage'][0]['graphql']['hashtag']['name']
         }
+
+
+class InstagramStoryIE(InstagramBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?instagram\.com/stories/(?P<user>[^/]+)/(?P<id>\d+)'
+    IE_NAME = 'instagram:story'
+
+    _TESTS = [{
+        'url': 'https://www.instagram.com/stories/highlights/18090946048123978/',
+        'info_dict': {
+            'id': '18090946048123978',
+            'title': 'Rare',
+        },
+        'playlist_mincount': 50
+    }]
+
+    def _real_extract(self, url):
+        username, story_id = self._match_valid_url(url).groups()
+
+        story_info_url = f'{username}/{story_id}/?__a=1' if username == 'highlights' else f'{username}/?__a=1'
+        story_info = self._download_json(f'https://www.instagram.com/stories/{story_info_url}', story_id, headers={
+            'X-IG-App-ID': 936619743392459,
+            'X-ASBD-ID': 198387,
+            'X-IG-WWW-Claim': 0,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': url,
+        })
+        user_id = story_info['user']['id']
+        highlight_title = traverse_obj(story_info, ('highlight', 'title'))
+
+        story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
+        videos = self._download_json(f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}', story_id, headers={
+            'X-IG-App-ID': 936619743392459,
+            'X-ASBD-ID': 198387,
+            'X-IG-WWW-Claim': 0,
+        })['reels']
+        entites = []
+
+        videos = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
+        for video_info in videos:
+            formats = []
+            if isinstance(video_info, list):
+                video_info = video_info[0]
+            vcodec = video_info.get('video_codec')
+            dash_manifest_raw = video_info.get('video_dash_manifest')
+            videos_list = video_info.get('video_versions')
+            if not (dash_manifest_raw or videos_list):
+                continue
+            for format in videos_list:
+                formats.append({
+                    'url': format.get('url'),
+                    'width': format.get('width'),
+                    'height': format.get('height'),
+                    'vcodec': vcodec,
+                })
+            if dash_manifest_raw:
+                formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, story_id), mpd_id='dash'))
+            self._sort_formats(formats)
+            thumbnails = [{
+                'url': thumbnail.get('url'),
+                'width': thumbnail.get('width'),
+                'height': thumbnail.get('height')
+            } for thumbnail in traverse_obj(video_info, ('image_versions2', 'candidates')) or []]
+            entites.append({
+                'id': video_info.get('id'),
+                'title': f'Story by {username}',
+                'timestamp': int_or_none(video_info.get('taken_at')),
+                'uploader': traverse_obj(videos, ('user', 'full_name')),
+                'duration': float_or_none(video_info.get('video_duration')),
+                'uploader_id': user_id,
+                'thumbnails': thumbnails,
+                'formats': formats,
+            })
+
+        return self.playlist_result(entites, playlist_id=story_id, playlist_title=highlight_title)
