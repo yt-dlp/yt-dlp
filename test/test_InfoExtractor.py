@@ -253,7 +253,6 @@ class TestInfoExtractor(unittest.TestCase):
                 ''',
                 {
                     'chapters': [
-                        {"title": "<Untitled>", "start_time": 0, "end_time": 70},
                         {"title": "Explosie Turnhout", "start_time": 70, "end_time": 440},
                         {"title": "Jaarwisseling", "start_time": 440, "end_time": 1179},
                         {"title": "Natuurbranden Colorado", "start_time": 1179, "end_time": 1263},
