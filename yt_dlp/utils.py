@@ -4939,11 +4939,12 @@ def traverse_obj(
     ''' Traverse nested list/dict/tuple
     @param path_list        A list of paths which are checked one by one.
                             Each path is a list of keys where each key is a string,
-                            a function, a tuple of strings or "...".
+                            a function, a tuple of strings/None or "...".
                             When a fuction is given, it takes the key as argument and
                             returns whether the key matches or not. When a tuple is given,
                             all the keys given in the tuple are traversed, and
                             "..." traverses all the keys in the object
+                            "None" returns the object without traversal
     @param default          Default value to return
     @param expected_type    Only accept final value of this type (Can also be any callable)
     @param get_all          Return all the values obtained from a path or only the first one
@@ -4962,8 +4963,8 @@ def traverse_obj(
         nonlocal depth
         path = tuple(variadic(path))
         for i, key in enumerate(path):
-            if obj is None:
-                return None
+            if None in (key, obj):
+                return obj
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
