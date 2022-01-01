@@ -136,19 +136,6 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
-        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
-        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
-        'md5': '0aff3e7bc72c8813f5e0fae333316a1d',
-        'info_dict': {
-            'id': '141007_ab18_10wochensommer_film',
-            'ext': 'mp4',
-            'title': 'Ab 18! - 10 Wochen Sommer',
-            'description': 'md5:8253f41dc99ce2c3ff892dac2d65fe26',
-            'duration': 2660,
-            'timestamp': 1608604200,
-            'upload_date': '20201222',
-        },
-    }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
         'info_dict': {
             'id': '151025_magie_farben2_tex',
@@ -158,6 +145,7 @@ class ZDFIE(ZDFBaseIE):
             'duration': 2615,
             'timestamp': 1465021200,
             'upload_date': '20160604',
+            'thumbnail': 'https://www.zdf.de/assets/mauve-im-labor-100~768x432?cb=1464909117806',
         },
     }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
@@ -169,7 +157,8 @@ class ZDFIE(ZDFBaseIE):
             'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
             'title': 'Alles ist verzaubert',
             'timestamp': 1635520560,
-            'upload_date': '20211029'
+            'upload_date': '20211029',
+            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-100~1920x1080?cb=1636466431799',
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
@@ -195,6 +184,10 @@ class ZDFIE(ZDFBaseIE):
     }, {
         # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
         'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
+        'only_matching': True
+    }, {
+        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
+        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
         'only_matching': True
     }]
 
