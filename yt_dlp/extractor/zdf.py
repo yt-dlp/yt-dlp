@@ -143,7 +143,7 @@ class ZDFIE(ZDFBaseIE):
             'description': 'md5:47dff85977bde9fb8cba9e9c9b929839',
             'duration': 1890.0,
             'upload_date': '20211230',
-            'chapters': [{'start_time': 0, 'end_time': 31.62, 'title': '<Untitled>'}, {'start_time': 31.62, 'end_time': 296.56, 'title': 'Omikron-Erkenntnisse aus Südafrika'}, {'start_time': 296.56, 'end_time': 636.54, 'title': 'Drosten: "Omikron könnte Impflücke schließen"'}, {'start_time': 636.54, 'end_time': 883.07, 'title': 'Nachrichten'}, {'start_time': 883.07, 'end_time': 1483.17, 'title': '2021: Der Jahresrückblick'}, {'start_time': 1483.17, 'end_time': 1890, 'title': 'Bye Bye Claus'}],
+            'chapters': list,
             'thumbnail': 'md5:e65f459f741be5455c952cd820eb188e',
             'title': 'heute journal vom 30.12.2021',
             'timestamp': 1640897100,
