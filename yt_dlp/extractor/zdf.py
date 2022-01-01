@@ -136,6 +136,19 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
+        'url': 'https://www.zdf.de/nachrichten/heute-journal/heute-journal-vom-30-12-2021-100.html',
+        'info_dict': {
+            'id': '211230_sendung_hjo',
+            'ext': 'mp4',
+            'description': 'md5:47dff85977bde9fb8cba9e9c9b929839',
+            'duration': 1890.0,
+            'upload_date': '20211230',
+            'chapters': [{'start_time': 0, 'end_time': 31.62, 'title': '<Untitled>'}, {'start_time': 31.62, 'end_time': 296.56, 'title': 'Omikron-Erkenntnisse aus Südafrika'}, {'start_time': 296.56, 'end_time': 636.54, 'title': 'Drosten: "Omikron könnte Impflücke schließen"'}, {'start_time': 636.54, 'end_time': 883.07, 'title': 'Nachrichten'}, {'start_time': 883.07, 'end_time': 1483.17, 'title': '2021: Der Jahresrückblick'}, {'start_time': 1483.17, 'end_time': 1890, 'title': 'Bye Bye Claus'}],
+            'thumbnail': 'md5:e65f459f741be5455c952cd820eb188e',
+            'title': 'heute journal vom 30.12.2021',
+            'timestamp': 1640897100,
+        }
+    }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
         'info_dict': {
             'id': '151025_magie_farben2_tex',
@@ -227,12 +240,25 @@ class ZDFIE(ZDFBaseIE):
                     })
                 thumbnails.append(thumbnail)
 
+        chapters = []
+        chapter_marks = t.get('streamAnchorTag')
+        if chapter_marks:
+            for chap, next_chap in zip([{'anchorOffset': 0}] + chapter_marks, chapter_marks):
+                chapters.append({
+                    'start_time': chap.get('anchorOffset'),
+                    'end_time': next_chap.get('anchorOffset'),
+                    'title': chap.get('anchorLabel') or "<Untitled>"
+                })
+            if chapters:
+                chapters[-1]['end_time'] = int_or_none(t.get('duration'))
+
         return merge_dicts(info, {
             'title': title,
             'description': content.get('leadParagraph') or content.get('teasertext'),
             'duration': int_or_none(t.get('duration')),
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
+            'chapters': chapters or None
         })
 
     def _extract_regular(self, url, player, video_id):
