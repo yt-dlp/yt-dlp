@@ -240,15 +240,13 @@ class ZDFIE(ZDFBaseIE):
                     })
                 thumbnails.append(thumbnail)
 
-        chapters = []
-        chapter_marks = t.get('streamAnchorTag')
-        if chapter_marks:
-            for chap, next_chap in zip(chapter_marks, chapter_marks[1:] + [{'anchorOffset': int_or_none(t.get('duration'))}]):
-                chapters.append({
-                    'start_time': chap.get('anchorOffset'),
-                    'end_time': next_chap.get('anchorOffset'),
-                    'title': chap.get('anchorLabel')
-                })
+        chapter_marks = t.get('streamAnchorTag') or []
+        chapter_marks.append({'anchorOffset': int_or_none(t.get('duration'))})
+        chapters = [{
+            'start_time': chap.get('anchorOffset'),
+            'end_time': next_chap.get('anchorOffset'),
+            'title': chap.get('anchorLabel')
+        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
 
         return merge_dicts(info, {
             'title': title,
