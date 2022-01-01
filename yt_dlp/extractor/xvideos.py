@@ -126,9 +126,11 @@ class XVideosIE(InfoExtractor):
                 r'setVideo([^(]+)\((["\'])(http.+?)\2\)', webpage):
             format_id = kind.lower()
             if format_id == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+                hls_formats  = self._extract_m3u8_formats(
                     format_url, video_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+                    entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+                self._check_formats(hls_formats, video_id)
+                formats.extend(hls_formats)
             elif format_id in ('urllow', 'urlhigh'):
                 formats.append({
                     'url': format_url,
