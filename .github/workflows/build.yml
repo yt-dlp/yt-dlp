@@ -193,7 +193,7 @@ jobs:
 
     - name: Run PyInstaller Script with --onedir
       run: /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
-    - uses: papeloto/action-zip@v1
+    - uses: vimtor/action-zip@v1
       with:
         files: ./dist/yt-dlp_macos
         dest: ./dist/yt-dlp_macos.zip
@@ -266,7 +266,7 @@ jobs:
 
     - name: Run PyInstaller Script with --onedir
       run: python pyinst.py --onedir
-    - uses: papeloto/action-zip@v1
+    - uses: vimtor/action-zip@v1
       with:
         files: ./dist/yt-dlp
         dest: ./dist/yt-dlp_win.zip
