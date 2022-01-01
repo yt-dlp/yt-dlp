@@ -2375,6 +2375,8 @@ class YoutubeDL(object):
         if info_dict.get('is_live'):
             get_from_start = bool(self.params.get('live_from_start'))
             formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
+            if not get_from_start:
+                info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
         if not formats:
             self.raise_no_formats(info_dict)
@@ -2711,9 +2713,6 @@ class YoutubeDL(object):
         if max_downloads is not None:
             if self._num_downloads >= int(max_downloads):
                 raise MaxDownloadsReached()
-
-        if info_dict.get('is_live') and not self.params.get('live_from_start'):
-            info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
         # TODO: backward compatibility, to be removed
         info_dict['fulltitle'] = info_dict['title']
