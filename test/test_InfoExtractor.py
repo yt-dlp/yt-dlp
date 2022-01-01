@@ -230,7 +230,7 @@ class TestInfoExtractor(unittest.TestCase):
 "thumbnailUrl":"https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"}
 </script>''',
                 {
-                    'thumbnail': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg',
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
                 },
                 {},
             )

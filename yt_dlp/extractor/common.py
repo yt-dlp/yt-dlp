@@ -1451,7 +1451,6 @@ class InfoExtractor(object):
                 'height': int_or_none(e.get('height')),
                 'view_count': int_or_none(e.get('interactionCount')),
             })
-
             extract_interaction_statistic(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
