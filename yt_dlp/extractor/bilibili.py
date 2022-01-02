@@ -221,7 +221,7 @@ class BiliBiliIE(InfoExtractor):
                 for backup_url in durl.get('backup_url') or []:
                     formats.append({
                         'url': backup_url,
-                        'quality': -3,
+                        'quality': -2 if 'hd.mp4' in backup_url else -3,
                     })
 
                 for a_format in formats:
@@ -244,7 +244,7 @@ class BiliBiliIE(InfoExtractor):
                     formats.append({
                         'url': backup_url,
                         # backup URLs have lower priorities
-                        'quality': -2 if 'hd.mp4' in backup_url else -3,
+                        'quality': -3,
                     })
 
             info.update({
