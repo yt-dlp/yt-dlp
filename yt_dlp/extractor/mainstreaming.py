@@ -19,7 +19,7 @@ class MainStreamingIE(InfoExtractor):
 
     _TESTS = [
         {
-            # Live stream offline, has alternative content id'
+            # Live stream offline, has alternative content id
             'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/53EN6GxbWaJC',
             'info_dict': {
                 'id': '53EN6GxbWaJC',
@@ -65,7 +65,7 @@ class MainStreamingIE(InfoExtractor):
                 'duration': 1512
             }
         }, {
-            # video without webtools- prefix'
+            # video without webtools- prefix
             'url': 'https://f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/MfuWmzL2lGkA?autoplay=false&T=1635860445',
             'info_dict': {
                 'id': 'MfuWmzL2lGkA',
@@ -74,7 +74,7 @@ class MainStreamingIE(InfoExtractor):
                 'ext': 'mp4',
                 'live_status': 'not_live',
                 'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
-                'duration': 789.04  # TODO: this should be rounded?
+                'duration': 789.04
             }
         }, {
             # always-on livestream with DVR
