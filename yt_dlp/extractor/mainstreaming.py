@@ -20,7 +20,7 @@ class MainStreamingIE(InfoExtractor):
 
     _TESTS = [
         {
-            'note': 'Live stream offline, has alternative content id',
+            # Live stream offline, has alternative content id'
             'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/53EN6GxbWaJC',
             'info_dict': {
                 'id': '53EN6GxbWaJC',
@@ -36,7 +36,7 @@ class MainStreamingIE(InfoExtractor):
             ],
             'skip': 'live stream offline'
         }, {
-            'note': 'playlist',
+            # playlist
             'url': 'https://webtools-e18da6642b684f8aa9ae449862783a56.msvdn.net/embed/WDAF1KOWUpH3',
             'info_dict': {
                 'id': 'WDAF1KOWUpH3',
@@ -44,7 +44,7 @@ class MainStreamingIE(InfoExtractor):
             },
             'playlist_mincount': 2
         }, {
-            'note': 'livestream',
+            # livestream
             'url': 'https://webtools-859c1818ed614cc5b0047439470927b0.msvdn.net/embed/tDoFkZD3T1Lw',
             'info_dict': {
                 'id': 'tDoFkZD3T1Lw',
@@ -55,7 +55,6 @@ class MainStreamingIE(InfoExtractor):
             },
             'skip': 'live stream'
         }, {
-            'note': 'video',
             'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/EUlZfGWkGpOd?autoPlay=false',
             'info_dict': {
                 'id': 'EUlZfGWkGpOd',
@@ -67,7 +66,7 @@ class MainStreamingIE(InfoExtractor):
                 'duration': 1512
             }
         }, {
-            'note': 'video without webtools- prefix',
+            # video without webtools- prefix'
             'url': 'https://f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/MfuWmzL2lGkA?autoplay=false&T=1635860445',
             'info_dict': {
                 'id': 'MfuWmzL2lGkA',
@@ -79,8 +78,7 @@ class MainStreamingIE(InfoExtractor):
                 'duration': 789.04  # TODO: this should be rounded?
             }
         }, {
-            # TODO: can't get the title test working
-            'note': 'always-on livestream with DVR',
+            # always-on livestream with DVR
             'url': 'https://webtools-f5842579ff984c1c98d63b8d789673eb.msvdn.net/embed/HVvPMzy',
             'info_dict': {
                 'id': 'HVvPMzy',
@@ -94,7 +92,7 @@ class MainStreamingIE(InfoExtractor):
                 'skip_download': True,
             },
         }, {
-            'note': 'no host',
+            # no host
             'url': 'https://webtools.msvdn.net/embed/MfuWmzL2lGkA',
             'only_matching': True
         }, {
