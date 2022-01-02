@@ -2116,9 +2116,11 @@ def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     if num is None:
         return None
     exponent = 0 if num == 0 else int(math.log(num, factor))
-    suffix = ['', *'KMGTPEZY'][exponent]
+    suffix = ['', *'kMGTPEZY'][exponent]
+    if factor == 1024:
+        suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
     converted = num / (factor ** exponent)
-    return fmt % (converted, f'{suffix}i' if suffix and factor == 1024 else suffix)
+    return fmt % (converted, suffix)
 
 
 def format_bytes(bytes):
@@ -3194,7 +3196,7 @@ def parse_codecs(codecs_str):
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec, hdr = None, None, None
+    vcodec, acodec, tcodec, hdr = None, None, None, None
     for full_codec in split_codecs:
         parts = full_codec.split('.')
         codec = parts[0].replace('0', '')
@@ -3211,13 +3213,17 @@ def parse_codecs(codecs_str):
         elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
+        elif codec in ('stpp', 'wvtt',):
+            if not tcodec:
+                tcodec = full_codec
         else:
             write_string('WARNING: Unknown codec %s\n' % full_codec, sys.stderr)
-    if vcodec or acodec:
+    if vcodec or acodec or tcodec:
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
+            **({'tcodec': tcodec} if tcodec is not None else {}),
         }
     elif len(split_codecs) == 2:
         return {
@@ -4933,11 +4939,12 @@ def traverse_obj(
     ''' Traverse nested list/dict/tuple
     @param path_list        A list of paths which are checked one by one.
                             Each path is a list of keys where each key is a string,
-                            a function, a tuple of strings or "...".
+                            a function, a tuple of strings/None or "...".
                             When a fuction is given, it takes the key as argument and
                             returns whether the key matches or not. When a tuple is given,
                             all the keys given in the tuple are traversed, and
                             "..." traverses all the keys in the object
+                            "None" returns the object without traversal
     @param default          Default value to return
     @param expected_type    Only accept final value of this type (Can also be any callable)
     @param get_all          Return all the values obtained from a path or only the first one
@@ -4956,8 +4963,8 @@ def traverse_obj(
         nonlocal depth
         path = tuple(variadic(path))
         for i, key in enumerate(path):
-            if obj is None:
-                return None
+            if None in (key, obj):
+                return obj
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...

@@ -1429,6 +1429,23 @@ class InfoExtractor(object):
                     continue
                 info[count_key] = interaction_count
 
+        def extract_chapter_information(e):
+            chapters = [{
+                'title': part.get('name'),
+                'start_time': part.get('startOffset'),
+                'end_time': part.get('endOffset'),
+            } for part in e.get('hasPart', []) if part.get('@type') == 'Clip']
+            for idx, (last_c, current_c, next_c) in enumerate(zip(
+                    [{'end_time': 0}] + chapters, chapters, chapters[1:])):
+                current_c['end_time'] = current_c['end_time'] or next_c['start_time']
+                current_c['start_time'] = current_c['start_time'] or last_c['end_time']
+                if None in current_c.values():
+                    self.report_warning(f'Chapter {idx} contains broken data. Not extracting chapters')
+                    return
+            if chapters:
+                chapters[-1]['end_time'] = chapters[-1]['end_time'] or info['duration']
+                info['chapters'] = chapters
+
         def extract_video_object(e):
             assert e['@type'] == 'VideoObject'
             author = e.get('author')
@@ -1436,7 +1453,8 @@ class InfoExtractor(object):
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnail': url_or_none(e.get('thumbnailUrl') or e.get('thumbnailURL')),
+                'thumbnails': [{'url': url_or_none(url)}
+                               for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))],
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
                 # author can be an instance of 'Organization' or 'Person' types.
@@ -1451,6 +1469,7 @@ class InfoExtractor(object):
                 'view_count': int_or_none(e.get('interactionCount')),
             })
             extract_interaction_statistic(e)
+            extract_chapter_information(e)
 
         def traverse_json_ld(json_ld, at_top_level=True):
             for e in json_ld:
@@ -2712,11 +2731,15 @@ class InfoExtractor(object):
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    codecs = representation_attrib.get('codecs', '')
+                    codecs = parse_codecs(representation_attrib.get('codecs', ''))
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
-                        elif codecs.split('.')[0] == 'stpp':
+                        elif codecs['vcodec'] != 'none':
+                            content_type = 'video'
+                        elif codecs['acodec'] != 'none':
+                            content_type = 'audio'
+                        elif codecs.get('tcodec', 'none') != 'none':
                             content_type = 'text'
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
@@ -2762,8 +2785,8 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
+                            **codecs
                         }
-                        f.update(parse_codecs(codecs))
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),

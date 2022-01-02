@@ -645,6 +645,7 @@ class TestYoutubeDL(unittest.TestCase):
         'ext': 'mp4',
         'width': None,
         'height': 1080,
+        'filesize': 1024,
         'title1': '$PATH',
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
@@ -778,8 +779,9 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
         test('%(title5)+U', 'áéí A')
         test('%(title5)+#U', 'a\u0301e\u0301i\u0301 A')
-        test('%(height)D', '1K')
-        test('%(height)5.2D', ' 1.08K')
+        test('%(height)D', '1k')
+        test('%(filesize)#D', '1Ki')
+        test('%(height)5.2D', ' 1.08k')
         test('%(title4)#S', 'foo_bar_test')
         test('%(title4).10S', ('foo \'bar\' ', 'foo \'bar\'' + ('#' if compat_os_name == 'nt' else ' ')))
         if compat_os_name == 'nt':

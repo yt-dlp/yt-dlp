@@ -656,6 +656,7 @@ from .kankan import KankanIE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
+from .kelbyone import KelbyOneIE
 from .ketnet import KetnetIE
 from .khanacademy import (
     KhanAcademyIE,

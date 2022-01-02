@@ -1166,7 +1166,9 @@ class YoutubeDL(object):
                     'NF%s%s' % ('K' if '+' in flags else '', 'D' if '#' in flags else 'C'),
                     value), str_fmt
             elif fmt[-1] == 'D':  # decimal suffix
-                value, fmt = format_decimal_suffix(value, f'%{fmt[:-1]}f%s' if fmt[:-1] else '%d%s'), 's'
+                num_fmt, fmt = fmt[:-1].replace('#', ''), 's'
+                value = format_decimal_suffix(value, f'%{num_fmt}f%s' if num_fmt else '%d%s',
+                                              factor=1024 if '#' in flags else 1000)
             elif fmt[-1] == 'S':  # filename sanitization
                 value, fmt = filename_sanitizer(initial_field, value, restricted='#' in flags), str_fmt
             elif fmt[-1] == 'c':
@@ -2373,6 +2375,8 @@ class YoutubeDL(object):
         if info_dict.get('is_live'):
             get_from_start = bool(self.params.get('live_from_start'))
             formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
+            if not get_from_start:
+                info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
         if not formats:
             self.raise_no_formats(info_dict)
@@ -2709,9 +2713,6 @@ class YoutubeDL(object):
         if max_downloads is not None:
             if self._num_downloads >= int(max_downloads):
                 raise MaxDownloadsReached()
-
-        if info_dict.get('is_live') and not self.params.get('live_from_start'):
-            info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
         # TODO: backward compatibility, to be removed
         info_dict['fulltitle'] = info_dict['title']

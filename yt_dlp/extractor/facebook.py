@@ -13,6 +13,7 @@ from ..compat import (
 )
 from ..utils import (
     clean_html,
+    determine_ext,
     error_to_compat_str,
     ExtractorError,
     float_or_none,
@@ -510,15 +511,19 @@ class FacebookIE(InfoExtractor):
                 def parse_graphql_video(video):
                     formats = []
                     q = qualities(['sd', 'hd'])
-                    for (suffix, format_id) in [('', 'sd'), ('_quality_hd', 'hd')]:
-                        playable_url = video.get('playable_url' + suffix)
+                    for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
+                                           ('playable_url_dash', '')):
+                        playable_url = video.get(key)
                         if not playable_url:
                             continue
-                        formats.append({
-                            'format_id': format_id,
-                            'quality': q(format_id),
-                            'url': playable_url,
-                        })
+                        if determine_ext(playable_url) == 'mpd':
+                            formats.extend(self._extract_mpd_formats(playable_url, video_id))
+                        else:
+                            formats.append({
+                                'format_id': format_id,
+                                'quality': q(format_id),
+                                'url': playable_url,
+                            })
                     extract_dash_manifest(video, formats)
                     process_formats(formats)
                     v_id = video.get('videoId') or video.get('id') or video_id
