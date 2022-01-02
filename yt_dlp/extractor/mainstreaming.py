@@ -155,13 +155,13 @@ class MainStreamingIE(InfoExtractor):
                     default='{}', flags=re.DOTALL),
                 video_id, transform_source=js_to_json, fatal=False) or {}
             content_info = player_config['contentInfo']
-        host = content_info.get('host') or host
 
+        host = content_info.get('host') or host
         video_id = content_info.get('contentID') or video_id
-        title = content_info.get('title') or video_id
-        description = traverse_obj(content_info, 'longDescription', 'shortDescription', expected_type=str, get_all=False)
-        is_live = False
-        was_live = False
+        title = content_info.get('title')
+        description = traverse_obj(
+            content_info, 'longDescription', 'shortDescription', expected_type=str, get_all=False)
+        is_live = was_live = False
         if content_info.get('drmEnabled'):
             self.report_drm(video_id)
 
@@ -175,7 +175,7 @@ class MainStreamingIE(InfoExtractor):
         subtitles = {}
         # Live content
         if content_type == 20:
-            dvr_enabled = traverse_obj(content_info, ('playerSettings', 'dvrEnabled'), expected_type=bool)  # TODO, add or  check --live-from-start support
+            dvr_enabled = traverse_obj(content_info, ('playerSettings', 'dvrEnabled'), expected_type=bool)
             format_base_url = f"https://{host}/live/{content_info['liveSourceID']}/{video_id}/%s{'?DVR' if dvr_enabled else ''}"
             is_live = True
             heartbeat = self._call_api(host, f'heartbeat/{video_id}', video_id, note='Checking stream status') or {}
@@ -186,26 +186,28 @@ class MainStreamingIE(InfoExtractor):
 
         # Playlist
         elif content_type == 31:
-            return self.playlist_result(self._playlist_entries(host, content_info.get('playlistContents')), video_id, title, description)
+            return self.playlist_result(
+                self._playlist_entries(host, content_info.get('playlistContents')), video_id, title, description)
         # Normal video content?
         elif content_type == 10:
-            format_base_url = f"https://{host}/vod/{video_id}/%s"
+            format_base_url = f'https://{host}/vod/{video_id}/%s'
             # Progressive format
             # Note: in https://webtools.msvdn.net/loader/playerV2.js there is mention of original.mp3 format,
-            # however it  seems to be the same as original.mp4?
+            # however it seems to be the same as original.mp4?
             formats.append({'url': format_base_url % 'original.mp4'})
         else:
             self.raise_no_formats(f'Unknown content type {content_type}')
 
         if format_base_url:
-            m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(format_base_url % 'playlist.m3u8', video_id=video_id, fatal=False)
-            mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(format_base_url % 'manifest.mpd', video_id=video_id, fatal=False)
+            m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
+                format_base_url % 'playlist.m3u8', video_id=video_id, fatal=False)
+            mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(
+                format_base_url % 'manifest.mpd', video_id=video_id, fatal=False)
 
             subtitles = self._merge_subtitles(m3u8_subs, mpd_subs)
             formats.extend(m3u8_formats + mpd_formats)
 
         self._sort_formats(formats)
-        # TODO: subtitles (in subtitlesPath)
 
         return {
             'id': video_id,
