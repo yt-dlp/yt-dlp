@@ -2538,7 +2538,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }.get(client)
         if not url:
             return {}
-        webpage = self._download_webpage(url, video_id, fatal=False, note=f'Downloading %s config' % client.replace('_', ' ').strip())
+        webpage = self._download_webpage(url, video_id, fatal=False, note='Downloading %s config' % client.replace('_', ' ').strip())
         return self.extract_ytcfg(video_id, webpage) or {}
 
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
