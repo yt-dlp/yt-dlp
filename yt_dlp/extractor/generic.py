@@ -139,6 +139,7 @@ from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 
+
 class GenericIE(InfoExtractor):
     IE_DESC = 'Generic downloader that works on some sites'
     _VALID_URL = r'.*'

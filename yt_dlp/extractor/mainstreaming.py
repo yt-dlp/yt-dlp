@@ -42,7 +42,7 @@ class MainStreamingIE(InfoExtractor):
                 'id': 'WDAF1KOWUpH3',
                 'title': 'Playlist homepage',
             },
-            'playlist_mincount': 8,
+            'playlist_mincount': 2
         }, {
             'note': 'livestream',
             'url': 'https://webtools-859c1818ed614cc5b0047439470927b0.msvdn.net/embed/tDoFkZD3T1Lw',
