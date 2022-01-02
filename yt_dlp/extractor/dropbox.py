@@ -31,7 +31,6 @@ class DropboxIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-
         mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         webpage = self._download_webpage(url, video_id)
@@ -39,23 +38,23 @@ class DropboxIE(InfoExtractor):
         title = os.path.splitext(fn)[0]
 
         password = self.get_param('videopassword')
-        if self._og_search_title(webpage) == 'Dropbox - Password Required' or 'Enter the password for this link' in webpage:
+        if (self._og_search_title(webpage) == 'Dropbox - Password Required'
+                or 'Enter the password for this link' in webpage):
 
             if password:
-                content_id = self._search_regex(r'''content_id=(.*?)[\"\']''', webpage, 'content_id')
+                content_id = self._search_regex(r'content_id=(.*?)["\']', webpage, 'content_id')
                 payload = f'is_xhr=true&t={self._get_cookies("https://www.dropbox.com").get("t").value}&content_id={content_id}&password={password}&url={url}'
-                response = self._download_json('https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode('UTF-8'), headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'})
+                response = self._download_json(
+                    'https://www.dropbox.com/sm/auth', video_id, 'POSTing video password', data=payload.encode('UTF-8'),
+                    headers={'content-type': 'application/x-www-form-urlencoded; charset=UTF-8'})
 
-                if response.get('status') == 'authed':
-                    webpage = self._download_webpage(url, video_id)
-                else:
+                if response.get('status') != 'authed':
                     raise ExtractorError('Authentication failed!', expected=True)
-
+                webpage = self._download_webpage(url, video_id)
             elif self._get_cookies('https://dropbox.com').get('sm_auth'):
                 webpage = self._download_webpage(url, video_id)
-
             else:
-                raise ExtractorError('Password protected video, use --video-password <password>')
+                raise ExtractorError('Password protected video, use --video-password <password>', expected=True)
 
         json_string = self._html_search_regex(r'InitReact\.mountComponent.+ "props":(.+), "elem_id"', webpage, 'Info JSON')
         info_json = self._parse_json(json_string, video_id)
