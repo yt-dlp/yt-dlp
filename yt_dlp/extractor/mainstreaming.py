@@ -16,7 +16,6 @@ from ..utils import (
 class MainStreamingIE(InfoExtractor):
     _VALID_URL = r'https?://(?:webtools-?)?(?P<host>[A-Za-z0-9-]*\.msvdn.net)/(?:embed|amp_embed|content)/(?P<id>\w+)'
     IE_DESC = 'MainStreaming Player'
-    # https://video.milanofinanza.it and milanofinanza.it, youtg.net, https://www.lactv.it
 
     _TESTS = [
         {
