@@ -948,10 +948,12 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      "pre_process" (after extraction),
                                      "before_dl" (before video download),
                                      "post_process" (after video download;
-                                     default) or "after_move" (after moving file
-                                     to their final locations). This option can
-                                     be used multiple times to add different
-                                     postprocessors
+                                     default), "after_move" (after moving file
+                                     to their final locations), "after_video"
+                                     (after downloading and processing all
+                                     formats of a video), or "playlist" (end of
+                                     playlist). This option can be used multiple
+                                     times to add different postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,

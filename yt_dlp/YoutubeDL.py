@@ -1766,6 +1766,10 @@ class YoutubeDL(object):
 
         for tmpl in self.params['forceprint'].get('playlist', []):
             self._forceprint(tmpl, ie_result)
+
+        for pp in self._pps['playlist']:
+            ie_result = self.run_pp(pp, ie_result)
+
         self.to_screen('[download] Finished downloading playlist: %s' % playlist)
         return ie_result
 
@@ -2564,6 +2568,10 @@ class YoutubeDL(object):
                 new_info['__original_infodict'] = info_dict
                 new_info.update(fmt)
                 self.process_info(new_info)
+
+            for pp in self._pps['after_video']:
+                info_dict = self.run_pp(pp, info_dict)
+
         # We update the info dict with the selected best quality format (backwards compatibility)
         if formats_to_download:
             info_dict.update(formats_to_download[-1])

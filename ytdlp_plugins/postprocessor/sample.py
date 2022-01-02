@@ -14,8 +14,10 @@ class SamplePluginPP(PostProcessor):
 
     # ℹ️ See docstring of yt_dlp.postprocessor.common.PostProcessor.run
     def run(self, info):
-        filepath = info.get('filepath')
-        if filepath:  # PP was called after download (default)
+        if info.get('_type', 'video') != 'video':  # PP was called for playlist
+            self.to_screen(f'Post-processing playlist {info.get("id")!r} with {self._kwargs}')
+        elif info.get('filepath'):  # PP was called after download (default)
+            filepath = info.get('filepath')
             self.to_screen(f'Post-processed {filepath!r} with {self._kwargs}')
         else:  # PP was called before actual download
             filepath = info.get('_filename')
