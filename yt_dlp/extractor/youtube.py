@@ -161,8 +161,8 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False
     },
-    # ios has HLS live streams
-    # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680
+    # iOS clients have HLS live streams. Setting device model to get 60fps formats.
+    # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
         'INNERTUBE_API_KEY': 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc',
         'INNERTUBE_CONTEXT': {
