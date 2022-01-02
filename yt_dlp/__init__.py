@@ -351,9 +351,9 @@ def _real_main(argv=None):
 
     for k, tmpl in opts.outtmpl.items():
         validate_outtmpl(tmpl, f'{k} output template')
-    opts.forceprint = opts.forceprint or []
-    for tmpl in opts.forceprint or []:
-        validate_outtmpl(tmpl, 'print template')
+    for type_, tmpl_list in opts.forceprint.items():
+        for tmpl in tmpl_list:
+            validate_outtmpl(tmpl, f'{type_} print template')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
     for k, tmpl in opts.progress_template.items():
         k = f'{k[:-6]} console title' if '-title' in k else f'{k} progress'
@@ -395,7 +395,10 @@ def _real_main(argv=None):
         opts.parse_metadata.append('title:%s' % opts.metafromtitle)
     opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, opts.parse_metadata)))
 
-    any_getting = opts.forceprint or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
+    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
+                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
+                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
+
     any_printing = opts.print_json
     download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
 

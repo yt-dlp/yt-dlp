@@ -152,9 +152,9 @@ def parseOpts(overrideArguments=None):
     def _dict_from_options_callback(
             option, opt_str, value, parser,
             allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True,
-            process_key=str.lower):
+            process_key=str.lower, append=False):
 
-        out_dict = getattr(parser.values, option.dest)
+        out_dict = dict(getattr(parser.values, option.dest))
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
         mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
@@ -171,7 +171,8 @@ def parseOpts(overrideArguments=None):
         except Exception as err:
             raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
-            out_dict[key] = val
+            out_dict[key] = out_dict.get(key, []) + [val] if append else val
+        setattr(parser.values, option.dest, out_dict)
 
     # No need to wrap help messages if we're on a wide console
     columns = compat_get_terminal_size().columns
@@ -882,10 +883,17 @@ def parseOpts(overrideArguments=None):
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
         '-O', '--print',
-        metavar='TEMPLATE', action='append', dest='forceprint',
-        help=(
-            'Quiet, but print the given fields for each video. Simulate unless --no-simulate is used. '
-            'Either a field name or same syntax as the output template can be used'))
+        metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'video|playlist',
+            'default_key': 'video',
+            'multiple_keys': False,
+            'append': True,
+        }, help=(
+            'Field name or output template to print to screen per video. '
+            'Prefix the template with "playlist:" to print it once per playlist instead. '
+            'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,

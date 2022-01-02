@@ -662,10 +662,12 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      formats are found (default)
     --skip-download                  Do not download the video but write all
                                      related files (Alias: --no-download)
-    -O, --print TEMPLATE             Quiet, but print the given fields for each
-                                     video. Simulate unless --no-simulate is
-                                     used. Either a field name or same syntax as
-                                     the output template can be used
+    -O, --print [WHEN:]TEMPLATE      Field name or output template to print to
+                                     screen per video. Prefix the template with
+                                     "playlist:" to print it once per playlist
+                                     instead. Implies --quiet and --simulate
+                                     (unless --no-simulate is used). This option
+                                     can be used multiple times
     -j, --dump-json                  Quiet, but print JSON information for each
                                      video. Simulate unless --no-simulate is
                                      used. See "OUTPUT TEMPLATE" for a

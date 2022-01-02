@@ -199,7 +199,9 @@ class YoutubeDL(object):
     verbose:           Print additional info to stdout.
     quiet:             Do not print messages to stdout.
     no_warnings:       Do not print out anything for warnings.
-    forceprint:        A list of templates to force print
+    forceprint:        A dict with keys video/playlist mapped to
+                       a list of templates to force print to stdout
+                       For compatibility, a single list is also accepted
     forceurl:          Force printing final URL. (Deprecated)
     forcetitle:        Force printing title. (Deprecated)
     forceid:           Force printing ID. (Deprecated)
@@ -584,6 +586,11 @@ class YoutubeDL(object):
             self.params.pop('overwrites', None)
         else:
             self.params['nooverwrites'] = not self.params['overwrites']
+
+        # Compatibility with older syntax
+        params.setdefault('forceprint', {})
+        if not isinstance(params['forceprint'], dict):
+            params['forceprint'] = {'video': params['forceprint']}
 
         if params.get('bidi_workaround', False):
             try:
@@ -1755,6 +1762,9 @@ class YoutubeDL(object):
                 'updated playlist', ie_result,
                 self.prepare_filename(ie_copy, 'pl_infojson'), overwrite=True) is None:
             return
+
+        for tmpl in self.params['forceprint'].get('playlist', []):
+            self._forceprint(tmpl, ie_result)
         self.to_screen('[download] Finished downloading playlist: %s' % playlist)
         return ie_result
 
@@ -2626,6 +2636,14 @@ class YoutubeDL(object):
             subs[lang] = f
         return subs
 
+    def _forceprint(self, tmpl, info_dict):
+        mobj = re.match(r'\w+(=?)$', tmpl)
+        if mobj and mobj.group(1):
+            tmpl = f'{tmpl[:-1]} = %({tmpl[:-1]})s'
+        elif mobj:
+            tmpl = '%({})s'.format(tmpl)
+        self.to_stdout(self.evaluate_outtmpl(tmpl, info_dict))
+
     def __forced_printings(self, info_dict, filename, incomplete):
         def print_mandatory(field, actual_field=None):
             if actual_field is None:
@@ -2648,15 +2666,10 @@ class YoutubeDL(object):
         elif 'url' in info_dict:
             info_dict['urls'] = info_dict['url'] + info_dict.get('play_path', '')
 
-        if self.params.get('forceprint') or self.params.get('forcejson'):
+        if self.params['forceprint'].get('video') or self.params.get('forcejson'):
             self.post_extract(info_dict)
-        for tmpl in self.params.get('forceprint', []):
-            mobj = re.match(r'\w+(=?)$', tmpl)
-            if mobj and mobj.group(1):
-                tmpl = f'{tmpl[:-1]} = %({tmpl[:-1]})s'
-            elif mobj:
-                tmpl = '%({})s'.format(tmpl)
-            self.to_stdout(self.evaluate_outtmpl(tmpl, info_dict))
+        for tmpl in self.params['forceprint'].get('video', []):
+            self._forceprint(tmpl, info_dict)
 
         print_mandatory('title')
         print_mandatory('id')
