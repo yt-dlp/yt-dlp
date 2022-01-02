@@ -129,6 +129,9 @@ class MainStreamingIE(InfoExtractor):
             host = 'webtools' + ('-' if not host.startswith('.') else '') + host
         return host
 
+    def _get_webtools_base_url(self, host):
+        return f'{self.http_scheme()}//{self._get_webtools_host(host)}'
+
     def _call_api(self, host: str, path: str, item_id: str, query=None, note='Downloading API JSON', fatal=False):
         # JSON API, does not appear to be documented
         return self._call_webtools_api(host, '/api/v2/' + path, item_id, query, note, fatal)
@@ -136,7 +139,7 @@ class MainStreamingIE(InfoExtractor):
     def _call_webtools_api(self, host: str, path: str, item_id: str, query=None, note='Downloading webtools API JSON', fatal=False):
         # webtools docs: https://webtools.msvdn.net/
         return self._download_json(
-            urljoin(f'https://{self._get_webtools_host(host)}/', path), item_id, query=query, note=note, fatal=fatal)
+            urljoin(self._get_webtools_base_url(host), path), item_id, query=query, note=note, fatal=fatal)
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
@@ -180,7 +183,6 @@ class MainStreamingIE(InfoExtractor):
                 self.raise_no_formats(f'MainStreaming said: {heartbeat.get("responseMessage")}', expected=True)
                 is_live = False
                 was_live = True
-                # TODO: if stream does not exist, grab alternative content id?
 
         # Playlist
         elif content_type == 31:
@@ -188,8 +190,9 @@ class MainStreamingIE(InfoExtractor):
         # Normal video content?
         elif content_type == 10:
             format_base_url = f"https://{host}/vod/{video_id}/%s"
-            # Progressive format: in https://webtools.msvdn.net/loader/playerV2.js there is mention of original.mp3 format,
-            # however that seems to be the same as original.mp4.
+            # Progressive format
+            # Note: in https://webtools.msvdn.net/loader/playerV2.js there is mention of original.mp3 format,
+            # however it  seems to be the same as original.mp4?
             formats.append({'url': format_base_url % 'original.mp4'})
         else:
             self.raise_no_formats(f'Unknown content type {content_type}')
@@ -214,5 +217,5 @@ class MainStreamingIE(InfoExtractor):
             'duration': parse_duration(content_info.get('duration')),
             'tags': content_info.get('tags'),
             'subtitles': subtitles,
-            'thumbnail': f'https://{self._get_webtools_host(host)}/image/{video_id}/poster'  # may not always exist?
+            'thumbnail': urljoin(self._get_webtools_base_url(host), f'image/{video_id}/poster')
         }
