@@ -2564,23 +2564,35 @@ class YoutubeDL(object):
                 self.process_info(dict(info_dict))
         elif download:
             self.to_screen(
-                '[info] %s: Downloading %d format(s): %s' % (
-                    info_dict['id'], len(formats_to_download),
-                    ", ".join([f['format_id'] for f in formats_to_download])))
+                f'[info] {info_dict["id"]}: Downloading {len(formats_to_download)} format(s): '
+                + ', '.join([f['format_id'] for f in formats_to_download]))
+
+            max_downloads_reached = False
             for i, fmt in enumerate(formats_to_download):
                 formats_to_download[i] = new_info = dict(info_dict)
                 # Save a reference to the original info_dict so that it can be modified in process_info if needed
                 new_info.update(fmt)
                 new_info['__original_infodict'] = info_dict
-                self.process_info(new_info)
+                try:
+                    self.process_info(new_info)
+                except MaxDownloadsReached:
+                    max_downloads_reached = True
                 new_info.pop('__original_infodict')
                 # Remove copied info
                 for key, val in tuple(new_info.items()):
                     if info_dict.get(key) == val:
                         new_info.pop(key)
+                if max_downloads_reached:
+                    break
 
+            write_archive = set(f.get('_write_download_archive', False) for f in formats_to_download)
+            assert write_archive.issubset({True, False, 'ignore'})
+            if True in write_archive and False not in write_archive:
+                self.record_download_archive(info_dict)
             for pp in self._pps['after_video']:
                 info_dict = self.run_pp(pp, info_dict)
+            if max_downloads_reached:
+                raise MaxDownloadsReached()
 
         # We update the info dict with the selected best quality format (backwards compatibility)
         if formats_to_download:
@@ -2742,11 +2754,6 @@ class YoutubeDL(object):
         assert info_dict.get('_type', 'video') == 'video'
         original_infodict = info_dict
 
-        max_downloads = self.params.get('max_downloads')
-        if max_downloads is not None:
-            if self._num_downloads >= int(max_downloads):
-                raise MaxDownloadsReached()
-
         # TODO: backward compatibility, to be removed
         info_dict['fulltitle'] = info_dict['title']
 
@@ -2754,6 +2761,7 @@ class YoutubeDL(object):
             info_dict['format'] = info_dict['ext']
 
         if self._match_entry(info_dict) is not None:
+            info_dict['_write_download_archive'] = 'ignore'
             return
 
         self.post_extract(info_dict)
@@ -2768,9 +2776,7 @@ class YoutubeDL(object):
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
         if self.params.get('simulate'):
-            if self.params.get('force_write_download_archive', False):
-                self.record_download_archive(info_dict)
-            # Do nothing else if in simulate mode
+            info_dict['_write_download_archive'] = self.params.get('force_write_download_archive')
             return
 
         if full_filename is None:
@@ -2879,12 +2885,12 @@ class YoutubeDL(object):
             self.report_error('Preprocessing: %s' % str(err))
             return
 
-        must_record_download_archive = False
-        if self.params.get('skip_download', False):
+        if self.params.get('skip_download'):
             info_dict['filepath'] = temp_filename
             info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
             info_dict['__files_to_move'] = files_to_move
             replace_info_dict(self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict))
+            info_dict['_write_download_archive'] = self.params.get('force_write_download_archive')
         else:
             # Download
             info_dict.setdefault('__postprocessors', [])
@@ -3113,11 +3119,14 @@ class YoutubeDL(object):
                 except Exception as err:
                     self.report_error('post hooks: %s' % str(err))
                     return
-                must_record_download_archive = True
+                info_dict['_write_download_archive'] = True
 
-        if must_record_download_archive or self.params.get('force_write_download_archive', False):
-            self.record_download_archive(info_dict)
+        if self.params.get('force_write_download_archive'):
+            info_dict['_write_download_archive'] = True
+
+        # Make sure the info_dict was modified in-place
         assert info_dict is original_infodict
+
         max_downloads = self.params.get('max_downloads')
         if max_downloads is not None and self._num_downloads >= int(max_downloads):
             raise MaxDownloadsReached()
@@ -3317,6 +3326,7 @@ class YoutubeDL(object):
             return
         vid_id = self._make_archive_id(info_dict)
         assert vid_id
+        self.write_debug(f'Adding to archive: {vid_id}')
         with locked_file(fn, 'a', encoding='utf-8') as archive_file:
             archive_file.write(vid_id + '\n')
         self.archive.add(vid_id)
