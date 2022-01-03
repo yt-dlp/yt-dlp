@@ -143,6 +143,8 @@ def _real_main(argv=None):
             '"-f best" selects the best pre-merged format which is often not the best option',
             'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
+    if opts.exec_cmd.get('before_dl') and opts.exec_before_dl_cmd:
+        parser.error('using "--exec-before-download" conflicts with "--exec before_dl:"')
     if opts.usenetrc and (opts.username is not None or opts.password is not None):
         parser.error('using .netrc conflicts with giving username/password')
     if opts.password is not None and opts.username is None:
@@ -489,13 +491,6 @@ def _real_main(argv=None):
             # Run this before the actual video download
             'when': 'before_dl'
         })
-    # Must be after all other before_dl
-    if opts.exec_before_dl_cmd:
-        postprocessors.append({
-            'key': 'Exec',
-            'exec_cmd': opts.exec_before_dl_cmd,
-            'when': 'before_dl'
-        })
     if opts.extractaudio:
         postprocessors.append({
             'key': 'FFmpegExtractAudio',
@@ -596,13 +591,15 @@ def _real_main(argv=None):
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
-    # Exec must be the last PP
-    if opts.exec_cmd:
+    # Exec must be the last PP of each category
+    if opts.exec_before_dl_cmd:
+        opts.exec_cmd.setdefault('before_dl', opts.exec_before_dl_cmd)
+    for when, exec_cmd in opts.exec_cmd.items():
         postprocessors.append({
             'key': 'Exec',
-            'exec_cmd': opts.exec_cmd,
+            'exec_cmd': exec_cmd,
             # Run this only after the files have been moved to their final locations
-            'when': 'after_move'
+            'when': when,
         })
 
     def report_args_compat(arg, name):

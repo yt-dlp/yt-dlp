@@ -91,6 +91,7 @@ from .utils import (
     PerRequestProxyHandler,
     platform_name,
     Popen,
+    POSTPROCESS_WHEN,
     PostProcessingError,
     preferredencoding,
     prepend_extension,
@@ -507,7 +508,7 @@ class YoutubeDL(object):
 
     params = None
     _ies = {}
-    _pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
+    _pps = {k: [] for k in POSTPROCESS_WHEN}
     _printed_messages = set()
     _first_webpage_request = True
     _download_retcode = None
@@ -525,7 +526,7 @@ class YoutubeDL(object):
             params = {}
         self._ies = {}
         self._ies_instances = {}
-        self._pps = {'pre_process': [], 'before_dl': [], 'after_move': [], 'post_process': []}
+        self._pps = {k: [] for k in POSTPROCESS_WHEN}
         self._printed_messages = set()
         self._first_webpage_request = True
         self._post_hooks = []

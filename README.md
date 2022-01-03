@@ -896,23 +896,20 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --ffmpeg-location PATH           Location of the ffmpeg binary; either the
                                      path to the binary or its containing
                                      directory
-    --exec CMD                       Execute a command on the file after
-                                     downloading and post-processing. Same
-                                     syntax as the output template can be used
-                                     to pass any field as arguments to the
-                                     command. An additional field "filepath"
+    --exec [WHEN:]CMD                Execute a command, optionally prefixed with
+                                     when to execute it (after_move if
+                                     unspecified), separated by a ":". Supported
+                                     values of "WHEN" are the same as that of
+                                     --use-postprocessor. Same syntax as the
+                                     output template can be used to pass any
+                                     field as arguments to the command. After
+                                     download, an additional field "filepath"
                                      that contains the final path of the
-                                     downloaded file is also available. If no
-                                     fields are passed, %(filepath)q is appended
-                                     to the end of the command. This option can
-                                     be used multiple times
-    --no-exec                        Remove any previously defined --exec
-    --exec-before-download CMD       Execute a command before the actual
-                                     download. The syntax is the same as --exec
-                                     but "filepath" is not available. This
+                                     downloaded file is also available, and if
+                                     no fields are passed, %(filepath)q is
+                                     appended to the end of the command. This
                                      option can be used multiple times
-    --no-exec-before-download        Remove any previously defined
-                                     --exec-before-download
+    --no-exec                        Remove any previously defined --exec
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
@@ -1800,6 +1797,8 @@ While these options are redundant, they are still expected to be used due to the
 #### Not recommended
 While these options still work, their use is not recommended since there are other alternatives to achieve the same
 
+    --exec-before-download CMD       --exec "before_dl:CMD"
+    --no-exec-before-download        --no-exec
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --print-json                     -j --no-simulate

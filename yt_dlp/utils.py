@@ -3036,6 +3036,9 @@ def qualities(quality_ids):
     return q
 
 
+POSTPROCESS_WHEN = {'pre_process', 'before_dl', 'after_move', 'post_process'}
+
+
 DEFAULT_OUTTMPL = {
     'default': '%(title)s [%(id)s].%(ext)s',
     'chapter': '%(title)s - %(section_number)03d %(section_title)s [%(id)s].%(ext)s',
