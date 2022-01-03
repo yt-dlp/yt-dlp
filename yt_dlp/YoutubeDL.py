@@ -2552,7 +2552,6 @@ class YoutubeDL(object):
                 continue
             break
 
-        info_dict['requested_downloads'] = formats_to_download
         best_format = formats_to_download[-1] if formats_to_download else {}
         if not formats_to_download:
             if not self.params.get('ignore_no_formats_error'):
@@ -2589,14 +2588,15 @@ class YoutubeDL(object):
             assert write_archive.issubset({True, False, 'ignore'})
             if True in write_archive and False not in write_archive:
                 self.record_download_archive(info_dict)
+
+            info_dict['requested_downloads'] = formats_to_download
             for pp in self._pps['after_video']:
                 info_dict = self.run_pp(pp, info_dict)
             if max_downloads_reached:
                 raise MaxDownloadsReached()
 
         # We update the info dict with the selected best quality format (backwards compatibility)
-        if formats_to_download:
-            info_dict.update(best_format)
+        info_dict.update(best_format)
         return info_dict
 
     def process_subtitles(self, video_id, normal_subtitles, automatic_captions):
