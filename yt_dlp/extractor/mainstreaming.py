@@ -158,8 +158,7 @@ class MainStreamingIE(InfoExtractor):
         host = content_info.get('host') or host
         video_id = content_info.get('contentID') or video_id
         title = content_info.get('title')
-        description = traverse_obj(
-            content_info, 'longDescription', 'shortDescription', expected_type=str, get_all=False)
+        description = traverse_obj(content_info, 'longDescription', 'shortDescription', expected_type=str)
         is_live = was_live = False
         if content_info.get('drmEnabled'):
             self.report_drm(video_id)
