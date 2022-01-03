@@ -110,6 +110,8 @@ class Zee5IE(InfoExtractor):
                     raise ExtractorError(otp_request_json['message'], expected=True)
             elif username.lower() == 'token' and len(password) > 1198:
                 self._USER_TOKEN = password
+            else:
+                raise ExtractorError(self._LOGIN_HINT, expected=True)
 
     def _real_initialize(self):
         self._login()

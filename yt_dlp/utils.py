@@ -2381,13 +2381,8 @@ class PUTRequest(compat_urllib_request.Request):
 
 
 def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
-    if get_attr:
-        if v is not None:
-            v = getattr(v, get_attr, None)
-    if v == '':
-        v = None
-    if v is None:
-        return default
+    if get_attr and v is not None:
+        v = getattr(v, get_attr, None)
     try:
         return int(v) * invscale // scale
     except (ValueError, TypeError, OverflowError):
@@ -5036,7 +5031,6 @@ def traverse_obj(
     return default
 
 
-# Deprecated
 def traverse_dict(dictn, keys, casesense=True):
     write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
                  'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')

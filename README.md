@@ -112,7 +112,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Other new options**: Many new options have been added such as `--print`, `--wait-for-video`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
-* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio etc
+* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, etc
 
 * **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -133,7 +133,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * `--ignore-errors` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
 * When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
 * `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-info-json`. Use `--no-embed-info-json` or `--compat-options no-attach-info-json` to revert this
-* Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](https://github.com/yt-dlp/yt-dlp#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
+* Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
 * `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
 * The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
 * All *experiences* of a funimation episode are considered as a single video. This behavior breaks existing archives. Use `--compat-options seperate-video-versions` to extract information from only the default player
@@ -327,22 +327,26 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
                                      this is not possible instead of searching
-    --ignore-config, --no-config     Disable loading any configuration files
-                                     except the one provided by --config-location.
-                                     When given inside a configuration
-                                     file, no further configuration files are
-                                     loaded. Additionally, (for backward
-                                     compatibility) if this option is found
-                                     inside the system configuration file, the
-                                     user configuration is not loaded
-    --config-location PATH           Location of the main configuration file;
+    --ignore-config                  Don't load any more configuration files
+                                     except those given by --config-locations.
+                                     For backward compatibility, if this option
+                                     is found inside the system configuration
+                                     file, the user configuration is not loaded
+    --no-config-locations            Do not load any custom configuration files
+                                     (default). When given inside a
+                                     configuration file, ignore all previous
+                                     --config-locations defined in the current
+                                     file
+    --config-locations PATH          Location of the main configuration file;
                                      either the path to the config or its
-                                     containing directory
+                                     containing directory. Can be used multiple
+                                     times and inside other configuration files
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
     --no-flat-playlist               Extract the videos of a playlist
     --live-from-start                Download livestreams from the start.
                                      Currently only supported for YouTube
+                                     (Experimental)
     --no-live-from-start             Download livestreams from the current time
                                      (default)
     --wait-for-video MIN[-MAX]       Wait for scheduled streams to become

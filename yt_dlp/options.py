@@ -137,7 +137,7 @@ def create_parser():
 
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
-        current = getattr(parser.values, option.dest) if append else []
+        current = list(getattr(parser.values, option.dest)) if append else []
         value = list(filter(None, [process(value)] if delim is None else map(process, value.split(delim))))
         setattr(
             parser.values, option.dest,
@@ -146,7 +146,7 @@ def create_parser():
     def _set_from_options_callback(
             option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
             process=lambda x: x.lower().strip()):
-        current = getattr(parser.values, option.dest)
+        current = set(getattr(parser.values, option.dest))
         values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
@@ -261,7 +261,7 @@ def create_parser():
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
         help=(
-            'Disable loading any further configuration files except the one provided by --config-locations. '
+            'Don\'t load any more configuration files except those given by --config-locations. '
             'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded'))
     general.add_option(
         '--no-config-locations',
@@ -286,7 +286,7 @@ def create_parser():
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently only supported for YouTube')
+        help='Download livestreams from the start. Currently only supported for YouTube (Experimental)')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
@@ -811,7 +811,7 @@ def create_parser():
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(list_external_downloaders()),
+            'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
             'default_key': 'default',
             'process': compat_shlex_split
         }, help=(
@@ -1050,7 +1050,7 @@ def create_parser():
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys()),
+            'allowed_keys': 'home|temp|%s' % '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
             'default_key': 'home'
         }, help=(
             'The paths where the files should be downloaded. '
@@ -1065,7 +1065,7 @@ def create_parser():
         metavar='[TYPES:]TEMPLATE', dest='outtmpl', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
+            'allowed_keys': '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
             'default_key': 'default'
         }, help='Output filename template; see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
@@ -1302,7 +1302,8 @@ def create_parser():
         metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': r'\w+(?:\+\w+)?', 'default_key': 'default-compat',
+            'allowed_keys': r'\w+(?:\+\w+)?',
+            'default_key': 'default-compat',
             'process': compat_shlex_split,
             'multiple_keys': False
         }, help=(

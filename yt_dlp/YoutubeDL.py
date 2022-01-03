@@ -1161,7 +1161,7 @@ class YoutubeDL(object):
             str_fmt = f'{fmt[:-1]}s'
             if fmt[-1] == 'l':  # list
                 delim = '\n' if '#' in flags else ', '
-                value, fmt = delim.join(variadic(value, allowed_types=(str, bytes))), str_fmt
+                value, fmt = delim.join(map(str, variadic(value, allowed_types=(str, bytes)))), str_fmt
             elif fmt[-1] == 'j':  # json
                 value, fmt = json.dumps(value, default=_dumpjson_default, indent=4 if '#' in flags else None), str_fmt
             elif fmt[-1] == 'q':  # quoted
@@ -2396,6 +2396,9 @@ class YoutubeDL(object):
             if not get_from_start:
                 info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
 
+        # backward compatibility
+        info_dict['fulltitle'] = info_dict['title']
+
         if not formats:
             self.raise_no_formats(info_dict)
 
@@ -2584,7 +2587,7 @@ class YoutubeDL(object):
                 if max_downloads_reached:
                     break
 
-            write_archive = set(f.get('_write_download_archive', False) for f in formats_to_download)
+            write_archive = set(f.get('__write_download_archive', False) for f in formats_to_download)
             assert write_archive.issubset({True, False, 'ignore'})
             if True in write_archive and False not in write_archive:
                 self.record_download_archive(info_dict)
@@ -2754,14 +2757,11 @@ class YoutubeDL(object):
         assert info_dict.get('_type', 'video') == 'video'
         original_infodict = info_dict
 
-        # TODO: backward compatibility, to be removed
-        info_dict['fulltitle'] = info_dict['title']
-
         if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
 
         if self._match_entry(info_dict) is not None:
-            info_dict['_write_download_archive'] = 'ignore'
+            info_dict['__write_download_archive'] = 'ignore'
             return
 
         self.post_extract(info_dict)
@@ -2776,7 +2776,7 @@ class YoutubeDL(object):
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
         if self.params.get('simulate'):
-            info_dict['_write_download_archive'] = self.params.get('force_write_download_archive')
+            info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
             return
 
         if full_filename is None:
@@ -2890,7 +2890,7 @@ class YoutubeDL(object):
             info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
             info_dict['__files_to_move'] = files_to_move
             replace_info_dict(self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict))
-            info_dict['_write_download_archive'] = self.params.get('force_write_download_archive')
+            info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
         else:
             # Download
             info_dict.setdefault('__postprocessors', [])
@@ -3119,10 +3119,10 @@ class YoutubeDL(object):
                 except Exception as err:
                     self.report_error('post hooks: %s' % str(err))
                     return
-                info_dict['_write_download_archive'] = True
+                info_dict['__write_download_archive'] = True
 
         if self.params.get('force_write_download_archive'):
-            info_dict['_write_download_archive'] = True
+            info_dict['__write_download_archive'] = True
 
         # Make sure the info_dict was modified in-place
         assert info_dict is original_infodict
