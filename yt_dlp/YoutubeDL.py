@@ -2552,6 +2552,8 @@ class YoutubeDL(object):
                 continue
             break
 
+        info_dict['requested_downloads'] = formats_to_download
+        best_format = formats_to_download[-1] if formats_to_download else {}
         if not formats_to_download:
             if not self.params.get('ignore_no_formats_error'):
                 raise ExtractorError('Requested format is not available', expected=True,
@@ -2565,19 +2567,24 @@ class YoutubeDL(object):
                 '[info] %s: Downloading %d format(s): %s' % (
                     info_dict['id'], len(formats_to_download),
                     ", ".join([f['format_id'] for f in formats_to_download])))
-            for fmt in formats_to_download:
-                new_info = dict(info_dict)
+            for i, fmt in enumerate(formats_to_download):
+                formats_to_download[i] = new_info = dict(info_dict)
                 # Save a reference to the original info_dict so that it can be modified in process_info if needed
-                new_info['__original_infodict'] = info_dict
                 new_info.update(fmt)
+                new_info['__original_infodict'] = info_dict
                 self.process_info(new_info)
+                new_info.pop('__original_infodict')
+                # Remove copied info
+                for key, val in tuple(new_info.items()):
+                    if info_dict.get(key) == val:
+                        new_info.pop(key)
 
             for pp in self._pps['after_video']:
                 info_dict = self.run_pp(pp, info_dict)
 
         # We update the info dict with the selected best quality format (backwards compatibility)
         if formats_to_download:
-            info_dict.update(formats_to_download[-1])
+            info_dict.update(best_format)
         return info_dict
 
     def process_subtitles(self, video_id, normal_subtitles, automatic_captions):
@@ -2730,9 +2737,10 @@ class YoutubeDL(object):
         return fd.download(name, new_info, subtitle)
 
     def process_info(self, info_dict):
-        """Process a single resolved IE result."""
+        """Process a single resolved IE result. (Modified it in-place)"""
 
         assert info_dict.get('_type', 'video') == 'video'
+        original_infodict = info_dict
 
         max_downloads = self.params.get('max_downloads')
         if max_downloads is not None:
@@ -2857,8 +2865,16 @@ class YoutubeDL(object):
                for link_type, should_write in write_links.items()):
             return
 
+        def replace_info_dict(new_info):
+            nonlocal info_dict
+            if new_info == info_dict:
+                return
+            info_dict.clear()
+            info_dict.update(new_info)
+
         try:
-            info_dict, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
+            new_info, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
+            replace_info_dict(new_info)
         except PostProcessingError as err:
             self.report_error('Preprocessing: %s' % str(err))
             return
@@ -2868,7 +2884,7 @@ class YoutubeDL(object):
             info_dict['filepath'] = temp_filename
             info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
             info_dict['__files_to_move'] = files_to_move
-            info_dict = self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict)
+            replace_info_dict(self.run_pp(MoveFilesAfterDownloadPP(self, False), info_dict))
         else:
             # Download
             info_dict.setdefault('__postprocessors', [])
@@ -3087,7 +3103,7 @@ class YoutubeDL(object):
 
                 fixup()
                 try:
-                    info_dict = self.post_process(dl_filename, info_dict, files_to_move)
+                    replace_info_dict(self.post_process(dl_filename, info_dict, files_to_move))
                 except PostProcessingError as err:
                     self.report_error('Postprocessing: %s' % str(err))
                     return
@@ -3101,6 +3117,7 @@ class YoutubeDL(object):
 
         if must_record_download_archive or self.params.get('force_write_download_archive', False):
             self.record_download_archive(info_dict)
+        assert info_dict is original_infodict
         max_downloads = self.params.get('max_downloads')
         if max_downloads is not None and self._num_downloads >= int(max_downloads):
             raise MaxDownloadsReached()
@@ -3170,8 +3187,8 @@ class YoutubeDL(object):
         keep_keys = ['_type']  # Always keep this to facilitate load-info-json
         if remove_private_keys:
             remove_keys |= {
-                'requested_formats', 'requested_subtitles', 'requested_entries', 'entries',
-                'filepath', 'infojson_filename', 'original_url', 'playlist_autonumber',
+                'requested_downloads', 'requested_formats', 'requested_subtitles', 'requested_entries',
+                'entries', 'filepath', 'infojson_filename', 'original_url', 'playlist_autonumber',
             }
             reject = lambda k, v: k not in keep_keys and (
                 k.startswith('_') or k in remove_keys or v is None)
@@ -3250,13 +3267,12 @@ class YoutubeDL(object):
             info = self.run_pp(pp, info)
         return info, info.pop('__files_to_move', None)
 
-    def post_process(self, filename, ie_info, files_to_move=None):
+    def post_process(self, filename, info, files_to_move=None):
         """Run all the postprocessors on the given file."""
-        info = dict(ie_info)
         info['filepath'] = filename
         info['__files_to_move'] = files_to_move or {}
 
-        for pp in ie_info.get('__postprocessors', []) + self._pps['post_process']:
+        for pp in info.get('__postprocessors', []) + self._pps['post_process']:
             info = self.run_pp(pp, info)
         info = self.run_pp(MoveFilesAfterDownloadPP(self), info)
         del info['__files_to_move']

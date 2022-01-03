@@ -53,7 +53,7 @@ class YoutubeDL(yt_dlp.YoutubeDL):
         raise ExtractorError(message)
 
     def process_info(self, info_dict):
-        self.processed_info_dicts.append(info_dict)
+        self.processed_info_dicts.append(info_dict.copy())
         return super(YoutubeDL, self).process_info(info_dict)
 
 

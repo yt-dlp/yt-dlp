@@ -19,6 +19,9 @@ class SamplePluginPP(PostProcessor):
         elif info.get('filepath'):  # PP was called after download (default)
             filepath = info.get('filepath')
             self.to_screen(f'Post-processed {filepath!r} with {self._kwargs}')
+        elif info.get('requested_downloads'):  # PP was called after_video
+            filepaths = [f.get('filepath') for f in info.get('requested_downloads')]
+            self.to_screen(f'Post-processed {filepaths!r} with {self._kwargs}')
         else:  # PP was called before actual download
             filepath = info.get('_filename')
             self.to_screen(f'Pre-processed {filepath!r} with {self._kwargs}')
