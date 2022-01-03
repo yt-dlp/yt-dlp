@@ -81,7 +81,7 @@ class HRFernsehenIE(InfoExtractor):
         description = self._html_search_meta(
             ['description'], webpage)
 
-        loader_str = unescapeHTML(self._search_regex(r"data-hr-mediaplayer-loader='([^']*)'", webpage, "ardloader"))
+        loader_str = unescapeHTML(self._search_regex(r"data-new-hr-mediaplayer-loader='([^']*)'", webpage, "ardloader"))
         loader_data = json.loads(loader_str)
 
         info = {
