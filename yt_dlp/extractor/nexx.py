@@ -242,10 +242,10 @@ class NexxIE(InfoExtractor):
         formats = []
         formats.extend(self._extract_m3u8_formats(
             f'{stream_base}{q_acc}/files/{q_prefix}/{q_locator}/{q_acc}-{stream_data.get("qHEVCHash") or q_hash}.ism/manifest.m3u8',
-            video_id, 'mp4', m3u8_id='%s-hls' % cdn, fatal=False))
+            video_id, 'mp4', m3u8_id=f'{cdn}-hls', fatal=False))
         formats.extend(self._extract_mpd_formats(
             f'{stream_base}{q_acc}/files/{q_prefix}/{q_locator}/{q_acc}-{q_hash}.ism/manifest.mpd',
-            video_id, mpd_id='%s-dash' % cdn, fatal=False))
+            video_id, mpd_id=f'{cdn}-dash', fatal=False))
 
         progressive_base = get_cdn_shield_base('Prog')
         q_references = stream_data.get('qReferences')
