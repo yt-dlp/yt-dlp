@@ -12,6 +12,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_duration,
+    traverse_obj,
     try_get,
     urlencode_postdata,
 )
@@ -220,6 +221,49 @@ class NexxIE(InfoExtractor):
 
         return formats
 
+    def _extract_3q_formats(self, video, video_id):
+        stream_data = video['streamdata']
+        cdn = stream_data['cdnType']
+        assert cdn == '3q'
+
+        q_acc, q_prefix, q_locator, q_hash = stream_data['qAccount'], stream_data['qPrefix'], stream_data['qLocator'], stream_data['qHash']
+        protection_key = traverse_obj(
+            video, ('protectiondata', 'key'), expected_type=str)
+
+        def get_cdn_shield_base(shield_type=''):
+            for secure in ('', 's'):
+                cdn_shield = stream_data.get('cdnShield%sHTTP%s' % (shield_type, secure.upper()))
+                if cdn_shield:
+                    return 'http%s://%s' % (secure, cdn_shield)
+            return f'http://sdn-global-{"prog" if shield_type.lower() == "prog" else "streaming"}-cache.3qsdn.com/' + (f's/{protection_key}/' if protection_key else '')
+
+        stream_base = get_cdn_shield_base()
+
+        formats = []
+        formats.extend(self._extract_m3u8_formats(
+            f'{stream_base}{q_acc}/files/{q_prefix}/{q_locator}/{q_acc}-{stream_data.get("qHEVCHash") or q_hash}.ism/manifest.m3u8',
+            video_id, 'mp4', m3u8_id='%s-hls' % cdn, fatal=False))
+        formats.extend(self._extract_mpd_formats(
+            f'{stream_base}{q_acc}/files/{q_prefix}/{q_locator}/{q_acc}-{q_hash}.ism/manifest.mpd',
+            video_id, mpd_id='%s-dash' % cdn, fatal=False))
+
+        progressive_base = get_cdn_shield_base('Prog')
+        q_references = stream_data.get('qReferences')
+        if q_references:
+            fds = q_references.split(',')
+            if fds:
+                for fd in fds:
+                    ss = fd.split(':')
+                    if len(ss) == 3:
+                        tbr = int_or_none(ss[1])
+                        formats.append({
+                            'url': f'{progressive_base}{q_acc}/uploads/{q_acc}-{ss[2]}.webm',
+                            'format_id': f'{cdn}-{ss[0]}{"-%s" % tbr if tbr else ""}',
+                            'tbr': tbr,
+                        })
+
+        return formats
+
     def _extract_azure_formats(self, video, video_id):
         stream_data = video['streamdata']
         cdn = stream_data['cdnType']
@@ -384,6 +428,8 @@ class NexxIE(InfoExtractor):
             formats = self._extract_azure_formats(video, video_id)
         elif cdn == 'free':
             formats = self._extract_free_formats(video, video_id)
+        elif cdn == '3q':
+            formats = self._extract_3q_formats(video, video_id)
         else:
             self.raise_no_formats(f'{cdn} formats are currently not supported', video_id)
 
