@@ -2552,20 +2552,20 @@ class YoutubeDL(object):
                 continue
             break
 
-        best_format = formats_to_download[-1] if formats_to_download else {}
         if not formats_to_download:
             if not self.params.get('ignore_no_formats_error'):
                 raise ExtractorError('Requested format is not available', expected=True,
                                      video_id=info_dict['id'], ie=info_dict['extractor'])
-            else:
-                self.report_warning('Requested format is not available')
-                # Process what we can, even without any available formats.
-                self.process_info(dict(info_dict))
-        elif download:
-            self.to_screen(
-                f'[info] {info_dict["id"]}: Downloading {len(formats_to_download)} format(s): '
-                + ', '.join([f['format_id'] for f in formats_to_download]))
+            self.report_warning('Requested format is not available')
+            # Process what we can, even without any available formats.
+            formats_to_download = [{}]
 
+        best_format = formats_to_download[-1]
+        if download:
+            if best_format:
+                self.to_screen(
+                    f'[info] {info_dict["id"]}: Downloading {len(formats_to_download)} format(s): '
+                    + ', '.join([f['format_id'] for f in formats_to_download]))
             max_downloads_reached = False
             for i, fmt in enumerate(formats_to_download):
                 formats_to_download[i] = new_info = dict(info_dict)
