@@ -158,9 +158,8 @@ class MainStreamingIE(InfoExtractor):
         host = content_info.get('host') or host
         video_id = content_info.get('contentID') or video_id
         title = content_info.get('title')
-        description = traverse_obj(
-            content_info, 'longDescription', 'shortDescription', expected_type=str)
-        live_status = 'not_live'
+        description = traverse_obj(content_info, 'longDescription', 'shortDescription', expected_type=str)
+        is_live = was_live = False
         if content_info.get('drmEnabled'):
             self.report_drm(video_id)
 
@@ -176,11 +175,12 @@ class MainStreamingIE(InfoExtractor):
         if content_type == 20:
             dvr_enabled = traverse_obj(content_info, ('playerSettings', 'dvrEnabled'), expected_type=bool)
             format_base_url = f"https://{host}/live/{content_info['liveSourceID']}/{video_id}/%s{'?DVR' if dvr_enabled else ''}"
-            live_status = 'is_live'
+            is_live = True
             heartbeat = self._call_api(host, f'heartbeat/{video_id}', video_id, note='Checking stream status') or {}
             if heartbeat.get('heartBeatUp') is False:
                 self.raise_no_formats(f'MainStreaming said: {heartbeat.get("responseMessage")}', expected=True)
-                live_status = 'was_live'
+                is_live = False
+                was_live = True
 
         # Playlist
         elif content_type == 31:
@@ -212,7 +212,8 @@ class MainStreamingIE(InfoExtractor):
             'title': title,
             'description': description,
             'formats': formats,
-            'live_status': live_status,
+            'is_live': is_live,
+            'was_live': was_live,
             'duration': parse_duration(content_info.get('duration')),
             'tags': content_info.get('tags'),
             'subtitles': subtitles,
