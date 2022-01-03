@@ -1160,6 +1160,7 @@ The available fields are:
  - `extractor_key` (string): Key name of the extractor
  - `epoch` (numeric): Unix epoch when creating the file
  - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`
+ - `video_autonumber` (numeric): Number that will be increased with each video
  - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist` (string): Name or id of the playlist that contains the video
  - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index

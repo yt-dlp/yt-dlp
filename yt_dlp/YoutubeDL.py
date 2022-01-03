@@ -534,6 +534,7 @@ class YoutubeDL(object):
         self._postprocessor_hooks = []
         self._download_retcode = 0
         self._num_downloads = 0
+        self._num_videos = 0
         self._screen_file = [sys.stdout, sys.stderr][params.get('logtostderr', False)]
         self._err_file = sys.stderr
         self.params = params
@@ -1044,6 +1045,7 @@ class YoutubeDL(object):
             if info_dict.get('duration', None) is not None
             else None)
         info_dict['autonumber'] = self.params.get('autonumber_start', 1) - 1 + self._num_downloads
+        info_dict['video_autonumber'] = self._num_videos
         if info_dict.get('resolution') is None:
             info_dict['resolution'] = self.format_resolution(info_dict, default=None)
 
@@ -2275,6 +2277,7 @@ class YoutubeDL(object):
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
+        self._num_videos += 1
 
         if 'id' not in info_dict:
             raise ExtractorError('Missing "id" field in extractor result')
