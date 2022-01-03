@@ -191,7 +191,7 @@ class MainStreamingIE(InfoExtractor):
             # Progressive format
             # Note: in https://webtools.msvdn.net/loader/playerV2.js there is mention of original.mp3 format,
             # however it seems to be the same as original.mp4?
-            formats.append({'url': format_base_url % 'original.mp4'})
+            formats.append({'url': format_base_url % 'original.mp4', 'format_note': 'original', 'quality': 1})
         else:
             self.raise_no_formats(f'Unknown content type {content_type}')
 
