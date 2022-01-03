@@ -255,7 +255,8 @@ class NexxIE(InfoExtractor):
                 for fd in fds:
                     ss = fd.split(':')
                     if len(ss) == 3:
-                        tbr = int_or_none(ss[1])
+                        # Is this correct?
+                        tbr = int_or_none(ss[1], scale=1000)
                         formats.append({
                             'url': f'{progressive_base}{q_acc}/uploads/{q_acc}-{ss[2]}.webm',
                             'format_id': f'{cdn}-{ss[0]}{"-%s" % tbr if tbr else ""}',
