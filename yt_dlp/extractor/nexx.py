@@ -262,6 +262,27 @@ class NexxIE(InfoExtractor):
                             'format_id': f'{cdn}-{ss[0]}{"-%s" % tbr if tbr else ""}',
                             'tbr': tbr,
                         })
+        azure_file_distribution = stream_data.get('azureFileDistribution')
+        if azure_file_distribution:
+            fds = azure_file_distribution.split(',')
+            if fds:
+                for fd in fds:
+                    ss = fd.split(':')
+                    if len(ss) == 3:
+                        tbr = int_or_none(ss[0])
+                        if tbr:
+                            f = {
+                                'url': f'{progressive_base}{q_acc}/files/{q_prefix}/{q_locator}/{ss[2]}.mp4',
+                                'format_id': '%s-http-%d' % (cdn, tbr),
+                                'tbr': tbr,
+                            }
+                            width_height = ss[1].split('x')
+                            if len(width_height) == 2:
+                                f.update({
+                                    'width': int_or_none(width_height[0]),
+                                    'height': int_or_none(width_height[1]),
+                                })
+                            formats.append(f)
 
         return formats
 
