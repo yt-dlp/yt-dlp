@@ -137,6 +137,7 @@ from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
+from .gfycat import GfycatIE
 
 
 class GenericIE(InfoExtractor):
@@ -3572,6 +3573,10 @@ class GenericIE(InfoExtractor):
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
 
+        # Look for Gfycat Embeds
+        gfycat_urls = GfycatIE._extract_urls(webpage)
+        if gfycat_urls:
+            return self.playlist_from_matches(gfycat_urls, video_id, video_title, ie=GfycatIE.ie_key())
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:
