@@ -3239,7 +3239,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }
 
         if not info.get('upload_date'):
-            self.report_warning('Falling back on playerResponse upload date. This is known to not be in UTC.')
+            self.report_warning('Falling back to non-UTC upload date from the player response' + bug_reports_message())
             info['upload_date'] = (
                     unified_strdate(get_first(microformats, 'uploadDate'))
                     or unified_strdate(search_meta('uploadDate')))
