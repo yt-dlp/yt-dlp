@@ -62,6 +62,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     unified_strdate,
+    unified_timestamp,
     unsmuggle_url,
     update_url_query,
     url_or_none,
@@ -3018,9 +3019,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # URL checking if user don't care about getting the best possible thumbnail
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
-            'upload_date': unified_strdate(
-                get_first(microformats, 'uploadDate')
-                or search_meta('uploadDate')),
             'uploader': get_first(video_details, 'author'),
             'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
             'uploader_url': owner_profile_url,
@@ -3150,6 +3148,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         except (KeyError, IndexError, TypeError):
             pass
 
+        date_text = None
         if initial_data:
             info['chapters'] = (
                 self._extract_chapters_from_json(initial_data, duration)
@@ -3163,6 +3162,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for content in contents:
                 vpir = content.get('videoPrimaryInfoRenderer')
                 if vpir:
+                    info['upload_date'] = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
                     stl = vpir.get('superTitleLink')
                     if stl:
                         stl = self._get_text(stl)
@@ -3237,6 +3237,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'channel_id': 'uploader_id',
             'channel_url': 'uploader_url',
         }
+
+        if not info.get('upload_date'):
+            self.report_warning('Falling back on playerResponse upload date. This is known to not be in UTC.')
+            info['upload_date'] = (
+                    unified_strdate(get_first(microformats, 'uploadDate'))
+                    or unified_strdate(search_meta('uploadDate')))
+
         for to, frm in fallbacks.items():
             if not info.get(to):
                 info[to] = info.get(frm)
