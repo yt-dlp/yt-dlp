@@ -26,13 +26,7 @@ class HRFernsehenIE(InfoExtractor):
             }]},
             'timestamp': 1598470200,
             'upload_date': '20200826',
-            'thumbnails': [{
-                'url': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9.jpg',
-                'id': '0'
-            }, {
-                'url': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9__medium.jpg',
-                'id': '1'
-            }],
+            'thumbnail': 'https://www.hessenschau.de/tv-sendung/hs_ganz-1554~_t-1598465545029_v-16to9__medium.jpg',
             'title': 'hessenschau vom 26.08.2020'
         }
     }, {
