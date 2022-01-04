@@ -1058,6 +1058,7 @@ from .opencast import (
 from .openrec import (
     OpenRecIE,
     OpenRecCaptureIE,
+    OpenRecMovieIE,
 )
 from .ora import OraTVIE
 from .orf import (
