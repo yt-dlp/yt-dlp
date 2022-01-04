@@ -220,6 +220,8 @@ class FileDownloader(object):
                 except (IOError, OSError) as err:
                     retry = retry + 1
                     if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
+                        if func.__name__ == 'try_rename':
+                            return self.report_error(f'unable to rename file: {err}')
                         raise
                     self.to_screen(
                         '[download] Got file access error. Retrying (attempt %d of %s) ...'
