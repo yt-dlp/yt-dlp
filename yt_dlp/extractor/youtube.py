@@ -696,12 +696,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def extract_relative_time(relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
-        e.g. 'streamed 6 days ago', '5 seconds ago (edited)'
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today'
         """
-        mobj = re.search(r'(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+        mobj = re.search(r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
         if mobj:
+            start = mobj.group('start')
+            if start:
+                return datetime_from_str(start)
             try:
-                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')), precision='auto')
+                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')))
             except ValueError:
                 return None
 
@@ -711,6 +714,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         timestamp = None
         if isinstance(dt, datetime.datetime):
             timestamp = calendar.timegm(dt.timetuple())
+
+        if timestamp is None:
+            timestamp = (
+                unified_timestamp(text) or unified_timestamp(
+                    self._search_regex(
+                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'), text.lower(), 'time text', default=None)))
+
         if text and timestamp is None:
             self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
         return timestamp, text
