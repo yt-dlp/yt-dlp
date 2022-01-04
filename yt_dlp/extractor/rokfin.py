@@ -76,12 +76,9 @@ class RokfinPostIE(RokfinSingleVideoIE):
         availability = try_get(self, lambda x: videoAvailability(x, downloaded_json))
 
         if video_formats_url:
-            # Prior to adopting M3U, Rokfin stored videos directly in mp4 files:
-            if video_formats_url.endswith('.mp4'):
-                return self.url_result(url=video_formats_url, video_id=video_id, original_url=url_from_user)
-
+            # Before the adoption of M3U, Rokfin stored videos directly in mp4 files:
             if not(video_formats_url.endswith('.m3u8')):
-                self.raise_no_formats(msg=f'unsupported video URL {video_formats_url}', expected=False)
+                return self.url_result(url=video_formats_url, video_id=video_id, original_url=url_from_user)
 
             frmts = self._extract_m3u8_formats(m3u8_url=video_formats_url, video_id=video_id, fatal=False)
             self._sort_formats(frmts)
@@ -204,6 +201,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
     def _real_extract(self, url_from_user):
         video_id = self._match_id(url_from_user)
         downloaded_json = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, note='Downloading video metadata', fatal=False) or {}
+        self.write_debug(downloaded_json)
         m3u8_url = try_get(downloaded_json, lambda x: url_or_none(x['url']))
         availability = try_get(self, lambda x: x._availability(
             needs_premium=True if downloaded_json['premium'] else False,
