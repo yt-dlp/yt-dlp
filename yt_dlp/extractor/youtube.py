@@ -3148,7 +3148,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         except (KeyError, IndexError, TypeError):
             pass
 
-        date_text = None
         if initial_data:
             info['chapters'] = (
                 self._extract_chapters_from_json(initial_data, duration)
