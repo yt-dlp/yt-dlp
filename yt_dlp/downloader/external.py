@@ -159,9 +159,9 @@ class ExternalFD(FragmentFD):
             dest.write(decrypt_fragment(fragment, src.read()))
             src.close()
             if not self.params.get('keep_fragments', False):
-                os.remove(encodeFilename(fragment_filename))
+                self.try_remove(encodeFilename(fragment_filename))
         dest.close()
-        os.remove(encodeFilename('%s.frag.urls' % tmpfilename))
+        self.try_remove(encodeFilename('%s.frag.urls' % tmpfilename))
         return 0
 
 
