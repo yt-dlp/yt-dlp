@@ -88,6 +88,7 @@ class Zee5IE(InfoExtractor):
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
+    _GEO_COUNTRIES = ['IN']
 
     def _login(self):
         username, password = self._get_login_info()
