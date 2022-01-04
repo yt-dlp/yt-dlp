@@ -3240,8 +3240,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not info.get('upload_date'):
             self.report_warning('Falling back to non-UTC upload date from the player response' + bug_reports_message())
             info['upload_date'] = (
-                    unified_strdate(get_first(microformats, 'uploadDate'))
-                    or unified_strdate(search_meta('uploadDate')))
+                unified_strdate(get_first(microformats, 'uploadDate'))
+                or unified_strdate(search_meta('uploadDate')))
 
         for to, frm in fallbacks.items():
             if not info.get(to):
