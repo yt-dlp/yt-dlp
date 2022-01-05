@@ -1769,6 +1769,7 @@ from .vimeo import (
     VimeoWatchLaterIE,
     VHXEmbedIE,
 )
+from .vimm import VimmIE
 from .vimple import VimpleIE
 from .vine import (
     VineIE,
