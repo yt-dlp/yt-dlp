@@ -1724,7 +1724,7 @@ class YoutubeDL(object):
             extra = {
                 'n_entries': n_entries,
                 '_last_playlist_index': max(playlistitems) if playlistitems else (playlistend or n_entries),
-                'playlist_count': ie_result.get('playlist_count')
+                'playlist_count': ie_result.get('playlist_count'),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i,
                 'playlist': playlist,
