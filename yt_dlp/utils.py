@@ -416,14 +416,30 @@ def get_element_by_id(id, html):
     return get_element_by_attribute('id', id, html)
 
 
+def get_element_html_by_id(id, html):
+    """Return the html of the tag with the specified ID in the passed HTML document"""
+    return get_element_html_by_attribute('id', id, html)
+
+
 def get_element_by_class(class_name, html):
     """Return the content of the first tag with the specified class in the passed HTML document"""
     retval = get_elements_by_class(class_name, html)
     return retval[0] if retval else None
 
 
+def get_element_html_by_class(class_name, html):
+    """Return the html of the first tag with the specified class in the passed HTML document"""
+    retval = get_elements_html_by_class(class_name, html)
+    return retval[0] if retval else None
+
+
 def get_element_by_attribute(attribute, value, html, escape_value=True):
     retval = get_elements_by_attribute(attribute, value, html, escape_value)
+    return retval[0] if retval else None
+
+
+def get_element_html_by_attribute(attribute, value, html, escape_value=True):
+    retval = get_elements_html_by_attribute(attribute, value, html, escape_value)
     return retval[0] if retval else None
 
 
@@ -434,29 +450,124 @@ def get_elements_by_class(class_name, html):
         html, escape_value=False)
 
 
-def get_elements_by_attribute(attribute, value, html, escape_value=True):
+def get_elements_html_by_class(class_name, html):
+    """Return the html of all tags with the specified class in the passed HTML document as a list"""
+    return get_elements_html_by_attribute(
+        'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
+        html, escape_value=False)
+
+
+def get_elements_by_attribute(*args, **kwargs):
     """Return the content of the tag with the specified attribute in the passed HTML document"""
+    return [content for content, _ in get_elements_text_and_html_by_attribute(*args, **kwargs)]
+
+
+def get_elements_html_by_attribute(*args, **kwargs):
+    """Return the html of the tag with the specified attribute in the passed HTML document"""
+    return [whole for _, whole in get_elements_text_and_html_by_attribute(*args, **kwargs)]
+
+
+def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value=True):
+    """
+    Return the text (content) and the html (whole) of the tag with the specified
+    attribute in the passed HTML document
+    """
 
     value = re.escape(value) if escape_value else value
 
     retlist = []
     for m in re.finditer(r'''(?xs)
-        <([a-zA-Z0-9:._-]+)
-         (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-         \s+%s=['"]?%s['"]?
-         (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
+        <(?P<tag>[a-zA-Z0-9:._-]+)
+         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
+         \s+%(attribute)s(?:=%(value)s|\s*=\s*(?P<_q>['"]?)%(value)s(?P=_q))
+         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
         \s*>
-        (?P<content>.*?)
-        </\1>
-    ''' % (re.escape(attribute), value), html):
-        res = m.group('content')
+    ''' % {'attribute': re.escape(attribute), 'value': value}, html):
+        content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
-        if res.startswith('"') or res.startswith("'"):
-            res = res[1:-1]
-
-        retlist.append(unescapeHTML(res))
+        retlist.append((
+            unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content)),
+            whole,
+        ))
 
     return retlist
+
+
+class HTMLBreakOnClosingTagParser(compat_HTMLParser):
+    """
+    HTML parser which raises HTMLBreakOnClosingTagException upon reaching the
+    closing tag for the first opening tag it has encountered, and can be used
+    as a context manager
+    """
+
+    class HTMLBreakOnClosingTagException(Exception):
+        pass
+
+    def __init__(self):
+        self.tagstack = collections.deque()
+        compat_HTMLParser.__init__(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
+
+    def close(self):
+        # handle_endtag does not return upon raising HTMLBreakOnClosingTagException,
+        # so data remains buffered; we no longer have any interest in it, thus
+        # override this method to discard it
+        pass
+
+    def handle_starttag(self, tag, _):
+        self.tagstack.append(tag)
+
+    def handle_endtag(self, tag):
+        if not self.tagstack:
+            raise compat_HTMLParseError('no tags in the stack')
+        while self.tagstack:
+            inner_tag = self.tagstack.pop()
+            if inner_tag == tag:
+                break
+        else:
+            raise compat_HTMLParseError(f'matching opening tag for closing {tag} tag not found')
+        if not self.tagstack:
+            raise self.HTMLBreakOnClosingTagException()
+
+
+def get_element_text_and_html_by_tag(tag, html):
+    """
+    For the first element with the specified tag in the passed HTML document
+    return its' content (text) and the whole element (html)
+    """
+    def find_or_raise(haystack, needle, exc):
+        try:
+            return haystack.index(needle)
+        except ValueError:
+            raise exc
+    closing_tag = f'</{tag}>'
+    whole_start = find_or_raise(
+        html, f'<{tag}', compat_HTMLParseError(f'opening {tag} tag not found'))
+    content_start = find_or_raise(
+        html[whole_start:], '>', compat_HTMLParseError(f'malformed opening {tag} tag'))
+    content_start += whole_start + 1
+    with HTMLBreakOnClosingTagParser() as parser:
+        parser.feed(html[whole_start:content_start])
+        if not parser.tagstack or parser.tagstack[0] != tag:
+            raise compat_HTMLParseError(f'parser did not match opening {tag} tag')
+        offset = content_start
+        while offset < len(html):
+            next_closing_tag_start = find_or_raise(
+                html[offset:], closing_tag,
+                compat_HTMLParseError(f'closing {tag} tag not found'))
+            next_closing_tag_end = next_closing_tag_start + len(closing_tag)
+            try:
+                parser.feed(html[offset:offset + next_closing_tag_end])
+                offset += next_closing_tag_end
+            except HTMLBreakOnClosingTagParser.HTMLBreakOnClosingTagException:
+                return html[content_start:offset + next_closing_tag_start], \
+                    html[whole_start:offset + next_closing_tag_end]
+        raise compat_HTMLParseError('unexpected end of html')
 
 
 class HTMLAttributeParser(compat_HTMLParser):
