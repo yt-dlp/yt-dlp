@@ -1158,6 +1158,7 @@ The available fields are:
  - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`
  - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist` (string): Name or id of the playlist that contains the video
+ - `playlist_count` (numeric): Total number of items in the playlist. May not be known if entire playlist is not extracted
  - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
  - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_id` (string): Playlist identifier

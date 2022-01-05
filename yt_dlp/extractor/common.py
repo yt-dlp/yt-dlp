@@ -383,6 +383,11 @@ class InfoExtractor(object):
     Additionally, playlists can have "id", "title", and any other relevent
     attributes with the same semantics as videos (see above).
 
+    It can also have the following optional fields:
+
+    playlist_count: The total number of videos in a playlist. If not given,
+                    YoutubeDL tries to calculate it from "entries"
+
 
     _type "multi_video" indicates that there are multiple videos that
     form a single show, for examples multiple acts of an opera or TV episode.
