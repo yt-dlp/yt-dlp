@@ -81,7 +81,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB',
-                'clientVersion': '2.20210622.10.00',
+                'clientVersion': '2.20211221.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 1
@@ -91,7 +91,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_EMBEDDED_PLAYER',
-                'clientVersion': '1.20210620.0.1',
+                'clientVersion': '1.20211215.00.01',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 56
@@ -102,96 +102,96 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20210621.00.00',
+                'clientVersion': '1.20211213.00.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 67,
     },
     'web_creator': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_API_KEY': 'AIzaSyBUPetSUmoZL-OhlxA7wSac5XinrygCqMo',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'WEB_CREATOR',
-                'clientVersion': '1.20210621.00.00',
+                'clientVersion': '1.20211220.02.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 62,
     },
     'android': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_API_KEY': 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID',
-                'clientVersion': '16.20',
+                'clientVersion': '16.49',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 3,
         'REQUIRE_JS_PLAYER': False
     },
     'android_embedded': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_API_KEY': 'AIzaSyCjc_pVEDi4qsv5MtC2dMXzpIaDoRFLsxw',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_EMBEDDED_PLAYER',
-                'clientVersion': '16.20',
+                'clientVersion': '16.49',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 55,
         'REQUIRE_JS_PLAYER': False
     },
     'android_music': {
-        'INNERTUBE_API_KEY': 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
-        'INNERTUBE_HOST': 'music.youtube.com',
+        'INNERTUBE_API_KEY': 'AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_MUSIC',
-                'clientVersion': '4.32',
+                'clientVersion': '4.57',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 21,
         'REQUIRE_JS_PLAYER': False
     },
     'android_creator': {
+        'INNERTUBE_API_KEY': 'AIzaSyD_qjV8zaaUMehtLkrKFgVeSX_Iqbtyws8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'ANDROID_CREATOR',
-                'clientVersion': '21.24.100',
+                'clientVersion': '21.47',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 14,
         'REQUIRE_JS_PLAYER': False
     },
-    # ios has HLS live streams
-    # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680
+    # iOS clients have HLS live streams. Setting device model to get 60fps formats.
+    # See: https://github.com/TeamNewPipe/NewPipeExtractor/issues/680#issuecomment-1002724558
     'ios': {
-        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_API_KEY': 'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS',
-                'clientVersion': '16.20',
+                'clientVersion': '16.46',
+                'deviceModel': 'iPhone14,3',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 5,
         'REQUIRE_JS_PLAYER': False
     },
     'ios_embedded': {
-        'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MESSAGES_EXTENSION',
-                'clientVersion': '16.20',
+                'clientVersion': '16.46',
+                'deviceModel': 'iPhone14,3',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 66,
         'REQUIRE_JS_PLAYER': False
     },
     'ios_music': {
-        'INNERTUBE_API_KEY': 'AIzaSyDK3iBpDP9nHVTk2qL73FLJICfOC3c51Og',
-        'INNERTUBE_HOST': 'music.youtube.com',
+        'INNERTUBE_API_KEY': 'AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_MUSIC',
-                'clientVersion': '4.32',
+                'clientVersion': '4.57',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 26,
@@ -201,7 +201,7 @@ INNERTUBE_CLIENTS = {
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'IOS_CREATOR',
-                'clientVersion': '21.24.100',
+                'clientVersion': '21.47',
             },
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 15,
@@ -210,15 +210,15 @@ INNERTUBE_CLIENTS = {
     # mweb has 'ultralow' formats
     # See: https://github.com/yt-dlp/yt-dlp/pull/557
     'mweb': {
-        'INNERTUBE_API_KEY': 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8',
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
         'INNERTUBE_CONTEXT': {
             'client': {
                 'clientName': 'MWEB',
-                'clientVersion': '2.20210721.07.00',
+                'clientVersion': '2.20211221.01.00',
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2
-    },
+    }
 }
 
 
@@ -2539,7 +2539,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }.get(client)
         if not url:
             return {}
-        webpage = self._download_webpage(url, video_id, fatal=False, note=f'Downloading {client} config')
+        webpage = self._download_webpage(url, video_id, fatal=False, note='Downloading %s config' % client.replace('_', ' ').strip())
         return self.extract_ytcfg(video_id, webpage) or {}
 
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):

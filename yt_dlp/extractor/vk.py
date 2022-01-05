@@ -87,10 +87,10 @@ class VKIE(VKBaseIE):
                             )
                             ext\.php\?(?P<embed_query>.*?\boid=(?P<oid>-?\d+).*?\bid=(?P<id>\d+).*)|
                             (?:
-                                (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?video|
+                                (?:(?:m|new)\.)?vk\.com/(?:.+?\?.*?z=)?(?:video|clip)|
                                 (?:www\.)?daxab.com/embed/
                             )
-                            (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>[\da-f]+))?
+                            (?P<videoid>-?\d+_\d+)(?:.*\blist=(?P<list_id>([\da-f]+)|(ln-[\da-zA-Z]+)))?
                         )
                     '''
     _TESTS = [
@@ -180,6 +180,17 @@ class VKIE(VKBaseIE):
                 'view_count': int,
             },
             'skip': 'Removed',
+        },
+        {
+            'url': 'https://vk.com/video-93049196_456239755?list=ln-cBjJ7S4jYYx3ADnmDT',
+            'info_dict': {
+                'id': '-93049196_456239755',
+                'ext': 'mp4',
+                'title': '8 серия (озвучка)',
+                'duration': 8383,
+                'upload_date': '20211222',
+                'view_count': int,
+            },
         },
         {
             # video (removed?) only available with list id
@@ -297,6 +308,10 @@ class VKIE(VKBaseIE):
         {
             # The video is not available in your region.
             'url': 'https://vk.com/video-51812607_171445436',
+            'only_matching': True,
+        },
+        {
+            'url': 'https://vk.com/clip30014565_456240946',
             'only_matching': True,
         }]
 
