@@ -17,7 +17,8 @@ from ..utils import (
     mimetype2ext,
     clean_html,
     url_or_none,
-    parse_dfxp_time_expr
+    parse_dfxp_time_expr,
+get_domain
 )
 
 import typing
@@ -151,10 +152,11 @@ class PRXStoryIE(PRXStoryBaseIE):
         story = self._extract_story(response)
         return story
 
+
 class PRXSeriesIE(PRXStoryBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'series/(?P<id>\d+)'
 
-    def _entries(self, series_id):
+    def _entries(self, series_id, url):
         total = 0
         for page in itertools.count(1):
             response = self._call_api(
@@ -164,9 +166,11 @@ class PRXSeriesIE(PRXStoryBaseIE):
                 if story:
                     if story.get('entries'):
                         # The series API already gave us all the information needed to download the stories
-                        story['webpage_url'] = f'https://beta.prx.org/story/{story["id"]}'
-                        story['extractor_key'] = PRXStoryIE.ie_key()
-                        story['extractor'] = PRXStoryIE.ie_key()
+                        story.update({
+                            'webpage_url': f'https://{get_domain(url)}/story/{story["id"]}',
+                            'extractor_key': PRXStoryIE.ie_key(),
+                            'extractor': PRXStoryIE.ie_key()
+                        })
                     yield story
                 total += 1
             if not response or total >= response.get('total'):
@@ -175,12 +179,10 @@ class PRXSeriesIE(PRXStoryBaseIE):
     def _real_extract(self, url):
         series_id = self._match_id(url)
         response = self._call_api(series_id, f'series/{series_id}')
-        series_info = self._extract_series(response)
-
         return {
             '_type': 'playlist',
-            'entries': self._entries(series_id),
-            **series_info
+            'entries': self._entries(series_id, url),
+            **self._extract_series(response)
         }
 
 
