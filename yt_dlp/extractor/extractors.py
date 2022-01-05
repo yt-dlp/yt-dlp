@@ -1188,6 +1188,9 @@ from .puhutv import (
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
 from .prosiebensat1 import ProSiebenSat1IE
+from .prx import (
+    PRXStoryIE
+)
 from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE
 from .qqmusic import (
