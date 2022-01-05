@@ -1189,7 +1189,8 @@ from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
 from .prosiebensat1 import ProSiebenSat1IE
 from .prx import (
-    PRXStoryIE
+    PRXStoryIE,
+    PRXSeriesIE
 )
 from .puls4 import Puls4IE
 from .pyvideo import PyvideoIE

@@ -58,7 +58,7 @@ class PRXBaseIE(InfoExtractor):
         }
 
     @classmethod
-    def _extract_series(cls, series_response, get_entries=False):
+    def _extract_series(cls, series_response):
         if not isinstance(series_response, dict):
             return
         series_id = str(series_response.get('id'))
@@ -112,7 +112,7 @@ class PRXStoryBaseIE(PRXBaseIE):
 
         # TODO: uploader/account details
         series = self._extract_series(
-            self._get_prx_embed_response(story_response, 'series'), get_entries=False) or {}
+            self._get_prx_embed_response(story_response, 'series')) or {}
 
         main_info = {
             'title': title,
@@ -121,7 +121,7 @@ class PRXStoryBaseIE(PRXBaseIE):
             'tags': story_response.get('tags'),
             'release_date': unified_strdate(story_response.get('producedOn')),
             'series': series.get('title'),
-            'series_id': series.get('id')
+            'series_id': series.get('id'),
         }
         entries = []
         audio_pieces = self._extract_audio_pieces(
@@ -149,8 +149,40 @@ class PRXStoryIE(PRXStoryBaseIE):
         story_id = self._match_id(url)
         response = self._call_api(story_id, f'stories/{story_id}')
         story = self._extract_story(response)
-      #  test = self._call_api(story_id, f'stories/239600/audio_files')
         return story
 
-def PRXSeriesIE(PRXBaseIE):
-    _VALID_URL = r''
+class PRXSeriesIE(PRXStoryBaseIE):
+    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'series/(?P<id>\d+)'
+
+    def _entries(self, series_id):
+        total = 0
+        for page in itertools.count(1):
+            response = self._call_api(
+                f'{series_id}: page {page}', f'series/{series_id}/stories', query={'page': page})
+            for story_response in self._get_prx_embed_response(response, 'items') or []:
+                story = self._extract_story(story_response)
+                if story:
+                    if story.get('entries'):
+                        # The series API already gave us all the information needed to download the stories
+                        story['webpage_url'] = f'https://beta.prx.org/story/{story["id"]}'
+                        story['extractor_key'] = PRXStoryIE.ie_key()
+                        story['extractor'] = PRXStoryIE.ie_key()
+                    yield story
+                total += 1
+            if not response or total >= response.get('total'):
+                break
+
+    def _real_extract(self, url):
+        series_id = self._match_id(url)
+        response = self._call_api(series_id, f'series/{series_id}')
+        series_info = self._extract_series(response)
+
+        return {
+            '_type': 'playlist',
+            'entries': self._entries(series_id),
+            **series_info
+        }
+
+
+
+
