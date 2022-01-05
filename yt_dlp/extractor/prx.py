@@ -43,8 +43,8 @@ class PRXBaseIE(InfoExtractor):
         return url_or_none(traverse_obj(
             response, ('_links', 'enclosure', 'href'), expected_type=str))
 
-    def _extract_account(self, account_response):
-        pass
+    def _extract_account_info(self, account_response):
+        raise NotImplementedError
 
     @classmethod
     def _extract_image(cls, image_response):
@@ -59,7 +59,7 @@ class PRXBaseIE(InfoExtractor):
         }
 
     @classmethod
-    def _extract_series(cls, series_response):
+    def _extract_series_info(cls, series_response):
         if not isinstance(series_response, dict):
             return
         series_id = str(series_response.get('id'))
@@ -112,7 +112,7 @@ class PRXStoryBaseIE(PRXBaseIE):
         description = clean_html(story_response.get('description')) or story_response.get('shortDescription')
 
         # TODO: uploader/account details
-        series = self._extract_series(
+        series = self._extract_series_info(
             self._get_prx_embed_response(story_response, 'series')) or {}
 
         main_info = {
@@ -169,7 +169,7 @@ class PRXSeriesIE(PRXStoryBaseIE):
                         story.update({
                             'webpage_url': f'https://{get_domain(url)}/story/{story["id"]}',
                             'extractor_key': PRXStoryIE.ie_key(),
-                            'extractor': PRXStoryIE.ie_key()
+                            'extractor': 'PRXStory'
                         })
                     yield story
                 total += 1
@@ -182,9 +182,14 @@ class PRXSeriesIE(PRXStoryBaseIE):
         return {
             '_type': 'playlist',
             'entries': self._entries(series_id, url),
-            **self._extract_series(response)
+            **self._extract_series_info(response)
         }
 
 
+class PRXAccountIE(PRXStoryIE):
+    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'account/(?P<id>\d+)'
+
+    def _real_extract(self, url):
+        raise NotImplementedError
 
 
