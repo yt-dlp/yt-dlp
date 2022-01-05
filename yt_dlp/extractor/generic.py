@@ -2383,6 +2383,33 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1636788683.0,
                 'upload_date': '20211113'
             }
+        },
+        {
+            # Multiple gfycat iframe embeds
+            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=613422',
+            'info_dict': {
+                'title': '재이, 윤, 세은 황금 드레스를 입고 빛난다',
+                'id': 'board'
+            },
+            'playlist_count': 8,
+        },
+        {
+            # Multiple gfycat gifs (direct links)
+            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=612199',
+            'info_dict': {
+                'title': '옳게 된 크롭 니트 스테이씨 아이사',
+                'id': 'board'
+            },
+            'playlist_count': 6
+        },
+        {
+            # Multiple gfycat embeds, with uppercase "IFR" in urls
+            'url': 'https://kkzz.kr/?vid=2295',
+            'info_dict': {
+                'title': '지방시 앰버서더 에스파 카리나 움짤',
+                'id': '?vid=2295'
+            },
+            'playlist_count': 9
         }
         #
     ]
