@@ -2315,6 +2315,7 @@ class YoutubeDL(object):
         for ts_key, date_key in (
                 ('timestamp', 'upload_date'),
                 ('release_timestamp', 'release_date'),
+                ('modified_timestamp', 'modified_date'),
         ):
             if info_dict.get(date_key) is None and info_dict.get(ts_key) is not None:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
