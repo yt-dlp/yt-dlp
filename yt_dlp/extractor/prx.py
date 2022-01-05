@@ -4,7 +4,7 @@ from __future__ import unicode_literals
 import itertools
 import re
 
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     ExtractorError,
     GeoRestrictedError,
@@ -158,6 +158,8 @@ class PRXStoryIE(PRXStoryBaseIE):
         return story
 
 
+
+# TODO: for accounts, extract series pages but if there are more then pass onto series IE (don't make requests in the IE).
 class PRXSeriesIE(PRXStoryBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'series/(?P<id>\d+)'
 
@@ -197,4 +199,17 @@ class PRXAccountIE(PRXStoryIE):
     def _real_extract(self, url):
         raise NotImplementedError
 
+# Need to support other lists, such as /picks, accounts list, stories list, networks list somehow
+class PRXListIE(PRXBaseIE):
+    raise NotImplementedError
 
+class PRXStoriesSearchIE(PRXStoryIE, SearchInfoExtractor):
+    raise NotImplementedError
+
+
+class PRXSeriesSearchIE(PRXSeriesIE, SearchInfoExtractor):
+    raise NotImplementedError
+
+# TODO: find on site
+class PRXNetworkIE(PRXBaseIE):
+    raise NotImplementedError
