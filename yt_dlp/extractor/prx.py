@@ -74,6 +74,32 @@ class PRXBaseIE(InfoExtractor):
             'thumbnails': [thumbnail_dict] if thumbnail_dict else None
         }
 
+    @classmethod
+    def _extract_story_info(cls, story_response):
+        if not isinstance(story_response, dict):
+            return
+        story_id = str(story_response.get('id'))
+        title = story_response.get('title')
+        if not story_id or not title:
+            return
+        # TODO: there is also mdDescription (markdown description). Might only be set when 'description' is avail.
+        description = clean_html(story_response.get('description')) or story_response.get('shortDescription')
+
+        # TODO: uploader/account details
+        series = cls._extract_series_info(
+            cls._get_prx_embed_response(story_response, 'series')) or {}
+
+        return {
+            'id': story_id,
+            'title': title,
+            'description': description,
+            'duration': int_or_none(story_response.get('duration')),
+            'tags': story_response.get('tags'),
+            'release_date': unified_strdate(story_response.get('producedOn')),
+            'series': series.get('title'),
+            'series_id': series.get('id'),
+        }
+
 
 class PRXStoryBaseIE(PRXBaseIE):
 
@@ -100,46 +126,25 @@ class PRXStoryBaseIE(PRXBaseIE):
             })
         return pieces
 
+    # TODO: checks for if we have a full story/series response, how many pages etc.
     def _extract_story(self, story_response):
-        if not isinstance(story_response, dict):
+        info = self._extract_story_info(story_response)
+        if not info:
             return
-        story_id = str(story_response.get('id'))
-        title = story_response.get('title')
-        if not story_id or not title:
-            return
-
-        # TODO: there is also mdDescription (markdown description). Might only be set when 'description' is avail.
-        description = clean_html(story_response.get('description')) or story_response.get('shortDescription')
-
-        # TODO: uploader/account details
-        series = self._extract_series_info(
-            self._get_prx_embed_response(story_response, 'series')) or {}
-
-        main_info = {
-            'title': title,
-            'description': description,
-            'duration': int_or_none(story_response.get('duration')),
-            'tags': story_response.get('tags'),
-            'release_date': unified_strdate(story_response.get('producedOn')),
-            'series': series.get('title'),
-            'series_id': series.get('id'),
-        }
         entries = []
         audio_pieces = self._extract_audio_pieces(
             self._get_prx_embed_response(story_response, 'audio'))
         for idx, fmt in enumerate(audio_pieces):
             entries.append({
                 '_type': 'video',
-                'id': '%s_part%d' % (story_id, (idx + 1)),
+                **info,  # needs to be before id to override
+                'id': '%s_part%d' % (info['id'], (idx + 1)),
                 'formats': [fmt],
-                **main_info
             })
-
         return {
             '_type': 'multi_video',
-            'id': story_id,
             'entries': entries,
-            **main_info
+            **info
         }
 
 
