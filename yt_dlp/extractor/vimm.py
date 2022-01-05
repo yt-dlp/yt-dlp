@@ -18,7 +18,7 @@ class VimmIE(InfoExtractor):
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
-        formats = self._extract_m3u8_formats(
+        formats, subs = self._extract_m3u8_formats(
             f'https://www.vimm.tv/hls/{channel_id}.m3u8', channel_id, 'mp4', m3u8_id='hls', live=True)
         self._sort_formats(formats)
 
@@ -27,4 +27,5 @@ class VimmIE(InfoExtractor):
             'title': channel_id,
             'is_live': True,
             'formats': formats,
+            'subtitles': subs,
         }
