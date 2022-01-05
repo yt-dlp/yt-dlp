@@ -482,18 +482,14 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
          (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
         \s*>
     ''' % {'attribute': re.escape(attribute), 'value': value}, html):
-        content, whole = get_first_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
+        content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
         retlist.append((
-            unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<_>.*)(?P=q)$', r'\g<_>', content)),
+            unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content)),
             whole,
         ))
 
     return retlist
-
-
-class HTMLBreakOnClosingTagException(Exception):
-    pass
 
 
 class HTMLBreakOnClosingTagParser(compat_HTMLParser):
@@ -502,6 +498,9 @@ class HTMLBreakOnClosingTagParser(compat_HTMLParser):
     closing tag for the first opening tag it has encountered, and can be used
     as a context manager
     """
+
+    class HTMLBreakOnClosingTagException(Exception):
+        pass
 
     def __init__(self):
         self.tagstack = collections.deque()
@@ -532,10 +531,10 @@ class HTMLBreakOnClosingTagParser(compat_HTMLParser):
         else:
             raise compat_HTMLParseError(f'matching opening tag for closing {tag} tag not found')
         if not self.tagstack:
-            raise HTMLBreakOnClosingTagException()
+            raise self.HTMLBreakOnClosingTagException()
 
 
-def get_first_element_text_and_html_by_tag(tag, html):
+def get_element_text_and_html_by_tag(tag, html):
     """
     For the first element with the specified tag in the passed HTML document
     return its' content (text) and the whole element (html)
@@ -564,7 +563,7 @@ def get_first_element_text_and_html_by_tag(tag, html):
             try:
                 parser.feed(html[offset:offset + next_closing_tag_end])
                 offset += next_closing_tag_end
-            except HTMLBreakOnClosingTagException:
+            except HTMLBreakOnClosingTagParser.HTMLBreakOnClosingTagException:
                 return html[content_start:offset + next_closing_tag_start], \
                     html[whole_start:offset + next_closing_tag_end]
         raise compat_HTMLParseError('unexpected end of html')
