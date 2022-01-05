@@ -11,7 +11,8 @@ class VimmIE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^calimeatwagon [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'live_status': 'is_live',
-        }, {'skip': 'Live'}
+        },
+        'skip': 'Live',
     }]
 
     def _real_extract(self, url):
