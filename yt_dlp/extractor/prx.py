@@ -11,12 +11,14 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     clean_html,
-    url_or_none, unified_timestamp, str_or_none,
+    url_or_none,
+    unified_timestamp,
+    str_or_none,
 )
 
 
 class PRXBaseIE(InfoExtractor):
-    PRX_BASE_URL_RE = r'https?://(?:beta\.)?prx.org/%s'
+    PRX_BASE_URL_RE = r'https?://(?:(?:beta|listen)\.)?prx.org/%s'
 
     def _call_api(self, item_id, path, query=None, fatal=True, note='Downloading CMS API JSON'):
         return self._download_json(
