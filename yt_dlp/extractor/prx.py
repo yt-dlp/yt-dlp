@@ -65,11 +65,14 @@ class PRXBaseIE(InfoExtractor):
             'title': response.get('title') or item_id,
             'thumbnails': [thumbnail_dict] if thumbnail_dict else None,
             'description': description,
-            'release_date': unified_strdate(response.get('producedOn')),
+            'release_date': (unified_strdate(response.get('producedOn'))
+                             or unified_timestamp(response.get('releasedAt'))),
             'timestamp': unified_timestamp(response.get('createdAt')),
             'modified_timestamp': unified_timestamp(response.get('updatedAt')),  # TODO: requires #2069
             'duration': int_or_none(response.get('duration')),
             'tags': response.get('tags'),
+            'episode_number': int_or_none(response.get('episodeIdentifier')),
+            'season_number': int_or_none(response.get('seasonIdentifier'))
         }
 
     @classmethod
@@ -123,8 +126,10 @@ class PRXBaseIE(InfoExtractor):
     def _get_entries(self, item_id, endpoint, func):
         total = 0
         for page in itertools.count(1):
+            # TODO: we can control the number per page
+            # TODO: we can choose what '_embedded' parts to get with zoom param
             response = self._call_api(
-                f'{item_id}: page {page}', endpoint, query={'page': page}) or {}
+                f'{item_id}: page {page}', endpoint, query={'page': page, 'per': 50}) or {}
             items = self._get_prx_embed_response(response, 'items') or []
 
             if not (response or items):
@@ -170,6 +175,11 @@ class PRXStoryIE(PRXBaseIE):
     # TODO: there is also audio-versions type, which includes Audio types.
     #  But it may include things such as transcript?
 
+    # Story with season and episode details: https://beta.prx.org/stories/399200
+    # Story with only audio splits: 326414
+    # Story with combined audio as well as audio splits: 400404
+    # 378985, 400404 timing and cues (avail with audio_versions)
+    # 1 has audio-versions but 404s on initial request
     def _extract_audio_pieces(self, audio_response):
         # TODO: concatenate the pieces with a concat PP is implemented
         # Currently returning as multi_video for the time being
@@ -178,7 +188,8 @@ class PRXStoryIE(PRXBaseIE):
         piece_response.sort(key=lambda x: int_or_none(x.get('position')))
         for piece_response in self._get_prx_embed_response(audio_response, 'items'):
             pieces.append({
-                'format_id': str(piece_response.get('id')),
+                'format_id': str_or_none(piece_response.get('id')),
+                'format_note': str_or_none(piece_response.get('label')),
                 'filesize': int_or_none(piece_response.get('size')),
                 'duration': int_or_none(piece_response.get('duration')),
                 'ext': mimetype2ext(piece_response.get('contentType')),
