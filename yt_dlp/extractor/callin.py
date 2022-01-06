@@ -64,7 +64,7 @@ class CallinIE(InfoExtractor):
 
         show_json = None
         app_slug = (self._html_search_regex(
-            '<script\\s+src=["\']/_next/static/([a-zA-Z0-9_]+)/_',
+            '<script\\s+src=["\']/_next/static/([-_a-zA-Z0-9]+)/_',
             webpage, 'app slug', fatal=False) or next_data.get('buildId'))
         show_slug = traverse_obj(episode, ('show', 'linkObj', 'resourceUrl'))
         if app_slug and show_slug and '/' in show_slug:
