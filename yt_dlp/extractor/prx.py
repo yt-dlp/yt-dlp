@@ -144,7 +144,7 @@ class PRXBaseIE(InfoExtractor):
         for page in itertools.count(start_page or 1):
             query = {
                 'page': page,
-                'per_page': 50,  # 10 is default by the site. TODO: extractor-arg?
+                'per_page': 10,  # 10 is default by the site. TODO: extractor-arg? TODO: this will break partial handover
             }
             if isinstance(expand, list):
                 query['zoom'] = expand  # TODO: in extractors, only specify required ones for entry_func
