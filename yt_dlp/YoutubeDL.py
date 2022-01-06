@@ -2699,6 +2699,9 @@ class YoutubeDL(object):
             info_dict['urls'] = '\n'.join(f['url'] + f.get('play_path', '') for f in info_dict['requested_formats'])
         elif 'url' in info_dict:
             info_dict['urls'] = info_dict['url'] + info_dict.get('play_path', '')
+        info_dict['formats_table'] = self._render_formats_table(info_dict)
+        info_dict['thumbnails_table'] = self._render_thumbnails_table(info_dict)
+        info_dict['subtitles_table'] = self._render_subtitles_table(info_dict['id'], info_dict['subtitles'], 'subtitles')
 
         if self.params['forceprint'].get('video') or self.params.get('forcejson'):
             self.post_extract(info_dict)
@@ -2714,6 +2717,9 @@ class YoutubeDL(object):
         if self.params.get('forceduration') and info_dict.get('duration') is not None:
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
+        print_mandatory('formats_table')
+        print_mandatory('thumbnails_table')
+        print_mandatory('subtitles_table')
 
         if self.params.get('forcejson'):
             self.to_stdout(json.dumps(self.sanitize_info(info_dict)))
@@ -3415,6 +3421,11 @@ class YoutubeDL(object):
             self.to_screen('%s has no formats' % info_dict['id'])
             return
         self.to_screen('[info] Available formats for %s:' % info_dict['id'])
+        self.to_stdout(self._render_formats_table(info_dict))
+
+    def _render_formats_table(self, info_dict):
+        if not info_dict.get('formats') and not info_dict.get('url'):
+            return
 
         formats = info_dict.get('formats', [info_dict])
         new_format = self.params.get('listformats_table', True) is not False
@@ -3466,41 +3477,44 @@ class YoutubeDL(object):
                 if f.get('preference') is None or f['preference'] >= -1000]
             header_line = ['format code', 'extension', 'resolution', 'note']
 
-        self.to_stdout(render_table(
+        return render_table(
             header_line, table,
             extra_gap=(0 if new_format else 1),
             hide_empty=new_format,
-            delim=new_format and self._format_screen('\u2500', self.Styles.DELIM, '-', test_encoding=True)))
+            delim=new_format and self._format_screen('\u2500', self.Styles.DELIM, '-', test_encoding=True))
 
     def list_thumbnails(self, info_dict):
         thumbnails = list(info_dict.get('thumbnails'))
         if not thumbnails:
             self.to_screen('[info] No thumbnails present for %s' % info_dict['id'])
             return
+        self.to_screen('[info] Thumbnails for %s:' % info_dict['id'])
+        self.to_stdout(self._render_thumbnails_table(info_dict))
 
-        self.to_screen(
-            '[info] Thumbnails for %s:' % info_dict['id'])
-        self.to_stdout(render_table(
+    def _render_thumbnails_table(self, info_dict):
+        thumbnails = list(info_dict.get('thumbnails'))
+        return render_table(
             self._list_format_headers('ID', 'Width', 'Height', 'URL'),
-            [[t['id'], t.get('width', 'unknown'), t.get('height', 'unknown'), t['url']] for t in thumbnails]))
+            [[t['id'], t.get('width', 'unknown'), t.get('height', 'unknown'), t['url']] for t in thumbnails])
 
     def list_subtitles(self, video_id, subtitles, name='subtitles'):
         if not subtitles:
             self.to_screen('%s has no %s' % (video_id, name))
             return
-        self.to_screen(
-            'Available %s for %s:' % (name, video_id))
+        self.to_screen('[info] Available %s for %s:' % (name, video_id))
+        self.to_stdout(self._render_subtitles_table(video_id, subtitles, name))
 
+    def _render_subtitles_table(self, video_id, subtitles, name='subtitles'):
         def _row(lang, formats):
             exts, names = zip(*((f['ext'], f.get('name') or 'unknown') for f in reversed(formats)))
             if len(set(names)) == 1:
                 names = [] if names[0] == 'unknown' else names[:1]
             return [lang, ', '.join(names), ', '.join(exts)]
 
-        self.to_stdout(render_table(
+        return render_table(
             self._list_format_headers('Language', 'Name', 'Formats'),
             [_row(lang, formats) for lang, formats in subtitles.items()],
-            hide_empty=True))
+            hide_empty=True)
 
     def urlopen(self, req):
         """ Start an HTTP download """
