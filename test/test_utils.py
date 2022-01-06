@@ -44,6 +44,12 @@ from yt_dlp.utils import (
     get_element_by_attribute,
     get_elements_by_class,
     get_elements_by_attribute,
+    get_element_html_by_class,
+    get_element_html_by_attribute,
+    get_elements_html_by_class,
+    get_elements_html_by_attribute,
+    get_elements_text_and_html_by_attribute,
+    get_element_text_and_html_by_tag,
     InAdvancePagedList,
     int_or_none,
     intlist_to_bytes,
@@ -118,6 +124,7 @@ from yt_dlp.compat import (
     compat_chr,
     compat_etree_fromstring,
     compat_getenv,
+    compat_HTMLParseError,
     compat_os_name,
     compat_setenv,
 )
@@ -1575,45 +1582,115 @@ Line 1
         self.assertEqual(urshift(3, 1), 1)
         self.assertEqual(urshift(-3, 1), 2147483646)
 
+    GET_ELEMENT_BY_CLASS_TEST_STRING = '''
+        <span class="foo bar">nice</span>
+    '''
+
     def test_get_element_by_class(self):
-        html = '''
-            <span class="foo bar">nice</span>
-        '''
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_element_by_class('foo', html), 'nice')
         self.assertEqual(get_element_by_class('no-such-class', html), None)
 
+    def test_get_element_html_by_class(self):
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_element_html_by_class('foo', html), html.strip())
+        self.assertEqual(get_element_by_class('no-such-class', html), None)
+
+    GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING = '''
+        <div itemprop="author" itemscope>foo</div>
+    '''
+
     def test_get_element_by_attribute(self):
-        html = '''
-            <span class="foo bar">nice</span>
-        '''
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_element_by_attribute('class', 'foo bar', html), 'nice')
         self.assertEqual(get_element_by_attribute('class', 'foo', html), None)
         self.assertEqual(get_element_by_attribute('class', 'no-such-foo', html), None)
 
-        html = '''
-            <div itemprop="author" itemscope>foo</div>
-        '''
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
 
         self.assertEqual(get_element_by_attribute('itemprop', 'author', html), 'foo')
 
+    def test_get_element_html_by_attribute(self):
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('class', 'foo bar', html), html.strip())
+        self.assertEqual(get_element_html_by_attribute('class', 'foo', html), None)
+        self.assertEqual(get_element_html_by_attribute('class', 'no-such-foo', html), None)
+
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('itemprop', 'author', html), html.strip())
+
+    GET_ELEMENTS_BY_CLASS_TEST_STRING = '''
+        <span class="foo bar">nice</span><span class="foo bar">also nice</span>
+    '''
+    GET_ELEMENTS_BY_CLASS_RES = ['<span class="foo bar">nice</span>', '<span class="foo bar">also nice</span>']
+
     def test_get_elements_by_class(self):
-        html = '''
-            <span class="foo bar">nice</span><span class="foo bar">also nice</span>
-        '''
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_elements_by_class('foo', html), ['nice', 'also nice'])
         self.assertEqual(get_elements_by_class('no-such-class', html), [])
 
+    def test_get_elements_html_by_class(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_elements_html_by_class('foo', html), self.GET_ELEMENTS_BY_CLASS_RES)
+        self.assertEqual(get_elements_html_by_class('no-such-class', html), [])
+
     def test_get_elements_by_attribute(self):
-        html = '''
-            <span class="foo bar">nice</span><span class="foo bar">also nice</span>
-        '''
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_elements_by_attribute('class', 'foo bar', html), ['nice', 'also nice'])
         self.assertEqual(get_elements_by_attribute('class', 'foo', html), [])
         self.assertEqual(get_elements_by_attribute('class', 'no-such-foo', html), [])
+
+    def test_get_elements_html_by_attribute(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_elements_html_by_attribute('class', 'foo bar', html), self.GET_ELEMENTS_BY_CLASS_RES)
+        self.assertEqual(get_elements_html_by_attribute('class', 'foo', html), [])
+        self.assertEqual(get_elements_html_by_attribute('class', 'no-such-foo', html), [])
+
+    def test_get_elements_text_and_html_by_attribute(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(
+            get_elements_text_and_html_by_attribute('class', 'foo bar', html),
+            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
+        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'foo', html), [])
+        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html), [])
+
+    GET_ELEMENT_BY_TAG_TEST_STRING = '''
+    random text lorem ipsum</p>
+    <div>
+        this should be returned
+        <span>this should also be returned</span>
+        <div>
+            this should also be returned
+        </div>
+        closing tag above should not trick, so this should also be returned
+    </div>
+    but this text should not be returned
+    '''
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[32:276]
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT = GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML[5:-6]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[78:119]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT = GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML[6:-7]
+
+    def test_get_element_text_and_html_by_tag(self):
+        html = self.GET_ELEMENT_BY_TAG_TEST_STRING
+
+        self.assertEqual(
+            get_element_text_and_html_by_tag('div', html),
+            (self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT, self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML))
+        self.assertEqual(
+            get_element_text_and_html_by_tag('span', html),
+            (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
+        self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
 
     def test_iri_to_uri(self):
         self.assertEqual(
