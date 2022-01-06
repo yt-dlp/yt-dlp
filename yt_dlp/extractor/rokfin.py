@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     bool_or_none,
     float_or_none,
+    str_or_none,
     url_or_none,
     ExtractorError,
 )
@@ -202,7 +203,6 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         video_id = self._match_id(url_from_user)
         downloaded_json = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, note='Downloading video metadata', fatal=False) or {}
         self.write_debug(downloaded_json)
-        m3u8_url = try_get(downloaded_json, lambda x: url_or_none(x['url']))
         availability = try_get(self, lambda x: x._availability(
             needs_premium=True if downloaded_json['premium'] else False,
             is_private=False,
@@ -211,6 +211,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             is_unlisted=False))
         downloaded_json = downloaded_json.get
 
+        m3u8_url = url_or_none(downloaded_json('url'))
         stream_scheduled_for = try_get(downloaded_json, lambda x: datetime.datetime.strptime(x('scheduledAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
         # 'scheduledAt' is set to None after the stream becomes live.
 
@@ -299,16 +300,16 @@ class RokfinPlaylistIE(InfoExtractor):
         to_screen = self.to_screen
         url_result = self.url_result
 
-        def get_video_url(content):
-            media_type = try_get(content, lambda x: x['mediaType'])
+        def get_video_data(content):
+            media_type = content.get('mediaType')
             fn = try_get(media_type, lambda y: {
-                'video': lambda x: f'{video_base_url}post/{x["id"]}',
-                'audio': lambda x: f'{video_base_url}post/{x["id"]}',
-                'stream': lambda x: f'{video_base_url}stream/{x["mediaId"]}',
-                'dead_stream': lambda x: f'{video_base_url}stream/{x["mediaId"]}',
-                'stack': lambda x: f'{video_base_url}stack/{x["mediaId"]}',
-                'article': lambda x: f'{video_base_url}article/{x["mediaId"]}',
-                'ranking': lambda x: f'{video_base_url}ranking/{x["mediaId"]}'
+                'video': lambda x: {'id': x['id'], 'url': f'{video_base_url}post/{x["id"]}'},
+                'audio': lambda x: {'id': x['id'], 'url': f'{video_base_url}post/{x["id"]}'},
+                'stream': lambda x: {'id': x['mediaId'], 'url': f'{video_base_url}stream/{x["mediaId"]}'},
+                'dead_stream': lambda x: {'id': x['mediaId'], 'url': f'{video_base_url}stream/{x["mediaId"]}'},
+                'stack': lambda x: {'id': x['mediaId'], 'url': f'{video_base_url}stack/{x["mediaId"]}'},
+                'article': lambda x: {'id': x['mediaId'], 'url': f'{video_base_url}article/{x["mediaId"]}'},
+                'ranking': lambda x: {'id': x['mediaId'], 'url': f'{video_base_url}ranking/{x["mediaId"]}'}
             }[y])
 
             if fn is None:
@@ -316,17 +317,21 @@ class RokfinPlaylistIE(InfoExtractor):
                 write_debug(f'could not process content entry: {content}')
                 return
 
-            video_url = try_get(content, fn)
-            if video_url is None:
+            video_data = try_get(content, fn)
+            if video_data is None:
                 write_debug(f'{media_type}: could not process content entry: {content}')
+                return
 
-            return video_url
+            video_data['title'] = str_or_none(traverse_obj(content, ('content', 'contentTitle')))
+            return video_data
 
-        for content in try_get(json_data, lambda x: x['content']) or []:
-            video_url = get_video_url(content)
+        for content in json_data.get('content') or []:
+            video_data = get_video_data(content)
 
-            if video_url:
-                yield url_result(url=video_url)
+            if not video_data:
+                continue
+
+            yield url_result(url=video_data['url'], video_id=video_data['id'], video_title=video_data['title'])
 
 
 # A stack is an aggregation of content. On the website, stacks are shown as a collection of videos
@@ -393,7 +398,7 @@ class RokfinChannelIE(RokfinPlaylistIE):
 
                 yield from _get_video_data(json_data=downloaded_json, video_base_url=_VIDEO_BASE_URL)
 
-                pages_total = try_get(downloaded_json, lambda x: x['totalPages'])
+                pages_total = downloaded_json.get('totalPages')
                 is_last_page = try_get(downloaded_json, lambda x: x['last'] is True)
                 max_page_count_reached = try_get(pages_total, lambda x: page_n + 1 >= x)
 
@@ -409,12 +414,11 @@ class RokfinChannelIE(RokfinPlaylistIE):
 
         channel_username = self._match_id(url_from_user)
         channel_info = self._download_json(_CHANNEL_BASE_URL + channel_username, channel_username, note='Downloading channel info', fatal=False) or {}
-        channel_id = try_get(channel_info, lambda x: x['id'])
-
+        channel_id = channel_info.get('id')
         return self.playlist_result(
             entries=dnl_video_meta_data_incrementally(tab=tab_dic[tabs[0] if tabs else "new"], channel_id=channel_id, channel_username=channel_username, channel_base_url=_CHANNEL_BASE_URL),
             playlist_id=channel_id,
-            playlist_description=try_get(channel_info, lambda x: x['description']),
+            playlist_description=channel_info.get('description'),
             webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username,
             # The final part of url_from_user exists solely for human consumption and is otherwise skipped.
             original_url=url_from_user)
@@ -487,17 +491,17 @@ class RokfinSearchIE(SearchInfoExtractor):
                     else:
                         raise ExtractorError(msg='couldn\'t gain access', expected=False)
 
-                def get_video_url(content):
+                def get_video_data(content):
                     BASE_URL = 'https://rokfin.com/'
                     content_type = try_get(content, lambda x: x['content_type']['raw'])
                     fn = try_get(content_type, lambda y: {
-                        'video': lambda x: f'{BASE_URL}post/{int(x["id"]["raw"])}',
-                        'audio': lambda x: f'{BASE_URL}post/{int(x["id"]["raw"])}',
-                        'stream': lambda x: f'{BASE_URL}stream/{int(x["content_id"]["raw"])}',
-                        'dead_stream': lambda x: f'{BASE_URL}stream/{int(x["content_id"]["raw"])}',
-                        'stack': lambda x: f'{BASE_URL}stack/{int(x["content_id"]["raw"])}',
-                        'article': lambda x: f'{BASE_URL}article/{int(x["content_id"]["raw"])}',
-                        'ranking': lambda x: f'{BASE_URL}ranking/{int(x["content_id"]["raw"])}'
+                        'video': lambda x: {'id': int(x['id']['raw']), 'url': f'{BASE_URL}post/{int(x["id"]["raw"])}'},
+                        'audio': lambda x: {'id': int(x['id']['raw']), 'url': f'{BASE_URL}post/{int(x["id"]["raw"])}'},
+                        'stream': lambda x: {'id': int(x['content_id']['raw']), 'url': f'{BASE_URL}stream/{int(x["content_id"]["raw"])}'},
+                        'dead_stream': lambda x: {'id': int(x['content_id']['raw']), 'url': f'{BASE_URL}stream/{int(x["content_id"]["raw"])}'},
+                        'stack': lambda x: {'id': int(x['content_id']['raw']), 'url': f'{BASE_URL}stack/{int(x["content_id"]["raw"])}'},
+                        'article': lambda x: {'id': int(x['content_id']['raw']), 'url': f'{BASE_URL}article/{int(x["content_id"]["raw"])}'},
+                        'ranking': lambda x: {'id': int(x['content_id']['raw']), 'url': f'{BASE_URL}ranking/{int(x["content_id"]["raw"])}'}
                     }[y])
 
                     if fn is None:
@@ -505,11 +509,15 @@ class RokfinSearchIE(SearchInfoExtractor):
                         write_debug(f'could not process content entry: {content}')
                         return
 
-                    video_url = try_get(content, fn)
-                    if video_url is None:
+                    video_data = try_get(content, fn)
+                    if video_data is None:
                         write_debug(f'{content_type}: could not process content entry: {content}')
+                        return
 
-                    return video_url
+                    video_data['title'] = str_or_none(traverse_obj(content, ('content_title', 'raw')))
+                    print(video_data['url'])
+                    print(video_data['title'])
+                    return video_data
 
                 pages_total = int_or_none(traverse_obj(srch_res, ('meta', 'page', 'total_pages')))
                 if pages_total is None:
@@ -526,22 +534,23 @@ class RokfinSearchIE(SearchInfoExtractor):
                     results_total_printed = True
 
                 for content in srch_res.get('results') or []:
-                    video_url = get_video_url(content)
+                    video_data = get_video_data(content)
 
-                    if video_url:
-                        yield url_result(video_url)
+                    if not video_data:
+                        continue
 
-                        result_counter += 1
+                    yield url_result(url=video_data['url'], video_id=video_data['id'], video_title=video_data['title'])
+                    result_counter += 1
 
-                        if result_counter >= min(n_results, results_total or float('inf')) or (n_results == float('inf') and results_total is None):
-                            # If n_results == inf, and Rokfin does not report the total # of search
-                            # results available, then we have no definitive stopping point, so
-                            # the downloading process could execute indefinitely. To address this,
-                            # we play it safe and quit.
-                            if n_results == float('inf') and results_total is None:
-                                report_warning(msg='please specify a finite number of search results, e.g. 100, and re-run. Stopping the downloading process prematurely to avoid an infinite loop')
+                    if result_counter >= min(n_results, results_total or float('inf')) or (n_results == float('inf') and results_total is None):
+                        # If n_results == inf, and Rokfin does not report the total # of search
+                        # results available, then we have no definitive stopping point, so
+                        # the downloading process could execute indefinitely. To address this,
+                        # we play it safe and quit.
+                        if n_results == float('inf') and results_total is None:
+                            report_warning(msg='please specify a finite number of search results, e.g. 100, and re-run. Stopping the downloading process prematurely to avoid an infinite loop')
 
-                            return
+                        return
 
                 if page_n >= min(pages_total or float('inf'), max_pages_to_download or float('inf')) or (pages_total is None and max_pages_to_download is None):
                     return
