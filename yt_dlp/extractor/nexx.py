@@ -248,41 +248,35 @@ class NexxIE(InfoExtractor):
             video_id, mpd_id=f'{cdn}-dash', fatal=False))
 
         progressive_base = get_cdn_shield_base('Prog')
-        q_references = stream_data.get('qReferences')
-        if q_references:
-            fds = q_references.split(',')
-            if fds:
-                for fd in fds:
-                    ss = fd.split(':')
-                    if len(ss) == 3:
-                        # Is this correct?
-                        tbr = int_or_none(ss[1], scale=1000)
-                        formats.append({
-                            'url': f'{progressive_base}{q_acc}/uploads/{q_acc}-{ss[2]}.webm',
-                            'format_id': f'{cdn}-{ss[0]}{"-%s" % tbr if tbr else ""}',
-                            'tbr': tbr,
-                        })
-        azure_file_distribution = stream_data.get('azureFileDistribution')
-        if azure_file_distribution:
-            fds = azure_file_distribution.split(',')
-            if fds:
-                for fd in fds:
-                    ss = fd.split(':')
-                    if len(ss) == 3:
-                        tbr = int_or_none(ss[0])
-                        if tbr:
-                            f = {
-                                'url': f'{progressive_base}{q_acc}/files/{q_prefix}/{q_locator}/{ss[2]}.mp4',
-                                'format_id': '%s-http-%d' % (cdn, tbr),
-                                'tbr': tbr,
-                            }
-                            width_height = ss[1].split('x')
-                            if len(width_height) == 2:
-                                f.update({
-                                    'width': int_or_none(width_height[0]),
-                                    'height': int_or_none(width_height[1]),
-                                })
-                            formats.append(f)
+        q_references = stream_data.get('qReferences') or ''
+        fds = q_references.split(',')
+        for fd in fds:
+            ss = fd.split(':')
+            if len(ss) != 3:
+                continue
+            tbr = int_or_none(ss[1], scale=1000)
+            formats.append({
+                'url': f'{progressive_base}{q_acc}/uploads/{q_acc}-{ss[2]}.webm',
+                'format_id': f'{cdn}-{ss[0]}{"-%s" % tbr if tbr else ""}',
+                'tbr': tbr,
+            })
+
+        azure_file_distribution = stream_data.get('azureFileDistribution') or ''
+        fds = azure_file_distribution.split(',')
+        for fd in fds:
+            ss = fd.split(':')
+            if len(ss) != 3:
+                continue
+            tbr = int_or_none(ss[0])
+            width, height = ss[1].split('x') if len(ss[1].split('x')) == 2 else (None, None)
+            f = {
+                'url': f'{progressive_base}{q_acc}/files/{q_prefix}/{q_locator}/{ss[2]}.mp4',
+                'format_id': f'{cdn}-http-{"-%s" % tbr if tbr else ""}',
+                'tbr': tbr,
+                'width': int_or_none(width),
+                'height': int_or_none(height),
+            }
+            formats.append(f)
 
         return formats
 
