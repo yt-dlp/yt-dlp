@@ -1,7 +1,6 @@
 # coding: utf-8
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     traverse_obj,
     float_or_none,
     int_or_none
@@ -55,8 +54,8 @@ class CallinIE(InfoExtractor):
 
         id = episode['id']
         title = (episode.get('title')
-            or self._og_search_title(webpage, fatal=False)
-            or self._html_search_regex('<title>(.*?)</title>', webpage, 'title'))
+                 or self._og_search_title(webpage, fatal=False)
+                 or self._html_search_regex('<title>(.*?)</title>', webpage, 'title'))
         url = episode['m3u8']
         formats = self._extract_m3u8_formats(url, display_id, ext='ts')
         self._sort_formats(formats)
@@ -66,12 +65,13 @@ class CallinIE(InfoExtractor):
 
         # get the show metadata for some supplementary info
         show_json = None
-        app_slug = (self._html_search_regex(
+        app_slug = (
+            self._html_search_regex(
                 '<script\\s+src=["\']/_next/static/([a-zA-Z0-9_]+)/_',
-                webpage, 'app slug', fatal=False
-            )
+                webpage, 'app slug', fatal=False)
             # this sometimes works, but sometimes seems to lag changes in the actual urls used.
-            or next_data.get('buildId'))
+            or next_data.get('buildId')
+        )
         show_slug = traverse_obj(episode, ('show', 'linkObj', 'resourceUrl'))
         if app_slug and show_slug and '/' in show_slug:
             show_slug = show_slug.rsplit('/', 1)[1]
@@ -81,7 +81,7 @@ class CallinIE(InfoExtractor):
         # if we don't have the show metadata to tell us the host explicitly,
         # guess that it's the first speaker listed for the episode
         host = (traverse_obj(show_json, ('pageProps', 'show', 'hosts', 0))
-            or traverse_obj(episode, ('speakers', 0)))
+                or traverse_obj(episode, ('speakers', 0)))
 
         host_nick = traverse_obj(host, ('linkObj', 'resourceUrl'))
         host_nick = host_nick.rsplit('/', 1)[1] if (host_nick and '/' in host_nick) else None
