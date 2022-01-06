@@ -72,9 +72,10 @@ class MegaTVComIE(MegaTVComBaseIE):
                 r'<article[^>]*\sid=["\']Article_(\d+)["\']', webpage, 'article id')
         player_attrs = self._extract_player_attrs(webpage)
         title = player_attrs.get('label') or self._og_search_title(webpage)
-        description = clean_html(get_element_by_class(
+        description = get_element_by_class(
             'article-wrapper' if _is_article else 'story_content',
-            webpage))
+            webpage)
+        description = clean_html(re.sub(r'<script[^>]*>[^<]+</script>', '', description))
         if not description:
             description = self._og_search_description(webpage)
         thumbnail = player_attrs.get('image') or self._og_search_thumbnail(webpage)
