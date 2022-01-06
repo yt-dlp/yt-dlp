@@ -123,25 +123,39 @@ class PRXBaseIE(InfoExtractor):
             'channel': account.get('channel')
         }
 
-    def _get_entries(self, item_id, endpoint, func):
+    def _extract_response_entries(self, response, entry_func):
+        """
+        Extracts entries for a single response
+        """
+        items = self._get_prx_embed_response(response, 'items') or []
+        for entry_response in items:
+            res = entry_func(entry_response)
+            if res:
+                yield res
+
+    def _get_entries(self, item_id, endpoint, entry_func, start_page=None, expand=None):
+        """
+        Extract entries from paginated list API
+        @param endpoint: API endpoint path, no leading /
+        @param start_page: what page to start extraction on
+        @param expand: list of sections to expand on '_embedded data returned ('zoom' param on site).  e.g. prx:image
+        """
         total = 0
-        for page in itertools.count(1):
-            # TODO: we can control the number per page
-            # TODO: we can choose what '_embedded' parts to get with zoom param
+        for page in itertools.count(start_page or 1):
+            query = {
+                'page': page,
+                'per_page': 50,  # 10 is default by the site. TODO: extractor-arg?
+            }
+            if isinstance(expand, list):
+                query['zoom'] = expand  # TODO: in extractors, only specify required ones for entry_func
             response = self._call_api(
-                f'{item_id}: page {page}', endpoint, query={'page': page, 'per': 50}) or {}
-            items = self._get_prx_embed_response(response, 'items') or []
+                f'{item_id}: page {page}', endpoint, query=query) or {}
 
-            if not (response or items):
+            if not response:
                 break
+            yield from self._extract_response_entries(item_id, entry_func)
 
-            # Below this could possibly be generalised to support existing metadata
-            for entry_response in items:
-                res = func(entry_response)
-                if res:
-                    yield res
-                total += 1
-
+            total += response.get('count')
             if total >= response.get('total'):
                 break
 
