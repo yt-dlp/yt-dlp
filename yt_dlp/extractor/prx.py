@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import itertools
-import re
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     unified_strdate,
@@ -14,7 +13,6 @@ from ..utils import (
     url_or_none,
     unified_timestamp,
     str_or_none,
-    parse_duration
 )
 
 
@@ -127,7 +125,6 @@ class PRXBaseIE(InfoExtractor):
     def _entries(self, item_id, endpoint, entry_func, query=None):
         """
         Extract entries from paginated list API
-        @param endpoint: API endpoint path, no leading /
         @param entry_func: Function to generate entry from response item
         """
         total = 0
@@ -181,10 +178,22 @@ class PRXBaseIE(InfoExtractor):
 class PRXStoryIE(PRXBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'stories/(?P<id>\d+)'
 
-    # This extract type Audio (the literal audio format)
-    # TODO: there is also audio-versions type, which includes Audio types.
-    #  But it may include things such as transcript?
+    _TESTS = [
+        {
+            # Story with season and episode details
+            'url': 'https://beta.prx.org/stories/399200',
 
+        }, {
+            # Story with only split audio
+            'url': 'https://beta.prx.org/stories/326414'
+        }, {
+            # Story with both combined audio and audio splits (API should return combined)
+            'url': 'https://beta.prx.org/stories/326414'
+        }, {
+            'url': 'https://listen.prx.org/stories/399200',
+            'only_matching': True
+        }
+    ]
     # Story with season and episode details: https://beta.prx.org/stories/399200
     # Story with only audio splits: 326414
     # Story with combined audio as well as audio splits: 400404
@@ -209,7 +218,7 @@ class PRXStoryIE(PRXBaseIE):
                 'vcodec': 'none',
             })
         return pieces
-    # TODO: checks for if we have a full story/series response, how many pages etc.
+
     def _extract_story(self, story_response):
         info = self._extract_story_info(story_response)
         if not info:
@@ -232,8 +241,7 @@ class PRXStoryIE(PRXBaseIE):
 
     def _real_extract(self, url):
         story_id = self._match_id(url)
-        response = self._call_api(
-            story_id, f'stories/{story_id}')
+        response = self._call_api(story_id, f'stories/{story_id}')
         story = self._extract_story(response)
         return story
 
