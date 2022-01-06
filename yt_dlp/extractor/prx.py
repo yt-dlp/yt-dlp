@@ -40,7 +40,7 @@ class PRXBaseIE(InfoExtractor):
         if not isinstance(image_response, dict):
             return
         return {
-            'id': str(image_response.get('id')),
+            'id': str_or_none(image_response.get('id')),
             'filesize': image_response.get('size'),
             'width': image_response.get('width'),
             'height': image_response.get('height'),
@@ -128,7 +128,7 @@ class PRXBaseIE(InfoExtractor):
             if not (response or items):
                 break
 
-            # Below this could be generalised to support existing metadata
+            # Below this could possibly be generalised to support existing metadata
             for entry_response in items:
                 res = func(entry_response)
                 if res:
@@ -138,8 +138,8 @@ class PRXBaseIE(InfoExtractor):
             if total >= response.get('total'):
                 break
 
-    def _story_list_response(self, entry_response):
-        story = self._extract_story_info(entry_response)
+    def _story_playlist_entry(self, response):
+        story = self._extract_story_info(response)
         if not story:
             return
         story.update({
@@ -149,7 +149,7 @@ class PRXBaseIE(InfoExtractor):
         })
         return story
 
-    def _series_list_response(self, response):
+    def _series_playlist_entry(self, response):
         series = self._extract_series_info(response)
         if not series:
             return
@@ -233,7 +233,7 @@ class PRXSeriesIE(PRXBaseIE):
         info = self._extract_series_info(series_response)
         return {
             '_type': 'playlist',
-            'entries': self._get_entries(info['id'], f'series/{info["id"]}/stories', self._story_list_response),
+            'entries': self._get_entries(info['id'], 'series/%s/stories' % info['id'], self._story_playlist_entry),
             **info
         }
 
@@ -250,10 +250,9 @@ class PRXAccountIE(PRXBaseIE):
     def _extract_account(self, account_response):
         info = self._extract_account_info(account_response)
         series = self._get_entries(
-            info['id'], f'accounts/{info["id"]}/series', self._series_list_response)
-
+            info['id'], f'accounts/{info["id"]}/series', self._series_playlist_entry)
         stories = self._get_entries(
-            info['id'], f'accounts/{info["id"]}/stories', self._story_list_response)
+            info['id'], f'accounts/{info["id"]}/stories', self._story_playlist_entry)
         return {
             '_type': 'playlist',
             'entries': itertools.chain(series, stories),
