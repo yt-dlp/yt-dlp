@@ -14,6 +14,7 @@ from ..utils import (
     ExtractorError,
     extract_attributes,
     get_element_by_class,
+    get_element_html_by_id,
     HEADRequest,
     unescapeHTML,
     unified_timestamp,
@@ -24,9 +25,7 @@ class MegaTVComBaseIE(InfoExtractor):
     _PLAYER_DIV_ID = 'player_div_id'
 
     def _extract_player_attrs(self, webpage):
-        player_el = self._search_regex(
-            r'(<div[^>]*\sid=(?P<_q>["\'])%s(?P=_q)\s[^>]+>)' %
-            self._PLAYER_DIV_ID, webpage, 'player element')
+        player_el = get_element_html_by_id(self._PLAYER_DIV_ID, webpage)
         return {
             re.sub(r'^data-(?:kwik_)?', '', k): v
             for k, v in extract_attributes(player_el).items()
