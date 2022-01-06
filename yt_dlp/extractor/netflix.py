@@ -1,7 +1,7 @@
 from .common import InfoExtractor
 import json
 import re
-from ..utils import clean_html
+from ..utils import (clean_html, try_get, traverse_obj, url_or_none, int_or_none, str_or_none, parse_duration)
 
 
 def unicode_escape(string):
@@ -34,48 +34,70 @@ def VideoInfo(self, id):
         "AV1": ["av1-main-L20-dash-cbcs-prk", "av1-main-L21-dash-cbcs-prk", "av1-main-L30-dash-cbcs-prk", "av1-main-L31-dash-cbcs-prk", "av1-main-L40-dash-cbcs-prk", "av1-main-L41-dash-cbcs-prk", "av1-main-L50-dash-cbcs-prk", "av1-main-L51-dash-cbcs-prk"]
     }
 
+    vcodeclist = {
+        "vp9": ["vp9-profile0-L21-dash-cenc", "vp9-profile0-L30-dash-cenc", "vp9-profile0-L31-dash-cenc", "vp9-profile0-L40-dash-cenc"],
+        "h264": ["playready-h264mpl30-dash", "playready-h264mpl31-dash", "playready-h264mpl40-dash", "playready-h264hpl22-dash", "playready-h264hpl30-dash", "playready-h264hpl31-dash", "playready-h264hpl40-dash"],
+        "h265": ["hevc-main10-L30-dash-cenc", "hevc-main10-L31-dash-cenc", "hevc-main10-L40-dash-cenc", "hevc-main10-L41-dash-cenc", "hevc-main10-L50-dash-cenc", "hevc-main10-L51-dash-cenc", "hevc-main10-L30-dash-cenc-prk", "hevc-main10-L31-dash-cenc-prk", "hevc-main10-L40-dash-cenc-prk", "hevc-main10-L41-dash-cenc-prk", "hevc-main10-L30-dash-cenc-prk-do", "hevc-main10-L31-dash-cenc-prk-do", "hevc-main10-L40-dash-cenc-prk-do", "hevc-main10-L41-dash-cenc-prk-do", "hevc-main10-L50-dash-cenc-prk-do", "hevc-main10-L51-dash-cenc-prk-do", "hevc-dv5-main10-L30-dash-cenc-prk", "hevc-dv5-main10-L31-dash-cenc-prk", "hevc-dv5-main10-L40-dash-cenc-prk", "hevc-dv5-main10-L41-dash-cenc-prk", "hevc-dv5-main10-L50-dash-cenc-prk", "hevc-dv5-main10-L51-dash-cenc-prk", "hevc-dv5-main10-L30-dash-cenc-prk-do", "hevc-dv5-main10-L31-dash-cenc-prk-do", "hevc-dv5-main10-L40-dash-cenc-prk-do", "hevc-dv5-main10-L41-dash-cenc-prk-do", "hevc-dv5-main10-L50-dash-cenc-prk-do", "hevc-dv5-main10-L51-dash-cenc-prk-do", "hevc-hdr-main10-L30-dash-cenc", "hevc-hdr-main10-L31-dash-cenc", "hevc-hdr-main10-L40-dash-cenc", "hevc-hdr-main10-L41-dash-cenc", "hevc-hdr-main10-L50-dash-cenc", "hevc-hdr-main10-L51-dash-cenc", "hevc-hdr-main10-L30-dash-cenc-prk", "hevc-hdr-main10-L31-dash-cenc-prk", "hevc-hdr-main10-L40-dash-cenc-prk", "hevc-hdr-main10-L41-dash-cenc-prk", "hevc-hdr-main10-L50-dash-cenc-prk", "hevc-hdr-main10-L51-dash-cenc-prk", "hevc-hdr-main10-L30-dash-cenc-prk-do", "hevc-hdr-main10-L31-dash-cenc-prk-do", "hevc-hdr-main10-L40-dash-cenc-prk-do", "hevc-hdr-main10-L41-dash-cenc-prk-do", "hevc-hdr-main10-L50-dash-cenc-prk-do", "hevc-hdr-main10-L51-dash-cenc-prk-do"],
+        "av01": ["av1-main-L20-dash-cbcs-prk", "av1-main-L21-dash-cbcs-prk", "av1-main-L30-dash-cbcs-prk", "av1-main-L31-dash-cbcs-prk", "av1-main-L40-dash-cbcs-prk", "av1-main-L41-dash-cbcs-prk", "av1-main-L50-dash-cbcs-prk", "av1-main-L51-dash-cbcs-prk"]
+
+    }
+
+    def vprofile_to_vcodec(profile):
+        for key, value in vcodeclist.items():
+            if profile in value:
+                return key
+        return profile
+
+    def aprofile_to_acodec(profile, ext):
+        if "aac" in profile.lower():
+            return ("aac")
+        if "ddplus" in profile.lower():
+            return ("eac3")
+        if ext:
+            return "mp4"
+        else:
+            return(profile)
+
     acodecs = ["heaac-2-dash", "heaac-5.1-dash", "heaac-2hq-dash", "xheaac-dash", "ddplus-2.0-dash", "ddplus-5.1-dash", "ddplus-atmos-dash"]
     scodecs = ["simplesdh", "dfxp-ls-sdh", "webvtt-lssdh-ios8", "nflx-cmisc"]
     url = []
     a = 0
     for vc in vcodecs:
         vm = getVideoManifest(self, id, vcodecs[vc] + acodecs + scodecs, note="Trying Video Profiles: " + vc)
-
         if "error" in vm:
             continue
         else:
-
             if a == 0:
-                for langnode in reversed(vm["result"]["audio_tracks"]):
-                    for node in langnode["streams"]:
-
+                for langnode in reversed(traverse_obj(vm, ("result", "audio_tracks"), default={})):
+                    ac = try_get(langnode, lambda x: x["codecName"])
+                    for node in traverse_obj(langnode, ("streams"), default={}):
                         aurl = {
-                            'url': node["urls"][0]["url"],
-                            'format_id': str(node["downloadable_id"]),
-                            'abr': node["bitrate"],
-                            'ext': "mp3",
-                            'filesize': node["size"],
-                            'acodec': node['content_profile'],
+                            'url': url_or_none(try_get(node, lambda x: x["urls"][0]["url"])),
+                            'format_id': str_or_none(try_get(node, lambda x: x["downloadable_id"])),
+                            'abr': try_get(node, lambda x: x["bitrate"]),
+                            'ext': aprofile_to_acodec(ac or (try_get(node, lambda x: x["content_profile"])), ext=True),
+                            'filesize': try_get(node, lambda x: x["size"]),
+                            'acodec': aprofile_to_acodec(ac or (try_get(node, lambda x: x["content_profile"])), ext=False),
                             'vcodec': "none",
-                            'language': node["language"]
+                            'language': try_get(node, lambda x: x["language"])
                         }
                         url.append(aurl)
             a = 1
-        for node in vm["result"]["video_tracks"][0]["streams"]:
+        for node in traverse_obj(vm, ("result", "video_tracks", 0, "streams"), default={}):
             vurl = {
-                'url': node["urls"][0]["url"],
-                'width': node['res_w'],
-                'height': node['res_h'],
-                'format_id': node['downloadable_id'],
-                'fps': node["framerate_value"],
-                'vbr': node["bitrate"],
+                'url': url_or_none(try_get(node, lambda x: x["urls"][0]["url"])),
+                'width': try_get(node, lambda x: x["res_w"]),
+                'height': try_get(node, lambda x: x["res_h"]),
+                'format_id': try_get(node, lambda x: x["downloadable_id"]),
+                'fps': try_get(node, lambda x: x["framerate_value"]),
+                'vbr': try_get(node, lambda x: x["bitrate"]),
                 'ext': "mp4",
-                'filesize': node["size"],
-                'vcodec': node["content_profile"],
-                'acodec': "none"
+                'filesize': try_get(node, lambda x: x["size"]),
+                'vcodec': vprofile_to_vcodec(try_get(node, lambda x: x["content_profile"])),
+                'acodec': "none",
+                'quality': int_or_none(try_get(node, lambda x: x["vmaf"])),
             }
             url.append(vurl)
-
     return(url)
 
 
@@ -112,23 +134,23 @@ class NetflixIE(InfoExtractor):
                    }
         webpage = self._download_webpage(url, content_id, headers=headers)
         reactJS = clean_html(re.findall('<script>window\\.netflix = window\\.netflix.*;</script>', webpage)[0])
-        reactJSON = self._search_regex('netflix\\.reactContext\\ \\=(.*)[;]', reactJS, 'JSON from webpage')
+        reactJSON = self._search_regex('netflix\\.reactContext\\ \\=(.*)[;]', reactJS, 'JSON from webpage',fatal=False)
         reactJSON = re.sub('\\\\(x[A-Z0-9]{2})', '\\\\\\\\\\g<1>', reactJSON, 0, re.MULTILINE)
         json_list = json.loads(reactJSON)
         if 'title' in json_list:
-            idList = json_list['models']['nmTitleUI']['data']['sectionData'][2]['data']['supplementalVideos']
+            idList = traverse_obj(json_list, ("models", "nmTitleUI", 'data', "sectionData", 2, "data", "supplementalVideos"), default={})
             pl = {'_type': 'playlist',
-                  'title': unicode_escape(json_list['models']['nmTitleUI']['data']['sectionData'][0]['data']['title']),
+                  'title': unicode_escape(str_or_none(try_get(json_list, lambda x: x['models']['nmTitleUI']['data']['sectionData'][0]['data']['title']))),
                   'id': content_id,
                   'entries': []}
             for element in idList:
-                item = {'_type': 'video', 'id': str(element['id']),
-                        'title': unicode_escape(element['title']),
-                        'formats': VideoInfo(self, element['id']),
-                        'release_timestamp': element['availabilityStartDate'],
-                        'duration': element['runtime'],
-                        'categories': [
-                    element['subType']]}
+                item = {'_type': 'video',
+                        'id': str_or_none(try_get(element, lambda x: x["id"])),
+                        'title': unicode_escape(try_get(element, lambda x: x["title"])),
+                        'formats': VideoInfo(self, try_get(element, lambda x: x["id"])),
+                        'release_timestamp': try_get(element, lambda x: x["availabilityStartDate"]),
+                        'duration': parse_duration(try_get(element, lambda x: x["runtime"])),
+                        'categories': try_get(element, lambda x: x["subType"])}
                 pl['entries'].append(item)
             else:
                 return pl
@@ -136,4 +158,4 @@ class NetflixIE(InfoExtractor):
         self.report_warning('Extractor Error')
         if 'models' in json_list:
             self.report_warning('Specify your locale in the url')
-        return {'error': 'error'}
+        return None
