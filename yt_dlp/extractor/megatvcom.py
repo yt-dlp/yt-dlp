@@ -49,6 +49,8 @@ class MegaTVComIE(MegaTVComBaseIE):
             'description': 'md5:0209fa8d318128569c0d256a5c404db1',
             'timestamp': 1634975747,
             'upload_date': '20211023',
+            'display_id': 'egkainia-gia-ti-nea-skini-omega-tou-dimotikou-theatrou-peiraia',
+            'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/10/ΠΕΙΡΑΙΑΣ-1024x450.jpg',
         },
     }, {
         'url': 'https://www.megatv.com/tvshows/527800/epeisodio-65-12/',
@@ -60,6 +62,8 @@ class MegaTVComIE(MegaTVComBaseIE):
             'description': 'md5:b2b7ed3690a78f2a0156eb790fdc00df',
             'timestamp': 1636048859,
             'upload_date': '20211104',
+            'display_id': 'epeisodio-65-12',
+            'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/11/16-1-1.jpg',
         },
     }]
 
@@ -118,6 +122,8 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
             'description': 'md5:0209fa8d318128569c0d256a5c404db1',
             'timestamp': 1634975747,
             'upload_date': '20211023',
+            'display_id': 'egkainia-gia-ti-nea-skini-omega-tou-dimotikou-theatrou-peiraia',
+            'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/10/ΠΕΙΡΑΙΑΣ-1024x450.jpg',
         },
     }, {
         'url': 'https://www.megatv.com/embed/?p=2020534081',
@@ -129,6 +135,8 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
             'description': 'md5:36dbe4c3762d2ede9513eea8d07f6d52',
             'timestamp': 1636376351,
             'upload_date': '20211108',
+            'display_id': 'neo-rekor-stin-timi-tou-ilektrikou-reymatos-pano-apo-ta-200e-i-xondriki-timi-tou-ilektrikou',
+            'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/11/Capture-266.jpg',
         },
     }]
 
