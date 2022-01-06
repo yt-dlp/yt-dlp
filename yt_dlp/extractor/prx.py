@@ -2,29 +2,18 @@
 from __future__ import unicode_literals
 
 import itertools
-import re
-import functools
-from .common import InfoExtractor, SearchInfoExtractor
+
+from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
-    GeoRestrictedError,
-    orderedSet,
     unified_strdate,
-    urlencode_postdata,
     urljoin,
     traverse_obj,
     int_or_none,
     mimetype2ext,
     clean_html,
     url_or_none,
-    parse_dfxp_time_expr,
-get_domain
 )
 
-import typing
-
-# Some test cases:
-# No info: https://beta.prx.org/series/25038
 
 class PRXBaseIE(InfoExtractor):
     PRX_BASE_URL_RE = r'https?://(?:beta\.)?prx.org/%s'
@@ -55,7 +44,7 @@ class PRXBaseIE(InfoExtractor):
             'filesize': image_response.get('size'),
             'width': image_response.get('width'),
             'height': image_response.get('height'),
-            'url':  cls._extract_file_link(image_response)
+            'url': cls._extract_file_link(image_response)
         }
 
     @classmethod
@@ -67,14 +56,21 @@ class PRXBaseIE(InfoExtractor):
         if not series_id:
             return
         thumbnail_dict = cls._extract_image(cls._get_prx_embed_response(series_response, 'image'))
+        account_info = cls._extract_account_info(
+            cls._get_prx_embed_response(series_response, 'account')) or {}
         return {
             'id': series_id,
             'title': title,
             'description': series_response.get('shortDescription'),
-            'thumbnails': [thumbnail_dict] if thumbnail_dict else None
+            'thumbnails': [thumbnail_dict] if thumbnail_dict else None,
+            'channel_id': account_info.get('channel_id'),
+            'channel_url': account_info.get('channel_url'),
+            'channel': account_info.get('channel')
+
         }
 
-    def _extract_account_info(self, account_response):
+    @classmethod
+    def _extract_account_info(cls, account_response):
         if not isinstance(account_response, dict):
             return
         account_id = str(account_response.get('id'))
@@ -87,8 +83,8 @@ class PRXBaseIE(InfoExtractor):
             'title': account_response.get('name'),
             'channel_id': account_id,
             'channel_url': f'https://beta.prx.org/accounts/{account_id}',
+            'channel': account_response.get('name')
         }
-
 
     @classmethod
     def _extract_story_info(cls, story_response):
@@ -114,14 +110,16 @@ class PRXBaseIE(InfoExtractor):
             'release_date': unified_strdate(story_response.get('producedOn')),
             'series': series.get('title'),
             'series_id': series.get('id'),
+            'channel_id': series.get('channel_id'),
+            'channel_url': series.get('channel_url'),
+            'channel': series.get('channel')
         }
 
-
-    def _get_entries(self, item_id, endpoint, func, note=None):
+    def _get_entries(self, item_id, endpoint, func):
         total = 0
         for page in itertools.count(1):
             response = self._call_api(
-                f'{item_id}: page {page}', endpoint, query={'page': page}, note=note) or {}
+                f'{item_id}: page {page}', endpoint, query={'page': page}) or {}
             items = self._get_prx_embed_response(response, 'items') or []
 
             if not (response or items):
@@ -143,7 +141,7 @@ class PRXBaseIE(InfoExtractor):
             return
         story.update({
             '_type': 'url',
-            'url': f'https://beta.prx.org/stories/%s' % story['id'],
+            'url': 'https://beta.prx.org/stories/%s' % story['id'],
             'ie_key': PRXStoryIE.ie_key()
         })
         return story
@@ -154,7 +152,7 @@ class PRXBaseIE(InfoExtractor):
             return
         series.update({
             '_type': 'url',
-            'url': f'https://beta.prx.org/series/%s' % series['id'],
+            'url': 'https://beta.prx.org/series/%s' % series['id'],
             'ie_key': PRXSeriesIE.ie_key()
         })
         return series
@@ -206,6 +204,7 @@ class PRXStoryIE(PRXBaseIE):
             'entries': entries,
             **info
         }
+
     def _real_extract(self, url):
         story_id = self._match_id(url)
         response = self._call_api(story_id, f'stories/{story_id}')
@@ -213,15 +212,25 @@ class PRXStoryIE(PRXBaseIE):
         return story
 
 
-# TODO: for accounts, extract series pages but if there are more then pass onto series IE (don't make requests in the IE).
 class PRXSeriesIE(PRXBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'series/(?P<id>\d+)'
+    _TESTS = [
+        {
+            # Blank series
+            'url': 'https://beta.prx.org/series/25038',
+            'info_dict': {
+                'id': '25038',
+                'title': '25038'
+            },
+            'count': 0
+        }
+    ]
 
     def _extract_series(self, series_response):
         info = self._extract_series_info(series_response)
         return {
             '_type': 'playlist',
-            'entries':  self._get_entries(info['id'], f'series/{info["id"]}/stories', self._story_list_response),
+            'entries': self._get_entries(info['id'], f'series/{info["id"]}/stories', self._story_list_response),
             **info
         }
 
@@ -233,6 +242,7 @@ class PRXSeriesIE(PRXBaseIE):
 
 class PRXAccountIE(PRXBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'accounts/(?P<id>\d+)'
+    _TESTS = []
 
     def _extract_account(self, account_response):
         info = self._extract_account_info(account_response)
@@ -243,7 +253,7 @@ class PRXAccountIE(PRXBaseIE):
             info['id'], f'accounts/{info["id"]}/stories', self._story_list_response)
         return {
             '_type': 'playlist',
-            'entries': itertools.chain(series,stories),
+            'entries': itertools.chain(series, stories),
             **info
         }
 
@@ -251,16 +261,3 @@ class PRXAccountIE(PRXBaseIE):
         account_id = self._match_id(url)
         response = self._call_api(account_id, f'accounts/{account_id}')
         return self._extract_account(response)
-
-# Need to support other lists, such as /picks, accounts list, stories list, networks list somehow
-#
-# class PRXStoriesSearchIE(PRXStoryIE, SearchInfoExtractor):
-#     raise NotImplementedError
-#
-#
-# class PRXSeriesSearchIE(PRXSeriesIE, SearchInfoExtractor):
-#     raise NotImplementedError
-#
-# # TODO: find on site
-# class PRXNetworkIE(PRXBaseIE):
-#     raise NotImplementedError
