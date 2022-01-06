@@ -24,7 +24,7 @@ get_domain
 import typing
 
 class PRXBaseIE(InfoExtractor):
-    PRX_BASE_URL_RE = r'https?://(?:beta\.)?prx.org/'
+    PRX_BASE_URL_RE = r'https?://(?:beta\.)?prx.org/%s'
 
     def _call_api(self, item_id, path, query=None, fatal=True, note='Downloading CMS API JSON'):
         return self._download_json(
@@ -187,7 +187,7 @@ class PRXStoryBaseIE(PRXBaseIE):
         }
 
 class PRXStoryIE(PRXStoryBaseIE):
-    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'stories/(?P<id>\d+)'
+    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'stories/(?P<id>\d+)'
 
     def _real_extract(self, url):
         story_id = self._match_id(url)
@@ -198,7 +198,7 @@ class PRXStoryIE(PRXStoryBaseIE):
 
 # TODO: for accounts, extract series pages but if there are more then pass onto series IE (don't make requests in the IE).
 class PRXSeriesIE(PRXBaseIE):
-    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'series/(?P<id>\d+)'
+    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'series/(?P<id>\d+)'
 
     def _extract_series(self, series_response):
         info = self._extract_series_info(series_response)
@@ -215,7 +215,7 @@ class PRXSeriesIE(PRXBaseIE):
 
 
 class PRXAccountIE(PRXStoryIE):
-    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'account/(?P<id>\d+)'
+    _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'account/(?P<id>\d+)'
 
     def _real_extract(self, url):
         raise NotImplementedError
