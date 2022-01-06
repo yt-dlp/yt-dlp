@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import itertools
 import re
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     unified_strdate,
     urljoin,
@@ -124,7 +124,7 @@ class PRXBaseIE(InfoExtractor):
             'channel': account.get('channel')
         }
 
-    def _entries(self, item_id, endpoint, entry_func):
+    def _entries(self, item_id, endpoint, entry_func, query=None):
         """
         Extract entries from paginated list API
         @param endpoint: API endpoint path, no leading /
@@ -133,8 +133,10 @@ class PRXBaseIE(InfoExtractor):
         total = 0
         for page in itertools.count(1):
             query = {
+                **(query or {}),
                 'page': page,
                 'per_page': 100,
+
             }
             response = self._call_api(
                 f'{item_id}: page {page}', endpoint, query=query) or {}
@@ -284,3 +286,23 @@ class PRXAccountIE(PRXBaseIE):
         account_id = self._match_id(url)
         response = self._call_api(account_id, f'accounts/{account_id}')
         return self._extract_account(response)
+
+
+class PRXStoriesSearchIE(PRXBaseIE, SearchInfoExtractor):
+    IE_DESC = 'PRX Stories Search'
+    IE_NAME = 'prxstories:search'
+    _SEARCH_KEY = 'prxstories'
+
+    def _search_results(self, query):
+        yield from self._entries(
+            f'query {query}', 'stories/search', self._story_playlist_entry, query={'q': query})
+
+
+class PRXSeriesSearchIE(PRXBaseIE, SearchInfoExtractor):
+    IE_DESC = 'PRX Series Search'
+    IE_NAME = 'prxseries:search'
+    _SEARCH_KEY = 'prxseries'
+
+    def _search_results(self, query):
+        yield from self._entries(
+            f'query {query}', 'series/search', self._series_playlist_entry, query={'q': query})
