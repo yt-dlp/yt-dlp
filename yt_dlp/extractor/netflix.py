@@ -8,40 +8,41 @@ def unicode_escape(string):
     return bytes(string, 'ascii').decode('unicode_escape')
 
 
-def getVideoManifest(self, videoID, codecs):
+def getVideoManifest(self, videoID, codecs, note):
     endpoint = 'https://www.netflix.com/nq/cadmium/pbo_manifests/%5E1.0.0/router'
     headers = {
         'host': 'www.netflix.com',
         'content-type': 'text/plain',
     }
     data = json.dumps({'version': 2, 'url': 'manifest', 'id': 164140345434876480, 'params': {'type': 'standard', 'manifestVersion': 'v2', 'viewableId': videoID, 'profiles': codecs, 'flavor': 'SUPPLEMENTAL', 'drmType': 'playready', 'drmVersion': 30, 'usePsshBox': True, 'isBranching': False, 'useHttpsStreams': True, 'supportsUnequalizedDownloadables': True, 'imageSubtitleHeight': 720, 'uiVersion': 'shakti-v2ecd1c2b', 'uiPlatform': 'SHAKTI', 'clientVersion': '6.0033.414.911', 'supportsPreReleasePin': True, 'supportsWatermark': True, 'deviceSecurityLevel': '3000', 'videoOutputInfo': [{'type': 'DigitalVideoOutputDescriptor', 'outputType': 'unknown', 'supportedHdcpVersions': ['2.2'], 'isHdcpEngaged':True}], 'titleSpecificData': {videoID: {'unletterboxed': False}}, 'preferAssistiveAudio': False, 'isUIAutoPlay': False, 'isNonMember': True, 'desiredVmaf': 'plus_lts', 'desiredSegmentVmaf': 'plus_lts', 'requestSegmentVmaf': False, 'supportsPartialHydration': False, 'contentPlaygraph': [], 'showAllSubDubTracks': False, 'maxSupportedLanguages': 30}})
-    response = self._download_json(endpoint, videoID, data=(data.encode()), headers=headers)
+    response = self._download_json(endpoint, videoID, data=(data.encode()), headers=headers, note=note)
     return response
 
 
 def VideoInfo(self, id):
-    vcodecs = [
-        ["vp9-profile0-L21-dash-cenc", "vp9-profile0-L30-dash-cenc", "vp9-profile0-L31-dash-cenc", "vp9-profile0-L40-dash-cenc"],
-        ["playready-h264mpl30-dash", "playready-h264mpl31-dash", "playready-h264mpl40-dash", "playready-h264hpl22-dash", "playready-h264hpl30-dash", "playready-h264hpl31-dash", "playready-h264hpl40-dash"], ["hevc-main10-L30-dash-cenc", "hevc-main10-L31-dash-cenc", "hevc-main10-L40-dash-cenc", "hevc-main10-L41-dash-cenc", "hevc-main10-L50-dash-cenc", "hevc-main10-L51-dash-cenc"],
-        ["hevc-main10-L30-dash-cenc-prk", "hevc-main10-L31-dash-cenc-prk", "hevc-main10-L40-dash-cenc-prk", "hevc-main10-L41-dash-cenc-prk"],
-        ["hevc-main10-L30-dash-cenc-prk-do", "hevc-main10-L31-dash-cenc-prk-do", "hevc-main10-L40-dash-cenc-prk-do", "hevc-main10-L41-dash-cenc-prk-do", "hevc-main10-L50-dash-cenc-prk-do", "hevc-main10-L51-dash-cenc-prk-do"],
-        ["hevc-dv5-main10-L30-dash-cenc-prk", "hevc-dv5-main10-L31-dash-cenc-prk", "hevc-dv5-main10-L40-dash-cenc-prk", "hevc-dv5-main10-L41-dash-cenc-prk", "hevc-dv5-main10-L50-dash-cenc-prk", "hevc-dv5-main10-L51-dash-cenc-prk"],
-        ["hevc-dv5-main10-L30-dash-cenc-prk-do", "hevc-dv5-main10-L31-dash-cenc-prk-do", "hevc-dv5-main10-L40-dash-cenc-prk-do", "hevc-dv5-main10-L41-dash-cenc-prk-do", "hevc-dv5-main10-L50-dash-cenc-prk-do", "hevc-dv5-main10-L51-dash-cenc-prk-do"],
-        ["hevc-hdr-main10-L30-dash-cenc", "hevc-hdr-main10-L31-dash-cenc", "hevc-hdr-main10-L40-dash-cenc", "hevc-hdr-main10-L41-dash-cenc", "hevc-hdr-main10-L50-dash-cenc", "hevc-hdr-main10-L51-dash-cenc"],
-        ["hevc-hdr-main10-L30-dash-cenc-prk", "hevc-hdr-main10-L31-dash-cenc-prk", "hevc-hdr-main10-L40-dash-cenc-prk", "hevc-hdr-main10-L41-dash-cenc-prk", "hevc-hdr-main10-L50-dash-cenc-prk", "hevc-hdr-main10-L51-dash-cenc-prk"],
-        ["hevc-hdr-main10-L30-dash-cenc-prk-do", "hevc-hdr-main10-L31-dash-cenc-prk-do", "hevc-hdr-main10-L40-dash-cenc-prk-do", "hevc-hdr-main10-L41-dash-cenc-prk-do", "hevc-hdr-main10-L50-dash-cenc-prk-do", "hevc-hdr-main10-L51-dash-cenc-prk-do"],
-        ["av1-main-L20-dash-cbcs-prk", "av1-main-L21-dash-cbcs-prk", "av1-main-L30-dash-cbcs-prk", "av1-main-L31-dash-cbcs-prk", "av1-main-L40-dash-cbcs-prk", "av1-main-L41-dash-cbcs-prk", "av1-main-L50-dash-cbcs-prk", "av1-main-L51-dash-cbcs-prk"]
-    ]
+    vcodecs = {
+        "VP9": ["vp9-profile0-L21-dash-cenc", "vp9-profile0-L30-dash-cenc", "vp9-profile0-L31-dash-cenc", "vp9-profile0-L40-dash-cenc"],
+        "H264": ["playready-h264mpl30-dash", "playready-h264mpl31-dash", "playready-h264mpl40-dash", "playready-h264hpl22-dash", "playready-h264hpl30-dash", "playready-h264hpl31-dash", "playready-h264hpl40-dash"],
+        "HEVC-MAIN10-DASH-CENC": ["hevc-main10-L30-dash-cenc", "hevc-main10-L31-dash-cenc", "hevc-main10-L40-dash-cenc", "hevc-main10-L41-dash-cenc", "hevc-main10-L50-dash-cenc", "hevc-main10-L51-dash-cenc"],
+        "HEVC-MAIN10-DASH-CENC-PRK": ["hevc-main10-L30-dash-cenc-prk", "hevc-main10-L31-dash-cenc-prk", "hevc-main10-L40-dash-cenc-prk", "hevc-main10-L41-dash-cenc-prk"],
+        "HEVC-MAIN10-DASH-CENC-PRK-DO": ["hevc-main10-L30-dash-cenc-prk-do", "hevc-main10-L31-dash-cenc-prk-do", "hevc-main10-L40-dash-cenc-prk-do", "hevc-main10-L41-dash-cenc-prk-do", "hevc-main10-L50-dash-cenc-prk-do", "hevc-main10-L51-dash-cenc-prk-do"],
+        "HEVC-DV5-MAIN10-DASH-CENC-PRK": ["hevc-dv5-main10-L30-dash-cenc-prk", "hevc-dv5-main10-L31-dash-cenc-prk", "hevc-dv5-main10-L40-dash-cenc-prk", "hevc-dv5-main10-L41-dash-cenc-prk", "hevc-dv5-main10-L50-dash-cenc-prk", "hevc-dv5-main10-L51-dash-cenc-prk"],
+        "HEVC-DV5-MAIN10-DASH-CENC-PRK-DO": ["hevc-dv5-main10-L30-dash-cenc-prk-do", "hevc-dv5-main10-L31-dash-cenc-prk-do", "hevc-dv5-main10-L40-dash-cenc-prk-do", "hevc-dv5-main10-L41-dash-cenc-prk-do", "hevc-dv5-main10-L50-dash-cenc-prk-do", "hevc-dv5-main10-L51-dash-cenc-prk-do"],
+        "HEVC-HDR-MAIN10-DASH-CENC": ["hevc-hdr-main10-L30-dash-cenc", "hevc-hdr-main10-L31-dash-cenc", "hevc-hdr-main10-L40-dash-cenc", "hevc-hdr-main10-L41-dash-cenc", "hevc-hdr-main10-L50-dash-cenc", "hevc-hdr-main10-L51-dash-cenc"],
+        "HEVC-HDR-MAIN10-DASH-CENC-PRK": ["hevc-hdr-main10-L30-dash-cenc-prk", "hevc-hdr-main10-L31-dash-cenc-prk", "hevc-hdr-main10-L40-dash-cenc-prk", "hevc-hdr-main10-L41-dash-cenc-prk", "hevc-hdr-main10-L50-dash-cenc-prk", "hevc-hdr-main10-L51-dash-cenc-prk"],
+        "HEVC-HDR-MAIN10-DASH-CENC-PRK-DO": ["hevc-hdr-main10-L30-dash-cenc-prk-do", "hevc-hdr-main10-L31-dash-cenc-prk-do", "hevc-hdr-main10-L40-dash-cenc-prk-do", "hevc-hdr-main10-L41-dash-cenc-prk-do", "hevc-hdr-main10-L50-dash-cenc-prk-do", "hevc-hdr-main10-L51-dash-cenc-prk-do"],
+        "AV1": ["av1-main-L20-dash-cbcs-prk", "av1-main-L21-dash-cbcs-prk", "av1-main-L30-dash-cbcs-prk", "av1-main-L31-dash-cbcs-prk", "av1-main-L40-dash-cbcs-prk", "av1-main-L41-dash-cbcs-prk", "av1-main-L50-dash-cbcs-prk", "av1-main-L51-dash-cbcs-prk"]
+    }
 
     acodecs = ["heaac-2-dash", "heaac-5.1-dash", "heaac-2hq-dash", "xheaac-dash", "ddplus-2.0-dash", "ddplus-5.1-dash", "ddplus-atmos-dash"]
     scodecs = ["simplesdh", "dfxp-ls-sdh", "webvtt-lssdh-ios8", "nflx-cmisc"]
     url = []
     a = 0
     for vc in vcodecs:
-        vm = getVideoManifest(self, id, vc + acodecs + scodecs)
+        vm = getVideoManifest(self, id, vcodecs[vc] + acodecs + scodecs, note="Trying Video Profiles: " + vc)
 
         if "error" in vm:
-            break
+            continue
         else:
 
             if a == 0:
@@ -81,17 +82,17 @@ def VideoInfo(self, id):
 class NetflixIE(InfoExtractor):
     _VALID_URL = 'https?://(?:www\\.)?netflix\\.com/(?:.+)/title/(?P<id>[0-9]+)'
     _TESTS = [
-        {'url': 'https://www.netflix.com/it/title/81435227',
-         'md5': '39e039c8e670210277c9d7c9c5dd9630',
+        {'url': 'https://www.netflix.com/it-en/title/81435227',
+         'md5': '31b52548908fdb2b7eee02b42c65be99',
          'info_dict': {
              'id': '81441302',
              'ext': 'mp4',
-             'title': 'Trailer: Un padre',
+             'title': 'Trailer: Fatherhood',
              'duration': 152,
              'release_timestamp': 1620649800000,
              'categories': ['TRAILER']
          }},
-        {'url': 'https://www.netflix.com/it/title/81252357',
+        {'url': 'https://www.netflix.com/it-en/title/81252357',
          'md5': '0ebf264c4ed3ee8ed684da8c7ce3cb60',
          'info_dict': {
              'id': '81510852',
