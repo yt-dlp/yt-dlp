@@ -99,24 +99,23 @@ class FOXIE(InfoExtractor):
             'previewpassmvpd?device_id=%s&mvpd_id=TempPass_fbcfox_60min' % self._device_id,
             video_id)['accessToken']
 
-        data = json.dumps({
-            "capabilities": ["drm/widevine", "fsdk/yo"],
-            "deviceWidth": 1280,
-            "deviceHeight": 720,
-            "maxRes": "720p",
-            "os": "macos",
-            "osv": "",
-            "provider":
-                {"freewheel":
-                    {"did": self._device_id},
-                    "vdms": {"rays": ""},
-                    "dmp": {"kuid": "", "seg": ""}},
-            "playlist": "",
-            "privacy": {"us": "1---"},
-            "siteSection": "",
-            "streamType": "vod",
-            "streamId": video_id}).encode()
-        video = self._call_api('watch', video_id, data=data)
+        video = self._call_api('watch', video_id, data=json.dumps({
+            'capabilities': ['drm/widevine', 'fsdk/yo'],
+            'deviceWidth': 1280,
+            'deviceHeight': 720,
+            'maxRes': '720p',
+            'os': 'macos',
+            'osv': '',
+            'provider': {
+                    'freewheel': {'did': self._device_id},
+                    'vdms': {'rays': ''},
+                    'dmp': {'kuid': '', 'seg': ''}
+            },
+            'playlist': '',
+            'privacy': {'us': '1---'},
+            'siteSection': '',
+            'streamType': 'vod',
+            'streamId': video_id}).encode('utf-8'))
 
         title = video['name']
         release_url = video['url']
