@@ -920,6 +920,7 @@ from .nebula import (
     NebulaCollectionIE,
 )
 from .nerdcubed import NerdCubedFeedIE
+from .netflix import NetflixIE
 from .netzkino import NetzkinoIE
 from .neteasemusic import (
     NetEaseMusicIE,
