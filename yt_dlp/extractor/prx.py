@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import itertools
 import re
-
+import functools
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     ExtractorError,
@@ -101,6 +101,45 @@ class PRXBaseIE(InfoExtractor):
         }
 
 
+    def _list_entries(self, item_id, endpoint, func):
+        total = 0
+        for page in itertools.count(1):
+            response = self._call_api(
+                f'{item_id}: page {page}', endpoint, query={'page': page}) or {}
+            items = self._get_prx_embed_response(response, 'items') or []
+
+            if not (response or items):
+                break
+
+            # Below this could be generalised to support existing metadata
+            for entry_response in items:
+                res = func(entry_response)
+                if res:
+                    yield res
+                total += 1
+
+            if total >= response.get('total'):
+                break
+
+    def _story_list_response(self, entry_response):
+        story = self._extract_story_info(entry_response) or {}
+        story.update({
+            '_type': 'url',
+            'url': f'https://beta.prx.org/stories/%s' % story['id'],
+            'ie_key': PRXStoryIE.ie_key()
+        })
+        return story
+
+    def _series_list_response(self, response):
+        series = self._extract_series_info(response) or {}
+        series.update({
+            '_type': 'url',
+            'url': f'https://beta.prx.org/series/%s' % series['id'],
+            'ie_key': PRXSeriesIE.ie_key()
+        })
+        return series
+
+
 class PRXStoryBaseIE(PRXBaseIE):
 
     # This extract type Audio (the literal audio format)
@@ -147,7 +186,6 @@ class PRXStoryBaseIE(PRXBaseIE):
             **info
         }
 
-
 class PRXStoryIE(PRXStoryBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'stories/(?P<id>\d+)'
 
@@ -158,39 +196,22 @@ class PRXStoryIE(PRXStoryBaseIE):
         return story
 
 
-
 # TODO: for accounts, extract series pages but if there are more then pass onto series IE (don't make requests in the IE).
-class PRXSeriesIE(PRXStoryBaseIE):
+class PRXSeriesIE(PRXBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE + r'series/(?P<id>\d+)'
 
-    def _entries(self, series_id, url):
-        total = 0
-        for page in itertools.count(1):
-            response = self._call_api(
-                f'{series_id}: page {page}', f'series/{series_id}/stories', query={'page': page})
-            for story_response in self._get_prx_embed_response(response, 'items') or []:
-                story = self._extract_story(story_response)
-                if story:
-                    if story.get('entries'):
-                        # The series API already gave us all the information needed to download the stories
-                        story.update({
-                            'webpage_url': f'https://{get_domain(url)}/story/{story["id"]}',
-                            'extractor_key': PRXStoryIE.ie_key(),
-                            'extractor': 'PRXStory'
-                        })
-                    yield story
-                total += 1
-            if not response or total >= response.get('total'):
-                break
+    def _extract_series(self, series_response):
+        info = self._extract_series_info(series_response)
+        return {
+            '_type': 'playlist',
+            'entries':  self._list_entries(info['id'], f'series/{info["id"]}/stories', self._story_list_response),
+            **info
+        }
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
         response = self._call_api(series_id, f'series/{series_id}')
-        return {
-            '_type': 'playlist',
-            'entries': self._entries(series_id, url),
-            **self._extract_series_info(response)
-        }
+        return self._extract_series(response)
 
 
 class PRXAccountIE(PRXStoryIE):
@@ -200,16 +221,14 @@ class PRXAccountIE(PRXStoryIE):
         raise NotImplementedError
 
 # Need to support other lists, such as /picks, accounts list, stories list, networks list somehow
-class PRXListIE(PRXBaseIE):
-    raise NotImplementedError
-
-class PRXStoriesSearchIE(PRXStoryIE, SearchInfoExtractor):
-    raise NotImplementedError
-
-
-class PRXSeriesSearchIE(PRXSeriesIE, SearchInfoExtractor):
-    raise NotImplementedError
-
-# TODO: find on site
-class PRXNetworkIE(PRXBaseIE):
-    raise NotImplementedError
+#
+# class PRXStoriesSearchIE(PRXStoryIE, SearchInfoExtractor):
+#     raise NotImplementedError
+#
+#
+# class PRXSeriesSearchIE(PRXSeriesIE, SearchInfoExtractor):
+#     raise NotImplementedError
+#
+# # TODO: find on site
+# class PRXNetworkIE(PRXBaseIE):
+#     raise NotImplementedError
