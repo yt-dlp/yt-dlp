@@ -107,9 +107,9 @@ class FOXIE(InfoExtractor):
             'os': 'macos',
             'osv': '',
             'provider': {
-                    'freewheel': {'did': self._device_id},
-                    'vdms': {'rays': ''},
-                    'dmp': {'kuid': '', 'seg': ''}
+                'freewheel': {'did': self._device_id},
+                'vdms': {'rays': ''},
+                'dmp': {'kuid': '', 'seg': ''}
             },
             'playlist': '',
             'privacy': {'us': '1---'},
