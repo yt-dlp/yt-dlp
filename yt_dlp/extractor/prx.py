@@ -11,7 +11,7 @@ from ..utils import (
     int_or_none,
     mimetype2ext,
     clean_html,
-    url_or_none,
+    url_or_none, unified_timestamp, str_or_none,
 )
 
 
@@ -48,71 +48,74 @@ class PRXBaseIE(InfoExtractor):
         }
 
     @classmethod
+    def _extract_base_info(cls, response):
+        if not isinstance(response, dict):
+            return
+        item_id = str_or_none(response.get('id'))
+        if not item_id:
+            return
+        thumbnail_dict = cls._extract_image(cls._get_prx_embed_response(response, 'image'))
+        description = (
+            clean_html(response.get('description'))
+            or response.get('shortDescription'))
+        return {
+            'id': item_id,
+            'title': response.get('title') or item_id,
+            'thumbnails': [thumbnail_dict] if thumbnail_dict else None,
+            'description': description,
+            'release_date': unified_strdate(response.get('producedOn')),
+            'timestamp': unified_timestamp(response.get('createdAt')),
+            'modified_timestamp': unified_timestamp(response.get('updatedAt')),  # TODO: requires #2069
+            'duration': int_or_none(response.get('duration')),
+            'tags': response.get('tags'),
+        }
+
+    @classmethod
     def _extract_series_info(cls, series_response):
-        if not isinstance(series_response, dict):
+        base_info = cls._extract_base_info(series_response)
+        if not base_info:
             return
-        series_id = str(series_response.get('id'))
-        title = series_response.get('title') or series_id
-        if not series_id:
-            return
-        thumbnail_dict = cls._extract_image(cls._get_prx_embed_response(series_response, 'image'))
         account_info = cls._extract_account_info(
             cls._get_prx_embed_response(series_response, 'account')) or {}
         return {
-            'id': series_id,
-            'title': title,
-            'description': series_response.get('shortDescription'),
-            'thumbnails': [thumbnail_dict] if thumbnail_dict else None,
+            **base_info,
             'channel_id': account_info.get('channel_id'),
             'channel_url': account_info.get('channel_url'),
-            'channel': account_info.get('channel')
-
+            'channel': account_info.get('channel'),
+            'series': base_info.get('title'),
+            'series_id': base_info.get('id'),
         }
 
     @classmethod
     def _extract_account_info(cls, account_response):
-        if not isinstance(account_response, dict):
+        base_info = cls._extract_base_info(account_response)
+        if not base_info:
             return
-        account_id = str(account_response.get('id'))
         name = account_response.get('name')
-        if not account_id or not name:
-            return
-        # TODO
         return {
-            'id': account_id,
-            'title': account_response.get('name'),
-            'channel_id': account_id,
-            'channel_url': f'https://beta.prx.org/accounts/{account_id}',
-            'channel': account_response.get('name')
+            **base_info,
+            'title': name,
+            'channel_id': base_info.get('id'),
+            'channel_url': f'https://beta.prx.org/accounts/%s' % base_info.get('id'),
+            'channel': name,
         }
 
     @classmethod
     def _extract_story_info(cls, story_response):
-        if not isinstance(story_response, dict):
+        base_info = cls._extract_base_info(story_response)
+        if not base_info:
             return
-        story_id = str(story_response.get('id'))
-        title = story_response.get('title')
-        if not story_id or not title:
-            return
-        # TODO: there is also mdDescription (markdown description). Might only be set when 'description' is avail.
-        description = clean_html(story_response.get('description')) or story_response.get('shortDescription')
-
-        # TODO: uploader/account details
         series = cls._extract_series_info(
             cls._get_prx_embed_response(story_response, 'series')) or {}
-
+        account = cls._extract_account_info(
+            cls._get_prx_embed_response(story_response, 'account')) or {}
         return {
-            'id': story_id,
-            'title': title,
-            'description': description,
-            'duration': int_or_none(story_response.get('duration')),
-            'tags': story_response.get('tags'),
-            'release_date': unified_strdate(story_response.get('producedOn')),
-            'series': series.get('title'),
-            'series_id': series.get('id'),
-            'channel_id': series.get('channel_id'),
-            'channel_url': series.get('channel_url'),
-            'channel': series.get('channel')
+            **base_info,
+            'series': series.get('series'),
+            'series_id': series.get('series_id'),
+            'channel_id': account.get('channel_id'),
+            'channel_url': account.get('channel_url'),
+            'channel': account.get('channel')
         }
 
     def _get_entries(self, item_id, endpoint, func):
