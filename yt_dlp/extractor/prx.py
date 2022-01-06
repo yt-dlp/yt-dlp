@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 import itertools
-
+import re
 from .common import InfoExtractor
 from ..utils import (
     unified_strdate,
@@ -14,6 +14,7 @@ from ..utils import (
     url_or_none,
     unified_timestamp,
     str_or_none,
+    parse_duration
 )
 
 
@@ -123,37 +124,30 @@ class PRXBaseIE(InfoExtractor):
             'channel': account.get('channel')
         }
 
-    def _extract_response_entries(self, response, entry_func):
-        """
-        Extracts entries for a single response
-        """
-        items = self._get_prx_embed_response(response, 'items') or []
-        for entry_response in items:
-            res = entry_func(entry_response)
-            if res:
-                yield res
-
-    def _get_entries(self, item_id, endpoint, entry_func, start_page=None, expand=None):
+    def _entries(self, item_id, endpoint, entry_func):
         """
         Extract entries from paginated list API
         @param endpoint: API endpoint path, no leading /
-        @param start_page: what page to start extraction on
-        @param expand: list of sections to expand on '_embedded data returned ('zoom' param on site).  e.g. prx:image
+        @param entry_func: Function to generate entry from response item
         """
         total = 0
-        for page in itertools.count(start_page or 1):
+        for page in itertools.count(1):
             query = {
                 'page': page,
-                'per_page': 10,  # 10 is default by the site. TODO: extractor-arg? TODO: this will break partial handover
+                'per_page': 100,
             }
-            if isinstance(expand, list):
-                query['zoom'] = expand  # TODO: in extractors, only specify required ones for entry_func
             response = self._call_api(
                 f'{item_id}: page {page}', endpoint, query=query) or {}
 
-            if not response:
+            items = self._get_prx_embed_response(response, 'items')
+
+            if not (response or items):
                 break
-            yield from self._extract_response_entries(item_id, entry_func)
+
+            for entry_response in items:
+                res = entry_func(entry_response)
+                if res:
+                    yield res
 
             total += response.get('count')
             if total >= response.get('total'):
@@ -213,7 +207,6 @@ class PRXStoryIE(PRXBaseIE):
                 'vcodec': 'none',
             })
         return pieces
-
     # TODO: checks for if we have a full story/series response, how many pages etc.
     def _extract_story(self, story_response):
         info = self._extract_story_info(story_response)
@@ -237,7 +230,8 @@ class PRXStoryIE(PRXBaseIE):
 
     def _real_extract(self, url):
         story_id = self._match_id(url)
-        response = self._call_api(story_id, f'stories/{story_id}')
+        response = self._call_api(
+            story_id, f'stories/{story_id}')
         story = self._extract_story(response)
         return story
 
@@ -260,7 +254,7 @@ class PRXSeriesIE(PRXBaseIE):
         info = self._extract_series_info(series_response)
         return {
             '_type': 'playlist',
-            'entries': self._get_entries(info['id'], 'series/%s/stories' % info['id'], self._story_playlist_entry),
+            'entries': self._entries(info['id'], 'series/%s/stories' % info['id'], self._story_playlist_entry),
             **info
         }
 
@@ -276,9 +270,9 @@ class PRXAccountIE(PRXBaseIE):
 
     def _extract_account(self, account_response):
         info = self._extract_account_info(account_response)
-        series = self._get_entries(
+        series = self._entries(
             info['id'], f'accounts/{info["id"]}/series', self._series_playlist_entry)
-        stories = self._get_entries(
+        stories = self._entries(
             info['id'], f'accounts/{info["id"]}/stories', self._story_playlist_entry)
         return {
             '_type': 'playlist',
