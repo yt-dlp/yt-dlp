@@ -100,7 +100,7 @@ class PRXBaseIE(InfoExtractor):
             **base_info,
             'title': name,
             'channel_id': base_info.get('id'),
-            'channel_url': f'https://beta.prx.org/accounts/%s' % base_info.get('id'),
+            'channel_url': 'https://beta.prx.org/accounts/%s' % base_info.get('id'),
             'channel': name,
         }
 
@@ -194,11 +194,7 @@ class PRXStoryIE(PRXBaseIE):
             'only_matching': True
         }
     ]
-    # Story with season and episode details: https://beta.prx.org/stories/399200
-    # Story with only audio splits: 326414
-    # Story with combined audio as well as audio splits: 400404
-    # 378985, 400404 timing and cues (avail with audio_versions)
-    # 1 has audio-versions but 404s on initial request
+
     def _extract_audio_pieces(self, audio_response):
         # TODO: concatenate the pieces with a concat PP is implemented
         # Currently returning as multi_video for the time being
