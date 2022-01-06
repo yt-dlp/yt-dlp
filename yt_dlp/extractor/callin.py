@@ -65,13 +65,11 @@ class CallinIE(InfoExtractor):
 
         # get the show metadata for some supplementary info
         show_json = None
-        app_slug = (
-            self._html_search_regex(
+        app_slug = (self._html_search_regex(
                 '<script\\s+src=["\']/_next/static/([a-zA-Z0-9_]+)/_',
                 webpage, 'app slug', fatal=False)
             # this sometimes works, but sometimes seems to lag changes in the actual urls used.
-            or next_data.get('buildId')
-        )
+            or next_data.get('buildId'))
         show_slug = traverse_obj(episode, ('show', 'linkObj', 'resourceUrl'))
         if app_slug and show_slug and '/' in show_slug:
             show_slug = show_slug.rsplit('/', 1)[1]
@@ -94,8 +92,7 @@ class CallinIE(InfoExtractor):
         episode_list = traverse_obj(show_json, ('pageProps', 'show', 'episodes')) or []
         episode_number = next(
             (len(episode_list) - i for (i, e) in enumerate(episode_list) if e.get('id') == id),
-            None
-        )
+            None)
 
         return {
             'id': id,
