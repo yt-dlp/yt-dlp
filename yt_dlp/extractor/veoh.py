@@ -53,19 +53,6 @@ class VeohIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _extract_video(self, source):
-        return {
-            'id': source.get('videoId'),
-            'title': source.get('title'),
-            'description': source.get('description'),
-            'thumbnail': source.get('highResImage') or source.get('medResImage'),
-            'uploader': source.get('username'),
-            'duration': int_or_none(source.get('length')),
-            'view_count': int_or_none(source.get('views')),
-            'age_limit': 18 if source.get('isMature') == 'true' or source.get('isSexy') == 'true' else 0,
-            'formats': self._extract_formats(source),
-        }
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video = self._download_json(
