@@ -62,6 +62,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     unified_strdate,
+    unified_timestamp,
     unsmuggle_url,
     update_url_query,
     url_or_none,
@@ -667,6 +668,14 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if text:
                     return text
 
+    def _get_count(self, data, *path_list):
+        count_text = self._get_text(data, *path_list) or ''
+        count = parse_count(count_text)
+        if count is None:
+            count = str_to_int(
+                self._search_regex(r'^([\d,]+)', re.sub(r'\s', '', count_text), 'count', default=None))
+        return count
+
     @staticmethod
     def _extract_thumbnails(data, *path_list):
         """
@@ -695,12 +704,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def extract_relative_time(relative_time_text):
         """
         Extracts a relative time from string and converts to dt object
-        e.g. 'streamed 6 days ago', '5 seconds ago (edited)'
+        e.g. 'streamed 6 days ago', '5 seconds ago (edited)', 'updated today'
         """
-        mobj = re.search(r'(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
+        mobj = re.search(r'(?P<start>today|yesterday|now)|(?P<time>\d+)\s*(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?\s*ago', relative_time_text)
         if mobj:
+            start = mobj.group('start')
+            if start:
+                return datetime_from_str(start)
             try:
-                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')), precision='auto')
+                return datetime_from_str('now-%s%s' % (mobj.group('time'), mobj.group('unit')))
             except ValueError:
                 return None
 
@@ -710,6 +722,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         timestamp = None
         if isinstance(dt, datetime.datetime):
             timestamp = calendar.timegm(dt.timetuple())
+
+        if timestamp is None:
+            timestamp = (
+                unified_timestamp(text) or unified_timestamp(
+                    self._search_regex(
+                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'), text.lower(), 'time text', default=None)))
+
         if text and timestamp is None:
             self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
         return timestamp, text
@@ -794,10 +813,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         description = self._get_text(renderer, 'descriptionSnippet')
         duration = parse_duration(self._get_text(
             renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
-        view_count_text = self._get_text(renderer, 'viewCountText') or ''
-        view_count = str_to_int(self._search_regex(
-            r'^([\d,]+)', re.sub(r'\s', '', view_count_text),
-            'view count', default=None))
+        view_count = self._get_count(renderer, 'viewCountText')
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
@@ -2317,8 +2333,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             _continuation = None
             for content in contents:
                 comments_header_renderer = traverse_obj(content, 'commentsHeaderRenderer')
-                expected_comment_count = parse_count(self._get_text(
-                    comments_header_renderer, 'countText', 'commentsCount', max_runs=1))
+                expected_comment_count = self._get_count(
+                    comments_header_renderer, 'countText', 'commentsCount')
 
                 if expected_comment_count:
                     tracker['est_total'] = expected_comment_count
@@ -3603,6 +3619,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         tags = []
 
         selected_tab = self._extract_selected_tab(tabs)
+        primary_sidebar_renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer')
         renderer = try_get(
             data, lambda x: x['metadata']['channelMetadataRenderer'], dict)
         if renderer:
@@ -3622,17 +3639,18 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         thumbnails = (
             self._extract_thumbnails(renderer, 'avatar')
             or self._extract_thumbnails(
-                self._extract_sidebar_info_renderer(data, 'playlistSidebarPrimaryInfoRenderer'),
-                ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
+                primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
 
         if playlist_id is None:
             playlist_id = item_id
+
+        playlist_stats = traverse_obj(primary_sidebar_renderer, 'stats')
+        last_updated_unix, _ = self._extract_time_text(playlist_stats, 2)
         if title is None:
-            title = (
-                try_get(data, lambda x: x['header']['hashtagHeaderRenderer']['hashtag']['simpleText'])
-                or playlist_id)
+            title = self._get_text(data, ('header', 'hashtagHeaderRenderer', 'hashtag')) or playlist_id
         title += format_field(selected_tab, 'title', ' - %s')
         title += format_field(selected_tab, 'expandedText', ' - %s')
+
         metadata = {
             'playlist_id': playlist_id,
             'playlist_title': title,
@@ -3642,10 +3660,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader_url': channel_url,
             'thumbnails': thumbnails,
             'tags': tags,
+            'view_count': self._get_count(playlist_stats, 1),
+            'availability': self._extract_availability(data),
+            'modified_date': strftime_or_none(last_updated_unix, '%Y%m%d'),
+            'playlist_count': self._get_count(playlist_stats, 0)
         }
-        availability = self._extract_availability(data)
-        if availability:
-            metadata['availability'] = availability
         if not channel_id:
             metadata.update(self._extract_uploader(data))
         metadata.update({

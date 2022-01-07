@@ -1120,8 +1120,10 @@ The available fields are:
  - `creator` (string): The creator of the video
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date (YYYYMMDD)
- - `release_date` (string): The date (YYYYMMDD) when the video was released
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
+ - `release_date` (string): The date (YYYYMMDD) when the video was released
+ - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
+ - `modified_date` (string): The date (YYYYMMDD) when the video was last modified
  - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
@@ -1167,6 +1169,7 @@ The available fields are:
  - `video_autonumber` (numeric): Number that will be increased with each video
  - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist` (string): Name or id of the playlist that contains the video
+ - `playlist_count` (numeric): Total number of items in the playlist. May not be known if entire playlist is not extracted
  - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
  - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_id` (string): Playlist identifier

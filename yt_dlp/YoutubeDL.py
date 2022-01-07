@@ -1636,14 +1636,15 @@ class YoutubeDL(object):
             playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
 
         ie_entries = ie_result['entries']
-        msg = (
-            'Downloading %d videos' if not isinstance(ie_entries, list)
-            else 'Collected %d videos; downloading %%d of them' % len(ie_entries))
-
         if isinstance(ie_entries, list):
+            playlist_count = len(ie_result)
+            msg = f'Collected {playlist_count} videos; downloading %d of them'
+            ie_result['playlist_count'] = ie_result.get('playlist_count') or playlist_count
+
             def get_entry(i):
                 return ie_entries[i - 1]
         else:
+            msg = 'Downloading %d videos'
             if not isinstance(ie_entries, (PagedList, LazyList)):
                 ie_entries = LazyList(ie_entries)
 
@@ -1652,7 +1653,7 @@ class YoutubeDL(object):
                     lambda self, i: ie_entries[i - 1]
                 )(self, i)
 
-        entries = []
+        entries, broken = [], False
         items = playlistitems if playlistitems is not None else itertools.count(playliststart)
         for i in items:
             if i == 0:
@@ -1674,6 +1675,7 @@ class YoutubeDL(object):
                 if entry is not None:
                     self._match_entry(entry, incomplete=True, silent=True)
             except (ExistingVideoReached, RejectedVideoReached):
+                broken = True
                 break
         ie_result['entries'] = entries
 
@@ -1683,6 +1685,9 @@ class YoutubeDL(object):
             for i, entry in enumerate(entries, 1)
             if entry is not None]
         n_entries = len(entries)
+
+        if not (ie_result.get('playlist_count') or broken or playlistitems or playlistend):
+            ie_result['playlist_count'] = n_entries
 
         if not playlistitems and (playliststart != 1 or playlistend):
             playlistitems = list(range(playliststart, playliststart + n_entries))
@@ -1733,6 +1738,7 @@ class YoutubeDL(object):
             extra = {
                 'n_entries': n_entries,
                 '_last_playlist_index': max(playlistitems) if playlistitems else (playlistend or n_entries),
+                'playlist_count': ie_result.get('playlist_count'),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i,
                 'playlist': playlist,
@@ -2331,6 +2337,7 @@ class YoutubeDL(object):
         for ts_key, date_key in (
                 ('timestamp', 'upload_date'),
                 ('release_timestamp', 'release_date'),
+                ('modified_timestamp', 'modified_date'),
         ):
             if info_dict.get(date_key) is None and info_dict.get(ts_key) is not None:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
