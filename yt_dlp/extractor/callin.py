@@ -16,7 +16,7 @@ class CallinIE(InfoExtractor):
             'title': 'The Title IX Regime and the Long March Through and Beyond the Institutions',
             'ext': 'ts',
             'display_id': 'the-title-ix-regime-and-the-long-march-through-EBfXYSrsjc',
-            'thumbnail': 'https://d2xpqol0sc5yi.cloudfront.net/82cf84f4f7b70e3e1f9e36505cce56d97a31d3bd0589156595f362d25e012e06.png',
+            'thumbnail': 're:https://.+\\.png',
             'description': 'First episode',
             'uploader': 'Wesley Yang',
             'timestamp': 1639404128.65,
