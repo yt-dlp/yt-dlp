@@ -381,14 +381,35 @@ class NetflixIE(InfoExtractor):
                    'origin': 'https://www.netflix.com',
                    }
         webpage = self._download_webpage(url, content_id, headers=headers, expected_status=301)
-        reactJS = clean_html(re.findall('<script>window\\.netflix = window\\.netflix.*;</script>', webpage)[0])
-        reactJSON = self._search_regex('netflix\\.reactContext\\ \\=(.*)[;]', reactJS, 'JSON from webpage', fatal=False)
-        reactJSON = re.sub(r'\\(x[A-Z0-9]{2})', r'\\\\\g<1>', reactJSON, 0, re.MULTILINE)
+        reactJS = clean_html(
+            re.findall(
+                r'<script> ?window\.netflix ?= ?window\.netflix.*</script>',
+                webpage)[0]
+        )
+        reactJSON = self._search_regex(
+            r'netflix\.reactContext ?=(.*)[;]',
+            reactJS,
+            'JSON from webpage',
+            fatal=False)
+        reactJSON = re.sub(
+            r'\\(x[A-Z0-9]{2})',
+            r'\\\\\g<1>',
+            reactJSON,
+            0,
+            re.MULTILINE
+        )
         json_list = json.loads(reactJSON)
         if 'title' in json_list:
             idList = traverse_obj(
                 json_list,
-                ("models", "nmTitleUI", 'data', "sectionData", 2, "data", "supplementalVideos"),
+                ("models",
+                 "nmTitleUI",
+                 'data',
+                 "sectionData",
+                 2,
+                 "data",
+                 "supplementalVideos"
+                 ),
                 default={}
             )
             pl = {
