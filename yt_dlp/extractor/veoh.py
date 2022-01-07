@@ -13,7 +13,7 @@ class VeohIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.veoh.com/watch/v56314296nk7Zdmz3',
-        'md5': '9e7ecc0fd8bbee7a69fe38953aeebd30',
+        'md5': '620e68e6a3cff80086df3348426c9ca3',
         'info_dict': {
             'id': 'v56314296nk7Zdmz3',
             'ext': 'mp4',
@@ -61,7 +61,7 @@ class VeohIE(InfoExtractor):
         title = video['title']
 
         thumbnail_url = None
-        q = qualities(['HQ', 'Regular'])
+        q = qualities(['Regular', 'HQ'])
         formats = []
         for f_id, f_url in video.get('src', {}).items():
             if not f_url:
