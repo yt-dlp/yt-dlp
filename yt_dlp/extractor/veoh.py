@@ -19,8 +19,16 @@ class VeohIE(InfoExtractor):
             'id': 'v56314296nk7Zdmz3',
             'ext': 'mp4',
             'title': 'Straight Backs Are Stronger',
+            'description': 'At LUMOback, we believe straight backs are stronger. The LUMOback Posture & Movement Sensor: It gently vibrates when you slouch, inspiring improved posture and mobility. Use the app to track your data and improve your posture over time.',
+            'thumbnail': 're:https://fcache\\.veoh\\.com/file/f/th56314296\\.jpg(\\?.*)?',
             'uploader': 'LUMOback',
-            'description': 'At LUMOback, we believe straight backs are stronger.  The LUMOback Posture & Movement Sensor:  It gently vibrates when you slouch, inspiring improved posture and mobility.  Use the app to track your data and improve your posture over time. ',
+            'duration': 46,
+            'view_count': int,
+            'average_rating': int,
+            'comment_count': int,
+            'age_limit': 0,
+            'categories': ['technology_and_gaming'],
+            'tags': ['posture', 'posture', 'sensor', 'back', 'pain', 'wearable', 'tech', 'lumo'],
         },
     }, {
         'url': 'http://www.veoh.com/embed/v56314296nk7Zdmz3',
@@ -52,6 +60,24 @@ class VeohIE(InfoExtractor):
     }, {
         'url': 'http://www.veoh.com/watch/e152215AJxZktGS',
         'only_matching': True,
+    }, {
+        'url': 'https://www.veoh.com/videos/v16374379WA437rMH',
+        'md5': 'cceb73f3909063d64f4b93d4defca1b3',
+        'info_dict': {
+            'id': 'v16374379WA437rMH',
+            'ext': 'mp4',
+            'title': 'Phantasmagoria 2, pt. 1-3',
+            'description': 'Phantasmagoria: a Puzzle of Flesh',
+            'thumbnail': 're:https://fcache\\.veoh\\.com/file/f/th16374379\\.jpg(\\?.*)?',
+            'uploader': 'davidspackage',
+            'duration': 968,
+            'view_count': int,
+            'average_rating': int,
+            'comment_count': int,
+            'age_limit': 18,
+            'categories': ['technology_and_gaming', 'gaming'],
+            'tags': ['puzzle', 'of', 'flesh'],
+        }
     }]
 
     def _real_extract(self, url):
