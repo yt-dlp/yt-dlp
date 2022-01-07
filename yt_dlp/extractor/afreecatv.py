@@ -389,7 +389,7 @@ class AfreecaTVIE(InfoExtractor):
 class AfreecaTVLiveIE(AfreecaTVIE):
 
     IE_NAME = 'afreecatv:live'
-    _VALID_URL = r'https?://play\.afreeca(?:tv)?\.com(?::\d+)?/(?P<id>[^/]+)(?:/(?P<bno>\d+))?'
+    _VALID_URL = r'https?://play\.afreeca(?:tv)?\.com/(?P<id>[^/]+)(?:/(?P<bno>\d+))?'
     _TESTS = [{
         'url': 'https://play.afreecatv.com/pyh3646/237852185',
         'info_dict': {
@@ -402,6 +402,12 @@ class AfreecaTVLiveIE(AfreecaTVIE):
             'is_live': True,
         },
         'skip': 'Livestream has ended',
+    }, {
+        'url': 'http://play.afreeca.com/pyh3646/237852185',
+        'only_matching': True,
+    }, {
+        'url': 'http://play.afreeca.com/pyh3646',
+        'only_matching': True,
     }]
 
     _LIVE_API_URL = 'https://live.afreecatv.com/afreeca/player_live_api.php'
