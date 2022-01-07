@@ -5,6 +5,7 @@ from ..utils import (
     int_or_none,
     parse_duration,
     qualities,
+    try_get
 )
 
 
@@ -55,9 +56,10 @@ class VeohIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video = self._download_json(
+        json = self._download_json(
             'https://www.veoh.com/watch/getVideo/' + video_id,
-            video_id)['video']
+            video_id)
+        video = json['video']
         title = video['title']
 
         thumbnail_url = None
@@ -76,6 +78,12 @@ class VeohIE(InfoExtractor):
                 })
         self._sort_formats(formats)
 
+        categories = json.get('categoryPath')
+        if not categories:
+            category = try_get(video, lambda x: x['category'].strip().removeprefix('category_'))
+            categories = [category] if category else None
+        tags = video.get('tags')
+
         return {
             'id': video_id,
             'title': title,
@@ -87,4 +95,7 @@ class VeohIE(InfoExtractor):
             'formats': formats,
             'average_rating': int_or_none(video.get('rating')),
             'comment_count': int_or_none(video.get('numOfComments')),
+            'age_limit': 18 if video.get('contentRatingId') == 2 else 0,
+            'categories': categories,
+            'tags': tags.split(', ') if tags else None,
         }
