@@ -511,37 +511,22 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/videos(?P<id>-?[0-9]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/video/@(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
-        'url': 'https://vk.com/videos-767561',
+        'url': 'https://vk.com/video/@mobidevices',
         'info_dict': {
-            'id': '-767561_all',
+            'id': '-17892518_all',
         },
-        'playlist_mincount': 1150,
+        'playlist_mincount': 1355,
     }, {
-        'url': 'https://vk.com/videos-767561?section=uploaded',
+        'url': 'https://vk.com/video/@mobidevices?section=uploaded',
         'info_dict': {
-            'id': '-767561_uploaded',
+            'id': '-17892518_uploaded',
         },
-        'playlist_mincount': 425,
-    }, {
-        'url': 'http://vk.com/videos205387401',
-        'only_matching': True,
-    }, {
-        'url': 'http://vk.com/videos-77521',
-        'only_matching': True,
-    }, {
-        'url': 'http://vk.com/videos-97664626?section=all',
-        'only_matching': True,
-    }, {
-        'url': 'http://m.vk.com/videos205387401',
-        'only_matching': True,
-    }, {
-        'url': 'http://new.vk.com/videos205387401',
-        'only_matching': True,
+        'playlist_mincount': 182,
     }]
-    _PAGE_SIZE = 1000
+    _PAGE_SIZE = 500
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
 
     def _fetch_page(self, page_id, section, page):
@@ -559,7 +544,9 @@ class VKUserVideosIE(VKBaseIE):
                 'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
 
     def _real_extract(self, url):
-        page_id, section = self._match_valid_url(url).groups()
+        u_id, section = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, u_id)
+        page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
         if not section:
             section = 'all'
 
