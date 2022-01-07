@@ -3655,7 +3655,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'tags': tags,
             'view_count': self._get_count(playlist_stats, 1),
             'availability': self._extract_availability(data),
-            'last_modified_date': strftime_or_none(last_updated_unix, "%Y%m%d"),
+            'modified_date': strftime_or_none(last_updated_unix, '%Y%m%d'),
             'playlist_count': self._get_count(playlist_stats, 0)
         }
         if not channel_id:

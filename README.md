@@ -1112,8 +1112,10 @@ The available fields are:
  - `creator` (string): The creator of the video
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date (YYYYMMDD)
- - `release_date` (string): The date (YYYYMMDD) when the video was released
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
+ - `release_date` (string): The date (YYYYMMDD) when the video was released
+ - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
+ - `modified_date` (string): The date (YYYYMMDD) when the video was last modified
  - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
