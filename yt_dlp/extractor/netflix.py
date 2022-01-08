@@ -416,23 +416,22 @@ class NetflixIE(InfoExtractor):
             content_id,
             headers=headers,
             expected_status=301)
-        reactJS = clean_html(
-            re.findall(
-                r'<script> ?window\.netflix ?= ?window\.netflix.*</script>',
-                webpage)[0]
-        )
+        
         reactJSON = self._search_regex(
-            r'netflix\.reactContext ?=(.*)[;]',
-            reactJS,
+            r"(?s)netflix\.reactContext\s*=\s*(\{.*?\});",
+            webpage,
             'JSON from webpage',
-            fatal=False)
+            fatal=False
+        )
+
+       # fixes the Unicode encoding to create a valid JSON 
         reactJSON = re.sub(
             r'\\(x[A-Z0-9]{2})',
             r'\\\\\g<1>',
             reactJSON,
             0,
-            re.MULTILINE
         )
+        
         json_list = json.loads(reactJSON)
 
         if 'title' not in json_list:
