@@ -416,7 +416,7 @@ class NetflixIE(InfoExtractor):
             content_id,
             headers=headers,
             expected_status=301)
-        
+
         reactJSON = self._search_regex(
             r"(?s)netflix\.reactContext\s*=\s*(\{.*?\});",
             webpage,
@@ -424,14 +424,14 @@ class NetflixIE(InfoExtractor):
             fatal=False
         )
 
-       # fixes the Unicode encoding to create a valid JSON 
+       # fixes the Unicode encoding to create a valid JSON
         reactJSON = re.sub(
             r'\\(x[A-Z0-9]{2})',
             r'\\\\\g<1>',
             reactJSON,
             0,
         )
-        
+
         json_list = json.loads(reactJSON)
 
         if 'title' not in json_list:
