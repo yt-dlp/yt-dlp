@@ -32,9 +32,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
         video_id = self._match_id(url)
         series_id = self._match_valid_url(url).group('sid')
         self._download_webpage(url, video_id)
-        # TODO: extract thumbnail from webpage
-        # then remove trim part using regexp: \/(imf\/.*)\/img
-        # where the thumbnail is a img element with id of 'thumbnail'
         formats = self._extract_m3u8_formats(
             self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         json_info = {}
