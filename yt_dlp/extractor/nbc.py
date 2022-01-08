@@ -212,7 +212,7 @@ class NBCSportsVPlayerIE(InfoExtractor):
     @staticmethod
     def _extract_url(webpage):
         video_urls = re.search(
-            r'(var videoSrc = |div[^>]+data-(?:mpx-)?src=)"(?P<url>%s[^\"]+)' % NBCSportsVPlayerIE._VALID_URL_BASE, webpage)
+            r'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>%s[^\"]+)' % NBCSportsVPlayerIE._VALID_URL_BASE, webpage)
         if video_urls:
             return video_urls.group('url')
 
@@ -237,6 +237,9 @@ class NBCSportsIE(InfoExtractor):
             'uploader': 'NBCU-SPORTS',
             'upload_date': '20150330',
             'timestamp': 1427726529,
+            'chapters': [],
+            'thumbnail': 'https://hdliveextra-a.akamaihd.net/HD/image_sports/NBCU_Sports_Group_-_nbcsports/253/303/izzodps.jpg',
+            'duration': 528.395,
         }
     }, {
         # data-mpx-src
