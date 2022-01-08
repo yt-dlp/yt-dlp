@@ -71,7 +71,14 @@ def getVideoManifest(self, videoID, codecs, note, allTracks=False):
             'maxSupportedLanguages': 30
         }
     })
-    response = self._download_json(endpoint, videoID, data=(data.encode()), headers=headers, note=note)
+    response = self._download_json(
+        endpoint,
+        videoID,
+        data=(data.encode()),
+        headers=headers,
+        note=note,
+        fatal=True
+    )
     return response
 
 
@@ -208,13 +215,11 @@ def VideoInfo(self, id):
         'ddplus-atmos-dash'
     ]
     scodecs = [
-        'simplesdh',
-        'dfxp-ls-sdh',
-        'webvtt-lssdh-ios8',
-        'nflx-cmisc'
+        'webvtt-lssdh-ios8'
     ]
     url = list()
     all_vurl = list()
+    surl = dict()
     a = 0
     for vc in vcodecs:
         vm = getVideoManifest(
@@ -284,61 +289,79 @@ def VideoInfo(self, id):
                     ) or []]
 
                     url = url + aurl
+                suburl = {
+                    try_get(
+                        node,
+                        lambda x: x['language']
+                    ): [{
+                        'url':
+                            url_or_none(try_get(
+                                node,
+                                lambda x: x['ttDownloadables']['webvtt-lssdh-ios8']['downloadUrls'][str(node["cdnlist"][0]["id"])]
+                            )),
+                        'ext': "vtt",
+
+                    }] for node in traverse_obj(
+                        vm,
+                        ('result', 'timedtexttracks'),
+                        default={}
+                    ) or {}}
+                surl = {**surl, **suburl}
             a = 1
 
         vurl = [{
-                'url': url_or_none(
-                    try_get(
-                        node,
-                        lambda x: x['urls'][0]['url']
-                    )),
-                'width': try_get(
+            'url': url_or_none(
+                try_get(
                     node,
-                    lambda x: x['res_w']
-                ),
-                'height': try_get(
+                    lambda x: x['urls'][0]['url']
+                )),
+            'width': try_get(
+                node,
+                lambda x: x['res_w']
+            ),
+            'height': try_get(
+                node,
+                lambda x: x['res_h']
+            ),
+            'format_id': try_get(
+                node,
+                lambda x: x['downloadable_id']
+            ),
+            'format_note': str_or_none(
+                try_get(
                     node,
-                    lambda x: x['res_h']
-                ),
-                'format_id': try_get(
+                    lambda x: x['content_profile']
+                )),
+            'fps': int_or_none(try_get(
+                node,
+                lambda x: x['framerate_value']
+            ) / 1000),
+            'vbr': try_get(
+                node,
+                lambda x: x['bitrate']
+            ),
+            'ext': 'mp4',
+            'filesize': try_get(
+                node,
+                lambda x: x['size']
+            ),
+            'vcodec': vprofile_to_vcodec(
+                try_get(
                     node,
-                    lambda x: x['downloadable_id']
-                ),
-                'format_note': str_or_none(
-                    try_get(
-                        node,
-                        lambda x: x['content_profile']
-                    )),
-                'fps': int_or_none(try_get(
+                    lambda x: x['content_profile']
+                )),
+            'acodec': 'none',
+            'dynamic_range': vprofile_to_dr(
+                try_get(
                     node,
-                    lambda x: x['framerate_value']
-                ) / 1000),
-                'vbr': try_get(
+                    lambda x: x['content_profile']
+                )),
+            'quality': int_or_none(
+                try_get(
                     node,
-                    lambda x: x['bitrate']
-                ),
-                'ext': 'mp4',
-                'filesize': try_get(
-                    node,
-                    lambda x: x['size']
-                ),
-                'vcodec': vprofile_to_vcodec(
-                    try_get(
-                        node,
-                        lambda x: x['content_profile']
-                    )),
-                'acodec': 'none',
-                'dynamic_range': vprofile_to_dr(
-                    try_get(
-                        node,
-                        lambda x: x['content_profile']
-                    )),
-                'quality': int_or_none(
-                    try_get(
-                        node,
-                        lambda x: x['vmaf']
-                    )),
-                } for node in traverse_obj(
+                    lambda x: x['vmaf']
+                )),
+        } for node in traverse_obj(
             vm,
             ('result', 'video_tracks', 0, 'streams'),
             default={}
@@ -350,7 +373,10 @@ def VideoInfo(self, id):
         all_vurl,
         key=lambda d: d['quality'])
     url = url + all_vurl
-    return(url)
+    return {
+        'formats': url,
+        'subtitles': surl
+    }
 
 
 class NetflixIE(InfoExtractor):
@@ -380,10 +406,11 @@ class NetflixIE(InfoExtractor):
 
     def _real_extract(self, url):
         content_id = self._match_id(url)
-        headers = {'host': 'www.netflix.com',
-                   'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62',
-                   'origin': 'https://www.netflix.com',
-                   }
+        headers = {
+            'host': 'www.netflix.com',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62',
+            'origin': 'https://www.netflix.com',
+        }
         webpage = self._download_webpage(
             url,
             content_id,
@@ -438,8 +465,8 @@ class NetflixIE(InfoExtractor):
             'entries': []
         }
 
-        item = [
-            {
+        item = [{
+            **{
                 '_type': 'video',
                 'id': str_or_none(
                     try_get(
@@ -450,12 +477,6 @@ class NetflixIE(InfoExtractor):
                     try_get(element,
                             lambda x: x['title']
                             )),
-                'formats': VideoInfo(
-                    self,
-                    try_get(
-                        element,
-                        lambda x: x['id']
-                    )),
                 'release_timestamp': try_get(
                     element,
                     lambda x: x['availabilityStartDate']
@@ -465,9 +486,24 @@ class NetflixIE(InfoExtractor):
                         element,
                         lambda x: x['runtime']
                     )),
+                'thumbnails': [{
+                    'url': unicode_escape(try_get(
+                        element,
+                        lambda x: x['placeholderImageUrl']
+                    )),
+                    'width': 448,
+                    'height': 252,
+                }],
                 'categories': try_get(
                     element,
                     lambda x: x['subType']
-                )} for element in idList or {}]
+                )}, **VideoInfo(
+                    self,
+                    try_get(
+                        element,
+                        lambda x: x['id']
+                    ))} for element in idList or {}
+                ]
+
         pl['entries'] = item
         return pl
