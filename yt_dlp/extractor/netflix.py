@@ -75,7 +75,6 @@ def getVideoManifest(self, videoID, codecs, note, allTracks=False):
         data=(data.encode()),
         headers=headers,
         note=note,
-        fatal=True
     )
     return response
 
@@ -423,7 +422,6 @@ class NetflixIE(InfoExtractor):
             r'(?s)netflix\.reactContext\s*=\s*(\{.*?\});',
             webpage,
             'JSON from webpage',
-            fatal=False
         )
 
         # fixes the Unicode encoding to create a valid JSON
