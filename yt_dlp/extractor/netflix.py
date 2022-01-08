@@ -4,7 +4,6 @@ import re
 from random import randint
 from ..utils import (
     ExtractorError,
-    clean_html,
     try_get,
     traverse_obj,
     url_or_none,
@@ -297,9 +296,12 @@ def VideoInfo(self, id):
                         'url':
                             url_or_none(try_get(
                                 node,
-                                lambda x: x['ttDownloadables']['webvtt-lssdh-ios8']['downloadUrls'][str(node["cdnlist"][0]["id"])]
+                                lambda x: x['ttDownloadables']
+                                ['webvtt-lssdh-ios8']
+                                ['downloadUrls']
+                                [str(node['cdnlist'][0]['id'])]
                             )),
-                        'ext': "vtt",
+                        'ext': 'vtt',
 
                     }] for node in traverse_obj(
                         vm,
@@ -418,13 +420,13 @@ class NetflixIE(InfoExtractor):
             expected_status=301)
 
         reactJSON = self._search_regex(
-            r"(?s)netflix\.reactContext\s*=\s*(\{.*?\});",
+            r'(?s)netflix\.reactContext\s*=\s*(\{.*?\});',
             webpage,
             'JSON from webpage',
             fatal=False
         )
 
-       # fixes the Unicode encoding to create a valid JSON
+        # fixes the Unicode encoding to create a valid JSON
         reactJSON = re.sub(
             r'\\(x[A-Z0-9]{2})',
             r'\\\\\g<1>',
