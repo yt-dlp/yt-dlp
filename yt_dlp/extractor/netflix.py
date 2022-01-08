@@ -9,7 +9,6 @@ from ..utils import (
     url_or_none,
     int_or_none,
     str_or_none,
-    parse_duration
 )
 
 
@@ -67,7 +66,7 @@ def getVideoManifest(self, videoID, codecs, note, allTracks=False):
             'supportsPartialHydration': False,
             'contentPlaygraph': [],
             'showAllSubDubTracks': allTracks,
-            'maxSupportedLanguages': 30
+            'maxSupportedLanguages': 30,
         }
     })
     response = self._download_json(
@@ -87,7 +86,7 @@ def VideoInfo(self, id):
             'vp9-profile0-L21-dash-cenc',
             'vp9-profile0-L30-dash-cenc',
             'vp9-profile0-L31-dash-cenc',
-            'vp9-profile0-L40-dash-cenc'
+            'vp9-profile0-L40-dash-cenc',
         ],
         'H264': [
             'playready-h264mpl30-dash',
@@ -96,7 +95,7 @@ def VideoInfo(self, id):
             'playready-h264hpl22-dash',
             'playready-h264hpl30-dash',
             'playready-h264hpl31-dash',
-            'playready-h264hpl40-dash'
+            'playready-h264hpl40-dash',
         ],
         'HEVC-MAIN10-DASH-CENC': [
             'hevc-main10-L30-dash-cenc',
@@ -104,13 +103,13 @@ def VideoInfo(self, id):
             'hevc-main10-L40-dash-cenc',
             'hevc-main10-L41-dash-cenc',
             'hevc-main10-L50-dash-cenc',
-            'hevc-main10-L51-dash-cenc'
+            'hevc-main10-L51-dash-cenc',
         ],
         'HEVC-MAIN10-DASH-CENC-PRK': [
             'hevc-main10-L30-dash-cenc-prk',
             'hevc-main10-L31-dash-cenc-prk',
             'hevc-main10-L40-dash-cenc-prk',
-            'hevc-main10-L41-dash-cenc-prk'
+            'hevc-main10-L41-dash-cenc-prk',
         ],
         'HEVC-MAIN10-DASH-CENC-PRK-DO': [
             'hevc-main10-L30-dash-cenc-prk-do',
@@ -118,7 +117,7 @@ def VideoInfo(self, id):
             'hevc-main10-L40-dash-cenc-prk-do',
             'hevc-main10-L41-dash-cenc-prk-do',
             'hevc-main10-L50-dash-cenc-prk-do',
-            'hevc-main10-L51-dash-cenc-prk-do'
+            'hevc-main10-L51-dash-cenc-prk-do',
         ],
         'HEVC-DV5-MAIN10-DASH-CENC-PRK': [
             'hevc-dv5-main10-L30-dash-cenc-prk',
@@ -126,7 +125,7 @@ def VideoInfo(self, id):
             'hevc-dv5-main10-L40-dash-cenc-prk',
             'hevc-dv5-main10-L41-dash-cenc-prk',
             'hevc-dv5-main10-L50-dash-cenc-prk',
-            'hevc-dv5-main10-L51-dash-cenc-prk'
+            'hevc-dv5-main10-L51-dash-cenc-prk',
         ],
         'HEVC-DV5-MAIN10-DASH-CENC-PRK-DO': [
             'hevc-dv5-main10-L30-dash-cenc-prk-do',
@@ -134,7 +133,7 @@ def VideoInfo(self, id):
             'hevc-dv5-main10-L40-dash-cenc-prk-do',
             'hevc-dv5-main10-L41-dash-cenc-prk-do',
             'hevc-dv5-main10-L50-dash-cenc-prk-do',
-            'hevc-dv5-main10-L51-dash-cenc-prk-do'
+            'hevc-dv5-main10-L51-dash-cenc-prk-do',
         ],
         'HEVC-HDR-MAIN10-DASH-CENC': [
             'hevc-hdr-main10-L30-dash-cenc',
@@ -142,7 +141,7 @@ def VideoInfo(self, id):
             'hevc-hdr-main10-L40-dash-cenc',
             'hevc-hdr-main10-L41-dash-cenc',
             'hevc-hdr-main10-L50-dash-cenc',
-            'hevc-hdr-main10-L51-dash-cenc'
+            'hevc-hdr-main10-L51-dash-cenc',
         ],
         'HEVC-HDR-MAIN10-DASH-CENC-PRK': [
             'hevc-hdr-main10-L30-dash-cenc-prk',
@@ -150,7 +149,7 @@ def VideoInfo(self, id):
             'hevc-hdr-main10-L40-dash-cenc-prk',
             'hevc-hdr-main10-L41-dash-cenc-prk',
             'hevc-hdr-main10-L50-dash-cenc-prk',
-            'hevc-hdr-main10-L51-dash-cenc-prk'
+            'hevc-hdr-main10-L51-dash-cenc-prk',
         ],
         'HEVC-HDR-MAIN10-DASH-CENC-PRK-DO': [
             'hevc-hdr-main10-L30-dash-cenc-prk-do',
@@ -158,7 +157,7 @@ def VideoInfo(self, id):
             'hevc-hdr-main10-L40-dash-cenc-prk-do',
             'hevc-hdr-main10-L41-dash-cenc-prk-do',
             'hevc-hdr-main10-L50-dash-cenc-prk-do',
-            'hevc-hdr-main10-L51-dash-cenc-prk-do'
+            'hevc-hdr-main10-L51-dash-cenc-prk-do',
         ],
         'AV1': [
             'av1-main-L20-dash-cbcs-prk',
@@ -168,7 +167,7 @@ def VideoInfo(self, id):
             'av1-main-L40-dash-cbcs-prk',
             'av1-main-L41-dash-cbcs-prk',
             'av1-main-L50-dash-cbcs-prk',
-            'av1-main-L51-dash-cbcs-prk'
+            'av1-main-L51-dash-cbcs-prk',
         ]
     }
 
@@ -187,7 +186,7 @@ def VideoInfo(self, id):
             'vp9': 'vp9',
             'h264': 'playready',
             'h265': 'hevc',
-            'av01': 'av1'
+            'av01': 'av1',
         }
         for key, value in vcodeclist.items():
             if profile.split('-')[0] in value:
@@ -211,11 +210,9 @@ def VideoInfo(self, id):
         'xheaac-dash',
         'ddplus-2.0-dash',
         'ddplus-5.1-dash',
-        'ddplus-atmos-dash'
+        'ddplus-atmos-dash',
     ]
-    scodecs = [
-        'webvtt-lssdh-ios8'
-    ]
+    scodecs = ['webvtt-lssdh-ios8']
     url = list()
     all_vurl = list()
     surl = dict()
@@ -280,7 +277,7 @@ def VideoInfo(self, id):
                         'language': try_get(
                             node,
                             lambda x: x['language']
-                        )
+                        ),
                     } for node in traverse_obj(
                         langnode,
                         ('streams'),
@@ -289,10 +286,10 @@ def VideoInfo(self, id):
 
                     url = url + aurl
                 suburl = {
-                    try_get(
+                    str_or_none(try_get(
                         node,
                         lambda x: x['language']
-                    ): [{
+                    )): [{
                         'url':
                             url_or_none(try_get(
                                 node,
@@ -307,7 +304,7 @@ def VideoInfo(self, id):
                         vm,
                         ('result', 'timedtexttracks'),
                         default={}
-                    ) or {}}
+                    ) if (node['language'] is not None) or {}}
                 surl = {**surl, **suburl}
             a = 1
 
@@ -373,11 +370,12 @@ def VideoInfo(self, id):
     # sorting based on the VMAF
     all_vurl = sorted(
         all_vurl,
-        key=lambda d: d['quality'])
+        key=lambda d: d['quality']
+    )
     url = url + all_vurl
     return {
         'formats': url,
-        'subtitles': surl
+        'subtitles': surl,
     }
 
 
@@ -392,17 +390,19 @@ class NetflixIE(InfoExtractor):
              'title': 'Trailer: Fatherhood',
              'duration': 152,
              'release_timestamp': 1620649800000,
-             'categories': ['TRAILER']
+             'categories': 'TRAILER',
+             'thumbnail': 'https://occ-0-3969-784.1.nflxso.net/dnm/api/v6/9pS1daC2n6UGc3dUogvWIPMR_OU/AAAABSBLgG2m4nT8ZaPYOs9UNpTyG_q6wPN37d2_yRw7Zu8OhlCB_JkJ4vDWv9PA0cti2LsFwejSj5j3NHxQONKQoLk1SOCPe-sJjVTx7r3qcJiesKXm.jpg?r=a95',
          }},
         {'url': 'https://www.netflix.com/title/81252357',
-         'md5': '0ebf264c4ed3ee8ed684da8c7ce3cb60',
+         'md5': '3b79a20c14613a189062f105d0f9cbb5',
          'info_dict': {
              'id': '81510852',
              'ext': 'mp4',
              'title': 'Trailer: Don\'t Look Up',
              'duration': 148,
              'release_timestamp': 1637078400000,
-             'categories': ['TRAILER']
+             'categories': 'TRAILER',
+             'thumbnail': 'https://occ-0-3969-784.1.nflxso.net/dnm/api/v6/9pS1daC2n6UGc3dUogvWIPMR_OU/AAAABSUcq8WMNKizYx0yr9-TDRjjG5Y4QDqqn71gMfho52Qqnd0bRafaF-BAMoY4CS7O62XYRrTU-BqjPyL4hO_Tz3ph-7gnE3vNHeI7bTJ1V-RbvKa6.jpg?r=fd1',
          }}
     ]
 
@@ -442,15 +442,15 @@ class NetflixIE(InfoExtractor):
             raise ExtractorError('No video on the provided url.', expected=False)
 
         idList = traverse_obj(
-            json_list,
-            ('models',
+            json_list, (
+                'models',
                 'nmTitleUI',
                 'data',
                 'sectionData',
                 2,
                 'data',
-                'supplementalVideos'
-             ),
+                'supplementalVideos',
+            ),
             default={}
         )
         pl = {
@@ -460,10 +460,16 @@ class NetflixIE(InfoExtractor):
                     try_get(
                         json_list,
                         lambda x:
-                        x['models']['nmTitleUI']['data']['sectionData'][0]['data']['title']
+                        x['models']
+                        ['nmTitleUI']
+                        ['data']
+                        ['sectionData']
+                        [0]
+                        ['data']
+                        ['title']
                     ))),
             'id': content_id,
-            'entries': []
+            'entries': [],
         }
 
         item = [{
@@ -482,11 +488,10 @@ class NetflixIE(InfoExtractor):
                     element,
                     lambda x: x['availabilityStartDate']
                 ),
-                'duration': parse_duration(
-                    try_get(
-                        element,
-                        lambda x: x['runtime']
-                    )),
+                'duration': try_get(
+                    element,
+                    lambda x: x['runtime']
+                ),
                 'thumbnails': [{
                     'url': unicode_escape(try_get(
                         element,
@@ -498,13 +503,16 @@ class NetflixIE(InfoExtractor):
                 'categories': try_get(
                     element,
                     lambda x: x['subType']
-                )}, **VideoInfo(
-                    self,
-                    try_get(
-                        element,
-                        lambda x: x['id']
-                    ))} for element in idList or {}
-                ]
+                ),
+            }, **VideoInfo(
+                self,
+                try_get(
+                    element,
+                    lambda x: x['id']
+                ))}
+
+            for element in idList or {}
+        ]
 
         pl['entries'] = item
         return pl
