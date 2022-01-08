@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import collections
-import functools
 import re
 
 from .common import InfoExtractor
@@ -12,7 +11,6 @@ from ..utils import (
     ExtractorError,
     get_element_by_class,
     int_or_none,
-    OnDemandPagedList,
     orderedSet,
     str_or_none,
     str_to_int,
@@ -526,22 +524,35 @@ class VKUserVideosIE(VKBaseIE):
         },
         'playlist_mincount': 182,
     }]
-    _PAGE_SIZE = 500
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
 
-    def _fetch_page(self, page_id, section, page):
-        l = self._download_payload('al_video', page_id, {
+    def _entries(self, page_id, section):
+        video_list_json = self._download_payload('al_video', page_id, {
             'act': 'load_videos_silent',
-            'offset': page * self._PAGE_SIZE,
+            'offset': 0,
             'oid': page_id,
             'section': section,
-        })[0][section]['list']
+        })[0][section]
+        count = video_list_json['count']
+        total = video_list_json['total']
+        video_list = video_list_json['list']
 
-        for video in l:
-            v = self._VIDEO._make(video[:2])
-            video_id = '%d_%d' % (v.owner_id, v.id)
-            yield self.url_result(
-                'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+        while True:
+            for video in video_list:
+                v = self._VIDEO._make(video[:2])
+                video_id = '%d_%d' % (v.owner_id, v.id)
+                yield self.url_result(
+                    'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+            if count >= total:
+                break
+            video_list_json = self._download_payload('al_video', page_id, {
+                'act': 'load_videos_silent',
+                'offset': count,
+                'oid': page_id,
+                'section': section,
+            })[0][section]
+            count += video_list_json['count']
+            video_list = video_list_json['list']
 
     def _real_extract(self, url):
         u_id, section = self._match_valid_url(url).groups()
@@ -550,11 +561,7 @@ class VKUserVideosIE(VKBaseIE):
         if not section:
             section = 'all'
 
-        entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, page_id, section),
-            self._PAGE_SIZE)
-
-        return self.playlist_result(entries, '%s_%s' % (page_id, section))
+        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section))
 
 
 class VKWallPostIE(VKBaseIE):
