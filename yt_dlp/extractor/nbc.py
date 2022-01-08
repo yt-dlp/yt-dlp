@@ -197,9 +197,12 @@ class NBCSportsVPlayerIE(InfoExtractor):
             'timestamp': 1426270238,
             'upload_date': '20150313',
             'uploader': 'NBCU-SPORTS',
+            'duration': 72.818,
+            'chapters': [],
+            'thumbnail': r're:^https?://.*\.jpg$'
         }
     }, {
-        'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/media/_hqLjQ95yx8Z',
+        'url': 'https://vplayer.nbcsports.com/p/BxmELC/nbcsports_embed/select/media/PEgOtlNcC_y2',
         'only_matching': True,
     }, {
         'url': 'https://www.nbcsports.com/vplayer/p/BxmELC/nbcsports/select/PHJSaFWbrTY9?form=html&autoPlay=true',
@@ -208,16 +211,15 @@ class NBCSportsVPlayerIE(InfoExtractor):
 
     @staticmethod
     def _extract_url(webpage):
-        iframe_m = re.search(
-            r'<(?:iframe[^>]+|div[^>]+data-(?:mpx-)?)src="(?P<url>%s[^"]+)"' % NBCSportsVPlayerIE._VALID_URL_BASE, webpage)
-        if iframe_m:
-            return iframe_m.group('url')
+        video_urls = re.search(
+            r'(?:iframe[^>]+|var video|div[^>]+data-(?:mpx-)?)[sS]rc\s?=\s?"(?P<url>%s[^\"]+)' % NBCSportsVPlayerIE._VALID_URL_BASE, webpage)
+        if video_urls:
+            return video_urls.group('url')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        theplatform_url = self._og_search_video_url(webpage).replace(
-            'vplayer.nbcsports.com', 'player.theplatform.com')
+        theplatform_url = self._html_search_regex(r'tp:releaseUrl="(.+?)"', webpage, 'url')
         return self.url_result(theplatform_url, 'ThePlatform')
 
 
@@ -235,6 +237,9 @@ class NBCSportsIE(InfoExtractor):
             'uploader': 'NBCU-SPORTS',
             'upload_date': '20150330',
             'timestamp': 1427726529,
+            'chapters': [],
+            'thumbnail': 'https://hdliveextra-a.akamaihd.net/HD/image_sports/NBCU_Sports_Group_-_nbcsports/253/303/izzodps.jpg',
+            'duration': 528.395,
         }
     }, {
         # data-mpx-src

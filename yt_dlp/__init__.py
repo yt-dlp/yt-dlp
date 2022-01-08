@@ -143,6 +143,8 @@ def _real_main(argv=None):
             '"-f best" selects the best pre-merged format which is often not the best option',
             'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
+    if opts.exec_cmd.get('before_dl') and opts.exec_before_dl_cmd:
+        parser.error('using "--exec-before-download" conflicts with "--exec before_dl:"')
     if opts.usenetrc and (opts.username is not None or opts.password is not None):
         parser.error('using .netrc conflicts with giving username/password')
     if opts.password is not None and opts.username is None:
@@ -351,9 +353,9 @@ def _real_main(argv=None):
 
     for k, tmpl in opts.outtmpl.items():
         validate_outtmpl(tmpl, f'{k} output template')
-    opts.forceprint = opts.forceprint or []
-    for tmpl in opts.forceprint or []:
-        validate_outtmpl(tmpl, 'print template')
+    for type_, tmpl_list in opts.forceprint.items():
+        for tmpl in tmpl_list:
+            validate_outtmpl(tmpl, f'{type_} print template')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
     for k, tmpl in opts.progress_template.items():
         k = f'{k[:-6]} console title' if '-title' in k else f'{k} progress'
@@ -395,7 +397,10 @@ def _real_main(argv=None):
         opts.parse_metadata.append('title:%s' % opts.metafromtitle)
     opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, opts.parse_metadata)))
 
-    any_getting = opts.forceprint or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration or opts.dumpjson or opts.dump_single_json
+    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
+                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
+                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
+
     any_printing = opts.print_json
     download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
 
@@ -484,13 +489,6 @@ def _real_main(argv=None):
             'key': 'FFmpegThumbnailsConvertor',
             'format': opts.convertthumbnails,
             # Run this before the actual video download
-            'when': 'before_dl'
-        })
-    # Must be after all other before_dl
-    if opts.exec_before_dl_cmd:
-        postprocessors.append({
-            'key': 'Exec',
-            'exec_cmd': opts.exec_before_dl_cmd,
             'when': 'before_dl'
         })
     if opts.extractaudio:
@@ -593,13 +591,15 @@ def _real_main(argv=None):
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
-    # Exec must be the last PP
-    if opts.exec_cmd:
+    # Exec must be the last PP of each category
+    if opts.exec_before_dl_cmd:
+        opts.exec_cmd.setdefault('before_dl', opts.exec_before_dl_cmd)
+    for when, exec_cmd in opts.exec_cmd.items():
         postprocessors.append({
             'key': 'Exec',
-            'exec_cmd': opts.exec_cmd,
+            'exec_cmd': exec_cmd,
             # Run this only after the files have been moved to their final locations
-            'when': 'after_move'
+            'when': when,
         })
 
     def report_args_compat(arg, name):

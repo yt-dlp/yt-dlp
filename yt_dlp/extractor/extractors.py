@@ -37,7 +37,10 @@ from .aenetworks import (
     HistoryPlayerIE,
     BiographyIE,
 )
-from .afreecatv import AfreecaTVIE
+from .afreecatv import (
+    AfreecaTVIE,
+    AfreecaTVLiveIE,
+)
 from .airmozilla import AirMozillaIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
@@ -190,6 +193,7 @@ from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
 from .cableav import CableAVIE
+from .callin import CallinIE
 from .cam4 import CAM4IE
 from .camdemy import (
     CamdemyIE,
@@ -756,6 +760,7 @@ from .mailru import (
     MailRuMusicIE,
     MailRuMusicSearchIE,
 )
+from .mainstreaming import MainStreamingIE
 from .malltv import MallTVIE
 from .mangomolo import (
     MangomoloVideoIE,
@@ -1058,6 +1063,7 @@ from .opencast import (
 from .openrec import (
     OpenRecIE,
     OpenRecCaptureIE,
+    OpenRecMovieIE,
 )
 from .ora import OraTVIE
 from .orf import (
@@ -1180,6 +1186,7 @@ from .pornhub import (
 from .pornotube import PornotubeIE
 from .pornovoisines import PornoVoisinesIE
 from .pornoxo import PornoXOIE
+from .pornez import PornezIE
 from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
@@ -1768,6 +1775,7 @@ from .vimeo import (
     VimeoWatchLaterIE,
     VHXEmbedIE,
 )
+from .vimm import VimmIE
 from .vimple import VimpleIE
 from .vine import (
     VineIE,
