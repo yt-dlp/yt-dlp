@@ -27,6 +27,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'thumbnail': 'http://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810076_a.jpg',
         },
     }]
+
     def _real_extract(self, url):
         video_id = self._match_id(url)
         series_id = self._match_valid_url(url).group('sid')
