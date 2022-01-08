@@ -728,7 +728,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
                     self._search_regex(
-                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'), text.lower(), 'time text', default=None)))
+                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'),
+                        text.lower(), 'time text', default=None)))
 
         if text and timestamp is None:
             self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
@@ -2051,6 +2052,60 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'categories': ['Education'],
                 'age_limit': 0,
             }, 'params': {'format': 'mhtml', 'skip_download': True}
+        }, {
+            # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
+            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
+            'info_dict': {
+                'id': '2NUZ8W2llS4',
+                'ext': 'mp4',
+                'title': 'The NP that test your phone performance 🙂',
+                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
+                'uploader': 'Leon Nguyen',
+                'uploader_id': 'VNSXIII',
+                'uploader_url': 'http://www.youtube.com/user/VNSXIII',
+                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
+                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
+                'duration': 21,
+                'view_count': int,
+                'age_limit': 0,
+                'categories': ['Gaming'],
+                'tags': 'count:23',
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+                'upload_date': '20220103',
+                'like_count': int,
+                'availability': 'public',
+                'channel': 'Leon Nguyen',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp'
+            }
+        }, {
+            # date text is premiered video, ensure upload date in UTC (published 1641172509)
+            'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
+            'info_dict': {
+                'id': 'mzZzzBU6lrM',
+                'ext': 'mp4',
+                'title': 'I Met GeorgeNotFound In Real Life...',
+                'description': 'md5:cca98a355c7184e750f711f3a1b22c84',
+                'uploader': 'Quackity',
+                'uploader_id': 'QuackityHQ',
+                'uploader_url': 'http://www.youtube.com/user/QuackityHQ',
+                'channel_id': 'UC_8NknAFiyhOUaZqHR3lq3Q',
+                'channel_url': 'https://www.youtube.com/channel/UC_8NknAFiyhOUaZqHR3lq3Q',
+                'duration': 955,
+                'view_count': int,
+                'age_limit': 0,
+                'categories': ['Entertainment'],
+                'tags': 'count:26',
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+                'release_timestamp': 1641172509,
+                'release_date': '20220103',
+                'upload_date': '20220103',
+                'like_count': int,
+                'availability': 'public',
+                'channel': 'Quackity',
+                'thumbnail': 'https://i.ytimg.com/vi/mzZzzBU6lrM/maxresdefault.jpg'
+            }
         }
     ]
 
