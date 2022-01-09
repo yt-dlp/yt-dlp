@@ -473,7 +473,7 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
     attribute in the passed HTML document
     """
 
-    value_quote_optional = '' if re.match(r'''[\s"'`=<>]''', value) else r'?'
+    value_quote_optional = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
 
     value = re.escape(value) if escape_value else value
 
@@ -488,7 +488,8 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
 
         yield (
             unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)),
-            whole)
+            whole
+        )
 
 
 class HTMLBreakOnClosingTagParser(compat_HTMLParser):
