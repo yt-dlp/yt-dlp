@@ -486,8 +486,9 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
     for m in re.finditer(partial_element_re, html):
         content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
-        yield unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)), \
-            whole
+        yield (
+            unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)),
+            whole)
 
 
 class HTMLBreakOnClosingTagParser(compat_HTMLParser):
