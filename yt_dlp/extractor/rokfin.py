@@ -291,7 +291,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         }
 
     def _get_comments(self, video_id):
-        raise ExtractorError(msg='downloading live-stream chat is unsupported', expected=True)
+        raise ExtractorError(msg='downloading stream chat is unsupported', expected=True)
 
 
 class RokfinPlaylistIE(InfoExtractor):
@@ -543,10 +543,14 @@ class RokfinSearchIE(SearchInfoExtractor):
                     result_counter += 1
 
                     if result_counter >= min(n_results, results_total or float('inf')) or (n_results == float('inf') and results_total is None):
-                        # If n_results == inf, and Rokfin does not report the total # of search
-                        # results available, then we have no definitive stopping point, so
-                        # the downloading process could execute indefinitely. To address this,
-                        # we play it safe and quit.
+                        '''
+                        If Rokfin (unexpectedly) does not report the total # of search results available,
+                        and n_results == inf, then the downloading loop has no definitive stopping point
+                        and could, theoritically, execute indefinitely. We respond to this by proactively
+                        quitting the loop.
+
+                        This is an unlikely scenario and should not routinely occur.
+                        '''
                         if n_results == float('inf') and results_total is None:
                             report_warning(msg='please specify a finite number of search results, e.g. 100, and re-run. Stopping the downloading process prematurely to avoid an infinite loop')
 
