@@ -1301,6 +1301,7 @@ from .rtve import (
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
 from .ruhd import RUHDIE
+from .rule34xxx import Rule34XXXIE
 from .rumble import (
     RumbleEmbedIE,
     RumbleChannelIE,
