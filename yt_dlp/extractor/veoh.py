@@ -19,7 +19,7 @@ class VeohIE(InfoExtractor):
             'id': 'v56314296nk7Zdmz3',
             'ext': 'mp4',
             'title': 'Straight Backs Are Stronger',
-            'description': 'At LUMOback, we believe straight backs are stronger. The LUMOback Posture & Movement Sensor: It gently vibrates when you slouch, inspiring improved posture and mobility. Use the app to track your data and improve your posture over time.',
+            'description': 'md5:203f976279939a6dc664d4001e13f5f4',
             'thumbnail': 're:https://fcache\\.veoh\\.com/file/f/th56314296\\.jpg(\\?.*)?',
             'uploader': 'LUMOback',
             'duration': 46,
@@ -82,10 +82,10 @@ class VeohIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        json = self._download_json(
+        metadata = self._download_json(
             'https://www.veoh.com/watch/getVideo/' + video_id,
             video_id)
-        video = json['video']
+        video = metadata['video']
         title = video['title']
 
         thumbnail_url = None
@@ -104,7 +104,7 @@ class VeohIE(InfoExtractor):
                 })
         self._sort_formats(formats)
 
-        categories = json.get('categoryPath')
+        categories = metadata.get('categoryPath')
         if not categories:
             category = try_get(video, lambda x: x['category'].strip().removeprefix('category_'))
             categories = [category] if category else None
