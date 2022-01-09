@@ -123,7 +123,7 @@ class TikTokBaseIE(InfoExtractor):
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if traverse_obj(
-                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # Always h264?
+                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # TODO: Check for "direct iOS" videos, like https://www.tiktok.com/@cookierun_dev/video/7039716639834656002
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
             }))
