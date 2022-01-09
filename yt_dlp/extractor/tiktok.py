@@ -29,7 +29,7 @@ class TikTokBaseIE(InfoExtractor):
     _API_HOSTNAME = 'api-h2.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
-    QUALITIES = ('360p', '540p', '720p')
+    QUALITIES = ('360p', '540p', '720p', '1080p')
 
     def _call_api(self, ep, query, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
