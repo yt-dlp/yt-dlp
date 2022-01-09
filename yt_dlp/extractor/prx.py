@@ -64,8 +64,8 @@ class PRXBaseIE(InfoExtractor):
             'title': response.get('title') or item_id,
             'thumbnails': [thumbnail_dict] if thumbnail_dict else None,
             'description': description,
-            'release_date': (unified_strdate(response.get('producedOn'))
-                             or unified_timestamp(response.get('releasedAt'))),
+          #  'release_date': unified_strdate(response.get('producedOn')),
+            'release_timestamp': unified_timestamp(response.get('releasedAt')),  # TODO producedOn and releasedAt
             'timestamp': unified_timestamp(response.get('createdAt')),
             'modified_timestamp': unified_timestamp(response.get('updatedAt')),  # TODO: requires #2069
             'duration': int_or_none(response.get('duration')),
@@ -182,13 +182,112 @@ class PRXStoryIE(PRXBaseIE):
         {
             # Story with season and episode details
             'url': 'https://beta.prx.org/stories/399200',
+            'info_dict': {
+                'id': '399200',
+                'title': 'Fly Me To The Moon',
+                'description': 'md5:43230168390b95d3322048d8a56bf2bb',
+                'release_timestamp': 1640250000,
+                'timestamp': 1640208972,
+                'modified_timestamp': 1641318202,
+                'duration': 1004,
+                'tags': 'count:7',
+                'episode_number': 8,
+                'season_number': 5,
+                'series': 'AirSpace',
+                'series_id': '38057',
+                'channel_id': '220986',
+                'channel_url': 'https://beta.prx.org/accounts/220986',
+                'channel': 'Air and Space Museum',
+            },
+            'playlist': [{
+                'info_dict': {
+                    'id': '399200_part1',
+                    'title': 'Fly Me To The Moon',
+                    'description': 'md5:43230168390b95d3322048d8a56bf2bb',
+                    'release_timestamp': 1640250000,
+                    'timestamp': 1640208972,
+                    'modified_timestamp': 1641318202,
+                    'duration': 530,
+                    'tags': 'count:7',
+                    'episode_number': 8,
+                    'season_number': 5,
+                    'series': 'AirSpace',
+                    'series_id': '38057',
+                    'channel_id': '220986',
+                    'channel_url': 'https://beta.prx.org/accounts/220986',
+                    'channel': 'Air and Space Museum',
+                    'ext': 'mp3',
+                    'upload_date': '20211222',
+                    'episode': 'Episode 8',
+                    'release_date': '20211223',
+                    'season': 'Season 5',
 
+                }
+            }, {
+                'info_dict': {
+                    'id': '399200_part2',
+                    'title': 'Fly Me To The Moon',
+                    'description': 'md5:43230168390b95d3322048d8a56bf2bb',
+                    'release_timestamp': 1640250000,
+                    'timestamp': 1640208972,
+                    'modified_timestamp': 1641318202,
+                    'duration': 474,
+                    'tags': 'count:7',
+                    'episode_number': 8,
+                    'season_number': 5,
+                    'series': 'AirSpace',
+                    'series_id': '38057',
+                    'channel_id': '220986',
+                    'channel_url': 'https://beta.prx.org/accounts/220986',
+                    'channel': 'Air and Space Museum',
+                    'ext': 'mp3',
+                    'upload_date': '20211222',
+                    'episode': 'Episode 8',
+                    'release_date': '20211223',
+                    'season': 'Season 5',
+                }
+            }
+
+            ]
         }, {
             # Story with only split audio
-            'url': 'https://beta.prx.org/stories/326414'
+            'url': 'https://beta.prx.org/stories/326414',
+            'info_dict': {
+                'id': '326414',
+                'title': 'Massachusetts v EPA',
+                'description': 'md5:744fffba08f19f4deab69fa8d49d5816',
+                'timestamp': 1592509124,
+                'modified_timestamp': 1592510457,
+                'duration': 3088,
+                'tags': 'count:0',
+                'series': 'Outside/In',
+                'series_id': '36252',
+                'channel_id': '206',
+                'channel_url': 'https://beta.prx.org/accounts/206',
+                'channel': 'New Hampshire Public Radio',
+            },
+            'playlist_count': 4
         }, {
-            # Story with both combined audio and audio splits (API should return combined)
-            'url': 'https://beta.prx.org/stories/326414'
+            # Story with single combined audio
+            'url': 'https://beta.prx.org/stories/400404',
+            'info_dict': {
+                'id': '400404',
+                'title': 'Cafe Chill (Episode 2022-01)',
+                'thumbnails': 'count:1',
+                'description': 'md5:9f1b5a3cbd64fb159d08c3baa31f1539',
+                'timestamp': 1641233952,
+                'modified_timestamp': 1641234248,
+                'duration': 3540,
+                'series': 'Café Chill',
+                'series_id': '37762',
+                'channel_id': '5767',
+                'channel_url': 'https://beta.prx.org/accounts/5767',
+                'channel': 'C89.5 - KNHC Seattle',
+                'ext': 'mp3',
+                'tags': 'count:0',
+                'thumbnail': r're:https?://cms\.prx\.org/pub/\w+/0/web/story_image/767965/medium/Aurora_Over_Trees\.jpg',
+                'upload_date': '20220103'
+            }
         }, {
             'url': 'https://listen.prx.org/stories/399200',
             'only_matching': True
@@ -196,8 +295,6 @@ class PRXStoryIE(PRXBaseIE):
     ]
 
     def _extract_audio_pieces(self, audio_response):
-        # TODO: concatenate the pieces with a concat PP is implemented
-        # Currently returning as multi_video for the time being
         pieces = []
         piece_response = self._get_prx_embed_response(audio_response, 'items') or []
         piece_response.sort(key=lambda x: int_or_none(x.get('position')))
@@ -222,18 +319,27 @@ class PRXStoryIE(PRXBaseIE):
         entries = []
         audio_pieces = self._extract_audio_pieces(
             self._get_prx_embed_response(story_response, 'audio'))
-        for idx, fmt in enumerate(audio_pieces):
-            entries.append({
+        if len(audio_pieces) > 1:
+            # TODO: concatenate the pieces with a concat PP is implemented
+            # Currently returning as multi_video for the time being
+            for idx, fmt in enumerate(audio_pieces):
+                entries.append({
+                    '_type': 'video',
+                    **info,  # needs to be before id to override
+                    'id': '%s_part%d' % (info['id'], (idx + 1)),
+                    'formats': [fmt],
+                })
+            return {
+                '_type': 'multi_video',
+                'entries': entries,
+                **info
+            }
+        else:
+            return {
                 '_type': 'video',
-                **info,  # needs to be before id to override
-                'id': '%s_part%d' % (info['id'], (idx + 1)),
-                'formats': [fmt],
-            })
-        return {
-            '_type': 'multi_video',
-            'entries': entries,
-            **info
-        }
+                'formats': audio_pieces,
+                **info
+            }
 
     def _real_extract(self, url):
         story_id = self._match_id(url)
