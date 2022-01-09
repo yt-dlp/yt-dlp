@@ -1,11 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
-
-from yt_dlp.utils import parse_duration
-
-from .common import InfoExtractor
-
 import re
+
+from ..utils import parse_duration
+from .common import InfoExtractor
 
 
 class Rule34VideoIE(InfoExtractor):
@@ -13,6 +11,7 @@ class Rule34VideoIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://rule34video.com/videos/3065157/shot-it-mmd-hmv/',
+            'md5': 'ffccac2c23799dabbd192621ae4d04f3',
             'info_dict': {
                 'id': '3065157',
                 'ext': 'mp4',
@@ -33,6 +32,7 @@ class Rule34VideoIE(InfoExtractor):
         },
         {
             'url': 'https://rule34video.com/videos/3065296/lara-in-trouble-ep-7-wildeerstudio/',
+            'md5': '6bb5169f9f6b38cd70882bf2e64f6b86',
             'info_dict': {
                 'id': '3065296',
                 'ext': 'mp4',
@@ -59,7 +59,7 @@ class Rule34VideoIE(InfoExtractor):
 
         formats = []
 
-        for mobj in re.finditer(r'<a[^>]+href="([^"]+download=true[^"]+)".*>([^\s]+) ([^<]+)p</a>', webpage):
+        for mobj in re.finditer(r'<a[^>]+href="(?P<video_url>[^"]+download=true[^"]+)".*>(?P<ext>[^\s]+) (?P<quality>[^<]+)p</a>', webpage):
             url, ext, quality = mobj.groups()
             formats.append({
                 'url': url,
