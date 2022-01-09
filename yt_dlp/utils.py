@@ -477,12 +477,11 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
 
     value = re.escape(value) if escape_value else value
 
-    match_pattern = re.compile(
-        r'''<(?P<tag>[a-zA-Z0-9:._-]+)(?:\s+[a-zA-Z0-9_:.-]+(?:=[^\s"'`=<>]+|=(?:"[^"]*"|'[^']*')|))*?\s+%(attribute)s=(?P<_q>['"]%(vqo)s)%(value)s(?P=_q)''' %
+    partial_element_re = \
+        r'''<(?P<tag>[a-zA-Z0-9:._-]+)(?:\s+[a-zA-Z0-9_:.-]+(?:=[^\s"'`=<>]+|=(?:"[^"]*"|'[^']*')|))*?\s+%(attribute)s=(?P<_q>['"]%(vqo)s)%(value)s(?P=_q)''' % \
         {'attribute': re.escape(attribute), 'value': value, 'vqo': value_quote_optional}
-    )
 
-    for m in match_pattern.finditer(html):
+    for m in re.finditer(partial_element_re, html):
         content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
         yield unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)), \
