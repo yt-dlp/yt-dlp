@@ -1,14 +1,18 @@
 from __future__ import unicode_literals
 
 import re
+import base64
 
 from .common import InfoExtractor
+from .adobepass import AdobePassIE
 from .once import OnceIE
-from ..compat import compat_str
+from ..compat import compat_str, compat_urllib_parse_quote_plus
 from ..utils import (
     determine_ext,
     dict_get,
+    ExtractorError,
     int_or_none,
+    try_get,
     unified_strdate,
     unified_timestamp,
 )
@@ -26,7 +30,6 @@ class ESPNIE(OnceIE):
                                 (?:
                                     (?:
                                         video/(?:clip|iframe/twitter)|
-                                        watch/player
                                     )
                                     (?:
                                         .*?\?.*?\bid=|
@@ -49,6 +52,8 @@ class ESPNIE(OnceIE):
             'description': 'md5:39370c2e016cb4ecf498ffe75bef7f0f',
             'timestamp': 1390936111,
             'upload_date': '20140128',
+            'duration': 1302,
+            'thumbnail': 'md5:328b04abedca5cc2a55d76d613759de1',
         },
         'params': {
             'skip_download': True,
@@ -72,15 +77,6 @@ class ESPNIE(OnceIE):
         'only_matching': True,
     }, {
         'url': 'https://cdn.espn.go.com/video/clip/_/id/19771774',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.espn.com/watch/player?id=19141491',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.espn.com/watch/player?bucketId=257&id=19505875',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.espn.com/watch/player/_/id/19141491',
         'only_matching': True,
     }, {
         'url': 'http://www.espn.com/video/clip?id=10365079',
@@ -278,4 +274,53 @@ class ESPNCricInfoIE(InfoExtractor):
             'duration': data_json.get('duration'),
             'formats': formats,
             'subtitles': subtitles,
+        }
+
+
+class WatchESPNIE(AdobePassIE):
+    _VALID_URL = r'https://www.espn.com/watch/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
+    _TESTS = [{
+        'url': 'https://www.espn.com/watch/player/_/id/6eee6cb0-1795-49e3-84ea-766b517e0309',
+        'info_dict': {
+            'id': '6eee6cb0-1795-49e3-84ea-766b517e0309',
+            'ext': 'mp4',
+            'title': 'Miami vs. #2 Duke (M Basketball)',
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/6eee6cb0-1795-49e3-84ea-766b517e0309/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
+            'duration': 7200
+        },
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        video_data = self._download_json(
+            'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/event?id=%s' % video_id, video_id)['page']['contents']
+        title = video_data['name']
+
+        if try_get(video_data, lambda x: x['streams'][0]['source']['name']) == 'ESPN+':
+            raise ExtractorError('ESPN+ streams are not currently supported', expected=True)
+
+        resource = self._get_mvpd_resource('ESPN', title, video_id, None)
+        auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode('utf-8')
+
+        asset = self._download_json(
+            'https://watch.auth.api.espn.com/video/auth/media/%s/asset?apikey=uiqlbgzdwuru14v627vdusswb' % video_id,
+            video_id, data=(
+                'adobeToken=%s&drmSupport=HLS' % compat_urllib_parse_quote_plus(base64.b64encode(auth))).encode())
+        m3u8_url = asset['stream']
+
+        formats = self._extract_m3u8_formats(
+            m3u8_url, video_id, 'mp4',
+            entry_protocol='m3u8_native', m3u8_id='hls')
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': formats,
+            'thumbnail': video_data.get('imageHref'),
+            'duration': try_get(video_data, lambda x: x['streams'][0]['durationInSeconds']),
+            'ext': 'mp4'
         }
