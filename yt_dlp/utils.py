@@ -473,24 +473,23 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
     attribute in the passed HTML document
     """
 
+    value_quote_optional = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
+
     value = re.escape(value) if escape_value else value
 
-    retlist = []
-    for m in re.finditer(r'''(?xs)
+    partial_element_re = r'''(?x)
         <(?P<tag>[a-zA-Z0-9:._-]+)
-         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
-         \s+%(attribute)s(?:=%(value)s|\s*=\s*(?P<_q>['"]?)%(value)s(?P=_q))
-         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
-        \s*>
-    ''' % {'attribute': re.escape(attribute), 'value': value}, html):
+         (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+         \s%(attribute)s\s*=\s*(?P<_q>['"]%(vqo)s)(?-x:%(value)s)(?P=_q)
+        ''' % {'attribute': re.escape(attribute), 'value': value, 'vqo': value_quote_optional}
+
+    for m in re.finditer(partial_element_re, html):
         content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
-        retlist.append((
-            unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content)),
-            whole,
-        ))
-
-    return retlist
+        yield (
+            unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)),
+            whole
+        )
 
 
 class HTMLBreakOnClosingTagParser(compat_HTMLParser):

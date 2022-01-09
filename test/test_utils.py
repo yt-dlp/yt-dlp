@@ -1659,10 +1659,10 @@ Line 1
         html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(
-            get_elements_text_and_html_by_attribute('class', 'foo bar', html),
+            list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
             list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
-        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'foo', html), [])
-        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
     GET_ELEMENT_BY_TAG_TEST_STRING = '''
     random text lorem ipsum</p>
