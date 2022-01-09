@@ -1,7 +1,10 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from yt_dlp.utils import str_to_int
+from yt_dlp.utils import (
+    str_to_int,
+    parse_duration
+)
 
 from .common import InfoExtractor
 
@@ -18,19 +21,16 @@ class Rule34VideoIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Shot It-(mmd hmv)',
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065157/preview.jpg',
+                'duration': 347.0,
                 'formats': [
                     {'url': r're:^https://rule34video\.com/get_file/.*360p?\.mp4/\?download=true',
-                        'quality': 360,
-                        'height': 360},
+                        'quality': '360'},
                     {'url': r're:^https://rule34video\.com/get_file/.*480p?\.mp4/\?download=true',
-                        'quality': 480,
-                        'height': 480},
+                        'quality': '480'},
                     {'url': r're:^https://rule34video\.com/get_file/.*720p?\.mp4/\?download=true',
-                        'quality': 720,
-                        'height': 720},
+                        'quality': '720'},
                     {'url': r're:^https://rule34video\.com/get_file/.*1080p?\.mp4/\?download=true',
-                        'quality': 1080,
-                        'height': 1080},
+                        'quality': '1080'},
                 ]
             }
         },
@@ -43,17 +43,13 @@ class Rule34VideoIE(InfoExtractor):
                 #'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'formats': [
                     {'url': r're:^https://rule34video\.com/get_file/.*360p?\.mp4/\?download=true',
-                        'quality': 360,
-                        'height': 360},
+                        'quality': '360'},
                     {'url': r're:^https://rule34video\.com/get_file/.*480p?\.mp4/\?download=true',
-                        'quality': 480,
-                        'height': 480},
+                        'quality': '480'},
                     {'url': r're:^https://rule34video\.com/get_file/.*720p?\.mp4/\?download=true',
-                        'quality': 720,
-                        'height': 720},
+                        'quality': '720'},
                     {'url': r're:^https://rule34video\.com/get_file/.*1080p?\.mp4/\?download=true',
-                        'quality': 1080,
-                        'height': 1080},
+                        'quality': '1080'},
                 ]
             }
         },
@@ -65,16 +61,17 @@ class Rule34VideoIE(InfoExtractor):
 
         formats = []
 
-        for mobj in re.finditer(r'<a[^>]+href="([^"]+_(\d+)p?\.[^"]+download=true[^"]+)"', webpage):
-            quality = str_to_int(mobj.group(2))
+        for mobj in re.finditer(r'<a[^>]+href="([^"]+download=true[^"]+)".*>([^\s]+) ([^<]+)p</a>', webpage):
+            url, ext, quality = mobj.groups()
             formats.append({
-                'url': mobj.group(1),
+                'url': url,
+                'ext': ext.lower(),
                 'quality': quality,
-                'height': quality,
             })
 
         title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
+        duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
 
         self._sort_formats(formats)
 
@@ -83,5 +80,6 @@ class Rule34VideoIE(InfoExtractor):
             'formats': formats,
             'title': title,
             'thumbnail': thumbnail,
-            'ext': 'mp4'
+            'duration': parse_duration(duration),
+            #'ext': 'mp4'
         }
