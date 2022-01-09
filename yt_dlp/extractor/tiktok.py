@@ -8,7 +8,10 @@ import time
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
+from ..compat import (
+    compat_urllib_parse_unquote,
+    compat_urllib_parse_urlparse
+)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -164,7 +167,7 @@ class TikTokBaseIE(InfoExtractor):
         auth_cookie = self._get_cookies(self._WEBPAGE_HOST).get('sid_tt')
         if auth_cookie:
             for f in formats:
-                self._set_cookie(f['url'], 'sid_tt', auth_cookie.value)
+                self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
         self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
