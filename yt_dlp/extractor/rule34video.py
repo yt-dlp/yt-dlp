@@ -40,7 +40,7 @@ class Rule34VideoIE(InfoExtractor):
                 'id': '3065296',
                 'ext': 'mp4',
                 'title': 'Lara in Trouble Ep. 7 [WildeerStudio]',
-                'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
+                #'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'formats': [
                     {'url': r're:^https://rule34video\.com/get_file/.*360p?\.mp4/\?download=true',
                         'quality': 360,
@@ -74,7 +74,7 @@ class Rule34VideoIE(InfoExtractor):
             })
 
         title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
-        thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail')
+        thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
 
         self._sort_formats(formats)
 
