@@ -23,7 +23,7 @@ from ..utils import (
 
 class TikTokBaseIE(InfoExtractor):
     _APP_VERSION = '20.1.0'
-    _MANIFEST_APP_VERSION = '200'
+    _MANIFEST_APP_VERSION = '210'
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-h2.tiktokv.com'
