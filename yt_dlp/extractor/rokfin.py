@@ -47,8 +47,6 @@ class RokfinPostIE(RokfinSingleVideoIE):
             'channel_url': 'https://rokfin.com/TheJimmyDoreShow',
             'duration': 213.0,
             'availability': 'public',
-            'is_live': False,
-            'was_live': False,
             'live_status': 'not_live'
         }
     }]
