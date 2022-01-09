@@ -8,7 +8,10 @@ import time
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
+from ..compat import (
+    compat_urllib_parse_unquote,
+    compat_urllib_parse_urlparse
+)
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -23,13 +26,13 @@ from ..utils import (
 
 class TikTokBaseIE(InfoExtractor):
     _APP_VERSION = '20.1.0'
-    _MANIFEST_APP_VERSION = '200'
+    _MANIFEST_APP_VERSION = '210'
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-h2.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
-    QUALITIES = ('360p', '540p', '720p')
+    QUALITIES = ('360p', '540p', '720p', '1080p')
 
     def _call_api(self, ep, query, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
@@ -123,7 +126,7 @@ class TikTokBaseIE(InfoExtractor):
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if traverse_obj(
-                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # Always h264?
+                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # TODO: Check for "direct iOS" videos, like https://www.tiktok.com/@cookierun_dev/video/7039716639834656002
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
             }))
@@ -164,7 +167,7 @@ class TikTokBaseIE(InfoExtractor):
         auth_cookie = self._get_cookies(self._WEBPAGE_HOST).get('sid_tt')
         if auth_cookie:
             for f in formats:
-                self._set_cookie(f['url'], 'sid_tt', auth_cookie.value)
+                self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
         self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
@@ -404,7 +407,7 @@ class TikTokIE(TikTokBaseIE):
             self.report_warning(f'{e}; Retrying with feed workaround')
             feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
                                        note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-            aweme_detail = next(aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id)
+            aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
             if not aweme_detail:
                 raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)

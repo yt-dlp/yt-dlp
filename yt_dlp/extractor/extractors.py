@@ -37,7 +37,10 @@ from .aenetworks import (
     HistoryPlayerIE,
     BiographyIE,
 )
-from .afreecatv import AfreecaTVIE
+from .afreecatv import (
+    AfreecaTVIE,
+    AfreecaTVLiveIE,
+)
 from .airmozilla import AirMozillaIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
@@ -190,6 +193,7 @@ from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
 from .cableav import CableAVIE
+from .callin import CallinIE
 from .cam4 import CAM4IE
 from .camdemy import (
     CamdemyIE,
@@ -432,6 +436,7 @@ from .espn import (
 )
 from .esri import EsriVideoIE
 from .europa import EuropaIE
+from .europeantour import EuropeanTourIE
 from .euscreen import EUScreenIE
 from .expotv import ExpoTVIE
 from .expressen import ExpressenIE
@@ -1183,6 +1188,7 @@ from .pornhub import (
 from .pornotube import PornotubeIE
 from .pornovoisines import PornoVoisinesIE
 from .pornoxo import PornoXOIE
+from .pornez import PornezIE
 from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
