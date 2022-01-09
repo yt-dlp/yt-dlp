@@ -37,6 +37,8 @@ class Rule34VideoIE(InfoExtractor):
                 'id': '3065296',
                 'ext': 'mp4',
                 'title': 'Lara in Trouble Ep. 7 [WildeerStudio]',
+                'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
+                'duration': 938.0,
                 'formats': [
                     {'url': r're:^https://rule34video\.com/get_file/.*360p?\.mp4/\?download=true',
                         'quality': '360'},
