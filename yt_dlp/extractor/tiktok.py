@@ -404,7 +404,7 @@ class TikTokIE(TikTokBaseIE):
             self.report_warning(f'{e}; Retrying with feed workaround')
             feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
                                        note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-            aweme_detail = next(aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id)
+            aweme_detail = any(aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id)
             if not aweme_detail:
                 raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
