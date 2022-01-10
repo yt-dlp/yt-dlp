@@ -68,7 +68,7 @@ class NexxIE(InfoExtractor):
         },
     }, {
         'url': 'nexx:741:1269984',
-        'md5': 'c714b5b238b2958dc8d5642addba6886',
+        'md5': 'd5f14e14b592501e51addd5abef95a7f',
         'info_dict': {
             'id': '1269984',
             'ext': 'mp4',
