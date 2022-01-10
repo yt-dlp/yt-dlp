@@ -25,6 +25,7 @@ class NoodleMagazineIE(InfoExtractor):
             'description': 'Aria alexander manojob',
             'tags': ['aria', 'alexander', 'manojob'],
             'upload_date': '20190218',
+            'age_limit': 18
         }
     }
 
@@ -62,5 +63,6 @@ class NoodleMagazineIE(InfoExtractor):
             'tags': tags,
             'view_count': view_count,
             'like_count': like_count,
-            'upload_date': upload_update
+            'upload_date': upload_update,
+            'age_limit': 18
         }
