@@ -1648,6 +1648,10 @@ from .tvnow import (
     TVNowAnnualIE,
     TVNowShowIE,
 )
+from .tvopengr import (
+    TVOpenGrWatchIE,
+    TVOpenGrEmbedIE,
+)
 from .tvp import (
     TVPEmbedIE,
     TVPIE,

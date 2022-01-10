@@ -135,6 +135,7 @@ from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
+from .tvopengr import TVOpenGrEmbedIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
@@ -3608,6 +3609,11 @@ class GenericIE(InfoExtractor):
         if rumble_urls:
             return self.playlist_from_matches(
                 rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
+
+        # Look for (tvopen|ethnos).gr embeds
+        tvopengr_urls = list(TVOpenGrEmbedIE._extract_urls(webpage, url))
+        if tvopengr_urls:
+            return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
 
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
