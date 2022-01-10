@@ -48,7 +48,6 @@ from .nexx import (
     NexxIE,
     NexxEmbedIE,
 )
-from .cspan import CSpanIE
 from .nbc import NBCSportsVPlayerIE
 from .ooyala import OoyalaIE
 from .rutv import RUTVIE
@@ -3942,16 +3941,6 @@ class GenericIE(InfoExtractor):
 
             if entry_info_dict.get('formats'):
                 self._sort_formats(entry_info_dict['formats'])
-
-            if CSpanIE.is_basic_url(url):
-                basic_url = CSpanIE.get_basic_url(url)
-                for f in entry_info_dict['formats']:
-                    f.setdefault('http_headers', {})['referer'] = basic_url + "/"
-                    f.setdefault('http_headers', {})['origin'] = basic_url
-                    f.setdefault('http_headers', {})['accept'] = "*/*"
-                    f.setdefault('http_headers', {})['sec-fetch-dest'] = "empty"
-                    f.setdefault('http_headers', {})['sec-fetch-mode'] = "cors"
-                    f.setdefault('http_headers', {})['sec-fetch-site'] = "cross-site"
 
             entries.append(entry_info_dict)
 

@@ -1,13 +1,8 @@
 from __future__ import unicode_literals
 
-import os
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote
-)
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -28,7 +23,6 @@ from .ustream import UstreamIE
 
 
 class CSpanIE(InfoExtractor):
-    _BASIC_URL = r'https?://(?:www\.)?c-span\.org/'
     _VALID_URL = r'https?://(?:www\.)?c-span\.org/video/\?(?P<id>[0-9a-f]+)'
     IE_DESC = 'C-SPAN'
     _TESTS = [{
@@ -86,29 +80,6 @@ class CSpanIE(InfoExtractor):
         'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/%s_%s/index.html?videoId=%s'
-
-    @classmethod
-    def is_basic_url(cls, url):
-        if '_BASIC_URL_RE' not in cls.__dict__:
-            cls._BASIC_URL_RE = re.compile(cls._BASIC_URL)
-
-        return cls._BASIC_URL_RE.match(url) is not None
-
-    @classmethod
-    def get_basic_url(cls, url):
-        return "/".join(url.rstrip('/').split('/')[:3])
-
-    @classmethod
-    def _get_id(cls, url):
-        if '_ID_URL_RE' not in cls.__dict__:
-            cls._ID_URL_RE = re.compile(cls._ID_URL)
-
-        if cls._ID_URL_RE.match(url) is not None:
-            m = cls._ID_URL_RE.match(url)
-            assert m
-            return compat_str(m.group('id'))
-        else:
-            return compat_urllib_parse_unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -209,6 +180,7 @@ class CSpanIE(InfoExtractor):
         data = self._download_json(
             'http://www.c-span.org/assets/player/ajax-player.php?os=android&html5=%s&id=%s' % (video_type, video_id),
             video_id)['video']
+
         if data['@status'] != 'Success':
             raise ExtractorError('%s said: %s' % (self.IE_NAME, get_text_attr(data, 'error')), expected=True)
 
@@ -271,3 +243,49 @@ class CSpanIE(InfoExtractor):
                 'title': title,
                 'id': 'c' + video_id if video_type == 'clip' else video_id,
             }
+
+
+class CSpanCongressIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?c-span\.org/congress/'
+    IE_DESC = 'C-SPAN'
+    _TESTS = [{
+        'url': 'https://www.c-span.org/congress/?chamber=house&date=2017-12-13&t=1513208380',
+        'info_dict': {
+            'id': 'Congressional Chronicle - Members of Congress, Hearings and More | C-SPAN.org',
+            'title': 'Congressional Chronicle - Members of Congress, Hearings and More',
+            'description': 'md5:54c264b7a8f219937987610243305a84',
+            'ext': 'mp4'
+        }
+    }]
+
+    def _real_extract(self, url):
+        display_id = self._generic_id(url)
+        webpage = self._download_webpage(url, display_id)
+        file = open("sample.txt", "w")
+        file.write(webpage)
+        file.close()
+        video_url = re.findall(r'sources: \[\{file: \'(.*?)\'\}\],', webpage)[0]
+        formats = self._extract_m3u8_formats(video_url, display_id, ext='mp4')
+        self._sort_formats(formats)
+
+        basic_url = "/".join(url.rstrip('/').split('/')[:3])
+        for f in formats:
+            f.setdefault('http_headers', {})['referer'] = basic_url + "/"
+            f.setdefault('http_headers', {})['origin'] = basic_url
+            f.setdefault('http_headers', {})['accept'] = "*/*"
+            f.setdefault('http_headers', {})['sec-fetch-dest'] = "empty"
+            f.setdefault('http_headers', {})['sec-fetch-mode'] = "cors"
+            f.setdefault('http_headers', {})['sec-fetch-site'] = "cross-site"
+
+        title = self._og_search_title(webpage, default=None) or self._html_search_regex(
+            r'(?s)<title>(.*?)</title>', webpage, 'video title')
+        description = self._og_search_description(webpage, default=None) or self._html_search_meta(
+            'description', webpage, 'meta description', default=None)
+
+        return {
+            'id': title,
+            'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
+            'description': description,
+            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'formats': formats
+        }
