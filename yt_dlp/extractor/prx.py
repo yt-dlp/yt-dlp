@@ -132,8 +132,7 @@ class PRXBaseIE(InfoExtractor):
             query = {
                 **(query or {}),
                 'page': page,
-                'per_page': 100,
-
+                'per': 100
             }
             response = self._call_api(
                 f'{item_id}: page {page}', endpoint, query=query) or {}
@@ -401,7 +400,19 @@ class PRXSeriesIE(PRXBaseIE):
 
 class PRXAccountIE(PRXBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'accounts/(?P<id>\d+)'
-    _TESTS = []
+    _TESTS = [{
+        'url': 'https://beta.prx.org/accounts/206',
+        'info_dict': {
+            'id': '206',
+            'title': 'New Hampshire Public Radio',
+            'description': 'md5:277f2395301d0aca563c80c70a18ee0a',
+            'channel_id': '206',
+            'channel_url': 'https://beta.prx.org/accounts/206',
+            'channel': 'New Hampshire Public Radio',
+            'thumbnails': 'count:1'
+        },
+        'playlist_mincount': 380
+    }]
 
     def _extract_account(self, account_response):
         info = self._extract_account_info(account_response)
