@@ -433,32 +433,30 @@ class YahooGyaOIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        program_id = self._match_id(url).replace('/', ':')
-        entries = []
+    def _entries(self, program_id):
         page = 1
         while True:
             playlist = self._download_json(
-                'https://gyao.yahoo.co.jp/api/programs/%s/videos?page=%d' % (program_id, page), program_id)
+                f'https://gyao.yahoo.co.jp/api/programs/{program_id}/videos?page={page}', program_id,
+                note=f'Downloading JSON metadata page {page}')
             if not playlist:
                 break
-            for video in playlist.get('videos'):
+            for video in playlist['videos']:
                 video_id = video.get('id')
                 if not video_id:
                     continue
                 if video.get('streamingAvailability') == 'notYet':
                     continue
-                entries.append(self.url_result(
+                yield self.url_result(
                     'https://gyao.yahoo.co.jp/player/%s/' % video_id.replace(':', '/'),
-                    YahooGyaOPlayerIE.ie_key(), video_id))
-            ended = playlist.get('ended')
-            if ended is None:
-                self.report_warning("'ended' key was not found in playlist. Spec may have changed.")
-                break
-            if ended:
+                    YahooGyaOPlayerIE.ie_key(), video_id)
+            if playlist.get('ended'):
                 break
             page += 1
-        return self.playlist_result(entries, program_id)
+
+    def _real_extract(self, url):
+        program_id = self._match_id(url).replace('/', ':')
+        return self.playlist_result(self._entries(program_id), program_id)
 
 
 class YahooJapanNewsIE(InfoExtractor):
