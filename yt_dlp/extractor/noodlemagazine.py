@@ -38,7 +38,7 @@ class NoodleMagazineIE(InfoExtractor):
         tags = self._html_search_meta('video:tag', webpage, default='').split(', ')
         view_count = parse_count(self._html_search_meta('ya:ovs:views_total', webpage, default=None))
         like_count = parse_count(self._html_search_meta('ya:ovs:likes', webpage, default=None))
-        upload_update = unified_strdate(self._html_search_meta('ya:ovs:upload_date', webpage, default=''))
+        upload_date = unified_strdate(self._html_search_meta('ya:ovs:upload_date', webpage, default=''))
 
         key = self._html_search_regex(rf'/{video_id}\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'key')
         playlist_info = self._download_json(f'https://adult.noodlemagazine.com/playlist/{video_id}?m={key}', video_id)
@@ -62,6 +62,6 @@ class NoodleMagazineIE(InfoExtractor):
             'tags': tags,
             'view_count': view_count,
             'like_count': like_count,
-            'upload_date': upload_update,
+            'upload_date': upload_date,
             'age_limit': 18
         }
