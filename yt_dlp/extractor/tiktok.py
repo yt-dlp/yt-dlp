@@ -16,6 +16,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
+    LazyList,
     str_or_none,
     traverse_obj,
     try_get,
@@ -455,6 +456,7 @@ class TikTokUserIE(TikTokBaseIE):
         'info_dict': {
             'id': '6935371178089399301',
             'title': 'corgibobaa',
+            'thumbnail': r're:https://.+_1080x1080\.webp'
         },
         'expected_warnings': ['Retrying']
     }, {
@@ -463,6 +465,7 @@ class TikTokUserIE(TikTokBaseIE):
         'info_dict': {
             'id': '79005827461758976',
             'title': 'meme',
+            'thumbnail': r're:https://.+_1080x1080\.webp'
         },
         'expected_warnings': ['Retrying']
     }]
@@ -486,7 +489,7 @@ class TikTokUserIE(TikTokBaseIE):
             cursor = data_json['cursor']
     '''
 
-    def _entries_api(self, webpage, user_id, username):
+    def _video_entries_api(self, webpage, user_id, username):
         query = {
             'user_id': user_id,
             'count': 21,
@@ -509,16 +512,19 @@ class TikTokUserIE(TikTokBaseIE):
                         continue
                     raise
                 break
-            for video in post_list.get('aweme_list', []):
-                yield {
-                    **self._parse_aweme_video_app(video),
-                    'extractor_key': TikTokIE.ie_key(),
-                    'extractor': 'TikTok',
-                    'webpage_url': f'https://tiktok.com/@{user_id}/video/{video["aweme_id"]}',
-                }
+            yield from post_list.get('aweme_list', [])
             if not post_list.get('has_more'):
                 break
             query['max_cursor'] = post_list['max_cursor']
+
+    def _entries_api(self, user_id, videos):
+        for video in videos:
+            yield {
+                **self._parse_aweme_video_app(video),
+                'extractor_key': TikTokIE.ie_key(),
+                'extractor': 'TikTok',
+                'webpage_url': f'https://tiktok.com/@{user_id}/video/{video["aweme_id"]}',
+            }
 
     def _real_extract(self, url):
         user_name = self._match_id(url)
@@ -526,7 +532,11 @@ class TikTokUserIE(TikTokBaseIE):
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
         user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID')
-        return self.playlist_result(self._entries_api(webpage, user_id, user_name), user_id, user_name)
+
+        videos = LazyList(self._video_entries_api(webpage, user_id, user_name))
+        thumbnail = traverse_obj(videos, (0, 'author', 'avatar_larger', 'url_list', 0))
+
+        return self.playlist_result(self._entries_api(user_id, videos), user_id, user_name, thumbnail=thumbnail)
 
 
 class TikTokBaseListIE(TikTokBaseIE):

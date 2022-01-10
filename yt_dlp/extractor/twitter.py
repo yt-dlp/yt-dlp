@@ -15,6 +15,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    traverse_obj,
     try_get,
     strip_or_none,
     unified_timestamp,
@@ -55,7 +56,7 @@ class TwitterBaseIE(InfoExtractor):
     def _extract_formats_from_vmap_url(self, vmap_url, video_id):
         vmap_url = url_or_none(vmap_url)
         if not vmap_url:
-            return []
+            return [], {}
         vmap_data = self._download_xml(vmap_url, video_id)
         formats = []
         subtitles = {}
@@ -508,7 +509,7 @@ class TwitterIE(TwitterBaseIE):
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
             })
 
-        media = try_get(status, lambda x: x['extended_entities']['media'][0])
+        media = traverse_obj(status, ((None, 'quoted_status'), 'extended_entities', 'media', 0), get_all=False)
         if media and media.get('type') != 'photo':
             extract_from_video_info(media)
         else:

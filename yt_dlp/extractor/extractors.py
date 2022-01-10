@@ -989,6 +989,7 @@ from .nitter import NitterIE
 from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
 from .nonktube import NonkTubeIE
+from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
 from .normalboots import NormalbootsIE
 from .nosvideo import NosVideoIE
@@ -1301,6 +1302,7 @@ from .rtve import (
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
 from .ruhd import RUHDIE
+from .rule34video import Rule34VideoIE
 from .rule34xxx import Rule34XXXIE
 from .rumble import (
     RumbleEmbedIE,

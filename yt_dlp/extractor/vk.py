@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import collections
-import functools
 import re
 
 from .common import InfoExtractor
@@ -12,7 +11,6 @@ from ..utils import (
     ExtractorError,
     get_element_by_class,
     int_or_none,
-    OnDemandPagedList,
     orderedSet,
     str_or_none,
     str_to_int,
@@ -511,63 +509,59 @@ class VKIE(VKBaseIE):
 class VKUserVideosIE(VKBaseIE):
     IE_NAME = 'vk:uservideos'
     IE_DESC = "VK - User's Videos"
-    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/videos(?P<id>-?[0-9]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
+    _VALID_URL = r'https?://(?:(?:m|new)\.)?vk\.com/video/@(?P<id>[^?$#/&]+)(?!\?.*\bz=video)(?:[/?#&](?:.*?\bsection=(?P<section>\w+))?|$)'
     _TEMPLATE_URL = 'https://vk.com/videos'
     _TESTS = [{
-        'url': 'https://vk.com/videos-767561',
+        'url': 'https://vk.com/video/@mobidevices',
         'info_dict': {
-            'id': '-767561_all',
+            'id': '-17892518_all',
         },
-        'playlist_mincount': 1150,
+        'playlist_mincount': 1355,
     }, {
-        'url': 'https://vk.com/videos-767561?section=uploaded',
+        'url': 'https://vk.com/video/@mobidevices?section=uploaded',
         'info_dict': {
-            'id': '-767561_uploaded',
+            'id': '-17892518_uploaded',
         },
-        'playlist_mincount': 425,
-    }, {
-        'url': 'http://vk.com/videos205387401',
-        'only_matching': True,
-    }, {
-        'url': 'http://vk.com/videos-77521',
-        'only_matching': True,
-    }, {
-        'url': 'http://vk.com/videos-97664626?section=all',
-        'only_matching': True,
-    }, {
-        'url': 'http://m.vk.com/videos205387401',
-        'only_matching': True,
-    }, {
-        'url': 'http://new.vk.com/videos205387401',
-        'only_matching': True,
+        'playlist_mincount': 182,
     }]
-    _PAGE_SIZE = 1000
     _VIDEO = collections.namedtuple('Video', ['owner_id', 'id'])
 
-    def _fetch_page(self, page_id, section, page):
-        l = self._download_payload('al_video', page_id, {
+    def _entries(self, page_id, section):
+        video_list_json = self._download_payload('al_video', page_id, {
             'act': 'load_videos_silent',
-            'offset': page * self._PAGE_SIZE,
+            'offset': 0,
             'oid': page_id,
             'section': section,
-        })[0][section]['list']
+        })[0][section]
+        count = video_list_json['count']
+        total = video_list_json['total']
+        video_list = video_list_json['list']
 
-        for video in l:
-            v = self._VIDEO._make(video[:2])
-            video_id = '%d_%d' % (v.owner_id, v.id)
-            yield self.url_result(
-                'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+        while True:
+            for video in video_list:
+                v = self._VIDEO._make(video[:2])
+                video_id = '%d_%d' % (v.owner_id, v.id)
+                yield self.url_result(
+                    'http://vk.com/video' + video_id, VKIE.ie_key(), video_id)
+            if count >= total:
+                break
+            video_list_json = self._download_payload('al_video', page_id, {
+                'act': 'load_videos_silent',
+                'offset': count,
+                'oid': page_id,
+                'section': section,
+            })[0][section]
+            count += video_list_json['count']
+            video_list = video_list_json['list']
 
     def _real_extract(self, url):
-        page_id, section = self._match_valid_url(url).groups()
+        u_id, section = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, u_id)
+        page_id = self._search_regex(r'data-owner-id\s?=\s?"([^"]+)"', webpage, 'page_id')
         if not section:
             section = 'all'
 
-        entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, page_id, section),
-            self._PAGE_SIZE)
-
-        return self.playlist_result(entries, '%s_%s' % (page_id, section))
+        return self.playlist_result(self._entries(page_id, section), '%s_%s' % (page_id, section))
 
 
 class VKWallPostIE(VKBaseIE):
