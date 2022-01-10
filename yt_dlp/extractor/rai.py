@@ -20,6 +20,7 @@ from ..utils import (
     parse_duration,
     remove_start,
     strip_or_none,
+    traverse_obj,
     try_get,
     unified_strdate,
     unified_timestamp,
@@ -399,15 +400,10 @@ class RaiPlayPlaylistIE(InfoExtractor):
         for b in (program.get('blocks') or []):
             for s in (b.get('sets') or []):
                 if extra_id:
-                    # create path from values in the json
-                    # to check if it's the same or not
                     if extra_id != join_nonempty(
-                        b.get('name'), s.get('name'), delim='/'
-                    ).replace(' ', '-').upper():
+                            b.get('name'), s.get('name'), delim='/').replace(' ', '-').upper():
                         continue
-
-                    playlist_title = join_nonempty(
-                        playlist_title, s.get('name'), delim=' - ')
+                    playlist_title = join_nonempty(playlist_title, s.get('name'), delim=' - ')
 
                 s_id = s.get('id')
                 if not s_id:
@@ -452,53 +448,34 @@ class RaiPlaySoundIE(RaiBaseIE):
     }]
 
     def _real_extract(self, url):
-        base, audio_id = self._match_valid_url(url).groups()
-
-        media = self._download_json(
-            base + '.json', audio_id, 'Downloading audio JSON')
+        base, audio_id = self._match_valid_url(url).group('base', 'id')
+        media = self._download_json(f'{base}.json', audio_id, 'Downloading audio JSON')
+        uid = try_get(media, lambda x: remove_start(remove_start(x['uniquename'], 'ContentItem-'), 'Page-'))
 
         info = {}
         formats = []
-        relinkers = []
-        relinkers.append(try_get(media, lambda x: x['downloadable_audio']['url']))
-        relinkers.append(try_get(media, lambda x: x['audio']['url']))
-        relinkers.append(try_get(media, lambda x: x['live']['cards'][0]['audio']['url']))
-        # remove duplicates and None
-        relinkers = list(dict.fromkeys([r for r in relinkers if r]))
+        relinkers = set(traverse_obj(media, (('downloadable_audio', 'audio', ('live', 'cards', 0, 'audio')), 'url')))
         for r in relinkers:
             info = self._extract_relinker_info(r, audio_id, True)
             formats.extend(info.get('formats'))
 
-        date_published = media.get('create_date')
-        time_published = media.get('create_time')
-        if date_published and time_published:
-            date_published += ' ' + time_published
+        date_published = try_get(media, (lambda x: f'{x["create_date"]} {x.get("create_time") or ""}',
+                                         lambda x: x['live']['create_date']))
 
-        if not date_published:
-            date_published = try_get(media, lambda x: x['live']['create_date'])
+        podcast_info = traverse_obj(media, 'podcast_info', ('live', 'cards', 0)) or {}
+        thumbnails = [{
+            'url': urljoin(url, thumb_url),
+        } for thumb_url in (podcast_info.get('images') or {}).values() if thumb_url]
 
-        track_info = media.get('track_info') or {}
-        podcast_info = media.get('podcast_info') or try_get(media, lambda x: x['live']['cards'][0]) or {}
-        thumbnails = []
-        for _, value in podcast_info.get('images', {}).items():
-            if value:
-                thumbnails.append({
-                    'url': urljoin(url, value),
-                })
-
-        uid = media.get('uniquename')
-        if uid:
-            uid = remove_start(uid, 'ContentItem-')
-            uid = remove_start(uid, 'Page-')
-
-        info.update({
+        return {
+            **info,
             'id': uid or audio_id,
             'display_id': audio_id,
-            'title': media.get('title') or media.get('episode_title'),
-            'alt_title': track_info.get('media_name'),
+            'title': traverse_obj(media, 'title', 'episode_title'),
+            'alt_title': traverse_obj(media, ('track_info', 'media_name')),
             'description': media.get('description'),
-            'uploader': strip_or_none(track_info.get('channel')),
-            'creator': strip_or_none(track_info.get('editor')),
+            'uploader': traverse_obj(media, ('track_info', 'channel'), expected_type=strip_or_none),
+            'creator': traverse_obj(media, ('track_info', 'editor'), expected_type=strip_or_none),
             'timestamp': unified_timestamp(date_published),
             'thumbnails': thumbnails,
             'series': podcast_info.get('title'),
@@ -506,8 +483,7 @@ class RaiPlaySoundIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'formats': formats,
-        })
-        return info
+        }
 
 
 class RaiPlaySoundLiveIE(RaiPlaySoundIE):
@@ -524,7 +500,7 @@ class RaiPlaySoundLiveIE(RaiPlaySoundIE):
             'is_live': True,
         },
         'params': {
-            'skip_download': True,
+            'skip_download': 'live',
         },
     }]
 
@@ -542,40 +518,31 @@ class RaiPlaySoundPlaylistIE(InfoExtractor):
     }, {
         'url': 'https://www.raiplaysound.it/programmi/ilruggitodelconiglio/puntate/prima-stagione-1995',
         'info_dict': {
-            'id': 'ilruggitodelconiglio',
+            'id': 'ilruggitodelconiglio_puntate_prima-stagione-1995',
             'title': 'Prima Stagione 1995',
         },
         'playlist_count': 1,
     }]
 
     def _real_extract(self, url):
-        base, playlist_id, extra_id = self._match_valid_url(url).groups()
-
-        program = self._download_json(
-            base + '.json', playlist_id, 'Downloading program JSON')
+        base, playlist_id, extra_id = self._match_valid_url(url).group('base', 'id', 'extra_id')
+        url = f'{base}.json'
+        program = self._download_json(url, playlist_id, 'Downloading program JSON')
 
         if extra_id:
             extra_id = extra_id.rstrip('/')
-            for c in program.get('filters') or []:
-                if extra_id in c.get('weblink'):
-                    program = self._download_json(
-                        urljoin('https://www.raiplaysound.it', c.get('path_id')),
-                        extra_id, 'Downloading program secondary JSON')
+            playlist_id += '_' + extra_id.replace('/', '_')
+            path = next(c['path_id'] for c in program.get('filters') or [] if extra_id in c.get('weblink'))
+            program = self._download_json(
+                urljoin('https://www.raiplaysound.it', path), playlist_id, 'Downloading program secondary JSON')
 
-        entries = []
-        for c in (program.get('cards')
-                  or try_get(program, lambda x: x['block']['cards'])
-                  or []):
-            path_id = c.get('path_id')
-            if not path_id:
-                continue
-            audio_url = urljoin(base, path_id)
-            entries.append(self.url_result(
-                audio_url, ie=RaiPlaySoundIE.ie_key()))
+        entries = [
+            self.url_result(urljoin(base, c['path_id']), ie=RaiPlaySoundIE.ie_key())
+            for c in traverse_obj(program, 'cards', ('block', 'cards')) or []
+            if c.get('path_id')]
 
-        return self.playlist_result(
-            entries, playlist_id, program.get('title'),
-            try_get(program, lambda x: x['podcast_info']['description']))
+        return self.playlist_result(entries, playlist_id, program.get('title'),
+                                    traverse_obj(program, ('podcast_info', 'description')))
 
 
 class RaiIE(RaiBaseIE):
