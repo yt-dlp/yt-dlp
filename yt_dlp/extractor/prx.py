@@ -357,7 +357,7 @@ class PRXSeriesIE(PRXBaseIE):
                 'id': '36252',
                 'title': 'Outside/In',
                 'thumbnails': 'count:1',
-                'description': 'md5:bob',
+                'description': 'md5:a6bedc5f810777bcb09ab30ff9059114',
                 'timestamp': 1470684964,
                 'modified_timestamp': 1582308830,
                 'channel_id': '206',
@@ -366,8 +366,8 @@ class PRXSeriesIE(PRXBaseIE):
                 'series': 'Outside/In',
                 'series_id': '36252'
             },
-            'playlist_mincount': 5
-        } , {
+            'playlist_mincount': 39
+        }, {
             # Blank series
             'url': 'https://beta.prx.org/series/25038',
             'info_dict': {
