@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import itertools
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
-    unified_strdate,
     urljoin,
     traverse_obj,
     int_or_none,
@@ -64,10 +63,10 @@ class PRXBaseIE(InfoExtractor):
             'title': response.get('title') or item_id,
             'thumbnails': [thumbnail_dict] if thumbnail_dict else None,
             'description': description,
-          #  'release_date': unified_strdate(response.get('producedOn')),
-            'release_timestamp': unified_timestamp(response.get('releasedAt')),  # TODO producedOn and releasedAt
+            # TODO: there is also sometimes a producedOn date (not timestamp) available
+            'release_timestamp': unified_timestamp(response.get('releasedAt')),
             'timestamp': unified_timestamp(response.get('createdAt')),
-            'modified_timestamp': unified_timestamp(response.get('updatedAt')),  # TODO: requires #2069
+            'modified_timestamp': unified_timestamp(response.get('updatedAt')),
             'duration': int_or_none(response.get('duration')),
             'tags': response.get('tags'),
             'episode_number': int_or_none(response.get('episodeIdentifier')),
