@@ -2,9 +2,9 @@
 from __future__ import unicode_literals
 
 from ..utils import (
-    traverse_obj,
-    str_to_int,
-    str_or_none
+    parse_duration,
+    parse_count,
+    unified_strdate
 )
 from .common import InfoExtractor
 
@@ -24,29 +24,7 @@ class NoodleMagazineIE(InfoExtractor):
             'like_count': int,
             'description': 'Aria alexander manojob',
             'tags': ['aria', 'alexander', 'manojob'],
-            'upload_update': '20190218',
-            'formats': [
-                {
-                    'url': r're:^https://.*\.pvvstream.pro/.*extra=',
-                    'quality': '240',
-                    'ext': 'mp4',
-                },
-                {
-                    'url': r're:^https://.*\.pvvstream.pro/.*extra=',
-                    'quality': '360',
-                    'ext': 'mp4',
-                },
-                {
-                    'url': r're:^https://.*\.pvvstream.pro/.*extra=',
-                    'quality': '480',
-                    'ext': 'mp4',
-                },
-                {
-                    'url': r're:^https://.*\.pvvstream.pro/.*extra=',
-                    'quality': '720',
-                    'ext': 'mp4',
-                },
-            ]
+            'upload_date': '20190218',
         }
     }
 
@@ -54,27 +32,23 @@ class NoodleMagazineIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         title = self._og_search_title(webpage)
-        duration = str_to_int(self._html_search_meta('video:duration', webpage, 'duration', default=None))
+        duration = parse_duration(self._html_search_meta('video:duration', webpage, 'duration', default=None))
         description = self._og_search_property('description', webpage, default='').replace(' watch online hight quality video', '')
         tags = self._html_search_meta('video:tag', webpage, default='').split(', ')
-        view_count = str_to_int(self._html_search_meta('ya:ovs:views_total', webpage, default=None))
-        like_count = str_to_int(self._html_search_meta('ya:ovs:likes', webpage, default=None))
-        upload_update = str_or_none(self._html_search_meta('ya:ovs:upload_date', webpage, default='').replace('-', ''))
+        view_count = parse_count(self._html_search_meta('ya:ovs:views_total', webpage, default=None))
+        like_count = parse_count(self._html_search_meta('ya:ovs:likes', webpage, default=None))
+        upload_update = unified_strdate(self._html_search_meta('ya:ovs:upload_date', webpage, default=''))
 
         # fetch json
-        m = self._html_search_regex(r'/' + video_id + r'\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'm')
-        playlist = 'https://adult.noodlemagazine.com/playlist/%s?m=%s' % (video_id, m)
-        info = self._download_json(playlist, video_id)
-        thumbnail = self._og_search_property('image', webpage, default=None) or info.get('image')
+        m = self._html_search_regex(rf'/{video_id}\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'm')
+        playlist_info = self._download_json(f'https://adult.noodlemagazine.com/playlist/{video_id}?m={m}', video_id)
+        thumbnail = self._og_search_property('image', webpage, default=None) or playlist_info.get('image')
 
-        formats = []
-
-        for mobj in info.get('sources'):
-            formats.append({
-                'url': traverse_obj(mobj, 'file'),
-                'quality': traverse_obj(mobj, 'label'),
-                'ext': traverse_obj(mobj, 'type'),
-            })
+        formats = [{
+            'url': source.get('file'),
+            'quality': source.get('label'),
+            'ext': source.get('type'),
+        } for source in playlist_info.get('sources')]
 
         self._sort_formats(formats)
 
@@ -88,5 +62,5 @@ class NoodleMagazineIE(InfoExtractor):
             'tags': tags,
             'view_count': view_count,
             'like_count': like_count,
-            'upload_update': upload_update
+            'upload_date': upload_update
         }
