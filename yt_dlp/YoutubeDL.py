@@ -2677,6 +2677,12 @@ class YoutubeDL(object):
             tmpl = f'{tmpl[:-1]} = %({tmpl[:-1]})s'
         elif mobj:
             tmpl = '%({})s'.format(tmpl)
+
+        info_dict = info_dict.copy()
+        info_dict['formats_table'] = self.render_formats_table(info_dict)
+        info_dict['thumbnails_table'] = self.render_thumbnails_table(info_dict)
+        info_dict['subtitles_table'] = self.render_subtitles_table(info_dict.get('id'), info_dict.get('subtitles'))
+        info_dict['automatic_captions_table'] = self.render_subtitles_table(info_dict.get('id'), info_dict.get('automatic_captions'))
         self.to_stdout(self.evaluate_outtmpl(tmpl, info_dict))
 
     def __forced_printings(self, info_dict, filename, incomplete):
@@ -3241,7 +3247,6 @@ class YoutubeDL(object):
 
         actual_post_extract(info_dict or {})
 
-
     def run_pp(self, pp, infodict):
         files_to_delete = []
         if '__files_to_move' not in infodict:
@@ -3349,6 +3354,11 @@ class YoutubeDL(object):
             return '%dx?' % format['width']
         return default
 
+    def _list_format_headers(self, *headers):
+        if self.params.get('listformats_table', True) is not False:
+            return [self._format_screen(header, self.Styles.HEADERS) for header in headers]
+        return headers
+
     def _format_note(self, fdict):
         res = ''
         if fdict.get('ext') in ['f4f', 'f4m']:
@@ -3409,102 +3419,97 @@ class YoutubeDL(object):
             res += '~' + format_bytes(fdict['filesize_approx'])
         return res
 
-    def _list_format_headers(self, *headers):
-        if self.params.get('listformats_table', True) is not False:
-            return [self._format_screen(header, self.Styles.HEADERS) for header in headers]
-        return headers
-
-    def list_formats(self, info_dict):
+    def render_formats_table(self, info_dict):
         if not info_dict.get('formats') and not info_dict.get('url'):
-            self.to_screen('%s has no formats' % info_dict['id'])
-            return
-        self.to_screen('[info] Available formats for %s:' % info_dict['id'])
+            return None
 
         formats = info_dict.get('formats', [info_dict])
-        new_format = self.params.get('listformats_table', True) is not False
-        if new_format:
-            delim = self._format_screen('\u2502', self.Styles.DELIM, '|', test_encoding=True)
-            table = [
-                [
-                    self._format_screen(format_field(f, 'format_id'), self.Styles.ID),
-                    format_field(f, 'ext'),
-                    format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
-                    format_field(f, 'fps', '\t%d'),
-                    format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
-                    delim,
-                    format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
-                    format_field(f, 'tbr', '\t%dk'),
-                    shorten_protocol_name(f.get('protocol', '')),
-                    delim,
-                    format_field(f, 'vcodec', default='unknown').replace(
-                        'none',
-                        'images' if f.get('acodec') == 'none'
-                        else self._format_screen('audio only', self.Styles.SUPPRESS)),
-                    format_field(f, 'vbr', '\t%dk'),
-                    format_field(f, 'acodec', default='unknown').replace(
-                        'none',
-                        '' if f.get('vcodec') == 'none'
-                        else self._format_screen('video only', self.Styles.SUPPRESS)),
-                    format_field(f, 'abr', '\t%dk'),
-                    format_field(f, 'asr', '\t%dHz'),
-                    join_nonempty(
-                        self._format_screen('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
-                        format_field(f, 'language', '[%s]'),
-                        join_nonempty(
-                            format_field(f, 'format_note'),
-                            format_field(f, 'container', ignore=(None, f.get('ext'))),
-                            delim=', '),
-                        delim=' '),
-                ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
-            header_line = self._list_format_headers(
-                'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', delim, '\tFILESIZE', '\tTBR', 'PROTO',
-                delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
-        else:
+        if not self.params.get('listformats_table', True) is not False:
             table = [
                 [
                     format_field(f, 'format_id'),
                     format_field(f, 'ext'),
                     self.format_resolution(f),
-                    self._format_note(f)]
-                for f in formats
-                if f.get('preference') is None or f['preference'] >= -1000]
-            header_line = ['format code', 'extension', 'resolution', 'note']
+                    self._format_note(f)
+                ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
+            return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
 
-        self.to_stdout(render_table(
-            header_line, table,
-            extra_gap=(0 if new_format else 1),
-            hide_empty=new_format,
-            delim=new_format and self._format_screen('\u2500', self.Styles.DELIM, '-', test_encoding=True)))
+        delim = self._format_screen('\u2502', self.Styles.DELIM, '|', test_encoding=True)
+        table = [
+            [
+                self._format_screen(format_field(f, 'format_id'), self.Styles.ID),
+                format_field(f, 'ext'),
+                format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
+                format_field(f, 'fps', '\t%d'),
+                format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
+                delim,
+                format_field(f, 'filesize', ' \t%s', func=format_bytes) + format_field(f, 'filesize_approx', '~\t%s', func=format_bytes),
+                format_field(f, 'tbr', '\t%dk'),
+                shorten_protocol_name(f.get('protocol', '')),
+                delim,
+                format_field(f, 'vcodec', default='unknown').replace(
+                    'none', 'images' if f.get('acodec') == 'none'
+                            else self._format_screen('audio only', self.Styles.SUPPRESS)),
+                format_field(f, 'vbr', '\t%dk'),
+                format_field(f, 'acodec', default='unknown').replace(
+                    'none', '' if f.get('vcodec') == 'none'
+                            else self._format_screen('video only', self.Styles.SUPPRESS)),
+                format_field(f, 'abr', '\t%dk'),
+                format_field(f, 'asr', '\t%dHz'),
+                join_nonempty(
+                    self._format_screen('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
+                    format_field(f, 'language', '[%s]'),
+                    join_nonempty(format_field(f, 'format_note'),
+                                  format_field(f, 'container', ignore=(None, f.get('ext'))),
+                                  delim=', '),
+                    delim=' '),
+            ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
+        header_line = self._list_format_headers(
+            'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', delim, '\tFILESIZE', '\tTBR', 'PROTO',
+            delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
 
-    def list_thumbnails(self, info_dict):
+        return render_table(
+            header_line, table, hide_empty=True,
+            delim=self._format_screen('\u2500', self.Styles.DELIM, '-', test_encoding=True))
+
+    def render_thumbnails_table(self, info_dict):
         thumbnails = list(info_dict.get('thumbnails'))
         if not thumbnails:
-            self.to_screen('[info] No thumbnails present for %s' % info_dict['id'])
-            return
-
-        self.to_screen(
-            '[info] Thumbnails for %s:' % info_dict['id'])
-        self.to_stdout(render_table(
+            return None
+        return render_table(
             self._list_format_headers('ID', 'Width', 'Height', 'URL'),
-            [[t['id'], t.get('width', 'unknown'), t.get('height', 'unknown'), t['url']] for t in thumbnails]))
+            [[t['id'], t.get('width', 'unknown'), t.get('height', 'unknown'), t['url']] for t in thumbnails])
 
-    def list_subtitles(self, video_id, subtitles, name='subtitles'):
-        if not subtitles:
-            self.to_screen('%s has no %s' % (video_id, name))
-            return
-        self.to_screen(
-            'Available %s for %s:' % (name, video_id))
-
+    def render_subtitles_table(self, video_id, subtitles):
         def _row(lang, formats):
             exts, names = zip(*((f['ext'], f.get('name') or 'unknown') for f in reversed(formats)))
             if len(set(names)) == 1:
                 names = [] if names[0] == 'unknown' else names[:1]
             return [lang, ', '.join(names), ', '.join(exts)]
 
-        self.to_stdout(render_table(
+        if not subtitles:
+            return None
+        return render_table(
             self._list_format_headers('Language', 'Name', 'Formats'),
             [_row(lang, formats) for lang, formats in subtitles.items()],
-            hide_empty=True))
+            hide_empty=True)
+
+    def __list_table(self, video_id, name, func, *args):
+        table = func(*args)
+        if not table:
+            self.to_screen(f'{video_id} has no {name}')
+            return
+        self.to_screen(f'[info] Available {name} for {video_id}:')
+        self.to_stdout(table)
+
+    def list_formats(self, info_dict):
+        self.__list_table(info_dict['id'], 'formats', self.render_formats_table, info_dict)
+
+    def list_thumbnails(self, info_dict):
+        self.__list_table(info_dict['id'], 'thumbnails', self.render_thumbnails_table, info_dict)
+
+    def list_subtitles(self, video_id, subtitles, name='subtitles'):
+        self.__list_table(video_id, name, self.render_subtitles_table, video_id, subtitles)
 
     def urlopen(self, req):
         """ Start an HTTP download """

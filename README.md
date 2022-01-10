@@ -1793,6 +1793,14 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
 These are all the deprecated options and the current alternative to achieve the same effect
 
+#### Almost redundant options
+While these options are almost the same as their new counterparts, there are some differences that prevents them being redundant
+
+    -j, --dump-json                  --print "%()j"
+    -F, --list-formats               --print formats_table
+    --list-thumbnails                --print thumbnails_table
+    --list-subs                      --print automatic_captions_table --print subtitles_table
+
 #### Redundant options
 While these options are redundant, they are still expected to be used due to their ease of use
 
@@ -1804,7 +1812,6 @@ While these options are redundant, they are still expected to be used due to the
     --get-thumbnail                  --print thumbnail
     -e, --get-title                  --print title
     -g, --get-url                    --print urls
-    -j, --dump-json                  --print "%()j"
     --match-title REGEX              --match-filter "title ~= (?i)REGEX"
     --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
     --min-views COUNT                --match-filter "view_count >=? COUNT"
