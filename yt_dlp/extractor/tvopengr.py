@@ -96,10 +96,13 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
         info = self._search_json_ld(webpage, video_id, expected_type='VideoObject')
         info['formats'], info['subtitles'] = self._extract_formats_and_subs(
             self._download_api_data(video_id, scheme=scheme), video_id)
-        max_width = max([format.get('width') or 0 for format in info['formats']])
-        if max_width:
+        max_dimensions = max(
+            [tuple(format.get(k) or 0 for k in ('width', 'height')) for format in info['formats']],
+            default=None)
+        if max_dimensions[0]:
             for thumbnail in info['thumbnails']:
-                thumbnail['url'] = re.sub(r'(/imgHandler/)\d+', rf'\g<1>{max_width}', thumbnail['url'])
+                thumbnail['url'] = re.sub(r'(/imgHandler/)\d+', rf'\g<1>{max_dimensions[0]}', thumbnail['url'])
+                thumbnail['width'], thumbnail['height'] = max_dimensions
         description, _html = next(get_elements_text_and_html_by_attribute('class', 'description', webpage))
         if description and _html.startswith('<span '):
             info['description'] = description
