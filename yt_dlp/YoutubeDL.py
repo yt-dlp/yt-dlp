@@ -3280,7 +3280,7 @@ class YoutubeDL(object):
         for tmpl in self.params['forceprint'].get(key, []):
             self._forceprint(tmpl, info)
         for pp in (additional_pps or []) + self._pps[key]:
-            info = self.run_pp(info)
+            info = self.run_pp(pp, info)
         return info
 
     def pre_process(self, ie_info, key='pre_process', files_to_move=None):
