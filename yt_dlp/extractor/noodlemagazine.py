@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 
 from ..utils import (
     traverse_obj,
-    str_to_int
+    str_to_int,
+    str_or_none
 )
 from .common import InfoExtractor
 
@@ -21,8 +22,9 @@ class NoodleMagazineIE(InfoExtractor):
             'duration': 903,
             'view_count': int,
             'like_count': int,
-            'description': 'Aria alexander manojob watch online hight quality video',
+            'description': 'Aria alexander manojob',
             'tags': ['aria', 'alexander', 'manojob'],
+            'upload_update': '20190218',
             'formats': [
                 {
                     'url': r're:^https://.*\.pvvstream.pro/.*extra=',
@@ -53,10 +55,11 @@ class NoodleMagazineIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         title = self._og_search_title(webpage)
         duration = str_to_int(self._html_search_meta('video:duration', webpage, 'duration', default=None))
-        description = self._og_search_property('description', webpage, default='')
+        description = self._og_search_property('description', webpage, default='').replace(' watch online hight quality video', '')
         tags = self._html_search_meta('video:tag', webpage, default='').split(', ')
         view_count = str_to_int(self._html_search_meta('ya:ovs:views_total', webpage, default=None))
         like_count = str_to_int(self._html_search_meta('ya:ovs:likes', webpage, default=None))
+        upload_update = str_or_none(self._html_search_meta('ya:ovs:upload_date', webpage, default='').replace('-', ''))
 
         # fetch json
         m = self._html_search_regex(r'/' + video_id + r'\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'm')
@@ -84,5 +87,6 @@ class NoodleMagazineIE(InfoExtractor):
             'description': description,
             'tags': tags,
             'view_count': view_count,
-            'like_count': like_count
+            'like_count': like_count,
+            'upload_update': upload_update
         }
