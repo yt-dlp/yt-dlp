@@ -67,20 +67,19 @@ class NexxIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
-        # does not work via arc
         'url': 'nexx:741:1269984',
         'md5': 'c714b5b238b2958dc8d5642addba6886',
         'info_dict': {
             'id': '1269984',
             'ext': 'mp4',
-            'title': '1 TAG ohne KLO... wortwörtlich! 😑',
-            'alt_title': '1 TAG ohne KLO... wortwörtlich! 😑',
+            'title': '1 TAG ohne KLO... wortwörtlich! ?',
+            'alt_title': '1 TAG ohne KLO... wortwörtlich! ?',
+            'description': 'md5:2016393a31991a900946432ccdd09a6f',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 607,
             'timestamp': 1518614955,
             'upload_date': '20180214',
         },
-        'skip': 'Now works with arc API'
     }, {
         # free cdn from http://www.spiegel.de/video/eifel-zoo-aufregung-um-ausgebrochene-raubtiere-video-99018031.html
         'url': 'nexx:747:1533779',
@@ -485,7 +484,7 @@ class NexxIE(InfoExtractor):
             'alt_title': general.get('subtitle'),
             'description': general.get('description'),
             'release_year': int_or_none(general.get('year')),
-            'creator': general.get('studio') or general.get('studio_adref'),
+            'creator': general.get('studio') or general.get('studio_adref') or None,
             'thumbnail': try_get(
                 video, lambda x: x['imagedata']['thumb'], compat_str),
             'duration': parse_duration(general.get('runtime')),
