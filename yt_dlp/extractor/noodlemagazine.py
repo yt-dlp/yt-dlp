@@ -46,8 +46,8 @@ class NoodleMagazineIE(InfoExtractor):
         title = self._og_search_title(webpage)
 
         # fetch json
-        player = self._og_search_property('video', webpage)
-        playlist = player.replace('https://nmcorp.video/player/', 'https://adult.noodlemagazine.com/playlist/')
+        m = self._html_search_regex(r'/' + video_id + r'\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'm')
+        playlist = 'https://adult.noodlemagazine.com/playlist/%s?m=%s' % (video_id, m)
         info = self._download_json(playlist, video_id)
         thumbnail = info.get('image')
 
