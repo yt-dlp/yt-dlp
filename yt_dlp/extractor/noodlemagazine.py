@@ -1,7 +1,10 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from ..utils import traverse_obj
+from ..utils import (
+    traverse_obj,
+    str_to_int
+)
 from .common import InfoExtractor
 
 
@@ -13,8 +16,13 @@ class NoodleMagazineIE(InfoExtractor):
         'info_dict': {
             'id': '-67421364_456239604',
             'title': 'Aria alexander manojob',
-            'thumbnail': r're:^https://.*\.jpg\?(?=.*size=\d+x\d+)(?=.*quality=\d+)(?=.*sign=[0-9a-zA-Z]+)',
+            'thumbnail': r're:^https://.*\.jpg',
             'ext': 'mp4',
+            'duration': 903,
+            'view_count': int,
+            'like_count': int,
+            'description': 'Aria alexander manojob watch online hight quality video',
+            'tags': ['aria', 'alexander', 'manojob'],
             'formats': [
                 {
                     'url': r're:^https://.*\.pvvstream.pro/.*extra=',
@@ -44,12 +52,17 @@ class NoodleMagazineIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         title = self._og_search_title(webpage)
+        duration = str_to_int(self._html_search_meta('video:duration', webpage, 'duration', default=None))
+        description = self._og_search_property('description', webpage, default='')
+        tags = self._html_search_meta('video:tag', webpage, default='').split(', ')
+        view_count = str_to_int(self._html_search_meta('ya:ovs:views_total', webpage, default=None))
+        like_count = str_to_int(self._html_search_meta('ya:ovs:likes', webpage, default=None))
 
         # fetch json
         m = self._html_search_regex(r'/' + video_id + r'\?(?:.*&)?m=([^&"\'\s,]+)', webpage, 'm')
         playlist = 'https://adult.noodlemagazine.com/playlist/%s?m=%s' % (video_id, m)
         info = self._download_json(playlist, video_id)
-        thumbnail = info.get('image')
+        thumbnail = self._og_search_property('image', webpage, default=None) or info.get('image')
 
         formats = []
 
@@ -67,4 +80,9 @@ class NoodleMagazineIE(InfoExtractor):
             'formats': formats,
             'title': title,
             'thumbnail': thumbnail,
+            'duration': duration,
+            'description': description,
+            'tags': tags,
+            'view_count': view_count,
+            'like_count': like_count
         }
