@@ -9,7 +9,7 @@ from ..utils import (
     str_or_none,
 )
 
-#2270
+
 class FunkIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.|origin\.)?funk\.net/(?:channel|playlist)/[^/]+/(?P<display_id>[0-9a-z-]+)-(?P<id>\d+)'
     _TESTS = [{
