@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 
 from ..utils import (
+    ExtractorError,
     parse_resolution,
     traverse_obj,
     try_get,
@@ -15,9 +16,8 @@ class DigitalConcertHallIE(InfoExtractor):
     IE_DESC = 'DigitalConcertHall extractor'
     _VALID_URL = r'https?://(?:www\.)?digitalconcerthall\.com/(?P<language>[a-z]+)/concert/(?P<id>[0-9]+)'
     _OAUTH_URL = 'https://api.digitalconcerthall.com/v2/oauth2/token'
-    _ACCESS_TOKEN = 'none'
+    _ACCESS_TOKEN = None
     _NETRC_MACHINE = 'digitalconcerthall'
-    # if you don't login, all you will get is trailers
     _TESTS = [{
         'note': 'Playlist with only one video',
         'url': 'https://www.digitalconcerthall.com/en/concert/53201',
@@ -69,83 +69,72 @@ class DigitalConcertHallIE(InfoExtractor):
                 }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'Referer': 'https://www.digitalconcerthall.com',
-                    'Authorization': 'Bearer ' + self._ACCESS_TOKEN
+                    'Authorization': f'Bearer {self._ACCESS_TOKEN}'
                 })
-        except Exception:
+        except ExtractorError:
             self.raise_login_required(msg='Login info incorrect')
 
     def _real_initialize(self):
         self._login()
 
+    def _entries(self, items, language, **kwargs):
+        for item in items:
+            video_id = item['id']
+            stream_info = self._download_json(
+                self._proto_relative_url(item['_links']['streams']['href']), video_id, headers={
+                    'Accept': 'application/json',
+                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+                    'Accept-Language': language
+                })
+
+            m3u8_url = traverse_obj(
+                stream_info, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
+            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
+            self._sort_formats(formats)
+
+            yield {
+                'id': video_id,
+                'title': item.get('title'),
+                'composer': item.get('name_composer'),
+                'url': m3u8_url,
+                'formats': formats,
+                'duration': item.get('duration_total'),
+                'timestamp': traverse_obj(item, ('date', 'published')),
+                'description': item.get('short_description') or stream_info.get('short_description'),
+                **kwargs,
+                'chapters': [{
+                    'start_time': chapter.get('time'),
+                    'end_time': try_get(chapter, lambda x: x['time'] + x['duration']),
+                    'title': chapter.get('text'),
+                } for chapter in item['cuepoints']] if item.get('cuepoints') else None,
+            }
+
     def _real_extract(self, url):
-        language, video_id = self._match_valid_url(url).groups()
+        language, video_id = self._match_valid_url(url).group('language', 'id')
         if not language:
             language = 'en'
-        thumbnails = []
-        thumbnail_url = (self._html_search_regex(r'(https?://images\.digitalconcerthall\.com/cms/thumbnails/.*\.jpg)',
-                         self._download_webpage(url, video_id), 'thumbnail'))
-        thumbnails.append({
+
+        thumbnail_url = self._html_search_regex(
+            r'(https?://images\.digitalconcerthall\.com/cms/thumbnails/.*\.jpg)',
+            self._download_webpage(url, video_id), 'thumbnail')
+        thumbnails = [{
             'url': thumbnail_url,
             **parse_resolution(thumbnail_url)
-        })
+        }]
 
         vid_info = self._download_json(
             f'https://api.digitalconcerthall.com/v2/concert/{video_id}', video_id, headers={
                 'Accept': 'application/json',
                 'Accept-Language': language
             })
-        playlist_title = vid_info.get('title')
-        embedded = vid_info.get('_embedded')
-        album_artist = traverse_obj(vid_info, ('_links', 'artist', 0, 'name')) + " / " + traverse_obj(vid_info, ('_links', 'artist', 1, 'name'))
-        entries = []
-        for embed_type in embedded:
-            # embed_type should be either 'work' or 'interview'
-            # 'work' will be an array of one or more works
-            for item in embedded.get(embed_type):
-                stream_href = traverse_obj(item, ('_links', 'streams', 'href'))
-                stream_info = self._download_json(
-                    self._proto_relative_url(stream_href), video_id,
-                    headers={'Accept': 'application/json',
-                             'Authorization': 'Bearer ' + self._ACCESS_TOKEN,
-                             'Accept-Language': language})
-                m3u8_url = traverse_obj(stream_info, ('channel', lambda x: x.startswith('vod_mixed'), 'stream', 0, 'url'), get_all=False)
-
-                formats = self._extract_m3u8_formats(
-                    m3u8_url, video_id, 'mp4', 'm3u8_native', fatal=False)
-                self._sort_formats(formats)
-
-                title = item.get('title', None)
-                composer = item.get('name_composer', None)
-                key = item.get('id')
-                duration = item.get('duration_total')
-                timestamp = traverse_obj(item, ('date', 'published'))
-                entries.append({
-                    'id': key,
-                    'title': title,
-                    'composer': composer,
-                    'url': m3u8_url,
-                    'formats': formats,
-                    'duration': duration,
-                    'timestamp': timestamp,
-                    'description': item.get('short_description') or stream_info.get('short_description'),
-                    'thumbnails': thumbnails,
-                    'album_artist': album_artist,
-                })
-                if item.get('cuepoints'):
-                    chapters = [{
-                        'start_time': chapter.get('time'),
-                        'end_time': try_get(chapter, lambda x: x['time'] + x['duration']),
-                        'title': chapter.get('text'),
-                    } for chapter in item.get('cuepoints') or []]
-                    if chapters and chapters[0]['start_time']:  # Chapters may not start from 0
-                        chapters[:0] = [{'title': '0. Intro', 'start_time': 0, 'end_time': chapters[0]['start_time']}]
-                    entries[-1]['chapters'] = chapters
+        album_artist = ' / '.join(traverse_obj(vid_info, ('_links', 'artist', ..., 'name')) or '')
 
         return {
             '_type': 'playlist',
             'id': video_id,
-            'title': playlist_title,
-            'entries': entries,
+            'title': vid_info.get('title'),
+            'entries': self._entries(traverse_obj(vid_info, ('_embedded', ..., ...)), language,
+                                     thumbnails=thumbnails, album_artist=album_artist),
             'thumbnails': thumbnails,
             'album_artist': album_artist,
         }
