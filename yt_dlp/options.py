@@ -910,13 +910,13 @@ def create_parser():
         metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'video|playlist',
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
             'default_key': 'video',
             'multiple_keys': False,
             'append': True,
         }, help=(
-            'Field name or output template to print to screen per video. '
-            'Prefix the template with "playlist:" to print it once per playlist instead. '
+            'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
             'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
