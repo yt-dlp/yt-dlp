@@ -18,16 +18,7 @@ class Rule34VideoIE(InfoExtractor):
                 'title': 'Shot It-(mmd hmv)',
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065157/preview.jpg',
                 'duration': 347.0,
-                'formats': [
-                    {'url': r're:^https://rule34video\.com/get_file/.*360p?\.mp4/\?download=true',
-                        'quality': '360'},
-                    {'url': r're:^https://rule34video\.com/get_file/.*480p?\.mp4/\?download=true',
-                        'quality': '480'},
-                    {'url': r're:^https://rule34video\.com/get_file/.*720p?\.mp4/\?download=true',
-                        'quality': '720'},
-                    {'url': r're:^https://rule34video\.com/get_file/.*1080p?\.mp4/\?download=true',
-                        'quality': '1080'},
-                ]
+                'age_limit': 18
             }
         },
         {
@@ -39,16 +30,7 @@ class Rule34VideoIE(InfoExtractor):
                 'title': 'Lara in Trouble Ep. 7 [WildeerStudio]',
                 'thumbnail': 'https://rule34video.com/contents/videos_screenshots/3065000/3065296/preview.jpg',
                 'duration': 938.0,
-                'formats': [
-                    {'url': r're:^https://rule34video\.com/get_file/.*360p?\.mp4/\?download=true',
-                        'quality': '360'},
-                    {'url': r're:^https://rule34video\.com/get_file/.*480p?\.mp4/\?download=true',
-                        'quality': '480'},
-                    {'url': r're:^https://rule34video\.com/get_file/.*720p?\.mp4/\?download=true',
-                        'quality': '720'},
-                    {'url': r're:^https://rule34video\.com/get_file/.*1080p?\.mp4/\?download=true',
-                        'quality': '1080'},
-                ]
+                'age_limit': 18
             }
         },
     ]
@@ -79,4 +61,5 @@ class Rule34VideoIE(InfoExtractor):
             'title': title,
             'thumbnail': thumbnail,
             'duration': parse_duration(duration),
+            'age_limit': 18
         }
