@@ -29,6 +29,8 @@ class DigitalConcertHallIE(InfoExtractor):
             'thumbnail': r're:^https?://images.digitalconcerthall.com/cms/thumbnails.*\.jpg$',
             'upload_date': '20210624',
             'timestamp': 1624548600,
+            'duration': 2798,
+            'album_artist': 'Members of the Berliner Philharmoniker / Simon Rössler',
         },
         'params': {'skip_download': 'm3u8'},
     }, {
@@ -36,6 +38,7 @@ class DigitalConcertHallIE(InfoExtractor):
         'url': 'https://www.digitalconcerthall.com/en/concert/53785',
         'info_dict': {
             'id': '53785',
+            'album_artist': 'Berliner Philharmoniker / Kirill Petrenko',
             'title': 'Kirill Petrenko conducts Mendelssohn and Shostakovich',
         },
         'params': {'skip_download': 'm3u8'},
