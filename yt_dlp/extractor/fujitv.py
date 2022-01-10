@@ -6,13 +6,14 @@ from .common import InfoExtractor
 
 class FujiTVFODPlus7IE(InfoExtractor):
     _VALID_URL = r'https?://fod\.fujitv\.co\.jp/title/(?P<sid>[0-9a-z]{4})/(?P<id>[0-9a-z]+)'
-    _BASE_URL = 'http://i.fod.fujitv.co.jp/'
+    _BASE_URL = 'https://i.fod.fujitv.co.jp/'
     _BITRATE_MAP = {
         300: (320, 180),
         800: (640, 360),
         1200: (1280, 720),
         2000: (1280, 720),
         4000: (1920, 1080),
+        6000: (1920, 1080),
     }
 
     _TESTS = [{
@@ -34,12 +35,17 @@ class FujiTVFODPlus7IE(InfoExtractor):
         self._download_webpage(url, video_id)
         formats = self._extract_m3u8_formats(
             self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
+        formats = []
+        src_json = self._download_json(self._BASE_URL+'abrjson_v2/tv_android/%s' % video_id, video_id)
+        src_json = src_json['video_selector']
+        for src in src_json:
+            formats+=self._extract_m3u8_formats(src['url'], video_id,'mp4')
         json_info = {}
         if not self._get_cookies(url).get('CT'):
             token = self._get_cookies(url).get('CT').value
             json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token}'}, fatal=False)
-        else:
-            self._report_warning('Unable to extract token cookie, video information is unavailable')
+        # else:
+            # self._report_warning('Unable to extract token cookie, video information is unavailable')
         for f in formats:
             wh = self._BITRATE_MAP.get(f.get('tbr'))
             if wh:
