@@ -16,7 +16,6 @@ from ..utils import (
     ContentTooShortError,
     encodeFilename,
     int_or_none,
-    sanitize_open,
     sanitized_Request,
     ThrottledDownload,
     write_xattr,
@@ -263,7 +262,7 @@ class HttpFD(FileDownloader):
                 # Open destination file just in time
                 if ctx.stream is None:
                     try:
-                        ctx.stream, ctx.tmpfilename = sanitize_open(
+                        ctx.stream, ctx.tmpfilename = self.sanitize_open(
                             ctx.tmpfilename, ctx.open_mode)
                         assert ctx.stream is not None
                         ctx.filename = self.undo_temp_name(ctx.tmpfilename)

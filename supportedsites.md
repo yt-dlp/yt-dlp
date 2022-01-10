@@ -21,6 +21,7 @@
  - **9now.com.au**
  - **abc.net.au**
  - **abc.net.au:iview**
+ - **abc.net.au:iview:showseries**
  - **abcnews**
  - **abcnews:video**
  - **abcotvs**: ABC Owned Television Stations
@@ -273,6 +274,7 @@
  - **DiscoveryPlus**
  - **DiscoveryPlusIndia**
  - **DiscoveryPlusIndiaShow**
+ - **DiscoveryPlusItaly**
  - **DiscoveryPlusItalyShow**
  - **DiscoveryVR**
  - **Disney**
@@ -287,6 +289,8 @@
  - **DPlay**
  - **DRBonanza**
  - **Dropbox**
+ - **Dropout**
+ - **DropoutSeason**
  - **DrTuber**
  - **drtv**
  - **drtv:live**
@@ -379,6 +383,12 @@
  - **GabTV**
  - **Gaia**
  - **GameInformer**
+ - **GameJolt**
+ - **GameJoltCommunity**
+ - **GameJoltGame**
+ - **GameJoltGameSoundtrack**
+ - **GameJoltSearch**
+ - **GameJoltUser**
  - **GameSpot**
  - **GameStar**
  - **Gaskrank**
@@ -399,6 +409,7 @@
  - **GloboArticle**
  - **Go**
  - **GodTube**
+ - **Gofile**
  - **Golem**
  - **google:podcasts**
  - **google:podcasts:feed**
@@ -436,6 +447,8 @@
  - **hrfernsehen**
  - **HRTi**
  - **HRTiPlaylist**
+ - **HSEProduct**
+ - **HSEShow**
  - **Huajiao**: 花椒直播
  - **HuffPost**: Huffington Post
  - **Hungama**
@@ -652,6 +665,8 @@
  - **n-tv.de**
  - **N1Info:article**
  - **N1InfoAsset**
+ - **Nate**
+ - **NateProgram**
  - **natgeo:video**
  - **NationalGeographicTV**
  - **Naver**
@@ -766,6 +781,8 @@
  - **OnionStudios**
  - **Ooyala**
  - **OoyalaExternal**
+ - **Opencast**
+ - **OpencastPlaylist**
  - **openrec**
  - **openrec:capture**
  - **OraTV**
@@ -819,6 +836,8 @@
  - **Pinkbike**
  - **Pinterest**
  - **PinterestCollection**
+ - **pixiv:sketch**
+ - **pixiv:sketch:user**
  - **Pladform**
  - **PlanetMarathi**
  - **Platzi**
@@ -941,6 +960,7 @@
  - **RTRFM**
  - **RTS**: RTS.ch
  - **rtve.es:alacarta**: RTVE a la carta
+ - **rtve.es:audio**: RTVE audio
  - **rtve.es:infantil**: RTVE infantil
  - **rtve.es:live**: RTVE.es live streams
  - **rtve.es:television**
@@ -950,11 +970,12 @@
  - **RumbleChannel**
  - **RumbleEmbed**
  - **rutube**: Rutube videos
- - **rutube:channel**: Rutube channels
+ - **rutube:channel**: Rutube channel
  - **rutube:embed**: Rutube embedded videos
  - **rutube:movie**: Rutube movies
  - **rutube:person**: Rutube person videos
  - **rutube:playlist**: Rutube playlists
+ - **rutube:tags**: Rutube tags
  - **RUTV**: RUTV.RU
  - **Ruutu**
  - **Ruv**
@@ -994,6 +1015,7 @@
  - **simplecast:episode**
  - **simplecast:podcast**
  - **Sina**
+ - **Skeb**
  - **sky.it**
  - **sky:news**
  - **sky:news:story**
@@ -1013,6 +1035,7 @@
  - **SonyLIVSeries**
  - **soundcloud**
  - **soundcloud:playlist**
+ - **soundcloud:related**
  - **soundcloud:search**: Soundcloud search; "scsearch:" prefix
  - **soundcloud:set**
  - **soundcloud:trackstation**
@@ -1120,12 +1143,16 @@
  - **ThreeSpeak**
  - **ThreeSpeakUser**
  - **TikTok**
+ - **tiktok:effect**
+ - **tiktok:sound**
+ - **tiktok:tag**
  - **tiktok:user**
  - **tinypic**: tinypic.com videos
  - **TMZ**
  - **TNAFlix**
  - **TNAFlixNetworkEmbed**
  - **toggle**
+ - **toggo**
  - **Tokentube**
  - **Tokentube:channel**
  - **ToonGoggles**
@@ -1138,6 +1165,7 @@
  - **TrovoChannelClip**: All Clips of a trovo.live channel; "trovoclip:" prefix
  - **TrovoChannelVod**: All VODs of a trovo.live channel; "trovovod:" prefix
  - **TrovoVod**
+ - **TrueID**
  - **TruNews**
  - **TruTV**
  - **Tube8**

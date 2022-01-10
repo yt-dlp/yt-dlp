@@ -203,10 +203,6 @@ class SVTPlayIE(SVTPlayBaseIE):
         'only_matching': True,
     }]
 
-    def _adjust_title(self, info):
-        if info['is_live']:
-            info['title'] = self._live_title(info['title'])
-
     def _extract_by_video_id(self, video_id, webpage=None):
         data = self._download_json(
             'https://api.svt.se/videoplayer-api/video/%s' % video_id,
@@ -220,7 +216,6 @@ class SVTPlayIE(SVTPlayBaseIE):
             if not title:
                 title = video_id
             info_dict['title'] = title
-        self._adjust_title(info_dict)
         return info_dict
 
     def _real_extract(self, url):
@@ -251,7 +246,6 @@ class SVTPlayIE(SVTPlayBaseIE):
                     'title': data['context']['dispatcher']['stores']['MetaStore']['title'],
                     'thumbnail': thumbnail,
                 })
-                self._adjust_title(info_dict)
                 return info_dict
 
             svt_id = try_get(

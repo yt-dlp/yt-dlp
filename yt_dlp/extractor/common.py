@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import base64
 import collections
-import datetime
 import hashlib
 import itertools
 import json
@@ -164,9 +163,8 @@ class InfoExtractor(object):
                     * filesize_approx  An estimate for the number of bytes
                     * player_url SWF Player URL (used for rtmpdump).
                     * protocol   The protocol that will be used for the actual
-                                 download, lower-case.
-                                 "http", "https", "rtsp", "rtmp", "rtmp_ffmpeg", "rtmpe",
-                                 "m3u8", "m3u8_native" or "http_dash_segments".
+                                 download, lower-case. One of "http", "https" or
+                                 one of the protocols defined in downloader.PROTOCOL_MAP
                     * fragment_base_url
                                  Base URL for fragments. Each fragment's path
                                  value (if present) will be relative to
@@ -182,6 +180,8 @@ class InfoExtractor(object):
                                             fragment_base_url
                                  * "duration" (optional, int or float)
                                  * "filesize" (optional, int)
+                    * is_from_start  Is a live format that can be downloaded
+                                from the start. Boolean
                     * preference Order number of this format. If this field is
                                  present and not None, the formats get sorted
                                  by this field, regardless of all other values.
@@ -243,11 +243,16 @@ class InfoExtractor(object):
     uploader:       Full name of the video uploader.
     license:        License name the video is licensed under.
     creator:        The creator of the video.
-    release_timestamp: UNIX timestamp of the moment the video was released.
-    release_date:   The date (YYYYMMDD) when the video was released.
     timestamp:      UNIX timestamp of the moment the video was uploaded
     upload_date:    Video upload date (YYYYMMDD).
-                    If not explicitly set, calculated from timestamp.
+                    If not explicitly set, calculated from timestamp
+    release_timestamp: UNIX timestamp of the moment the video was released.
+                    If it is not clear whether to use timestamp or this, use the former
+    release_date:   The date (YYYYMMDD) when the video was released.
+                    If not explicitly set, calculated from release_timestamp
+    modified_timestamp: UNIX timestamp of the moment the video was last modified.
+    modified_date:   The date (YYYYMMDD) when the video was last modified.
+                    If not explicitly set, calculated from modified_timestamp
     uploader_id:    Nickname or id of the video uploader.
     uploader_url:   Full URL to a personal webpage of the video uploader.
     channel:        Full name of the channel the video is uploaded on.
@@ -383,6 +388,11 @@ class InfoExtractor(object):
 
     Additionally, playlists can have "id", "title", and any other relevent
     attributes with the same semantics as videos (see above).
+
+    It can also have the following optional fields:
+
+    playlist_count: The total number of videos in a playlist. If not given,
+                    YoutubeDL tries to calculate it from "entries"
 
 
     _type "multi_video" indicates that there are multiple videos that
@@ -617,7 +627,7 @@ class InfoExtractor(object):
             kwargs = {
                 'video_id': e.video_id or self.get_temp_id(url),
                 'ie': self.IE_NAME,
-                'tb': e.traceback,
+                'tb': e.traceback or sys.exc_info()[2],
                 'expected': e.expected,
                 'cause': e.cause
             }
@@ -1430,6 +1440,23 @@ class InfoExtractor(object):
                     continue
                 info[count_key] = interaction_count
 
+        def extract_chapter_information(e):
+            chapters = [{
+                'title': part.get('name'),
+                'start_time': part.get('startOffset'),
+                'end_time': part.get('endOffset'),
+            } for part in e.get('hasPart', []) if part.get('@type') == 'Clip']
+            for idx, (last_c, current_c, next_c) in enumerate(zip(
+                    [{'end_time': 0}] + chapters, chapters, chapters[1:])):
+                current_c['end_time'] = current_c['end_time'] or next_c['start_time']
+                current_c['start_time'] = current_c['start_time'] or last_c['end_time']
+                if None in current_c.values():
+                    self.report_warning(f'Chapter {idx} contains broken data. Not extracting chapters')
+                    return
+            if chapters:
+                chapters[-1]['end_time'] = chapters[-1]['end_time'] or info['duration']
+                info['chapters'] = chapters
+
         def extract_video_object(e):
             assert e['@type'] == 'VideoObject'
             author = e.get('author')
@@ -1437,7 +1464,8 @@ class InfoExtractor(object):
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnail': url_or_none(e.get('thumbnailUrl') or e.get('thumbnailURL')),
+                'thumbnails': [{'url': url_or_none(url)}
+                               for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))],
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
                 # author can be an instance of 'Organization' or 'Person' types.
@@ -1452,9 +1480,15 @@ class InfoExtractor(object):
                 'view_count': int_or_none(e.get('interactionCount')),
             })
             extract_interaction_statistic(e)
+            extract_chapter_information(e)
 
-        for e in json_ld:
-            if '@context' in e:
+        def traverse_json_ld(json_ld, at_top_level=True):
+            for e in json_ld:
+                if at_top_level and '@context' not in e:
+                    continue
+                if at_top_level and set(e.keys()) == {'@context', '@graph'}:
+                    traverse_json_ld(variadic(e['@graph'], allowed_types=(dict,)), at_top_level=False)
+                    break
                 item_type = e.get('@type')
                 if expected_type is not None and expected_type != item_type:
                     continue
@@ -1490,7 +1524,7 @@ class InfoExtractor(object):
                     info.update({
                         'timestamp': parse_iso8601(e.get('datePublished')),
                         'title': unescapeHTML(e.get('headline')),
-                        'description': unescapeHTML(e.get('articleBody')),
+                        'description': unescapeHTML(e.get('articleBody') or e.get('description')),
                     })
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
@@ -1505,6 +1539,8 @@ class InfoExtractor(object):
                     continue
                 else:
                     break
+        traverse_json_ld(json_ld)
+
         return dict((k, v) for k, v in info.items() if v is not None)
 
     def _search_nextjs_data(self, webpage, video_id, **kw):
@@ -1568,7 +1604,7 @@ class InfoExtractor(object):
             'vcodec': {'type': 'ordered', 'regex': True,
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['flac', 'opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -1607,6 +1643,11 @@ class InfoExtractor(object):
             'res': {'type': 'multiple', 'field': ('height', 'width'),
                     'function': lambda it: (lambda l: min(l) if l else 0)(tuple(filter(None, it)))},
 
+            # For compatibility with youtube-dl
+            'format_id': {'type': 'alias', 'field': 'id'},
+            'preference': {'type': 'alias', 'field': 'ie_pref'},
+            'language_preference': {'type': 'alias', 'field': 'lang'},
+
             # Deprecated
             'dimension': {'type': 'alias', 'field': 'res'},
             'resolution': {'type': 'alias', 'field': 'res'},
@@ -1616,7 +1657,6 @@ class InfoExtractor(object):
             'video_bitrate': {'type': 'alias', 'field': 'vbr'},
             'audio_bitrate': {'type': 'alias', 'field': 'abr'},
             'framerate': {'type': 'alias', 'field': 'fps'},
-            'language_preference': {'type': 'alias', 'field': 'lang'},
             'protocol': {'type': 'alias', 'field': 'proto'},
             'source_preference': {'type': 'alias', 'field': 'source'},
             'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
@@ -1631,9 +1671,7 @@ class InfoExtractor(object):
             'audio': {'type': 'alias', 'field': 'hasaud'},
             'has_audio': {'type': 'alias', 'field': 'hasaud'},
             'extractor': {'type': 'alias', 'field': 'ie_pref'},
-            'preference': {'type': 'alias', 'field': 'ie_pref'},
             'extractor_preference': {'type': 'alias', 'field': 'ie_pref'},
-            'format_id': {'type': 'alias', 'field': 'id'},
         }
 
         def __init__(self, ie, field_preference):
@@ -1733,9 +1771,10 @@ class InfoExtractor(object):
                     continue
                 if self._get_field_setting(field, 'type') == 'alias':
                     alias, field = field, self._get_field_setting(field, 'field')
-                    self.ydl.deprecation_warning(
-                        f'Format sorting alias {alias} is deprecated '
-                        f'and may be removed in a future version. Please use {field} instead')
+                    if alias not in ('format_id', 'preference', 'language_preference'):
+                        self.ydl.deprecation_warning(
+                            f'Format sorting alias {alias} is deprecated '
+                            f'and may be removed in a future version. Please use {field} instead')
                 reverse = match.group('reverse') is not None
                 closest = match.group('separator') == '~'
                 limit_text = match.group('limit')
@@ -2323,7 +2362,7 @@ class InfoExtractor(object):
 
         if smil is False:
             assert not fatal
-            return []
+            return [], {}
 
         namespace = self._parse_smil_namespace(smil)
 
@@ -2703,11 +2742,15 @@ class InfoExtractor(object):
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    codecs = representation_attrib.get('codecs', '')
+                    codecs = parse_codecs(representation_attrib.get('codecs', ''))
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
-                        elif codecs.split('.')[0] == 'stpp':
+                        elif codecs['vcodec'] != 'none':
+                            content_type = 'video'
+                        elif codecs['acodec'] != 'none':
+                            content_type = 'audio'
+                        elif codecs.get('tcodec', 'none') != 'none':
                             content_type = 'text'
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'
@@ -2753,8 +2796,8 @@ class InfoExtractor(object):
                             'format_note': 'DASH %s' % content_type,
                             'filesize': filesize,
                             'container': mimetype2ext(mime_type) + '_dash',
+                            **codecs
                         }
-                        f.update(parse_codecs(codecs))
                     elif content_type == 'text':
                         f = {
                             'ext': mimetype2ext(mime_type),
@@ -3454,10 +3497,8 @@ class InfoExtractor(object):
         return formats
 
     def _live_title(self, name):
-        """ Generate the title for a live video """
-        now = datetime.datetime.now()
-        now_str = now.strftime('%Y-%m-%d %H:%M')
-        return name + ' ' + now_str
+        self._downloader.deprecation_warning('yt_dlp.InfoExtractor._live_title is deprecated and does not work as expected')
+        return name
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
@@ -3656,7 +3697,7 @@ class InfoExtractor(object):
             else 'public' if all_known
             else None)
 
-    def _configuration_arg(self, key, default=NO_DEFAULT, casesense=False):
+    def _configuration_arg(self, key, default=NO_DEFAULT, *, ie_key=None, casesense=False):
         '''
         @returns            A list of values for the extractor argument given by "key"
                             or "default" if no such key is present
@@ -3664,7 +3705,7 @@ class InfoExtractor(object):
         @param casesense    When false, the values are converted to lower case
         '''
         val = traverse_obj(
-            self._downloader.params, ('extractor_args', self.ie_key().lower(), key))
+            self._downloader.params, ('extractor_args', (ie_key or self.ie_key()).lower(), key))
         if val is None:
             return [] if default is NO_DEFAULT else default
         return list(val) if casesense else [x.lower() for x in val]

@@ -24,7 +24,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                  *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
-        self._remove_sponsor_segments = set(remove_sponsor_segments or [])
+        self._remove_sponsor_segments = set(remove_sponsor_segments or []) - set(SponsorBlockPP.POI_CATEGORIES.keys())
         self._ranges_to_remove = set(remove_ranges or [])
         self._sponsorblock_chapter_title = sponsorblock_chapter_title
         self._force_keyframes = force_keyframes
@@ -302,7 +302,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                     'name': SponsorBlockPP.CATEGORIES[category],
                     'category_names': [SponsorBlockPP.CATEGORIES[c] for c in cats]
                 })
-                c['title'] = self._downloader.evaluate_outtmpl(self._sponsorblock_chapter_title, c)
+                c['title'] = self._downloader.evaluate_outtmpl(self._sponsorblock_chapter_title, c.copy())
                 # Merge identically named sponsors.
                 if (new_chapters and 'categories' in new_chapters[-1]
                         and new_chapters[-1]['title'] == c['title']):

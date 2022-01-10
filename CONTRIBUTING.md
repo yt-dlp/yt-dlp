@@ -10,6 +10,7 @@
     - [Does the issue involve one problem, and one problem only?](#does-the-issue-involve-one-problem-and-one-problem-only)
     - [Is anyone going to need the feature?](#is-anyone-going-to-need-the-feature)
     - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
+    - [Are you willing to share account details if needed?](#are-you-willing-to-share-account-details-if-needed)
 - [DEVELOPER INSTRUCTIONS](#developer-instructions)
     - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
     - [Adding support for a new site](#adding-support-for-a-new-site)
@@ -215,7 +216,7 @@ After you have ensured this site is distributing its content legally, you can fo
 
         $ flake8 yt_dlp/extractor/yourextractor.py
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatability is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
         $ git add yt_dlp/extractor/extractors.py
@@ -227,6 +228,13 @@ After you have ensured this site is distributing its content legally, you can fo
 
 In any case, thank you very much for your contributions!
 
+**Tip:** To test extractors that require login information, create a file `test/local_parameters.json` and add `"usenetrc": true` or your username and password in it:
+```json
+{
+    "username": "your user name",
+    "password": "your password"
+}
+```
 
 ## yt-dlp coding conventions
 
@@ -243,7 +251,7 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
  - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatability reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatibility reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 

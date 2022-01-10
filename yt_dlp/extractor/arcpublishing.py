@@ -158,7 +158,7 @@ class ArcPublishingIE(InfoExtractor):
 
         return {
             'id': uuid,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'thumbnail': try_get(video, lambda x: x['promo_image']['url']),
             'description': try_get(video, lambda x: x['subheadlines']['basic']),
             'formats': formats,

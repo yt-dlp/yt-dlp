@@ -137,6 +137,8 @@ from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
+from .mainstreaming import MainStreamingIE
+from .gfycat import GfycatIE
 
 
 class GenericIE(InfoExtractor):
@@ -2345,6 +2347,18 @@ class GenericIE(InfoExtractor):
             }
         },
         {
+            # KVS Player (for sites that serve kt_player.js via non-https urls)
+            'url': 'http://www.camhub.world/embed/389508',
+            'md5': 'fbe89af4cfb59c8fd9f34a202bb03e32',
+            'info_dict': {
+                'id': '389508',
+                'display_id': 'syren-de-mer-onlyfans-05-07-2020have-a-happy-safe-holiday5f014e68a220979bdb8cd-source',
+                'ext': 'mp4',
+                'title': 'Syren De Mer  onlyfans_05-07-2020Have_a_happy_safe_holiday5f014e68a220979bdb8cd_source / Embed плеер',
+                'thumbnail': 'http://www.camhub.world/contents/videos_screenshots/389000/389508/preview.mp4.jpg',
+            }
+        },
+        {
             # Reddit-hosted video that will redirect and be processed by RedditIE
             # Redirects to https://www.reddit.com/r/videos/comments/6rrwyj/that_small_heart_attack/
             'url': 'https://v.redd.it/zv89llsvexdz',
@@ -2370,8 +2384,47 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1636788683.0,
                 'upload_date': '20211113'
             }
+        },
+        {
+            # MainStreaming player
+            'url': 'https://www.lactv.it/2021/10/03/lac-news24-la-settimana-03-10-2021/',
+            'info_dict': {
+                'id': 'EUlZfGWkGpOd',
+                'title': 'La Settimana ',
+                'description': '03 Ottobre ore 02:00',
+                'ext': 'mp4',
+                'live_status': 'not_live',
+                'thumbnail': r're:https?://[A-Za-z0-9-]*\.msvdn.net/image/\w+/poster',
+                'duration': 1512
+            }
+        },
+        {
+            # Multiple gfycat iframe embeds
+            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=613422',
+            'info_dict': {
+                'title': '재이, 윤, 세은 황금 드레스를 입고 빛난다',
+                'id': 'board'
+            },
+            'playlist_count': 8,
+        },
+        {
+            # Multiple gfycat gifs (direct links)
+            'url': 'https://www.gezip.net/bbs/board.php?bo_table=entertaine&wr_id=612199',
+            'info_dict': {
+                'title': '옳게 된 크롭 니트 스테이씨 아이사',
+                'id': 'board'
+            },
+            'playlist_count': 6
+        },
+        {
+            # Multiple gfycat embeds, with uppercase "IFR" in urls
+            'url': 'https://kkzz.kr/?vid=2295',
+            'info_dict': {
+                'title': '지방시 앰버서더 에스파 카리나 움짤',
+                'id': '?vid=2295'
+            },
+            'playlist_count': 9
         }
-        #
     ]
 
     def report_following_redirect(self, new_url):
@@ -3560,6 +3613,16 @@ class GenericIE(InfoExtractor):
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
 
+        # Look for MainStreaming embeds
+        mainstreaming_urls = MainStreamingIE._extract_urls(webpage)
+        if mainstreaming_urls:
+            return self.playlist_from_matches(mainstreaming_urls, video_id, video_title, ie=MainStreamingIE.ie_key())
+
+        # Look for Gfycat Embeds
+        gfycat_urls = GfycatIE._extract_urls(webpage)
+        if gfycat_urls:
+            return self.playlist_from_matches(gfycat_urls, video_id, video_title, ie=GfycatIE.ie_key())
+
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:
@@ -3653,6 +3716,10 @@ class GenericIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url'):
             self.report_detected('JSON LD')
+            if determine_ext(json_ld.get('url')) == 'm3u8':
+                json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
+                    json_ld['url'], video_id, 'mp4')
+                json_ld.pop('url')
             return merge_dicts(json_ld, info_dict)
 
         def check_video(vurl):
@@ -3685,7 +3752,7 @@ class GenericIE(InfoExtractor):
                 self.report_detected('JW Player embed')
         if not found:
             # Look for generic KVS player
-            found = re.search(r'<script [^>]*?src="https://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
+            found = re.search(r'<script [^>]*?src="https?://.+?/kt_player\.js\?v=(?P<ver>(?P<maj_ver>\d+)(\.\d+)+)".*?>', webpage)
             if found:
                 self.report_detected('KWS Player')
                 if found.group('maj_ver') not in ['4', '5']:

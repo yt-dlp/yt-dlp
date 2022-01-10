@@ -305,7 +305,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': clean_html(media.get('description')),
             'thumbnails': thumbnails,
             'duration': int_or_none(metadata.get('duration')) or None,

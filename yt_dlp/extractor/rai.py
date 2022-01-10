@@ -318,8 +318,7 @@ class RaiPlayIE(RaiBaseIE):
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
-            'title': self._live_title(title) if relinker_info.get(
-                'is_live') else title,
+            'title': title,
             'alt_title': strip_or_none(alt_title),
             'description': media.get('description'),
             'uploader': strip_or_none(media.get('channel')),

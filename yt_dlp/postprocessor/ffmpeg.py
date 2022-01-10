@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import collections
 import io
 import itertools
 import os
@@ -294,8 +295,10 @@ class FFmpegPostProcessor(PostProcessor):
 
         def make_args(file, args, name, number):
             keys = ['_%s%d' % (name, number), '_%s' % name]
-            if name == 'o' and number == 1:
-                keys.append('')
+            if name == 'o':
+                args += ['-movflags', '+faststart']
+                if number == 1:
+                    keys.append('')
             args += self._configuration_args(self.basename, keys)
             if name == 'i':
                 args.append('-i')
@@ -368,7 +371,7 @@ class FFmpegPostProcessor(PostProcessor):
         out_flags = ['-c', 'copy']
         if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
             # For some reason, '-c copy' is not enough to copy subtitles
-            out_flags.extend(['-c:s', 'mov_text', '-movflags', '+faststart'])
+            out_flags.extend(['-c:s', 'mov_text'])
 
         try:
             self.real_run_ffmpeg(
@@ -571,10 +574,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        options = ['-c', 'copy', '-map', '0', '-dn']
-        if target_ext in ['mp4', 'm4a', 'mov']:
-            options.extend(['-movflags', '+faststart'])
-        return options
+        return ['-c', 'copy', '-map', '0', '-dn']
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
@@ -729,15 +729,15 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         yield ('-map_metadata', '1')
 
     def _get_metadata_opts(self, info):
-        metadata = {}
-        meta_prefix = 'meta_'
+        meta_prefix = 'meta'
+        metadata = collections.defaultdict(dict)
 
         def add(meta_list, info_list=None):
             value = next((
-                str(info[key]) for key in [meta_prefix] + list(variadic(info_list or meta_list))
+                str(info[key]) for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
                 if info.get(key) is not None), None)
             if value not in ('', None):
-                metadata.update({meta_f: value for meta_f in variadic(meta_list)})
+                metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
         # See [1-4] for some info on media metadata/metadata supported
         # by ffmpeg.
@@ -761,22 +761,26 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add('episode_sort', 'episode_number')
         if 'embed-metadata' in self.get_param('compat_opts', []):
             add('comment', 'description')
-            metadata.pop('synopsis', None)
+            metadata['common'].pop('synopsis', None)
 
+        meta_regex = rf'{re.escape(meta_prefix)}(?P<i>\d+)?_(?P<key>.+)'
         for key, value in info.items():
-            if value is not None and key != meta_prefix and key.startswith(meta_prefix):
-                metadata[key[len(meta_prefix):]] = value
+            mobj = re.fullmatch(meta_regex, key)
+            if value is not None and mobj:
+                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value
 
-        for name, value in metadata.items():
+        for name, value in metadata['common'].items():
             yield ('-metadata', f'{name}={value}')
 
         stream_idx = 0
         for fmt in info.get('requested_formats') or []:
             stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
-            if fmt.get('language'):
-                lang = ISO639Utils.short2long(fmt['language']) or fmt['language']
-                for i in range(stream_count):
-                    yield ('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
+            lang = ISO639Utils.short2long(fmt.get('language') or '') or fmt.get('language')
+            for i in range(stream_idx, stream_idx + stream_count):
+                if lang:
+                    metadata[str(i)].setdefault('language', lang)
+                for name, value in metadata[str(i)].items():
+                    yield (f'-metadata:s:{i}', f'{name}={value}')
             stream_idx += stream_count
 
     def _get_infojson_opts(self, info, infofn):
@@ -909,11 +913,21 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
         return [], info
 
 
-class FFmpegFixupDurationPP(FFmpegFixupPostProcessor):
+class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
+    MESSAGE = 'Copying stream'
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup('Fixing video duration', info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
+        self._fixup(self.MESSAGE, info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
         return [], info
+
+
+class FFmpegFixupDurationPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing video duration'
+
+
+class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing duplicate MOOV atoms'
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
@@ -1083,12 +1097,12 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         files_to_delete = []
         has_thumbnail = False
 
-        for idx, thumbnail_dict in enumerate(info['thumbnails']):
-            if 'filepath' not in thumbnail_dict:
+        for idx, thumbnail_dict in enumerate(info.get('thumbnails') or []):
+            original_thumbnail = thumbnail_dict.get('filepath')
+            if not original_thumbnail:
                 continue
             has_thumbnail = True
             self.fixup_webp(info, idx)
-            original_thumbnail = thumbnail_dict['filepath']
             _, thumbnail_ext = os.path.splitext(original_thumbnail)
             if thumbnail_ext:
                 thumbnail_ext = thumbnail_ext[1:].lower()
