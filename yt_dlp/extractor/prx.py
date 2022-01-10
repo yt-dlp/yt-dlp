@@ -352,6 +352,22 @@ class PRXSeriesIE(PRXBaseIE):
     _VALID_URL = PRXBaseIE.PRX_BASE_URL_RE % r'series/(?P<id>\d+)'
     _TESTS = [
         {
+            'url': 'https://beta.prx.org/series/36252',
+            'info_dict': {
+                'id': '36252',
+                'title': 'Outside/In',
+                'thumbnails': 'count:1',
+                'description': 'md5:bob',
+                'timestamp': 1470684964,
+                'modified_timestamp': 1582308830,
+                'channel_id': '206',
+                'channel_url': 'https://beta.prx.org/accounts/206',
+                'channel': 'New Hampshire Public Radio',
+                'series': 'Outside/In',
+                'series_id': '36252'
+            },
+            'playlist_mincount': 5
+        } , {
             # Blank series
             'url': 'https://beta.prx.org/series/25038',
             'info_dict': {
