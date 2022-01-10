@@ -319,5 +319,4 @@ class WatchESPNIE(AdobePassIE):
             'formats': formats,
             'thumbnail': video_data.get('imageHref'),
             'duration': try_get(video_data, lambda x: x['streams'][0]['durationInSeconds']),
-            'ext': 'mp4'
         }
