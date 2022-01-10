@@ -1973,7 +1973,6 @@ from .zattoo import (
     VTXTVIE,
     WalyTVIE,
     ZattooIE,
-    ZattooLiveIE,
 )
 from .zdf import ZDFIE, ZDFChannelIE
 from .zee5 import (
