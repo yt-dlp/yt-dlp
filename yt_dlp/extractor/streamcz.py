@@ -1,131 +1,105 @@
 # coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
 from ..utils import (
-    urljoin,
+    float_or_none,
+    int_or_none,
     parse_codecs,
+    traverse_obj,
+    urljoin,
 )
 
 
 class StreamCZIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?(?:stream|televizeseznam)\.cz/.+/(?P<display_id>.+)-(?P<id>[0-9]+)'
-
-    _GRAPHQL_URL = 'https://www.televizeseznam.cz/api/graphql'
-    _GRAPHQL_QUERY = '''query LoadEpisode($urlName : String){ episode(urlName: $urlName){ ...VideoDetailFragmentOnEpisode } }
-        fragment VideoDetailFragmentOnEpisode on Episode {
-            id
-            spl
-            urlName
-            name
-            perex
-        }
-'''
-
+    _VALID_URL = r'https?://(?:www\.)?(?:stream|televizeseznam)\.cz/[^?#]+/(?P<display_id>[^?#]+)-(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://www.televizeseznam.cz/video/lajna/buh-57953890',
         'md5': '40c41ade1464a390a0b447e333df4239',
         'info_dict': {
             'id': '57953890',
-            'display_id': 'buh',
-            'title': 'Bůh',
-            'description': 'md5:8f5f09b9b7bc67df910486cdd88f7165',
             'ext': 'mp4',
+            'title': 'Bůh',
+            'display_id': 'buh',
+            'description': 'md5:8f5f09b9b7bc67df910486cdd88f7165',
         }
     }, {
         'url': 'https://www.stream.cz/tajemno/znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili-64147267',
         'md5': '3ee4d0be040e8f4a543e67e509d55e3f',
         'info_dict': {
             'id': '64147267',
-            'display_id': 'znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili',
-            'title': 'Zničehonic jim skrz střechu prolítnul záhadný předmět. Badatelé vše objasnili',
-            'description': 'md5:1dcb5e010eb697dedc5942f76c5b3744',
             'ext': 'mp4',
+            'title': 'Zničehonic jim skrz střechu prolítnul záhadný předmět. Badatelé vše objasnili',
+            'display_id': 'znicehonic-jim-skrz-strechu-prolitnul-zahadny-predmet-badatele-vse-objasnili',
+            'description': 'md5:1dcb5e010eb697dedc5942f76c5b3744',
         }
     }]
 
-    def extract_subtitles(self, spl_url, play_list):
-
-        if not play_list:
-            return None
-
-        subtitles = {}
-        for k, v in play_list.items():
-            if v.get('language'):
-                for ext in v.get('urls'):
-                    relative_url = v['urls'].get(ext)
-                    if not relative_url:
-                        continue
-
-                    subtitles.setdefault(v['language'], []).append({
-                        'ext': ext,
-                        'url': urljoin(spl_url, relative_url)
-                    })
-        return subtitles
-
-    def _extract(self, ext, spl_url, play_list):
-        formats = []
-        for r, v in play_list.items():
-            relative_url = v.get('url')
-            if not relative_url:
-                continue
-            format = {
-                'format_id': r,
-                'url': urljoin(spl_url, relative_url),
-                'protocol': 'https',
-                'ext': ext
-            }
-            if v.get('bandwidth'):
-                format.update({'tbr': v['bandwidth'] / 1000})
-            if v.get('duration'):
-                format.update({'duration': v['duration'] / 1000})
-            if v.get('codec'):
-                format.update(parse_codecs(v['codec']))
-            if v.get('resolution'):
-                format.update({'width': v['resolution'][0], 'height': v['resolution'][1]})
-
-            formats.append(format)
-        return formats
-
-    def extract_formats(self, spl_url, play_list):
-        formats = []
-
-        if play_list.get('http_stream') and play_list['http_stream'].get('qualities'):
-            formats.extend(self._extract(None, spl_url, play_list['http_stream']['qualities']))
-
-        if play_list.get('mp4'):
-            formats.extend(self._extract('mp4', spl_url, play_list['mp4']))
-
-        self._sort_formats(formats)
-        return formats
+    def _extract_formats(self, spl_url, video):
+        for ext, pref, streams in (
+                ('ts', -1, traverse_obj(video, ('http_stream', 'qualities'))),
+                ('mp4', 1, video.get('mp4'))
+            ):
+            for format_id, stream in streams.items():
+                if not stream.get('url'):
+                    continue
+                yield {
+                    'format_id': f'{format_id}-{ext}',
+                    'ext': ext,
+                    'source_preference': pref,
+                    'url': urljoin(spl_url, stream['url']),
+                    'tbr': float_or_none(stream.get('bandwidth'), scale=1000),
+                    'duration': float_or_none(stream.get('duration'), scale=1000),
+                    'width': traverse_obj(stream, ('resolution', 0)),
+                    'height': traverse_obj(stream, ('resolution', 1)) or int_or_none(format_id.replace('p', '')),
+                    **parse_codecs(stream.get('codec')),
+                }
 
     def _real_extract(self, url):
         display_id, video_id = self._match_valid_url(url).groups()
 
         data = self._download_json(
-            self._GRAPHQL_URL, video_id, 'Downloading GraphQL result',
+            'https://www.televizeseznam.cz/api/graphql', video_id, 'Downloading GraphQL result',
             data=json.dumps({
-                'query': self._GRAPHQL_QUERY,
-                'variables': {'urlName': video_id}
+                'variables': {'urlName': video_id},
+                'query': '''
+                    query LoadEpisode($urlName : String){ episode(urlName: $urlName){ ...VideoDetailFragmentOnEpisode } }
+                    fragment VideoDetailFragmentOnEpisode on Episode {
+                        id
+                        spl
+                        urlName
+                        name
+                        perex
+                    }'''
             }).encode('utf-8'),
             headers={'Content-Type': 'application/json;charset=UTF-8'}
-        )['data']
+        )['data']['episode']
 
-        spl_url = data['episode']['spl'] + 'spl2,3'
+        spl_url = data['spl'] + 'spl2,3'
         metadata = self._download_json(spl_url, video_id, 'Downloading playlist')
         if 'Location' in metadata and 'data' not in metadata:
-            # they sometimes wants to redirect
             spl_url = metadata['Location']
-            metadata = self._download_json(spl_url, video_id, 'Redirected -> Downloading playlist')
-        play_list = metadata['data']
+            metadata = self._download_json(spl_url, video_id, 'Downloading redirected playlist')
+        video = metadata['data']
+
+        subtitles = {}
+        for subs in video.get('subtitles').values() or []:
+            if not subs.get('language'):
+                continue
+            for ext, sub_url in subs.get('urls').items():
+                subtitles.setdefault(subs['language'], []).append({
+                    'ext': ext,
+                    'url': urljoin(spl_url, sub_url)
+                })
+
+        formats = list(self._extract_formats(spl_url, video))
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': data['episode'].get('name'),
-            'description': data['episode'].get('perex'),
-            'subtitles': self.extract_subtitles(spl_url, play_list.get('subtitles')),
-            'formats': self.extract_formats(spl_url, play_list)
+            'title': data.get('name'),
+            'description': data.get('perex'),
+            'formats': formats,
+            'subtitles': subtitles,
         }
