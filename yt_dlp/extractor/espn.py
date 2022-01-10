@@ -309,11 +309,8 @@ class WatchESPNIE(AdobePassIE):
             'https://watch.auth.api.espn.com/video/auth/media/%s/asset?apikey=uiqlbgzdwuru14v627vdusswb' % video_id,
             video_id, data=(
                 'adobeToken=%s&drmSupport=HLS' % compat_urllib_parse_quote_plus(base64.b64encode(auth))).encode())
-        m3u8_url = asset['stream']
-
         formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls')
+            asset['stream'], video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
         self._sort_formats(formats)
 
         return {
