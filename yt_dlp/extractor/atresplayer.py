@@ -24,9 +24,6 @@ class AtresPlayerIE(InfoExtractor):
                 'description': 'md5:7634cdcb4d50d5381bedf93efb537fbc',
                 'duration': 3413,
             },
-            'params': {
-                'format': 'bestvideo',
-            },
             'skip': 'This video is only available for registered users'
         },
         {

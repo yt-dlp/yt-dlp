@@ -21,6 +21,7 @@
  - **9now.com.au**
  - **abc.net.au**
  - **abc.net.au:iview**
+ - **abc.net.au:iview:showseries**
  - **abcnews**
  - **abcnews:video**
  - **abcotvs**: ABC Owned Television Stations
@@ -48,6 +49,7 @@
  - **Alura**
  - **AluraCourse**
  - **Amara**
+ - **AmazonStore**
  - **AMCNetworks**
  - **AmericasTestKitchen**
  - **AmericasTestKitchenSeason**
@@ -140,6 +142,7 @@
  - **BlackboardCollaborate**
  - **BleacherReport**
  - **BleacherReportCMS**
+ - **blogger.com**
  - **Bloomberg**
  - **BokeCC**
  - **BongaCams**
@@ -149,6 +152,7 @@
  - **BR**: Bayerischer Rundfunk
  - **BravoTV**
  - **Break**
+ - **BreitBart**
  - **brightcove:legacy**
  - **brightcove:new**
  - **BRMediathek**: Bayerischer Rundfunk Mediathek
@@ -157,11 +161,13 @@
  - **BusinessInsider**
  - **BuzzFeed**
  - **BYUtv**
+ - **CableAV**
  - **CAM4**
  - **Camdemy**
  - **CamdemyFolder**
  - **CamModels**
  - **CamWithHer**
+ - **CanalAlpha**
  - **canalc2.tv**
  - **Canalplus**: mycanal.fr and piwiplus.fr
  - **Canvas**
@@ -184,7 +190,6 @@
  - **CCTV**: 央视网
  - **CDA**
  - **CeskaTelevize**
- - **CeskaTelevizePorady**
  - **CGTN**
  - **channel9**: Channel 9
  - **CharlieRose**
@@ -222,6 +227,8 @@
  - **CONtv**
  - **Corus**
  - **Coub**
+ - **CozyTV**
+ - **cp24**
  - **Cracked**
  - **Crackle**
  - **CrooksAndLiars**
@@ -236,7 +243,8 @@
  - **cu.ntv.co.jp**: Nippon Television Network
  - **CultureUnplugged**
  - **curiositystream**
- - **curiositystream:collection**
+ - **curiositystream:collections**
+ - **curiositystream:series**
  - **CWTV**
  - **DagelijkseKost**: dagelijksekost.een.be
  - **DailyMail**
@@ -266,6 +274,8 @@
  - **DiscoveryPlus**
  - **DiscoveryPlusIndia**
  - **DiscoveryPlusIndiaShow**
+ - **DiscoveryPlusItaly**
+ - **DiscoveryPlusItalyShow**
  - **DiscoveryVR**
  - **Disney**
  - **DIYNetwork**
@@ -279,6 +289,8 @@
  - **DPlay**
  - **DRBonanza**
  - **Dropbox**
+ - **Dropout**
+ - **DropoutSeason**
  - **DrTuber**
  - **drtv**
  - **drtv:live**
@@ -315,6 +327,7 @@
  - **Escapist**
  - **ESPN**
  - **ESPNArticle**
+ - **ESPNCricInfo**
  - **EsriVideo**
  - **Europa**
  - **EUScreen**
@@ -366,9 +379,16 @@
  - **Funk**
  - **Fusion**
  - **Fux**
+ - **Gab**
  - **GabTV**
  - **Gaia**
  - **GameInformer**
+ - **GameJolt**
+ - **GameJoltCommunity**
+ - **GameJoltGame**
+ - **GameJoltGameSoundtrack**
+ - **GameJoltSearch**
+ - **GameJoltUser**
  - **GameSpot**
  - **GameStar**
  - **Gaskrank**
@@ -389,6 +409,7 @@
  - **GloboArticle**
  - **Go**
  - **GodTube**
+ - **Gofile**
  - **Golem**
  - **google:podcasts**
  - **google:podcasts:feed**
@@ -426,6 +447,8 @@
  - **hrfernsehen**
  - **HRTi**
  - **HRTiPlaylist**
+ - **HSEProduct**
+ - **HSEShow**
  - **Huajiao**: 花椒直播
  - **HuffPost**: Huffington Post
  - **Hungama**
@@ -447,11 +470,13 @@
  - **IndavideoEmbed**
  - **InfoQ**
  - **Instagram**
- - **instagram:tag**: Instagram hashtag search
+ - **instagram:tag**: Instagram hashtag search URLs
  - **instagram:user**: Instagram user profile
+ - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
  - **IPrima**
+ - **IPrimaCNN**
  - **iqiyi**: 爱奇艺
  - **Ir90Tv**
  - **ITTF**
@@ -521,6 +546,7 @@
  - **LineLive**
  - **LineLiveChannel**
  - **LineTV**
+ - **LinkedIn**
  - **linkedin:learning**
  - **linkedin:learning:course**
  - **LinuxAcademy**
@@ -560,6 +586,7 @@
  - **MediaKlikk**
  - **Medialaan**
  - **Mediaset**
+ - **MediasetShow**
  - **Mediasite**
  - **MediasiteCatalog**
  - **MediasiteNamedCatalog**
@@ -587,11 +614,13 @@
  - **mirrativ**
  - **mirrativ:user**
  - **MiTele**: mitele.es
+ - **mixch**
  - **mixcloud**
  - **mixcloud:playlist**
  - **mixcloud:user**
  - **MLB**
  - **MLBVideo**
+ - **MLSSoccer**
  - **Mnet**
  - **MNetTV**
  - **MoeVideo**: LetitBit video services: moevideo.net, playreplay.net and videochart.net
@@ -636,6 +665,8 @@
  - **n-tv.de**
  - **N1Info:article**
  - **N1InfoAsset**
+ - **Nate**
+ - **NateProgram**
  - **natgeo:video**
  - **NationalGeographicTV**
  - **Naver**
@@ -658,6 +689,7 @@
  - **ndr:embed:base**
  - **NDTV**
  - **Nebula**
+ - **nebula:collection**
  - **NerdCubedFeed**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
@@ -691,8 +723,8 @@
  - **niconico**: ニコニコ動画
  - **NiconicoPlaylist**
  - **NiconicoUser**
- - **nicovideo:search**: Nico video searches; "nicosearch:" prefix
- - **nicovideo:search:date**: Nico video searches, newest first; "nicosearchdate:" prefix
+ - **nicovideo:search**: Nico video search; "nicosearch:" prefix
+ - **nicovideo:search:date**: Nico video search, newest first; "nicosearchdate:" prefix
  - **nicovideo:search_url**: Nico video search URLs
  - **Nintendo**
  - **Nitter**
@@ -741,6 +773,7 @@
  - **OlympicsReplay**
  - **on24**: ON24
  - **OnDemandKorea**
+ - **OneFootball**
  - **onet.pl**
  - **onet.tv**
  - **onet.tv:channel**
@@ -748,6 +781,8 @@
  - **OnionStudios**
  - **Ooyala**
  - **OoyalaExternal**
+ - **Opencast**
+ - **OpencastPlaylist**
  - **openrec**
  - **openrec:capture**
  - **OraTV**
@@ -783,6 +818,7 @@
  - **PatreonUser**
  - **pbs**: Public Broadcasting Service (PBS) and member stations: PBS: Public Broadcasting Service, APT - Alabama Public Television (WBIQ), GPB/Georgia Public Broadcasting (WGTV), Mississippi Public Broadcasting (WMPN), Nashville Public Television (WNPT), WFSU-TV (WFSU), WSRE (WSRE), WTCI (WTCI), WPBA/Channel 30 (WPBA), Alaska Public Media (KAKM), Arizona PBS (KAET), KNME-TV/Channel 5 (KNME), Vegas PBS (KLVX), AETN/ARKANSAS ETV NETWORK (KETS), KET (WKLE), WKNO/Channel 10 (WKNO), LPB/LOUISIANA PUBLIC BROADCASTING (WLPB), OETA (KETA), Ozarks Public Television (KOZK), WSIU Public Broadcasting (WSIU), KEET TV (KEET), KIXE/Channel 9 (KIXE), KPBS San Diego (KPBS), KQED (KQED), KVIE Public Television (KVIE), PBS SoCal/KOCE (KOCE), ValleyPBS (KVPT), CONNECTICUT PUBLIC TELEVISION (WEDH), KNPB Channel 5 (KNPB), SOPTV (KSYS), Rocky Mountain PBS (KRMA), KENW-TV3 (KENW), KUED Channel 7 (KUED), Wyoming PBS (KCWC), Colorado Public Television / KBDI 12 (KBDI), KBYU-TV (KBYU), Thirteen/WNET New York (WNET), WGBH/Channel 2 (WGBH), WGBY (WGBY), NJTV Public Media NJ (WNJT), WLIW21 (WLIW), mpt/Maryland Public Television (WMPB), WETA Television and Radio (WETA), WHYY (WHYY), PBS 39 (WLVT), WVPT - Your Source for PBS and More! (WVPT), Howard University Television (WHUT), WEDU PBS (WEDU), WGCU Public Media (WGCU), WPBT2 (WPBT), WUCF TV (WUCF), WUFT/Channel 5 (WUFT), WXEL/Channel 42 (WXEL), WLRN/Channel 17 (WLRN), WUSF Public Broadcasting (WUSF), ETV (WRLK), UNC-TV (WUNC), PBS Hawaii - Oceanic Cable Channel 10 (KHET), Idaho Public Television (KAID), KSPS (KSPS), OPB (KOPB), KWSU/Channel 10 & KTNW/Channel 31 (KWSU), WILL-TV (WILL), Network Knowledge - WSEC/Springfield (WSEC), WTTW11 (WTTW), Iowa Public Television/IPTV (KDIN), Nine Network (KETC), PBS39 Fort Wayne (WFWA), WFYI Indianapolis (WFYI), Milwaukee Public Television (WMVS), WNIN (WNIN), WNIT Public Television (WNIT), WPT (WPNE), WVUT/Channel 22 (WVUT), WEIU/Channel 51 (WEIU), WQPT-TV (WQPT), WYCC PBS Chicago (WYCC), WIPB-TV (WIPB), WTIU (WTIU), CET  (WCET), ThinkTVNetwork (WPTD), WBGU-TV (WBGU), WGVU TV (WGVU), NET1 (KUON), Pioneer Public Television (KWCM), SDPB Television (KUSD), TPT (KTCA), KSMQ (KSMQ), KPTS/Channel 8 (KPTS), KTWU/Channel 11 (KTWU), East Tennessee PBS (WSJK), WCTE-TV (WCTE), WLJT, Channel 11 (WLJT), WOSU TV (WOSU), WOUB/WOUC (WOUB), WVPB (WVPB), WKYU-PBS (WKYU), KERA 13 (KERA), MPBN (WCBB), Mountain Lake PBS (WCFE), NHPTV (WENH), Vermont PBS (WETK), witf (WITF), WQED Multimedia (WQED), WMHT Educational Telecommunications (WMHT), Q-TV (WDCQ), WTVS Detroit Public TV (WTVS), CMU Public Television (WCMU), WKAR-TV (WKAR), WNMU-TV Public TV 13 (WNMU), WDSE - WRPT (WDSE), WGTE TV (WGTE), Lakeland Public Television (KAWE), KMOS-TV - Channels 6.1, 6.2 and 6.3 (KMOS), MontanaPBS (KUSM), KRWG/Channel 22 (KRWG), KACV (KACV), KCOS/Channel 13 (KCOS), WCNY/Channel 24 (WCNY), WNED (WNED), WPBS (WPBS), WSKG Public TV (WSKG), WXXI (WXXI), WPSU (WPSU), WVIA Public Media Studios (WVIA), WTVI (WTVI), Western Reserve PBS (WNEO), WVIZ/PBS ideastream (WVIZ), KCTS 9 (KCTS), Basin PBS (KPBT), KUHT / Channel 8 (KUHT), KLRN (KLRN), KLRU (KLRU), WTJX Channel 12 (WTJX), WCVE PBS (WCVE), KBTC Public Television (KBTC)
  - **PearVideo**
+ - **peer.tv**
  - **PeerTube**
  - **PeerTube:Playlist**
  - **peloton**
@@ -800,7 +836,10 @@
  - **Pinkbike**
  - **Pinterest**
  - **PinterestCollection**
+ - **pixiv:sketch**
+ - **pixiv:sketch:user**
  - **Pladform**
+ - **PlanetMarathi**
  - **Platzi**
  - **PlatziCourse**
  - **play.fm**
@@ -817,7 +856,12 @@
  - **podomatic**
  - **Pokemon**
  - **PokemonWatch**
+ - **PolsatGo**
  - **PolskieRadio**
+ - **polskieradio:kierowcow**
+ - **polskieradio:player**
+ - **polskieradio:podcast**
+ - **polskieradio:podcast:list**
  - **PolskieRadioCategory**
  - **Popcorntimes**
  - **PopcornTV**
@@ -860,6 +904,9 @@
  - **radiocanada:audiovideo**
  - **radiofrance**
  - **RadioJavan**
+ - **radiokapital**
+ - **radiokapital:show**
+ - **RadioZetPodcast**
  - **radlive**
  - **radlive:channel**
  - **radlive:season**
@@ -867,6 +914,8 @@
  - **RaiPlay**
  - **RaiPlayLive**
  - **RaiPlayPlaylist**
+ - **RaiPlayRadio**
+ - **RaiPlayRadioPlaylist**
  - **RayWenderlich**
  - **RayWenderlichCourse**
  - **RBMARadio**
@@ -882,7 +931,9 @@
  - **RedBullTV**
  - **RedBullTVRrnContent**
  - **Reddit**
- - **RedditR**
+ - **RedGifs**
+ - **RedGifsSearch**: Redgifs search
+ - **RedGifsUser**: Redgifs user
  - **RedTube**
  - **RegioTV**
  - **RENTV**
@@ -894,6 +945,7 @@
  - **RMCDecouverte**
  - **RockstarGames**
  - **RoosterTeeth**
+ - **RoosterTeethSeries**
  - **RottenTomatoes**
  - **Roxwel**
  - **Rozhlas**
@@ -905,8 +957,10 @@
  - **rtl2:you**
  - **rtl2:you:series**
  - **RTP**
+ - **RTRFM**
  - **RTS**: RTS.ch
  - **rtve.es:alacarta**: RTVE a la carta
+ - **rtve.es:audio**: RTVE audio
  - **rtve.es:infantil**: RTVE infantil
  - **rtve.es:live**: RTVE.es live streams
  - **rtve.es:television**
@@ -916,11 +970,12 @@
  - **RumbleChannel**
  - **RumbleEmbed**
  - **rutube**: Rutube videos
- - **rutube:channel**: Rutube channels
+ - **rutube:channel**: Rutube channel
  - **rutube:embed**: Rutube embedded videos
  - **rutube:movie**: Rutube movies
  - **rutube:person**: Rutube person videos
  - **rutube:playlist**: Rutube playlists
+ - **rutube:tags**: Rutube tags
  - **RUTV**: RUTV.RU
  - **Ruutu**
  - **Ruv**
@@ -944,6 +999,7 @@
  - **SCTE**
  - **SCTECourse**
  - **Seeker**
+ - **SenateGov**
  - **SenateISVP**
  - **SendtoNews**
  - **Servus**
@@ -959,8 +1015,10 @@
  - **simplecast:episode**
  - **simplecast:podcast**
  - **Sina**
+ - **Skeb**
  - **sky.it**
  - **sky:news**
+ - **sky:news:story**
  - **sky:sports**
  - **sky:sports:news**
  - **skyacademy.it**
@@ -977,6 +1035,7 @@
  - **SonyLIVSeries**
  - **soundcloud**
  - **soundcloud:playlist**
+ - **soundcloud:related**
  - **soundcloud:search**: Soundcloud search; "scsearch:" prefix
  - **soundcloud:set**
  - **soundcloud:trackstation**
@@ -1021,8 +1080,10 @@
  - **Streamanity**
  - **streamcloud.eu**
  - **StreamCZ**
+ - **StreamFF**
  - **StreetVoice**
  - **StretchInternet**
+ - **Stripchat**
  - **stv:player**
  - **SunPorno**
  - **sverigesradio:episode**
@@ -1079,13 +1140,19 @@
  - **ThisAmericanLife**
  - **ThisAV**
  - **ThisOldHouse**
+ - **ThreeSpeak**
+ - **ThreeSpeakUser**
  - **TikTok**
+ - **tiktok:effect**
+ - **tiktok:sound**
+ - **tiktok:tag**
  - **tiktok:user**
  - **tinypic**: tinypic.com videos
  - **TMZ**
  - **TNAFlix**
  - **TNAFlixNetworkEmbed**
  - **toggle**
+ - **toggo**
  - **Tokentube**
  - **Tokentube:channel**
  - **ToonGoggles**
@@ -1098,6 +1165,7 @@
  - **TrovoChannelClip**: All Clips of a trovo.live channel; "trovoclip:" prefix
  - **TrovoChannelVod**: All VODs of a trovo.live channel; "trovovod:" prefix
  - **TrovoVod**
+ - **TrueID**
  - **TruNews**
  - **TruTV**
  - **Tube8**
@@ -1142,6 +1210,7 @@
  - **tvp**: Telewizja Polska
  - **tvp:embed**: Telewizja Polska
  - **tvp:series**
+ - **tvp:stream**
  - **TVPlayer**
  - **TVPlayHome**
  - **Tweakers**
@@ -1291,11 +1360,14 @@
  - **WeiboMobile**
  - **WeiqiTV**: WQTV
  - **whowatch**
+ - **Willow**
  - **WimTV**
  - **Wistia**
  - **WistiaPlaylist**
  - **wnl**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **WorldStarHipHop**
+ - **wppilot**
+ - **wppilot:channels**
  - **WSJ**: Wall Street Journal
  - **WSJArticle**
  - **WWE**
@@ -1348,8 +1420,8 @@
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
  - **youtube:playlist**: YouTube playlists
  - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword
- - **youtube:search**: YouTube searches; "ytsearch:" prefix
- - **youtube:search:date**: YouTube searches, newest videos first; "ytsearchdate:" prefix
+ - **youtube:search**: YouTube search; "ytsearch:" prefix
+ - **youtube:search:date**: YouTube search, newest videos first; "ytsearchdate:" prefix
  - **youtube:search_url**: YouTube search URLs with sorting and filter support
  - **youtube:subscriptions**: YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
  - **youtube:tab**: YouTube Tabs

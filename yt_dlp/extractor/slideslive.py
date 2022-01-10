@@ -35,9 +35,6 @@ class SlidesLiveIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Offline Reinforcement Learning: From Algorithms to Practical Challenges',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }, {
         # video_service_name = youtube
         'url': 'https://slideslive.com/38903721/magic-a-scientific-resurrection-of-an-esoteric-legend',

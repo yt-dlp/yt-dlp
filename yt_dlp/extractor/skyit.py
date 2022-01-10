@@ -55,7 +55,7 @@ class SkyItPlayerIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'formats': formats,
             'thumbnail': dict_get(video, ('video_still', 'video_still_medium', 'thumb')),
             'description': video.get('short_desc') or None,

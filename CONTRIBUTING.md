@@ -10,6 +10,7 @@
     - [Does the issue involve one problem, and one problem only?](#does-the-issue-involve-one-problem-and-one-problem-only)
     - [Is anyone going to need the feature?](#is-anyone-going-to-need-the-feature)
     - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
+    - [Are you willing to share account details if needed?](#are-you-willing-to-share-account-details-if-needed)
 - [DEVELOPER INSTRUCTIONS](#developer-instructions)
     - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
     - [Adding support for a new site](#adding-support-for-a-new-site)
@@ -105,7 +106,7 @@ Only post features that you (or an incapacitated friend you can personally talk 
 
 ###  Is your question about yt-dlp?
 
-Some bug reports are completely unrelated to yt-dlp and relate to a different, or even the reporter's own, application. Please make sure that you are actually using yt-dlp. If you are using a UI for yt-dlp, report the bug to the maintainer of the actual application providing the UI. On the other hand, if your UI for yt-dlp fails in some way you believe is related to yt-dlp, by all means, go ahead and report the bug.
+Some bug reports are completely unrelated to yt-dlp and relate to a different, or even the reporter's own, application. Please make sure that you are actually using yt-dlp. If you are using a UI for yt-dlp, report the bug to the maintainer of the actual application providing the UI. In general, if you are unable to provide the verbose log, you should not be opening the issue here.
 
 If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-dlp, the issue should be raised in the youtube-dl project.
 
@@ -117,7 +118,7 @@ By sharing an account with anyone, you agree to bear all risks associated with i
 
 While these steps won't necessarily ensure that no misuse of the account takes place, these are still some good practices to follow.
 
-- Look for people with `Member` or `Contributor` tag on their messages.
+- Look for people with `Member` (maintainers of the project) or `Contributor` (people who have previously contributed code) tag on their messages.
 - Change the password before sharing the account to something random (use [this](https://passwordsgenerator.net/) if you don't have a random password generator).
 - Change the password after receiving the account back.
 
@@ -148,7 +149,7 @@ If you want to create a build of yt-dlp yourself, you can follow the instruction
 
 Before you start writing code for implementing a new feature, open an issue explaining your feature request and atleast one use case. This allows the maintainers to decide whether such a feature is desired for the project in the first place, and will provide an avenue to discuss some implementation details. If you open a pull request for a new feature without discussing with us first, do not be surprised when we ask for large changes to the code, or even reject it outright.
 
-The same applies for overarching changes to the architecture, documentation or code style
+The same applies for changes to the documentation, code style, or overarching changes to the architecture
 
 
 ## Adding support for a new site
@@ -209,13 +210,13 @@ After you have ensured this site is distributing its content legally, you can fo
     ```
 1. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
 1. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
-1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the purticular test is disabled from running.
+1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
 1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
 
         $ flake8 yt_dlp/extractor/yourextractor.py
 
-1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatability is not required for even older versions of Python.
+1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
         $ git add yt_dlp/extractor/extractors.py
@@ -227,6 +228,13 @@ After you have ensured this site is distributing its content legally, you can fo
 
 In any case, thank you very much for your contributions!
 
+**Tip:** To test extractors that require login information, create a file `test/local_parameters.json` and add `"usenetrc": true` or your username and password in it:
+```json
+{
+    "username": "your user name",
+    "password": "your password"
+}
+```
 
 ## yt-dlp coding conventions
 
@@ -243,7 +251,7 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
  - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatability reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatibility reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 

@@ -38,6 +38,7 @@ import time
 import traceback
 import xml.etree.ElementTree
 import zlib
+import mimetypes
 
 from .compat import (
     compat_HTMLParseError,
@@ -57,6 +58,7 @@ from .compat import (
     compat_kwargs,
     compat_os_name,
     compat_parse_qs,
+    compat_shlex_split,
     compat_shlex_quote,
     compat_str,
     compat_struct_pack,
@@ -1678,7 +1680,6 @@ def random_user_agent():
 
 std_headers = {
     'User-Agent': random_user_agent(),
-    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.7',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Encoding': 'gzip, deflate',
     'Accept-Language': 'en-us,en;q=0.5',
@@ -1748,6 +1749,7 @@ DATE_FORMATS = (
     '%Y/%m/%d %H:%M:%S',
     '%Y%m%d%H%M',
     '%Y%m%d%H%M%S',
+    '%Y%m%d',
     '%Y-%m-%d %H:%M',
     '%Y-%m-%d %H:%M:%S',
     '%Y-%m-%d %H:%M:%S.%f',
@@ -1842,7 +1844,7 @@ def write_json_file(obj, fn):
 
     try:
         with tf:
-            json.dump(obj, tf)
+            json.dump(obj, tf, ensure_ascii=False)
         if sys.platform == 'win32':
             # Need to remove existing file on Windows, else os.rename raises
             # WindowsError or FileExistsError.
@@ -1952,14 +1954,30 @@ def get_element_by_id(id, html):
     return get_element_by_attribute('id', id, html)
 
 
+def get_element_html_by_id(id, html):
+    """Return the html of the tag with the specified ID in the passed HTML document"""
+    return get_element_html_by_attribute('id', id, html)
+
+
 def get_element_by_class(class_name, html):
     """Return the content of the first tag with the specified class in the passed HTML document"""
     retval = get_elements_by_class(class_name, html)
     return retval[0] if retval else None
 
 
+def get_element_html_by_class(class_name, html):
+    """Return the html of the first tag with the specified class in the passed HTML document"""
+    retval = get_elements_html_by_class(class_name, html)
+    return retval[0] if retval else None
+
+
 def get_element_by_attribute(attribute, value, html, escape_value=True):
     retval = get_elements_by_attribute(attribute, value, html, escape_value)
+    return retval[0] if retval else None
+
+
+def get_element_html_by_attribute(attribute, value, html, escape_value=True):
+    retval = get_elements_html_by_attribute(attribute, value, html, escape_value)
     return retval[0] if retval else None
 
 
@@ -1970,29 +1988,123 @@ def get_elements_by_class(class_name, html):
         html, escape_value=False)
 
 
-def get_elements_by_attribute(attribute, value, html, escape_value=True):
+def get_elements_html_by_class(class_name, html):
+    """Return the html of all tags with the specified class in the passed HTML document as a list"""
+    return get_elements_html_by_attribute(
+        'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
+        html, escape_value=False)
+
+
+def get_elements_by_attribute(*args, **kwargs):
     """Return the content of the tag with the specified attribute in the passed HTML document"""
+    return [content for content, _ in get_elements_text_and_html_by_attribute(*args, **kwargs)]
+
+
+def get_elements_html_by_attribute(*args, **kwargs):
+    """Return the html of the tag with the specified attribute in the passed HTML document"""
+    return [whole for _, whole in get_elements_text_and_html_by_attribute(*args, **kwargs)]
+
+
+def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value=True):
+    """
+    Return the text (content) and the html (whole) of the tag with the specified
+    attribute in the passed HTML document
+    """
+
+    value_quote_optional = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
 
     value = re.escape(value) if escape_value else value
 
-    retlist = []
-    for m in re.finditer(r'''(?xs)
-        <([a-zA-Z0-9:._-]+)
-         (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-         \s+%s=['"]?%s['"]?
-         (?:\s+[a-zA-Z0-9:._-]+(?:=[a-zA-Z0-9:._-]*|="[^"]*"|='[^']*'|))*?
-        \s*>
-        (?P<content>.*?)
-        </\1>
-    ''' % (re.escape(attribute), value), html):
-        res = m.group('content')
+    partial_element_re = r'''(?x)
+        <(?P<tag>[a-zA-Z0-9:._-]+)
+         (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+         \s%(attribute)s\s*=\s*(?P<_q>['"]%(vqo)s)(?-x:%(value)s)(?P=_q)
+        ''' % {'attribute': re.escape(attribute), 'value': value, 'vqo': value_quote_optional}
 
-        if res.startswith('"') or res.startswith("'"):
-            res = res[1:-1]
+    for m in re.finditer(partial_element_re, html):
+        content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
-        retlist.append(unescapeHTML(res))
+        yield (
+            unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)),
+            whole
+        )
 
-    return retlist
+
+class HTMLBreakOnClosingTagParser(compat_HTMLParser):
+    """
+    HTML parser which raises HTMLBreakOnClosingTagException upon reaching the
+    closing tag for the first opening tag it has encountered, and can be used
+    as a context manager
+    """
+
+    class HTMLBreakOnClosingTagException(Exception):
+        pass
+
+    def __init__(self):
+        self.tagstack = collections.deque()
+        compat_HTMLParser.__init__(self)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.close()
+
+    def close(self):
+        # handle_endtag does not return upon raising HTMLBreakOnClosingTagException,
+        # so data remains buffered; we no longer have any interest in it, thus
+        # override this method to discard it
+        pass
+
+    def handle_starttag(self, tag, _):
+        self.tagstack.append(tag)
+
+    def handle_endtag(self, tag):
+        if not self.tagstack:
+            raise compat_HTMLParseError('no tags in the stack')
+        while self.tagstack:
+            inner_tag = self.tagstack.pop()
+            if inner_tag == tag:
+                break
+        else:
+            raise compat_HTMLParseError(f'matching opening tag for closing {tag} tag not found')
+        if not self.tagstack:
+            raise self.HTMLBreakOnClosingTagException()
+
+
+def get_element_text_and_html_by_tag(tag, html):
+    """
+    For the first element with the specified tag in the passed HTML document
+    return its' content (text) and the whole element (html)
+    """
+    def find_or_raise(haystack, needle, exc):
+        try:
+            return haystack.index(needle)
+        except ValueError:
+            raise exc
+    closing_tag = f'</{tag}>'
+    whole_start = find_or_raise(
+        html, f'<{tag}', compat_HTMLParseError(f'opening {tag} tag not found'))
+    content_start = find_or_raise(
+        html[whole_start:], '>', compat_HTMLParseError(f'malformed opening {tag} tag'))
+    content_start += whole_start + 1
+    with HTMLBreakOnClosingTagParser() as parser:
+        parser.feed(html[whole_start:content_start])
+        if not parser.tagstack or parser.tagstack[0] != tag:
+            raise compat_HTMLParseError(f'parser did not match opening {tag} tag')
+        offset = content_start
+        while offset < len(html):
+            next_closing_tag_start = find_or_raise(
+                html[offset:], closing_tag,
+                compat_HTMLParseError(f'closing {tag} tag not found'))
+            next_closing_tag_end = next_closing_tag_start + len(closing_tag)
+            try:
+                parser.feed(html[offset:offset + next_closing_tag_end])
+                offset += next_closing_tag_end
+            except HTMLBreakOnClosingTagParser.HTMLBreakOnClosingTagException:
+                return html[content_start:offset + next_closing_tag_start], \
+                    html[whole_start:offset + next_closing_tag_end]
+        raise compat_HTMLParseError('unexpected end of html')
 
 
 class HTMLAttributeParser(compat_HTMLParser):
@@ -2004,6 +2116,23 @@ class HTMLAttributeParser(compat_HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         self.attrs = dict(attrs)
+
+
+class HTMLListAttrsParser(compat_HTMLParser):
+    """HTML parser to gather the attributes for the elements of a list"""
+
+    def __init__(self):
+        compat_HTMLParser.__init__(self)
+        self.items = []
+        self._level = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'li' and self._level == 0:
+            self.items.append(dict(attrs))
+        self._level += 1
+
+    def handle_endtag(self, tag):
+        self._level -= 1
 
 
 def extract_attributes(html_element):
@@ -2030,6 +2159,15 @@ def extract_attributes(html_element):
     except compat_HTMLParseError:
         pass
     return parser.attrs
+
+
+def parse_list(webpage):
+    """Given a string for an series of HTML <li> elements,
+    return a dictionary of their attributes"""
+    parser = HTMLListAttrsParser()
+    parser.feed(webpage)
+    parser.close()
+    return parser.items
 
 
 def clean_html(html):
@@ -2433,7 +2571,14 @@ def bug_reports_message(before=';'):
 
 class YoutubeDLError(Exception):
     """Base exception for YoutubeDL errors."""
-    pass
+    msg = None
+
+    def __init__(self, msg=None):
+        if msg is not None:
+            self.msg = msg
+        elif self.msg is None:
+            self.msg = type(self).__name__
+        super().__init__(self.msg)
 
 
 network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
@@ -2518,7 +2663,7 @@ class EntryNotInPlaylist(YoutubeDLError):
     This exception will be thrown by YoutubeDL when a requested entry
     is not found in the playlist info_dict
     """
-    pass
+    msg = 'Entry not found in info'
 
 
 class SameFileError(YoutubeDLError):
@@ -2527,7 +2672,12 @@ class SameFileError(YoutubeDLError):
     This exception will be thrown by FileDownloader objects if they detect
     multiple files would have to be downloaded to the same file on disk.
     """
-    pass
+    msg = 'Fixed output name but more than one file to download'
+
+    def __init__(self, filename=None):
+        if filename is not None:
+            self.msg += f': {filename}'
+        super().__init__(self.msg)
 
 
 class PostProcessingError(YoutubeDLError):
@@ -2537,19 +2687,10 @@ class PostProcessingError(YoutubeDLError):
     indicate an error in the postprocessing task.
     """
 
-    def __init__(self, msg):
-        super(PostProcessingError, self).__init__(msg)
-        self.msg = msg
-
 
 class DownloadCancelled(YoutubeDLError):
     """ Exception raised when the download queue should be interrupted """
     msg = 'The download was cancelled'
-
-    def __init__(self, msg=None):
-        if msg is not None:
-            self.msg = msg
-        YoutubeDLError.__init__(self, self.msg)
 
 
 class ExistingVideoReached(DownloadCancelled):
@@ -2567,9 +2708,20 @@ class MaxDownloadsReached(DownloadCancelled):
     msg = 'Maximum number of downloads reached, stopping due to --max-downloads'
 
 
-class ThrottledDownload(YoutubeDLError):
+class ReExtractInfo(YoutubeDLError):
+    """ Video info needs to be re-extracted. """
+
+    def __init__(self, msg, expected=False):
+        super().__init__(msg)
+        self.expected = expected
+
+
+class ThrottledDownload(ReExtractInfo):
     """ Download speed below --throttled-rate. """
-    pass
+    msg = 'The download speed is below throttle limit'
+
+    def __init__(self):
+        super().__init__(self.msg, expected=False)
 
 
 class UnavailableVideoError(YoutubeDLError):
@@ -2578,7 +2730,12 @@ class UnavailableVideoError(YoutubeDLError):
     This exception will be thrown when a video is requested
     in a format that is not available for that video.
     """
-    pass
+    msg = 'Unable to download video'
+
+    def __init__(self, err=None):
+        if err is not None:
+            self.msg += f': {err}'
+        super().__init__(self.msg)
 
 
 class ContentTooShortError(YoutubeDLError):
@@ -3355,7 +3512,6 @@ def _windows_write_string(s, out):
     False if it has yet to be written out."""
     # Adapted from http://stackoverflow.com/a/3259271/35070
 
-    import ctypes
     import ctypes.wintypes
 
     WIN_OUTPUT_IDS = {
@@ -3603,18 +3759,21 @@ def unsmuggle_url(smug_url, default=None):
     return url, data
 
 
+def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
+    """ Formats numbers with decimal sufixes like K, M, etc """
+    num, factor = float_or_none(num), float(factor)
+    if num is None:
+        return None
+    exponent = 0 if num == 0 else int(math.log(num, factor))
+    suffix = ['', *'kMGTPEZY'][exponent]
+    if factor == 1024:
+        suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
+    converted = num / (factor ** exponent)
+    return fmt % (converted, suffix)
+
+
 def format_bytes(bytes):
-    if bytes is None:
-        return 'N/A'
-    if type(bytes) is str:
-        bytes = float(bytes)
-    if bytes == 0.0:
-        exponent = 0
-    else:
-        exponent = int(math.log(bytes, 1024.0))
-    suffix = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'][exponent]
-    converted = float(bytes) / float(1024 ** exponent)
-    return '%.2f%s' % (converted, suffix)
+    return format_decimal_suffix(bytes, '%.2f%sB', factor=1024) or 'N/A'
 
 
 def lookup_unit_table(unit_table, s):
@@ -3703,7 +3862,7 @@ def parse_count(s):
     if s is None:
         return None
 
-    s = s.strip()
+    s = re.sub(r'^[^\d]+\s', '', s).strip()
 
     if re.match(r'^[\d,.]+$', s):
         return str_to_int(s)
@@ -3715,9 +3874,17 @@ def parse_count(s):
         'M': 1000 ** 2,
         'kk': 1000 ** 2,
         'KK': 1000 ** 2,
+        'b': 1000 ** 3,
+        'B': 1000 ** 3,
     }
 
-    return lookup_unit_table(_UNIT_TABLE, s)
+    ret = lookup_unit_table(_UNIT_TABLE, s)
+    if ret is not None:
+        return ret
+
+    mobj = re.match(r'([\d,.]+)(?:$|\s)', s)
+    if mobj:
+        return str_to_int(mobj.group(1))
 
 
 def parse_resolution(s):
@@ -3862,16 +4029,11 @@ class PUTRequest(compat_urllib_request.Request):
 
 
 def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
-    if get_attr:
-        if v is not None:
-            v = getattr(v, get_attr, None)
-    if v == '':
-        v = None
-    if v is None:
-        return default
+    if get_attr and v is not None:
+        v = getattr(v, get_attr, None)
     try:
         return int(v) * invscale // scale
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, OverflowError):
         return default
 
 
@@ -3927,8 +4089,9 @@ def strftime_or_none(timestamp, date_format, default=None):
 def parse_duration(s):
     if not isinstance(s, compat_basestring):
         return None
-
     s = s.strip()
+    if not s:
+        return None
 
     days, hours, mins, secs, ms = [None] * 5
     m = re.match(r'(?:(?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?(?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?Z?$', s)
@@ -4007,10 +4170,7 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def get_exe_version(exe, args=['--version'],
-                    version_re=None, unrecognized='present'):
-    """ Returns the version of the specified executable,
-    or False if the executable is not present """
+def _get_exe_version_output(exe, args):
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
@@ -4022,7 +4182,7 @@ def get_exe_version(exe, args=['--version'],
         return False
     if isinstance(out, bytes):  # Python 2.x
         out = out.decode('ascii', 'ignore')
-    return detect_exe_version(out, version_re, unrecognized)
+    return out
 
 
 def detect_exe_version(output, version_re=None, unrecognized='present'):
@@ -4036,6 +4196,14 @@ def detect_exe_version(output, version_re=None, unrecognized='present'):
         return unrecognized
 
 
+def get_exe_version(exe, args=['--version'],
+                    version_re=None, unrecognized='present'):
+    """ Returns the version of the specified executable,
+    or False if the executable is not present """
+    out = _get_exe_version_output(exe, args)
+    return detect_exe_version(out, version_re, unrecognized) if out else False
+
+
 class LazyList(collections.abc.Sequence):
     ''' Lazy immutable list from an iterable
     Note that slices of a LazyList are lists and not LazyList'''
@@ -4043,10 +4211,10 @@ class LazyList(collections.abc.Sequence):
     class IndexError(IndexError):
         pass
 
-    def __init__(self, iterable):
+    def __init__(self, iterable, *, reverse=False, _cache=None):
         self.__iterable = iter(iterable)
-        self.__cache = []
-        self.__reversed = False
+        self.__cache = [] if _cache is None else _cache
+        self.__reversed = reverse
 
     def __iter__(self):
         if self.__reversed:
@@ -4112,9 +4280,11 @@ class LazyList(collections.abc.Sequence):
         self.__exhaust()
         return len(self.__cache)
 
-    def reverse(self):
-        self.__reversed = not self.__reversed
-        return self
+    def __reversed__(self):
+        return type(self)(self.__iterable, reverse=not self.__reversed, _cache=self.__cache)
+
+    def __copy__(self):
+        return type(self)(self.__iterable, reverse=self.__reversed, _cache=self.__cache)
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
@@ -4125,6 +4295,10 @@ class LazyList(collections.abc.Sequence):
 
 
 class PagedList:
+
+    class IndexError(IndexError):
+        pass
+
     def __len__(self):
         # This is only useful for tests
         return len(self.getslice())
@@ -4136,7 +4310,9 @@ class PagedList:
         self._cache = {}
 
     def getpage(self, pagenum):
-        page_results = self._cache.get(pagenum) or list(self._pagefunc(pagenum))
+        page_results = self._cache.get(pagenum)
+        if page_results is None:
+            page_results = list(self._pagefunc(pagenum))
         if self._use_cache:
             self._cache[pagenum] = page_results
         return page_results
@@ -4152,7 +4328,9 @@ class PagedList:
         if not isinstance(idx, int) or idx < 0:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
-        return entries[0] if entries else None
+        if not entries:
+            raise self.IndexError()
+        return entries[0]
 
 
 class OnDemandPagedList(PagedList):
@@ -4502,6 +4680,9 @@ def qualities(quality_ids):
     return q
 
 
+POSTPROCESS_WHEN = {'pre_process', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist'}
+
+
 DEFAULT_OUTTMPL = {
     'default': '%(title)s [%(id)s].%(ext)s',
     'chapter': '%(title)s - %(section_number)03d %(section_title)s [%(id)s].%(ext)s',
@@ -4648,43 +4829,53 @@ def mimetype2ext(mt):
     return subtype.replace('+', '.')
 
 
+def ext2mimetype(ext_or_url):
+    if not ext_or_url:
+        return None
+    if '.' not in ext_or_url:
+        ext_or_url = f'file.{ext_or_url}'
+    return mimetypes.guess_type(ext_or_url)[0]
+
+
 def parse_codecs(codecs_str):
     # http://tools.ietf.org/html/rfc6381
     if not codecs_str:
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec, hdr = None, None, None
+    vcodec, acodec, tcodec, hdr = None, None, None, None
     for full_codec in split_codecs:
-        codec = full_codec.split('.')[0]
-        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2', 'h263', 'h264', 'mp4v', 'hvc1', 'av01', 'theora', 'dvh1', 'dvhe'):
+        parts = full_codec.split('.')
+        codec = parts[0].replace('0', '')
+        if codec in ('avc1', 'avc2', 'avc3', 'avc4', 'vp9', 'vp8', 'hev1', 'hev2',
+                     'h263', 'h264', 'mp4v', 'hvc1', 'av1', 'theora', 'dvh1', 'dvhe'):
             if not vcodec:
-                vcodec = full_codec
+                vcodec = '.'.join(parts[:4]) if codec in ('vp9', 'av1', 'hvc1') else full_codec
                 if codec in ('dvh1', 'dvhe'):
                     hdr = 'DV'
-                elif codec == 'vp9' and vcodec.startswith('vp9.2'):
+                elif codec == 'av1' and len(parts) > 3 and parts[3] == '10':
                     hdr = 'HDR10'
-                elif codec == 'av01':
-                    parts = full_codec.split('.')
-                    if len(parts) > 3 and parts[3] == '10':
-                        hdr = 'HDR10'
-                        vcodec = '.'.join(parts[:4])
-        elif codec in ('mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
+                elif full_codec.replace('0', '').startswith('vp9.2'):
+                    hdr = 'HDR10'
+        elif codec in ('flac', 'mp4a', 'opus', 'vorbis', 'mp3', 'aac', 'ac-3', 'ec-3', 'eac3', 'dtsc', 'dtse', 'dtsh', 'dtsl'):
             if not acodec:
                 acodec = full_codec
+        elif codec in ('stpp', 'wvtt',):
+            if not tcodec:
+                tcodec = full_codec
         else:
             write_string('WARNING: Unknown codec %s\n' % full_codec, sys.stderr)
-    if not vcodec and not acodec:
-        if len(split_codecs) == 2:
-            return {
-                'vcodec': split_codecs[0],
-                'acodec': split_codecs[1],
-            }
-    else:
+    if vcodec or acodec or tcodec:
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
+            **({'tcodec': tcodec} if tcodec is not None else {}),
+        }
+    elif len(split_codecs) == 2:
+        return {
+            'vcodec': split_codecs[0],
+            'acodec': split_codecs[1],
         }
     return {}
 
@@ -4759,10 +4950,11 @@ def determine_protocol(info_dict):
     return compat_urllib_parse_urlparse(url).scheme
 
 
-def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
-    """ Render a list of rows, each as a list of values """
+def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
+    """ Render a list of rows, each as a list of values.
+    Text after a \t will be right aligned """
     def width(string):
-        return len(remove_terminal_sequences(string))
+        return len(remove_terminal_sequences(string).replace('\t', ''))
 
     def get_max_lens(table):
         return [max(width(str(v)) for v in col) for col in zip(*table)]
@@ -4770,21 +4962,24 @@ def render_table(header_row, data, delim=False, extraGap=0, hideEmpty=False):
     def filter_using_list(row, filterArray):
         return [col for (take, col) in zip(filterArray, row) if take]
 
-    if hideEmpty:
+    if hide_empty:
         max_lens = get_max_lens(data)
         header_row = filter_using_list(header_row, max_lens)
         data = [filter_using_list(row, max_lens) for row in data]
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
-    extraGap += 1
+    extra_gap += 1
     if delim:
-        table = [header_row] + [[delim * (ml + extraGap) for ml in max_lens]] + data
-    max_lens[-1] = 0
+        table = [header_row, [delim * (ml + extra_gap) for ml in max_lens]] + data
+        table[1][-1] = table[1][-1][:-extra_gap]  # Remove extra_gap from end of delimiter
     for row in table:
         for pos, text in enumerate(map(str, row)):
-            row[pos] = text + (' ' * (max_lens[pos] - width(text) + extraGap))
-    ret = '\n'.join(''.join(row) for row in table)
+            if '\t' in text:
+                row[pos] = text.replace('\t', ' ' * (max_lens[pos] - width(text))) + ' ' * extra_gap
+            else:
+                row[pos] = text + ' ' * (max_lens[pos] - width(text) + extra_gap)
+    ret = '\n'.join(''.join(row).rstrip() for row in table)
     return ret
 
 
@@ -6391,11 +6586,12 @@ def traverse_obj(
     ''' Traverse nested list/dict/tuple
     @param path_list        A list of paths which are checked one by one.
                             Each path is a list of keys where each key is a string,
-                            a function, a tuple of strings or "...".
+                            a function, a tuple of strings/None or "...".
                             When a fuction is given, it takes the key as argument and
                             returns whether the key matches or not. When a tuple is given,
                             all the keys given in the tuple are traversed, and
                             "..." traverses all the keys in the object
+                            "None" returns the object without traversal
     @param default          Default value to return
     @param expected_type    Only accept final value of this type (Can also be any callable)
     @param get_all          Return all the values obtained from a path or only the first one
@@ -6412,10 +6608,10 @@ def traverse_obj(
 
     def _traverse_obj(obj, path, _current_depth=0):
         nonlocal depth
-        if obj is None:
-            return None
         path = tuple(variadic(path))
         for i, key in enumerate(path):
+            if None in (key, obj):
+                return obj
             if isinstance(key, (list, tuple)):
                 obj = [_traverse_obj(obj, sub_key, _current_depth) for sub_key in key]
                 key = ...
@@ -6484,12 +6680,12 @@ def traverse_obj(
 
 
 def traverse_dict(dictn, keys, casesense=True):
-    ''' For backward compatibility. Do not use '''
-    return traverse_obj(dictn, keys, casesense=casesense,
-                        is_user_input=True, traverse_string=True)
+    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
+                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
+    return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
-def variadic(x, allowed_types=(str, bytes)):
+def variadic(x, allowed_types=(str, bytes, dict)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
 
@@ -6512,9 +6708,17 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     return token
 
 
+# can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
+def jwt_decode_hs256(jwt):
+    header_b64, payload_b64, signature_b64 = jwt.split('.')
+    payload_data = json.loads(base64.urlsafe_b64decode(payload_b64))
+    return payload_data
+
+
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        if get_windows_version() < (10, 0, 10586):
+        from .compat import WINDOWS_VT_MODE  # Must be imported locally
+        if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
         return False
@@ -6533,3 +6737,96 @@ def remove_terminal_sequences(string):
 
 def number_of_digits(number):
     return len('%d' % number)
+
+
+def join_nonempty(*values, delim='-', from_dict=None):
+    if from_dict is not None:
+        values = map(from_dict.get, values)
+    return delim.join(map(str, filter(None, values)))
+
+
+class Config:
+    own_args = None
+    filename = None
+    __initialized = False
+
+    def __init__(self, parser, label=None):
+        self._parser, self.label = parser, label
+        self._loaded_paths, self.configs = set(), []
+
+    def init(self, args=None, filename=None):
+        assert not self.__initialized
+        if filename:
+            location = os.path.realpath(filename)
+            if location in self._loaded_paths:
+                return False
+            self._loaded_paths.add(location)
+
+        self.__initialized = True
+        self.own_args, self.filename = args, filename
+        for location in self._parser.parse_args(args)[0].config_locations or []:
+            location = compat_expanduser(location)
+            if os.path.isdir(location):
+                location = os.path.join(location, 'yt-dlp.conf')
+            if not os.path.exists(location):
+                self._parser.error(f'config location {location} does not exist')
+            self.append_config(self.read_file(location), location)
+        return True
+
+    def __str__(self):
+        label = join_nonempty(
+            self.label, 'config', f'"{self.filename}"' if self.filename else '',
+            delim=' ')
+        return join_nonempty(
+            self.own_args is not None and f'{label[0].upper()}{label[1:]}: {self.hide_login_info(self.own_args)}',
+            *(f'\n{c}'.replace('\n', '\n| ')[1:] for c in self.configs),
+            delim='\n')
+
+    @staticmethod
+    def read_file(filename, default=[]):
+        try:
+            optionf = open(filename)
+        except IOError:
+            return default  # silently skip if file is not present
+        try:
+            # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
+            contents = optionf.read()
+            if sys.version_info < (3,):
+                contents = contents.decode(preferredencoding())
+            res = compat_shlex_split(contents, comments=True)
+        finally:
+            optionf.close()
+        return res
+
+    @staticmethod
+    def hide_login_info(opts):
+        PRIVATE_OPTS = set(['-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'])
+        eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
+
+        def _scrub_eq(o):
+            m = eqre.match(o)
+            if m:
+                return m.group('key') + '=PRIVATE'
+            else:
+                return o
+
+        opts = list(map(_scrub_eq, opts))
+        for idx, opt in enumerate(opts):
+            if opt in PRIVATE_OPTS and idx + 1 < len(opts):
+                opts[idx + 1] = 'PRIVATE'
+        return opts
+
+    def append_config(self, *args, label=None):
+        config = type(self)(self._parser, label)
+        config._loaded_paths = self._loaded_paths
+        if config.init(*args):
+            self.configs.append(config)
+
+    @property
+    def all_args(self):
+        for config in reversed(self.configs):
+            yield from config.all_args
+        yield from self.own_args or []
+
+    def parse_args(self):
+        return self._parser.parse_args(list(self.all_args))

@@ -12,6 +12,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     int_or_none,
+    LazyList,
     merge_dicts,
     str_or_none,
     strip_or_none,
@@ -86,6 +87,12 @@ class VLiveIE(VLiveBaseIE):
             'creator': "Girl's Day",
             'view_count': int,
             'uploader_id': 'muploader_a',
+            'upload_date': '20150817',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'timestamp': 1439816449,
+        },
+        'params': {
+            'skip_download': True,
         },
     }, {
         'url': 'http://www.vlive.tv/video/16937',
@@ -97,6 +104,9 @@ class VLiveIE(VLiveBaseIE):
             'view_count': int,
             'subtitles': 'mincount:12',
             'uploader_id': 'muploader_j',
+            'upload_date': '20161112',
+            'thumbnail': r're:^https?://.*\.(?:jpg|png)$',
+            'timestamp': 1478923074,
         },
         'params': {
             'skip_download': True,
@@ -173,6 +183,8 @@ class VLiveIE(VLiveBaseIE):
                 'view_count': int_or_none(video.get('playCount')),
                 'like_count': int_or_none(video.get('likeCount')),
                 'comment_count': int_or_none(video.get('commentCount')),
+                'timestamp': int_or_none(video.get('createdAt'), scale=1000),
+                'thumbnail': video.get('thumb'),
             }
 
         video_type = video.get('type')
@@ -198,7 +210,7 @@ class VLiveIE(VLiveBaseIE):
                 self._sort_formats(formats)
                 info = get_common_fields()
                 info.update({
-                    'title': self._live_title(video['title']),
+                    'title': video['title'],
                     'id': video_id,
                     'formats': formats,
                     'is_live': True,
@@ -352,11 +364,10 @@ class VLiveChannelIE(VLiveBaseIE):
             if board.get('boardType') not in ('STAR', 'VLIVE_PLUS'):
                 raise ExtractorError(f'Board {board_name!r} is not supported', expected=True)
 
-        entries = self._entries(posts_id or channel_id, board_name)
-        first_video = next(entries)
-        channel_name = first_video['channel']
+        entries = LazyList(self._entries(posts_id or channel_id, board_name))
+        channel_name = entries[0]['channel']
 
         return self.playlist_result(
-            itertools.chain([first_video], entries),
+            entries,
             f'{channel_id}-{posts_id}' if posts_id else channel_id,
             f'{channel_name} - {board_name}' if channel_name and board_name else channel_name)

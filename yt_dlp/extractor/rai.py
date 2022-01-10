@@ -14,12 +14,16 @@ from ..utils import (
     find_xpath_attr,
     fix_xml_ampersands,
     GeoRestrictedError,
+    get_element_by_class,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     parse_duration,
+    parse_list,
     remove_start,
     strip_or_none,
     try_get,
+    unescapeHTML,
     unified_strdate,
     unified_timestamp,
     update_url_query,
@@ -135,6 +139,9 @@ class RaiBaseIE(InfoExtractor):
                 return False if resp.url == url else resp.url
             return None
 
+        # filter out audio-only formats
+        fmts = [f for f in fmts if not f.get('vcodec') == 'none']
+
         def get_format_info(tbr):
             import math
             br = int_or_none(tbr)
@@ -226,7 +233,7 @@ class RaiPlayIE(RaiBaseIE):
             'id': 'cb27157f-9dd0-4aee-b788-b1f67643a391',
             'ext': 'mp4',
             'title': 'Report del 07/04/2014',
-            'alt_title': 'St 2013/14 - Espresso nel caffè - 07/04/2014',
+            'alt_title': 'St 2013/14 - Report - Espresso nel caffè - 07/04/2014',
             'description': 'md5:d730c168a58f4bb35600fc2f881ec04e',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai Gulp',
@@ -234,7 +241,7 @@ class RaiPlayIE(RaiBaseIE):
             'series': 'Report',
             'season': '2013/14',
             'subtitles': {
-                'it': 'count:2',
+                'it': 'count:4',
             },
         },
         'params': {
@@ -242,18 +249,18 @@ class RaiPlayIE(RaiBaseIE):
         },
     }, {
         # 1080p direct mp4 url
-        'url': 'https://www.raiplay.it/video/2021/03/Leonardo-S1E1-b5703b02-82ee-475a-85b6-c9e4a8adf642.html',
-        'md5': '2e501e8651d72f05ffe8f5d286ad560b',
+        'url': 'https://www.raiplay.it/video/2021/11/Blanca-S1E1-Senza-occhi-b1255a4a-8e72-4a2f-b9f3-fc1308e00736.html',
+        'md5': 'aeda7243115380b2dd5e881fd42d949a',
         'info_dict': {
-            'id': 'b5703b02-82ee-475a-85b6-c9e4a8adf642',
+            'id': 'b1255a4a-8e72-4a2f-b9f3-fc1308e00736',
             'ext': 'mp4',
-            'title': 'Leonardo - S1E1',
-            'alt_title': 'St 1 Ep 1 - Episodio 1',
-            'description': 'md5:f5360cd267d2de146e4e3879a5a47d31',
+            'title': 'Blanca - S1E1 - Senza occhi',
+            'alt_title': 'St 1 Ep 1 - Blanca - Senza occhi',
+            'description': 'md5:75f95d5c030ec8bac263b1212322e28c',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Rai 1',
-            'duration': 3229,
-            'series': 'Leonardo',
+            'duration': 6493,
+            'series': 'Blanca',
             'season': 'Season 1',
         },
     }, {
@@ -306,12 +313,13 @@ class RaiPlayIE(RaiBaseIE):
         program_info = media.get('program_info') or {}
         season = media.get('season')
 
+        alt_title = join_nonempty(media.get('subtitle'), media.get('toptitle'), delim=' - ')
+
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
-            'title': self._live_title(title) if relinker_info.get(
-                'is_live') else title,
-            'alt_title': strip_or_none(media.get('subtitle')),
+            'title': title,
+            'alt_title': strip_or_none(alt_title),
             'description': media.get('description'),
             'uploader': strip_or_none(media.get('channel')),
             'creator': strip_or_none(media.get('editor') or None),
@@ -585,3 +593,84 @@ class RaiIE(RaiBaseIE):
         info.update(relinker_info)
 
         return info
+
+
+class RaiPlayRadioBaseIE(InfoExtractor):
+    _BASE = 'https://www.raiplayradio.it'
+
+    def get_playlist_iter(self, url, uid):
+        webpage = self._download_webpage(url, uid)
+        for attrs in parse_list(webpage):
+            title = attrs['data-title'].strip()
+            audio_url = urljoin(url, attrs['data-mediapolis'])
+            entry = {
+                'url': audio_url,
+                'id': attrs['data-uniquename'].lstrip('ContentItem-'),
+                'title': title,
+                'ext': 'mp3',
+                'language': 'it',
+            }
+            if 'data-image' in attrs:
+                entry['thumbnail'] = urljoin(url, attrs['data-image'])
+            yield entry
+
+
+class RaiPlayRadioIE(RaiPlayRadioBaseIE):
+    _VALID_URL = r'%s/audio/.+?-(?P<id>%s)\.html' % (
+        RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
+    _TEST = {
+        'url': 'https://www.raiplayradio.it/audio/2019/07/RADIO3---LEZIONI-DI-MUSICA-36b099ff-4123-4443-9bf9-38e43ef5e025.html',
+        'info_dict': {
+            'id': '36b099ff-4123-4443-9bf9-38e43ef5e025',
+            'ext': 'mp3',
+            'title': 'Dal "Chiaro di luna" al  "Clair de lune", prima parte con Giovanni Bietti',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'language': 'it',
+        }
+    }
+
+    def _real_extract(self, url):
+        audio_id = self._match_id(url)
+        list_url = url.replace('.html', '-list.html')
+        return next(entry for entry in self.get_playlist_iter(list_url, audio_id) if entry['id'] == audio_id)
+
+
+class RaiPlayRadioPlaylistIE(RaiPlayRadioBaseIE):
+    _VALID_URL = r'%s/playlist/.+?-(?P<id>%s)\.html' % (
+        RaiPlayRadioBaseIE._BASE, RaiBaseIE._UUID_RE)
+    _TEST = {
+        'url': 'https://www.raiplayradio.it/playlist/2017/12/Alice-nel-paese-delle-meraviglie-72371d3c-d998-49f3-8860-d168cfdf4966.html',
+        'info_dict': {
+            'id': '72371d3c-d998-49f3-8860-d168cfdf4966',
+            'title': "Alice nel paese delle meraviglie",
+            'description': "di Lewis Carrol letto da Aldo Busi",
+        },
+        'playlist_count': 11,
+    }
+
+    def _real_extract(self, url):
+        playlist_id = self._match_id(url)
+        playlist_webpage = self._download_webpage(url, playlist_id)
+        playlist_title = unescapeHTML(self._html_search_regex(
+            r'data-playlist-title="(.+?)"', playlist_webpage, 'title'))
+        playlist_creator = self._html_search_meta(
+            'nomeProgramma', playlist_webpage)
+        playlist_description = get_element_by_class(
+            'textDescriptionProgramma', playlist_webpage)
+
+        player_href = self._html_search_regex(
+            r'data-player-href="(.+?)"', playlist_webpage, 'href')
+        list_url = urljoin(url, player_href)
+
+        entries = list(self.get_playlist_iter(list_url, playlist_id))
+        for index, entry in enumerate(entries, start=1):
+            entry.update({
+                'track': entry['title'],
+                'track_number': index,
+                'artist': playlist_creator,
+                'album': playlist_title
+            })
+
+        return self.playlist_result(
+            entries, playlist_id, playlist_title, playlist_description,
+            creator=playlist_creator)

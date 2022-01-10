@@ -34,7 +34,7 @@ body:
       label: Example URLs
       description: |
         Provide all kinds of example URLs for which support should be added
-      value: |
+      placeholder: |
         - Single video: https://www.youtube.com/watch?v=BaW_jenozKc
         - Single video: https://youtu.be/BaW_jenozKc
         - Playlist: https://www.youtube.com/playlist?list=PL4lCao7KL_QFVb7Iudeipvc2BCavECqzc
@@ -54,7 +54,7 @@ body:
     attributes:
       label: Verbose log
       description: |
-        Provide the complete verbose output using one of the example URLs provided above.
+        Provide the complete verbose output **using one of the example URLs provided above**.
         Add the `-Uv` flag to your command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |

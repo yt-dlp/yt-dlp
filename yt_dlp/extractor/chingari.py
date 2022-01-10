@@ -67,7 +67,7 @@ class ChingariBaseIE(InfoExtractor):
 
 
 class ChingariIE(ChingariBaseIE):
-    _VALID_URL = r'(?:https?://)(?:www\.)?chingari\.io/share/post\?id=(?P<id>[^&/#?]+)'
+    _VALID_URL = r'https?://(?:www\.)?chingari\.io/share/post\?id=(?P<id>[^&/#?]+)'
     _TESTS = [{
         'url': 'https://chingari.io/share/post?id=612f8f4ce1dc57090e8a7beb',
         'info_dict': {
@@ -102,7 +102,7 @@ class ChingariIE(ChingariBaseIE):
 
 
 class ChingariUserIE(ChingariBaseIE):
-    _VALID_URL = r'(?:https?://)(?:www\.)?chingari\.io/(?!share/post)(?P<id>[^/?]+)'
+    _VALID_URL = r'https?://(?:www\.)?chingari\.io/(?!share/post)(?P<id>[^/?]+)'
     _TESTS = [{
         'url': 'https://chingari.io/dada1023',
         'playlist_mincount': 3,

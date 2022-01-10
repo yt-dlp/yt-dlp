@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import copy
 import functools
 import os
 
@@ -9,6 +8,7 @@ from ..utils import (
     _configuration_args,
     encodeFilename,
     PostProcessingError,
+    write_string,
 )
 
 
@@ -17,7 +17,7 @@ class PostProcessorMetaClass(type):
     def run_wrapper(func):
         @functools.wraps(func)
         def run(self, info, *args, **kwargs):
-            info_copy = copy.deepcopy(self._copy_infodict(info))
+            info_copy = self._copy_infodict(info)
             self._hook_progress({'status': 'started'}, info_copy)
             ret = func(self, info, *args, **kwargs)
             if ret is not None:
@@ -73,6 +73,11 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     def report_warning(self, text, *args, **kwargs):
         if self._downloader:
             return self._downloader.report_warning(text, *args, **kwargs)
+
+    def deprecation_warning(self, text):
+        if self._downloader:
+            return self._downloader.deprecation_warning(text)
+        write_string(f'DeprecationWarning: {text}')
 
     def report_error(self, text, *args, **kwargs):
         # Exists only for compatibility. Do not use

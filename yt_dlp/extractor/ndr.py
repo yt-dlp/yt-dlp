@@ -245,8 +245,6 @@ class NDREmbedBaseIE(InfoExtractor):
 
         live = playlist.get('config', {}).get('streamType') in ['httpVideoLive', 'httpAudioLive']
         title = config['title']
-        if live:
-            title = self._live_title(title)
         uploader = ppjson.get('config', {}).get('branding')
         upload_date = ppjson.get('config', {}).get('publicationDate')
         duration = int_or_none(config.get('duration'))

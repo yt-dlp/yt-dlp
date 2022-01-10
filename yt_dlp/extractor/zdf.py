@@ -9,12 +9,13 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     NO_DEFAULT,
     orderedSet,
     parse_codecs,
     qualities,
-    str_or_none,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -70,11 +71,11 @@ class ZDFBaseIE(InfoExtractor):
                     f = {'vcodec': data[0], 'acodec': data[1]}
             f.update({
                 'url': format_url,
-                'format_id': '-'.join(filter(str_or_none, ('http', meta.get('type'), meta.get('quality')))),
+                'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
-            'format_note': ', '.join(filter(None, (meta.get('quality'), meta.get('class')))),
+            'format_note': join_nonempty('quality', 'class', from_dict=meta, delim=', '),
             'language': meta.get('language'),
             'language_preference': 10 if meta.get('class') == 'main' else -10 if meta.get('class') == 'ad' else -1,
             'quality': qualities(self._QUALITIES)(meta.get('quality')),
@@ -135,31 +136,18 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
-        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
-        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
-        'md5': '34ec321e7eb34231fd88616c65c92db0',
+        'url': 'https://www.zdf.de/nachrichten/heute-journal/heute-journal-vom-30-12-2021-100.html',
         'info_dict': {
-            'id': '210222_phx_nachgehakt_corona_protest',
+            'id': '211230_sendung_hjo',
             'ext': 'mp4',
-            'title': 'Wohin führt der Protest in der Pandemie?',
-            'description': 'md5:7d643fe7f565e53a24aac036b2122fbd',
-            'duration': 1691,
-            'timestamp': 1613948400,
-            'upload_date': '20210221',
-        },
-    }, {
-        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
-        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
-        'md5': '0aff3e7bc72c8813f5e0fae333316a1d',
-        'info_dict': {
-            'id': '141007_ab18_10wochensommer_film',
-            'ext': 'mp4',
-            'title': 'Ab 18! - 10 Wochen Sommer',
-            'description': 'md5:8253f41dc99ce2c3ff892dac2d65fe26',
-            'duration': 2660,
-            'timestamp': 1608604200,
-            'upload_date': '20201222',
-        },
+            'description': 'md5:47dff85977bde9fb8cba9e9c9b929839',
+            'duration': 1890.0,
+            'upload_date': '20211230',
+            'chapters': list,
+            'thumbnail': 'md5:e65f459f741be5455c952cd820eb188e',
+            'title': 'heute journal vom 30.12.2021',
+            'timestamp': 1640897100,
+        }
     }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
         'info_dict': {
@@ -170,6 +158,20 @@ class ZDFIE(ZDFBaseIE):
             'duration': 2615,
             'timestamp': 1465021200,
             'upload_date': '20160604',
+            'thumbnail': 'https://www.zdf.de/assets/mauve-im-labor-100~768x432?cb=1464909117806',
+        },
+    }, {
+        'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
+        'md5': '3d6f1049e9682178a11c54b91f3dd065',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'video_funk_1770473',
+            'duration': 1278,
+            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
+            'title': 'Alles ist verzaubert',
+            'timestamp': 1635520560,
+            'upload_date': '20211029',
+            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-100~1920x1080?cb=1636466431799',
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
@@ -192,6 +194,14 @@ class ZDFIE(ZDFBaseIE):
     }, {
         'url': 'https://www.zdf.de/dokumentation/planet-e/planet-e-uebersichtsseite-weitere-dokumentationen-von-planet-e-100.html',
         'only_matching': True,
+    }, {
+        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
+        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
+        'only_matching': True
+    }, {
+        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
+        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
+        'only_matching': True
     }]
 
     def _extract_entry(self, url, player, content, video_id):
@@ -202,8 +212,9 @@ class ZDFIE(ZDFBaseIE):
         ptmd_path = t.get('http://zdf.de/rels/streams/ptmd')
 
         if not ptmd_path:
-            ptmd_path = t[
-                'http://zdf.de/rels/streams/ptmd-template'].replace(
+            ptmd_path = traverse_obj(
+                t, ('streams', 'default', 'http://zdf.de/rels/streams/ptmd-template'),
+                'http://zdf.de/rels/streams/ptmd-template').replace(
                 '{playerId}', 'ngplayer_2_4')
 
         info = self._extract_ptmd(
@@ -229,12 +240,21 @@ class ZDFIE(ZDFBaseIE):
                     })
                 thumbnails.append(thumbnail)
 
+        chapter_marks = t.get('streamAnchorTag') or []
+        chapter_marks.append({'anchorOffset': int_or_none(t.get('duration'))})
+        chapters = [{
+            'start_time': chap.get('anchorOffset'),
+            'end_time': next_chap.get('anchorOffset'),
+            'title': chap.get('anchorLabel')
+        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
+
         return merge_dicts(info, {
             'title': title,
             'description': content.get('leadParagraph') or content.get('teasertext'),
             'duration': int_or_none(t.get('duration')),
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
+            'chapters': chapters or None
         })
 
     def _extract_regular(self, url, player, video_id):
