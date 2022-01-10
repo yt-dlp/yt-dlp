@@ -437,6 +437,19 @@ class FileDownloader(object):
                     '[download] Sleeping %s seconds ...' % (
                         sleep_interval_sub))
                 time.sleep(sleep_interval_sub)
+
+        max_filelen = os.statvfs('./').f_namemax
+
+        if len(filename) > max_filelen:
+
+            self.to_screen("[filename] Too long, truncating:")
+            flen = len(filename.encode('utf-8'))
+            basenamelen = len(os.path.basename(filename).encode('utf-8'))
+            pathlen = flen - basenamelen
+            max2 = int(max_filelen / 2) - 5
+            filename = filename[0:pathlen + max2] + " … " + filename[- max2 + pathlen:]
+            self.to_screen("resulting truncated filename length: {}".format(len(filename)))
+
         ret = self.real_download(filename, info_dict)
         self._finish_multiline_status()
         return ret, True
