@@ -372,9 +372,16 @@ class PRXSeriesIE(PRXBaseIE):
             'url': 'https://beta.prx.org/series/25038',
             'info_dict': {
                 'id': '25038',
-                'title': '25038'
+                'title': '25038',
+                'timestamp': 1207612800,
+                'modified_timestamp': 1207612800,
+                'channel_id': '206',
+                'channel_url': 'https://beta.prx.org/accounts/206',
+                'channel': 'New Hampshire Public Radio',
+                'series': '25038',
+                'series_id': '25038'
             },
-            'count': 0
+            'playlist_count': 0
         }
     ]
 
