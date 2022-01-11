@@ -14,6 +14,7 @@ from ..utils import (
     parse_duration,
     qualities,
     str_to_int,
+    traverse_obj,
     try_get,
     unified_timestamp,
     urlencode_postdata,
@@ -96,12 +97,17 @@ class TwitCastingIE(InfoExtractor):
             'Downloading live info', fatal=False)
 
         is_live = 'data-status="online"' in webpage
+
+        if not traverse_obj(stream_server_data, 'llfmp4') and is_live:
+            raise ExtractorError('You must be logged in to watch.', expected=True)
+
         formats = []
         if is_live and not m3u8_url:
             m3u8_url = 'https://twitcasting.tv/%s/metastream.m3u8' % uploader_id
         if is_live and has_websockets and stream_server_data:
             qq = qualities(['base', 'mobilesource', 'main'])
-            for mode, ws_url in stream_server_data['llfmp4']['streams'].items():
+            streams = traverse_obj(stream_server_data, ('llfmp4', 'streams')) or {}
+            for mode, ws_url in streams.items():
                 formats.append({
                     'url': ws_url,
                     'format_id': 'ws-%s' % mode,
