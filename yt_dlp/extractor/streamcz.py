@@ -69,6 +69,8 @@ class StreamCZIE(InfoExtractor):
                         urlName
                         name
                         perex
+                        duration
+                        views
                     }'''
             }).encode('utf-8'),
             headers={'Content-Type': 'application/json;charset=UTF-8'}
@@ -99,6 +101,8 @@ class StreamCZIE(InfoExtractor):
             'display_id': display_id,
             'title': data.get('name'),
             'description': data.get('perex'),
+            'duration': float_or_none(data.get('duration')),
+            'view_count': int_or_none(data.get('views')),
             'formats': formats,
             'subtitles': subtitles,
         }
