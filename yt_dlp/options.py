@@ -13,10 +13,11 @@ from .compat import (
     compat_shlex_split,
 )
 from .utils import (
+    Config,
     expand_path,
     get_executable_path,
     OUTTMPL_TYPES,
-    preferredencoding,
+    POSTPROCESS_WHEN,
     remove_end,
     write_string,
 )
@@ -34,39 +35,16 @@ from .postprocessor import (
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
 
 
-def _hide_login_info(opts):
-    PRIVATE_OPTS = set(['-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'])
-    eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
+def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
+    parser = create_parser()
+    root = Config(parser)
 
-    def _scrub_eq(o):
-        m = eqre.match(o)
-        if m:
-            return m.group('key') + '=PRIVATE'
-        else:
-            return o
-
-    opts = list(map(_scrub_eq, opts))
-    for idx, opt in enumerate(opts):
-        if opt in PRIVATE_OPTS and idx + 1 < len(opts):
-            opts[idx + 1] = 'PRIVATE'
-    return opts
-
-
-def parseOpts(overrideArguments=None):
-    def _readOptions(filename_bytes, default=[]):
-        try:
-            optionf = open(filename_bytes)
-        except IOError:
-            return default  # silently skip if file is not present
-        try:
-            # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
-            contents = optionf.read()
-            if sys.version_info < (3,):
-                contents = contents.decode(preferredencoding())
-            res = compat_shlex_split(contents, comments=True)
-        finally:
-            optionf.close()
-        return res
+    if ignore_config_files == 'if_override':
+        ignore_config_files = overrideArguments is not None
+    if overrideArguments:
+        root.append_config(overrideArguments, label='Override')
+    else:
+        root.append_config(sys.argv[1:], label='Command-line')
 
     def _readUserConf(package_name, default=[]):
         # .config
@@ -74,7 +52,7 @@ def parseOpts(overrideArguments=None):
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
-        userConf = _readOptions(userConfFile, default=None)
+        userConf = Config.read_file(userConfFile, default=None)
         if userConf is not None:
             return userConf, userConfFile
 
@@ -82,24 +60,64 @@ def parseOpts(overrideArguments=None):
         appdata_dir = compat_getenv('appdata')
         if appdata_dir:
             userConfFile = os.path.join(appdata_dir, package_name, 'config')
-            userConf = _readOptions(userConfFile, default=None)
+            userConf = Config.read_file(userConfFile, default=None)
             if userConf is None:
                 userConfFile += '.txt'
-                userConf = _readOptions(userConfFile, default=None)
+                userConf = Config.read_file(userConfFile, default=None)
         if userConf is not None:
             return userConf, userConfFile
 
         # home
         userConfFile = os.path.join(compat_expanduser('~'), '%s.conf' % package_name)
-        userConf = _readOptions(userConfFile, default=None)
+        userConf = Config.read_file(userConfFile, default=None)
         if userConf is None:
             userConfFile += '.txt'
-            userConf = _readOptions(userConfFile, default=None)
+            userConf = Config.read_file(userConfFile, default=None)
         if userConf is not None:
             return userConf, userConfFile
 
         return default, None
 
+    def add_config(label, path, user=False):
+        """ Adds config and returns whether to continue """
+        if root.parse_args()[0].ignoreconfig:
+            return False
+        # Multiple package names can be given here
+        # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
+        # the configuration file of any of these three packages
+        for package in ('yt-dlp',):
+            if user:
+                args, current_path = _readUserConf(package, default=None)
+            else:
+                current_path = os.path.join(path, '%s.conf' % package)
+                args = Config.read_file(current_path, default=None)
+            if args is not None:
+                root.append_config(args, current_path, label=label)
+                return True
+        return True
+
+    def load_configs():
+        yield not ignore_config_files
+        yield add_config('Portable', get_executable_path())
+        yield add_config('Home', expand_path(root.parse_args()[0].paths.get('home', '')).strip())
+        yield add_config('User', None, user=True)
+        yield add_config('System', '/etc')
+
+    if all(load_configs()):
+        # If ignoreconfig is found inside the system configuration file,
+        # the user configuration is removed
+        if root.parse_args()[0].ignoreconfig:
+            user_conf = next((i for i, conf in enumerate(root.configs) if conf.label == 'User'), None)
+            if user_conf is not None:
+                root.configs.pop(user_conf)
+
+    opts, args = root.parse_args()
+    if opts.verbose:
+        write_string(f'\n{root}'.replace('\n| ', '\n[debug] ')[1:] + '\n')
+    return parser, opts, args
+
+
+def create_parser():
     def _format_option_string(option):
         ''' ('-o', '--option') -> -o, --format METAVAR'''
 
@@ -119,7 +137,7 @@ def parseOpts(overrideArguments=None):
 
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
-        current = getattr(parser.values, option.dest) if append else []
+        current = list(getattr(parser.values, option.dest)) if append else []
         value = list(filter(None, [process(value)] if delim is None else map(process, value.split(delim))))
         setattr(
             parser.values, option.dest,
@@ -128,7 +146,7 @@ def parseOpts(overrideArguments=None):
     def _set_from_options_callback(
             option, opt_str, value, parser, delim=',', allowed_values=None, aliases={},
             process=lambda x: x.lower().strip()):
-        current = getattr(parser.values, option.dest)
+        current = set(getattr(parser.values, option.dest))
         values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
@@ -152,9 +170,9 @@ def parseOpts(overrideArguments=None):
     def _dict_from_options_callback(
             option, opt_str, value, parser,
             allowed_keys=r'[\w-]+', delimiter=':', default_key=None, process=None, multiple_keys=True,
-            process_key=str.lower):
+            process_key=str.lower, append=False):
 
-        out_dict = getattr(parser.values, option.dest)
+        out_dict = dict(getattr(parser.values, option.dest))
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
         mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
@@ -171,7 +189,8 @@ def parseOpts(overrideArguments=None):
         except Exception as err:
             raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
         for key in keys:
-            out_dict[key] = val
+            out_dict[key] = out_dict.get(key, []) + [val] if append else val
+        setattr(parser.values, option.dest, out_dict)
 
     # No need to wrap help messages if we're on a wide console
     columns = compat_get_terminal_size().columns
@@ -242,14 +261,20 @@ def parseOpts(overrideArguments=None):
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
         help=(
-            'Disable loading any configuration files except the one provided by --config-location. '
-            'When given inside a configuration file, no further configuration files are loaded. '
-            'Additionally, (for backward compatibility) if this option is found inside the '
-            'system configuration file, the user configuration is not loaded'))
+            'Don\'t load any more configuration files except those given by --config-locations. '
+            'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded'))
     general.add_option(
-        '--config-location',
-        dest='config_location', metavar='PATH',
-        help='Location of the main configuration file; either the path to the config or its containing directory')
+        '--no-config-locations',
+        action='store_const', dest='config_locations', const=[],
+        help=(
+            'Do not load any custom configuration files (default). When given inside a '
+            'configuration file, ignore all previous --config-locations defined in the current file'))
+    general.add_option(
+        '--config-locations',
+        dest='config_locations', metavar='PATH', action='append',
+        help=(
+            'Location of the main configuration file; either the path to the config or its containing directory. '
+            'Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -261,7 +286,7 @@ def parseOpts(overrideArguments=None):
     general.add_option(
         '--live-from-start',
         action='store_true', dest='live_from_start',
-        help='Download livestreams from the start. Currently only supported for YouTube')
+        help='Download livestreams from the start. Currently only supported for YouTube (Experimental)')
     general.add_option(
         '--no-live-from-start',
         action='store_false', dest='live_from_start',
@@ -786,7 +811,7 @@ def parseOpts(overrideArguments=None):
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(list_external_downloaders()),
+            'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
             'default_key': 'default',
             'process': compat_shlex_split
         }, help=(
@@ -882,10 +907,17 @@ def parseOpts(overrideArguments=None):
         help='Do not download the video but write all related files (Alias: --no-download)')
     verbosity.add_option(
         '-O', '--print',
-        metavar='TEMPLATE', action='append', dest='forceprint',
-        help=(
-            'Quiet, but print the given fields for each video. Simulate unless --no-simulate is used. '
-            'Either a field name or same syntax as the output template can be used'))
+        metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+            'default_key': 'video',
+            'multiple_keys': False,
+            'append': True,
+        }, help=(
+            'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
+            'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
@@ -1018,7 +1050,7 @@ def parseOpts(overrideArguments=None):
         metavar='[TYPES:]PATH', dest='paths', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'home|temp|%s' % '|'.join(OUTTMPL_TYPES.keys()),
+            'allowed_keys': 'home|temp|%s' % '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
             'default_key': 'home'
         }, help=(
             'The paths where the files should be downloaded. '
@@ -1033,7 +1065,7 @@ def parseOpts(overrideArguments=None):
         metavar='[TYPES:]TEMPLATE', dest='outtmpl', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': '|'.join(OUTTMPL_TYPES.keys()),
+            'allowed_keys': '|'.join(map(re.escape, OUTTMPL_TYPES.keys())),
             'default_key': 'default'
         }, help='Output filename template; see "OUTPUT TEMPLATE" for details')
     filesystem.add_option(
@@ -1270,7 +1302,8 @@ def parseOpts(overrideArguments=None):
         metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': r'\w+(?:\+\w+)?', 'default_key': 'default-compat',
+            'allowed_keys': r'\w+(?:\+\w+)?',
+            'default_key': 'default-compat',
             'process': compat_shlex_split,
             'multiple_keys': False
         }, help=(
@@ -1385,29 +1418,33 @@ def parseOpts(overrideArguments=None):
         dest='ffmpeg_location',
         help='Location of the ffmpeg binary; either the path to the binary or its containing directory')
     postproc.add_option(
-        '--exec', metavar='CMD',
-        action='append', dest='exec_cmd',
-        help=(
-            'Execute a command on the file after downloading and post-processing. '
+        '--exec',
+        metavar='[WHEN:]CMD', dest='exec_cmd', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+            'default_key': 'after_move',
+            'multiple_keys': False,
+            'append': True,
+        }, help=(
+            'Execute a command, optionally prefixed with when to execute it (after_move if unspecified), separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor. '
             'Same syntax as the output template can be used to pass any field as arguments to the command. '
-            'An additional field "filepath" that contains the final path of the downloaded file is also available. '
-            'If no fields are passed, %(filepath)q is appended to the end of the command. '
+            'After download, an additional field "filepath" that contains the final path of the downloaded file '
+            'is also available, and if no fields are passed, %(filepath)q is appended to the end of the command. '
             'This option can be used multiple times'))
     postproc.add_option(
         '--no-exec',
-        action='store_const', dest='exec_cmd', const=[],
+        action='store_const', dest='exec_cmd', const={},
         help='Remove any previously defined --exec')
     postproc.add_option(
         '--exec-before-download', metavar='CMD',
         action='append', dest='exec_before_dl_cmd',
-        help=(
-            'Execute a command before the actual download. '
-            'The syntax is the same as --exec but "filepath" is not available. '
-            'This option can be used multiple times'))
+        help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--no-exec-before-download',
         action='store_const', dest='exec_before_dl_cmd', const=[],
-        help='Remove any previously defined --exec-before-download')
+        help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
@@ -1469,8 +1506,10 @@ def parseOpts(overrideArguments=None):
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
             'It can be one of "pre_process" (after extraction), '
-            '"before_dl" (before video download), "post_process" (after video download; default) '
-            'or "after_move" (after moving file to their final locations). '
+            '"before_dl" (before video download), "post_process" (after video download; default), '
+            '"after_move" (after moving file to their final locations), '
+            '"after_video" (after downloading and processing all formats of a video), '
+            'or "playlist" (end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
@@ -1572,7 +1611,8 @@ def parseOpts(overrideArguments=None):
         '--no-hls-split-discontinuity',
         dest='hls_split_discontinuity', action='store_false',
         help='Do not split HLS playlists to different formats at discontinuities such as ad breaks (default)')
-    _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [val.strip() for val in vals.split(',')])
+    _extractor_arg_parser = lambda key, vals='': (key.strip().lower().replace('-', '_'), [
+        val.replace(r'\,', ',').strip() for val in re.split(r'(?<!\\),', vals)])
     extractor.add_option(
         '--extractor-args',
         metavar='KEY:ARGS', dest='extractor_args', default={}, type='str',
@@ -1618,75 +1658,11 @@ def parseOpts(overrideArguments=None):
     parser.add_option_group(sponsorblock)
     parser.add_option_group(extractor)
 
-    if overrideArguments is not None:
-        opts, args = parser.parse_args(overrideArguments)
-        if opts.verbose:
-            write_string('[debug] Override config: ' + repr(overrideArguments) + '\n')
-    else:
-        def compat_conf(conf):
-            if sys.version_info < (3,):
-                return [a.decode(preferredencoding(), 'replace') for a in conf]
-            return conf
+    return parser
 
-        configs = {
-            'command-line': compat_conf(sys.argv[1:]),
-            'custom': [], 'home': [], 'portable': [], 'user': [], 'system': []}
-        paths = {'command-line': False}
 
-        def read_options(name, path, user=False):
-            ''' loads config files and returns ignoreconfig '''
-            # Multiple package names can be given here
-            # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
-            # the configuration file of any of these three packages
-            for package in ('yt-dlp',):
-                if user:
-                    config, current_path = _readUserConf(package, default=None)
-                else:
-                    current_path = os.path.join(path, '%s.conf' % package)
-                    config = _readOptions(current_path, default=None)
-                if config is not None:
-                    current_path = os.path.realpath(current_path)
-                    if current_path in paths.values():
-                        return False
-                    configs[name], paths[name] = config, current_path
-                    return parser.parse_args(config)[0].ignoreconfig
-            return False
-
-        def get_configs():
-            opts, _ = parser.parse_args(configs['command-line'])
-            if opts.config_location is not None:
-                location = compat_expanduser(opts.config_location)
-                if os.path.isdir(location):
-                    location = os.path.join(location, 'yt-dlp.conf')
-                if not os.path.exists(location):
-                    parser.error('config-location %s does not exist.' % location)
-                config = _readOptions(location, default=None)
-                if config:
-                    configs['custom'], paths['custom'] = config, location
-
-            if opts.ignoreconfig:
-                return
-            if parser.parse_args(configs['custom'])[0].ignoreconfig:
-                return
-            if read_options('portable', get_executable_path()):
-                return
-            opts, _ = parser.parse_args(configs['portable'] + configs['custom'] + configs['command-line'])
-            if read_options('home', expand_path(opts.paths.get('home', '')).strip()):
-                return
-            if read_options('system', '/etc'):
-                return
-            if read_options('user', None, user=True):
-                configs['system'], paths['system'] = [], None
-
-        get_configs()
-        argv = configs['system'] + configs['user'] + configs['home'] + configs['portable'] + configs['custom'] + configs['command-line']
-        opts, args = parser.parse_args(argv)
-        if opts.verbose:
-            for label in ('Command-line', 'Custom', 'Portable', 'Home', 'User', 'System'):
-                key = label.lower()
-                if paths.get(key):
-                    write_string(f'[debug] {label} config file: {paths[key]}\n')
-                if paths.get(key) is not None:
-                    write_string(f'[debug] {label} config: {_hide_login_info(configs[key])!r}\n')
-
-    return parser, opts, args
+def _hide_login_info(opts):
+    write_string(
+        'DeprecationWarning: "yt_dlp.options._hide_login_info" is deprecated and may be removed in a future version. '
+        'Use "yt_dlp.utils.Config.hide_login_info" instead\n')
+    return Config.hide_login_info(opts)

@@ -37,7 +37,10 @@ from .aenetworks import (
     HistoryPlayerIE,
     BiographyIE,
 )
-from .afreecatv import AfreecaTVIE
+from .afreecatv import (
+    AfreecaTVIE,
+    AfreecaTVLiveIE,
+)
 from .airmozilla import AirMozillaIE
 from .aljazeera import AlJazeeraIE
 from .alphaporno import AlphaPornoIE
@@ -190,6 +193,7 @@ from .buzzfeed import BuzzFeedIE
 from .byutv import BYUtvIE
 from .c56 import C56IE
 from .cableav import CableAVIE
+from .callin import CallinIE
 from .cam4 import CAM4IE
 from .camdemy import (
     CamdemyIE,
@@ -376,6 +380,7 @@ from .duboku import (
 )
 from .dumpert import DumpertIE
 from .defense import DefenseGouvFrIE
+from .digitalconcerthall import DigitalConcertHallIE
 from .discovery import DiscoveryIE
 from .discoverygo import (
     DiscoveryGoIE,
@@ -432,6 +437,7 @@ from .espn import (
 )
 from .esri import EsriVideoIE
 from .europa import EuropaIE
+from .europeantour import EuropeanTourIE
 from .euscreen import EUScreenIE
 from .expotv import ExpoTVIE
 from .expressen import ExpressenIE
@@ -656,6 +662,7 @@ from .kankan import KankanIE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
+from .kelbyone import KelbyOneIE
 from .ketnet import KetnetIE
 from .khanacademy import (
     KhanAcademyIE,
@@ -755,6 +762,7 @@ from .mailru import (
     MailRuMusicIE,
     MailRuMusicSearchIE,
 )
+from .mainstreaming import MainStreamingIE
 from .malltv import MallTVIE
 from .mangomolo import (
     MangomoloVideoIE,
@@ -982,6 +990,7 @@ from .nitter import NitterIE
 from .njpwworld import NJPWWorldIE
 from .nobelprize import NobelPrizeIE
 from .nonktube import NonkTubeIE
+from .noodlemagazine import NoodleMagazineIE
 from .noovo import NoovoIE
 from .normalboots import NormalbootsIE
 from .nosvideo import NosVideoIE
@@ -1057,6 +1066,7 @@ from .opencast import (
 from .openrec import (
     OpenRecIE,
     OpenRecCaptureIE,
+    OpenRecMovieIE,
 )
 from .ora import OraTVIE
 from .orf import (
@@ -1179,6 +1189,7 @@ from .pornhub import (
 from .pornotube import PornotubeIE
 from .pornovoisines import PornoVoisinesIE
 from .pornoxo import PornoXOIE
+from .pornez import PornezIE
 from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
@@ -1222,9 +1233,10 @@ from .rai import (
     RaiPlayIE,
     RaiPlayLiveIE,
     RaiPlayPlaylistIE,
+    RaiPlaySoundIE,
+    RaiPlaySoundLiveIE,
+    RaiPlaySoundPlaylistIE,
     RaiIE,
-    RaiPlayRadioIE,
-    RaiPlayRadioPlaylistIE,
 )
 from .raywenderlich import (
     RayWenderlichIE,
@@ -1292,6 +1304,7 @@ from .rtve import (
 from .rtvnh import RTVNHIE
 from .rtvs import RTVSIE
 from .ruhd import RUHDIE
+from .rule34video import Rule34VideoIE
 from .rumble import (
     RumbleEmbedIE,
     RumbleChannelIE,
@@ -1767,6 +1780,7 @@ from .vimeo import (
     VimeoWatchLaterIE,
     VHXEmbedIE,
 )
+from .vimm import VimmIE
 from .vimple import VimpleIE
 from .vine import (
     VineIE,

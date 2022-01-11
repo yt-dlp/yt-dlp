@@ -1,5 +1,6 @@
 all: lazy-extractors yt-dlp doc pypi-files
-clean: clean-test clean-dist clean-cache
+clean: clean-test clean-dist
+clean-all: clean clean-cache
 completions: completion-bash completion-fish completion-zsh
 doc: README.md CONTRIBUTING.md issuetemplates supportedsites
 ot: offlinetest
@@ -21,7 +22,7 @@ clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
-	find . -name "*.pyc" -o -name "*.class" -delete
+	find . \( -name "*.pyc" -o -name "*.class" \) -delete
 
 completion-bash: completions/bash/yt-dlp
 completion-fish: completions/fish/yt-dlp.fish

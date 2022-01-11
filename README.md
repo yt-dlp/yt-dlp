@@ -112,7 +112,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Other new options**: Many new options have been added such as `--print`, `--wait-for-video`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
-* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio etc
+* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, etc
 
 * **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -133,7 +133,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * `--ignore-errors` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
 * When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
 * `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-info-json`. Use `--no-embed-info-json` or `--compat-options no-attach-info-json` to revert this
-* Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](https://github.com/yt-dlp/yt-dlp#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
+* Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
 * `playlist_index` behaves differently when used with options like `--playlist-reverse` and `--playlist-items`. See [#302](https://github.com/yt-dlp/yt-dlp/issues/302) for details. You can use `--compat-options playlist-index` if you want to keep the earlier behavior
 * The output of `-F` is listed in a new format. Use `--compat-options list-formats` to revert this
 * All *experiences* of a funimation episode are considered as a single video. This behavior breaks existing archives. Use `--compat-options seperate-video-versions` to extract information from only the default player
@@ -327,22 +327,26 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      an error. The default value "fixup_error"
                                      repairs broken URLs, but emits an error if
                                      this is not possible instead of searching
-    --ignore-config, --no-config     Disable loading any configuration files
-                                     except the one provided by --config-location.
-                                     When given inside a configuration
-                                     file, no further configuration files are
-                                     loaded. Additionally, (for backward
-                                     compatibility) if this option is found
-                                     inside the system configuration file, the
-                                     user configuration is not loaded
-    --config-location PATH           Location of the main configuration file;
+    --ignore-config                  Don't load any more configuration files
+                                     except those given by --config-locations.
+                                     For backward compatibility, if this option
+                                     is found inside the system configuration
+                                     file, the user configuration is not loaded
+    --no-config-locations            Do not load any custom configuration files
+                                     (default). When given inside a
+                                     configuration file, ignore all previous
+                                     --config-locations defined in the current
+                                     file
+    --config-locations PATH          Location of the main configuration file;
                                      either the path to the config or its
-                                     containing directory
+                                     containing directory. Can be used multiple
+                                     times and inside other configuration files
     --flat-playlist                  Do not extract the videos of a playlist,
                                      only list them
     --no-flat-playlist               Extract the videos of a playlist
     --live-from-start                Download livestreams from the start.
                                      Currently only supported for YouTube
+                                     (Experimental)
     --no-live-from-start             Download livestreams from the current time
                                      (default)
     --wait-for-video MIN[-MAX]       Wait for scheduled streams to become
@@ -662,10 +666,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      formats are found (default)
     --skip-download                  Do not download the video but write all
                                      related files (Alias: --no-download)
-    -O, --print TEMPLATE             Quiet, but print the given fields for each
-                                     video. Simulate unless --no-simulate is
-                                     used. Either a field name or same syntax as
-                                     the output template can be used
+    -O, --print [WHEN:]TEMPLATE      Field name or output template to print to
+                                     screen, optionally prefixed with when to
+                                     print it, separated by a ":". Supported
+                                     values of "WHEN" are the same as that of
+                                     --use-postprocessor, and "video" (default).
+                                     Implies --quiet and --simulate (unless
+                                     --no-simulate is used). This option can be
+                                     used multiple times
     -j, --dump-json                  Quiet, but print JSON information for each
                                      video. Simulate unless --no-simulate is
                                      used. See "OUTPUT TEMPLATE" for a
@@ -894,23 +902,20 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --ffmpeg-location PATH           Location of the ffmpeg binary; either the
                                      path to the binary or its containing
                                      directory
-    --exec CMD                       Execute a command on the file after
-                                     downloading and post-processing. Same
-                                     syntax as the output template can be used
-                                     to pass any field as arguments to the
-                                     command. An additional field "filepath"
+    --exec [WHEN:]CMD                Execute a command, optionally prefixed with
+                                     when to execute it (after_move if
+                                     unspecified), separated by a ":". Supported
+                                     values of "WHEN" are the same as that of
+                                     --use-postprocessor. Same syntax as the
+                                     output template can be used to pass any
+                                     field as arguments to the command. After
+                                     download, an additional field "filepath"
                                      that contains the final path of the
-                                     downloaded file is also available. If no
-                                     fields are passed, %(filepath)q is appended
-                                     to the end of the command. This option can
-                                     be used multiple times
-    --no-exec                        Remove any previously defined --exec
-    --exec-before-download CMD       Execute a command before the actual
-                                     download. The syntax is the same as --exec
-                                     but "filepath" is not available. This
+                                     downloaded file is also available, and if
+                                     no fields are passed, %(filepath)q is
+                                     appended to the end of the command. This
                                      option can be used multiple times
-    --no-exec-before-download        Remove any previously defined
-                                     --exec-before-download
+    --no-exec                        Remove any previously defined --exec
     --convert-subs FORMAT            Convert the subtitles to another format
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
@@ -949,10 +954,12 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      "pre_process" (after extraction),
                                      "before_dl" (before video download),
                                      "post_process" (after video download;
-                                     default) or "after_move" (after moving file
-                                     to their final locations). This option can
-                                     be used multiple times to add different
-                                     postprocessors
+                                     default), "after_move" (after moving file
+                                     to their final locations), "after_video"
+                                     (after downloading and processing all
+                                     formats of a video), or "playlist" (end of
+                                     playlist). This option can be used multiple
+                                     times to add different postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1090,7 +1097,7 @@ The field names themselves (the part inside the parenthesis) can also have some 
 
 1. **Default**: A literal default value can be specified for when the field is empty using a `|` separator. This overrides `--output-na-template`. Eg: `%(uploader|Unknown)s`
 
-1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q`, `D`, `S` can be used for converting to **B**ytes, **j**son (flag `#` for pretty-printing), a comma separated **l**ist (flag `#` for `\n` newline-separated), a string **q**uoted for the terminal (flag `#` to split a list into different arguments), to add **D**ecimal suffixes (Eg: 10M), and to **S**anitize as filename (flag `#` for restricted), respectively
+1. **More Conversions**: In addition to the normal format types `diouxXeEfFgGcrs`, `B`, `j`, `l`, `q`, `D`, `S` can be used for converting to **B**ytes, **j**son (flag `#` for pretty-printing), a comma separated **l**ist (flag `#` for `\n` newline-separated), a string **q**uoted for the terminal (flag `#` to split a list into different arguments), to add **D**ecimal suffixes (Eg: 10M) (flag `#` to use 1024 as factor), and to **S**anitize as filename (flag `#` for restricted), respectively
 
 1. **Unicode normalization**: The format type `U` can be used for NFC [unicode normalization](https://docs.python.org/3/library/unicodedata.html#unicodedata.normalize). The alternate form flag (`#`) changes the normalization to NFD and the conversion flag `+` can be used for NFKC/NFKD compatibility equivalence normalization. Eg: `%(title)+.100U` is NFKC
 
@@ -1115,8 +1122,10 @@ The available fields are:
  - `creator` (string): The creator of the video
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date (YYYYMMDD)
- - `release_date` (string): The date (YYYYMMDD) when the video was released
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
+ - `release_date` (string): The date (YYYYMMDD) when the video was released
+ - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
+ - `modified_date` (string): The date (YYYYMMDD) when the video was last modified
  - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
@@ -1159,8 +1168,10 @@ The available fields are:
  - `extractor_key` (string): Key name of the extractor
  - `epoch` (numeric): Unix epoch when creating the file
  - `autonumber` (numeric): Number that will be increased with each download, starting at `--autonumber-start`
+ - `video_autonumber` (numeric): Number that will be increased with each video
  - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist` (string): Name or id of the playlist that contains the video
+ - `playlist_count` (numeric): Total number of items in the playlist. May not be known if entire playlist is not extracted
  - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
  - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_id` (string): Playlist identifier
@@ -1212,6 +1223,11 @@ Available only when used in `--print`:
 
  - `urls` (string): The URLs of all requested formats, one in each line
  - `filename` (string): Name of the video file. Note that the actual filename may be different due to post-processing. Use `--exec echo` to get the name after all postprocessing is complete
+ - `formats_table` (table): The video format table as printed by `--list-formats`
+ - `thumbnails_table` (table): The thumbnail format table as printed by `--list-thumbnails`
+ - `subtitles_table` (table): The subtitle format table as printed by `--list-subs`
+ - `automatic_captions_table` (table): The automatic subtitle format table as printed by `--list-subs`
+ 
  
 Available only in `--sponsorblock-chapter-title`:
 
@@ -1547,7 +1563,7 @@ Note that any field created by this can be used in the [output template](#output
 
 This option also has a few special uses:
 * You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. Eg: `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
-* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis". Any value set to the `meta_` field will overwrite all default values.
+* You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (Eg: `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
 For reference, these are the fields yt-dlp adds by default to the file metadata:
 
@@ -1630,6 +1646,11 @@ The following extractors use this feature:
 
 #### gamejolt
 * `comment_sort`: `hot` (default), `you` (cookies needed), `top`, `new` - choose comment sorting mode (on GameJolt's side)
+
+#### hotstar
+* `res`: resolution to ignore - one or more of `sd`, `hd`, `fhd`
+* `vcodec`: vcodec to ignore - one or more of `h264`, `h265`, `dvh265`
+* `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
@@ -1772,6 +1793,14 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
 These are all the deprecated options and the current alternative to achieve the same effect
 
+#### Almost redundant options
+While these options are almost the same as their new counterparts, there are some differences that prevents them being redundant
+
+    -j, --dump-json                  --print "%()j"
+    -F, --list-formats               --print formats_table
+    --list-thumbnails                --print thumbnails_table
+    --list-subs                      --print automatic_captions_table --print subtitles_table
+
 #### Redundant options
 While these options are redundant, they are still expected to be used due to their ease of use
 
@@ -1783,7 +1812,6 @@ While these options are redundant, they are still expected to be used due to the
     --get-thumbnail                  --print thumbnail
     -e, --get-title                  --print title
     -g, --get-url                    --print urls
-    -j, --dump-json                  --print "%()j"
     --match-title REGEX              --match-filter "title ~= (?i)REGEX"
     --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
     --min-views COUNT                --match-filter "view_count >=? COUNT"
@@ -1793,6 +1821,8 @@ While these options are redundant, they are still expected to be used due to the
 #### Not recommended
 While these options still work, their use is not recommended since there are other alternatives to achieve the same
 
+    --exec-before-download CMD       --exec "before_dl:CMD"
+    --no-exec-before-download        --no-exec
     --all-formats                    -f all
     --all-subs                       --sub-langs all --write-subs
     --print-json                     -j --no-simulate
