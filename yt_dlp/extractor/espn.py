@@ -6,13 +6,15 @@ import base64
 from .common import InfoExtractor
 from .adobepass import AdobePassIE
 from .once import OnceIE
-from ..compat import compat_str, compat_urllib_parse_quote_plus
+from ..compat import (
+    compat_str,
+    compat_urllib_parse_quote_plus
+)
 from ..utils import (
     determine_ext,
     dict_get,
     ExtractorError,
     int_or_none,
-    try_get,
     unified_strdate,
     unified_timestamp,
 )
