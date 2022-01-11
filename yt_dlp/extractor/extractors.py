@@ -1189,6 +1189,7 @@ from .pornhub import (
 from .pornotube import PornotubeIE
 from .pornovoisines import PornoVoisinesIE
 from .pornoxo import PornoXOIE
+from .porntrex import PorntrexIE
 from .pornez import PornezIE
 from .puhutv import (
     PuhuTVIE,
