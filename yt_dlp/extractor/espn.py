@@ -284,9 +284,8 @@ class WatchESPNIE(AdobePassIE):
         'info_dict': {
             'id': '6eee6cb0-1795-49e3-84ea-766b517e0309',
             'ext': 'mp4',
-            'title': 'Miami vs. #2 Duke (M Basketball)',
+            'title': 'Miami vs. #2 Duke',
             'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/6eee6cb0-1795-49e3-84ea-766b517e0309/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
-            'duration': 7200
         },
         'params': {
             'skip_download': True,
@@ -296,10 +295,10 @@ class WatchESPNIE(AdobePassIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_data = self._download_json(
-            'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/event?id=%s' % video_id, video_id)['page']['contents']
+            'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/playback/event?id=%s' % video_id, video_id)['playbackState']
         title = video_data['name']
 
-        if try_get(video_data, lambda x: x['streams'][0]['source']['name']) == 'ESPN+':
+        if video_data.get('sourceId') == 'ESPN_DTC':
             raise ExtractorError('ESPN+ streams are not currently supported', expected=True)
 
         resource = self._get_mvpd_resource('ESPN', title, video_id, None)
@@ -317,6 +316,5 @@ class WatchESPNIE(AdobePassIE):
             'id': video_id,
             'title': title,
             'formats': formats,
-            'thumbnail': video_data.get('imageHref'),
-            'duration': try_get(video_data, lambda x: x['streams'][0]['durationInSeconds']),
+            'thumbnail': video_data.get('posterHref'),
         }
