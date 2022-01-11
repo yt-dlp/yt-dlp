@@ -2,18 +2,15 @@
 from __future__ import unicode_literals
 
 import re
-from urllib.parse import (
-    urlencode,
-    urlparse,
-)
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     determine_ext,
+    ExtractorError,
     int_or_none,
+    parse_qs,
     smuggle_url,
-    try_get,
     unescapeHTML,
     unsmuggle_url,
 )
@@ -25,6 +22,8 @@ class GlomexBaseIE(InfoExtractor):
 
     @staticmethod
     def _smuggle_origin_url(url, origin_url):
+        if origin_url is None:
+            return url
         return smuggle_url(url, {'origin': origin_url})
 
     @classmethod
@@ -61,50 +60,15 @@ class GlomexBaseIE(InfoExtractor):
         videos = api_data['videos']
         if not videos:
             raise ExtractorError('no videos found for %s' % video_id)
-        if len(videos) == 1:
-            return self._extract_api_data(videos[0], video_id)
-        # assume some kind of playlist
-        videos = [
-            self._extract_api_data(video, video_id)
-            for video in videos
-        ]
-        return self.playlist_result(videos, video_id)
+        videos = [self._extract_api_data(video, video_id) for video in videos]
+        return videos[0] if len(videos) == 1 else self.playlist_result(videos, video_id)
 
     def _extract_api_data(self, video, video_id):
         if video.get('error_code') == 'contentGeoblocked':
             self.raise_geo_restricted(countries=video['geo_locations'])
-        info = self._extract_info(video, video_id)
-        info['formats'], info['subtitles'] = self._extract_formats_and_subs(video, video_id)
-        return info
 
-    def _extract_info(self, video, video_id=None):
-        def append_image_url(url, default='profile:player-960x540'):
-            if url:
-                return '%s/%s' % (url, default)
-        thumbnail = append_image_url(try_get(video,
-                                             lambda x: x['image']['url']))
-        thumbnails = [{
-            'id': image.get('id'),
-            'url': append_image_url(image['url']),
-            'width': 960,
-            'height': 540,
-        } for image in video.get('images') or [] if image.get('url')]
-        if thumbnail:
-            thumbnails.append({'url': thumbnail})
-        self._remove_duplicate_formats(thumbnails)
-
-        return {
-            'id': video.get('clip_id') or video_id,
-            'title': video.get('title'),
-            'description': video.get('description'),
-            'thumbnails': thumbnails,
-            'duration': int_or_none(video.get('clip_duration')),
-            'timestamp': video.get('created_at'),
-        }
-
-    def _extract_formats_and_subs(self, options, video_id):
         formats, subs = [], {}
-        for format_id, format_url in options['source'].items():
+        for format_id, format_url in video['source'].items():
             ext = determine_ext(format_url)
             if ext == 'm3u8':
                 formats_, subs_ = self._extract_m3u8_formats_and_subtitles(
@@ -117,11 +81,29 @@ class GlomexBaseIE(InfoExtractor):
                     'url': format_url,
                     'format_id': format_id,
                 })
-        if options.get('language'):
-            for format in formats:
-                format['language'] = options['language']
+        if video.get('language'):
+            for fmt in formats:
+                fmt['language'] = video['language']
         self._sort_formats(formats)
-        return formats, subs
+
+        thumbnails = [{
+            'id': image.get('id'),
+            'url': f'{image["url"]}/profile:player-960x540',
+            'width': 960,
+            'height': 540,
+        } for image in (video.get('images') or []) + [video.get('image') or {}] if image.get('url')]
+        self._remove_duplicate_formats(thumbnails)
+
+        return {
+            'id': video.get('clip_id') or video_id,
+            'title': video.get('title'),
+            'description': video.get('description'),
+            'thumbnails': thumbnails,
+            'duration': int_or_none(video.get('clip_duration')),
+            'timestamp': video.get('created_at'),
+            'formats': formats,
+            'subtitles': subs,
+        }
 
 
 class GlomexIE(GlomexBaseIE):
@@ -169,39 +151,28 @@ class GlomexEmbedIE(GlomexBaseIE):
             'description': 'md5:e741185fc309310ff5d0c789b437be66',
             'title': 'md5:35647293513a6c92363817a0fb0a7961',
         },
-        'params': {
-            'skip_download': True,
-        },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?origin=fullpage&integrationId=19syy24xjn1oqlpc&playlistId=rl-vcb49w1fb592p&playlistIndex=0',
         'info_dict': {
             'id': 'rl-vcb49w1fb592p',
         },
         'playlist_count': 100,
-        'params': {
-            'skip_download': True,
-        },
     }, {
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?playlistId=cl-bgqaata6aw8x&integrationId=19syy24xjn1oqlpc',
         'info_dict': {
             'id': 'cl-bgqaata6aw8x',
         },
         'playlist_mincount': 2,
-        'params': {
-            'skip_download': True,
-        },
     }]
 
     @classmethod
     def build_player_url(cls, video_id, integration, origin_url=None):
-        query_string = urlencode({
+        query_string = urllib.parse.urlencode({
             'playlistId': video_id,
             'integrationId': integration,
         })
-        player_url = 'https:%s?%s' % (cls._BASE_PLAYER_URL, query_string)
-        if origin_url is not None:
-            player_url = cls._smuggle_origin_url(player_url, origin_url)
-        return player_url
+        return cls._smuggle_origin_url(f'https:{cls._BASE_PLAYER_URL}?{query_string}', origin_url)
 
     @classmethod
     def _extract_urls(cls, webpage, origin_url):
