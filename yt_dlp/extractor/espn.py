@@ -194,7 +194,7 @@ class ESPNArticleIE(InfoExtractor):
 
     @classmethod
     def suitable(cls, url):
-        return False if ESPNIE.suitable(url) else super(ESPNArticleIE, cls).suitable(url)
+        return False if (ESPNIE.suitable(url) or WatchESPNIE.suitable(url)) else super(ESPNArticleIE, cls).suitable(url)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
