@@ -20,13 +20,13 @@ from ..utils import (
     get_element_by_id,
     int_or_none,
     js_to_json,
-    limit_length,
     merge_dicts,
     network_exceptions,
     parse_count,
     parse_qs,
     qualities,
     sanitized_Request,
+    traverse_obj,
     try_get,
     url_or_none,
     urlencode_postdata,
@@ -398,28 +398,31 @@ class FacebookIE(InfoExtractor):
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
         def extract_metadata(webpage):
-            video_title = self._html_search_regex(
-                r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>([^<]*)</h2>', webpage,
-                'title', default=None)
-            if not video_title:
-                video_title = self._html_search_regex(
-                    r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(.*?)</span>',
-                    webpage, 'alternative title', default=None)
-            if not video_title:
-                video_title = self._html_search_meta(
-                    ['og:title', 'twitter:title', 'description'],
-                    webpage, 'title', default=None)
-            if video_title:
-                video_title = limit_length(video_title, 80)
-            else:
-                video_title = 'Facebook video #%s' % video_id
-            description = self._html_search_meta(
+            media_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+                r'handleWithCustomApplyEach\(\s*ScheduledApplyEach\s*,\s*(\{.+?\})\s*\);', webpage)]
+            media = traverse_obj(media_data, (
+                ..., 'require', ..., ..., ..., '__bbox', 'result', 'data', 'attachments', ..., 'media'), expected_type=dict)
+            media = [m for m in media if str(m.get('id')) == video_id and m.get('__typename') == 'Video']
+
+            video_title = traverse_obj(media, (..., 'title', 'text'), get_all=False)
+            description = traverse_obj(media, (
+                ..., 'creation_story', 'comet_sections', 'message', 'story', 'message', 'text'), get_all=False)
+            uploader = traverse_obj(media, (..., 'owner', 'name'), get_all=False)
+            uploader_id = traverse_obj(media, (..., 'owner', 'id'), get_all=False)
+
+            video_title = video_title or self._html_search_regex((
+                r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
+                r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
+                self._meta_regex('og:title'), self._meta_regex('twitter:title'), self._meta_regex('description'),
+            ), webpage, 'title', default=None, group='content')
+            description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
                 webpage, 'description', default=None)
-            uploader = clean_html(get_element_by_id(
-                'fbPhotoPageAuthorName', webpage)) or self._search_regex(
-                r'ownerName\s*:\s*"([^"]+)"', webpage, 'uploader',
-                default=None) or self._og_search_title(webpage, fatal=False)
+            uploader = uploader or (
+                clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
+                or self._search_regex(
+                    (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
+
             timestamp = int_or_none(self._search_regex(
                 r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
                 'timestamp', default=None))
@@ -434,17 +437,17 @@ class FacebookIE(InfoExtractor):
                 r'\bviewCount\s*:\s*["\']([\d,.]+)', webpage, 'view count',
                 default=None))
             info_dict = {
-                'title': video_title,
+                'title': video_title or description.replace('\n', ' ') or f'Facebook video #{video_id}',
                 'description': description,
                 'uploader': uploader,
+                'uploader_id': uploader_id,
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
                 'view_count': view_count,
             }
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
             if info_json_ld.get('title'):
-                info_json_ld['title'] = limit_length(
-                    re.sub(r'\s*\|\s*Facebook$', '', info_json_ld['title']), 80)
+                info_json_ld['title'] = re.sub(r'\s*\|\s*Facebook$', '', info_json_ld['title'])
             return merge_dicts(info_json_ld, info_dict)
 
         video_data = None
