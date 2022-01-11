@@ -155,9 +155,8 @@ class GlomexIE(GlomexBaseIE):
 class GlomexEmbedIE(GlomexBaseIE):
     IE_NAME = 'glomex:embed'
     IE_DESC = 'Glomex embedded videos'
-    _BASE_PLAYER_URL = 'https://player.glomex.com/integration/1/iframe-player.html'
-    _VALID_URL = r'''(?x)https?://player\.glomex\.com/integration/[^/]+/iframe-player\.html
-        \?(?:(?:integrationId=(?P<integration>[^&#]+)|playlistId=(?P<id>[^&#]+)|[^&=#]+=[^&#]+)&?)+'''
+    _BASE_PLAYER_URL = '//player.glomex.com/integration/1/iframe-player.html'
+    _VALID_URL = rf'https?:{re.escape(_BASE_PLAYER_URL)}\?([^#]+&)?playlistId=(?P<id>[^#&]+)'
 
     _TESTS = [{
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?integrationId=4059a013k56vb2yd&playlistId=v-cfa6lye0dkdd-sf',
@@ -199,23 +198,16 @@ class GlomexEmbedIE(GlomexBaseIE):
             'playlistId': video_id,
             'integrationId': integration,
         })
-        player_url = '%s?%s' % (cls._BASE_PLAYER_URL, query_string)
+        player_url = 'https:%s?%s' % (cls._BASE_PLAYER_URL, query_string)
         if origin_url is not None:
             player_url = cls._smuggle_origin_url(player_url, origin_url)
         return player_url
 
     @classmethod
     def _extract_urls(cls, webpage, origin_url):
-        # make the scheme in _VALID_URL optional
-        _URL_RE = r'(?:https?:)?//' + cls._VALID_URL.split('://', 1)[1]
-        # simplify the query string part of _VALID_URL; after extracting iframe
-        # src, the URL will be matched again
-        _URL_RE = _URL_RE.split(r'\?', 1)[0] + r'\?(?:(?!(?P=_q1)).)+'
-        # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
-        EMBED_RE = r'''(?x)
-        (?:
-            <iframe[^>]+?src=(?P<_q1>%(quot_re)s)
-                (?P<url>%(url_re)s)(?P=_q1)|
+        EMBED_RE = r'''(?x)(?:
+            <iframe[^>]+?src=(?P<_q1>%(quot_re)s)(?P<url>%(url_re)s)(?P=_q1)|
+            # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
             <(?P<html_tag>glomex-player|div)(?:
                 data-integration-id=(?P<_q2>%(quot_re)s)(?P<integration_html>(?:(?!(?P=_q2)).)+)(?P=_q2)|
                 data-playlist-id=(?P<_q3>%(quot_re)s)(?P<id_html>(?:(?!(?P=_q3)).)+)(?P=_q3)|
@@ -228,39 +220,34 @@ class GlomexEmbedIE(GlomexBaseIE):
                     (?P<_q5>%(quot_re)s)(?P<integration_js>(?:(?!(?P=_q5)).)+)(?P=_q5)\s*(?(_stjs1);|,)?|
                 (?P<_stjs2>dataset\.)?playlistId\s*(?(_stjs2)=|:)\s*
                     (?P<_q6>%(quot_re)s)(?P<id_js>(?:(?!(?P=_q6)).)+)(?P=_q6)\s*(?(_stjs2);|,)?|
-                (?:\s|.)*?
+                [^>]*?
             )+</script>
-        )
-        ''' % {'quot_re': r'["\']', 'url_re': _URL_RE}
+        )''' % {'quot_re': r'["\']', 'url_re': rf'(?:https?:)?{re.escape(cls._BASE_PLAYER_URL)}\?(?:(?!(?P=_q1)).)+'}
+
         for mobj in re.finditer(EMBED_RE, webpage):
-            url, html_tag, video_id_html, integration_html, glomex_player, \
-                script_tag, video_id_js, integration_js = \
-                mobj.group('url', 'html_tag', 'id_html',
-                           'integration_html', 'glomex_player', 'script_tag',
-                           'id_js', 'integration_js')
-            if url:
-                url = unescapeHTML(url)
+            mdict = mobj.groupdict()
+            if mdict.get('url'):
+                url = unescapeHTML(mdict['url'])
                 if url.startswith('//'):
-                    scheme = urlparse(origin_url).scheme \
-                        if origin_url else 'https'
-                    url = '%s:%s' % (scheme, url)
+                    url = f'https:{url}'
                 if not cls.suitable(url):
                     continue
                 yield cls._smuggle_origin_url(url, origin_url)
-            elif html_tag:
-                if html_tag == "div" and not glomex_player:
+            elif mdict.get('html_tag'):
+                if mdict['html_tag'] == 'div' and not mdict.get('glomex_player'):
                     continue
-                if not video_id_html or not integration_html:
+                if not mdict.get('video_id_html') or not mdict.get('integration_html'):
                     continue
-                yield cls.build_player_url(video_id_html, integration_html,
-                                           origin_url)
-            elif script_tag:
-                if not video_id_js or not integration_js:
+                yield cls.build_player_url(mdict['video_id_html'], mdict['integration_html'], origin_url)
+            elif mdict.get('script_tag'):
+                if not mdict.get('video_id_js') or not mdict.get('integration_js'):
                     continue
-                yield cls.build_player_url(video_id_js, integration_js,
-                                           origin_url)
+                yield cls.build_player_url(mdict['video_id_js'], mdict['integration_js'], origin_url)
 
     def _real_extract(self, url):
         url, origin_url = self._unsmuggle_origin_url(url)
-        video_id, integration = self._match_valid_url(url).group('id', 'integration')
-        return self._download_and_extract_api_data(video_id, integration, origin_url)
+        playlist_id = self._match_id(url)
+        integration = parse_qs(url).get('integrationId', [None])[0]
+        if not integration:
+            raise ExtractorError('No integrationId in URL', expected=True)
+        return self._download_and_extract_api_data(playlist_id, integration, origin_url)
