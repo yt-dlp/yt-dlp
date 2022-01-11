@@ -97,6 +97,10 @@ class TwitCastingIE(InfoExtractor):
             'Downloading live info', fatal=False)
 
         is_live = 'data-status="online"' in webpage
+
+        if not traverse_obj(stream_server_data, 'llfmp4') and is_live:
+            raise ExtractorError('You must be logged in to watch.', expected=True)
+
         formats = []
         if is_live and not m3u8_url:
             m3u8_url = 'https://twitcasting.tv/%s/metastream.m3u8' % uploader_id
