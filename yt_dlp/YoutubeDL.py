@@ -2758,6 +2758,16 @@ class YoutubeDL(object):
             new_info['http_headers'] = self._calc_headers(new_info)
         return fd.download(name, new_info, subtitle)
 
+    def existing_file(self, filepaths, *, default_overwrite=True):
+        existing_files = list(filter(os.path.exists, orderedSet(filepaths)))
+        if existing_files and not self.params.get('overwrites', default_overwrite):
+            return existing_files[0]
+
+        for file in existing_files:
+            self.report_file_delete(file)
+            os.remove(file)
+        return None
+
     def process_info(self, info_dict):
         """Process a single resolved IE result. (Modified it in-place)"""
 
@@ -2903,26 +2913,14 @@ class YoutubeDL(object):
             info_dict.setdefault('__postprocessors', [])
             try:
 
-                def existing_file(*filepaths):
+                def existing_video_file(*filepaths):
                     ext = info_dict.get('ext')
-                    final_ext = self.params.get('final_ext', ext)
-                    existing_files = []
-                    for file in orderedSet(filepaths):
-                        if final_ext != ext:
-                            converted = replace_extension(file, final_ext, ext)
-                            if os.path.exists(encodeFilename(converted)):
-                                existing_files.append(converted)
-                        if os.path.exists(encodeFilename(file)):
-                            existing_files.append(file)
-
-                    if not existing_files or self.params.get('overwrites', False):
-                        for file in orderedSet(existing_files):
-                            self.report_file_delete(file)
-                            os.remove(encodeFilename(file))
-                        return None
-
-                    info_dict['ext'] = os.path.splitext(existing_files[0])[1][1:]
-                    return existing_files[0]
+                    converted = lambda file: replace_extension(file, self.params.get('final_ext') or ext, ext)
+                    file = self.existing_file(itertools.chain(*zip(map(converted, filepaths), filepaths)),
+                                              default_overwrite=False)
+                    if file:
+                        info_dict['ext'] = os.path.splitext(file)[1][1:]
+                    return file
 
                 success = True
                 if info_dict.get('requested_formats') is not None:
@@ -2976,7 +2974,7 @@ class YoutubeDL(object):
                     # Ensure filename always has a correct extension for successful merge
                     full_filename = correct_ext(full_filename)
                     temp_filename = correct_ext(temp_filename)
-                    dl_filename = existing_file(full_filename, temp_filename)
+                    dl_filename = existing_video_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
 
                     downloaded = []
@@ -3039,7 +3037,7 @@ class YoutubeDL(object):
                             files_to_move[file] = None
                 else:
                     # Just a single file
-                    dl_filename = existing_file(full_filename, temp_filename)
+                    dl_filename = existing_video_file(full_filename, temp_filename)
                     if dl_filename is None or dl_filename == temp_filename:
                         # dl_filename == temp_filename could mean that the file was partially downloaded with --no-part.
                         # So we should try to resume the download
@@ -3758,10 +3756,11 @@ class YoutubeDL(object):
             sub_format = sub_info['ext']
             sub_filename = subtitles_filename(filename, sub_lang, sub_format, info_dict.get('ext'))
             sub_filename_final = subtitles_filename(sub_filename_base, sub_lang, sub_format, info_dict.get('ext'))
-            if not self.params.get('overwrites', True) and os.path.exists(sub_filename):
+            existing_sub = self.existing_file((sub_filename_final, sub_filename))
+            if existing_sub:
                 self.to_screen(f'[info] Video subtitle {sub_lang}.{sub_format} is already present')
-                sub_info['filepath'] = sub_filename
-                ret.append((sub_filename, sub_filename_final))
+                sub_info['filepath'] = existing_sub
+                ret.append((existing_sub, sub_filename_final))
                 continue
 
             self.to_screen(f'[info] Writing video subtitles to: {sub_filename}')
@@ -3810,11 +3809,12 @@ class YoutubeDL(object):
             thumb_filename = replace_extension(filename, thumb_ext, info_dict.get('ext'))
             thumb_filename_final = replace_extension(thumb_filename_base, thumb_ext, info_dict.get('ext'))
 
-            if not self.params.get('overwrites', True) and os.path.exists(thumb_filename):
-                ret.append((thumb_filename, thumb_filename_final))
-                t['filepath'] = thumb_filename
+            existing_thumb = self.existing_file((thumb_filename_final, thumb_filename))
+            if existing_thumb:
                 self.to_screen('[info] %s is already present' % (
                     thumb_display_id if multiple else f'{label} thumbnail').capitalize())
+                t['filepath'] = existing_thumb
+                ret.append((existing_thumb, thumb_filename_final))
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
