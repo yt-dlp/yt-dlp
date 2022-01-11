@@ -82,7 +82,7 @@ class StreamCZIE(InfoExtractor):
         video = metadata['data']
 
         subtitles = {}
-        for subs in video.get('subtitles').values() or []:
+        for subs in video.get('subtitles', {}).values():
             if not subs.get('language'):
                 continue
             for ext, sub_url in subs.get('urls').items():
