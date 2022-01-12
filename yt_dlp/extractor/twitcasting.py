@@ -26,7 +26,6 @@ from ..utils import (
 class TwitCastingIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/(?:movie|twplayer)/(?P<id>\d+)'
     _M3U8_HEADERS = {
-        'Accept': '*/*',
         'Origin': 'https://twitcasting.tv',
         'Referer': 'https://twitcasting.tv/',
     }
