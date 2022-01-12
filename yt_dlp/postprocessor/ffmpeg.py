@@ -13,6 +13,7 @@ from .common import AudioConversionError, PostProcessor
 
 from ..compat import compat_str
 from ..utils import (
+    determine_ext,
     dfxp2srt,
     encodeArgument,
     encodeFilename,
@@ -191,6 +192,18 @@ class FFmpegPostProcessor(PostProcessor):
     def probe_executable(self):
         return self._paths[self.probe_basename]
 
+    @staticmethod
+    def stream_copy_opts(copy=True, *, ext=None):
+        yield from ('-map', '0')
+        # Don't copy Apple TV chapters track, bin_data
+        # See https://github.com/yt-dlp/yt-dlp/issues/2, #19042, #19024, https://trac.ffmpeg.org/ticket/6016
+        yield '-dn'
+        if copy:
+            yield from ('-c', 'copy')
+        # For some reason, '-c copy -map 0' is not enough to copy subtitles
+        if ext in ('mp4', 'mov'):
+            yield from ('-c:s', 'mov_text')
+
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
             raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
@@ -352,8 +365,9 @@ class FFmpegPostProcessor(PostProcessor):
             timestamps = timestamps[1:]
         keyframe_file = prepend_extension(filename, 'keyframes.temp')
         self.to_screen(f'Re-encoding "{filename}" with appropriate keyframes')
-        self.run_ffmpeg(filename, keyframe_file, ['-force_key_frames', ','.join(
-            f'{t:.6f}' for t in timestamps)])
+        self.run_ffmpeg(filename, keyframe_file, [
+            *self.stream_copy_opts(False, ext=determine_ext(filename)),
+            '-force_key_frames', ','.join(f'{t:.6f}' for t in timestamps)])
         return keyframe_file
 
     def concat_files(self, in_files, out_file, concat_opts=None):
@@ -368,10 +382,7 @@ class FFmpegPostProcessor(PostProcessor):
         with open(concat_file, 'wt', encoding='utf-8') as f:
             f.writelines(self._concat_spec(in_files, concat_opts))
 
-        out_flags = ['-c', 'copy']
-        if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
-            # For some reason, '-c copy' is not enough to copy subtitles
-            out_flags.extend(['-c:s', 'mov_text'])
+        out_flags = list(self.stream_copy_opts(ext=determine_ext(out_file)))
 
         try:
             self.real_run_ffmpeg(
@@ -574,7 +585,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        return ['-c', 'copy', '-map', '0', '-dn']
+        return FFmpegPostProcessor.stream_copy_opts()
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
@@ -634,16 +645,11 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         input_files = [filename] + sub_filenames
 
         opts = [
-            '-c', 'copy', '-map', '0', '-dn',
+            *self.stream_copy_opts(ext=info['ext']),
             # Don't copy the existing subtitles, we may be running the
             # postprocessor a second time
             '-map', '-0:s',
-            # Don't copy Apple TV chapters track, bin_data (see #19042, #19024,
-            # https://trac.ffmpeg.org/ticket/6016)
-            '-map', '-0:d',
         ]
-        if info['ext'] == 'mp4':
-            opts += ['-c:s', 'mov_text']
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
             opts.extend(['-map', '%d:0' % (i + 1)])
             lang_code = ISO639Utils.short2long(lang) or lang
@@ -671,11 +677,10 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
-        yield from ('-map', '0', '-dn')
-        if target_ext == 'm4a':
+        audio_only = target_ext == 'm4a'
+        yield from FFmpegPostProcessor.stream_copy_opts(not audio_only)
+        if audio_only:
             yield from ('-vn', '-acodec', 'copy')
-        else:
-            yield from ('-c', 'copy')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
@@ -859,7 +864,7 @@ class FFmpegFixupStretchedPP(FFmpegFixupPostProcessor):
         stretched_ratio = info.get('stretched_ratio')
         if stretched_ratio not in (None, 1):
             self._fixup('Fixing aspect ratio', info['filepath'], [
-                '-c', 'copy', '-map', '0', '-dn', '-aspect', '%f' % stretched_ratio])
+                *self.stream_copy_opts(), '-aspect', '%f' % stretched_ratio])
         return [], info
 
 
@@ -867,8 +872,7 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False, video=False)
     def run(self, info):
         if info.get('container') == 'm4a_dash':
-            self._fixup('Correcting container', info['filepath'], [
-                '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4'])
+            self._fixup('Correcting container', info['filepath'], [*self.stream_copy_opts(), '-f', 'mp4'])
         return [], info
 
 
@@ -888,7 +892,7 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
     def run(self, info):
         if all(self._needs_fixup(info)):
             self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
-                '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
+                *self.stream_copy_opts(), '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
         return [], info
 
 
@@ -909,7 +913,7 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
-        self._fixup('Fixing frame timestamp', info['filepath'], opts + ['-map', '0', '-dn', '-ss', self.trim])
+        self._fixup('Fixing frame timestamp', info['filepath'], opts + [*self.stream_copy_opts(False), '-ss', self.trim])
         return [], info
 
 
@@ -918,7 +922,7 @@ class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup(self.MESSAGE, info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
+        self._fixup(self.MESSAGE, info['filepath'], self.stream_copy_opts())
         return [], info
 
 
@@ -1046,7 +1050,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
-            self.real_run_ffmpeg([(in_file, opts)], [(destination, ['-c', 'copy'])])
+            self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])
         if in_file != info['filepath']:
             os.remove(in_file)
         return [], info

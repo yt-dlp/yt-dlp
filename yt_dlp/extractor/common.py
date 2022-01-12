@@ -375,6 +375,7 @@ class InfoExtractor(object):
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
     release_year:   Year (YYYY) when the album was released.
+    composer:       Composer of the piece
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 
