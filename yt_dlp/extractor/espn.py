@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import re
 import base64
+import json
 
 from .common import InfoExtractor
 from .adobepass import AdobePassIE
@@ -292,7 +293,33 @@ class WatchESPNIE(AdobePassIE):
         'params': {
             'skip_download': True,
         },
+    }, {
+        'url': 'https://www.espn.com/watch/player/_/id/bd1f3d12-0654-47d9-852e-71b85ea695c7',
+        'info_dict': {
+            'id': 'bd1f3d12-0654-47d9-852e-71b85ea695c7',
+            'ext': 'mp4',
+            'title': 'Tue, 1/11 - ESPN FC',
+            'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
+
+    _API_KEY = 'ZXNwbiZicm93c2VyJjEuMC4w.ptUt7QxsteaRruuPmGZFaJByOoqKvDP2a5YkInHrc7c'
+
+    def _call_bamgrid_api(self, path, video_id, data=None, headers={}):
+        if 'authorization' not in headers:
+            headers['authorization'] = 'Bearer ' + self._API_KEY
+        return self._download_json(
+            'https://espn.api.edge.bamgrid.com/' + path,
+            video_id, data=data, headers=headers)
+
+    def _payload_to_string_data(self, payload):
+        return '&'.join(['%s=%s' % (key, compat_urllib_parse_quote_plus(payload[key])) for key in payload]).encode('utf-8')
+
+    def _payload_to_json_data(self, payload):
+        return json.dumps(payload).encode('utf-8')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -300,23 +327,84 @@ class WatchESPNIE(AdobePassIE):
             'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/playback/event?id=%s' % video_id, video_id)['playbackState']
         title = video_data['name']
 
+        # ESPN+ subscription required, through cookies
         if video_data.get('sourceId') == 'ESPN_DTC':
-            raise ExtractorError('ESPN+ streams are not currently supported', expected=True)
+            cookies = self._get_cookies(url)
+            try:
+                id_token = cookies['ESPN-ONESITE.WEB-PROD.token'].value.split('|')[1]
+            except KeyError:
+                raise ExtractorError('This is an ESPN+ video, which requires cookies. Use --cookies or --cookiesfrombrowser')
 
-        resource = self._get_mvpd_resource('ESPN', title, video_id, None)
-        auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode('utf-8')
+            assertion = self._call_bamgrid_api(
+                'devices',
+                video_id,
+                data=self._payload_to_json_data({
+                    'deviceFamily': 'android',
+                    'applicationRuntime': 'android',
+                    'deviceProfile': 'tv',
+                    'attributes': {},
+                }),
+                headers={'content-type': 'application/json; charset=UTF-8'}
+            )['assertion']
 
-        asset = self._download_json(
-            'https://watch.auth.api.espn.com/video/auth/media/%s/asset?apikey=uiqlbgzdwuru14v627vdusswb' % video_id,
-            video_id, data=(
-                'adobeToken=%s&drmSupport=HLS' % compat_urllib_parse_quote_plus(base64.b64encode(auth))).encode())
+            token = self._call_bamgrid_api(
+                'token',
+                video_id,
+                data=self._payload_to_string_data({
+                    'subject_token': assertion,
+                    'subject_token_type': 'urn:bamtech:params:oauth:token-type:device',
+                    'platform': 'android',
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'})
+            )['access_token']
+
+            assertion = self._call_bamgrid_api(
+                'accounts/grant',
+                video_id,
+                data=self._payload_to_json_data({'id_token': id_token}),
+                headers={
+                    'authorization': token,
+                    'content-type': 'application/json; charset=UTF-8'}
+            )['assertion']
+
+            token = self._call_bamgrid_api(
+                'token',
+                video_id,
+                data=self._payload_to_string_data({
+                    'subject_token': assertion,
+                    'subject_token_type': 'urn:bamtech:params:oauth:token-type:account',
+                    'platform': 'android',
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'})
+            )['access_token']
+
+            playback = self._download_json(
+                video_data['videoHref'].format(scenario='browser~ssai'),
+                video_id,
+                headers={
+                    'accept': 'application/vnd.media-service+json; version=5',
+                    'authorization': token}
+            )
+
+            m3u8_url, m3u8_headers = playback['stream']['complete'][0]['url'], {'authorization': token}
+
+        # TV Provider required
+        else:
+            resource = self._get_mvpd_resource('ESPN', title, video_id, None)
+            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode('utf-8')
+
+            asset = self._download_json(
+                'https://watch.auth.api.espn.com/video/auth/media/%s/asset?apikey=uiqlbgzdwuru14v627vdusswb' % video_id,
+                video_id, data=(
+                    'adobeToken=%s&drmSupport=HLS' % compat_urllib_parse_quote_plus(base64.b64encode(auth))).encode())
+            m3u8_url, m3u8_headers = asset['stream'], {}
+
         formats = self._extract_m3u8_formats(
-            asset['stream'], video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
+            m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', headers=m3u8_headers)
         self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
-            'thumbnail': video_data.get('posterHref'),
+            'http_headers': m3u8_headers,
+            'thumbnail': video_data.get('posterHref')
         }
