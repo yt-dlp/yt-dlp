@@ -123,8 +123,7 @@ class TwitCastingIE(InfoExtractor):
             m3u8_url = m3u8_urls[0]
             formats = self._extract_m3u8_formats(
                 m3u8_url, video_id, ext='mp4', m3u8_id='hls',
-                live=True, quality=10,
-                headers={
+                live=True, headers={
                     'Accept': '*/*',
                     'Origin': 'https://twitcasting.tv',
                     'Referer': 'https://twitcasting.tv/',
@@ -133,7 +132,7 @@ class TwitCastingIE(InfoExtractor):
             try:
                 formats.extend(self._extract_m3u8_formats(
                     m3u8_url, video_id, ext='mp4', m3u8_id='source',
-                    live=True, quality=10, query={'mode': 'source'},
+                    live=True, query={'mode': 'source'},
                     note='Downloading source quality m3u8',
                     headers={
                         'Accept': '*/*',
