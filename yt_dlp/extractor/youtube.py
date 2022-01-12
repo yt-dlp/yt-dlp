@@ -4930,12 +4930,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tabs = traverse_obj(data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list)
         if tabs:
             selected_tab = self._extract_selected_tab(tabs)
-            tab_name = selected_tab.get('title', '')
+            selected_tab_name = selected_tab.get('title', '')
+            requested_tab_name = mobj['tab'][1:]
             if 'no-youtube-channel-redirect' not in compat_opts:
                 if mobj['tab'] == '/live':
                     # Live tab should have redirected to the video
                     raise ExtractorError('The channel is not currently live', expected=True)
-                if tab_name.lower() != mobj['tab'][1:] and mobj['tab'] != '/featured':
+                if selected_tab_name.lower() != requested_tab_name and mobj['tab'] != '/featured':
                     redirect_warning = f'The URL does not have a {mobj["tab"][1:]} tab'
                     if mobj['tab'] == '/videos':
                         if not mobj['not_channel'] and item_id[:2] == 'UC':
@@ -4949,10 +4950,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                             else:
                                 item_id, url, tab_name = pl_id, pl_url, mobj['tab'][1:]
                                 redirect_warning += f'. Redirecting to playlist {pl_id} instead'
-                        if tab_name.lower() != mobj['tab'][1:]:
-                            redirect_warning += f'. {tab_name} tab is being downloaded instead'
+                        if selected_tab_name.lower() != requested_tab_name:
+                            redirect_warning += f'. {selected_tab_name} tab is being downloaded instead'
                     elif not mobj['not_channel']:
-                        raise ExtractorError(f'The channel did not present a {mobj["tab"][1:]} tab', expected=True)
+                        raise ExtractorError(f'The channel did not present a {requested_tab_name} tab', expected=True)
 
         if redirect_warning:
             self.report_warning(redirect_warning)
