@@ -13,18 +13,23 @@ from ..utils import (
     get_element_by_class,
     get_element_by_id,
     parse_duration,
+    qualities,
     str_to_int,
     traverse_obj,
+    try_get,
     unified_timestamp,
     urlencode_postdata,
-    try_get,
     urljoin,
-    qualities,
 )
 
 
 class TwitCastingIE(InfoExtractor):
     _VALID_URL = r'https?://(?:[^/]+\.)?twitcasting\.tv/(?P<uploader_id>[^/]+)/(?:movie|twplayer)/(?P<id>\d+)'
+    _M3U8_HEADERS = {
+        'Accept': '*/*',
+        'Origin': 'https://twitcasting.tv',
+        'Referer': 'https://twitcasting.tv/',
+    }
     _TESTS = [{
         'url': 'https://twitcasting.tv/ivetesangalo/movie/2357609',
         'md5': '745243cad58c4681dc752490f7540d7f',
@@ -123,22 +128,14 @@ class TwitCastingIE(InfoExtractor):
             m3u8_url = m3u8_urls[0]
             formats = self._extract_m3u8_formats(
                 m3u8_url, video_id, ext='mp4', m3u8_id='hls',
-                live=True, headers={
-                    'Accept': '*/*',
-                    'Origin': 'https://twitcasting.tv',
-                    'Referer': 'https://twitcasting.tv/',
-                })
+                live=True, headers=self._M3U8_HEADERS)
 
             try:
                 formats.extend(self._extract_m3u8_formats(
                     m3u8_url, video_id, ext='mp4', m3u8_id='source',
                     live=True, query={'mode': 'source'},
                     note='Downloading source quality m3u8',
-                    headers={
-                        'Accept': '*/*',
-                        'Origin': 'https://twitcasting.tv',
-                        'Referer': 'https://twitcasting.tv/',
-                    }))
+                    headers=self._M3U8_HEADERS))
             except ExtractorError as ex:
                 self.report_warning(ex)
 
@@ -170,11 +167,7 @@ class TwitCastingIE(InfoExtractor):
                     # has to be ffmpeg because the requesting them at once will cause download failure
                     # (https://github.com/yt-dlp/yt-dlp/issues/382)
                     'protocol': 'm3u8',
-                    'http_headers': {
-                        'Accept': '*/*',
-                        'Origin': 'https://twitcasting.tv',
-                        'Referer': 'https://twitcasting.tv/',
-                    },
+                    'http_headers': self._M3U8_HEADERS,
                 } for (num, m3u8_url) in enumerate(m3u8_urls)],
             }
 
