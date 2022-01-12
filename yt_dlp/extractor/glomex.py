@@ -138,7 +138,8 @@ class GlomexEmbedIE(GlomexBaseIE):
     IE_NAME = 'glomex:embed'
     IE_DESC = 'Glomex embedded videos'
     _BASE_PLAYER_URL = '//player.glomex.com/integration/1/iframe-player.html'
-    _VALID_URL = rf'https?:{re.escape(_BASE_PLAYER_URL)}\?([^#]+&)?playlistId=(?P<id>[^#&]+)'
+    _BASE_PLAYER_URL_RE = re.escape(_BASE_PLAYER_URL).replace('/1/', r'/[^/]/')
+    _VALID_URL = rf'https?:{_BASE_PLAYER_URL_RE}\?([^#]+&)?playlistId=(?P<id>[^#&]+)'
 
     _TESTS = [{
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?integrationId=4059a013k56vb2yd&playlistId=v-cfa6lye0dkdd-sf',
@@ -176,7 +177,10 @@ class GlomexEmbedIE(GlomexBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage, origin_url):
-        VALID_SRC = rf'(?:https?:)?{re.escape(cls._BASE_PLAYER_URL)}\?(?:(?!(?P=_q1)).)+'
+        # in comparison with _VALID_URL:
+        # * make the scheme optional
+        # * simplify the query string part; after extracting iframe src, the URL will be matched again
+        VALID_SRC = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
 
         # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
         EMBED_RE = r'''(?x)(?:
