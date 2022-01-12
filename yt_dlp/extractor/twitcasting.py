@@ -114,7 +114,7 @@ class TwitCastingIE(InfoExtractor):
                  get_element_by_class('tw-player-duration-time', webpage)))),
             float)
         view_count = str_to_int(self._search_regex(
-            r'Total\s*:\s*([\d,]+)\s*Views', webpage, 'views', None))
+            (r'Total\s*:\s*([\d,]+)\s*Views', r'総視聴者\s*:\s*([\d,]+)\s*</'), webpage, 'views', None))
         timestamp = unified_timestamp(self._search_regex(
             r'data-toggle="true"[^>]+datetime="([^"]+)"',
             webpage, 'datetime', None))
