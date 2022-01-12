@@ -414,11 +414,11 @@ class YahooGyaOIE(InfoExtractor):
     IE_NAME = 'yahoo:gyao'
     _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:p|title(?:/[^/]+)?)|streaming\.yahoo\.co\.jp/p/y)/(?P<id>\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://gyao.yahoo.co.jp/title/%E3%83%80%E3%82%A6%E3%83%B3%E3%82%BF%E3%82%A6%E3%83%B3DX/5f7587a2-06c2-4e0e-8f2b-c3923fc0febf',
+        'url': 'https://gyao.yahoo.co.jp/title/%E3%82%BF%E3%82%A4%E3%83%A0%E3%83%9C%E3%82%AB%E3%83%B3%E3%82%B7%E3%83%AA%E3%83%BC%E3%82%BA%20%E3%83%A4%E3%83%83%E3%82%BF%E3%83%BC%E3%83%9E%E3%83%B3/5f60ceb3-6e5e-40ef-ba40-d68b598d067f',
         'info_dict': {
-            'id': '5f7587a2-06c2-4e0e-8f2b-c3923fc0febf',
+            'id': '5f60ceb3-6e5e-40ef-ba40-d68b598d067f',
         },
-        'playlist_mincount': 2,
+        'playlist_mincount': 80,
     }, {
         'url': 'https://gyao.yahoo.co.jp/p/00449/v03102/',
         'only_matching': True,
