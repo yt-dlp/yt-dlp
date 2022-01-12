@@ -75,7 +75,7 @@ class TwitCastingIE(InfoExtractor):
     def _real_extract(self, url):
         uploader_id, video_id = self._match_valid_url(url).groups()
 
-        video_password = self._downloader.params.get('videopassword')
+        video_password = self.get_param('videopassword')
         request_data = None
         if video_password:
             request_data = urlencode_postdata({
@@ -85,12 +85,8 @@ class TwitCastingIE(InfoExtractor):
             url, video_id, data=request_data,
             headers={'Origin': 'https://twitcasting.tv'})
 
-        title = try_get(
-            webpage,
-            (lambda x: self._html_search_meta(['og:title', 'twitter:title'], x, fatal=False)),
-            str)
-        if not title:
-            raise ExtractorError('Failed to extract title')
+        title = (clean_html(get_element_by_id('movietitle', webpage))
+                 or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
 
         video_js_data = try_get(
             webpage,
@@ -209,7 +205,6 @@ class TwitCastingIE(InfoExtractor):
             'description': description,
             'thumbnail': thumbnail,
             'timestamp': timestamp,
-            'uploader': uploader_id,
             'uploader_id': uploader_id,
             'duration': duration,
             'view_count': view_count,
