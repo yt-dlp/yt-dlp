@@ -123,7 +123,6 @@ class GlomexIE(GlomexBaseIE):
             'duration': 29600,
             'timestamp': 1619895017,
             'upload_date': '20210501',
-            'age_limit': None,
         },
     }]
 
@@ -151,7 +150,6 @@ class GlomexEmbedIE(GlomexBaseIE):
             'description': 'md5:e741185fc309310ff5d0c789b437be66',
             'title': 'md5:35647293513a6c92363817a0fb0a7961',
         },
-        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?origin=fullpage&integrationId=19syy24xjn1oqlpc&playlistId=rl-vcb49w1fb592p&playlistIndex=0',
         'info_dict': {
