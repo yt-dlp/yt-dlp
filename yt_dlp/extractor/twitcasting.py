@@ -74,6 +74,7 @@ class TwitCastingIE(InfoExtractor):
             'title': '南波一海のhear_here “ナタリー望月哲さんに聞く編集と「渋谷系狂騒曲」”',
             'duration': 6964.599334,
         },
+        'playlist_mincount': 2,
     }]
 
     def _real_extract(self, url):
