@@ -585,7 +585,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        return self.stream_copy_opts()
+        return FFmpegPostProcessor.stream_copy_opts()
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
@@ -678,7 +678,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
     @staticmethod
     def _options(target_ext):
         audio_only = target_ext == 'm4a'
-        yield from self.stream_copy_opts(not audio_only)
+        yield from FFmpegPostProcessor.stream_copy_opts(not audio_only)
         if audio_only:
             yield from ('-vn', '-acodec', 'copy')
 
