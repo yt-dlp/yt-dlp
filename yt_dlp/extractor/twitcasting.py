@@ -7,8 +7,8 @@ import re
 from .common import InfoExtractor
 from ..downloader.websocket import has_websockets
 from ..utils import (
-    ExtractorError,
     clean_html,
+    ExtractorError,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
