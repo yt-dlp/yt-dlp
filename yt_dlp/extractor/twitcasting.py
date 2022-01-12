@@ -91,8 +91,8 @@ class TwitCastingIE(InfoExtractor):
         video_js_data = try_get(
             webpage,
             lambda x: self._parse_json(self._search_regex(
-                r"data-movie-playlist='([^']+?)'",
-                x, 'movie playlist', default=None), video_id)["2"], list)
+                r'data-movie-playlist=\'([^\']+?)\'',
+                x, 'movie playlist', default=None), video_id)['2'], list)
 
         stream_server_data = self._download_json(
             'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
