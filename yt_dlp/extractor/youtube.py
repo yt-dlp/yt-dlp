@@ -4930,15 +4930,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tabs = traverse_obj(data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list)
         if tabs:
             selected_tab = self._extract_selected_tab(tabs)
-            selected_tab_name = selected_tab.get('title', '')
+            selected_tab_name = selected_tab.get('title', '').lower()
             requested_tab_name = mobj['tab'][1:]
             if 'no-youtube-channel-redirect' not in compat_opts:
                 if mobj['tab'] == '/live':
                     # Live tab should have redirected to the video
                     raise ExtractorError('The channel is not currently live', expected=True)
-                if selected_tab_name.lower() != requested_tab_name and mobj['tab'] != '/featured':
-                    redirect_warning = f'The URL does not have a {mobj["tab"][1:]} tab'
-                    if mobj['tab'] == '/videos':
+                if selected_tab_name != requested_tab_name and selected_tab_name != 'featured':
+                    redirect_warning = f'The URL does not have a {requested_tab_name} tab'
+                    if selected_tab_name == 'videos':
                         if not mobj['not_channel'] and item_id[:2] == 'UC':
                             # Topic channels don't have /videos. Use the equivalent playlist instead
                             pl_id = f'UU{item_id[2:]}'
@@ -4948,9 +4948,9 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                             except ExtractorError:
                                 redirect_warning += ' and the playlist redirect gave error'
                             else:
-                                item_id, url, tab_name = pl_id, pl_url, mobj['tab'][1:]
+                                item_id, url, selected_tab_name = pl_id, pl_url, requested_tab_name
                                 redirect_warning += f'. Redirecting to playlist {pl_id} instead'
-                        if selected_tab_name.lower() != requested_tab_name:
+                        if selected_tab_name != requested_tab_name:
                             redirect_warning += f'. {selected_tab_name} tab is being downloaded instead'
                     elif not mobj['not_channel']:
                         raise ExtractorError(f'The channel did not present a {requested_tab_name} tab', expected=True)
