@@ -86,12 +86,13 @@ class GlomexBaseIE(InfoExtractor):
                 fmt['language'] = video['language']
         self._sort_formats(formats)
 
+        images = (video.get('images') or []) + [video.get('image') or {}]
         thumbnails = [{
             'id': image.get('id'),
             'url': f'{image["url"]}/profile:player-960x540',
             'width': 960,
             'height': 540,
-        } for image in (video.get('images') or []) + [video.get('image') or {}] if image.get('url')]
+        } for image in images if image.get('url')]
         self._remove_duplicate_formats(thumbnails)
 
         return {
@@ -150,6 +151,7 @@ class GlomexEmbedIE(GlomexBaseIE):
             'description': 'md5:e741185fc309310ff5d0c789b437be66',
             'title': 'md5:35647293513a6c92363817a0fb0a7961',
         },
+        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?origin=fullpage&integrationId=19syy24xjn1oqlpc&playlistId=rl-vcb49w1fb592p&playlistIndex=0',
         'info_dict': {
@@ -174,9 +176,11 @@ class GlomexEmbedIE(GlomexBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage, origin_url):
+        VALID_SRC = rf'(?:https?:)?{re.escape(cls._BASE_PLAYER_URL)}\?(?:(?!(?P=_q1)).)+'
+
+        # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
         EMBED_RE = r'''(?x)(?:
             <iframe[^>]+?src=(?P<_q1>%(quot_re)s)(?P<url>%(url_re)s)(?P=_q1)|
-            # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
             <(?P<html_tag>glomex-player|div)(?:
                 data-integration-id=(?P<_q2>%(quot_re)s)(?P<integration_html>(?:(?!(?P=_q2)).)+)(?P=_q2)|
                 data-playlist-id=(?P<_q3>%(quot_re)s)(?P<id_html>(?:(?!(?P=_q3)).)+)(?P=_q3)|
@@ -189,9 +193,9 @@ class GlomexEmbedIE(GlomexBaseIE):
                     (?P<_q5>%(quot_re)s)(?P<integration_js>(?:(?!(?P=_q5)).)+)(?P=_q5)\s*(?(_stjs1);|,)?|
                 (?P<_stjs2>dataset\.)?playlistId\s*(?(_stjs2)=|:)\s*
                     (?P<_q6>%(quot_re)s)(?P<id_js>(?:(?!(?P=_q6)).)+)(?P=_q6)\s*(?(_stjs2);|,)?|
-                [^>]*?
+                (?:\s|.)*?
             )+</script>
-        )''' % {'quot_re': r'["\']', 'url_re': rf'(?:https?:)?{re.escape(cls._BASE_PLAYER_URL)}\?(?:(?!(?P=_q1)).)+'}
+        )''' % {'quot_re': r'["\']', 'url_re': VALID_SRC}
 
         for mobj in re.finditer(EMBED_RE, webpage):
             mdict = mobj.groupdict()
