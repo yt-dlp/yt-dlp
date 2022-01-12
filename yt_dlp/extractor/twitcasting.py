@@ -98,6 +98,26 @@ class TwitCastingIE(InfoExtractor):
                 r'data-movie-playlist=\'([^\']+?)\'',
                 x, 'movie playlist', default=None), video_id)['2'], list)
 
+        thumbnail = try_get(
+            video_js_data,
+            (lambda x: traverse_obj(x, (0, 'thumbnailUrl')),
+             lambda x: self._og_search_thumbnail(webpage)),
+            str)
+        description = clean_html(get_element_by_id(
+            'authorcomment', webpage)) or self._html_search_meta(
+            ['description', 'og:description', 'twitter:description'], webpage)
+        duration = try_get(
+            video_js_data,
+            (lambda x: sum(float_or_none(y.get('duration')) for y in x) / 1000,
+             lambda x: parse_duration(clean_html(
+                 get_element_by_class('tw-player-duration-time', webpage)))),
+            float)
+        view_count = str_to_int(self._search_regex(
+            r'Total\s*:\s*([\d,]+)\s*Views', webpage, 'views', None))
+        timestamp = unified_timestamp(self._search_regex(
+            r'data-toggle="true"[^>]+datetime="([^"]+)"',
+            webpage, 'datetime', None))
+
         stream_server_data = self._download_json(
             'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
             'Downloading live info', fatal=False)
@@ -105,6 +125,17 @@ class TwitCastingIE(InfoExtractor):
         is_live = 'data-status="online"' in webpage or traverse_obj(stream_server_data, ('movie', 'live'))
         if not traverse_obj(stream_server_data, 'llfmp4') and is_live:
             self.raise_login_required(method='cookies')
+
+        base_dict = {
+            'title': title,
+            'description': description,
+            'thumbnail': thumbnail,
+            'timestamp': timestamp,
+            'uploader_id': uploader_id,
+            'duration': duration,
+            'view_count': view_count,
+            'is_live': is_live,
+        }
 
         def find_dmu(x):
             data_movie_url = self._search_regex(
@@ -167,39 +198,13 @@ class TwitCastingIE(InfoExtractor):
                     # (https://github.com/yt-dlp/yt-dlp/issues/382)
                     'protocol': 'm3u8',
                     'http_headers': self._M3U8_HEADERS,
+                    **base_dict,
                 } for (num, m3u8_url) in enumerate(m3u8_urls)],
             }
 
-        thumbnail = try_get(
-            video_js_data,
-            (lambda x: traverse_obj(x, (0, 'thumbnailUrl')),
-             lambda x: self._og_search_thumbnail(webpage)),
-            str)
-        description = clean_html(get_element_by_id(
-            'authorcomment', webpage)) or self._html_search_meta(
-            ['description', 'og:description', 'twitter:description'], webpage)
-        duration = try_get(
-            video_js_data,
-            (lambda x: sum(float_or_none(y.get('duration')) for y in x) / 1000,
-             lambda x: parse_duration(clean_html(
-                 get_element_by_class('tw-player-duration-time', webpage)))),
-            float)
-        view_count = str_to_int(self._search_regex(
-            r'Total\s*:\s*([\d,]+)\s*Views', webpage, 'views', None))
-        timestamp = unified_timestamp(self._search_regex(
-            r'data-toggle="true"[^>]+datetime="([^"]+)"',
-            webpage, 'datetime', None))
-
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'timestamp': timestamp,
-            'uploader_id': uploader_id,
-            'duration': duration,
-            'view_count': view_count,
-            'is_live': is_live,
+            **base_dict,
             **infodict,
         }
 
