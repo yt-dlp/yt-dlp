@@ -4935,21 +4935,24 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 if mobj['tab'] == '/live':
                     # Live tab should have redirected to the video
                     raise ExtractorError('The channel is not currently live', expected=True)
-                if mobj['tab'] == '/videos' and tab_name.lower() != mobj['tab'][1:]:
+                if tab_name.lower() != mobj['tab'][1:] and mobj['tab'] != '/featured':
                     redirect_warning = f'The URL does not have a {mobj["tab"][1:]} tab'
-                    if not mobj['not_channel'] and item_id[:2] == 'UC':
-                        # Topic channels don't have /videos. Use the equivalent playlist instead
-                        pl_id = f'UU{item_id[2:]}'
-                        pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
-                        try:
-                            data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True)
-                        except ExtractorError:
-                            redirect_warning += ' and the playlist redirect gave error'
-                        else:
-                            item_id, url, tab_name = pl_id, pl_url, mobj['tab'][1:]
-                            redirect_warning += f'. Redirecting to playlist {pl_id} instead'
-                    if tab_name.lower() != mobj['tab'][1:]:
-                        redirect_warning += f'. {tab_name} tab is being downloaded instead'
+                    if mobj['tab'] == '/videos':
+                        if not mobj['not_channel'] and item_id[:2] == 'UC':
+                            # Topic channels don't have /videos. Use the equivalent playlist instead
+                            pl_id = f'UU{item_id[2:]}'
+                            pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
+                            try:
+                                data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True)
+                            except ExtractorError:
+                                redirect_warning += ' and the playlist redirect gave error'
+                            else:
+                                item_id, url, tab_name = pl_id, pl_url, mobj['tab'][1:]
+                                redirect_warning += f'. Redirecting to playlist {pl_id} instead'
+                        if tab_name.lower() != mobj['tab'][1:]:
+                            redirect_warning += f'. {tab_name} tab is being downloaded instead'
+                    elif not mobj['not_channel']:
+                        raise ExtractorError(f'The channel did not present a {mobj["tab"][1:]} tab', expected=True)
 
         if redirect_warning:
             self.report_warning(redirect_warning)
