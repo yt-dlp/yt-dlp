@@ -398,7 +398,7 @@ class WatchESPNIE(AdobePassIE):
             m3u8_url, m3u8_headers = asset['stream'], {}
 
         formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', headers=m3u8_headers)
+            m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
         self._sort_formats(formats)
 
         return {
