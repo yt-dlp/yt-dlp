@@ -7,19 +7,19 @@ import re
 from .common import InfoExtractor
 from ..downloader.websocket import has_websockets
 from ..utils import (
+    ExtractorError,
     clean_html,
     float_or_none,
     get_element_by_class,
     get_element_by_id,
     parse_duration,
-    qualities,
     str_to_int,
     traverse_obj,
-    try_get,
     unified_timestamp,
     urlencode_postdata,
+    try_get,
     urljoin,
-    ExtractorError,
+    qualities,
 )
 
 
@@ -61,12 +61,21 @@ class TwitCastingIE(InfoExtractor):
             'skip_download': True,
             'videopassword': 'abc',
         },
+    }, {
+        'note': 'archive is split in 2 parts',
+        'url': 'https://twitcasting.tv/loft_heaven/movie/685979292',
+        'info_dict': {
+            'id': '685979292',
+            'ext': 'mp4',
+            'title': '南波一海のhear_here “ナタリー望月哲さんに聞く編集と「渋谷系狂騒曲」”',
+            'duration': 6964.599334,
+        },
     }]
 
     def _real_extract(self, url):
         uploader_id, video_id = self._match_valid_url(url).groups()
 
-        video_password = self.get_param('videopassword')
+        video_password = self._downloader.params.get('videopassword')
         request_data = None
         if video_password:
             request_data = urlencode_postdata({
@@ -76,63 +85,123 @@ class TwitCastingIE(InfoExtractor):
             url, video_id, data=request_data,
             headers={'Origin': 'https://twitcasting.tv'})
 
-        title = (clean_html(get_element_by_id('movietitle', webpage))
-                 or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
+        title = try_get(
+            webpage,
+            (lambda x: self._html_search_meta(['og:title', 'twitter:title'], x, fatal=False)),
+            str)
+        if not title:
+            raise ExtractorError('Failed to extract title')
 
-        video_js_data = {}
-        m3u8_url = self._search_regex(
-            r'data-movie-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
-            webpage, 'm3u8 url', group='url', default=None)
-        if not m3u8_url:
-            video_js_data = self._parse_json(self._search_regex(
-                r'data-movie-playlist=(["\'])(?P<url>(?:(?!\1).)+)',
-                webpage, 'movie playlist', group='url', default='[{}]'), video_id)
-            if isinstance(video_js_data, dict):
-                video_js_data = list(video_js_data.values())[0]
-            video_js_data = video_js_data[0]
-            m3u8_url = try_get(video_js_data, lambda x: x['source']['url'])
+        video_js_data = try_get(
+            webpage,
+            lambda x: self._parse_json(self._search_regex(
+                r"data-movie-playlist='([^']+?)'",
+                x, 'movie playlist', default=None), video_id)["2"], list)
 
         stream_server_data = self._download_json(
             'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % uploader_id, video_id,
             'Downloading live info', fatal=False)
 
-        is_live = 'data-status="online"' in webpage
-
+        is_live = 'data-status="online"' in webpage or traverse_obj(stream_server_data, ('movie', 'live'))
         if not traverse_obj(stream_server_data, 'llfmp4') and is_live:
-            self.raise_login_required(method='cookies')
+            self.raise_login_required()
 
-        formats = []
-        if is_live and not m3u8_url:
-            m3u8_url = 'https://twitcasting.tv/%s/metastream.m3u8' % uploader_id
-        if is_live and has_websockets and stream_server_data:
-            qq = qualities(['base', 'mobilesource', 'main'])
-            streams = traverse_obj(stream_server_data, ('llfmp4', 'streams')) or {}
-            for mode, ws_url in streams.items():
-                formats.append({
-                    'url': ws_url,
-                    'format_id': 'ws-%s' % mode,
-                    'ext': 'mp4',
-                    'quality': qq(mode),
-                    'protocol': 'websocket_frag',  # TwitCasting simply sends moof atom directly over WS
+        def find_dmu(x):
+            data_movie_url = self._search_regex(
+                r'data-movie-url=(["\'])(?P<url>(?:(?!\1).)+)\1',
+                x, 'm3u8 url', group='url', default=None)
+            if data_movie_url:
+                return [data_movie_url]
+
+        m3u8_urls = try_get(
+            webpage,
+            (find_dmu,
+             lambda x: traverse_obj(video_js_data, (..., 'source', 'url')),
+             lambda x: ['https://twitcasting.tv/%s/metastream.m3u8' % uploader_id]
+                if is_live else None),
+            list)
+        if not m3u8_urls:
+            raise ExtractorError('Failed to get m3u8 playlist')
+
+        if is_live:
+            m3u8_url = m3u8_urls[0]
+            formats = self._extract_m3u8_formats(
+                m3u8_url, video_id, ext='mp4', m3u8_id='hls',
+                live=True, quality=10,
+                headers={
+                    'Accept': '*/*',
+                    'Origin': 'https://twitcasting.tv',
+                    'Referer': 'https://twitcasting.tv/',
                 })
 
-        thumbnail = video_js_data.get('thumbnailUrl') or self._og_search_thumbnail(webpage)
+            try:
+                formats.extend(self._extract_m3u8_formats(
+                    m3u8_url, video_id, ext='mp4', m3u8_id='source',
+                    live=True, quality=10, query={'mode': 'source'},
+                    note='Downloading source quality m3u8',
+                    headers={
+                        'Accept': '*/*',
+                        'Origin': 'https://twitcasting.tv',
+                        'Referer': 'https://twitcasting.tv/',
+                    }))
+            except ExtractorError as ex:
+                self.report_warning(ex)
+
+            if has_websockets:
+                qq = qualities(['base', 'mobilesource', 'main'])
+                streams = traverse_obj(stream_server_data, ('llfmp4', 'streams')) or {}
+                for mode, ws_url in streams.items():
+                    formats.append({
+                        'url': ws_url,
+                        'format_id': 'ws-%s' % mode,
+                        'ext': 'mp4',
+                        'quality': qq(mode),
+                        # TwitCasting simply sends moof atom directly over WS
+                        'protocol': 'websocket_frag',
+                    })
+
+            self._sort_formats(formats)
+
+            infodict = {
+                'formats': formats
+            }
+        else:
+            infodict = {
+                '_type': 'multi_video',
+                'entries': [{
+                    'id': f'{video_id}-{num}',
+                    'url': m3u8_url,
+                    'ext': 'mp4',
+                    # has to be ffmpeg because the requesting them at once will cause download failure
+                    # (https://github.com/yt-dlp/yt-dlp/issues/382)
+                    'protocol': 'm3u8',
+                    'http_headers': {
+                        'Accept': '*/*',
+                        'Origin': 'https://twitcasting.tv',
+                        'Referer': 'https://twitcasting.tv/',
+                    },
+                } for (num, m3u8_url) in enumerate(m3u8_urls)],
+            }
+
+        thumbnail = try_get(
+            video_js_data,
+            (lambda x: traverse_obj(x, (0, 'thumbnailUrl')),
+             lambda x: self._og_search_thumbnail(webpage)),
+            str)
         description = clean_html(get_element_by_id(
             'authorcomment', webpage)) or self._html_search_meta(
             ['description', 'og:description', 'twitter:description'], webpage)
-        duration = float_or_none(video_js_data.get(
-            'duration'), 1000) or parse_duration(clean_html(
-                get_element_by_class('tw-player-duration-time', webpage)))
+        duration = try_get(
+            video_js_data,
+            (lambda x: sum(float_or_none(y.get('duration')) for y in x) / 1000,
+             lambda x: parse_duration(clean_html(
+                 get_element_by_class('tw-player-duration-time', webpage)))),
+            float)
         view_count = str_to_int(self._search_regex(
             r'Total\s*:\s*([\d,]+)\s*Views', webpage, 'views', None))
         timestamp = unified_timestamp(self._search_regex(
             r'data-toggle="true"[^>]+datetime="([^"]+)"',
             webpage, 'datetime', None))
-
-        if m3u8_url:
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live))
-        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -140,11 +209,12 @@ class TwitCastingIE(InfoExtractor):
             'description': description,
             'thumbnail': thumbnail,
             'timestamp': timestamp,
+            'uploader': uploader_id,
             'uploader_id': uploader_id,
             'duration': duration,
             'view_count': view_count,
-            'formats': formats,
             'is_live': is_live,
+            **infodict,
         }
 
 
