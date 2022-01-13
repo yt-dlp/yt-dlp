@@ -3794,7 +3794,7 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
-                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d+').fullmatch, flashvars.keys()))
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d*').fullmatch, flashvars.keys()))
                 formats = []
                 for key in url_keys:
                     if '/get_file/' not in flashvars[key]:
