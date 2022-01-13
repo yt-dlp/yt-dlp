@@ -4695,6 +4695,7 @@ OUTTMPL_TYPES = {
     'annotation': 'annotations.xml',
     'infojson': 'info.json',
     'link': None,
+    'pl_video': None,
     'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',

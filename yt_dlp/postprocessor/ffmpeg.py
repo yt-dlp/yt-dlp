@@ -197,7 +197,7 @@ class FFmpegPostProcessor(PostProcessor):
         yield from ('-map', '0')
         # Don't copy Apple TV chapters track, bin_data
         # See https://github.com/yt-dlp/yt-dlp/issues/2, #19042, #19024, https://trac.ffmpeg.org/ticket/6016
-        yield '-dn'
+        yield from ('-dn', '-ignore_unknown')
         if copy:
             yield from ('-c', 'copy')
         # For some reason, '-c copy -map 0' is not enough to copy subtitles
@@ -1123,3 +1123,48 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         if not has_thumbnail:
             self.to_screen('There aren\'t any thumbnails to convert')
         return files_to_delete, info
+
+
+class FFmpegConcatPP(FFmpegPostProcessor):
+    def __init__(self, downloader, only_multi_video=False):
+        self._only_multi_video = only_multi_video
+        super().__init__(downloader)
+
+    def concat_files(self, in_files, out_file):
+        if len(in_files) == 1:
+            os.replace(in_files[0], out_file)
+            return
+
+        codecs = [traverse_obj(self.get_metadata_object(file), ('streams', ..., 'codec_name')) for file in in_files]
+        if len(set(map(tuple, codecs))) > 1:
+            raise PostProcessingError(
+                'The files have different streams/codecs and cannot be concatenated. '
+                'Either select different formats or --recode-video them to a common format')
+        super().concat_files(in_files, out_file)
+
+    @PostProcessor._restrict_to(images=False)
+    def run(self, info):
+        if not info.get('entries') or self._only_multi_video and info['_type'] != 'multi_video':
+            return [], info
+        elif None in info['entries']:
+            raise PostProcessingError('Aborting concatenation because some downloads failed')
+        elif any(len(entry) > 1 for entry in traverse_obj(info, ('entries', ..., 'requested_downloads')) or []):
+            raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
+
+        in_files = traverse_obj(info, ('entries', ..., 'requested_downloads', 0, 'filepath'))
+        if not in_files:
+            self.to_screen('There are no files to concatenate')
+            return [], info
+
+        ie_copy = self._downloader._playlist_infodict(info)
+        exts = [traverse_obj(entry, ('requested_downloads', 0, 'ext'), 'ext') for entry in info['entries']]
+        ie_copy['ext'] = exts[0] if len(set(exts)) == 1 else 'mkv'
+        out_file = self._downloader.prepare_filename(ie_copy, 'pl_video')
+
+        self.concat_files(in_files, out_file)
+
+        info['requested_downloads'] = [{
+            'filepath': out_file,
+            'ext': ie_copy['ext'],
+        }]
+        return in_files, info
