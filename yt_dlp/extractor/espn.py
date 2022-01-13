@@ -328,11 +328,11 @@ class WatchESPNIE(AdobePassIE):
 
         # ESPN+ subscription required, through cookies
         if video_data.get('sourceId') == 'ESPN_DTC':
-            cookies = self._get_cookies(url)
-            try:
-                id_token = cookies['ESPN-ONESITE.WEB-PROD.token'].value.split('|')[1]
-            except KeyError:
-                raise ExtractorError('This is an ESPN+ video, which requires cookies. Use --cookies or --cookiesfrombrowser')
+            cookie = self._get_cookies(url).get('ESPN-ONESITE.WEB-PROD.token')
+
+            if not cookie:
+                raise self.raise_login_required()
+            id_token = cookie.value.split('|')[1]
 
             assertion = self._call_bamgrid_api(
                 'devices',
