@@ -15,7 +15,6 @@ from ..compat import (
 from ..utils import (
     determine_ext,
     dict_get,
-    ExtractorError,
     int_or_none,
     unified_strdate,
     unified_timestamp,
@@ -329,7 +328,6 @@ class WatchESPNIE(AdobePassIE):
         # ESPN+ subscription required, through cookies
         if video_data.get('sourceId') == 'ESPN_DTC':
             cookie = self._get_cookies(url).get('ESPN-ONESITE.WEB-PROD.token')
-
             if not cookie:
                 raise self.raise_login_required()
             id_token = cookie.value.split('|')[1]
