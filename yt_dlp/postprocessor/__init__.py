@@ -7,6 +7,7 @@ from .embedthumbnail import EmbedThumbnailPP
 from .exec import ExecPP, ExecAfterDownloadPP
 from .ffmpeg import (
     FFmpegPostProcessor,
+    FFmpegConcatPP,
     FFmpegEmbedSubtitlePP,
     FFmpegExtractAudioPP,
     FFmpegFixupDuplicateMoovPP,

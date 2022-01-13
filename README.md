@@ -667,11 +667,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --skip-download                  Do not download the video but write all
                                      related files (Alias: --no-download)
     -O, --print [WHEN:]TEMPLATE      Field name or output template to print to
-                                     screen per video. Prefix the template with
-                                     "playlist:" to print it once per playlist
-                                     instead. Implies --quiet and --simulate
-                                     (unless --no-simulate is used). This option
-                                     can be used multiple times
+                                     screen, optionally prefixed with when to
+                                     print it, separated by a ":". Supported
+                                     values of "WHEN" are the same as that of
+                                     --use-postprocessor, and "video" (default).
+                                     Implies --quiet and --simulate (unless
+                                     --no-simulate is used). This option can be
+                                     used multiple times
     -j, --dump-json                  Quiet, but print JSON information for each
                                      video. Simulate unless --no-simulate is
                                      used. See "OUTPUT TEMPLATE" for a
@@ -891,6 +893,15 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      multiple times
     --xattrs                         Write metadata to the video file's xattrs
                                      (using dublin core and xdg standards)
+    --concat-playlist POLICY         Concatenate videos in a playlist. One of
+                                     "never" (default), "always", or
+                                     "multi_video" (only when the videos form a
+                                     single show). All the video files must have
+                                     same codecs and number of streams to be
+                                     concatable. The "pl_video:" prefix can be
+                                     used with "--paths" and "--output" to set
+                                     the output filename for the split files.
+                                     See "OUTPUT TEMPLATE" for details
     --fixup POLICY                   Automatically correct known faults of the
                                      file. One of never (do nothing), warn (only
                                      emit a warning), detect_or_warn (the
@@ -1104,7 +1115,7 @@ To summarize, the general syntax for a field is:
 %(name[.keys][addition][>strf][,alternate][&replacement][|default])[flags][width][.precision][length]type
 ```
 
-Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`. For example, `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates (except default) is empty, that type of file will not be written. Eg: `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
+Additionally, you can set different output templates for the various metadata files separately from the general output template by specifying the type of file followed by the template separated by a colon `:`. The different file types supported are `subtitle`, `thumbnail`, `description`, `annotation` (deprecated), `infojson`, `link`, `pl_thumbnail`, `pl_description`, `pl_infojson`, `chapter`, `pl_video`. For example, `-o "%(title)s.%(ext)s" -o "thumbnail:%(title)s\%(title)s.%(ext)s"`  will put the thumbnails in a folder with the same name as the video. If any of the templates (except default) is empty, that type of file will not be written. Eg: `--write-thumbnail -o "thumbnail:"` will write thumbnails only for playlists and not for video.
 
 The available fields are:
 
@@ -1120,8 +1131,10 @@ The available fields are:
  - `creator` (string): The creator of the video
  - `timestamp` (numeric): UNIX timestamp of the moment the video became available
  - `upload_date` (string): Video upload date (YYYYMMDD)
- - `release_date` (string): The date (YYYYMMDD) when the video was released
  - `release_timestamp` (numeric): UNIX timestamp of the moment the video was released
+ - `release_date` (string): The date (YYYYMMDD) when the video was released
+ - `modified_timestamp` (numeric): UNIX timestamp of the moment the video was last modified
+ - `modified_date` (string): The date (YYYYMMDD) when the video was last modified
  - `uploader_id` (string): Nickname or id of the video uploader
  - `channel` (string): Full name of the channel the video is uploaded on
  - `channel_id` (string): Id of the channel
@@ -1167,6 +1180,7 @@ The available fields are:
  - `video_autonumber` (numeric): Number that will be increased with each video
  - `n_entries` (numeric): Total number of extracted items in the playlist
  - `playlist` (string): Name or id of the playlist that contains the video
+ - `playlist_count` (numeric): Total number of items in the playlist. May not be known if entire playlist is not extracted
  - `playlist_index` (numeric): Index of the video in the playlist padded with leading zeros according the final index
  - `playlist_autonumber` (numeric): Position of the video in the playlist download queue padded with leading zeros according to the total length of the playlist
  - `playlist_id` (string): Playlist identifier
@@ -1218,6 +1232,11 @@ Available only when used in `--print`:
 
  - `urls` (string): The URLs of all requested formats, one in each line
  - `filename` (string): Name of the video file. Note that the actual filename may be different due to post-processing. Use `--exec echo` to get the name after all postprocessing is complete
+ - `formats_table` (table): The video format table as printed by `--list-formats`
+ - `thumbnails_table` (table): The thumbnail format table as printed by `--list-thumbnails`
+ - `subtitles_table` (table): The subtitle format table as printed by `--list-subs`
+ - `automatic_captions_table` (table): The automatic subtitle format table as printed by `--list-subs`
+ 
  
 Available only in `--sponsorblock-chapter-title`:
 
@@ -1382,10 +1401,10 @@ The available fields are:
 
  - `hasvid`: Gives priority to formats that has a video stream
  - `hasaud`: Gives priority to formats that has a audio stream
- - `ie_pref`: The format preference as given by the extractor
- - `lang`: Language preference as given by the extractor
- - `quality`: The quality of the format as given by the extractor
- - `source`: Preference of the source as given by the extractor
+ - `ie_pref`: The format preference
+ - `lang`: The language preference
+ - `quality`: The quality of the format
+ - `source`: The preference of the source
  - `proto`: Protocol used for download (`https`/`ftps` > `http`/`ftp` > `m3u8_native`/`m3u8` > `http_dash_segments`> `websocket_frag` > `mms`/`rtsp` > `f4f`/`f4m`)
  - `vcodec`: Video Codec (`av01` > `vp9.2` > `vp9` > `h265` > `h264` > `vp8` > `h263` > `theora` > other)
  - `acodec`: Audio Codec (`flac`/`alac` > `wav`/`aiff` > `opus` > `vorbis` > `aac` > `mp4a` > `mp3` > `eac3` > `ac3` > `dts` > other)
@@ -1677,7 +1696,7 @@ with YoutubeDL(ydl_opts) as ydl:
     ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
 ```
 
-Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L162).
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L191).
 
 Here's a more complete example demonstrating various functionality:
 
@@ -1783,6 +1802,14 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
 These are all the deprecated options and the current alternative to achieve the same effect
 
+#### Almost redundant options
+While these options are almost the same as their new counterparts, there are some differences that prevents them being redundant
+
+    -j, --dump-json                  --print "%()j"
+    -F, --list-formats               --print formats_table
+    --list-thumbnails                --print thumbnails_table
+    --list-subs                      --print automatic_captions_table --print subtitles_table
+
 #### Redundant options
 While these options are redundant, they are still expected to be used due to their ease of use
 
@@ -1794,7 +1821,6 @@ While these options are redundant, they are still expected to be used due to the
     --get-thumbnail                  --print thumbnail
     -e, --get-title                  --print title
     -g, --get-url                    --print urls
-    -j, --dump-json                  --print "%()j"
     --match-title REGEX              --match-filter "title ~= (?i)REGEX"
     --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
     --min-views COUNT                --match-filter "view_count >=? COUNT"

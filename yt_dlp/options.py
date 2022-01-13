@@ -262,7 +262,8 @@ def create_parser():
         action='store_true', dest='ignoreconfig',
         help=(
             'Don\'t load any more configuration files except those given by --config-locations. '
-            'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded'))
+            'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded. '
+            '(Alias: --no-config'))
     general.add_option(
         '--no-config-locations',
         action='store_const', dest='config_locations', const=[],
@@ -910,13 +911,13 @@ def create_parser():
         metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'video|playlist',
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
             'default_key': 'video',
             'multiple_keys': False,
             'append': True,
         }, help=(
-            'Field name or output template to print to screen per video. '
-            'Prefix the template with "playlist:" to print it once per playlist instead. '
+            'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
             'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
@@ -1396,6 +1397,16 @@ def create_parser():
         '--xattrs',
         action='store_true', dest='xattrs', default=False,
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
+    postproc.add_option(
+        '--concat-playlist',
+        metavar='POLICY', dest='concat_playlist', default='multi_video',
+        choices=('never', 'always', 'multi_video'),
+        help=(
+            'Concatenate videos in a playlist. One of "never" (default), "always", or '
+            '"multi_video" (only when the videos form a single show). '
+            'All the video files must have same codecs and number of streams to be concatable. '
+            'The "pl_video:" prefix can be used with "--paths" and "--output" to '
+            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,

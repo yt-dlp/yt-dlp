@@ -8,11 +8,15 @@ import time
 import json
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_unquote
+from ..compat import (
+    compat_urllib_parse_unquote,
+    compat_urllib_parse_urlparse
+)
 from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
+    LazyList,
     str_or_none,
     traverse_obj,
     try_get,
@@ -23,13 +27,13 @@ from ..utils import (
 
 class TikTokBaseIE(InfoExtractor):
     _APP_VERSION = '20.1.0'
-    _MANIFEST_APP_VERSION = '200'
+    _MANIFEST_APP_VERSION = '210'
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-h2.tiktokv.com'
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
-    QUALITIES = ('360p', '540p', '720p')
+    QUALITIES = ('360p', '540p', '720p', '1080p')
 
     def _call_api(self, ep, query, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
@@ -123,7 +127,7 @@ class TikTokBaseIE(InfoExtractor):
                 'format_id': 'play_addr',
                 'format_note': 'Direct video',
                 'vcodec': 'h265' if traverse_obj(
-                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # Always h264?
+                    video_info, 'is_bytevc1', 'is_h265') else 'h264',  # TODO: Check for "direct iOS" videos, like https://www.tiktok.com/@cookierun_dev/video/7039716639834656002
                 'width': video_info.get('width'),
                 'height': video_info.get('height'),
             }))
@@ -164,7 +168,7 @@ class TikTokBaseIE(InfoExtractor):
         auth_cookie = self._get_cookies(self._WEBPAGE_HOST).get('sid_tt')
         if auth_cookie:
             for f in formats:
-                self._set_cookie(f['url'], 'sid_tt', auth_cookie.value)
+                self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
         self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
         thumbnails = []
@@ -404,7 +408,7 @@ class TikTokIE(TikTokBaseIE):
             self.report_warning(f'{e}; Retrying with feed workaround')
             feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
                                        note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
-            aweme_detail = next(aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id)
+            aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
             if not aweme_detail:
                 raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
         return self._parse_aweme_video_app(aweme_detail)
@@ -452,6 +456,7 @@ class TikTokUserIE(TikTokBaseIE):
         'info_dict': {
             'id': '6935371178089399301',
             'title': 'corgibobaa',
+            'thumbnail': r're:https://.+_1080x1080\.webp'
         },
         'expected_warnings': ['Retrying']
     }, {
@@ -460,6 +465,7 @@ class TikTokUserIE(TikTokBaseIE):
         'info_dict': {
             'id': '79005827461758976',
             'title': 'meme',
+            'thumbnail': r're:https://.+_1080x1080\.webp'
         },
         'expected_warnings': ['Retrying']
     }]
@@ -483,7 +489,7 @@ class TikTokUserIE(TikTokBaseIE):
             cursor = data_json['cursor']
     '''
 
-    def _entries_api(self, webpage, user_id, username):
+    def _video_entries_api(self, webpage, user_id, username):
         query = {
             'user_id': user_id,
             'count': 21,
@@ -506,16 +512,19 @@ class TikTokUserIE(TikTokBaseIE):
                         continue
                     raise
                 break
-            for video in post_list.get('aweme_list', []):
-                yield {
-                    **self._parse_aweme_video_app(video),
-                    'extractor_key': TikTokIE.ie_key(),
-                    'extractor': 'TikTok',
-                    'webpage_url': f'https://tiktok.com/@{user_id}/video/{video["aweme_id"]}',
-                }
+            yield from post_list.get('aweme_list', [])
             if not post_list.get('has_more'):
                 break
             query['max_cursor'] = post_list['max_cursor']
+
+    def _entries_api(self, user_id, videos):
+        for video in videos:
+            yield {
+                **self._parse_aweme_video_app(video),
+                'extractor_key': TikTokIE.ie_key(),
+                'extractor': 'TikTok',
+                'webpage_url': f'https://tiktok.com/@{user_id}/video/{video["aweme_id"]}',
+            }
 
     def _real_extract(self, url):
         user_name = self._match_id(url)
@@ -523,7 +532,11 @@ class TikTokUserIE(TikTokBaseIE):
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
         user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID')
-        return self.playlist_result(self._entries_api(webpage, user_id, user_name), user_id, user_name)
+
+        videos = LazyList(self._video_entries_api(webpage, user_id, user_name))
+        thumbnail = traverse_obj(videos, (0, 'author', 'avatar_larger', 'url_list', 0))
+
+        return self.playlist_result(self._entries_api(user_id, videos), user_id, user_name, thumbnail=thumbnail)
 
 
 class TikTokBaseListIE(TikTokBaseIE):
