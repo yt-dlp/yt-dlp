@@ -4944,13 +4944,13 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                             pl_id = f'UU{item_id[2:]}'
                             pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
                             try:
-                                data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True)
+                                data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True, webpage_fatal=True)
                             except ExtractorError:
                                 redirect_warning += ' and the playlist redirect gave error'
                             else:
                                 item_id, url, selected_tab_name = pl_id, pl_url, requested_tab_name
                                 redirect_warning += f'. Redirecting to playlist {pl_id} instead'
-                        if selected_tab_name != requested_tab_name:
+                        if selected_tab_name and selected_tab_name != requested_tab_name:
                             redirect_warning += f'. {selected_tab_name} tab is being downloaded instead'
                     elif not mobj['not_channel']:
                         raise ExtractorError(f'The channel did not present a {requested_tab_name} tab', expected=True)
