@@ -3786,8 +3786,10 @@ class GenericIE(InfoExtractor):
                         'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
                         'format_id': format_id,
                         'ext': 'mp4',
-                        **parse_resolution(format_id)
+                        **(parse_resolution(format_id) or parse_resolution(flashvars[key]))
                     })
+                    if not formats[-1].get('height'):
+                        formats[-1]['quality'] = 1
 
                 self._sort_formats(formats)
 
