@@ -28,6 +28,7 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_duration,
+    parse_resolution,
     sanitized_Request,
     smuggle_url,
     unescapeHTML,
@@ -38,6 +39,7 @@ from ..utils import (
     xpath_attr,
     xpath_text,
     xpath_with_ns,
+    str_to_int,
 )
 from .commonprotocols import RtmpIE
 from .brightcove import (
@@ -3775,19 +3777,25 @@ class GenericIE(InfoExtractor):
                     thumbnail = protocol + thumbnail
 
                 formats = []
-                for key in ('video_url', 'video_alt_url', 'video_alt_url2'):
+                idx = 0
+                while True:
+                    key = 'video%s_url%s' % ('_alt' if idx > 0 else '', idx if idx > 1 else '')
                     if key in flashvars and '/get_file/' in flashvars[key]:
                         next_format = {
                             'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
                             'format_id': flashvars.get(key + '_text', key),
                             'ext': 'mp4',
                         }
-                        height = re.search(r'%s_(\d+)p\.mp4(?:/[?].*)?$' % flashvars['video_id'], flashvars[key])
-                        if height:
-                            next_format['height'] = int(height.group(1))
-                        else:
-                            next_format['quality'] = 1
+                        res = parse_resolution(next_format['format_id'])
+                        if 'height' in res:
+                            next_format['height'] = str_to_int(res['height'])
+                        if 'width' in res:
+                            next_format['width'] = str_to_int(res['width'])
+
                         formats.append(next_format)
+                        idx += 1
+                    else:
+                        break
                 self._sort_formats(formats)
 
                 return {
