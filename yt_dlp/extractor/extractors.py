@@ -1318,6 +1318,10 @@ from .rutube import (
     RutubePlaylistIE,
     RutubeTagsIE,
 )
+from .glomex import (
+    GlomexIE,
+    GlomexEmbedIE,
+)
 from .rutv import RUTVIE
 from .ruutu import RuutuIE
 from .ruv import RuvIE

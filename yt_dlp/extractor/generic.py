@@ -101,6 +101,7 @@ from .ustream import UstreamIE
 from .arte import ArteTVEmbedIE
 from .videopress import VideoPressIE
 from .rutube import RutubeIE
+from .glomex import GlomexEmbedIE
 from .limelight import LimelightBaseIE
 from .anvato import AnvatoIE
 from .washingtonpost import WashingtonPostIE
@@ -1873,6 +1874,18 @@ class GenericIE(InfoExtractor):
             'add_ie': [RutubeIE.ie_key()],
         },
         {
+            'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
+            'info_dict': {
+                'id': 'v-ch2nkhcirwc9-sf',
+                'ext': 'mp4',
+                'title': 'md5:786e1e24e06c55993cee965ef853a0c1',
+                'description': 'md5:8b517a61d577efe7e36fde72fd535995',
+                'timestamp': 1641885019,
+                'upload_date': '20220111',
+                'duration': 460000,
+            },
+        },
+        {
             # ThePlatform embedded with whitespaces in URLs
             'url': 'http://www.golfchannel.com/topics/shows/golftalkcentral.htm',
             'only_matching': True,
@@ -3463,6 +3476,12 @@ class GenericIE(InfoExtractor):
         if rutube_urls:
             return self.playlist_from_matches(
                 rutube_urls, video_id, video_title, ie=RutubeIE.ie_key())
+
+        # Look for Glomex embeds
+        glomex_urls = list(GlomexEmbedIE._extract_urls(webpage, url))
+        if glomex_urls:
+            return self.playlist_from_matches(
+                glomex_urls, video_id, video_title, ie=GlomexEmbedIE.ie_key())
 
         # Look for WashingtonPost embeds
         wapo_urls = WashingtonPostIE._extract_urls(webpage)
