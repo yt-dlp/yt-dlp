@@ -143,6 +143,7 @@ class GlomexEmbedIE(GlomexBaseIE):
 
     _TESTS = [{
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?integrationId=4059a013k56vb2yd&playlistId=v-cfa6lye0dkdd-sf',
+        'md5': '68f259b98cc01918ac34180142fce287',
         'info_dict': {
             'id': 'v-cfa6lye0dkdd-sf',
             'ext': 'mp4',
@@ -152,7 +153,6 @@ class GlomexEmbedIE(GlomexBaseIE):
             'description': 'md5:e741185fc309310ff5d0c789b437be66',
             'title': 'md5:35647293513a6c92363817a0fb0a7961',
         },
-        'params': {'skip_download': 'm3u8'},
     }, {
         'url': 'https://player.glomex.com/integration/1/iframe-player.html?origin=fullpage&integrationId=19syy24xjn1oqlpc&playlistId=rl-vcb49w1fb592p&playlistIndex=0',
         'info_dict': {
