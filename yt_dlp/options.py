@@ -1398,6 +1398,16 @@ def create_parser():
         action='store_true', dest='xattrs', default=False,
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
     postproc.add_option(
+        '--concat-playlist',
+        metavar='POLICY', dest='concat_playlist', default='multi_video',
+        choices=('never', 'always', 'multi_video'),
+        help=(
+            'Concatenate videos in a playlist. One of "never" (default), "always", or '
+            '"multi_video" (only when the videos form a single show). '
+            'All the video files must have same codecs and number of streams to be concatable. '
+            'The "pl_video:" prefix can be used with "--paths" and "--output" to '
+            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
+    postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
         choices=('never', 'ignore', 'warn', 'detect_or_warn', 'force'),
