@@ -139,7 +139,7 @@ class TwitCastingIE(InfoExtractor):
 
         m3u8_urls = (try_get(webpage, find_dmu, list)
                      or traverse_obj(video_js_data, (..., 'source', 'url'))
-                     or [f'https://twitcasting.tv/{uploader_id}/metastream.m3u8'] if is_live else None)
+                     or ([f'https://twitcasting.tv/{uploader_id}/metastream.m3u8'] if is_live else None))
         if not m3u8_urls:
             raise ExtractorError('Failed to get m3u8 playlist')
 
