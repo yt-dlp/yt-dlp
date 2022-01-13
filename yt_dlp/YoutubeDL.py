@@ -1596,6 +1596,19 @@ class YoutubeDL(object):
     def _ensure_dir_exists(self, path):
         return make_dir(path, self.report_error)
 
+    @staticmethod
+    def _playlist_infodict(ie_result, **kwargs):
+        return {
+            **ie_result,
+            'playlist': ie_result.get('title') or ie_result.get('id'),
+            'playlist_id': ie_result.get('id'),
+            'playlist_title': ie_result.get('title'),
+            'playlist_uploader': ie_result.get('uploader'),
+            'playlist_uploader_id': ie_result.get('uploader_id'),
+            'playlist_index': 0,
+            **kwargs,
+        }
+
     def __process_playlist(self, ie_result, download):
         # We process each entry in the playlist
         playlist = ie_result.get('title') or ie_result.get('id')
@@ -1695,17 +1708,7 @@ class YoutubeDL(object):
 
         _infojson_written = False
         if not self.params.get('simulate') and self.params.get('allow_playlist_files', True):
-            ie_copy = {
-                'playlist': playlist,
-                'playlist_id': ie_result.get('id'),
-                'playlist_title': ie_result.get('title'),
-                'playlist_uploader': ie_result.get('uploader'),
-                'playlist_uploader_id': ie_result.get('uploader_id'),
-                'playlist_index': 0,
-                'n_entries': n_entries,
-            }
-            ie_copy.update(dict(ie_result))
-
+            ie_copy = self._playlist_infodict(ie_result, n_entries=n_entries)
             _infojson_written = self._write_info_json(
                 'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
             if _infojson_written is None:
