@@ -4953,7 +4953,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                         if selected_tab_name and selected_tab_name != requested_tab_name:
                             redirect_warning += f'. {selected_tab_name} tab is being downloaded instead'
                     elif not mobj['not_channel']:
-                        raise ExtractorError(f'The channel did not present a {requested_tab_name} tab', expected=True)
+                        raise ExtractorError(redirect_warning, expected=True)
 
         if redirect_warning:
             self.report_warning(redirect_warning)
