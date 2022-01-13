@@ -180,8 +180,8 @@ class TwitCastingIE(InfoExtractor):
                     'id': f'{video_id}-{num}',
                     'url': m3u8_url,
                     'ext': 'mp4',
-                    # has to be ffmpeg because the requesting them at once will cause download failure
-                    # (https://github.com/yt-dlp/yt-dlp/issues/382)
+                    # Requesting the manifests here will cause download to fail.
+                    # So use ffmpeg instead. See: https://github.com/yt-dlp/yt-dlp/issues/382
                     'protocol': 'm3u8',
                     'http_headers': self._M3U8_HEADERS,
                     **base_dict,
