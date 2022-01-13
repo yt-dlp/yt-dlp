@@ -6,7 +6,7 @@ from ..utils import try_get
 
 
 class ThetaStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?!video/)(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?!video/)(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://www.theta.tv/davirus',
         'skip': 'The live may have ended',
