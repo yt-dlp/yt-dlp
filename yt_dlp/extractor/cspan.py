@@ -1,6 +1,10 @@
 from __future__ import unicode_literals
 
 import re
+from urllib.parse import (
+    parse_qs,
+    urlparse,
+)
 
 from .common import InfoExtractor
 from ..utils import (
@@ -247,45 +251,38 @@ class CSpanIE(InfoExtractor):
 
 class CSpanCongressIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?c-span\.org/congress/'
-    IE_DESC = 'C-SPAN'
     _TESTS = [{
         'url': 'https://www.c-span.org/congress/?chamber=house&date=2017-12-13&t=1513208380',
         'info_dict': {
-            'id': 'Congressional Chronicle - Members of Congress, Hearings and More | C-SPAN.org',
-            'title': 'Congressional Chronicle - Members of Congress, Hearings and More',
+            'id': 'house_2017-12-13',
+            'title': 'Congressional Chronicle - Members of Congress, Hearings and More | C-SPAN.org',
             'description': 'md5:54c264b7a8f219937987610243305a84',
+            'thumbnail': 'https://ximage.c-spanvideo.org/eyJidWNrZXQiOiJwaWN0dXJlcy5jLXNwYW52aWRlby5vcmciLCJrZXkiOiJGaWxlc1wvODdkXC8yMDE3MTIxMzEwMDAzMjAwMV9oZC5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJoZWlnaHQiOjU3Niwid2lkdGgiOjEwMjR9fX0=',
             'ext': 'mp4'
         }
     }]
 
     def _real_extract(self, url):
-        display_id = self._generic_id(url)
+        parsed_url = urlparse(url)
+        if parse_qs(parsed_url.query)['chamber'] is not None:
+            display_id = parse_qs(parsed_url.query)['chamber'][0]
+            if parse_qs(parsed_url.query)['date'] is not None:
+                display_id = display_id + '_' + parse_qs(parsed_url.query)['date'][0]
+        else:
+            display_id = self._generic_id(url)
+
         webpage = self._download_webpage(url, display_id)
-        file = open("sample.txt", "w")
-        file.write(webpage)
-        file.close()
-        video_url = re.findall(r'sources: \[\{file: \'(.*?)\'\}\],', webpage)[0]
-        formats = self._extract_m3u8_formats(video_url, display_id, ext='mp4')
-        self._sort_formats(formats)
+        jwplayer_data = self._parse_json(
+            self._search_regex(r'jwsetup\s*=\s*({(?:.|\n)[^;]+});', webpage, 'player config'),
+            display_id, transform_source=js_to_json)
+        result = self._parse_jwplayer_data(jwplayer_data, display_id, False)
 
-        basic_url = "/".join(url.rstrip('/').split('/')[:3])
-        for f in formats:
-            f.setdefault('http_headers', {})['referer'] = basic_url + "/"
-            f.setdefault('http_headers', {})['origin'] = basic_url
-            f.setdefault('http_headers', {})['accept'] = "*/*"
-            f.setdefault('http_headers', {})['sec-fetch-dest'] = "empty"
-            f.setdefault('http_headers', {})['sec-fetch-mode'] = "cors"
-            f.setdefault('http_headers', {})['sec-fetch-site'] = "cross-site"
+        for f in result['formats']:
+            f.setdefault('http_headers', {})['Referer'] = 'https://www.c-span.org/'
 
-        title = self._og_search_title(webpage, default=None) or self._html_search_regex(
+        result['title'] = self._og_search_title(webpage, default=None) or self._html_search_regex(
             r'(?s)<title>(.*?)</title>', webpage, 'video title')
-        description = self._og_search_description(webpage, default=None) or self._html_search_meta(
+        result['description'] = self._og_search_description(webpage, default=None) or self._html_search_meta(
             'description', webpage, 'meta description', default=None)
 
-        return {
-            'id': title,
-            'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
-            'description': description,
-            'thumbnail': self._og_search_thumbnail(webpage, default=None),
-            'formats': formats
-        }
+        return result
