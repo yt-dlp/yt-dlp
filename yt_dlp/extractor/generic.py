@@ -39,7 +39,6 @@ from ..utils import (
     xpath_attr,
     xpath_text,
     xpath_with_ns,
-    str_to_int,
 )
 from .commonprotocols import RtmpIE
 from .brightcove import (
