@@ -575,16 +575,19 @@ class DiscoveryPlusShowBaseIE(DPlayBaseIE):
         return self.playlist_result(self._entries(show_name), playlist_id=show_name)
 
 
-class DiscoveryPlusItalyIE(InfoExtractor):
+class DiscoveryPlusItalyIE(DiscoveryPlusIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/it/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
         'url': 'https://www.discoveryplus.com/it/video/i-signori-della-neve/stagione-2-episodio-1-i-preparativi',
         'only_matching': True,
     }]
 
+    _API_URL = 'eu1-prod-direct.discoveryplus.com'
+
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        return self.url_result(f'https://discoveryplus.it/video/{video_id}', DPlayIE.ie_key(), video_id)
+        display_id = self._match_id(url)
+        return self._get_disco_api_info(
+            url, display_id, self._API_URL, 'dplay', 'it')
 
 
 class DiscoveryPlusItalyShowIE(DiscoveryPlusShowBaseIE):
