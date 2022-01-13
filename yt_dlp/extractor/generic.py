@@ -28,6 +28,7 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_duration,
+    parse_resolution,
     sanitized_Request,
     smuggle_url,
     unescapeHTML,
@@ -3774,20 +3775,21 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d+').fullmatch, flashvars.keys()))
                 formats = []
-                for key in ('video_url', 'video_alt_url', 'video_alt_url2'):
-                    if key in flashvars and '/get_file/' in flashvars[key]:
-                        next_format = {
-                            'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
-                            'format_id': flashvars.get(key + '_text', key),
-                            'ext': 'mp4',
-                        }
-                        height = re.search(r'%s_(\d+)p\.mp4(?:/[?].*)?$' % flashvars['video_id'], flashvars[key])
-                        if height:
-                            next_format['height'] = int(height.group(1))
-                        else:
-                            next_format['quality'] = 1
-                        formats.append(next_format)
+                for key in url_keys:
+                    if '/get_file/' not in flashvars[key]:
+                        continue
+                    format_id = flashvars.get(f'{key}_text', key)
+                    formats.append({
+                        'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
+                        'format_id': format_id,
+                        'ext': 'mp4',
+                        **(parse_resolution(format_id) or parse_resolution(flashvars[key]))
+                    })
+                    if not formats[-1].get('height'):
+                        formats[-1]['quality'] = 1
+
                 self._sort_formats(formats)
 
                 return {
