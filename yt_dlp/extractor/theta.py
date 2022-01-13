@@ -25,6 +25,14 @@ class ThetaStreamIE(InfoExtractor):
             'title': 'Mystery Science Theatre 3000 24/7 Powered by the THETA Network.',
             'thumbnail': r're:https://user-prod-theta-tv\.imgix\.net/.+\.jpg',
         }
+    }, {
+        'url': 'https://www.theta.tv/contv-anime',
+        'info_dict': {
+            'id': 'ConTVAnime',
+            'ext': 'mp4',
+            'title': 'CONTV ANIME 24/7. Powered by THETA Network.',
+            'thumbnail': r're:https://user-prod-theta-tv\.imgix\.net/.+\.jpg',
+        }
     }]
 
     def _real_extract(self, url):
