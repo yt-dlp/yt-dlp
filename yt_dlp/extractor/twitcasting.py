@@ -99,20 +99,12 @@ class TwitCastingIE(InfoExtractor):
                 r'data-movie-playlist=\'([^\']+?)\'',
                 x, 'movie playlist', default=None), video_id)['2'], list)
 
-        thumbnail = try_get(
-            video_js_data,
-            (lambda x: traverse_obj(x, (0, 'thumbnailUrl')),
-             lambda x: self._og_search_thumbnail(webpage)),
-            str)
+        thumbnail = traverse_obj(video_js_data, (0, 'thumbnailUrl')) or self._og_search_thumbnail(webpage)
         description = clean_html(get_element_by_id(
             'authorcomment', webpage)) or self._html_search_meta(
             ['description', 'og:description', 'twitter:description'], webpage)
-        duration = try_get(
-            video_js_data,
-            (lambda x: sum(float_or_none(y.get('duration')) for y in x) / 1000,
-             lambda x: parse_duration(clean_html(
-                 get_element_by_class('tw-player-duration-time', webpage)))),
-            float)
+        duration = (try_get(video_js_data, lambda x: sum(float_or_none(y.get('duration')) for y in x) / 1000)
+                    or parse_duration(clean_html(get_element_by_class('tw-player-duration-time', webpage))))
         view_count = str_to_int(self._search_regex(
             (r'Total\s*:\s*([\d,]+)\s*Views', r'総視聴者\s*:\s*([\d,]+)\s*</'), webpage, 'views', None))
         timestamp = unified_timestamp(self._search_regex(
@@ -145,13 +137,9 @@ class TwitCastingIE(InfoExtractor):
             if data_movie_url:
                 return [data_movie_url]
 
-        m3u8_urls = try_get(
-            webpage,
-            (find_dmu,
-             lambda x: traverse_obj(video_js_data, (..., 'source', 'url')),
-             lambda x: ['https://twitcasting.tv/%s/metastream.m3u8' % uploader_id]
-                if is_live else None),
-            list)
+        m3u8_urls = (try_get(webpage, find_dmu, list)
+                     or traverse_obj(video_js_data, (..., 'source', 'url'))
+                     or [f'https://twitcasting.tv/{uploader_id}/metastream.m3u8'] if is_live else None)
         if not m3u8_urls:
             raise ExtractorError('Failed to get m3u8 playlist')
 
