@@ -318,8 +318,6 @@ class PRXStoryIE(PRXBaseIE):
         audio_pieces = self._extract_audio_pieces(
             self._get_prx_embed_response(story_response, 'audio'))
         if len(audio_pieces) > 1:
-            # TODO: concatenate the pieces with a concat PP is implemented
-            # Currently returning as multi_video for the time being
             for idx, fmt in enumerate(audio_pieces):
                 entries.append({
                     '_type': 'video',
