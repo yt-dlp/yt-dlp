@@ -3776,26 +3776,19 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d+').fullmatch, flashvars.keys()))
                 formats = []
-                idx = 0
-                while True:
-                    key = 'video%s_url%s' % ('_alt' if idx > 0 else '', idx if idx > 1 else '')
-                    if key in flashvars and '/get_file/' in flashvars[key]:
-                        next_format = {
-                            'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
-                            'format_id': flashvars.get(key + '_text', key),
-                            'ext': 'mp4',
-                        }
-                        res = parse_resolution(next_format['format_id'])
-                        if 'height' in res:
-                            next_format['height'] = str_to_int(res['height'])
-                        if 'width' in res:
-                            next_format['width'] = str_to_int(res['width'])
+                for key in url_keys:
+                    if '/get_file/' not in flashvars[key]:
+                        continue
+                    format_id = flashvars.get(f'{key}_text', key)
+                    formats.append({
+                        'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
+                        'format_id': format_id,
+                        'ext': 'mp4',
+                        **parse_resolution(format_id)
+                    })
 
-                        formats.append(next_format)
-                        idx += 1
-                    else:
-                        break
                 self._sort_formats(formats)
 
                 return {
