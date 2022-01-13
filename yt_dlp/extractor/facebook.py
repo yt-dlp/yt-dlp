@@ -394,8 +394,12 @@ class FacebookIE(InfoExtractor):
         self._login()
 
     def _extract_from_url(self, url, video_id):
+        headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Sec-Fetch-Site': 'same-origin',
+        }
         webpage = self._download_webpage(
-            url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
+            url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id, headers=headers)
 
         def extract_metadata(webpage):
             media_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
@@ -565,7 +569,7 @@ class FacebookIE(InfoExtractor):
                         lambda x: x['attachments']
                     ], list) or []
                     for attachment in attachments:
-                        attachment = try_get(attachment, lambda x: x['style_type_renderer']['attachment'], dict)
+                        attachment = try_get(attachment, lambda x: x['styles']['attachment'], dict)
                         ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
                         for n in ns:
                             parse_attachment(n)
