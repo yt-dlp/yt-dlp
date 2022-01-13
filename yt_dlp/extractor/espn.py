@@ -9,7 +9,8 @@ from .adobepass import AdobePassIE
 from .once import OnceIE
 from ..compat import (
     compat_str,
-    compat_urllib_parse_quote_plus
+    compat_urllib_parse_quote_plus,
+    compat_urllib_parse_urlencode
 )
 from ..utils import (
     determine_ext,
@@ -308,18 +309,16 @@ class WatchESPNIE(AdobePassIE):
 
     _API_KEY = 'ZXNwbiZicm93c2VyJjEuMC4w.ptUt7QxsteaRruuPmGZFaJByOoqKvDP2a5YkInHrc7c'
 
-    def _call_bamgrid_api(self, path, video_id, data=None, headers={}):
+    def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
         if 'authorization' not in headers:
             headers['authorization'] = 'Bearer ' + self._API_KEY
+        if path == 'token':
+            data = compat_urllib_parse_urlencode(payload).encode('utf-8')
+        else:
+            data = json.dumps(payload).encode('utf-8')
         return self._download_json(
             'https://espn.api.edge.bamgrid.com/' + path,
             video_id, data=data, headers=headers)
-
-    def _payload_to_string_data(self, payload):
-        return '&'.join(['%s=%s' % (key, compat_urllib_parse_quote_plus(payload[key])) for key in payload]).encode('utf-8')
-
-    def _payload_to_json_data(self, payload):
-        return json.dumps(payload).encode('utf-8')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -338,29 +337,29 @@ class WatchESPNIE(AdobePassIE):
             assertion = self._call_bamgrid_api(
                 'devices',
                 video_id,
-                data=self._payload_to_json_data({
+                payload={
                     'deviceFamily': 'android',
                     'applicationRuntime': 'android',
                     'deviceProfile': 'tv',
                     'attributes': {},
-                }),
+                },
                 headers={'content-type': 'application/json; charset=UTF-8'}
             )['assertion']
 
             token = self._call_bamgrid_api(
                 'token',
                 video_id,
-                data=self._payload_to_string_data({
+                payload={
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:device',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'})
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'}
             )['access_token']
 
             assertion = self._call_bamgrid_api(
                 'accounts/grant',
                 video_id,
-                data=self._payload_to_json_data({'id_token': id_token}),
+                payload={'id_token': id_token},
                 headers={
                     'authorization': token,
                     'content-type': 'application/json; charset=UTF-8'}
@@ -369,11 +368,11 @@ class WatchESPNIE(AdobePassIE):
             token = self._call_bamgrid_api(
                 'token',
                 video_id,
-                data=self._payload_to_string_data({
+                payload={
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:account',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'})
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'}
             )['access_token']
 
             playback = self._download_json(
