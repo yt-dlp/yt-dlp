@@ -197,7 +197,7 @@ class FFmpegPostProcessor(PostProcessor):
         yield from ('-map', '0')
         # Don't copy Apple TV chapters track, bin_data
         # See https://github.com/yt-dlp/yt-dlp/issues/2, #19042, #19024, https://trac.ffmpeg.org/ticket/6016
-        yield '-dn'
+        yield from ('-dn', '-ignore_unknown')
         if copy:
             yield from ('-c', 'copy')
         # For some reason, '-c copy -map 0' is not enough to copy subtitles
