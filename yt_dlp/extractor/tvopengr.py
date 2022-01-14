@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import re
-import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -17,14 +16,13 @@ class TVOpenGrBaseIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         canonical_url = self._og_search_url(webpage)
         title = self._og_search_title(webpage)
-        self.to_screen(f'{video_id}: Redirect to canonical URL')
         return self.url_result(canonical_url, ie=TVOpenGrWatchIE.ie_key(), video_id=video_id, video_title=title)
 
 
 class TVOpenGrWatchIE(TVOpenGrBaseIE):
     IE_NAME = 'tvopengr:watch'
     IE_DESC = 'tvopen.gr (and ethnos.gr) videos'
-    _VALID_URL = r'(?P<scheme>https?)://(?P<netloc>(?:www\.)?(?:tvopen|ethnos)\.gr)/watch/(?P<id>\d+)/(?P<slug>[^/]+)'
+    _VALID_URL = r'https?://(?P<netloc>(?:www\.)?(?:tvopen|ethnos)\.gr)/watch/(?P<id>\d+)/(?P<slug>[^/]+)'
     _API_ENDPOINT = '//www.tvopen.gr/templates/data/player'
 
     _TESTS = [{
@@ -55,15 +53,6 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
         },
     }]
 
-    def _download_api_data(self, cid, scheme='https'):
-        url = f'{scheme}:{self._API_ENDPOINT}'
-        query = {'cid': cid}
-        return self._download_json(
-            url, query,
-            'Downloading JSON',
-            'Unable to download JSON',
-            query=query)
-
     def _extract_formats_and_subs(self, options, video_id):
         formats, subs = [], {}
         for format_id, format_url in options.items():
@@ -84,18 +73,20 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
                 })
                 continue
             formats.extend(formats_)
-            subs.update(subs_)
+            self._merge_subtitles(subs_, target=subs)
         self._sort_formats(formats)
         return formats, subs
 
     def _real_extract(self, url):
-        scheme, netloc, video_id, display_id = self._match_valid_url(url).group('scheme', 'netloc', 'id', 'slug')
+        netloc, video_id, display_id = self._match_valid_url(url).group('netloc', 'id', 'slug')
         if netloc.find('tvopen.gr') == -1:
             return self._return_canonical_url(url, video_id)
         webpage = self._download_webpage(url, video_id)
         info = self._search_json_ld(webpage, video_id, expected_type='VideoObject')
         info['formats'], info['subtitles'] = self._extract_formats_and_subs(
-            self._download_api_data(video_id, scheme=scheme), video_id)
+            self._download_json(
+                f'{self.http_scheme()}:{self._API_ENDPOINT}', video_id, query={'cid': video_id}),
+            video_id)
         max_dimensions = max(
             [tuple(format.get(k) or 0 for k in ('width', 'height')) for format in info['formats']],
             default=None)
@@ -114,7 +105,7 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
 class TVOpenGrEmbedIE(TVOpenGrBaseIE):
     IE_NAME = 'tvopengr:embed'
     IE_DESC = 'tvopen.gr embedded videos'
-    _VALID_URL = r'https?://(?:www\.|cdn\.|)(?:tvopen|ethnos).gr/embed/(?P<id>\d+)'
+    _VALID_URL = r'(?:https?:)?//(?:www\.|cdn\.|)(?:tvopen|ethnos).gr/embed/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://cdn.ethnos.gr/embed/100963',
@@ -133,17 +124,11 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage, origin_url=None):
-        # make the scheme in _VALID_URL optional
-        _URL_RE = r'(?:https?:)?//' + cls._VALID_URL.split('://', 1)[1]
         EMBED_RE = r'''(?x)
             <iframe[^>]+?src=(?P<_q1>["'])(?P<url>%(url_re)s)(?P=_q1)
-        ''' % {'url_re': _URL_RE}
+        ''' % {'url_re': cls._VALID_URL}
         for mobj in re.finditer(EMBED_RE, webpage):
-            url = unescapeHTML(mobj.group('url'))
-            if url.startswith('//'):
-                scheme = urllib.parse.urlparse(origin_url).scheme if origin_url else 'https'
-                url = f'{scheme}:{url}'
-            yield url
+            yield unescapeHTML(mobj.group('url'))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
