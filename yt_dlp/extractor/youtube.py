@@ -4864,7 +4864,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
         return info_dict
 
-    _URL_RE = re.compile(rf'(?P<pre>{_VALID_URL})(?(channel_type)(?P<tab>/\w+))?(?P<post>.*)$')
+    _URL_RE = re.compile(rf'(?P<pre>{_VALID_URL})(?P<tab>/\w+)?(?P<post>.*)$')
 
     def __real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
