@@ -26,8 +26,7 @@ class TestExecution(unittest.TestCase):
         subprocess.check_call([sys.executable, '-c', 'import yt_dlp'], cwd=rootDir)
 
     def test_module_exec(self):
-        if sys.version_info >= (2, 7):  # Python 2.6 doesn't support package execution
-            subprocess.check_call([sys.executable, '-m', 'yt_dlp', '--version'], cwd=rootDir, stdout=_DEV_NULL)
+        subprocess.check_call([sys.executable, '-m', 'yt_dlp', '--version'], cwd=rootDir, stdout=_DEV_NULL)
 
     def test_main_exec(self):
         subprocess.check_call([sys.executable, 'yt_dlp/__main__.py', '--version'], cwd=rootDir, stdout=_DEV_NULL)

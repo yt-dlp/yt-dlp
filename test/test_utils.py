@@ -535,9 +535,6 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(str_to_int('123,456'), 123456)
         self.assertEqual(str_to_int('123.456'), 123456)
         self.assertEqual(str_to_int(523), 523)
-        # Python 3 has no long
-        if sys.version_info < (3, 0):
-            eval('self.assertEqual(str_to_int(123456L), 123456)')
         self.assertEqual(str_to_int('noninteger'), None)
         self.assertEqual(str_to_int([]), None)
 
