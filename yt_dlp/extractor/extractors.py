@@ -1164,6 +1164,10 @@ from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
 )
+from .pokergo import (
+    PokerGoIE,
+    PokerGoCollectionIE,
+)
 from .polsatgo import PolsatGoIE
 from .polskieradio import (
     PolskieRadioIE,
