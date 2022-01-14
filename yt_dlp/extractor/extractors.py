@@ -1687,6 +1687,7 @@ from .tvopengr import (
     TVOpenGrWatchIE,
     TVOpenGrEmbedIE,
 )
+from .ertgrwebtv import ErtGrWebtvEmbedIE
 from .tvp import (
     TVPEmbedIE,
     TVPIE,

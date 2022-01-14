@@ -140,6 +140,7 @@ from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvopengr import TVOpenGrEmbedIE
+from .ertgrwebtv import ErtGrWebtvEmbedIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
@@ -1924,6 +1925,15 @@ class GenericIE(InfoExtractor):
             }]
         },
         {
+            'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
+            'info_dict': {
+                'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+                'ext': 'mp4',
+                'title': 'md5:df64f5b61c06d0e9556c0cdd5cf14464',
+                'thumbnail': 'https://program.ert.gr/photos/2021/20220114-apotis6-gouales-pita.jpg',
+            },
+        },
+        {
             # ThePlatform embedded with whitespaces in URLs
             'url': 'http://www.golfchannel.com/topics/shows/golftalkcentral.htm',
             'only_matching': True,
@@ -3692,6 +3702,11 @@ class GenericIE(InfoExtractor):
         tvopengr_urls = list(TVOpenGrEmbedIE._extract_urls(webpage))
         if tvopengr_urls:
             return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
+
+        # Look for ert.gr webtv embeds
+        ertgrwebtv_urls = list(ErtGrWebtvEmbedIE._extract_urls(webpage, title=video_title))
+        if ertgrwebtv_urls:
+            return self.playlist_from_matches(ertgrwebtv_urls, video_id, video_title, ie=ErtGrWebtvEmbedIE.ie_key())
 
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
