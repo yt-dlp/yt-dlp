@@ -4936,10 +4936,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 if mobj['tab'] == '/live':
                     # Live tab should have redirected to the video
                     raise ExtractorError('The channel is not currently live', expected=True)
-                if selected_tab_name != requested_tab_name and requested_tab_name != 'featured':
+                if is_channel and selected_tab_name != requested_tab_name and requested_tab_name != 'featured':
                     redirect_warning = f'The URL does not have a {requested_tab_name} tab'
                     if requested_tab_name == 'videos':
-                        if not mobj['not_channel'] and item_id[:2] == 'UC':
+                        if item_id[:2] == 'UC':
                             # Topic channels don't have /videos. Use the equivalent playlist instead
                             pl_id = f'UU{item_id[2:]}'
                             pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
@@ -4952,7 +4952,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                                 redirect_warning += f'. Redirecting to playlist {pl_id} instead'
                         if selected_tab_name and selected_tab_name != requested_tab_name:
                             redirect_warning += f'. {selected_tab_name} tab is being downloaded instead'
-                    elif not mobj['not_channel']:
+                    else:
                         raise ExtractorError(redirect_warning, expected=True)
 
         if redirect_warning:
