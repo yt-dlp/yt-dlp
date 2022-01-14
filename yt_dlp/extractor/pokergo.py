@@ -21,7 +21,7 @@ class PokerGoBaseIE(InfoExtractor):
             self.raise_login_required(method='password')
 
         self.report_login()
-        self._AUTH_TOKEN = self._download_json(
+        PokerGoBaseIE._AUTH_TOKEN = self._download_json(
             f'https://subscription.pokergo.com/properties/{self._PROPERTY_ID}/sign-in', None,
             headers={'authorization': f'Basic {base64.b64encode(f"{username}:{password}".encode()).decode()}'},
             data=b'')['meta']['token']
@@ -51,7 +51,8 @@ class PokerGoIE(PokerGoBaseIE):
             'series': 'poker after dark',
             'upload_date': '20201216',
             'season': 'Season 12',
-            'episode': 'Episode 2'
+            'episode': 'Episode 2',
+            'display_id': '2a70ec4e-4a80-414b-97ec-725d9b72a7dc',
         },
         'params': {'skip_download': True}
     }]
@@ -72,7 +73,7 @@ class PokerGoIE(PokerGoBaseIE):
 
         return {
             '_type': 'url_transparent',
-            'id': id,
+            'display_id': id,
             'title': data_json.get('title'),
             'description': data_json.get('description'),
             'duration': data_json.get('duration'),
