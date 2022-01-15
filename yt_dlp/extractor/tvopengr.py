@@ -53,9 +53,9 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
         },
     }]
 
-    def _extract_formats_and_subs(self, options, video_id):
+    def _extract_formats_and_subs(self, response, video_id):
         formats, subs = [], {}
-        for format_id, format_url in options.items():
+        for format_id, format_url in response.items():
             if format_id not in ('stream', 'httpstream', 'mpegdash'):
                 continue
             ext = determine_ext(format_url)
