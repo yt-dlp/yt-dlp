@@ -25,18 +25,9 @@ class Ant1NewsGrBaseIE(InfoExtractor):
         unsmuggled_url, data = unsmuggle_url(url, default={'parent_info': {}})
         return unsmuggled_url, data['parent_info']
 
-    def _download_api_data(self, netloc, cid, scheme='https'):
-        url_parts = (scheme, netloc, self._API_PATH, None, None, None)
-        url = urllib.parse.urlunparse(url_parts)
-        query = {'cid': cid}
-        return self._download_json(
-            url, cid,
-            'Downloading JSON',
-            'Unable to download JSON',
-            query=query)
-
-    def _download_and_extract_api_data(self, video_id, *args, **kwargs):
-        info = self._download_api_data(*args, **kwargs)
+    def _download_and_extract_api_data(self, video_id, netloc, cid=None):
+        url = f'{self.http_scheme()}//{netloc}{self._API_PATH}'
+        info = self._download_json(url, video_id, query={'cid': cid or video_id})
         try:
             source = info['url']
         except KeyError:
@@ -57,7 +48,7 @@ class Ant1NewsGrBaseIE(InfoExtractor):
 class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
     IE_NAME = 'ant1newsgr:watch'
     IE_DESC = 'ant1news.gr videos'
-    _VALID_URL = r'(?P<scheme>https?)://(?P<netloc>(?:www\.)?ant1news\.gr)/watch/(?P<id>\d+)/'
+    _VALID_URL = r'https?://(?P<netloc>(?:www\.)?ant1news\.gr)/watch/(?P<id>\d+)/'
     _API_PATH = '/templates/data/player'
 
     _TEST = {
@@ -73,10 +64,9 @@ class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
     }
 
     def _real_extract(self, url):
-        video_id, scheme, netloc = self._match_valid_url(url).group('id', 'scheme', 'netloc')
+        video_id, netloc = self._match_valid_url(url).group('id', 'netloc')
         webpage = self._download_webpage(url, video_id)
-        info = self._download_and_extract_api_data(
-            video_id, netloc, video_id, scheme=scheme)
+        info = self._download_and_extract_api_data(video_id, netloc)
         info['description'] = self._og_search_description(webpage)
         return info
 
@@ -117,7 +107,8 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
         if not embed_urls:
             raise ExtractorError('no videos found for %s' % video_id)
         if len(embed_urls) == 1:
-            return self.url_result(embed_urls[0], ie=Ant1NewsGrEmbedIE.ie_key(),
+            return self.url_result(self._proto_relative_url(embed_urls[0]),
+                                   ie=Ant1NewsGrEmbedIE.ie_key(),
                                    video_title=info['title'])
         return self.playlist_from_matches(
             embed_urls, video_id, info['title'], ie=Ant1NewsGrEmbedIE.ie_key())
@@ -153,9 +144,6 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
         ''' % {'url_re': _URL_RE}
         for mobj in re.finditer(EMBED_RE, webpage):
             url = unescapeHTML(mobj.group('url'))
-            if url.startswith('//'):
-                scheme = urllib.parse.urlparse(origin_url).scheme if origin_url else 'https'
-                url = '%s:%s' % (scheme, url)
             if not cls.suitable(url):
                 continue
             yield cls._smuggle_parent_info(url, **parent_info)
@@ -169,12 +157,10 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
             HEADRequest(url), video_id,
             note='Resolve canonical player URL',
             errnote='Could not resolve canonical player URL').geturl()
-        scheme, netloc, _, _, query, _ = urllib.parse.urlparse(canonical_url)
-        query = urllib.parse.parse_qs(query)
-        cid = query['cid'][0]
+        _, netloc, _, _, query, _ = urllib.parse.urlparse(canonical_url)
+        cid = urllib.parse.parse_qs(query)['cid'][0]
 
-        info = self._download_and_extract_api_data(
-            video_id, netloc, cid, scheme=scheme)
+        info = self._download_and_extract_api_data(video_id, netloc, cid=cid)
         if 'timestamp' not in info and 'timestamp' in parent_info:
             info['timestamp'] = parent_info['timestamp']
         return info
