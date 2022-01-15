@@ -56,7 +56,7 @@ class ESPNIE(OnceIE):
             'timestamp': 1390936111,
             'upload_date': '20140128',
             'duration': 1302,
-            'thumbnail': 'md5:328b04abedca5cc2a55d76d613759de1',
+            'thumbnail': r're:https://.+\.jpg',
         },
         'params': {
             'skip_download': True,
@@ -99,7 +99,13 @@ class ESPNIE(OnceIE):
     }, {
         'url': 'http://www.espn.com/espnw/video/26066627/arkansas-gibson-completes-hr-cycle-four-innings',
         'only_matching': True,
-    }]
+    }, {
+        'url': 'http://www.espn.com/watch/player?id=19141491',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.espn.com/watch/player?bucketId=257&id=19505875',
+        'only_matching': True,
+    }, ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
