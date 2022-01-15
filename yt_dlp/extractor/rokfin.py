@@ -1,14 +1,10 @@
 # coding: utf-8
-from json import (
-    dumps as json_dumps,
-)
-from math import ceil as math_ceil
-from itertools import (
-    count as itertools_count,
-    product as itertools_product,
-)
+from json import dumps
+from math import ceil
+import itertools
 import datetime
-from re import finditer as re_finditer
+from re import finditer
+from urllib.parse import urlparse
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     unified_timestamp,
@@ -52,37 +48,33 @@ class RokfinPostIE(RokfinSingleVideoIE):
     }]
 
     def _real_extract(self, url_from_user):
+        if self.get_param('username') or self.get_param('password'):
+            self.report_warning('site logins are unsupported')
+
         video_id = self._match_id(url_from_user)
-        downloaded_json = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, note='Downloading video metadata', fatal=False) or {}
+        downloaded_json_meta_data = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
+        video_formats_url = url_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'contentUrl')))
+        availability = self._availability(
+            is_private=False,
+            needs_premium=True if downloaded_json_meta_data.get('premiumPlan') == 1 else False if downloaded_json_meta_data.get('premiumPlan') == 0 else None,
+            # premiumPlan = 0 - no-premium content
+            # premiumPlan = 1 - premium-only content
+            needs_subscription=False,
+            needs_auth=False,
+            is_unlisted=False)
 
-        def videoAvailability(y, dic):
-            video_availability = dic['premiumPlan']
-            # 0 - public
-            # 1 - premium only
-
-            if video_availability not in (0, 1):
-                y.report_warning(f'unknown availability code: {video_availability}. The extractor should be fixed')
-                return
-
-            return y._availability(
-                is_private=False,
-                needs_premium=(video_availability == 1),
-                needs_subscription=False,
-                needs_auth=False,
-                is_unlisted=False)
-
-        video_formats_url = url_or_none(traverse_obj(downloaded_json, ('content', 'contentUrl')))
-        availability = try_get(self, lambda x: videoAvailability(x, downloaded_json))
+        if downloaded_json_meta_data.get('premiumPlan') not in (0, 1, None):
+            self.report_warning(f'unknown availability code: {downloaded_json_meta_data.get("premiumPlan")}. The extractor should be updated')
 
         if video_formats_url:
-            # Before the adoption of M3U, Rokfin stored videos directly in mp4 files:
-            if not(video_formats_url.endswith('.m3u8')):
-                return self.url_result(url=video_formats_url, video_id=video_id, original_url=url_from_user)
-
-            frmts = self._extract_m3u8_formats(m3u8_url=video_formats_url, video_id=video_id, fatal=False)
-            self._sort_formats(frmts)
+            if try_get(video_formats_url, lambda x: urlparse(x).path.endswith('.m3u8')):
+                frmts, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url=video_formats_url, video_id=video_id, fatal=False)
+            else:
+                frmts = [{'url': video_formats_url}]
+                subs = None
         else:
             frmts = None
+            subs = None
 
         if not frmts:
             if availability == 'premium_only':
@@ -91,34 +83,30 @@ class RokfinPostIE(RokfinSingleVideoIE):
                 self.raise_no_formats(msg='unable to download: missing meta data', video_id=video_id, expected=True)
             else:
                 # We don't know why there is no (valid) meta data present.
-                self.raise_no_formats(msg='unable to download: don\'t know where to find meta data', video_id=video_id, expected=True)
+                self.raise_no_formats(msg='unable to download', video_id=video_id, expected=True)
 
-        content_subdict = lambda key: traverse_obj(downloaded_json, ('content', key))
-        created_by = lambda key: traverse_obj(downloaded_json, ('createdBy', key))
-        channel_name = traverse_obj(downloaded_json, ('createdBy', 'name'))
-        downloaded_json_get = downloaded_json.get
-
+        self._sort_formats(frmts)
         return {
             'id': video_id,
-            'url': video_formats_url,
-            'title': content_subdict('contentTitle'),
+            'title': str_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'contentTitle'))),
             'webpage_url': self._RECOMMENDED_VIDEO_BASE_URL + video_id,
-            # The final part of url_from_user exists solely for human consumption and is otherwise skipped.
+            # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             'live_status': 'not_live',
-            'duration': float_or_none(content_subdict('duration')),
-            'thumbnail': content_subdict('thumbnailUrl1'),
-            'description': content_subdict('contentDescription'),
-            'like_count': downloaded_json_get('likeCount'),
-            'dislike_count': downloaded_json_get('dislikeCount'),
-            # 'comment_count': downloaded_json_get('numComments'), # Uncomment when Rf corrects the 'numComments' value.
+            'duration': float_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'duration'))),
+            'thumbnail': url_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'thumbnailUrl1'))),
+            'description': str_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'contentDescription'))),
+            'like_count': int_or_none(downloaded_json_meta_data.get('likeCount')),
+            'dislike_count': int_or_none(downloaded_json_meta_data.get('dislikeCount')),
+            # 'comment_count': downloaded_json_meta_data.get('numComments'), # Uncomment when Rf corrects 'numComments' field.
             'availability': availability,
-            'creator': channel_name,
-            'channel_id': created_by('id'),
-            'channel': channel_name,
-            'channel_url': try_get(created_by, lambda x: self._CHANNEL_BASE_URL + x('username')),
-            'timestamp': unified_timestamp(downloaded_json_get('creationDateTime')),
-            'tags': [str(tag) for tag in downloaded_json_get('tags') or []],
+            'creator': str_or_none(traverse_obj(downloaded_json_meta_data, ('createdBy', 'name'))),
+            'channel_id': traverse_obj(downloaded_json_meta_data, ('createdBy', 'id')),
+            'channel': str_or_none(traverse_obj(downloaded_json_meta_data, ('createdBy', 'name'))),
+            'channel_url': try_get(downloaded_json_meta_data, lambda x: url_or_none(self._CHANNEL_BASE_URL + x['createdBy']['username'])),
+            'timestamp': unified_timestamp(downloaded_json_meta_data.get('creationDateTime')),
+            'tags': downloaded_json_meta_data.get('tags') or [],
             'formats': frmts or [],
+            'subtitles': subs or {},
             '__post_extractor': self.extract_comments(video_id=video_id)
         }
 
@@ -128,10 +116,9 @@ class RokfinPostIE(RokfinSingleVideoIE):
 
         def dnl_comments_incrementally(base_url, video_id, comments_per_page):
             pages_total = None
-            _download_json = self._download_json
 
-            for page_n in itertools_count(0):
-                raw_comments = _download_json(
+            for page_n in itertools.count(0):
+                raw_comments = self._download_json(
                     f'{base_url}?postId={video_id[5:]}&page={page_n}&size={comments_per_page}',
                     video_id,
                     note=f'Downloading viewer comments (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')',
@@ -152,21 +139,20 @@ class RokfinPostIE(RokfinSingleVideoIE):
 
         for page_of_comments in dnl_comments_incrementally(_COMMENTS_BASE_URL, video_id, _COMMENTS_PER_REQUEST):
             for comment in page_of_comments:
-                comment = comment.get
-                comment_text = comment('comment')
+                comment_text = str_or_none(comment.get('comment'))
 
-                if not isinstance(comment_text, str):
+                if comment_text is None:
                     continue
 
                 yield {
                     'text': comment_text,
-                    'author': comment('name'),
-                    'id': comment('commentId'),
-                    'author_id': comment('userId'),
+                    'author': str_or_none(comment.get('name')),
+                    'id': comment.get('commentId'),
+                    'author_id': comment.get('userId'),
                     'parent': 'root',
-                    'like_count': comment('numLikes'),
-                    'dislike_count': comment('numDislikes'),
-                    'timestamp': unified_timestamp(comment('postedAt'))
+                    'like_count': int_or_none(comment.get('numLikes')),
+                    'dislike_count': int_or_none(comment.get('numDislikes')),
+                    'timestamp': unified_timestamp(comment.get('postedAt'))
                 }
 
 
@@ -198,33 +184,35 @@ class RokfinStreamIE(RokfinSingleVideoIE):
     }]
 
     def _real_extract(self, url_from_user):
+        if self.get_param('username') or self.get_param('password'):
+            self.report_warning('site logins are unsupported')
+
+        if self.get_param('live_from_start'):
+            self.report_warning('--live-from-start is unsupported')
+
         video_id = self._match_id(url_from_user)
-        downloaded_json = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, note='Downloading video metadata', fatal=False) or {}
-        self.write_debug(downloaded_json)
-        availability = try_get(self, lambda x: x._availability(
-            needs_premium=True if downloaded_json['premium'] else False,
+        downloaded_json_meta_data = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
+        availability = self._availability(
+            needs_premium=bool(downloaded_json_meta_data.get('premium')) if downloaded_json_meta_data.get('premium') in (True, False, 0, 1) else None,
             is_private=False,
             needs_subscription=False,
             needs_auth=False,
-            is_unlisted=False))
-        downloaded_json = downloaded_json.get
-
-        m3u8_url = url_or_none(downloaded_json('url'))
-        stream_scheduled_for = try_get(downloaded_json, lambda x: datetime.datetime.strptime(x('scheduledAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
-        # 'scheduledAt' is set to None after the stream becomes live.
-
+            is_unlisted=False)
+        m3u8_url = url_or_none(downloaded_json_meta_data.get('url'))
+        stream_scheduled_for = try_get(downloaded_json_meta_data, lambda x: datetime.datetime.strptime(x.get('scheduledAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
+        # 'scheduledAt' gets set to None after the stream becomes live.
         stream_ended_at = try_get(
-            downloaded_json,
+            downloaded_json_meta_data,
             lambda x: datetime.datetime.strptime(
-                x('stoppedAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
+                x.get('stoppedAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
         # 'stoppedAt' is null unless the stream is finished. 'stoppedAt' likely contains an incorrect value,
         # so what matters to us is whether or not this field is *present*.
 
         if m3u8_url:
-            frmts = self._extract_m3u8_formats(m3u8_url=m3u8_url, video_id=video_id, fatal=False, live=(stream_ended_at is None))
-            self._sort_formats(frmts)
+            frmts, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url=m3u8_url, video_id=video_id, fatal=False, live=(stream_scheduled_for is None and stream_ended_at is None))
         else:
             frmts = None
+            subs = None
 
         if not frmts:
             if stream_scheduled_for:
@@ -248,43 +236,39 @@ class RokfinStreamIE(RokfinSingleVideoIE):
 
         # 'postedAtMilli' shows when the stream (live or pending) appeared on Rokfin. As soon as the pending stream goes live,
         # the value of 'postedAtMilli' changes to reflect the stream's starting time.
-        stream_started_at_timestamp = try_get(downloaded_json, lambda x: x('postedAtMilli') / 1000) if stream_scheduled_for is None else None
+        stream_started_at_timestamp = try_get(downloaded_json_meta_data, lambda x: x.get('postedAtMilli') / 1000) if stream_scheduled_for is None else None
         stream_started_at = try_get(stream_started_at_timestamp, lambda x: datetime.datetime.utcfromtimestamp(x).replace(tzinfo=datetime.timezone.utc))
-        created_by = lambda x: try_get(downloaded_json, lambda y: y('creator').get(x))
-        channel_name = created_by('name')
-        channel_id = created_by('id')
-
         # The stream's actual (if live or finished) or announced (if pending) starting time:
         release_timestamp = try_get(stream_scheduled_for, lambda x: unified_timestamp(datetime.datetime.strftime(x, '%Y-%m-%dT%H:%M:%S'))) or stream_started_at_timestamp
 
+        self._sort_formats(frmts)
         return {
             'id': video_id,
-            'url': m3u8_url,
-            'original_url': url_from_user,
-            'title': downloaded_json('title'),
+            'title': str_or_none(downloaded_json_meta_data.get('title')),
             'webpage_url': self._RECOMMENDED_VIDEO_BASE_URL + video_id,
-            # The final part of url_from_user exists solely for human consumption and is otherwise skipped.
+            # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             'manifest_url': m3u8_url,
-            'thumbnail': downloaded_json('thumbnail'),
-            'description': downloaded_json('description'),
-            'like_count': downloaded_json('likeCount'),
-            'dislike_count': downloaded_json('dislikeCount'),
-            'creator': channel_name,
-            'channel': channel_name,
-            'channel_id': channel_id,
-            'uploader_id': channel_id,
-            'channel_url': try_get(created_by, lambda x: self._CHANNEL_BASE_URL + x('username')),
+            'thumbnail': url_or_none(downloaded_json_meta_data.get('thumbnail')),
+            'description': str_or_none(downloaded_json_meta_data.get('description')),
+            'like_count': int_or_none(downloaded_json_meta_data.get('likeCount')),
+            'dislike_count': int_or_none(downloaded_json_meta_data.get('dislikeCount')),
+            'creator': str_or_none(traverse_obj(downloaded_json_meta_data, ('creator', 'name'))),
+            'channel': str_or_none(traverse_obj(downloaded_json_meta_data, ('creator', 'name'))),
+            'channel_id': traverse_obj(downloaded_json_meta_data, ('creator', 'id')),
+            'uploader_id': traverse_obj(downloaded_json_meta_data, ('creator', 'id')),
+            'channel_url': try_get(downloaded_json_meta_data, lambda x: url_or_none(self._CHANNEL_BASE_URL + traverse_obj(x, ('creator', 'username')))),
             'availability': availability,
-            'tags': [str(tag) for tag in downloaded_json('tags') or []],
+            'tags': downloaded_json_meta_data.get('tags') or [],
             'live_status': 'was_live' if (stream_scheduled_for is None) and (stream_ended_at is not None) else
                            'is_live' if stream_scheduled_for is None else  # stream_scheduled_for=stream_ended_at=None
                            'is_upcoming' if stream_ended_at is None else   # stream_scheduled_for is not None
-                           None,  # Both stream_scheduled_for and stream_ended_at are not None: inconsistent data.
-            # Remove the 'False and' part when Rokfin corrects the 'stoppedAt' value:
+                           None,  # Both stream_scheduled_for and stream_ended_at are not None: inconsistent meta data.
+            # Remove the 'False and' part when Rokfin corrects the 'stoppedAt' field:
             'duration': (stream_ended_at - stream_started_at).total_seconds() if False and stream_started_at and stream_ended_at else None,
             'timestamp': release_timestamp,
             'release_timestamp': release_timestamp,
             'formats': frmts or [],
+            'subtitles': subs or {},
             '__post_extractor': self.extract_comments(video_id=video_id)
         }
 
@@ -294,11 +278,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
 
 class RokfinPlaylistIE(InfoExtractor):
     def _get_video_data(self, json_data, video_base_url):
-        write_debug = self.write_debug
-        to_screen = self.to_screen
-        url_result = self.url_result
-
-        def get_video_data(content):
+        def real_get_video_data(content):
             media_type = content.get('mediaType')
             fn = try_get(media_type, lambda y: {
                 'video': lambda x: {'id': x['id'], 'url': f'{video_base_url}post/{x["id"]}'},
@@ -311,25 +291,32 @@ class RokfinPlaylistIE(InfoExtractor):
             }[y])
 
             if fn is None:
-                to_screen('skipping unsupported media type' + ('' if media_type is None else f': {media_type}') + ('' if self.get_param('verbose') else '. Use --verbose to learn more'))
-                write_debug(f'could not process content entry: {content}')
+                self.to_screen('non-downloadable content skipped' + ('' if self.get_param('verbose') else '. Use --verbose for details'))
+                self.write_debug(f'unprocessed entry: {content}')
                 return
 
             video_data = try_get(content, fn)
             if video_data is None:
-                write_debug(f'{media_type}: could not process content entry: {content}')
+                self.write_debug(f'{media_type}: could not process content entry: {content}')
+                return
+
+            video_data['url'] = url_or_none(video_data.get('url'))
+
+            if video_data.get('url') is None:
+                self.to_screen('entry with missing or malformed URL skipped' + ('' if self.get_param('verbose') else '. Use --verbose for details'))
+                self.write_debug(f'{media_type}: could not process content entry: {content}')
                 return
 
             video_data['title'] = str_or_none(traverse_obj(content, ('content', 'contentTitle')))
             return video_data
 
         for content in json_data.get('content') or []:
-            video_data = get_video_data(content)
+            video_data = real_get_video_data(content)
 
             if not video_data:
                 continue
 
-            yield url_result(url=video_data['url'], video_id=video_data['id'], video_title=video_data['title'])
+            yield self.url_result(url=video_data.get('url'), video_id=video_data.get('id'), video_title=str_or_none(video_data.get('title')))
 
 
 # A stack is an aggregation of content. On the website, stacks are shown as a collection of videos
@@ -353,11 +340,11 @@ class RokfinStackIE(RokfinPlaylistIE):
 
         return self.playlist_result(
             entries=self._get_video_data(
-                json_data=self._download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id, note='Downloading playlist info', fatal=False) or {},
+                json_data=self._download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id, fatal=False) or {},
                 video_base_url=_VIDEO_BASE_URL),
             playlist_id=list_id,
             webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id,
-            # The final part of url_from_user exists solely for human consumption and is otherwise skipped.
+            # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             original_url=url_from_user)
 
 
@@ -381,23 +368,20 @@ class RokfinChannelIE(RokfinPlaylistIE):
             _VIDEO_BASE_URL = 'https://rokfin.com/'
             _META_DATA_BASE_URL2 = 'https://prod-api-v2.production.rokfin.com/api/v2/public/post/search/'
             _ENTRIES_PER_REQUEST = 50  # 50 is the maximum Rokfin permits per request.
-            _download_json = self._download_json
-            _get_video_data = self._get_video_data
-
             pages_total = None
 
-            for page_n in itertools_count(0):
+            for page_n in itertools.count(0):
                 if tab in ('posts', 'top'):
                     data_url = f'{channel_base_url}{channel_username}/{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}'
                 else:
                     data_url = f'{_META_DATA_BASE_URL2}{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}&creator={channel_id}'
 
-                downloaded_json = _download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False) or {}
+                downloaded_json_meta_data = self._download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False) or {}
 
-                yield from _get_video_data(json_data=downloaded_json, video_base_url=_VIDEO_BASE_URL)
+                yield from self._get_video_data(json_data=downloaded_json_meta_data, video_base_url=_VIDEO_BASE_URL)
 
-                pages_total = downloaded_json.get('totalPages')
-                is_last_page = try_get(downloaded_json, lambda x: x['last'] is True)
+                pages_total = downloaded_json_meta_data.get('totalPages')
+                is_last_page = try_get(downloaded_json_meta_data, lambda x: x['last'] is True)
                 max_page_count_reached = try_get(pages_total, lambda x: page_n + 1 >= x)
 
                 if is_last_page or max_page_count_reached or ((is_last_page is None) and (max_page_count_reached is None)):
@@ -411,18 +395,23 @@ class RokfinChannelIE(RokfinPlaylistIE):
             raise ExtractorError(msg='usage: --extractor-args "rokfinchannel:content=[new|top|videos|podcasts|streams|articles|rankings|stacks]"', expected=True)
 
         channel_username = self._match_id(url_from_user)
-        channel_info = self._download_json(_CHANNEL_BASE_URL + channel_username, channel_username, note='Downloading channel info', fatal=False) or {}
+        channel_info = self._download_json(_CHANNEL_BASE_URL + channel_username, channel_username, fatal=False) or {}
         channel_id = channel_info.get('id')
-        return self.playlist_result(
-            entries=dnl_video_meta_data_incrementally(tab=tab_dic[tabs[0] if tabs else "new"], channel_id=channel_id, channel_username=channel_username, channel_base_url=_CHANNEL_BASE_URL),
-            playlist_id=channel_id,
-            playlist_description=channel_info.get('description'),
-            webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username,
-            # The final part of url_from_user exists solely for human consumption and is otherwise skipped.
-            original_url=url_from_user)
+
+        if channel_id:
+            return self.playlist_result(
+                entries=dnl_video_meta_data_incrementally(tab=tab_dic[tabs[0] if tabs else "new"], channel_id=channel_id, channel_username=channel_username, channel_base_url=_CHANNEL_BASE_URL),
+                playlist_id=channel_id,
+                playlist_title=channel_username,
+                playlist_description=str_or_none(channel_info.get('description')),
+                webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username,
+                # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
+                original_url=url_from_user)
+        else:
+            raise ExtractorError(msg='unknown channel', expected=True)
 
 
-# E.g.: rkfnsearch5:"dr mollie james" or rkfnsearch5:"\"dr mollie james\""
+# E.g.: rkfnsearch5:"zelenko" or rkfnsearch5:"\"dr mollie james\""
 class RokfinSearchIE(SearchInfoExtractor):
     IE_NAME = 'rokfin:search'
     _SEARCH_KEY = 'rkfnsearch'
@@ -436,56 +425,50 @@ class RokfinSearchIE(SearchInfoExtractor):
                 return
 
             ENTRIES_PER_PAGE = 100
-            max_pages_to_download = None if n_results == float('inf') else math_ceil(n_results / ENTRIES_PER_PAGE)
-            url_result = self.url_result
-            _download_json = self._download_json
-            _SEARCH_KEY = self._SEARCH_KEY
-            report_warning = self.report_warning
-            write_debug = self.write_debug
-            to_screen = self.to_screen
+            max_pages_to_download = None if n_results == float('inf') else ceil(n_results / ENTRIES_PER_PAGE)
             pages_total = None  # The # of pages containing search results, as reported by Rokfin.
             pages_total_printed = False  # Makes sure pages_total is not printed more than once.
             results_total_printed = False  # Makes sure the total number of search results is not printed more than once.
-            result_counter = 0  # How many search results have been yielded?
+            yielded_result_counter = 0  # How many search results have been yielded?
             POST_DATA = {'query': query, 'page': {'size': ENTRIES_PER_PAGE}, 'facets': {'content_type': {'type': 'value', 'size': ENTRIES_PER_PAGE}, 'creator_name': {'type': 'value', 'size': ENTRIES_PER_PAGE}, 'premium_plan': {'type': 'value', 'size': ENTRIES_PER_PAGE}}, 'result_fields': {'creator_twitter': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'content_id': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'creator_username': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'creator_instagram': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'post_comments': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'post_text': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'content_description': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'content_title': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'post_updated_at': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'creator_youtube': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'content_type': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'creator_name': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'creator_facebook': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'id': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}, 'premium_plan': {'raw': {}, 'snippet': {'size': ENTRIES_PER_PAGE, 'fallback': True}}}}
 
-            for page_n in itertools_count(1) if n_results == float('inf') else range(1, max_pages_to_download + 1):
+            for page_n in itertools.count(1) if n_results == float('inf') else range(1, max_pages_to_download + 1):
                 POST_DATA['page']['current'] = page_n
 
                 if self.service_url and self.service_access_key:
                     # Access has already been established.
-                    srch_res = _download_json(
+                    srch_res = self._download_json(
                         self.service_url,
-                        _SEARCH_KEY,
+                        self._SEARCH_KEY,
                         headers={'authorization': self.service_access_key},
-                        data=json_dumps(POST_DATA).encode('utf8'),
+                        data=dumps(POST_DATA).encode('utf8'),
                         encoding='utf8',
                         note=f'Downloading search results (page {page_n}' + (f' of {min(pages_total, max_pages_to_download)}' if pages_total is not None and max_pages_to_download is not None else '') + ')',
                         fatal=True)
                 else:
-                    write_debug(msg='gaining access')
+                    self.write_debug(msg='gaining access')
                     (service_urls, service_access_keys) = self._get_access_credentials()
 
                     # Try all possible combinations between service_urls and service_access_keys and see which one works.
                     # This should succeed on the first attempt, but no one knows for sure.
-                    for service_url, service_access_key in itertools_product(service_urls, service_access_keys):
-                        write_debug(msg=f'attempting to download 1st batch of search results from "{service_url}" using access key "{service_access_key}"')
-                        srch_res = _download_json(
+                    for service_url, service_access_key in itertools.product(service_urls, service_access_keys):
+                        self.write_debug(msg=f'attempting to download 1st batch of search results from "{service_url}" using access key "{service_access_key}"')
+                        srch_res = self._download_json(
                             service_url,
-                            _SEARCH_KEY,
+                            self._SEARCH_KEY,
                             headers={'authorization': service_access_key},
-                            data=json_dumps(POST_DATA).encode('utf8'),
+                            data=dumps(POST_DATA).encode('utf8'),
                             encoding='utf8',
                             note='Downloading search results (page 1)',
-                            fatal=False)
+                            fatal=False) or {}
 
-                        if srch_res is not None:
+                        if srch_res:
                             self.service_url = service_url
                             self.service_access_key = service_access_key
-                            write_debug(msg='download succeeded, access gained')
+                            self.write_debug(msg='download succeeded, access gained')
                             break
                         else:
-                            write_debug(msg='download failed: access denied. Still trying...')
+                            self.write_debug(msg='download failed: access denied. Still trying...')
                     else:
                         raise ExtractorError(msg='couldn\'t gain access', expected=False)
 
@@ -503,32 +486,37 @@ class RokfinSearchIE(SearchInfoExtractor):
                     }[y])
 
                     if fn is None:
-                        to_screen('skipping unsupported content type' + ('' if content_type is None else f': {content_type}') + ('' if not self.get_param('verbose') else '. Use --verbose to learn more'))
-                        write_debug(f'could not process content entry: {content}')
+                        self.to_screen('non-downloadable content ignored' + ('' if self.get_param('verbose') else '. Use --verbose for details'))
+                        self.write_debug(f'unprocessed entry: {content}')
                         return
 
                     video_data = try_get(content, fn)
                     if video_data is None:
-                        write_debug(f'{content_type}: could not process content entry: {content}')
+                        self.write_debug(f'{content_type}: could not process content entry: {content}')
+                        return
+
+                    video_data['url'] = url_or_none(video_data.get('url'))
+
+                    if video_data.get('url') is None:
+                        self.to_screen('entry with missing or malformed URL ignored' + ('' if self.get_param('verbose') else '. Use --verbose for details'))
+                        self.write_debug(f'{content_type}: could not process content entry: {content}')
                         return
 
                     video_data['title'] = str_or_none(traverse_obj(content, ('content_title', 'raw')))
-                    print(video_data['url'])
-                    print(video_data['title'])
                     return video_data
 
                 pages_total = int_or_none(traverse_obj(srch_res, ('meta', 'page', 'total_pages')))
                 if pages_total is None:
-                    report_warning(msg='unknown total # of pages of search results. This may be a bug', only_once=True)
+                    self.report_warning(msg='unknown total # of pages of search results. This may be a bug', only_once=True)
                 elif (pages_total_printed is False) and max_pages_to_download is not None:
-                    to_screen(msg=f'Pages to download: {min(pages_total, max_pages_to_download)}')
+                    self.to_screen(msg=f'Pages to download: {min(pages_total, max_pages_to_download)}')
                     pages_total_printed = True
 
                 results_total = int_or_none(traverse_obj(srch_res, ('meta', 'page', 'total_results')))
                 if results_total is None:
-                    report_warning(msg='unknown total # of search results. This may be a bug', only_once=True)
+                    self.report_warning(msg='unknown total # of search results. This may be a bug', only_once=True)
                 elif results_total_printed is False:
-                    to_screen(msg=f'Search results available: {results_total}')
+                    self.to_screen(msg=f'Search results available: {results_total}')
                     results_total_printed = True
 
                 for content in srch_res.get('results') or []:
@@ -537,20 +525,20 @@ class RokfinSearchIE(SearchInfoExtractor):
                     if not video_data:
                         continue
 
-                    yield url_result(url=video_data['url'], video_id=video_data['id'], video_title=video_data['title'])
-                    result_counter += 1
+                    yield self.url_result(url=video_data.get('url'), video_id=video_data.get('id'), video_title=video_data.get('title'))
+                    yielded_result_counter += 1
 
-                    if result_counter >= min(n_results, results_total or float('inf')) or (n_results == float('inf') and results_total is None):
+                    if yielded_result_counter >= min(n_results, results_total or float('inf')) or (n_results == float('inf') and results_total is None):
                         '''
-                        If Rokfin (unexpectedly) does not report the total # of search results available,
+                        If Rokfin (unexpectedly) does not report the total # of search results,
                         and n_results == inf, then the downloading loop has no definitive stopping point
-                        and could, theoritically, execute indefinitely. We respond to this by proactively
-                        quitting the loop.
+                        and could, theoritically, execute indefinitely. To prevent this, we proactively
+                        quit the loop.
 
-                        This is an unlikely scenario and should not routinely occur.
+                        The good news is: this is an unlikely scenario and should not occur routinely.
                         '''
                         if n_results == float('inf') and results_total is None:
-                            report_warning(msg='please specify a finite number of search results, e.g. 100, and re-run. Stopping the downloading process prematurely to avoid an infinite loop')
+                            self.report_warning(msg='please specify a finite number of search results, e.g. 100, and re-run. Stopping the downloading process prematurely to avoid an infinite loop')
 
                         return
 
@@ -569,28 +557,27 @@ class RokfinSearchIE(SearchInfoExtractor):
         SERVICE_URL_PATH = '/api/as/v1/engines/rokfin-search/search.json'
         BASE_URL = 'https://rokfin.com'
 
-        starting_wp_content = self._download_webpage(
-            url_or_request=STARTING_WP_URL,
-            video_id=self._SEARCH_KEY,
-            note='Downloading webpage',
+        notfound_err_page = self._download_webpage(
+            STARTING_WP_URL,
+            self._SEARCH_KEY,
             expected_status=404,  # 'Not Found' is the expected outcome here.
             fatal=False)
 
         js = ''
         # <script src="/static/js/<filename>">
-        for m in try_get(starting_wp_content, lambda x: re_finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', x)) or []:
+        for m in try_get(notfound_err_page, lambda x: finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', x)) or []:
             try:
                 js = js + try_get(m, lambda x: self._download_webpage(
-                    url_or_request=BASE_URL + x.group('path'),
-                    video_id=self._SEARCH_KEY,
+                    BASE_URL + x.group('path'),
+                    self._SEARCH_KEY,
                     note='Downloading JavaScript file',
                     fatal=False))
-            except TypeError:  # TypeError happens when try_get returns None.
+            except TypeError:  # TypeError happens when try_get returns a non-string.
                 pass
 
         service_urls = []
         services_access_keys = []
-        for m in re_finditer(r'(REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)")|(REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)")', js):
+        for m in finditer(r'(REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)")|(REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)")', js):
             if m.group('url'):
                 service_urls.append(m.group('url') + SERVICE_URL_PATH)
             elif m.group('key'):
