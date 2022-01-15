@@ -23,7 +23,7 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
     IE_NAME = 'tvopengr:watch'
     IE_DESC = 'tvopen.gr (and ethnos.gr) videos'
     _VALID_URL = r'https?://(?P<netloc>(?:www\.)?(?:tvopen|ethnos)\.gr)/watch/(?P<id>\d+)/(?P<slug>[^/]+)'
-    _API_ENDPOINT = '//www.tvopen.gr/templates/data/player'
+    _API_ENDPOINT = 'https://www.tvopen.gr/templates/data/player'
 
     _TESTS = [{
         'url': 'https://www.ethnos.gr/watch/101009/nikoskaprabelosdenexoymekanenanasthenhsemethmethmetallaxhomikron',
@@ -84,8 +84,7 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
         webpage = self._download_webpage(url, video_id)
         info = self._search_json_ld(webpage, video_id, expected_type='VideoObject')
         info['formats'], info['subtitles'] = self._extract_formats_and_subs(
-            self._download_json(
-                f'{self.http_scheme()}:{self._API_ENDPOINT}', video_id, query={'cid': video_id}),
+            self._download_json(self._API_ENDPOINT, video_id, query={'cid': video_id}),
             video_id)
         max_dimensions = max(
             [tuple(format.get(k) or 0 for k in ('width', 'height')) for format in info['formats']],
