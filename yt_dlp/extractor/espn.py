@@ -309,8 +309,8 @@ class WatchESPNIE(AdobePassIE):
     _API_KEY = 'ZXNwbiZicm93c2VyJjEuMC4w.ptUt7QxsteaRruuPmGZFaJByOoqKvDP2a5YkInHrc7c'
 
     def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
-        if 'authorization' not in headers:
-            headers['authorization'] = 'Bearer ' + self._API_KEY
+        if 'Authorization' not in headers:
+            headers['Authorization'] = 'Bearer ' + self._API_KEY
         if path == 'token':
             data = compat_urllib_parse_urlencode(payload).encode('utf-8')
         else:
@@ -341,7 +341,7 @@ class WatchESPNIE(AdobePassIE):
                     'deviceProfile': 'tv',
                     'attributes': {},
                 },
-                headers={'content-type': 'application/json; charset=UTF-8'}
+                headers={'Content-Type': 'application/json; charset=UTF-8'}
             )['assertion']
 
             token = self._call_bamgrid_api(
@@ -359,8 +359,8 @@ class WatchESPNIE(AdobePassIE):
                 video_id,
                 payload={'id_token': id_token},
                 headers={
-                    'authorization': token,
-                    'content-type': 'application/json; charset=UTF-8'}
+                    'Authorization': token,
+                    'Content-Type': 'application/json; charset=UTF-8'}
             )['assertion']
 
             token = self._call_bamgrid_api(
@@ -377,8 +377,8 @@ class WatchESPNIE(AdobePassIE):
                 video_data['videoHref'].format(scenario='browser~ssai'),
                 video_id,
                 headers={
-                    'accept': 'application/vnd.media-service+json; version=5',
-                    'authorization': token}
+                    'Accept': 'application/vnd.media-service+json; version=5',
+                    'Authorization': token}
             )
 
             m3u8_url, m3u8_headers = playback['stream']['complete'][0]['url'], {'authorization': token}
