@@ -88,7 +88,7 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
             video_id)
         max_dimensions = max(
             [tuple(format.get(k) or 0 for k in ('width', 'height')) for format in info['formats']],
-            default=None)
+            default=(0, 0))
         if max_dimensions[0]:
             for thumbnail in info['thumbnails']:
                 thumbnail['url'] = re.sub(r'(/imgHandler/)\d+', rf'\g<1>{max_dimensions[0]}', thumbnail['url'])
