@@ -591,6 +591,12 @@ def _real_main(argv=None):
     # XAttrMetadataPP should be run after post-processors that may change file contents
     if opts.xattrs:
         postprocessors.append({'key': 'XAttrMetadata'})
+    if opts.concat_playlist != 'never':
+        postprocessors.append({
+            'key': 'FFmpegConcat',
+            'only_multi_video': opts.concat_playlist != 'always',
+            'when': 'playlist',
+        })
     # Exec must be the last PP of each category
     if opts.exec_before_dl_cmd:
         opts.exec_cmd.setdefault('before_dl', opts.exec_before_dl_cmd)

@@ -1165,6 +1165,10 @@ from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
 )
+from .pokergo import (
+    PokerGoIE,
+    PokerGoCollectionIE,
+)
 from .polsatgo import PolsatGoIE
 from .polskieradio import (
     PolskieRadioIE,
@@ -1318,6 +1322,10 @@ from .rutube import (
     RutubePersonIE,
     RutubePlaylistIE,
     RutubeTagsIE,
+)
+from .glomex import (
+    GlomexIE,
+    GlomexEmbedIE,
 )
 from .rutv import RUTVIE
 from .ruutu import RuutuIE

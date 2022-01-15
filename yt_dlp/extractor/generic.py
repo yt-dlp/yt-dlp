@@ -28,6 +28,7 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_duration,
+    parse_resolution,
     sanitized_Request,
     smuggle_url,
     unescapeHTML,
@@ -100,6 +101,7 @@ from .ustream import UstreamIE
 from .arte import ArteTVEmbedIE
 from .videopress import VideoPressIE
 from .rutube import RutubeIE
+from .glomex import GlomexEmbedIE
 from .limelight import LimelightBaseIE
 from .anvato import AnvatoIE
 from .washingtonpost import WashingtonPostIE
@@ -1872,6 +1874,18 @@ class GenericIE(InfoExtractor):
             'add_ie': [RutubeIE.ie_key()],
         },
         {
+            'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
+            'info_dict': {
+                'id': 'v-ch2nkhcirwc9-sf',
+                'ext': 'mp4',
+                'title': 'md5:786e1e24e06c55993cee965ef853a0c1',
+                'description': 'md5:8b517a61d577efe7e36fde72fd535995',
+                'timestamp': 1641885019,
+                'upload_date': '20220111',
+                'duration': 460000,
+            },
+        },
+        {
             # ThePlatform embedded with whitespaces in URLs
             'url': 'http://www.golfchannel.com/topics/shows/golftalkcentral.htm',
             'only_matching': True,
@@ -3463,6 +3477,12 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 rutube_urls, video_id, video_title, ie=RutubeIE.ie_key())
 
+        # Look for Glomex embeds
+        glomex_urls = list(GlomexEmbedIE._extract_urls(webpage, url))
+        if glomex_urls:
+            return self.playlist_from_matches(
+                glomex_urls, video_id, video_title, ie=GlomexEmbedIE.ie_key())
+
         # Look for WashingtonPost embeds
         wapo_urls = WashingtonPostIE._extract_urls(webpage)
         if wapo_urls:
@@ -3774,20 +3794,21 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d+').fullmatch, flashvars.keys()))
                 formats = []
-                for key in ('video_url', 'video_alt_url', 'video_alt_url2'):
-                    if key in flashvars and '/get_file/' in flashvars[key]:
-                        next_format = {
-                            'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
-                            'format_id': flashvars.get(key + '_text', key),
-                            'ext': 'mp4',
-                        }
-                        height = re.search(r'%s_(\d+)p\.mp4(?:/[?].*)?$' % flashvars['video_id'], flashvars[key])
-                        if height:
-                            next_format['height'] = int(height.group(1))
-                        else:
-                            next_format['quality'] = 1
-                        formats.append(next_format)
+                for key in url_keys:
+                    if '/get_file/' not in flashvars[key]:
+                        continue
+                    format_id = flashvars.get(f'{key}_text', key)
+                    formats.append({
+                        'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
+                        'format_id': format_id,
+                        'ext': 'mp4',
+                        **(parse_resolution(format_id) or parse_resolution(flashvars[key]))
+                    })
+                    if not formats[-1].get('height'):
+                        formats[-1]['quality'] = 1
+
                 self._sort_formats(formats)
 
                 return {
