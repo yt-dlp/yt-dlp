@@ -143,8 +143,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
     @classmethod
     def _extract_urls(cls, webpage):
         for mobj in cls._EMBED_RE.finditer(webpage):
-            url = unescapeHTML(mobj.group('url'))
-            yield url
+            yield unescapeHTML(mobj.group('url'))
 
     def _match_canonical_url(self, webpage):
         LINK_RE = r'''(?x)
