@@ -3486,7 +3486,7 @@ class GenericIE(InfoExtractor):
                 glomex_urls, video_id, video_title, ie=GlomexEmbedIE.ie_key())
 
         # Look for megatv.com embeds
-        megatvcom_urls = list(MegaTVComEmbedIE._extract_urls(webpage, url))
+        megatvcom_urls = list(MegaTVComEmbedIE._extract_urls(webpage))
         if megatvcom_urls:
             return self.playlist_from_matches(
                 megatvcom_urls, video_id, video_title, ie=MegaTVComEmbedIE.ie_key())
