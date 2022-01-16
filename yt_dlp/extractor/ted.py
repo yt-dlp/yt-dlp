@@ -6,7 +6,7 @@ import re
 from .common import InfoExtractor
 
 from ..compat import (
-    # compat_str,
+    compat_str,
     compat_urlparse
 )
 from ..utils import (
@@ -49,6 +49,22 @@ class TEDIE(InfoExtractor):
             'duration': 676.0,
             'upload_date': '20220114',
             'release_date': '20211201',
+            'thumbnail': 'https://pi.tedcdn.com/r/talkstar-photos.s3.amazonaws.com/uploads/fd2ff863-26bb-4a72-8fd4-8380a4a8c0b4/CandaceParker_2021W-embed.jpg',
+        },
+    },
+        {
+        'url': 'https://www.ted.com/talks/janet_stovall_how_to_get_serious_about_diversity_and_inclusion_in_the_workplace',
+        'info_dict': {
+            'id': '21802',
+            'ext': 'mp4',
+            'title': 'How to get serious about diversity and inclusion in the workplace',
+            'description': 'Imagine a workplace where people of all colors and races are able to climb every rung of the corporate ladder -- and where the lessons we learn about diversity at work actually transform the things we do, think and say outside the office. How do we get there? In this candid talk, inclusion advocate Janet Stovall shares a three-part action plan for creating workplaces where people feel safe and expected to be their unassimilated, authentic selves.',
+            'view_count': int,
+            'uploader': 'Janet Stovall',
+            'duration': 664.0,
+            'upload_date': '20180822',
+            'release_date': '20180719',
+            'thumbnail': 'https://pi.tedcdn.com/r/talkstar-photos.s3.amazonaws.com/uploads/6a3549fa-2640-4ab4-892b-2491af834816/JanetStovall_2018S-embed.jpg',
         },
     }]
 
@@ -103,11 +119,10 @@ class TEDIE(InfoExtractor):
         description = parse_duration(talk_info.get('description')) or self._og_search_description(webpage)
 
         playerData = self._parse_json(talk_info.get('playerData'), video_id)
-        # stream = url_or_none(playerData.get('stream'))
         resources_ = playerData.get('resources')
         http_url = None
         formats = []
-        subtitles = []
+        subtitles = None
         for format_id, resources in resources_.items():
             if format_id == 'hls':
                 if not isinstance(resources, dict):
@@ -115,11 +130,10 @@ class TEDIE(InfoExtractor):
                 stream_url = url_or_none(resources.get('stream'))
                 if not stream_url:
                     continue
-                m3u8, sub = self._extract_m3u8_formats_and_subtitles(
+                m3u8, subtitles = self._extract_m3u8_formats_and_subtitles(
                     stream_url, video_name, 'mp4', m3u8_id=format_id,
                     fatal=False)
                 formats.extend(m3u8)
-                subtitles.extend(sub)
             else:
                 if not isinstance(resources, list):
                     continue
@@ -173,45 +187,29 @@ class TEDIE(InfoExtractor):
                     del f['acodec']
                 formats.append(f)
 
-        # audio_download = talk_info.get('audioDownload')
-        # if audio_download:
-        #     formats.append({
-        #         'url': audio_download,
-        #         'format_id': 'audio',
-        #         'vcodec': 'none',
-        #     })
+        # not sure if this is still relevant
+        audio_download = talk_info.get('audioDownload')
+        if audio_download:
+            formats.append({
+                'url': audio_download,
+                'format_id': 'audio',
+                'vcodec': 'none',
+            })
 
-        # if not formats:
-        #     external = player_talk.get('external')
-        #     if isinstance(external, dict):
-        #         service = external.get('service')
-        #         if isinstance(service, compat_str):
-        #             ext_url = None
-        #             if service.lower() == 'youtube':
-        #                 ext_url = external.get('code')
-        #             return self.url_result(ext_url or external['uri'])
+        if not formats:
+            external = playerData.get('external')
+            if isinstance(external, dict):
+                service = external.get('service')
+                if isinstance(service, compat_str):
+                    ext_url = None
+                    if service.lower() == 'youtube':
+                        ext_url = external.get('code')
+                    return self.url_result(ext_url or external['uri'])
 
         self._sort_formats(formats)
 
-        # metadata = url_or_none(playerData.get('metadata'))
-        # if metadata:
-        #     # subtitles
-        #     pass
-
-        # subtitled_downloads = downloads.get('subtitledDownloads') or {}
-        # for lang, subtitled_download in subtitled_downloads.items():
-        #     for q in self._NATIVE_FORMATS:
-        #         q_url = subtitled_download.get(q)
-        #         if not q_url:
-        #             continue
-        #         formats.append({
-        #             'url': q_url,
-        #             'format_id': '%s-%s' % (q, lang),
-        #             'language': lang,
-        #         })
-
-        # todo more thumbnails?
-        # thumbnail = self._search_regex(r'^http.*\.jpg', playerData.get('thumb'), 'thumbnail', default='')
+        # trim thumbnail resize parameters
+        thumbnail = self._search_regex(r'^(http.*\.jpg)', playerData.get('thumb'), 'thumbnail', default=None) or self._search_regex(r'^(http.*\.jpg)', self._og_search_property('image', webpage), 'thumbnail', default=None)
 
         # todo tags
 
@@ -219,9 +217,9 @@ class TEDIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'uploader': uploader,
-            # 'thumbnail': thumbnail,
+            'thumbnail': thumbnail,
             'description': description,
-            # 'subtitles': subtitles,
+            'subtitles': subtitles,
             'formats': formats,
             'duration': duration,
             'view_count': view_count,
