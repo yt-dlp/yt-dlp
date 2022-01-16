@@ -133,7 +133,7 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
     }]
 
     @classmethod
-    def _extract_urls(cls, webpage, origin_url=None):
+    def _extract_urls(cls, webpage):
         EMBED_RE = r'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>%s)(?P=_q1)''' % cls._VALID_URL
         for mobj in re.finditer(EMBED_RE, webpage):
             yield unescapeHTML(mobj.group('url'))

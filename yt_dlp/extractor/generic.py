@@ -3611,7 +3611,7 @@ class GenericIE(InfoExtractor):
                 rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
 
         # Look for (tvopen|ethnos).gr embeds
-        tvopengr_urls = list(TVOpenGrEmbedIE._extract_urls(webpage, url))
+        tvopengr_urls = list(TVOpenGrEmbedIE._extract_urls(webpage))
         if tvopengr_urls:
             return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
 
