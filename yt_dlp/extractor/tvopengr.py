@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     get_elements_text_and_html_by_attribute,
+    merge_dicts,
     unescapeHTML,
 )
 
@@ -77,6 +78,21 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
         self._sort_formats(formats)
         return formats, subs
 
+    @staticmethod
+    def _scale_thumbnails_to_max_width(formats, thumbnails, url_width_re):
+        _keys = ('width', 'height')
+        max_dimensions = max(
+            [tuple(format.get(k) or 0 for k in _keys) for format in formats],
+            default=(0, 0))
+        if not max_dimensions[0]:
+            return thumbnails
+        return [
+            merge_dicts(
+                {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
+                dict(zip(_keys, max_dimensions)), thumbnail)
+            for thumbnail in thumbnails
+        ]
+
     def _real_extract(self, url):
         netloc, video_id, display_id = self._match_valid_url(url).group('netloc', 'id', 'slug')
         if netloc.find('tvopen.gr') == -1:
@@ -86,13 +102,8 @@ class TVOpenGrWatchIE(TVOpenGrBaseIE):
         info['formats'], info['subtitles'] = self._extract_formats_and_subs(
             self._download_json(self._API_ENDPOINT, video_id, query={'cid': video_id}),
             video_id)
-        max_dimensions = max(
-            [tuple(format.get(k) or 0 for k in ('width', 'height')) for format in info['formats']],
-            default=(0, 0))
-        if max_dimensions[0]:
-            for thumbnail in info['thumbnails']:
-                thumbnail['url'] = re.sub(r'(/imgHandler/)\d+', rf'\g<1>{max_dimensions[0]}', thumbnail['url'])
-                thumbnail['width'], thumbnail['height'] = max_dimensions
+        info['thumbnails'] = self._scale_thumbnails_to_max_width(
+            info['formats'], info['thumbnails'], r'(?<=/imgHandler/)\d+')
         description, _html = next(get_elements_text_and_html_by_attribute('class', 'description', webpage))
         if description and _html.startswith('<span '):
             info['description'] = description
