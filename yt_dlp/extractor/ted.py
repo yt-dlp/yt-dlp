@@ -213,7 +213,6 @@ class TEDIE(InfoExtractor):
                     del f['acodec']
                 formats.append(f)
 
-        # not sure if this is still relevant
         audio_download = talk_info.get('audioDownload')
         if audio_download:
             formats.append({
@@ -256,21 +255,3 @@ class TEDIE(InfoExtractor):
             'release_date': release_date,
             'tags': tags,
         }
-
-    def _get_subtitles(self, video_id, talk_info):
-        sub_lang_list = {}
-        for language in try_get(
-                talk_info,
-                (lambda x: x['downloads']['languages'],
-                 lambda x: x['languages']), list):
-            lang_code = language.get('languageCode') or language.get('ianaCode')
-            if not lang_code:
-                continue
-            sub_lang_list[lang_code] = [
-                {
-                    'url': 'http://www.ted.com/talks/subtitles/id/%s/lang/%s/format/%s' % (video_id, lang_code, ext),
-                    'ext': ext,
-                }
-                for ext in ['ted', 'srt']
-            ]
-        return sub_lang_list
