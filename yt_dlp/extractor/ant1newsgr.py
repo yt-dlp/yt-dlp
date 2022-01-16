@@ -123,11 +123,12 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
 
     _TEST = {
         'url': 'https://www.antenna.gr/templates/pages/player?cid=3f_li_c_az_jw_y_u=&w=670&h=377',
-        'md5': '12872b12af18b5dbf76528786728de8c',
+        'md5': 'dfc58c3a11a5a9aad2ba316ed447def3',
         'info_dict': {
             'id': '3f_li_c_az_jw_y_u=',
             'ext': 'mp4',
             'title': 'md5:a30c93332455f53e1e84ae0724f0adf7',
+            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1920/bbe31201-3f09-4a4e-87f5-8ad2159fffe2.jpg',
         },
     }
 
