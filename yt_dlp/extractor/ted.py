@@ -45,6 +45,7 @@ class TEDIE(InfoExtractor):
             'title': 'How to break down barriers and not accept limits',
             'description': 'What can\'t Candace Parker do? A two-time NCAA champion, two-time Olympic gold medalist and two-time WNBA champion, Parker knows what it takes to fight for your dreams. In this inspiring talk, she shares what she\'s learned during a career spent not accepting limits -- and how her daughter taught her the best lesson of all. "Barrier breaking is about not staying in your lane and not being something that the world expects you to be," she says. "It\'s about not accepting limitations."',
             'view_count': int,
+            'tags': ['personal growth', 'equality', 'activism', 'motivation', 'social change', 'sports'],
             'uploader': 'Candace Parker',
             'duration': 676.0,
             'upload_date': '20220114',
@@ -60,6 +61,7 @@ class TEDIE(InfoExtractor):
             'title': 'How to get serious about diversity and inclusion in the workplace',
             'description': 'Imagine a workplace where people of all colors and races are able to climb every rung of the corporate ladder -- and where the lessons we learn about diversity at work actually transform the things we do, think and say outside the office. How do we get there? In this candid talk, inclusion advocate Janet Stovall shares a three-part action plan for creating workplaces where people feel safe and expected to be their unassimilated, authentic selves.',
             'view_count': int,
+            'tags': ['communication', 'community', 'work', 'humanity', 'race', 'social change', 'leadership', 'society', 'United States', 'equality'],
             'uploader': 'Janet Stovall',
             'duration': 664.0,
             'upload_date': '20180822',
@@ -106,8 +108,8 @@ class TEDIE(InfoExtractor):
     def _talk_info(self, url, video_name):
         webpage = self._download_webpage(url, video_name)
         print(url)
-        json = self._parse_json(self._html_search_regex('<script[^>]+id="__NEXT_DATA__"[^>]*>(.+?)</script>', webpage, 'json'), 0)
-        talk_info = try_get(json, lambda x: x['props']['pageProps']['videoData'])
+        json = self._parse_json(self._html_search_regex('<script[^>]+id="__NEXT_DATA__"[^>]*>(.+?)</script>', webpage, 'json'), video_name)
+        talk_info = try_get(json, lambda x: x['props']['pageProps']['videoData'], dict)
 
         video_id = talk_info.get('id')
         title = talk_info.get('title') or self._og_search_title(webpage)
@@ -209,9 +211,12 @@ class TEDIE(InfoExtractor):
         self._sort_formats(formats)
 
         # trim thumbnail resize parameters
-        thumbnail = self._search_regex(r'^(http.*\.jpg)', playerData.get('thumb'), 'thumbnail', default=None) or self._search_regex(r'^(http.*\.jpg)', self._og_search_property('image', webpage), 'thumbnail', default=None)
+        thumbnail = self._search_regex(r'^(http[^?]*)', playerData.get('thumb'), 'thumbnail', default=None) or self._search_regex(r'^(http[^?]*)', self._og_search_property('image', webpage), 'thumbnail', default=None)
 
-        # todo tags
+        # tags
+        tags = try_get(playerData, lambda x: x['targeting']['tag'], str)
+        if tags:
+            tags = tags.split(',')
 
         return {
             'id': video_id,
@@ -225,7 +230,7 @@ class TEDIE(InfoExtractor):
             'view_count': view_count,
             'upload_date': upload_date,
             'release_date': release_date,
-            'tags': try_get(talk_info, lambda x: x['tags'], list),
+            'tags': tags,
         }
 
     def _get_subtitles(self, video_id, talk_info):
