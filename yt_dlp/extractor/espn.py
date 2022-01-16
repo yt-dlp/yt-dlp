@@ -335,57 +335,48 @@ class WatchESPNIE(AdobePassIE):
         if video_data.get('sourceId') == 'ESPN_DTC':
             cookie = self._get_cookies(url).get('ESPN-ONESITE.WEB-PROD.token')
             if not cookie:
-                raise self.raise_login_required()
+                raise self.raise_login_required(method='cookies')
             id_token = cookie.value.split('|')[1]
 
             assertion = self._call_bamgrid_api(
-                'devices',
-                video_id,
+                'devices', video_id,
+                headers={'Content-Type': 'application/json; charset=UTF-8'},
                 payload={
                     'deviceFamily': 'android',
                     'applicationRuntime': 'android',
                     'deviceProfile': 'tv',
                     'attributes': {},
-                },
-                headers={'Content-Type': 'application/json; charset=UTF-8'}
-            )['assertion']
+                })['assertion']
 
             token = self._call_bamgrid_api(
-                'token',
-                video_id,
-                payload={
+                'token', video_id, payload={
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:device',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'}
-            )['access_token']
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                })['access_token']
 
             assertion = self._call_bamgrid_api(
-                'accounts/grant',
-                video_id,
-                payload={'id_token': id_token},
+                'accounts/grant', video_id, payload={'id_token': id_token},
                 headers={
                     'Authorization': token,
-                    'Content-Type': 'application/json; charset=UTF-8'}
-            )['assertion']
+                    'Content-Type': 'application/json; charset=UTF-8'
+                })['assertion']
 
             token = self._call_bamgrid_api(
-                'token',
-                video_id,
-                payload={
+                'token', video_id, payload={
                     'subject_token': assertion,
                     'subject_token_type': 'urn:bamtech:params:oauth:token-type:account',
                     'platform': 'android',
-                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'}
-            )['access_token']
+                    'grant_type': 'urn:ietf:params:oauth:grant-type:token-exchange'
+                })['access_token']
 
             playback = self._download_json(
-                video_data['videoHref'].format(scenario='browser~ssai'),
-                video_id,
+                video_data['videoHref'].format(scenario='browser~ssai'), video_id,
                 headers={
                     'Accept': 'application/vnd.media-service+json; version=5',
-                    'Authorization': token}
-            )
+                    'Authorization': token
+                })
 
             m3u8_url, m3u8_headers = playback['stream']['complete'][0]['url'], {'authorization': token}
 
