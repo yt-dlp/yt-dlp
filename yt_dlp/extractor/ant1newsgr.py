@@ -9,6 +9,7 @@ from ..utils import (
     HEADRequest,
     ExtractorError,
     determine_ext,
+    merge_dicts,
     smuggle_url,
     unsmuggle_url,
     unescapeHTML,
@@ -25,6 +26,21 @@ class Ant1NewsGrBaseIE(InfoExtractor):
         unsmuggled_url, data = unsmuggle_url(url, default={'parent_info': {}})
         return unsmuggled_url, data['parent_info']
 
+    @staticmethod
+    def _scale_thumbnails_to_max_width(formats, thumbnails, url_width_re):
+        _keys = ('width', 'height')
+        max_dimensions = max(
+            [tuple(format.get(k) or 0 for k in _keys) for format in formats],
+            default=(0, 0))
+        if not max_dimensions[0]:
+            return thumbnails
+        return [
+            merge_dicts(
+                {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
+                dict(zip(_keys, max_dimensions)), thumbnail)
+            for thumbnail in thumbnails
+        ]
+
     def _download_and_extract_api_data(self, video_id, netloc, cid=None):
         url = f'{self.http_scheme()}//{netloc}{self._API_PATH}'
         info = self._download_json(url, video_id, query={'cid': cid or video_id})
@@ -36,10 +52,12 @@ class Ant1NewsGrBaseIE(InfoExtractor):
             source, video_id, 'mp4') \
             if determine_ext(source) == 'm3u8' else ([source], {})
         self._sort_formats(formats)
+        thumbnails = self._scale_thumbnails_to_max_width(
+            formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
         return {
             'id': video_id,
             'title': info['title'],
-            'thumbnail': info['thumb'],
+            'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subs,
         }
@@ -59,7 +77,7 @@ class Ant1NewsGrWatchIE(Ant1NewsGrBaseIE):
             'ext': 'mp4',
             'title': 'md5:0ad00fa66ecf8aa233d26ab0dba7514a',
             'description': 'md5:18665af715a6dcfeac1d6153a44f16b0',
-            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1000/26d46bf6-8158-4f02-b197-7096c714b2de.jpg',
+            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/640/26d46bf6-8158-4f02-b197-7096c714b2de.jpg',
         },
     }
 
@@ -85,7 +103,7 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
             'title': 'md5:a93e8ecf2e4073bfdffcb38f59945411',
             'timestamp': 1603092840,
             'upload_date': '20201019',
-            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1920/756206d2-d640-40e2-b201-3555abdfc0db.jpg',
+            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/640/756206d2-d640-40e2-b201-3555abdfc0db.jpg',
         },
     }, {
         'url': 'https://ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn',
@@ -128,7 +146,7 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
             'id': '3f_li_c_az_jw_y_u=',
             'ext': 'mp4',
             'title': 'md5:a30c93332455f53e1e84ae0724f0adf7',
-            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/1920/bbe31201-3f09-4a4e-87f5-8ad2159fffe2.jpg',
+            'thumbnail': 'https://ant1media.azureedge.net/imgHandler/640/bbe31201-3f09-4a4e-87f5-8ad2159fffe2.jpg',
         },
     }
 
