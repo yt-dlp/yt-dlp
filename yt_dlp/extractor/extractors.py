@@ -429,6 +429,10 @@ from .eroprofile import (
     EroProfileIE,
     EroProfileAlbumIE,
 )
+from .ertgr import (
+    ERTFlixBaseIE,
+    ERTFlixIE,
+)
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,
