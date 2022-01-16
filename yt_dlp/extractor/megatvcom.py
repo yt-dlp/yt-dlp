@@ -2,10 +2,6 @@
 from __future__ import unicode_literals
 
 import re
-from urllib.parse import (
-    parse_qs,
-    urlparse,
-)
 
 from .common import InfoExtractor
 from ..utils import (
