@@ -6,15 +6,17 @@ import re
 from .common import InfoExtractor
 
 from ..compat import (
-    compat_str,
+    # compat_str,
     compat_urlparse
 )
 from ..utils import (
     extract_attributes,
-    float_or_none,
     int_or_none,
+    str_to_int,
     try_get,
     url_or_none,
+    unified_strdate,
+    parse_duration
 )
 
 
@@ -35,111 +37,20 @@ class TEDIE(InfoExtractor):
         .*)$
         '''
     _TESTS = [{
-        'url': 'http://www.ted.com/talks/dan_dennett_on_our_consciousness.html',
-        'md5': 'b0ce2b05ca215042124fbc9e3886493a',
+        'url': 'https://www.ted.com/talks/candace_parker_how_to_break_down_barriers_and_not_accept_limits',
+        'md5': '47e82c666d9c3261d4fe74748a90aada',
         'info_dict': {
-            'id': '102',
+            'id': '86532',
             'ext': 'mp4',
-            'title': 'The illusion of consciousness',
-            'description': ('Philosopher Dan Dennett makes a compelling '
-                            'argument that not only don\'t we understand our own '
-                            'consciousness, but that half the time our brains are '
-                            'actively fooling us.'),
-            'uploader': 'Dan Dennett',
-            'width': 853,
-            'duration': 1308,
+            'title': 'How to break down barriers and not accept limits',
+            'description': 'What can\'t Candace Parker do? A two-time NCAA champion, two-time Olympic gold medalist and two-time WNBA champion, Parker knows what it takes to fight for your dreams. In this inspiring talk, she shares what she\'s learned during a career spent not accepting limits -- and how her daughter taught her the best lesson of all. "Barrier breaking is about not staying in your lane and not being something that the world expects you to be," she says. "It\'s about not accepting limitations."',
             'view_count': int,
-            'comment_count': int,
-            'tags': list,
+            'uploader': 'Candace Parker',
+            'duration': 676.0,
+            'upload_date': '20220114',
+            'release_date': '20211201',
         },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # missing HTTP bitrates
-        'url': 'https://www.ted.com/talks/vishal_sikka_the_beauty_and_power_of_algorithms',
-        'info_dict': {
-            'id': '6069',
-            'ext': 'mp4',
-            'title': 'The beauty and power of algorithms',
-            'thumbnail': r're:^https?://.+\.jpg',
-            'description': 'md5:734e352710fb00d840ab87ae31aaf688',
-            'uploader': 'Vishal Sikka',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://www.ted.com/talks/gabby_giffords_and_mark_kelly_be_passionate_be_courageous_be_your_best',
-        'md5': 'e6b9617c01a7970ceac8bb2c92c346c0',
-        'info_dict': {
-            'id': '1972',
-            'ext': 'mp4',
-            'title': 'Be passionate. Be courageous. Be your best.',
-            'uploader': 'Gabby Giffords and Mark Kelly',
-            'description': 'md5:5174aed4d0f16021b704120360f72b92',
-            'duration': 1128,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'http://www.ted.com/playlists/who_are_the_hackers',
-        'info_dict': {
-            'id': '10',
-            'title': 'Who are the hackers?',
-            'description': 'md5:49a0dbe8fb76d81a0e64b4a80af7f15a'
-        },
-        'playlist_mincount': 6,
-    }, {
-        # contains a youtube video
-        'url': 'https://www.ted.com/talks/douglas_adams_parrots_the_universe_and_everything',
-        'add_ie': ['Youtube'],
-        'info_dict': {
-            'id': '_ZG8HBuDjgc',
-            'ext': 'webm',
-            'title': 'Douglas Adams: Parrots the Universe and Everything',
-            'description': 'md5:01ad1e199c49ac640cb1196c0e9016af',
-            'uploader': 'University of California Television (UCTV)',
-            'uploader_id': 'UCtelevision',
-            'upload_date': '20080522',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # no nativeDownloads
-        'url': 'https://www.ted.com/talks/tom_thum_the_orchestra_in_my_mouth',
-        'info_dict': {
-            'id': '1792',
-            'ext': 'mp4',
-            'title': 'The orchestra in my mouth',
-            'description': 'md5:5d1d78650e2f8dfcbb8ebee2951ac29a',
-            'uploader': 'Tom Thum',
-            'view_count': int,
-            'comment_count': int,
-            'tags': list,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # with own formats and private Youtube external
-        'url': 'https://www.ted.com/talks/spencer_wells_a_family_tree_for_humanity',
-        'only_matching': True,
     }]
-
-    _NATIVE_FORMATS = {
-        'low': {'width': 320, 'height': 180},
-        'medium': {'width': 512, 'height': 288},
-        'high': {'width': 854, 'height': 480},
-    }
-
-    def _extract_info(self, webpage):
-        info_json = self._search_regex(
-            r'(?s)q\(\s*"\w+.init"\s*,\s*({.+?})\)\s*</script>',
-            webpage, 'info json')
-        return json.loads(info_json)
 
     def _real_extract(self, url):
         m = re.match(self._VALID_URL, url, re.VERBOSE)
@@ -178,45 +89,25 @@ class TEDIE(InfoExtractor):
 
     def _talk_info(self, url, video_name):
         webpage = self._download_webpage(url, video_name)
+        print(url)
+        json = self._parse_json(self._html_search_regex('<script[^>]+id="__NEXT_DATA__"[^>]*>(.+?)</script>', webpage, 'json'), 0)
+        talk_info = try_get(json, lambda x: x['props']['pageProps']['videoData'])
 
-        info = self._extract_info(webpage)
+        video_id = talk_info.get('id')
+        title = talk_info.get('title') or self._og_search_title(webpage)
+        uploader = talk_info.get('presenterDisplayName')
+        release_date = unified_strdate(talk_info.get('recordedOn'))
+        upload_date = unified_strdate(talk_info.get('publishedAt'))
+        view_count = str_to_int(talk_info.get('viewedCount'))
+        duration = parse_duration(talk_info.get('duration')) or parse_duration(self._og_search_property('video:duration', webpage))
+        description = parse_duration(talk_info.get('description')) or self._og_search_description(webpage)
 
-        data = try_get(info, lambda x: x['__INITIAL_DATA__'], dict) or info
-        talk_info = data['talks'][0]
-
-        title = talk_info['title'].strip()
-
-        downloads = talk_info.get('downloads') or {}
-        native_downloads = downloads.get('nativeDownloads') or talk_info.get('nativeDownloads') or {}
-
-        formats = [{
-            'url': format_url,
-            'format_id': format_id,
-        } for (format_id, format_url) in native_downloads.items() if format_url is not None]
-
-        subtitled_downloads = downloads.get('subtitledDownloads') or {}
-        for lang, subtitled_download in subtitled_downloads.items():
-            for q in self._NATIVE_FORMATS:
-                q_url = subtitled_download.get(q)
-                if not q_url:
-                    continue
-                formats.append({
-                    'url': q_url,
-                    'format_id': '%s-%s' % (q, lang),
-                    'language': lang,
-                })
-
-        if formats:
-            for f in formats:
-                finfo = self._NATIVE_FORMATS.get(f['format_id'].split('-')[0])
-                if finfo:
-                    f.update(finfo)
-
-        player_talk = talk_info['player_talks'][0]
-
-        resources_ = player_talk.get('resources') or talk_info.get('resources')
-
+        playerData = self._parse_json(talk_info.get('playerData'), video_id)
+        # stream = url_or_none(playerData.get('stream'))
+        resources_ = playerData.get('resources')
         http_url = None
+        formats = []
+        subtitles = []
         for format_id, resources in resources_.items():
             if format_id == 'hls':
                 if not isinstance(resources, dict):
@@ -224,9 +115,11 @@ class TEDIE(InfoExtractor):
                 stream_url = url_or_none(resources.get('stream'))
                 if not stream_url:
                     continue
-                formats.extend(self._extract_m3u8_formats(
+                m3u8, sub = self._extract_m3u8_formats_and_subtitles(
                     stream_url, video_name, 'mp4', m3u8_id=format_id,
-                    fatal=False))
+                    fatal=False)
+                formats.extend(m3u8)
+                subtitles.extend(sub)
             else:
                 if not isinstance(resources, list):
                     continue
@@ -280,40 +173,60 @@ class TEDIE(InfoExtractor):
                     del f['acodec']
                 formats.append(f)
 
-        audio_download = talk_info.get('audioDownload')
-        if audio_download:
-            formats.append({
-                'url': audio_download,
-                'format_id': 'audio',
-                'vcodec': 'none',
-            })
+        # audio_download = talk_info.get('audioDownload')
+        # if audio_download:
+        #     formats.append({
+        #         'url': audio_download,
+        #         'format_id': 'audio',
+        #         'vcodec': 'none',
+        #     })
 
-        if not formats:
-            external = player_talk.get('external')
-            if isinstance(external, dict):
-                service = external.get('service')
-                if isinstance(service, compat_str):
-                    ext_url = None
-                    if service.lower() == 'youtube':
-                        ext_url = external.get('code')
-                    return self.url_result(ext_url or external['uri'])
+        # if not formats:
+        #     external = player_talk.get('external')
+        #     if isinstance(external, dict):
+        #         service = external.get('service')
+        #         if isinstance(service, compat_str):
+        #             ext_url = None
+        #             if service.lower() == 'youtube':
+        #                 ext_url = external.get('code')
+        #             return self.url_result(ext_url or external['uri'])
 
         self._sort_formats(formats)
 
-        video_id = compat_str(talk_info['id'])
+        # metadata = url_or_none(playerData.get('metadata'))
+        # if metadata:
+        #     # subtitles
+        #     pass
+
+        # subtitled_downloads = downloads.get('subtitledDownloads') or {}
+        # for lang, subtitled_download in subtitled_downloads.items():
+        #     for q in self._NATIVE_FORMATS:
+        #         q_url = subtitled_download.get(q)
+        #         if not q_url:
+        #             continue
+        #         formats.append({
+        #             'url': q_url,
+        #             'format_id': '%s-%s' % (q, lang),
+        #             'language': lang,
+        #         })
+
+        # todo more thumbnails?
+        # thumbnail = self._search_regex(r'^http.*\.jpg', playerData.get('thumb'), 'thumbnail', default='')
+
+        # todo tags
 
         return {
             'id': video_id,
             'title': title,
-            'uploader': player_talk.get('speaker') or talk_info.get('speaker'),
-            'thumbnail': player_talk.get('thumb') or talk_info.get('thumb'),
-            'description': self._og_search_description(webpage),
-            'subtitles': self._get_subtitles(video_id, talk_info),
+            'uploader': uploader,
+            # 'thumbnail': thumbnail,
+            'description': description,
+            # 'subtitles': subtitles,
             'formats': formats,
-            'duration': float_or_none(talk_info.get('duration')),
-            'view_count': int_or_none(data.get('viewed_count')),
-            'comment_count': int_or_none(
-                try_get(data, lambda x: x['comments']['count'])),
+            'duration': duration,
+            'view_count': view_count,
+            'upload_date': upload_date,
+            'release_date': release_date,
             'tags': try_get(talk_info, lambda x: x['tags'], list),
         }
 
