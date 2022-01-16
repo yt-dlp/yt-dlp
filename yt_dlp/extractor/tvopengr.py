@@ -116,6 +116,7 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
     IE_NAME = 'tvopengr:embed'
     IE_DESC = 'tvopen.gr embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.|cdn\.|)(?:tvopen|ethnos).gr/embed/(?P<id>\d+)'
+    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''')
 
     _TESTS = [{
         'url': 'https://cdn.ethnos.gr/embed/100963',
@@ -134,8 +135,7 @@ class TVOpenGrEmbedIE(TVOpenGrBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage):
-        EMBED_RE = r'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>%s)(?P=_q1)''' % cls._VALID_URL
-        for mobj in re.finditer(EMBED_RE, webpage):
+        for mobj in cls._EMBED_RE.finditer(webpage):
             yield unescapeHTML(mobj.group('url'))
 
     def _real_extract(self, url):
