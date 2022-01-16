@@ -16,6 +16,7 @@ from ..utils import (
     get_element_by_class,
     get_element_html_by_id,
     HEADRequest,
+    parse_qs,
     unescapeHTML,
     unified_timestamp,
 )
@@ -90,7 +91,7 @@ class MegaTVComIE(MegaTVComBaseIE):
         if determine_ext(source) == 'm3u8':
             formats, subs = self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
         else:
-            formats, subs = [source], {}
+            formats, subs = [{'url': source}], {}
         if player_attrs.get('subs'):
             self._merge_subtitles({'und': [{'url': player_attrs['subs']}]}, target=subs)
         self._sort_formats(formats)
@@ -165,10 +166,9 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
         canonical_url = player_attrs.get('share_url') or self._match_canonical_url(webpage)
         if not canonical_url:
             raise ExtractorError('canonical URL not found')
-        video_id = parse_qs(urlparse(canonical_url).query)['p'][0]
+        video_id = parse_qs(canonical_url)['p'][0]
 
-        # Resolve the canonical URL, following redirects, and defer to
-        # megatvcom, as the metadata extracted from the embeddable page some
+        # Defer to megatvcom as the metadata extracted from the embeddable page some
         # times are slightly different, for the same video
         canonical_url = self._request_webpage(
             HEADRequest(canonical_url), video_id,
