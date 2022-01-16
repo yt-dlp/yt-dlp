@@ -3,9 +3,6 @@ import re
 
 from .common import InfoExtractor
 
-from ..compat import (
-    compat_str
-)
 from ..utils import (
     int_or_none,
     str_to_int,
@@ -39,14 +36,14 @@ class TEDIE(InfoExtractor):
             'id': '86532',
             'ext': 'mp4',
             'title': 'How to break down barriers and not accept limits',
-            'description': 'What can\'t Candace Parker do? A two-time NCAA champion, two-time Olympic gold medalist and two-time WNBA champion, Parker knows what it takes to fight for your dreams. In this inspiring talk, she shares what she\'s learned during a career spent not accepting limits -- and how her daughter taught her the best lesson of all. "Barrier breaking is about not staying in your lane and not being something that the world expects you to be," she says. "It\'s about not accepting limitations."',
+            'description': 'md5:000707cece219d1e165b11550d612331',
             'view_count': int,
             'tags': ['personal growth', 'equality', 'activism', 'motivation', 'social change', 'sports'],
             'uploader': 'Candace Parker',
             'duration': 676.0,
             'upload_date': '20220114',
             'release_date': '20211201',
-            'thumbnail': 'https://pi.tedcdn.com/r/talkstar-photos.s3.amazonaws.com/uploads/fd2ff863-26bb-4a72-8fd4-8380a4a8c0b4/CandaceParker_2021W-embed.jpg',
+            'thumbnail': r're:http.*\.jpg',
         },
     },
         {
@@ -55,14 +52,14 @@ class TEDIE(InfoExtractor):
             'id': '21802',
             'ext': 'mp4',
             'title': 'How to get serious about diversity and inclusion in the workplace',
-            'description': 'Imagine a workplace where people of all colors and races are able to climb every rung of the corporate ladder -- and where the lessons we learn about diversity at work actually transform the things we do, think and say outside the office. How do we get there? In this candid talk, inclusion advocate Janet Stovall shares a three-part action plan for creating workplaces where people feel safe and expected to be their unassimilated, authentic selves.',
+            'description': 'md5:0978aafe396e05341f8ecc795d22189d',
             'view_count': int,
             'tags': ['communication', 'community', 'work', 'humanity', 'race', 'social change', 'leadership', 'society', 'United States', 'equality'],
             'uploader': 'Janet Stovall',
             'duration': 664.0,
             'upload_date': '20180822',
             'release_date': '20180719',
-            'thumbnail': 'https://pi.tedcdn.com/r/talkstar-photos.s3.amazonaws.com/uploads/6a3549fa-2640-4ab4-892b-2491af834816/JanetStovall_2018S-embed.jpg',
+            'thumbnail': r're:http.*\.jpg',
         },
     }]
 
@@ -70,17 +67,13 @@ class TEDIE(InfoExtractor):
         return self._parse_json(self._html_search_regex('<script[^>]+id="__NEXT_DATA__"[^>]*>(.+?)</script>', webpage, 'json'), video_name)
 
     def _parse_playlist(self, playlist):
+        playlist_entries = []
 
-        if isinstance(playlist, dict):
-            playlist_entries = []
+        for entry in try_get(playlist, lambda x: x['videos']['nodes'], list):
+            if entry.get('__typename') == 'Video':
+                playlist_entries.append(self.url_result(entry.get('canonicalUrl'), self.ie_key()))
 
-            for entry in try_get(playlist, lambda x: x['videos']['nodes'], list):
-                if entry.get('__typename') == 'Video':
-                    playlist_entries.append(self.url_result(entry.get('canonicalUrl'), self.ie_key()))
-
-            return playlist_entries
-        else:
-            return []
+        return playlist_entries
 
     def _real_extract(self, url):
         m = re.match(self._VALID_URL, url, re.VERBOSE)
@@ -98,9 +91,9 @@ class TEDIE(InfoExtractor):
     def _playlist_videos_info(self, url, name):
         '''Returns the videos of the playlist'''
         webpage = self._download_webpage(url, name, 'Downloading playlist webpage')
-        json = self._extract_info(webpage, 'json')
+        info = self._extract_info(webpage, 'json')
 
-        playlist = try_get(json, lambda x: x['props']['pageProps']['playlist'], dict)
+        playlist = try_get(info, lambda x: x['props']['pageProps']['playlist'], dict)
         playlist_id = playlist.get('id')
         playlist_entries = self._parse_playlist(playlist)
 
@@ -112,18 +105,17 @@ class TEDIE(InfoExtractor):
     def _series_videos_info(self, url, name, season):
         '''Returns the videos of the series playlist'''
         webpage = self._download_webpage(url, name, 'Downloading series webpage')
-        json = self._extract_info(webpage, 'json')
-        series = try_get(json, lambda x: x['props']['pageProps']['series'])
+        info = self._extract_info(webpage, 'json')
+        series = try_get(info, lambda x: x['props']['pageProps']['series'])
         series_id = series.get('id')
 
-        seasonlist = try_get(json, lambda x: x['props']['pageProps']['seasons'], list)
+        seasonlist = try_get(info, lambda x: x['props']['pageProps']['seasons'], list)
 
         playlist_entries = []
         if season:
-            for s in [playlist for playlist in seasonlist if playlist['seasonNumber'] == season]:
-                playlist_entries.extend(self._parse_playlist(s))
+            [playlist_entries.extend(self._parse_playlist(s)) for s in seasonlist if s.get('seasonNumber') == season]
         else:
-            playlist_entries = self._parse_playlist(seasonlist[0])
+            [playlist_entries.extend(self._parse_playlist(s)) for s in seasonlist]
 
         return self.playlist_result(
             playlist_entries, playlist_id=series_id,
@@ -132,23 +124,16 @@ class TEDIE(InfoExtractor):
 
     def _talk_info(self, url, video_name):
         webpage = self._download_webpage(url, video_name)
-        json = self._extract_info(webpage, video_name)
-        talk_info = try_get(json, lambda x: x['props']['pageProps']['videoData'], dict)
+        info = self._extract_info(webpage, video_name)
+        talk_info = try_get(info, lambda x: x['props']['pageProps']['videoData'], dict)
 
         video_id = talk_info.get('id')
-        title = talk_info.get('title') or self._og_search_title(webpage)
-        uploader = talk_info.get('presenterDisplayName')
-        release_date = unified_strdate(talk_info.get('recordedOn'))
-        upload_date = unified_strdate(talk_info.get('publishedAt'))
-        view_count = str_to_int(talk_info.get('viewedCount'))
-        duration = parse_duration(talk_info.get('duration')) or parse_duration(self._og_search_property('video:duration', webpage))
-        description = parse_duration(talk_info.get('description')) or self._og_search_description(webpage)
 
         playerData = self._parse_json(talk_info.get('playerData'), video_id)
         resources_ = playerData.get('resources')
         http_url = None
         formats = []
-        subtitles = None
+        subtitles = {}
         for format_id, resources in resources_.items():
             if format_id == 'hls':
                 if not isinstance(resources, dict):
@@ -156,10 +141,11 @@ class TEDIE(InfoExtractor):
                 stream_url = url_or_none(resources.get('stream'))
                 if not stream_url:
                     continue
-                m3u8, subtitles = self._extract_m3u8_formats_and_subtitles(
+                m3u8_formats, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     stream_url, video_name, 'mp4', m3u8_id=format_id,
                     fatal=False)
-                formats.extend(m3u8)
+                formats.extend(m3u8_formats)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             else:
                 if not isinstance(resources, list):
                     continue
@@ -225,7 +211,7 @@ class TEDIE(InfoExtractor):
             external = playerData.get('external')
             if isinstance(external, dict):
                 service = external.get('service')
-                if isinstance(service, compat_str):
+                if isinstance(service, str):
                     ext_url = None
                     if service.lower() == 'youtube':
                         ext_url = external.get('code')
@@ -233,25 +219,22 @@ class TEDIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        # trim thumbnail resize parameters
-        thumbnail = self._search_regex(r'^(http[^?]*)', playerData.get('thumb'), 'thumbnail', default=None) or self._search_regex(r'^(http[^?]*)', self._og_search_property('image', webpage), 'thumbnail', default=None)
-
-        # tags
-        tags = try_get(playerData, lambda x: x['targeting']['tag'], str)
-        if tags:
-            tags = tags.split(',')
+        thumbnail = playerData.get('thumb') or self._og_search_property('image', webpage)
+        if thumbnail:
+            # trim thumbnail resize parameters
+            thumbnail = thumbnail.split('?')[0]
 
         return {
             'id': video_id,
-            'title': title,
-            'uploader': uploader,
+            'title': talk_info.get('title') or self._og_search_title(webpage),
+            'uploader': talk_info.get('presenterDisplayName'),
             'thumbnail': thumbnail,
-            'description': description,
+            'description': parse_duration(talk_info.get('description')) or self._og_search_description(webpage),
             'subtitles': subtitles,
             'formats': formats,
-            'duration': duration,
-            'view_count': view_count,
-            'upload_date': upload_date,
-            'release_date': release_date,
-            'tags': tags,
+            'duration': parse_duration(talk_info.get('duration')) or parse_duration(self._og_search_property('video:duration', webpage)),
+            'view_count': str_to_int(talk_info.get('viewedCount')),
+            'upload_date': unified_strdate(talk_info.get('publishedAt')),
+            'release_date': unified_strdate(talk_info.get('recordedOn')),
+            'tags': try_get(playerData, lambda x: x['targeting']['tag'].split(',')),
         }
