@@ -1885,6 +1885,7 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1641885019,
                 'upload_date': '20220111',
                 'duration': 460000,
+                'thumbnail': 'https://i3thumbs.glomex.com/dC1idjJwdndiMjRzeGwvMjAyMi8wMS8xMS8wNy8xMF8zNV82MWRkMmQ2YmU5ZTgyLmpwZw==/profile:player-960x540',
             },
         },
         {
