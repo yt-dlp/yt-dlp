@@ -121,7 +121,7 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         info = self._search_json_ld(webpage, video_id, expected_type='NewsArticle')
-        embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage, url, **info))
+        embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage, **info))
         if not embed_urls:
             raise ExtractorError('no videos found for %s' % video_id)
         if len(embed_urls) == 1:
@@ -151,7 +151,7 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
     }
 
     @classmethod
-    def _extract_urls(cls, webpage, origin_url=None, **parent_info):
+    def _extract_urls(cls, webpage, **parent_info):
         # in comparison with _VALID_URL:
         # * make the scheme optional
         # * simplify the query string part; after extracting iframe src, the URL
