@@ -102,6 +102,7 @@ from .arte import ArteTVEmbedIE
 from .videopress import VideoPressIE
 from .rutube import RutubeIE
 from .glomex import GlomexEmbedIE
+from .megatvcom import MegaTVComEmbedIE
 from .limelight import LimelightBaseIE
 from .anvato import AnvatoIE
 from .washingtonpost import WashingtonPostIE
@@ -3483,6 +3484,12 @@ class GenericIE(InfoExtractor):
         if glomex_urls:
             return self.playlist_from_matches(
                 glomex_urls, video_id, video_title, ie=GlomexEmbedIE.ie_key())
+
+        # Look for megatv.com embeds
+        megatvcom_urls = list(MegaTVComEmbedIE._extract_urls(webpage))
+        if megatvcom_urls:
+            return self.playlist_from_matches(
+                megatvcom_urls, video_id, video_title, ie=MegaTVComEmbedIE.ie_key())
 
         # Look for WashingtonPost embeds
         wapo_urls = WashingtonPostIE._extract_urls(webpage)
