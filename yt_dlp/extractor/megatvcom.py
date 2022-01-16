@@ -110,6 +110,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
     IE_NAME = 'megatvcom:embed'
     IE_DESC = 'megatv.com embedded videos'
     _VALID_URL = r'(?:https?:)?//(?:www\.)?megatv\.com/embed/?\?p=(?P<id>\d+)'
+    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_VALID_URL})(?P=_q1)''')
 
     _TESTS = [{
         'url': 'https://www.megatv.com/embed/?p=2020520979',
@@ -141,8 +142,7 @@ class MegaTVComEmbedIE(MegaTVComBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage):
-        EMBED_RE = r'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>%s)(?P=_q1)''' % cls._VALID_URL
-        for mobj in re.finditer(EMBED_RE, webpage):
+        for mobj in cls._EMBED_RE.finditer(webpage):
             url = unescapeHTML(mobj.group('url'))
             yield url
 
