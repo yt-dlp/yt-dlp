@@ -1,22 +1,18 @@
 from __future__ import unicode_literals
-
-import json
 import re
 
 from .common import InfoExtractor
 
 from ..compat import (
-    compat_str,
-    compat_urlparse
+    compat_str
 )
 from ..utils import (
-    extract_attributes,
     int_or_none,
     str_to_int,
     try_get,
     url_or_none,
     unified_strdate,
-    parse_duration
+    parse_duration,
 )
 
 
@@ -28,12 +24,12 @@ class TEDIE(InfoExtractor):
         (
             (?P<type_playlist>playlists(?:/(?P<playlist_id>\d+))?) # We have a playlist
             |
-            ((?P<type_talk>talks)) # We have a simple talk
+            (?P<type_series>series) # We have a series
             |
-            (?P<type_watch>watch)/[^/]+/[^/]+
+            (?P<type_talk>talks) # We have a simple talk
         )
         (/lang/(.*?))? # The url may contain the language
-        /(?P<name>[\w-]+) # Here goes the name and then ".html"
+        /(?P<name>[\w-]+)(?:\#season_(?P<season>\d))? # Here goes the name
         .*)$
         '''
     _TESTS = [{
@@ -70,6 +66,22 @@ class TEDIE(InfoExtractor):
         },
     }]
 
+    def _extract_info(self, webpage, video_name):
+        return self._parse_json(self._html_search_regex('<script[^>]+id="__NEXT_DATA__"[^>]*>(.+?)</script>', webpage, 'json'), video_name)
+
+    def _parse_playlist(self, playlist):
+
+        if isinstance(playlist, dict):
+            playlist_entries = []
+
+            for entry in try_get(playlist, lambda x: x['videos']['nodes'], list):
+                if entry.get('__typename') == 'Video':
+                    playlist_entries.append(self.url_result(entry.get('canonicalUrl'), self.ie_key()))
+
+            return playlist_entries
+        else:
+            return []
+
     def _real_extract(self, url):
         m = re.match(self._VALID_URL, url, re.VERBOSE)
         if m.group('type').startswith('embed'):
@@ -78,37 +90,49 @@ class TEDIE(InfoExtractor):
         name = m.group('name')
         if m.group('type_talk'):
             return self._talk_info(url, name)
-        elif m.group('type_watch'):
-            return self._watch_info(url, name)
-        else:
+        elif m.group('type_playlist'):
             return self._playlist_videos_info(url, name)
+        else:
+            return self._series_videos_info(url, name, m.group('season'))
 
     def _playlist_videos_info(self, url, name):
         '''Returns the videos of the playlist'''
+        webpage = self._download_webpage(url, name, 'Downloading playlist webpage')
+        json = self._extract_info(webpage, 'json')
 
-        webpage = self._download_webpage(url, name,
-                                         'Downloading playlist webpage')
-
-        playlist_entries = []
-        for entry in re.findall(r'(?s)<[^>]+data-ga-context=["\']playlist["\'][^>]*>', webpage):
-            attrs = extract_attributes(entry)
-            entry_url = compat_urlparse.urljoin(url, attrs['href'])
-            playlist_entries.append(self.url_result(entry_url, self.ie_key()))
-
-        final_url = self._og_search_url(webpage, fatal=False)
-        playlist_id = (
-            re.match(self._VALID_URL, final_url).group('playlist_id')
-            if final_url else None)
+        playlist = try_get(json, lambda x: x['props']['pageProps']['playlist'], dict)
+        playlist_id = playlist.get('id')
+        playlist_entries = self._parse_playlist(playlist)
 
         return self.playlist_result(
             playlist_entries, playlist_id=playlist_id,
             playlist_title=self._og_search_title(webpage, fatal=False),
             playlist_description=self._og_search_description(webpage))
 
+    def _series_videos_info(self, url, name, season):
+        '''Returns the videos of the series playlist'''
+        webpage = self._download_webpage(url, name, 'Downloading series webpage')
+        json = self._extract_info(webpage, 'json')
+        series = try_get(json, lambda x: x['props']['pageProps']['series'])
+        series_id = series.get('id')
+
+        seasonlist = try_get(json, lambda x: x['props']['pageProps']['seasons'], list)
+
+        playlist_entries = []
+        if season:
+            for s in [playlist for playlist in seasonlist if playlist['seasonNumber'] == season]:
+                playlist_entries.extend(self._parse_playlist(s))
+        else:
+            playlist_entries = self._parse_playlist(seasonlist[0])
+
+        return self.playlist_result(
+            playlist_entries, playlist_id=series_id,
+            playlist_title=self._og_search_title(webpage, fatal=False),
+            playlist_description=self._og_search_description(webpage))
+
     def _talk_info(self, url, video_name):
         webpage = self._download_webpage(url, video_name)
-        print(url)
-        json = self._parse_json(self._html_search_regex('<script[^>]+id="__NEXT_DATA__"[^>]*>(.+?)</script>', webpage, 'json'), video_name)
+        json = self._extract_info(webpage, video_name)
         talk_info = try_get(json, lambda x: x['props']['pageProps']['videoData'], dict)
 
         video_id = talk_info.get('id')
@@ -250,34 +274,3 @@ class TEDIE(InfoExtractor):
                 for ext in ['ted', 'srt']
             ]
         return sub_lang_list
-
-    def _watch_info(self, url, name):
-        webpage = self._download_webpage(url, name)
-
-        config_json = self._html_search_regex(
-            r'"pages\.jwplayer"\s*,\s*({.+?})\s*\)\s*</script>',
-            webpage, 'config', default=None)
-        if not config_json:
-            embed_url = self._search_regex(
-                r"<iframe[^>]+class='pages-video-embed__video__object'[^>]+src='([^']+)'", webpage, 'embed url')
-            return self.url_result(self._proto_relative_url(embed_url))
-        config = json.loads(config_json)['config']
-        video_url = config['video']['url']
-        thumbnail = config.get('image', {}).get('url')
-
-        title = self._html_search_regex(
-            r"(?s)<h1(?:\s+class='[^']+')?>(.+?)</h1>", webpage, 'title')
-        description = self._html_search_regex(
-            [
-                r'(?s)<h4 class="[^"]+" id="h3--about-this-talk">.*?</h4>(.*?)</div>',
-                r'(?s)<p><strong>About this talk:</strong>\s+(.*?)</p>',
-            ],
-            webpage, 'description', fatal=False)
-
-        return {
-            'id': name,
-            'url': video_url,
-            'title': title,
-            'thumbnail': thumbnail,
-            'description': description,
-        }
