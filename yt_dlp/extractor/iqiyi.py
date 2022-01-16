@@ -474,9 +474,11 @@ class IqIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         self._update_bid_tags(webpage, video_id)
 
-        page_data = self._search_nextjs_data(webpage, video_id)['props']['initialState']['play']
+        next_props = self._search_nextjs_data(webpage, video_id)['props']
+        page_data = next_props['initialState']['play']
         video_info = page_data['curVideoInfo']
         tvid, vid = video_info['tvId'], video_info['vid']
+        src = traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'), expected_type=str_or_none, default='01010031010018000000')
         get_cookie = lambda name, default: self._get_cookies('https://iq.com/')[name].value if self._get_cookies('https://iq.com').get(name) else default
         dfp, mode, lang = get_cookie('dfp', ''), get_cookie('mod', 'intl'), get_cookie('lang', 'en_us')
         js_bid_list = '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']'
@@ -485,7 +487,7 @@ class IqIE(InfoExtractor):
         # bid 0 as an initial format checker
         dash_paths = self._parse_json(PhantomJSwrapper(self).get(url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code', jscode="""
             console.log(page.evaluate(function() {
-                var tvid = "%s"; var vid = "%s";
+                var tvid = "%s"; var vid = "%s"; var src = "%s";
                 var dfp = "%s"; var mode = "%s"; var lang = "%s"; var bid_list = %s;
                 var tm = new Date().getTime();
                 var cmd5x_func = %s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
@@ -498,7 +500,7 @@ class IqIE(InfoExtractor):
                         'bid': bid,
                         'ds': 1,
                         'vid': vid,
-                        'src': '01010031010018000000',
+                        'src': src,
                         'vt': 0,
                         'rs': 1,
                         'uid': 0,
@@ -550,7 +552,7 @@ class IqIE(InfoExtractor):
                 return JSON.stringify(dash_paths);
             }));
             saveAndExit();
-        """ % (tvid, vid, dfp, mode, lang, js_bid_list, cmd5x_func))[1].strip(), video_id)
+        """ % (tvid, vid, src, dfp, mode, lang, js_bid_list, cmd5x_func))[1].strip(), video_id)
 
         formats, subtitles = [], {}
         initial_format_data = self._download_json(
