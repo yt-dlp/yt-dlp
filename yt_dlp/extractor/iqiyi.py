@@ -410,8 +410,29 @@ class IqiyiIE(InfoExtractor):
 class IqIE(InfoExtractor):
     IE_NAME = 'iq.com'
     IE_DESC = 'International version of iQiyi'
-    _VALID_URL = r'https?://(?:www\.)?iq\.com/play/(?:[\w-]*-)?(?P<id>\w+)'
-    _TESTS = [{}]
+    _VALID_URL = r'https?://(?:www\.)?iq\.com/play/(?:[\w%-]*-)?(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.iq.com/play/one-piece-episode-1000-1ma1i6ferf4',
+        'md5': '2d7caf6eeca8a32b407094b33b757d39',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '1ma1i6ferf4',
+            'title': '航海王 第1000集',
+            'description': 'Subtitle available on Sunday 4PM（GMT+8）.',
+            'duration': 1430,
+            'timestamp': 1637488203,
+            'upload_date': '20211121',
+            'episode_number': 1000,
+            'episode': 'Episode 1000',
+            'series': 'One Piece',
+            'age_limit': 13,
+            'average_rating': float,
+        },
+        'params': {
+            'format': '500',
+        },
+        'expected_warnings': ['format is restricted']
+    }]
     _BID_TAGS = {
         '100': '240P',
         '200': '360P',
@@ -564,7 +585,7 @@ class IqIE(InfoExtractor):
             self.report_warning(f'This preview video is limited to {preview_time} seconds')
 
         # TODO: Extract audio-only formats
-        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none)):
+        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
             dash_path = dash_paths.get(bid)
             if not dash_path:
                 self.report_warning(f'Unknown format id: {bid}. It is currently not being extracted')
@@ -575,7 +596,7 @@ class IqIE(InfoExtractor):
                 fatal=False), 'data', expected_type=dict)
 
             video_format = next((video_format for video_format in traverse_obj(
-                format_data, ('program', 'video', ...), expected_type=dict) if str(video_format['bid']) == bid), {})
+                format_data, ('program', 'video', ...), expected_type=dict, default=[]) if str(video_format['bid']) == bid), {})
             extracted_formats = []
             if video_format.get('m3u8Url'):
                 extracted_formats.extend(self._extract_m3u8_formats(
@@ -618,7 +639,7 @@ class IqIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict):
+        for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict, default=[]):
             subtitles.setdefault(self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name')), []).extend([{
                 'ext': format_ext,
                 'url': urljoin(format_data.get('dstl', 'http://meta.video.iqiyi.com'), sub_format[format_key])
@@ -635,7 +656,7 @@ class IqIE(InfoExtractor):
             'timestamp': parse_iso8601(video_info.get('isoUploadDate')),
             'categories': traverse_obj(extra_metadata, ('videoTagMap', ..., ..., 'name'), expected_type=str_or_none),
             'cast': traverse_obj(extra_metadata, ('actorArr', ..., 'name'), expected_type=str_or_none),
-            'episode_number': int_or_none(video_info.get('order')),
+            'episode_number': int_or_none(video_info.get('order')) or None,
             'series': video_info.get('albumName'),
             'formats': formats,
             'subtitles': subtitles,
@@ -644,7 +665,33 @@ class IqIE(InfoExtractor):
 
 class IqAlbumIE(InfoExtractor):
     IE_NAME = 'iq.com:album'
-    _VALID_URL = r'https?://(?:www\.)?iq\.com/album/(?:[\w-]*-)?(?P<id>\w+)'
+    _VALID_URL = r'https?://(?:www\.)?iq\.com/album/(?:[\w%-]*-)?(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.iq.com/album/one-piece-1999-1bk9icvr331',
+        'info_dict': {
+            'id': '1bk9icvr331',
+            'title': 'One Piece',
+            'description': 'Subtitle available on Sunday 4PM（GMT+8）.'
+        },
+        'playlist_mincount': 238
+    }, {
+        # Movie/single video
+        'url': 'https://www.iq.com/album/九龙城寨-2021-22yjnij099k',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '22yjnij099k',
+            'title': '九龙城寨',
+            'description': 'md5:8a09f50b8ba0db4dc69bc7c844228044',
+            'duration': 5000,
+            'timestamp': 1641911371,
+            'upload_date': '20220111',
+            'series': '九龙城寨',
+            'cast': ['Shi Yan Neng', 'Yu Lang', 'Peter  lv', 'Sun Zi Jun', 'Yang Xiao Bo'],
+            'age_limit': 13,
+            'average_rating': float,
+        },
+        'expected_warnings': ['format is restricted']
+    }]
 
     def _entries(self, album_id_num, page_ranges, album_id=None, mode_code='intl', lang_code='en_us'):
         for page_range in page_ranges:
@@ -668,6 +715,8 @@ class IqAlbumIE(InfoExtractor):
         next_data = self._search_nextjs_data(webpage, album_id)
         album_data = next_data['props']['initialState']['album']['videoAlbumInfo']
 
+        if album_data.get('videoType') == 'singleVideo':
+            return self.url_result('https://www.iq.com/play/%s' % album_id, IqIE.ie_key())
         return self.playlist_result(
             self._entries(album_data['albumId'], album_data['totalPageRange'], album_id,
                           traverse_obj(next_data, ('props', 'initialProps', 'pageProps', 'modeCode')),
