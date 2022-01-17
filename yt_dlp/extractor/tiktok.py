@@ -409,6 +409,10 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
         },
         'expected_warnings': ['Video not available']
+    }, {
+      # Auto-captions available
+      'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
+      'only_matching': True
     }]
 
     def _extract_aweme_app(self, aweme_id):
