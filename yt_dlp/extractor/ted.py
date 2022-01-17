@@ -30,6 +30,7 @@ class TEDIE(InfoExtractor):
         .*)$
         '''
     _TESTS = [{
+        # talk
         'url': 'https://www.ted.com/talks/candace_parker_how_to_break_down_barriers_and_not_accept_limits',
         'md5': '47e82c666d9c3261d4fe74748a90aada',
         'info_dict': {
@@ -47,6 +48,7 @@ class TEDIE(InfoExtractor):
         },
     },
         {
+        # talk
         'url': 'https://www.ted.com/talks/janet_stovall_how_to_get_serious_about_diversity_and_inclusion_in_the_workplace',
         'info_dict': {
             'id': '21802',
@@ -61,7 +63,58 @@ class TEDIE(InfoExtractor):
             'release_date': '20180719',
             'thumbnail': r're:http.*\.jpg',
         },
-    }]
+    },
+        {
+        # playlist
+        'url': 'https://www.ted.com/playlists/171/the_most_popular_talks_of_all',
+        'info_dict': {
+            'id': '171',
+            'title': 'The most popular talks of all time',
+            'description': 'md5:d2f22831dc86c7040e733a3cb3993d78'
+        },
+        'playlist_mincount': 25,
+    },
+        {
+        # series
+        'url': 'https://www.ted.com/series/small_thing_big_idea',
+        'info_dict': {
+            'id': '3',
+            'title': 'Small Thing Big Idea',
+            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c'
+        },
+        'playlist_mincount': 16,
+    },
+        {
+        # series
+        'url': 'https://www.ted.com/series/the_way_we_work',
+        'info_dict': {
+            'id': '8',
+            'title': 'The Way We Work',
+            'description': 'md5:59469256e533e1a48c4aa926a382234c'
+        },
+        'playlist_mincount': 33,
+    },
+        {
+        # series with season
+        'url': 'https://www.ted.com/series/small_thing_big_idea#season_1',
+        'info_dict': {
+            'id': '3',
+            'title': 'Small Thing Big Idea',
+            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c'
+        },
+        'playlist_mincount': 8,
+    },
+        {
+        # series with season
+        'url': 'https://www.ted.com/series/the_way_we_work#season_2',
+        'info_dict': {
+            'id': '8',
+            'title': 'The Way We Work',
+            'description': 'md5:59469256e533e1a48c4aa926a382234c'
+        },
+        'playlist_mincount': 8,
+    },
+    ]
 
     def _extract_info(self, webpage, video_name):
         return self._parse_json(self._html_search_regex('<script[^>]+id="__NEXT_DATA__"[^>]*>(.+?)</script>', webpage, 'json'), video_name)
@@ -99,7 +152,7 @@ class TEDIE(InfoExtractor):
 
         return self.playlist_result(
             playlist_entries, playlist_id=playlist_id,
-            playlist_title=self._og_search_title(webpage, fatal=False),
+            playlist_title=playlist.get('title') or self._og_search_title(webpage, fatal=False).replace(' | TED Talks', ''),
             playlist_description=self._og_search_description(webpage))
 
     def _series_videos_info(self, url, name, season):
@@ -119,7 +172,7 @@ class TEDIE(InfoExtractor):
 
         return self.playlist_result(
             playlist_entries, playlist_id=series_id,
-            playlist_title=self._og_search_title(webpage, fatal=False),
+            playlist_title=series.get('name') or self._og_search_title(webpage, fatal=False),
             playlist_description=self._og_search_description(webpage))
 
     def _talk_info(self, url, video_name):
