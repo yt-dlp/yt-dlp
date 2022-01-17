@@ -208,6 +208,91 @@ class TestInfoExtractor(unittest.TestCase):
                 },
                 {'expected_type': 'NewsArticle'},
             ),
+            (
+                r'''<script type="application/ld+json">
+                {"url":"/vrtnu/a-z/het-journaal/2021/het-journaal-het-journaal-19u-20211231/",
+                "name":"Het journaal 19u",
+                "description":"Het journaal 19u van vrijdag 31 december 2021.",
+                "potentialAction":{"url":"https://vrtnu.page.link/pfVy6ihgCAJKgHqe8","@type":"ShareAction"},
+                "mainEntityOfPage":{"@id":"1640092242445","@type":"WebPage"},
+                "publication":[{
+                    "startDate":"2021-12-31T19:00:00.000+01:00",
+                    "endDate":"2022-01-30T23:55:00.000+01:00",
+                    "publishedBy":{"name":"een","@type":"Organization"},
+                    "publishedOn":{"url":"https://www.vrt.be/vrtnu/","name":"VRT NU","@type":"BroadcastService"},
+                    "@id":"pbs-pub-3a7ec233-da95-4c1e-9b2b-cf5fdfebcbe8",
+                    "@type":"BroadcastEvent"
+                    }],
+                "video":{
+                    "name":"Het journaal - Aflevering 365 (Seizoen 2021)",
+                    "description":"Het journaal 19u van vrijdag 31 december 2021. Bekijk aflevering 365 van seizoen 2021 met VRT NU via de site of app.",
+                    "thumbnailUrl":"//images.vrt.be/width1280/2021/12/31/80d5ed00-6a64-11ec-b07d-02b7b76bf47f.jpg",
+                    "expires":"2022-01-30T23:55:00.000+01:00",
+                    "hasPart":[
+                        {"name":"Explosie Turnhout","startOffset":70,"@type":"Clip"},
+                        {"name":"Jaarwisseling","startOffset":440,"@type":"Clip"},
+                        {"name":"Natuurbranden Colorado","startOffset":1179,"@type":"Clip"},
+                        {"name":"Klimaatverandering","startOffset":1263,"@type":"Clip"},
+                        {"name":"Zacht weer","startOffset":1367,"@type":"Clip"},
+                        {"name":"Financiële balans","startOffset":1383,"@type":"Clip"},
+                        {"name":"Club Brugge","startOffset":1484,"@type":"Clip"},
+                        {"name":"Mentale gezondheid bij topsporters","startOffset":1575,"@type":"Clip"},
+                        {"name":"Olympische Winterspelen","startOffset":1728,"@type":"Clip"},
+                        {"name":"Sober oudjaar in Nederland","startOffset":1873,"@type":"Clip"}
+                        ],
+                    "duration":"PT34M39.23S",
+                    "uploadDate":"2021-12-31T19:00:00.000+01:00",
+                    "@id":"vid-9457d0c6-b8ac-4aba-b5e1-15aa3a3295b5",
+                    "@type":"VideoObject"
+                },
+                "genre":["Nieuws en actua"],
+                "episodeNumber":365,
+                "partOfSeries":{"name":"Het journaal","@id":"222831405527","@type":"TVSeries"},
+                "partOfSeason":{"name":"Seizoen 2021","@id":"961809365527","@type":"TVSeason"},
+                "@context":"https://schema.org","@id":"961685295527","@type":"TVEpisode"}</script>
+                ''',
+                {
+                    'chapters': [
+                        {"title": "Explosie Turnhout", "start_time": 70, "end_time": 440},
+                        {"title": "Jaarwisseling", "start_time": 440, "end_time": 1179},
+                        {"title": "Natuurbranden Colorado", "start_time": 1179, "end_time": 1263},
+                        {"title": "Klimaatverandering", "start_time": 1263, "end_time": 1367},
+                        {"title": "Zacht weer", "start_time": 1367, "end_time": 1383},
+                        {"title": "Financiële balans", "start_time": 1383, "end_time": 1484},
+                        {"title": "Club Brugge", "start_time": 1484, "end_time": 1575},
+                        {"title": "Mentale gezondheid bij topsporters", "start_time": 1575, "end_time": 1728},
+                        {"title": "Olympische Winterspelen", "start_time": 1728, "end_time": 1873},
+                        {"title": "Sober oudjaar in Nederland", "start_time": 1873, "end_time": 2079.23}
+                    ],
+                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)'
+                }, {}
+            ),
+            (
+                # test multiple thumbnails in a list
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":["https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"]}
+</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                },
+                {},
+            ),
+            (
+                # test single thumbnail
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":"https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"}
+</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                },
+                {},
+            )
         ]
         for html, expected_dict, search_json_ld_kwargs in _TESTS:
             expect_dict(

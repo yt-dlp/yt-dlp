@@ -304,7 +304,7 @@ class HttpieFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
-        return ExternalFD.available(cls, path or 'http')
+        return super().available(path or 'http')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]

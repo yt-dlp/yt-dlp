@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import base64
 import hashlib
 import itertools
 import functools
@@ -724,14 +725,30 @@ class BiliBiliPlayerIE(InfoExtractor):
 
 class BiliIntlBaseIE(InfoExtractor):
     _API_URL = 'https://api.bilibili.tv/intl/gateway'
+    _NETRC_MACHINE = 'biliintl'
 
     def _call_api(self, endpoint, *args, **kwargs):
-        return self._download_json(self._API_URL + endpoint, *args, **kwargs)['data']
+        json = self._download_json(self._API_URL + endpoint, *args, **kwargs)
+        if json.get('code'):
+            if json['code'] in (10004004, 10004005, 10023006):
+                self.raise_login_required()
+            elif json['code'] == 10004001:
+                self.raise_geo_restricted()
+            else:
+                if json.get('message') and str(json['code']) != json['message']:
+                    errmsg = f'{kwargs.get("errnote", "Unable to download JSON metadata")}: {self.IE_NAME} said: {json["message"]}'
+                else:
+                    errmsg = kwargs.get('errnote', 'Unable to download JSON metadata')
+                if kwargs.get('fatal'):
+                    raise ExtractorError(errmsg)
+                else:
+                    self.report_warning(errmsg)
+        return json.get('data')
 
     def json2srt(self, json):
         data = '\n\n'.join(
             f'{i + 1}\n{srt_subtitles_timecode(line["from"])} --> {srt_subtitles_timecode(line["to"])}\n{line["content"]}'
-            for i, line in enumerate(json['body']))
+            for i, line in enumerate(json['body']) if line.get('content'))
         return data
 
     def _get_subtitles(self, ep_id):
@@ -755,16 +772,6 @@ class BiliIntlBaseIE(InfoExtractor):
     def _get_formats(self, ep_id):
         video_json = self._call_api(f'/web/playurl?ep_id={ep_id}&platform=web', ep_id,
                                     note='Downloading video formats', errnote='Unable to download video formats')
-        if video_json.get('code'):
-            if video_json['code'] in (10004004, 10004005, 10023006):
-                self.raise_login_required(method='cookies')
-            elif video_json['code'] == 10004001:
-                self.raise_geo_restricted()
-            elif video_json.get('message') and str(video_json['code']) != video_json['message']:
-                raise ExtractorError(
-                    f'Unable to download video formats: {self.IE_NAME} said: {video_json["message"]}', expected=True)
-            else:
-                raise ExtractorError('Unable to download video formats')
         video_json = video_json['playurl']
         formats = []
         for vid in video_json.get('video') or []:
@@ -810,10 +817,49 @@ class BiliIntlBaseIE(InfoExtractor):
             'extractor_key': BiliIntlIE.ie_key(),
         }
 
+    def _login(self):
+        username, password = self._get_login_info()
+        if username is None:
+            return
+
+        try:
+            from Cryptodome.PublicKey import RSA
+            from Cryptodome.Cipher import PKCS1_v1_5
+        except ImportError:
+            try:
+                from Crypto.PublicKey import RSA
+                from Crypto.Cipher import PKCS1_v1_5
+            except ImportError:
+                raise ExtractorError('pycryptodomex not found. Please install', expected=True)
+
+        key_data = self._download_json(
+            'https://passport.bilibili.tv/x/intl/passport-login/web/key?lang=en-US', None,
+            note='Downloading login key', errnote='Unable to download login key')['data']
+
+        public_key = RSA.importKey(key_data['key'])
+        password_hash = PKCS1_v1_5.new(public_key).encrypt((key_data['hash'] + password).encode('utf-8'))
+        login_post = self._download_json(
+            'https://passport.bilibili.tv/x/intl/passport-login/web/login/password?lang=en-US', None, data=urlencode_postdata({
+                'username': username,
+                'password': base64.b64encode(password_hash).decode('ascii'),
+                'keep_me': 'true',
+                's_locale': 'en_US',
+                'isTrusted': 'true'
+            }), note='Logging in', errnote='Unable to log in')
+        if login_post.get('code'):
+            if login_post.get('message'):
+                raise ExtractorError(f'Unable to log in: {self.IE_NAME} said: {login_post["message"]}', expected=True)
+            else:
+                raise ExtractorError('Unable to log in')
+
+    def _real_initialize(self):
+        self._login()
+
 
 class BiliIntlIE(BiliIntlBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
     _TESTS = [{
+        # Bstation page
         'url': 'https://www.bilibili.tv/en/play/34613/341736',
         'info_dict': {
             'id': '341736',
@@ -823,6 +869,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             'episode_number': 2,
         }
     }, {
+        # Non-Bstation page
         'url': 'https://www.bilibili.tv/en/play/1033760/11005006',
         'info_dict': {
             'id': '11005006',
@@ -831,6 +878,17 @@ class BiliIntlIE(BiliIntlBaseIE):
             'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
             'episode_number': 3,
         }
+    }, {
+        # Subtitle with empty content
+        'url': 'https://www.bilibili.tv/en/play/1005144/10131790',
+        'info_dict': {
+            'id': '10131790',
+            'ext': 'mp4',
+            'title': 'E140 - Two Heartbeats: Kabuto\'s Trap',
+            'thumbnail': r're:^https://pic\.bstarstatic\.com/ogv/.+\.png$',
+            'episode_number': 140,
+        },
+        'skip': 'According to the copyright owner\'s request, you may only watch the video after you log in.'
     }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
         'only_matching': True,
