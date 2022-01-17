@@ -101,9 +101,15 @@ class ERTFlixIE(ERTFlixBaseIE):
     def _extract_series(self, video_id):
         media_info = self._call_api(video_id, method='Tile/GetSeriesDetails', id=video_id)
 
+        def _parse_age_rating(info_dict):
+            return parse_age_limit(
+                info_dict.get('AgeRating')
+                or (info_dict.get('IsAdultContent') and 18)
+                or (info_dict.get('IsKidsContent') and 0))
+
         series = try_get(media_info, lambda x: x['Series'], dict) or {}
         series_info = {
-            'age_limit': parse_age_limit(series.get('AgeRating', series.get('IsAdultContent') and 18)),
+            'age_limit': _parse_age_rating(series),
             'title': series.get('Title'),
             'description': dict_get(series, ('ShortDescription', 'TinyDescription', )),
         }
@@ -132,7 +138,7 @@ class ERTFlixIE(ERTFlixBaseIE):
                         'description': episode.get('ShortDescription'),
                         'timestamp': parse_iso8601(episode.get('PublishDate')),
                         'episode_number': n,
-                        'age_limit': parse_age_limit(episode.get('AgeRating', episode.get('IsAdultContent') and 18)) or series_info.get('age_limit'),
+                        'age_limit': _parse_age_rating(episode),
                         'url': 'ertflix:%s' % (codename, ),
                     }
                     info.update(season_info)
