@@ -144,9 +144,9 @@ class ERTFlixIE(ERTFlixBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
         if video_id.startswith('ser'):
             return self._extract_series(video_id)
+        webpage = self._download_webpage(url, video_id)
 
         video_id = self._search_regex(
             r'"codenameToId"\s*:\s*\{\s*"([\w-]+)"\s*:\s*"%s"' % (video_id, ),
