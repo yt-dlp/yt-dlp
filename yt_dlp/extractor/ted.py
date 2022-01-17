@@ -79,7 +79,7 @@ class TEDIE(InfoExtractor):
         'url': 'https://www.ted.com/series/small_thing_big_idea',
         'info_dict': {
             'id': '3',
-            'title': 'Small Thing Big Idea',
+            'series': 'Small Thing Big Idea',
             'description': 'md5:6869ca52cec661aef72b3e9f7441c55c'
         },
         'playlist_mincount': 16,
@@ -89,7 +89,7 @@ class TEDIE(InfoExtractor):
         'url': 'https://www.ted.com/series/the_way_we_work',
         'info_dict': {
             'id': '8',
-            'title': 'The Way We Work',
+            'series': 'The Way We Work',
             'description': 'md5:59469256e533e1a48c4aa926a382234c'
         },
         'playlist_mincount': 33,
@@ -99,8 +99,9 @@ class TEDIE(InfoExtractor):
         'url': 'https://www.ted.com/series/small_thing_big_idea#season_1',
         'info_dict': {
             'id': '3',
-            'title': 'Small Thing Big Idea',
-            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c'
+            'series': 'Small Thing Big Idea',
+            'description': 'md5:6869ca52cec661aef72b3e9f7441c55c',
+            'season_number': 1
         },
         'playlist_mincount': 8,
     },
@@ -109,8 +110,9 @@ class TEDIE(InfoExtractor):
         'url': 'https://www.ted.com/series/the_way_we_work#season_2',
         'info_dict': {
             'id': '8',
-            'title': 'The Way We Work',
-            'description': 'md5:59469256e533e1a48c4aa926a382234c'
+            'series': 'The Way We Work',
+            'description': 'md5:59469256e533e1a48c4aa926a382234c',
+            'season_number': 2
         },
         'playlist_mincount': 8,
     },
@@ -172,8 +174,9 @@ class TEDIE(InfoExtractor):
 
         return self.playlist_result(
             playlist_entries, playlist_id=series_id,
-            playlist_title=series.get('name') or self._og_search_title(webpage, fatal=False),
-            playlist_description=self._og_search_description(webpage))
+            series=series.get('name') or self._og_search_title(webpage, fatal=False),
+            playlist_description=self._og_search_description(webpage),
+            season_number=str_to_int(season))
 
     def _talk_info(self, url, video_name):
         webpage = self._download_webpage(url, video_name)
