@@ -19,7 +19,7 @@ class ThisOldHouseIE(InfoExtractor):
             'duration': 674,
             'view_count': int,
             'average_rating': 0,
-            'thumbnail': 'md5:f76278a7a7a63973a98511dc0fb0cf54',
+            'thumbnail': r're:^https?://.*\.jpg\?\d+$',
             'display_id': 'how-to-build-a-storage-bench',
         },
         'params': {
