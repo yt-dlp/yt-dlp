@@ -124,8 +124,8 @@ class TEDIE(InfoExtractor):
     def _parse_playlist(self, playlist):
         playlist_entries = []
 
-        for entry in try_get(playlist, lambda x: x['videos']['nodes'], list):
-            if entry.get('__typename') == 'Video':
+        for entry in try_get(playlist, lambda x: x['videos']['nodes'], list) or []:
+            if entry.get('__typename') == 'Video' and entry.get('canonicalUrl'):
                 playlist_entries.append(self.url_result(entry.get('canonicalUrl'), self.ie_key()))
 
         return playlist_entries
@@ -140,15 +140,14 @@ class TEDIE(InfoExtractor):
             return self._talk_info(url, name)
         elif m.group('type_playlist'):
             return self._playlist_videos_info(url, name)
-        else:
+        elif m.group('type_series'):
             return self._series_videos_info(url, name, m.group('season'))
 
     def _playlist_videos_info(self, url, name):
-        '''Returns the videos of the playlist'''
         webpage = self._download_webpage(url, name, 'Downloading playlist webpage')
         info = self._extract_info(webpage, 'json')
 
-        playlist = try_get(info, lambda x: x['props']['pageProps']['playlist'], dict)
+        playlist = try_get(info, lambda x: x['props']['pageProps']['playlist'], dict) or {}
         playlist_id = playlist.get('id')
         playlist_entries = self._parse_playlist(playlist)
 
@@ -158,10 +157,9 @@ class TEDIE(InfoExtractor):
             playlist_description=self._og_search_description(webpage))
 
     def _series_videos_info(self, url, name, season):
-        '''Returns the videos of the series playlist'''
         webpage = self._download_webpage(url, name, 'Downloading series webpage')
         info = self._extract_info(webpage, 'json')
-        series = try_get(info, lambda x: x['props']['pageProps']['series'])
+        series = try_get(info, lambda x: x['props']['pageProps']['series']) or {}
         series_id = series.get('id')
 
         seasonlist = try_get(info, lambda x: x['props']['pageProps']['seasons'], list)
