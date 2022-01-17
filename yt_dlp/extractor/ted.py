@@ -19,14 +19,14 @@ class TEDIE(InfoExtractor):
         (?P<proto>https?://)
         (?P<type>www|embed(?:-ssl)?)(?P<urlmain>\.ted\.com/
         (
-            (?P<type_playlist>playlists(?:/(?P<playlist_id>\d+))?) # We have a playlist
+            (?P<type_playlist>playlists(?:/(?P<playlist_id>\d+))?)
             |
-            (?P<type_series>series) # We have a series
+            (?P<type_series>series)
             |
-            (?P<type_talk>talks) # We have a simple talk
+            (?P<type_talk>talks)
         )
-        (/lang/(.*?))? # The url may contain the language
-        /(?P<name>[\w-]+)(?:\#season_(?P<season>\d))? # Here goes the name
+        (/lang/(.*?))?
+        /(?P<name>[\w-]+)(?:\#season_(?P<season>\d))?
         .*)$
         '''
     _TESTS = [{
