@@ -138,7 +138,7 @@ class ERTFlixIE(ERTFlixBaseIE):
                     info.update(season_info)
                     yield info
 
-        result = self.playlist_result((e for e in gen_episode(media_info)), playlist_id=video_id)
+        result = self.playlist_result(list(gen_episode(media_info)), playlist_id=video_id)
         result.update(series_info)
         return result
 
