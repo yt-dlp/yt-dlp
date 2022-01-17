@@ -126,7 +126,7 @@ class ERTFlixIE(ERTFlixBaseIE):
                 for n, episode in enumerate(episodes, 1):
                     codename = try_get(episode, lambda x: x['Codename'], compat_str)
                     title = episode.get('Title')
-                    if not codename and title and episode.get('HasPlayableStream', True):
+                    if not codename or not title or not episode.get('HasPlayableStream', True):
                         continue
                     info = {
                         '_type': 'url_transparent',
