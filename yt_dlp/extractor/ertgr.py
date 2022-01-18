@@ -8,6 +8,7 @@ from ..utils import (
     determine_ext,
     dict_get,
     int_or_none,
+    merge_dicts,
     parse_age_limit,
     parse_iso8601,
     str_or_none,
@@ -31,15 +32,24 @@ class ERTFlixBaseIE(InfoExtractor):
     },
     ]
 
-    def _call_api(self, video_id, method='Player/AcquireContent', **params):
-        query = {
-            'platformCodename': 'www',
-            '$headers': json.dumps({"X-Api-Date-Format": "iso", "X-Api-Camel-Case": False}),
-        }
-        query.update(params)
+    def _call_api(
+        self, video_id, method='Player/AcquireContent', api_version=1,
+        param_headers=None, data=None, headers=None, **params):
+        platform_codename = {'platformCodename': 'www'}
+        headers_as_param = {"X-Api-Date-Format": "iso", "X-Api-Camel-Case": False}
+        headers_as_param.update(param_headers or {})
+        headers = headers or {}
+        if data:
+            headers["Content-Type"] = headers_as_param["Content-Type"] = \
+                "application/json;charset=utf-8"
+            data = json.dumps(merge_dicts(platform_codename, data)).encode('utf-8')
+        query = merge_dicts(
+            {} if data else platform_codename,
+            {'$headers': json.dumps(headers_as_param)},
+            params)
         response = self._download_json(
-            'https://api.app.ertflix.gr/v1/%s' % (method, ),
-            video_id, fatal=False, query=query)
+            'https://api.app.ertflix.gr/v%s/%s' % (str(api_version), method),
+            video_id, fatal=False, query=query, data=data, headers=headers)
         if try_get(response, lambda x: x['Result']['Success']) is True:
             return response
 
