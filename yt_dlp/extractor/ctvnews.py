@@ -65,4 +65,9 @@ class CTVNewsIE(InfoExtractor):
             })
             entries = [ninecninemedia_url_result(clip_id) for clip_id in orderedSet(
                 re.findall(r'clip\.id\s*=\s*(\d+);', webpage))]
+            if not entries:
+                webpage = self._download_webpage(url, page_id)
+                if 'getAuthStates("' in webpage:
+                    entries = [ninecninemedia_url_result(clip_id) for clip_id in
+                               re.search(r'getAuthStates\("([\d+,]+)"', webpage).groups()[0].split(',')]
             return self.playlist_result(entries, page_id)
