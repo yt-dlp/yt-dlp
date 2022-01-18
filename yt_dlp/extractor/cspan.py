@@ -130,8 +130,11 @@ class CSpanIE(InfoExtractor):
                         ext = 'vtt'
                     subtitle['ext'] = ext
             ld_info = self._search_json_ld(webpage, video_id, default={})
-            title = get_element_by_class('video-page-title', webpage) or \
-                self._og_search_title(webpage)
+            try:
+                title = get_element_by_class('video-page-title', webpage) or \
+                    self._og_search_title(webpage)
+            except:
+                title = 'No title'
             description = get_element_by_attribute('itemprop', 'description', webpage) or \
                 self._html_search_meta(['og:description', 'description'], webpage)
             return merge_dicts(info, ld_info, {
