@@ -53,3 +53,33 @@ class MixchIE(InfoExtractor):
             }],
             'is_live': True,
         }
+
+
+class MixchArchiveIE(InfoExtractor):
+    IE_NAME = 'mixch:archive'
+    _VALID_URL = r'https?://(?:www\.)?mixch\.tv/archive/(?P<id>\d+)'
+
+    TESTS = [{
+        'url': 'https://mixch.tv/archive/421',
+        'skip': 'paid video, no DRM. expires at Jan 23',
+        'info_dict': {
+            'id': '421',
+            'title': '96NEKO SHOW TIME',
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        html5_videos = self._parse_html5_media_entries(
+            url, webpage.replace('video-js', 'video'), video_id, 'hls')
+        if not html5_videos:
+            self.raise_login_required(method='cookies')
+        infodict = html5_videos[0]
+        infodict.update({
+            'id': video_id,
+            'title': self._html_search_regex(r'class="archive-title">(.+?)</', webpage, 'title')
+        })
+
+        return infodict
