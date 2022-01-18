@@ -5,7 +5,9 @@ import json
 
 from ..compat import compat_str
 from ..utils import (
+    clean_html,
     determine_ext,
+    ExtractorError,
     dict_get,
     int_or_none,
     merge_dicts,
@@ -113,6 +115,34 @@ class ERTFlixIE(ERTFlixBaseIE):
     },
     ]
 
+    def _extract_episode(self, episode):
+        codename = try_get(episode, lambda x: x['Codename'], compat_str)
+        title = episode.get('Title')
+        description = clean_html(dict_get(episode, ('Description', 'ShortDescription', 'TinyDescription', )))
+        if description:
+            description = description.strip('\r') # CRLF spotted in response for extended description
+        if not codename or not title or not episode.get('HasPlayableStream', True):
+            return
+        for _t in try_get(episode, lambda x: x['Images'], list) or [episode.get('Image', {})]:
+            if _t.get('IsMain'):
+                thumbnail = url_or_none(_t.get('Url'))
+                break
+        else:
+            thumbnail = None
+        return {
+            '_type': 'url_transparent',
+            'thumbnail': thumbnail,
+            'id': codename,
+            'episode_id': episode.get('Id'),
+            'title': title,
+            'alt_title': episode.get('Subtitle'),
+            'description': description,
+            'timestamp': parse_iso8601(episode.get('PublishDate')),
+            'duration': episode.get('DurationSeconds'),
+            'age_limit': self._parse_age_rating(episode),
+            'url': 'ertflix:%s' % (codename, ),
+        }
+
     @staticmethod
     def _parse_age_rating(info_dict):
         return parse_age_limit(
@@ -145,23 +175,10 @@ class ERTFlixIE(ERTFlixBaseIE):
                 except (KeyError, ValueError):
                     episodes = enumerate(episodes, 1)
                 for n, episode in episodes:
-                    codename = try_get(episode, lambda x: x['Codename'], compat_str)
-                    title = episode.get('Title')
-                    if not codename or not title or not episode.get('HasPlayableStream', True):
+                    info = self._extract_episode(episode)
+                    if info is None:
                         continue
-                    info = {
-                        '_type': 'url_transparent',
-                        'thumbnail': url_or_none(try_get(episode, lambda x: x['Image']['Url'])),
-                        'id': codename,
-                        'episode_id': episode.get('Id'),
-                        'title': title,
-                        'alt_title': episode.get('Subtitle'),
-                        'description': episode.get('ShortDescription'),
-                        'timestamp': parse_iso8601(episode.get('PublishDate')),
-                        'episode_number': n,
-                        'age_limit': self._parse_age_rating(episode),
-                        'url': 'ertflix:%s' % (codename, ),
-                    }
+                    info['episode_number'] = n
                     info.update(season_info)
                     yield info
 
@@ -173,20 +190,13 @@ class ERTFlixIE(ERTFlixBaseIE):
         video_id = self._match_id(url)
         if video_id.startswith('ser'):
             return self._extract_series(video_id)
-        webpage = self._download_webpage(url, video_id)
 
-        video_id = self._search_regex(
-            r'"codenameToId"\s*:\s*\{\s*"([\w-]+)"\s*:\s*"%s"' % (video_id, ),
-            webpage, video_id, default=False) or video_id
-
-        title = self._og_search_title(webpage)
-
-        formats = self._extract_formats(video_id, False)
-
-        return {
-            'id': video_id,
-            'title': title,
-            'description': self._og_search_description(webpage),
-            'thumbnail': self._og_search_thumbnail(webpage),
-            'formats': formats,
-        }
+        tiles_response = self._call_api(
+            video_id, method="Tile/GetTiles", api_version=2,
+            data={"RequestedTiles": [{"Id": video_id}]})
+        tiles = try_get(tiles_response, lambda x: x['Tiles'], list) or []
+        try:
+            ep_info = next(tile for tile in tiles if tile['Id'] == video_id)
+        except StopIteration:
+            raise ExtractorError('No matching video found', video_id=video_id)
+        return self._extract_episode(ep_info)
