@@ -5,9 +5,11 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     int_or_none,
     remove_start,
     smuggle_url,
+    traverse_obj,
     try_get,
 )
 
@@ -38,10 +40,16 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         path, video_id = self._match_valid_url(url).groups()
-        main = self._download_json(
+        api_response = self._download_json(
             'https://api.tver.jp/v4/' + path, video_id,
-            query={'token': self._TOKEN})['main']
-        p_id = main['publisher_id']
+            query={'token': self._TOKEN})
+        main = api_response['main']
+        p_id = main.get('publisher_id')
+        if not p_id:
+            error_msg, expected = traverse_obj(api_response, ('episode', 0, 'textbar', 0, ('text', 'longer')), get_all=False), True
+            if not error_msg:
+                error_msg, expected = 'Failed to extract publisher ID', False
+            raise ExtractorError(error_msg, expected=expected)
         service = remove_start(main['service'], 'ts_')
 
         r_id = main['reference_id']
