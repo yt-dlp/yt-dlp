@@ -55,9 +55,9 @@ class ERTFlixBaseIE(InfoExtractor):
         if try_get(response, lambda x: x['Result']['Success']) is True:
             return response
 
-    def _extract_formats(self, video_id, allow_none=True):
+    def _extract_formats_and_subs(self, video_id, allow_none=True):
         media_info = self._call_api(video_id, codename=video_id)
-        formats = []
+        formats, subs = [], {}
         for media_file in try_get(media_info, lambda x: x['MediaFiles'], list) or []:
             for media in try_get(media_file, lambda x: x['Formats'], list) or []:
                 fmt_url = url_or_none(try_get(media, lambda x: x['Url']))
@@ -65,28 +65,34 @@ class ERTFlixBaseIE(InfoExtractor):
                     continue
                 ext = determine_ext(fmt_url)
                 if ext == 'm3u8':
-                    formats.extend(self._extract_m3u8_formats(fmt_url, video_id, m3u8_id='hls', ext='mp4', entry_protocol='m3u8_native', fatal=False))
+                    formats_, subs_ = self._extract_m3u8_formats_and_subtitles(
+                        fmt_url, video_id, m3u8_id='hls', ext='mp4', fatal=False)
                 elif ext == 'mpd':
-                    formats.extend(self._extract_mpd_formats(fmt_url, video_id, mpd_id='dash', fatal=False))
+                    formats_, subs_ = self._extract_mpd_formats_and_subtitles(
+                        fmt_url, video_id, mpd_id='dash', fatal=False)
                 else:
                     formats.append({
                         'url': fmt_url,
                         'format_id': str_or_none(media.get('Id')),
                     })
+                    continue
+                formats.extend(formats_)
+                self._merge_subtitles(subs_, target=subs)
 
         if formats or not allow_none:
             self._sort_formats(formats)
-        return formats
+        return formats, subs
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        formats = self._extract_formats(video_id)
+        formats, subs = self._extract_formats_and_subs(video_id)
 
         if formats:
             return {
                 'id': video_id,
                 'formats': formats,
+                'subtitles': subs,
                 'title': self._generic_title(url),
             }
 
