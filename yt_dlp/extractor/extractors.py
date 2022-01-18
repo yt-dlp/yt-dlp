@@ -1295,6 +1295,7 @@ from .rtl2 import (
     RTL2YouIE,
     RTL2YouSeriesIE,
 )
+from .rtnews import RTNewsIE
 from .rtp import RTPIE
 from .rtrfm import RTRFMIE
 from .rts import RTSIE
