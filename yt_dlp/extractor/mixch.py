@@ -11,7 +11,7 @@ class MixchIE(InfoExtractor):
     IE_NAME = 'mixch'
     _VALID_URL = r'https?://(?:www\.)?mixch\.tv/u/(?P<id>\d+)'
 
-    TESTS = [{
+    _TESTS = [{
         'url': 'https://mixch.tv/u/16236849/live',
         'skip': 'don\'t know if this live persists',
         'info_dict': {
