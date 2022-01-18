@@ -59,7 +59,7 @@ class MixchArchiveIE(InfoExtractor):
     IE_NAME = 'mixch:archive'
     _VALID_URL = r'https?://(?:www\.)?mixch\.tv/archive/(?P<id>\d+)'
 
-    TESTS = [{
+    _TESTS = [{
         'url': 'https://mixch.tv/archive/421',
         'skip': 'paid video, no DRM. expires at Jan 23',
         'info_dict': {
