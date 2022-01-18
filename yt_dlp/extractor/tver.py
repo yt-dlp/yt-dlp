@@ -10,7 +10,6 @@ from ..utils import (
     remove_start,
     smuggle_url,
     traverse_obj,
-    try_get,
 )
 
 
