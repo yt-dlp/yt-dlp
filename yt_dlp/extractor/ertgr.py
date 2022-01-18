@@ -118,9 +118,7 @@ class ERTFlixIE(ERTFlixBaseIE):
     def _extract_episode(self, episode):
         codename = try_get(episode, lambda x: x['Codename'], compat_str)
         title = episode.get('Title')
-        description = clean_html(dict_get(episode, ('Description', 'ShortDescription', 'TinyDescription', )))
-        if description:
-            description = description.strip('\r') # CRLF spotted in response for extended description
+        description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription', )))
         if not codename or not title or not episode.get('HasPlayableStream', True):
             return
         for _t in try_get(episode, lambda x: x['Images'], list) or [episode.get('Image', {})]:
