@@ -55,6 +55,22 @@ class ERTFlixBaseIE(InfoExtractor):
         if try_get(response, lambda x: x['Result']['Success']) is True:
             return response
 
+    def _call_api_get_tiles(self, video_id, *tile_ids):
+        requested_tile_ids = [video_id] + list(tile_ids)
+        requested_tiles = [{"Id": tile_id} for tile_id in requested_tile_ids]
+        tiles_response = self._call_api(
+            video_id, method="Tile/GetTiles", api_version=2,
+            data={"RequestedTiles": requested_tiles})
+        tiles = try_get(tiles_response, lambda x: x['Tiles'], list) or []
+        if tile_ids:
+            if sorted([tile['Id'] for tile in tiles]) != sorted(requested_tile_ids):
+                raise ExtractorError('Requested tiles not found', video_id=video_id)
+            return tiles
+        try:
+            return next(tile for tile in tiles if tile['Id'] == video_id)
+        except StopIteration:
+            raise ExtractorError('No matching tile found', video_id=video_id)
+
     def _extract_formats_and_subs(self, video_id, allow_none=True):
         media_info = self._call_api(video_id, codename=video_id)
         formats, subs = [], {}
@@ -195,12 +211,4 @@ class ERTFlixIE(ERTFlixBaseIE):
         if video_id.startswith('ser'):
             return self._extract_series(video_id)
 
-        tiles_response = self._call_api(
-            video_id, method="Tile/GetTiles", api_version=2,
-            data={"RequestedTiles": [{"Id": video_id}]})
-        tiles = try_get(tiles_response, lambda x: x['Tiles'], list) or []
-        try:
-            ep_info = next(tile for tile in tiles if tile['Id'] == video_id)
-        except StopIteration:
-            raise ExtractorError('No matching video found', video_id=video_id)
-        return self._extract_episode(ep_info)
+        return self._extract_episode(self._call_api_get_tiles(video_id))
