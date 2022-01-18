@@ -1,6 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import json
+
 from ..compat import compat_str
 from ..utils import (
     determine_ext,
@@ -30,13 +32,16 @@ class ERTFlixBaseIE(InfoExtractor):
     ]
 
     def _call_api(self, video_id, method='Player/AcquireContent', **params):
-        query = {'platformCodename': 'www', }
+        query = {
+            'platformCodename': 'www',
+            '$headers': json.dumps({"X-Api-Date-Format": "iso", "X-Api-Camel-Case": False}),
+        }
         query.update(params)
-        json = self._download_json(
+        response = self._download_json(
             'https://api.app.ertflix.gr/v1/%s' % (method, ),
             video_id, fatal=False, query=query)
-        if try_get(json, lambda x: x['Result']['Success']) is True:
-            return json
+        if try_get(response, lambda x: x['Result']['Success']) is True:
+            return response
 
     def _extract_formats(self, video_id, allow_none=True):
         media_info = self._call_api(video_id, codename=video_id)
