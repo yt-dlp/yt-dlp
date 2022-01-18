@@ -123,7 +123,12 @@ class ERTFlixIE(ERTFlixBaseIE):
                     'season': episode_group.get('Title'),
                     'season_number': int_or_none(episode_group.get('SeasonNumber')),
                 }
-                for n, episode in enumerate(episodes, 1):
+                try:
+                    episodes = [(int(ep['EpisodeNumber']), ep) for ep in episodes]
+                    episodes.sort()
+                except (KeyError, ValueError):
+                    episodes = enumerate(episodes, 1)
+                for n, episode in episodes:
                     codename = try_get(episode, lambda x: x['Codename'], compat_str)
                     title = episode.get('Title')
                     if not codename or not title or not episode.get('HasPlayableStream', True):
