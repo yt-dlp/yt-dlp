@@ -133,7 +133,7 @@ class CSpanIE(InfoExtractor):
             try:
                 title = get_element_by_class('video-page-title', webpage) or \
                     self._og_search_title(webpage)
-            except:
+            except Exception:
                 title = 'No title'
             description = get_element_by_attribute('itemprop', 'description', webpage) or \
                 self._html_search_meta(['og:description', 'description'], webpage)
