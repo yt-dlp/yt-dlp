@@ -69,5 +69,5 @@ class CTVNewsIE(InfoExtractor):
                 webpage = self._download_webpage(url, page_id)
                 if 'getAuthStates("' in webpage:
                     entries = [ninecninemedia_url_result(clip_id) for clip_id in
-                               re.search(r'getAuthStates\("([\d+,]+)"', webpage).groups()[0].split(',')]
+                               self._search_regex(r'getAuthStates\("([\d+,]+)"', webpage, 'clip ids').split(',')]
             return self.playlist_result(entries, page_id)
