@@ -265,6 +265,11 @@ class ERTWebtvEmbedIE(InfoExtractor):
     IE_DESC = 'ert.gr webtv embedded videos'
     _BASE_PLAYER_URL_RE = re.escape('//www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php')
     _VALID_URL = rf'https?:{_BASE_PLAYER_URL_RE}\?([^#]+&)?f=(?P<id>[^#&]+)'
+    # in comparison with _VALID_URL:
+    # * make the scheme optional
+    # * simplify the query string part; after extracting iframe src, the URL will be matched again
+    _EMBED_URL_RE = rf'(?:https?:)?{_BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
+    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_EMBED_URL_RE})(?P=_q1)''')
 
     _TESTS = [{
         'url': 'https://www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php?f=trailers/E2251_TO_DIKTYO_E09_16-01_1900.mp4&bgimg=/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg',
@@ -288,14 +293,7 @@ class ERTWebtvEmbedIE(InfoExtractor):
 
     @classmethod
     def _extract_urls(cls, webpage, **parent_info):
-        # in comparison with _VALID_URL:
-        # * make the scheme optional
-        # * simplify the query string part; after extracting iframe src, the URL will be matched again
-        VALID_SRC = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
-
-        EMBED_RE = r'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>%s)(?P=_q1)''' % VALID_SRC
-
-        for mobj in re.finditer(EMBED_RE, webpage):
+        for mobj in cls._EMBED_RE.finditer(webpage):
             url = unescapeHTML(mobj.group('url'))
             if not cls.suitable(url):
                 continue
