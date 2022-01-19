@@ -139,6 +139,7 @@ from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
+from .tvopengr import TVOpenGrEmbedIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
@@ -2228,6 +2229,22 @@ class GenericIE(InfoExtractor):
             },
         },
         {
+            # tvopengr:embed
+            'url': 'https://www.ethnos.gr/World/article/190604/hparosiaxekinoynoisynomiliessthgeneyhmethskiatoypolemoypanoapothnoykrania',
+            'md5': 'eb0c3995d0a6f18f6538c8e057865d7d',
+            'info_dict': {
+                'id': '101119',
+                'ext': 'mp4',
+                'display_id': 'oikarpoitondiapragmateyseonhparosias',
+                'title': 'md5:b979f4d640c568617d6547035528a149',
+                'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
+                'timestamp': 1641772800,
+                'upload_date': '20220110',
+                'thumbnail': 'https://opentv-static.siliconweb.com/imgHandler/1920/70bc39fa-895b-4918-a364-c39d2135fc6d.jpg',
+
+            }
+        },
+        {
             # blogger embed
             'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
             'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
@@ -3670,6 +3687,11 @@ class GenericIE(InfoExtractor):
         if rumble_urls:
             return self.playlist_from_matches(
                 rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
+
+        # Look for (tvopen|ethnos).gr embeds
+        tvopengr_urls = list(TVOpenGrEmbedIE._extract_urls(webpage))
+        if tvopengr_urls:
+            return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
 
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
