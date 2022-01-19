@@ -558,6 +558,7 @@ from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
 from .gronkh import GronkhIE
 from .groupon import GrouponIE
+from .hanime import HanimeIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
 from .heise import HeiseIE
