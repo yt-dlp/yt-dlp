@@ -287,16 +287,15 @@ class ERTWebtvEmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        thumbnail_id = parse_qs(url).get('bgimg', [None])[0]
-        format_url = f'https://mediastream.ert.gr/vodedge/_definst_/mp4:dvrorigin/{video_id}/playlist.m3u8'
         formats, subs = self._extract_m3u8_formats_and_subtitles(
-            format_url, video_id, 'mp4')
+            f'https://mediastream.ert.gr/vodedge/_definst_/mp4:dvrorigin/{video_id}/playlist.m3u8',
+            video_id, 'mp4')
         self._sort_formats(formats)
-        thumbnail_url = f'https://program.ert.gr{thumbnail_id}' if thumbnail_id else None
+        thumbnail_id = parse_qs(url).get('bgimg', [None])[0]
         return {
             'id': video_id,
             'title': f'VOD - {video_id}',
-            'thumbnail': thumbnail_url,
+            'thumbnail': f'https://program.ert.gr{thumbnail_id}' if thumbnail_id else None,
             'formats': formats,
             'subtitles': subs,
         }
