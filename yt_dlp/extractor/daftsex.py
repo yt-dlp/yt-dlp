@@ -9,7 +9,7 @@ from ..utils import (
     js_to_json,
     parse_count,
     parse_duration,
-    try_get
+    try_get,
 )
 
 
