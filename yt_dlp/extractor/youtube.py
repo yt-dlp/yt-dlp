@@ -864,7 +864,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             youtube\.googleapis\.com)/                        # the various hostnames, with wildcard subdomains
                          (?:.*?\#/)?                                          # handle anchor (#/) redirect urls
                          (?:                                                  # the various things that can precede the ID:
-                             (?:(?:v|embed|e|shorts)/(?!videoseries))         # v/ or embed/ or e/ or shorts/
+                             (?:(?:v|embed|e|shorts)/(?!videoseries|live_stream))  # v/ or embed/ or e/ or shorts/
                              |(?:                                             # or the v= param in all its forms
                                  (?:(?:watch|movie)(?:_popup)?(?:\.php)?/?)?  # preceding watch(_popup|.php) or nothing (like /?v=xxxx)
                                  (?:\?|\#!?)                                  # the params delimiter ? or # or #!
@@ -5139,8 +5139,24 @@ class YoutubeYtBeIE(InfoExtractor):
             }), ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
 
 
+class YoutubeLivestreamEmbedIE(InfoExtractor):
+    IE_DESC = 'YouTube livestream embeds'
+    _VALID_URL = r'https?://(?:\w+\.)?youtube\.com/embed/live_stream/?\?(?:[^#]+&)?channel=(?P<id>[^&#]+)'
+    _TESTS = [{
+        'url': 'https://www.youtube.com/embed/live_stream?channel=UC2_KI6RB__jGdlnK6dvFEZA',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        channel_id = self._match_id(url)
+        return self.url_result(
+            f'https://www.youtube.com/channel/{channel_id}/live',
+            ie=YoutubeTabIE.ie_key(), video_id=channel_id)
+
+
 class YoutubeYtUserIE(InfoExtractor):
     IE_DESC = 'YouTube user videos; "ytuser:" prefix'
+    IE_NAME = 'youtube:user'
     _VALID_URL = r'ytuser:(?P<id>.+)'
     _TESTS = [{
         'url': 'ytuser:phihag',

@@ -1965,6 +1965,7 @@ from .youtube import (
     YoutubeFavouritesIE,
     YoutubeHistoryIE,
     YoutubeTabIE,
+    YoutubeLivestreamEmbedIE,
     YoutubePlaylistIE,
     YoutubeRecommendedIE,
     YoutubeSearchDateIE,
