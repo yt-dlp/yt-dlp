@@ -7,27 +7,7 @@ from .common import InfoExtractor
 from ..utils import js_to_json
 
 
-class RTBaseIE(InfoExtractor):
-    def _entries(self, webpage):
-        video_urls = set(re.findall(r'https://cdnv\.rt\.com/.*[a-f0-9]+\.mp4', webpage))
-        for v_url in video_urls:
-            v_id = re.search(r'([a-f0-9]+)\.mp4', v_url).group(1)
-            if v_id:
-                yield {
-                    'id': v_id,
-                    'title': v_id,
-                    'url': v_url,
-                }
-
-    def _get_info_from_og(self, webpage):
-        return {
-            'title': self._og_search_title(webpage),
-            'description': self._og_search_description(webpage),
-            'thumbnail': self._og_search_thumbnail(webpage),
-        }
-
-
-class RTNewsIE(RTBaseIE):
+class RTNewsIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rt\.com/[^/]+/(?:[^/]+/)?(?P<id>\d+)'
 
     _TESTS = [{
@@ -57,6 +37,17 @@ class RTNewsIE(RTBaseIE):
         }]
     }]
 
+    def _entries(self, webpage):
+        video_urls = set(re.findall(r'https://cdnv\.rt\.com/.*[a-f0-9]+\.mp4', webpage))
+        for v_url in video_urls:
+            v_id = re.search(r'([a-f0-9]+)\.mp4', v_url).group(1)
+            if v_id:
+                yield {
+                    'id': v_id,
+                    'title': v_id,
+                    'url': v_url,
+                }
+
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
@@ -65,19 +56,13 @@ class RTNewsIE(RTBaseIE):
             '_type': 'playlist',
             'id': id,
             'entries': self._entries(webpage),
-            **self._get_info_from_og(webpage)
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage),
         }
 
 
-class RTDocumentryBaseIE(InfoExtractor):
-    def _get_info_from_ld(self, webpage):
-        ld_json = self._search_json_ld(webpage, None, fatal=False)
-        if not ld_json:
-            self.raise_no_formats('No video/audio found at the provided url.', expected=True)
-        return ld_json
-
-
-class RTDocumentryIE(RTDocumentryBaseIE):
+class RTDocumentryIE(InfoExtractor):
     _VALID_URL = r'https?://rtd\.rt\.com/(?:(?:series|shows)/[^/]+|films)/(?P<id>[^/?$&#]+)'
 
     _TESTS = [{
@@ -127,7 +112,9 @@ class RTDocumentryIE(RTDocumentryBaseIE):
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
-        ld_json = self._get_info_from_ld(webpage)
+        ld_json = self._search_json_ld(webpage, None, fatal=False)
+        if not ld_json:
+            self.raise_no_formats('No video/audio found at the provided url.', expected=True)
         media_json = self._parse_json(
             self._search_regex(r'(?s)\'Med\'\s*:\s*\[\s*({.+})\s*\]\s*};', webpage, 'media info'),
             id, transform_source=js_to_json)
@@ -177,4 +164,36 @@ class RTDocumentryPlaylistIE(InfoExtractor):
             '_type': 'playlist',
             'id': id,
             'entries': self._entries(webpage, id),
+        }
+
+
+class RuptlyIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?ruptly\.tv/[a-z]{2}/videos/(?P<id>\d+-\d+)'
+
+    _TESTS = [{
+        'url': 'https://www.ruptly.tv/en/videos/20220112-020-Japan-Double-trouble-Tokyo-zoo-presents-adorable-panda-twins',
+        'info_dict': {
+            'id': '20220112-020',
+            'ext': 'mp4',
+            'title': 'Japan: Double trouble! Tokyo zoo presents adorable panda twins | Video Ruptly',
+            'description': 'md5:85a8da5fdb31486f0562daf4360ce75a',
+            'thumbnail': 'https://storage.ruptly.tv/thumbnails/20220112-020/i6JQKnTNpYuqaXsR/i6JQKnTNpYuqaXsR.jpg'
+        },
+        'params': {'skip_download': True}
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        m3u8_url = self._search_regex(r'preview_url"\s?:\s?"(https?://storage\.ruptly\.tv/video_projects/.+\.m3u8)"', webpage, 'm3u8 url', fatal=False)
+        if not m3u8_url:
+            self.raise_no_formats('No video/audio found at the provided url.', expected=True)
+        formats, subs = self._extract_m3u8_formats_and_subtitles(m3u8_url, id, ext='mp4')
+        return {
+            'id': id,
+            'formats': formats,
+            'subtitles': subs,
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage),
+            'thumbnail': self._og_search_thumbnail(webpage),
         }

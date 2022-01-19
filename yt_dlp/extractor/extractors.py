@@ -1299,6 +1299,7 @@ from .rtnews import (
     RTNewsIE,
     RTDocumentryIE,
     RTDocumentryPlaylistIE,
+    RuptlyIE,
 )
 from .rtp import RTPIE
 from .rtrfm import RTRFMIE
