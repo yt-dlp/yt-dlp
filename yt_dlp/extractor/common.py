@@ -45,6 +45,7 @@ from ..utils import (
     determine_ext,
     determine_protocol,
     dict_get,
+    encode_data_uri,
     error_to_compat_str,
     extract_attributes,
     ExtractorError,
@@ -2106,7 +2107,7 @@ class InfoExtractor(object):
             headers=headers, query=query, video_id=video_id)
 
     def _parse_m3u8_formats_and_subtitles(
-            self, m3u8_doc, m3u8_url, ext=None, entry_protocol='m3u8_native',
+            self, m3u8_doc, m3u8_url=None, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
@@ -2156,7 +2157,7 @@ class InfoExtractor(object):
             formats = [{
                 'format_id': join_nonempty(m3u8_id, idx),
                 'format_index': idx,
-                'url': m3u8_url,
+                'url': m3u8_url or encode_data_uri(m3u8_doc.encode('utf-8'), 'application/x-mpegurl'),
                 'ext': ext,
                 'protocol': entry_protocol,
                 'preference': preference,
