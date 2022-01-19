@@ -51,15 +51,12 @@ class DaftsexIE(InfoExtractor):
                 embed_page, 'video parameters'),
             video_id, transform_source=js_to_json)
 
-        server_domain = compat_b64decode(video_params['server'][::-1]).decode('utf-8')
-        server_domain = 'https://' + server_domain
-        id1, id2 = video_id.split('_')
-
+        server_domain = 'https://%s' % compat_b64decode(video_params['server'][::-1]).decode('utf-8')
         formats = []
         for format_id, format_data in video_params['video']['cdn_files'].items():
             ext, height = format_id.split('_')
             extra_quality_data = format_data.split('.')[-1]
-            url = f'{server_domain}/videos/{id1}/{id2}/{height}.mp4?extra={extra_quality_data}'
+            url = f'{server_domain}/videos/{video_id.replace("_", "/")}/{height}.mp4?extra={extra_quality_data}'
             formats.append({
                 'format_id': format_id,
                 'url': url,
