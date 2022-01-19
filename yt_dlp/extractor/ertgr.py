@@ -263,9 +263,6 @@ class ERTWebtvEmbedIE(InfoExtractor):
     IE_DESC = 'ert.gr webtv embedded videos'
     _BASE_PLAYER_URL_RE = re.escape('//www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php')
     _VALID_URL = rf'https?:{_BASE_PLAYER_URL_RE}\?([^#]+&)?f=(?P<id>[^#&]+)'
-    # in comparison with _VALID_URL:
-    # * make the scheme optional
-    # * simplify the query string part; after extracting iframe src, the URL will be matched again
     _EMBED_URL_RE = rf'(?:https?:)?{_BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
     _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_EMBED_URL_RE})(?P=_q1)''')
 
