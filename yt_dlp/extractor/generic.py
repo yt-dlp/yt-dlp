@@ -140,7 +140,7 @@ from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvopengr import TVOpenGrEmbedIE
-from .ertgrwebtv import ErtGrWebtvEmbedIE
+from .ertgr import ERTWebtvEmbedIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
@@ -3704,9 +3704,9 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
 
         # Look for ert.gr webtv embeds
-        ertgrwebtv_urls = list(ErtGrWebtvEmbedIE._extract_urls(webpage, title=video_title))
-        if ertgrwebtv_urls:
-            return self.playlist_from_matches(ertgrwebtv_urls, video_id, video_title, ie=ErtGrWebtvEmbedIE.ie_key())
+        ertwebtv_urls = list(ERTWebtvEmbedIE._extract_urls(webpage, title=video_title))
+        if ertwebtv_urls:
+            return self.playlist_from_matches(ertwebtv_urls, video_id, video_title, ie=ERTWebtvEmbedIE.ie_key())
 
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:

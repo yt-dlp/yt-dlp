@@ -432,6 +432,7 @@ from .eroprofile import (
 from .ertgr import (
     ERTFlixBaseIE,
     ERTFlixIE,
+    ERTWebtvEmbedIE,
 )
 from .escapist import EscapistIE
 from .espn import (
@@ -1691,7 +1692,6 @@ from .tvopengr import (
     TVOpenGrWatchIE,
     TVOpenGrEmbedIE,
 )
-from .ertgrwebtv import ErtGrWebtvEmbedIE
 from .tvp import (
     TVPEmbedIE,
     TVPIE,
