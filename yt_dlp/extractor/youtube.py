@@ -3913,10 +3913,20 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = channel_id
             tags = renderer.get('keywords', '').split()
 
-        primary_thumbnails = (
-            self._extract_thumbnails(renderer, 'avatar')
-            or self._extract_thumbnails(
-                primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
+        # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
+        # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
+        def _get_uncropped(url):
+            return url_or_none((url or '').split('=')[0] + '=s0')
+
+        avatar_thumbnails = self._extract_thumbnails(renderer, 'avatar')
+        if avatar_thumbnails:
+            uncropped_avatar = _get_uncropped(avatar_thumbnails[0]['url'])
+            if uncropped_avatar:
+                avatar_thumbnails.append({
+                    'url': uncropped_avatar,
+                    'id': 'avatar_uncropped',
+                    'preference': 1
+                })
 
         channel_banners = self._extract_thumbnails(
             data, ('header', ..., ['banner', 'mobileBanner', 'tvBanner']))
@@ -3924,16 +3934,16 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             banner['preference'] = -10
 
         if channel_banners:
-            # We can get the uncropped banner by replacing the crop params with '=s0'
-            # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
-            uncropped_banner = url_or_none(
-                (channel_banners[0]['url'] or '').split('=')[0] + '=s0')
+            uncropped_banner = _get_uncropped(channel_banners[0]['url'])
             if uncropped_banner:
                 channel_banners.append({
                     'url': uncropped_banner,
                     'id': 'banner_uncropped',
                     'preference': -5
                 })
+
+        primary_thumbnails = self._extract_thumbnails(
+            primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail'))
 
         if playlist_id is None:
             playlist_id = item_id
@@ -3952,7 +3962,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader': channel_name,
             'uploader_id': channel_id,
             'uploader_url': channel_url,
-            'thumbnails': primary_thumbnails + channel_banners,
+            'thumbnails': primary_thumbnails + avatar_thumbnails + channel_banners,
             'tags': tags,
             'view_count': self._get_count(playlist_stats, 1),
             'availability': self._extract_availability(data),
