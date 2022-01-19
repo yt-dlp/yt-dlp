@@ -42,10 +42,8 @@ class DaftsexIE(InfoExtractor):
             webpage, 'player color', fatal=False) or ''
 
         embed_page = self._download_webpage(
-            'https://daxab.com/player/%s?color=%s' % (player_hash,
-                                                      player_color),
-            video_id,
-            headers={'Referer': url})
+            'https://daxab.com/player/%s?color=%s' % (player_hash, player_color),
+            video_id, headers={'Referer': url})
         video_params = self._parse_json(
             self._search_regex(
                 r'window\.globParams\s*=\s*({[\S\s]+})\s*;\s*<\/script>',
