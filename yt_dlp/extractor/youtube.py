@@ -3489,9 +3489,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if vsir:
                     vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
                     info.update({
-                            'channel': self._get_text(vor, 'title'),
-                            'channel_followers': self._get_count(vor, 'subscriberCountText')
-                        })
+                        'channel': self._get_text(vor, 'title'),
+                        'channel_followers': self._get_count(vor, 'subscriberCountText')})
 
                     rows = try_get(
                         vsir,
