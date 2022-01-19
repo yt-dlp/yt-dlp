@@ -37,8 +37,8 @@ class ERTFlixBaseIE(InfoExtractor):
     ]
 
     def _call_api(
-        self, video_id, method='Player/AcquireContent', api_version=1,
-        param_headers=None, data=None, headers=None, **params):
+            self, video_id, method='Player/AcquireContent', api_version=1,
+            param_headers=None, data=None, headers=None, **params):
         platform_codename = {'platformCodename': 'www'}
         headers_as_param = {"X-Api-Date-Format": "iso", "X-Api-Camel-Case": False}
         headers_as_param.update(param_headers or {})
