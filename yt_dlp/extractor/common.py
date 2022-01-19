@@ -1120,10 +1120,10 @@ class InfoExtractor(object):
 
     # Methods for following #608
     @staticmethod
-    def url_result(url, ie=None, video_id=None, video_title=None, **kwargs):
+    def url_result(url, ie=None, video_id=None, video_title=None, transparent=False, **kwargs):
         """Returns a URL that points to a page that should be processed"""
         # TODO: ie should be the class used for getting the info
-        video_info = {'_type': 'url',
+        video_info = {'_type': 'url_transparent' if transparent else 'url',
                       'url': url,
                       'ie_key': ie}
         video_info.update(kwargs)
@@ -1133,9 +1133,9 @@ class InfoExtractor(object):
             video_info['title'] = video_title
         return video_info
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None):
+    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, url_transparent=False, **parent_info):
         urls = orderedSet(
-            self.url_result(self._proto_relative_url(getter(m) if getter else m), ie)
+            self.url_result(self._proto_relative_url(getter(m) if getter else m), ie, transparent=url_transparent, **parent_info)
             for m in matches)
         return self.playlist_result(
             urls, playlist_id=playlist_id, playlist_title=playlist_title)
