@@ -114,6 +114,7 @@ from .channel9 import Channel9IE
 from .vshare import VShareIE
 from .mediasite import MediasiteIE
 from .springboardplatform import SpringboardPlatformIE
+from .ted import TedEmbedIE
 from .yapfiles import YapFilesIE
 from .vice import ViceIE
 from .xfileshare import XFileShareIE
@@ -3138,10 +3139,9 @@ class GenericIE(InfoExtractor):
             return self.url_result(mobj.group('url'), 'Tvigle')
 
         # Look for embedded TED player
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://embed(?:-ssl)?\.ted\.com/.+?)\1', webpage)
-        if mobj is not None:
-            return self.url_result(mobj.group('url'), 'TED')
+        ted_urls = TedEmbedIE._extract_urls(webpage)
+        if ted_urls:
+            return self.playlist_from_matches(ted_urls, video_id, video_title, ie=TedEmbedIE.ie_key())
 
         # Look for embedded Ustream videos
         ustream_url = UstreamIE._extract_url(webpage)
