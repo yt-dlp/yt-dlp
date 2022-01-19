@@ -3914,9 +3914,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             tags = renderer.get('keywords', '').split()
 
         primary_thumbnails = (
-                self._extract_thumbnails(renderer, 'avatar')
-                or self._extract_thumbnails(
-            primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
+            self._extract_thumbnails(renderer, 'avatar')
+            or self._extract_thumbnails(
+                primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
         # Channel banners
         channel_banners = self._extract_thumbnails(
             data, ('header', ..., ['banner', 'mobileBanner', 'tvBanner']))
