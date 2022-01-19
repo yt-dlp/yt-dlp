@@ -4,10 +4,10 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
-    int_or_none,
-    parse_count,
-    js_to_json,
     get_elements_by_class,
+    int_or_none,
+    js_to_json,
+    parse_count,
     parse_duration,
     try_get
 )
