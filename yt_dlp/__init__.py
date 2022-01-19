@@ -43,7 +43,7 @@ from .utils import (
     std_headers,
     write_string,
 )
-from .update import run_update
+from .update import run_update, detect_variant
 from .downloader import (
     FileDownloader,
 )
@@ -433,7 +433,9 @@ def _real_main(argv=None):
         report_conflict('--recode-video', '--remux-video')
         opts.remuxvideo = False
 
-    if opts.allow_unplayable_formats:
+    godmode_requested = opts.allow_unplayable_formats
+    godmode_enabled = godmode_requested and detect_variant() == 'source'
+    if godmode_enabled:
         def report_unplayable_conflict(opt_name, arg, default=False, allowed=None):
             val = getattr(opts, opt_name)
             if (not allowed and val) or (allowed and not allowed(val)):
@@ -456,6 +458,8 @@ def _real_main(argv=None):
         report_unplayable_conflict('sponsorblock_remove', '--sponsorblock-remove', default=set())
         report_unplayable_conflict('sponskrub', '--sponskrub', default=set())
         opts.sponskrub = False
+    if godmode_requested and not godmode_enabled:
+        warnings.append('You are not the God.')
 
     if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
         opts.addchapters = True
@@ -669,7 +673,7 @@ def _real_main(argv=None):
         'simulate': (any_getting or None) if opts.simulate is None else opts.simulate,
         'skip_download': opts.skip_download,
         'format': opts.format,
-        'allow_unplayable_formats': opts.allow_unplayable_formats,
+        'allow_unplayable_formats': godmode_enabled,
         'ignore_no_formats_error': opts.ignore_no_formats_error,
         'format_sort': opts.format_sort,
         'format_sort_force': opts.format_sort_force,
