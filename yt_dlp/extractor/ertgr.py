@@ -16,11 +16,9 @@ from ..utils import (
     parse_qs,
     parse_age_limit,
     parse_iso8601,
-    smuggle_url,
     str_or_none,
     try_get,
     unescapeHTML,
-    unsmuggle_url,
     url_or_none,
 )
 
@@ -282,25 +280,15 @@ class ERTWebtvEmbedIE(InfoExtractor):
         },
     }]
 
-    @staticmethod
-    def _smuggle_parent_info(url, **info_dict):
-        return smuggle_url(url, {'parent_info': info_dict})
-
-    @staticmethod
-    def _unsmuggle_parent_info(url):
-        unsmuggled_url, data = unsmuggle_url(url, default={'parent_info': {}})
-        return unsmuggled_url, data['parent_info']
-
     @classmethod
-    def _extract_urls(cls, webpage, **parent_info):
+    def _extract_urls(cls, webpage):
         for mobj in cls._EMBED_RE.finditer(webpage):
             url = unescapeHTML(mobj.group('url'))
             if not cls.suitable(url):
                 continue
-            yield cls._smuggle_parent_info(url, **parent_info)
+            yield url
 
     def _real_extract(self, url):
-        url, parent_info = type(self)._unsmuggle_parent_info(url)
         video_id = self._match_id(url)
         thumbnail_id = parse_qs(url).get('bgimg', [None])[0]
         format_url = f'https://mediastream.ert.gr/vodedge/_definst_/mp4:dvrorigin/{video_id}/playlist.m3u8'
@@ -310,7 +298,7 @@ class ERTWebtvEmbedIE(InfoExtractor):
         thumbnail_url = f'https://program.ert.gr{thumbnail_id}' if thumbnail_id else None
         return {
             'id': video_id,
-            'title': parent_info.get('title') or f'VOD - {video_id}',
+            'title': f'VOD - {video_id}',
             'thumbnail': thumbnail_url,
             'formats': formats,
             'subtitles': subs,
