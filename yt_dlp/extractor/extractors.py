@@ -829,7 +829,10 @@ from .mirrativ import (
 )
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
-from .mixch import MixchIE
+from .mixch import (
+    MixchIE,
+    MixchArchiveIE,
+)
 from .mixcloud import (
     MixcloudIE,
     MixcloudUserIE,
