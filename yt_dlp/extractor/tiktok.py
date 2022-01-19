@@ -84,6 +84,27 @@ class TikTokBaseIE(InfoExtractor):
                 'Accept': 'application/json',
             }, query=real_query)
 
+    def _get_subtitles(self, aweme_detail, aweme_id):
+        # TODO: Extract text positioning info
+        subtitles = {}
+        captions_info = traverse_obj(
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
+        for caption in captions_info:
+            caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
+            if not caption_url:
+                continue
+            caption_json = self._download_json(
+                caption_url, aweme_id, note='Downloading captions', errnote='Unable to download captions', fatal=False)
+            if not caption_json:
+                continue
+            subtitles.setdefault(caption.get('language', 'en'), []).append({
+                'ext': 'srt',
+                'data': '\n\n'.join(
+                    f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
+                    for i, line in enumerate(caption_json['utterances']) if line.get('text'))
+            })
+        return subtitles
+
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
         video_info = aweme_detail['video']
@@ -172,25 +193,6 @@ class TikTokBaseIE(InfoExtractor):
                 self._set_cookie(compat_urllib_parse_urlparse(f['url']).hostname, 'sid_tt', auth_cookie.value)
         self._sort_formats(formats, ('quality', 'codec', 'size', 'br'))
 
-        # TODO: Extract text positioning info
-        subtitles = {}
-        captions_info = traverse_obj(
-            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
-        for caption in captions_info:
-            caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
-            if not caption_url:
-                continue
-            caption_json = self._download_json(
-                caption_url, aweme_id, note='Downloading captions', errnote='Unable to download captions', fatal=False)
-            if not caption_json:
-                continue
-            subtitles.setdefault(caption.get('language', 'en'), []).append({
-                'ext': 'srt',
-                'data': '\n\n'.join(
-                    f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
-                    for i, line in enumerate(caption_json['utterances']) if line.get('text'))
-            })
-
         thumbnails = []
         for cover_id in ('cover', 'ai_dynamic_cover', 'animated_cover', 'ai_dynamic_cover_bak',
                          'origin_cover', 'dynamic_cover'):
@@ -238,7 +240,7 @@ class TikTokBaseIE(InfoExtractor):
             'artist': music_author,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
             'availability': self._availability(
