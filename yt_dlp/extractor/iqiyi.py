@@ -456,73 +456,73 @@ class IqIE(InfoExtractor):
     }
 
     _DASH_JS = '''
-            console.log(page.evaluate(function() {
-                var tvid = "%(tvid)s"; var vid = "%(vid)s"; var src = "%(src)s";
-                var dfp = "%(dfp)s"; var mode = "%(mode)s"; var lang = "%(lang)s"; var bid_list = %(bid_list)s;
-                var tm = new Date().getTime();
-                var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
-                var authKey = cmd5x(cmd5x('') + tm + '' + tvid);
-                var k_uid = Array.apply(null, Array(32)).map(function() {return Math.floor(Math.random() * 15).toString(16)}).join('');
-                var dash_paths = {};
-                bid_list.forEach(function(bid) {
-                    var query = {
-                        'tvid': tvid,
-                        'bid': bid,
-                        'ds': 1,
-                        'vid': vid,
-                        'src': src,
-                        'vt': 0,
-                        'rs': 1,
-                        'uid': 0,
-                        'ori': 'pcw',
-                        'ps': 1,
-                        'k_uid': k_uid,
-                        'pt': 0,
-                        'd': 0,
-                        's': '',
-                        'lid': '',
-                        'slid': 0,
-                        'cf': '',
-                        'ct': '',
-                        'authKey': authKey,
-                        'k_tag': 1,
-                        'ost': 0,
-                        'ppt': 0,
-                        'dfp': dfp,
-                        'prio': JSON.stringify({
-                            'ff': 'f4v',
-                            'code': 2
-                        }),
-                        'k_err_retries': 0,
-                        'up': '',
-                        'su': 2,
-                        'applang': lang,
-                        'sver': 2,
-                        'X-USER-MODE': mode,
-                        'qd_v': 2,
-                        'tm': tm,
-                        'qdy': 'a',
-                        'qds': 0,
-                        'k_ft1': 141287244169348,
-                        'k_ft4': 34359746564,
-                        'k_ft5': 1,
-                        'bop': JSON.stringify({
-                            'version': '10.0',
-                            'dfp': dfp
-                        }),
-                        'ut': 0, // TODO: Set ut param for VIP members
-                    };
-                    var enc_params = [];
-                    for (var prop in query) {
-                        enc_params.push(encodeURIComponent(prop) + '=' + encodeURIComponent(query[prop]));
-                    }
-                    var dash_path = '/dash?' + enc_params.join('&'); dash_path += '&vf=' + cmd5x(dash_path);
-                    dash_paths[bid] = dash_path;
-                });
-                return JSON.stringify(dash_paths);
-            }));
-            saveAndExit();
-        '''
+        console.log(page.evaluate(function() {
+            var tvid = "%(tvid)s"; var vid = "%(vid)s"; var src = "%(src)s";
+            var dfp = "%(dfp)s"; var mode = "%(mode)s"; var lang = "%(lang)s"; var bid_list = %(bid_list)s;
+            var tm = new Date().getTime();
+            var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
+            var authKey = cmd5x(cmd5x('') + tm + '' + tvid);
+            var k_uid = Array.apply(null, Array(32)).map(function() {return Math.floor(Math.random() * 15).toString(16)}).join('');
+            var dash_paths = {};
+            bid_list.forEach(function(bid) {
+                var query = {
+                    'tvid': tvid,
+                    'bid': bid,
+                    'ds': 1,
+                    'vid': vid,
+                    'src': src,
+                    'vt': 0,
+                    'rs': 1,
+                    'uid': 0,
+                    'ori': 'pcw',
+                    'ps': 1,
+                    'k_uid': k_uid,
+                    'pt': 0,
+                    'd': 0,
+                    's': '',
+                    'lid': '',
+                    'slid': 0,
+                    'cf': '',
+                    'ct': '',
+                    'authKey': authKey,
+                    'k_tag': 1,
+                    'ost': 0,
+                    'ppt': 0,
+                    'dfp': dfp,
+                    'prio': JSON.stringify({
+                        'ff': 'f4v',
+                        'code': 2
+                    }),
+                    'k_err_retries': 0,
+                    'up': '',
+                    'su': 2,
+                    'applang': lang,
+                    'sver': 2,
+                    'X-USER-MODE': mode,
+                    'qd_v': 2,
+                    'tm': tm,
+                    'qdy': 'a',
+                    'qds': 0,
+                    'k_ft1': 141287244169348,
+                    'k_ft4': 34359746564,
+                    'k_ft5': 1,
+                    'bop': JSON.stringify({
+                        'version': '10.0',
+                        'dfp': dfp
+                    }),
+                    'ut': 0, // TODO: Set ut param for VIP members
+                };
+                var enc_params = [];
+                for (var prop in query) {
+                    enc_params.push(encodeURIComponent(prop) + '=' + encodeURIComponent(query[prop]));
+                }
+                var dash_path = '/dash?' + enc_params.join('&'); dash_path += '&vf=' + cmd5x(dash_path);
+                dash_paths[bid] = dash_path;
+            });
+            return JSON.stringify(dash_paths);
+        }));
+        saveAndExit();
+    '''
 
     def _extract_vms_player_js(self, webpage, video_id):
         player_js_cache = self._downloader.cache.load('iq', 'player_js')
