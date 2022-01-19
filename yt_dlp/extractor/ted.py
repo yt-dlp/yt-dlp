@@ -149,7 +149,7 @@ class TedTalkIE(TedBaseIE):
 
 
 class TedSeriesIE(TedBaseIE):
-    _VALID_URL = fr'{TedBaseIE._VALID_URL_BASE.format(type=r"series")}(?:\#season_(?P<season>\d+))?'
+    _VALID_URL = fr'{TedBaseIE._VALID_URL_BASE.format(type=r"series")}(?:#season_(?P<season>\d+))?'
     _TESTS = [{
         'url': 'https://www.ted.com/series/small_thing_big_idea',
         'info_dict': {
@@ -174,15 +174,13 @@ class TedSeriesIE(TedBaseIE):
     def _real_extract(self, url):
         display_id, season = self._match_valid_url(url).group('id', 'season')
         webpage = self._download_webpage(url, display_id, 'Downloading series webpage')
-        info = self._search_nextjs_data(webpage, 'json')
+        info = self._search_nextjs_data(webpage, display_id)['props']['pageProps']
 
         entries = itertools.chain.from_iterable(
-            self._parse_playlist(s) for s in info['props']['pageProps']['seasons']
-            if season in [None, s.get('seasonNumber')])
+            self._parse_playlist(s) for s in info['seasons'] if season in [None, s.get('seasonNumber')])
 
-        series_info = try_get(info, lambda x: x['props']['pageProps']['series']) or {}
-        series_id = series_info.get('id')
-        series_name = series_info.get('name') or self._og_search_title(webpage, fatal=False)
+        series_id = try_get(info, lambda x: x['series']['id'])
+        series_name = try_get(info, lambda x: x['series']['name']) or self._og_search_title(webpage, fatal=False)
 
         return self.playlist_result(
             entries,
