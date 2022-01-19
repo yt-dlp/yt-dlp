@@ -4864,7 +4864,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
         return info_dict
 
-    _URL_RE = re.compile(rf'(?P<pre>{_VALID_URL})(?(channel_type)(?P<tab>/\w+))?(?P<post>.*)$')
+    _URL_RE = re.compile(rf'(?P<pre>{_VALID_URL})(?(not_channel)|(?P<tab>/\w+))?(?P<post>.*)$')
 
     def __real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
@@ -4896,6 +4896,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                 elif mobj['channel_type'] == 'browse':  # Youtube music /browse/ should be changed to /channel/
                     pre = f'https://www.youtube.com/channel/{item_id}'
 
+        original_tab_name = tab
         if is_channel and not tab and 'no-youtube-channel-redirect' not in compat_opts:
             # Home URLs should redirect to /videos/
             redirect_warning = ('A channel/user page was given. All the channel\'s videos will be downloaded. '
@@ -4930,29 +4931,35 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         tabs = traverse_obj(data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list)
         if tabs:
             selected_tab = self._extract_selected_tab(tabs)
-            tab_name = selected_tab.get('title', '')
+            selected_tab_name = selected_tab.get('title', '').lower()
+            if selected_tab_name == 'home':
+                selected_tab_name = 'featured'
+            requested_tab_name = mobj['tab'][1:]
             if 'no-youtube-channel-redirect' not in compat_opts:
-                if mobj['tab'] == '/live':
+                if requested_tab_name == 'live':
                     # Live tab should have redirected to the video
                     raise ExtractorError('The channel is not currently live', expected=True)
-                if mobj['tab'] == '/videos' and tab_name.lower() != mobj['tab'][1:]:
-                    redirect_warning = f'The URL does not have a {mobj["tab"][1:]} tab'
-                    if not mobj['not_channel'] and item_id[:2] == 'UC':
-                        # Topic channels don't have /videos. Use the equivalent playlist instead
-                        pl_id = f'UU{item_id[2:]}'
-                        pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
-                        try:
-                            data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True)
-                        except ExtractorError:
-                            redirect_warning += ' and the playlist redirect gave error'
-                        else:
-                            item_id, url, tab_name = pl_id, pl_url, mobj['tab'][1:]
-                            redirect_warning += f'. Redirecting to playlist {pl_id} instead'
-                    if tab_name.lower() != mobj['tab'][1:]:
-                        redirect_warning += f'. {tab_name} tab is being downloaded instead'
+                if requested_tab_name not in ('', selected_tab_name):
+                    redirect_warning = f'The channel does not have a {requested_tab_name} tab'
+                    if not original_tab_name:
+                        if item_id[:2] == 'UC':
+                            # Topic channels don't have /videos. Use the equivalent playlist instead
+                            pl_id = f'UU{item_id[2:]}'
+                            pl_url = f'https://www.youtube.com/playlist?list={pl_id}'
+                            try:
+                                data, ytcfg = self._extract_data(pl_url, pl_id, ytcfg=ytcfg, fatal=True, webpage_fatal=True)
+                            except ExtractorError:
+                                redirect_warning += ' and the playlist redirect gave error'
+                            else:
+                                item_id, url, selected_tab_name = pl_id, pl_url, requested_tab_name
+                                redirect_warning += f'. Redirecting to playlist {pl_id} instead'
+                        if selected_tab_name and selected_tab_name != requested_tab_name:
+                            redirect_warning += f'. {selected_tab_name} tab is being downloaded instead'
+                    else:
+                        raise ExtractorError(redirect_warning, expected=True)
 
         if redirect_warning:
-            self.report_warning(redirect_warning)
+            self.to_screen(redirect_warning)
         self.write_debug(f'Final URL: {url}')
 
         # YouTube sometimes provides a button to reload playlist with unavailable videos.
