@@ -59,13 +59,10 @@ class DaftsexIE(InfoExtractor):
         for format_id, format_data in video_params['video']['cdn_files'].items():
             ext, height = format_id.split('_')
             extra_quality_data = format_data.split('.')[-1]
+            url = f'{server_domain}/videos/{id1}/{id2}/{height}.mp4?extra={extra_quality_data}'
             formats.append({
                 'format_id': format_id,
-                'url': '%s/videos/%s/%s/%s.mp4?extra=%s' % (server_domain,
-                                                            id1,
-                                                            id2,
-                                                            height,
-                                                            extra_quality_data),
+                'url': url,
                 'height': int_or_none(height),
                 'ext': ext,
             })
