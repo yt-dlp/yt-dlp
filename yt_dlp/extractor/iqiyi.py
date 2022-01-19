@@ -595,7 +595,7 @@ class IqIE(InfoExtractor):
             self.report_warning(f'This preview video is limited to {preview_time} seconds')
 
         # TODO: Extract audio-only formats
-        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str, default=[])):
+        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
             dash_path = dash_paths.get(bid)
             if not dash_path:
                 self.report_warning(f'Unknown format id: {bid}. It is currently not being extracted')
@@ -653,7 +653,7 @@ class IqIE(InfoExtractor):
             lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))
             subtitles.setdefault(lang, []).extend([{
                 'ext': format_ext,
-                'url': urljoin(format_data.get('dstl', 'http://meta.video.iqiyi.com'), sub_format[format_key])
+                'url': urljoin(initial_format_data.get('dstl', 'http://meta.video.iqiyi.com'), sub_format[format_key])
             } for format_key, format_ext in [('srt', 'srt'), ('webvtt', 'vtt')] if sub_format.get(format_key)])
 
         extra_metadata = page_data.get('albumInfo') if video_info.get('albumId') and page_data.get('albumInfo') else video_info
