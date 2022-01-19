@@ -3194,7 +3194,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         })
                 vsir = content.get('videoSecondaryInfoRenderer')
                 if vsir:
-                    info['channel'] = self._get_text(vsir, ('owner', 'videoOwnerRenderer', 'title'))
+                    vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
+                    info.update({
+                            'channel': self._get_text(vor, 'title'),
+                            'channel_followers': self._get_count(vor, 'subscriberCountText')
+                        })
+
                     rows = try_get(
                         vsir,
                         lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'],
@@ -3642,10 +3647,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader_url': channel_url,
             'thumbnails': thumbnails,
             'tags': tags,
+            'channel_followers': self._get_count(data, ('header', ..., 'subscriberCountText')),
+            'availability':  self._extract_availability(data)
         }
-        availability = self._extract_availability(data)
-        if availability:
-            metadata['availability'] = availability
         if not channel_id:
             metadata.update(self._extract_uploader(data))
         metadata.update({
