@@ -619,6 +619,7 @@ class InstagramStoryIE(InstagramBaseIE):
                 'id': video_info.get('id'),
                 'title': f'Story by {username}',
                 'timestamp': int_or_none(video_info.get('taken_at')),
+                'channel': username,
                 'uploader': full_name,
                 'duration': float_or_none(video_info.get('video_duration')),
                 'uploader_id': user_id,
