@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     LazyList,
+    srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
     try_get,
@@ -82,6 +83,27 @@ class TikTokBaseIE(InfoExtractor):
                 'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
                 'Accept': 'application/json',
             }, query=real_query)
+
+    def _get_subtitles(self, aweme_detail, aweme_id):
+        # TODO: Extract text positioning info
+        subtitles = {}
+        captions_info = traverse_obj(
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
+        for caption in captions_info:
+            caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
+            if not caption_url:
+                continue
+            caption_json = self._download_json(
+                caption_url, aweme_id, note='Downloading captions', errnote='Unable to download captions', fatal=False)
+            if not caption_json:
+                continue
+            subtitles.setdefault(caption.get('language', 'en'), []).append({
+                'ext': 'srt',
+                'data': '\n\n'.join(
+                    f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
+                    for i, line in enumerate(caption_json['utterances']) if line.get('text'))
+            })
+        return subtitles
 
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
@@ -218,6 +240,7 @@ class TikTokBaseIE(InfoExtractor):
             'artist': music_author,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
+            'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
             'availability': self._availability(
@@ -396,6 +419,10 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
         },
         'expected_warnings': ['Video not available']
+    }, {
+        # Auto-captions available
+        'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
+        'only_matching': True
     }]
 
     def _extract_aweme_app(self, aweme_id):
