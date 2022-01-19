@@ -2682,7 +2682,7 @@ class YoutubeDL(object):
     def _forceprint(self, tmpl, info_dict):
         mobj = re.match(r'\w+(=?)$', tmpl)
         if mobj and mobj.group(1):
-            tmpl = f'{tmpl[:-1]} = %({tmpl[:-1]})s'
+            tmpl = f'{tmpl[:-1]} = %({tmpl[:-1]})r'
         elif mobj:
             tmpl = '%({})s'.format(tmpl)
 
@@ -3486,7 +3486,7 @@ class YoutubeDL(object):
             return None
         return render_table(
             self._list_format_headers('ID', 'Width', 'Height', 'URL'),
-            [[t['id'], t.get('width', 'unknown'), t.get('height', 'unknown'), t['url']] for t in thumbnails])
+            [[t.get('id'), t.get('width', 'unknown'), t.get('height', 'unknown'), t['url']] for t in thumbnails])
 
     def render_subtitles_table(self, video_id, subtitles):
         def _row(lang, formats):

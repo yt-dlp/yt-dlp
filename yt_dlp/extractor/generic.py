@@ -3804,6 +3804,7 @@ class GenericIE(InfoExtractor):
                 json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
                     json_ld['url'], video_id, 'mp4')
                 json_ld.pop('url')
+                self._sort_formats(json_ld['formats'])
             return merge_dicts(json_ld, info_dict)
 
         def check_video(vurl):
@@ -3858,7 +3859,7 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
-                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d+').fullmatch, flashvars.keys()))
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d*').fullmatch, flashvars.keys()))
                 formats = []
                 for key in url_keys:
                     if '/get_file/' not in flashvars[key]:

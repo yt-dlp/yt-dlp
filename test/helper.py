@@ -235,7 +235,7 @@ def sanitize_got_info_dict(got_dict):
     }
 
     # display_id may be generated from id
-    if test_info_dict.get('display_id') == test_info_dict['id']:
+    if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
 
     return test_info_dict

@@ -3504,8 +3504,6 @@ class InfoExtractor(object):
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
-        if 'get_attr' in kwargs:
-            print(getattr(v, kwargs['get_attr']))
         if res is None:
             msg = 'Failed to extract %s: Could not parse value %r' % (name, v)
             if fatal:

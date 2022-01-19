@@ -177,9 +177,6 @@ class GlomexEmbedIE(GlomexBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage, origin_url):
-        # in comparison with _VALID_URL:
-        # * make the scheme optional
-        # * simplify the query string part; after extracting iframe src, the URL will be matched again
         VALID_SRC = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
 
         # https://docs.glomex.com/publisher/video-player-integration/javascript-api/

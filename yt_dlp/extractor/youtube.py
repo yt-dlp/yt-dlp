@@ -257,7 +257,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _RESERVED_NAMES = (
         r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
-        r'shorts|movies|results|shared|hashtag|trending|feed|feeds|'
+        r'shorts|movies|results|shared|hashtag|trending|explore|feed|feeds|'
         r'browse|oembed|get_video_info|iframe_api|s/player|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
