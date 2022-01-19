@@ -3544,10 +3544,11 @@ class GenericIE(InfoExtractor):
                 megatvcom_urls, video_id, video_title, ie=MegaTVComEmbedIE.ie_key())
 
         # Look for ant1news.gr embeds
-        ant1newsgr_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage, title=video_title))
+        ant1newsgr_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
         if ant1newsgr_urls:
             return self.playlist_from_matches(
-                ant1newsgr_urls, video_id, video_title, ie=Ant1NewsGrEmbedIE.ie_key())
+                ant1newsgr_urls, video_id, video_title, ie=Ant1NewsGrEmbedIE.ie_key(),
+                url_transparent=True, title=video_title)
 
         # Look for WashingtonPost embeds
         wapo_urls = WashingtonPostIE._extract_urls(webpage)

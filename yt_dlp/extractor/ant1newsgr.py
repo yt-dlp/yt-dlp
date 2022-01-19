@@ -10,22 +10,11 @@ from ..utils import (
     ExtractorError,
     determine_ext,
     merge_dicts,
-    smuggle_url,
-    unsmuggle_url,
     unescapeHTML,
 )
 
 
 class Ant1NewsGrBaseIE(InfoExtractor):
-    @staticmethod
-    def _smuggle_parent_info(url, **info_dict):
-        return smuggle_url(url, {'parent_info': info_dict})
-
-    @staticmethod
-    def _unsmuggle_parent_info(url):
-        unsmuggled_url, data = unsmuggle_url(url, default={'parent_info': {}})
-        return unsmuggled_url, data['parent_info']
-
     @staticmethod
     def _scale_thumbnails_to_max_width(formats, thumbnails, url_width_re):
         _keys = ('width', 'height')
@@ -121,15 +110,16 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         info = self._search_json_ld(webpage, video_id, expected_type='NewsArticle')
-        embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage, **info))
+        embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
         if not embed_urls:
             raise ExtractorError('no videos found for %s' % video_id)
         if len(embed_urls) == 1:
             return self.url_result(self._proto_relative_url(embed_urls[0]),
                                    ie=Ant1NewsGrEmbedIE.ie_key(),
-                                   video_title=info['title'])
+                                   transparent=True, timestamp=info.get('timestamp'))
         return self.playlist_from_matches(
-            embed_urls, video_id, info['title'], ie=Ant1NewsGrEmbedIE.ie_key())
+            embed_urls, video_id, info['title'], ie=Ant1NewsGrEmbedIE.ie_key(),
+            url_transparent=True, timestamp=info.get('timestamp'))
 
 
 class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
@@ -157,15 +147,14 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
     }
 
     @classmethod
-    def _extract_urls(cls, webpage, **parent_info):
+    def _extract_urls(cls, webpage):
         for mobj in cls._EMBED_RE.finditer(webpage):
             url = unescapeHTML(mobj.group('url'))
             if not cls.suitable(url):
                 continue
-            yield cls._smuggle_parent_info(url, **parent_info)
+            yield url
 
     def _real_extract(self, url):
-        url, parent_info = type(self)._unsmuggle_parent_info(url)
         video_id = self._match_id(url)
 
         # resolve any redirects, to derive the proper base URL for the API query
@@ -176,7 +165,4 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
         _, netloc, _, _, query, _ = urllib.parse.urlparse(canonical_url)
         cid = urllib.parse.parse_qs(query)['cid'][0]
 
-        info = self._download_and_extract_api_data(video_id, netloc, cid=cid)
-        if 'timestamp' not in info and 'timestamp' in parent_info:
-            info['timestamp'] = parent_info['timestamp']
-        return info
+        return self._download_and_extract_api_data(video_id, netloc, cid=cid)
