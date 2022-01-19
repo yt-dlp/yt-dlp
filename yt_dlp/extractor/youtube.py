@@ -3913,10 +3913,27 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = channel_id
             tags = renderer.get('keywords', '').split()
 
-        thumbnails = (
-            self._extract_thumbnails(renderer, 'avatar')
-            or self._extract_thumbnails(
-                primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
+        primary_thumbnails = (
+                self._extract_thumbnails(renderer, 'avatar')
+                or self._extract_thumbnails(
+            primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
+        # Channel banners
+        channel_banners = self._extract_thumbnails(
+            data, ('header', ..., ['banner', 'mobileBanner', 'tvBanner']))
+        for banner in channel_banners:
+            banner['preference'] = -10
+        # Get original banner
+        if channel_banners:
+            # We can get the uncropped banner by replacing the crop params with '=s0'
+            # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
+            uncropped_banner = url_or_none(
+                (channel_banners[0]['url'] or '').split('=')[0] + '=s0')
+            if uncropped_banner:
+                channel_banners.append({
+                    'url': uncropped_banner,
+                    'id': 'banner_uncropped',
+                    'preference': -5
+                })
 
         if playlist_id is None:
             playlist_id = item_id
@@ -3935,7 +3952,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader': channel_name,
             'uploader_id': channel_id,
             'uploader_url': channel_url,
-            'thumbnails': thumbnails,
+            'thumbnails': primary_thumbnails + channel_banners,
             'tags': tags,
             'view_count': self._get_count(playlist_stats, 1),
             'availability': self._extract_availability(data),
