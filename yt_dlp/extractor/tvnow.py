@@ -169,7 +169,7 @@ class TVNowIE(TVNowBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = '%s/%s' % mobj.group(2, 3)
 
         info = self._call_api(
@@ -196,7 +196,7 @@ class TVNowNewIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         base_url = re.sub(r'(?:shows|serien)', '_', mobj.group('base_url'))
         show, episode = mobj.group('show', 'episode')
         return self.url_result(
@@ -243,7 +243,7 @@ class TVNowFilmIE(TVNowBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('title')
 
         webpage = self._download_webpage(url, display_id, fatal=False)
@@ -424,7 +424,7 @@ class TVNowIE(TVNowNewBaseIE):
         }
 
     def _real_extract(self, url):
-        display_id, video_id = re.match(self._VALID_URL, url).groups()
+        display_id, video_id = self._match_valid_url(url).groups()
         info = self._call_api('player/' + video_id, video_id)
         return self._extract_video(info, video_id, display_id)
 
@@ -466,7 +466,7 @@ class TVNowFilmIE(TVNowIE):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('title')
 
         webpage = self._download_webpage(url, display_id, fatal=False)
@@ -552,7 +552,7 @@ class TVNowSeasonIE(TVNowListBaseIE):
     }]
 
     def _real_extract(self, url):
-        _, show_id, season_id = re.match(self._VALID_URL, url).groups()
+        _, show_id, season_id = self._match_valid_url(url).groups()
         return self._extract_items(
             url, show_id, season_id, {'season': season_id})
 
@@ -568,7 +568,7 @@ class TVNowAnnualIE(TVNowListBaseIE):
     }]
 
     def _real_extract(self, url):
-        _, show_id, year, month = re.match(self._VALID_URL, url).groups()
+        _, show_id, year, month = self._match_valid_url(url).groups()
         return self._extract_items(
             url, show_id, '%s-%s' % (year, month), {
                 'year': int(year),
@@ -600,7 +600,7 @@ class TVNowShowIE(TVNowListBaseIE):
                 else super(TVNowShowIE, cls).suitable(url))
 
     def _real_extract(self, url):
-        base_url, show_id = re.match(self._VALID_URL, url).groups()
+        base_url, show_id = self._match_valid_url(url).groups()
 
         result = self._call_api(
             'teaserrow/format/navigation/' + show_id, show_id)

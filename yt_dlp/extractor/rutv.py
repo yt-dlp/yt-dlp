@@ -123,7 +123,7 @@ class RUTVIE(InfoExtractor):
             return mobj.group('url')
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         video_path = mobj.group('path')
 
@@ -201,7 +201,7 @@ class RUTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': description,
             'thumbnail': thumbnail,
             'view_count': view_count,

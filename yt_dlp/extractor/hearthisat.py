@@ -1,17 +1,12 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 from ..utils import (
-    HEADRequest,
+    determine_ext,
     KNOWN_EXTENSIONS,
-    sanitized_Request,
     str_to_int,
-    urlencode_postdata,
-    urlhandle_detect_ext,
 )
 
 
@@ -27,13 +22,11 @@ class HearThisAtIE(InfoExtractor):
             'title': 'Moofi - Dr. Kreep',
             'thumbnail': r're:^https?://.*\.jpg$',
             'timestamp': 1421564134,
-            'description': 'Listen to Dr. Kreep by Moofi on hearthis.at - Modular, Eurorack, Mutable Intruments Braids, Valhalla-DSP',
+            'description': 'md5:1adb0667b01499f9d27e97ddfd53852a',
             'upload_date': '20150118',
-            'comment_count': int,
             'view_count': int,
-            'like_count': int,
             'duration': 71,
-            'categories': ['Experimental'],
+            'genre': 'Experimental',
         }
     }, {
         # 'download' link redirects to the original webpage
@@ -43,78 +36,53 @@ class HearThisAtIE(InfoExtractor):
             'id': '811296',
             'ext': 'mp3',
             'title': 'TwitchSF - DJ Jim Hopkins -  Totally Bitchin\' 80\'s Dance Mix!',
-            'description': 'Listen to DJ Jim Hopkins -  Totally Bitchin\' 80\'s Dance Mix! by TwitchSF on hearthis.at - Dance',
+            'description': 'md5:ef26815ca8f483272a87b137ff175be2',
             'upload_date': '20160328',
             'timestamp': 1459186146,
             'thumbnail': r're:^https?://.*\.jpg$',
-            'comment_count': int,
             'view_count': int,
-            'like_count': int,
             'duration': 4360,
-            'categories': ['Dance'],
+            'genre': 'Dance',
         },
     }]
 
     def _real_extract(self, url):
-        m = re.match(self._VALID_URL, url)
+        m = self._match_valid_url(url)
         display_id = '{artist:s} - {title:s}'.format(**m.groupdict())
-
-        webpage = self._download_webpage(url, display_id)
-        track_id = self._search_regex(
-            r'intTrackId\s*=\s*(\d+)', webpage, 'track ID')
-
-        payload = urlencode_postdata({'tracks[]': track_id})
-        req = sanitized_Request(self._PLAYLIST_URL, payload)
-        req.add_header('Content-type', 'application/x-www-form-urlencoded')
-
-        track = self._download_json(req, track_id, 'Downloading playlist')[0]
-        title = '{artist:s} - {title:s}'.format(**track)
-
-        categories = None
-        if track.get('category'):
-            categories = [track['category']]
-
-        description = self._og_search_description(webpage)
-        thumbnail = self._og_search_thumbnail(webpage)
-
-        meta_span = r'<span[^>]+class="%s".*?</i>([^<]+)</span>'
-        view_count = str_to_int(self._search_regex(
-            meta_span % 'plays_count', webpage, 'view count', fatal=False))
-        like_count = str_to_int(self._search_regex(
-            meta_span % 'likes_count', webpage, 'like count', fatal=False))
-        comment_count = str_to_int(self._search_regex(
-            meta_span % 'comment_count', webpage, 'comment count', fatal=False))
-        duration = str_to_int(self._search_regex(
-            r'data-length="(\d+)', webpage, 'duration', fatal=False))
-        timestamp = str_to_int(self._search_regex(
-            r'<span[^>]+class="calctime"[^>]+data-time="(\d+)', webpage, 'timestamp', fatal=False))
+        api_url = url.replace('www.', '').replace('hearthis.at', 'api-v2.hearthis.at')
+        data_json = self._download_json(api_url, display_id)
+        track_id = data_json.get('id')
+        artist_json = data_json.get('user')
+        title = '{} - {}'.format(artist_json.get('username'), data_json.get('title'))
+        genre = data_json.get('genre')
+        description = data_json.get('description')
+        thumbnail = data_json.get('artwork_url') or data_json.get('thumb')
+        view_count = str_to_int(data_json.get('playback_count'))
+        duration = str_to_int(data_json.get('duration'))
+        timestamp = data_json.get('release_timestamp')
 
         formats = []
-        mp3_url = self._search_regex(
-            r'(?s)<a class="player-link"\s+(?:[a-zA-Z0-9_:-]+="[^"]+"\s+)*?data-mp3="([^"]+)"',
-            webpage, 'mp3 URL', fatal=False)
+        mp3_url = data_json.get('stream_url')
+
         if mp3_url:
             formats.append({
                 'format_id': 'mp3',
                 'vcodec': 'none',
                 'acodec': 'mp3',
                 'url': mp3_url,
+                'ext': 'mp3',
             })
-        download_path = self._search_regex(
-            r'<a class="[^"]*download_fct[^"]*"\s+href="([^"]+)"',
-            webpage, 'download URL', default=None)
-        if download_path:
-            download_url = compat_urlparse.urljoin(url, download_path)
-            ext_req = HEADRequest(download_url)
-            ext_handle = self._request_webpage(
-                ext_req, display_id, note='Determining extension')
-            ext = urlhandle_detect_ext(ext_handle)
+
+        if data_json.get('download_url'):
+            download_url = data_json['download_url']
+            ext = determine_ext(data_json['download_filename'])
             if ext in KNOWN_EXTENSIONS:
                 formats.append({
-                    'format_id': 'download',
+                    'format_id': ext,
                     'vcodec': 'none',
                     'ext': ext,
                     'url': download_url,
+                    'acodec': ext,
                     'quality': 2,  # Usually better quality
                 })
         self._sort_formats(formats)
@@ -129,7 +97,5 @@ class HearThisAtIE(InfoExtractor):
             'duration': duration,
             'timestamp': timestamp,
             'view_count': view_count,
-            'comment_count': comment_count,
-            'like_count': like_count,
-            'categories': categories,
+            'genre': genre,
         }

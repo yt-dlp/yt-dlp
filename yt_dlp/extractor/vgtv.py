@@ -165,7 +165,7 @@ class VGTVIE(XstreamIE):
     ]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         host = mobj.group('host')
         appname = self._HOST_TO_APPNAME[host] if host else mobj.group('appname')
@@ -242,7 +242,7 @@ class VGTVIE(XstreamIE):
 
         info.update({
             'id': video_id,
-            'title': self._live_title(data['title']) if is_live else data['title'],
+            'title': data['title'],
             'description': data['description'],
             'thumbnail': data['images']['main'] + '?t[]=900x506q80',
             'timestamp': data['published'],

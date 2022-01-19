@@ -17,6 +17,7 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_duration,
+    parse_qs,
     qualities,
     srt_subtitles_timecode,
     try_get,
@@ -273,7 +274,7 @@ query viewClip {
         return srt
 
     def _real_extract(self, url):
-        qs = compat_urlparse.parse_qs(compat_urlparse.urlparse(url).query)
+        qs = parse_qs(url)
 
         author = qs.get('author', [None])[0]
         name = qs.get('name', [None])[0]

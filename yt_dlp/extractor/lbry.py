@@ -6,16 +6,15 @@ import json
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_parse_qs,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
 )
 from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
     mimetype2ext,
+    parse_qs,
     OnDemandPagedList,
     try_get,
     urljoin,
@@ -29,14 +28,19 @@ class LBRYBaseIE(InfoExtractor):
     _SUPPORTED_STREAM_TYPES = ['video', 'audio']
 
     def _call_api_proxy(self, method, display_id, params, resource):
-        return self._download_json(
+        response = self._download_json(
             'https://api.lbry.tv/api/v1/proxy',
             display_id, 'Downloading %s JSON metadata' % resource,
             headers={'Content-Type': 'application/json-rpc'},
             data=json.dumps({
                 'method': method,
                 'params': params,
-            }).encode())['result']
+            }).encode())
+        err = response.get('error')
+        if err:
+            raise ExtractorError(
+                f'{self.IE_NAME} said: {err.get("code")} - {err.get("message")}', expected=True)
+        return response['result']
 
     def _resolve_url(self, url, display_id, resource):
         return self._call_api_proxy(
@@ -180,28 +184,38 @@ class LBRYIE(LBRYBaseIE):
         display_id = compat_urllib_parse_unquote(display_id)
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
-        result_value = result['value']
-        if result_value.get('stream_type') not in self._SUPPORTED_STREAM_TYPES:
+        if result['value'].get('stream_type') in self._SUPPORTED_STREAM_TYPES:
+            claim_id, is_live, headers = result['claim_id'], False, None
+            streaming_url = self._call_api_proxy(
+                'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
+            final_url = self._request_webpage(
+                streaming_url, display_id, note='Downloading streaming redirect url info').geturl()
+        elif result.get('value_type') == 'stream':
+            claim_id, is_live = result['signing_channel']['claim_id'], True
+            headers = {'referer': 'https://player.odysee.live/'}
+            live_data = self._download_json(
+                f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id,
+                note='Downloading livestream JSON metadata')['data']
+            if not live_data['live']:
+                raise ExtractorError('This stream is not live', expected=True)
+            streaming_url = final_url = live_data['url']
+        else:
             raise ExtractorError('Unsupported URL', expected=True)
-        claim_id = result['claim_id']
-        title = result_value['title']
-        streaming_url = self._call_api_proxy(
-            'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
+
         info = self._parse_stream(result, url)
-        urlh = self._request_webpage(
-            streaming_url, display_id, note='Downloading streaming redirect url info')
-        if determine_ext(urlh.geturl()) == 'm3u8':
+        if determine_ext(final_url) == 'm3u8':
             info['formats'] = self._extract_m3u8_formats(
-                urlh.geturl(), display_id, 'mp4', entry_protocol='m3u8_native',
-                m3u8_id='hls')
+                final_url, display_id, 'mp4', 'm3u8_native', m3u8_id='hls', live=is_live, headers=headers)
             self._sort_formats(info['formats'])
         else:
             info['url'] = streaming_url
-        info.update({
+        return {
+            **info,
             'id': claim_id,
-            'title': title,
-        })
-        return info
+            'title': result['value']['title'],
+            'is_live': is_live,
+            'http_headers': headers,
+        }
 
 
 class LBRYChannelIE(LBRYBaseIE):
@@ -256,7 +270,7 @@ class LBRYChannelIE(LBRYBaseIE):
         result = self._resolve_url(
             'lbry://' + display_id, display_id, 'channel')
         claim_id = result['claim_id']
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(url)
         content = qs.get('content', [None])[0]
         params = {
             'fee_amount': qs.get('fee_amount', ['>=0'])[0],

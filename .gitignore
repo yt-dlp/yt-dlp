@@ -1,49 +1,61 @@
 # Config
 *.conf
-*.spec
 cookies
-cookies.txt
+*cookies.txt
+.netrc
 
 # Downloaded
-*.srt
-*.ttml
-*.sbv
-*.vtt
-*.flv
-*.mp4
-*.m4a
-*.m4v
-*.mp3
-*.3gp
-*.webm
-*.wav
-*.ape
-*.mkv
-*.swf
-*.part
-*.part-*
-*.ytdl
+*.annotations.xml
+*.aria2
+*.description
 *.dump
 *.frag
+*.frag.aria2
 *.frag.urls
-*.aria2
-*.swp
-*.ogg
-*.opus
 *.info.json
 *.live_chat.json
+*.part*
+*.unknown_video
+*.ytdl
+.cache/
+
+*.3gp
+*.ape
+*.avi
+*.desktop
+*.flac
+*.flv
+*.jpeg
 *.jpg
+*.m4a
+*.m4v
+*.mhtml
+*.mkv
+*.mov
+*.mp3
+*.mp4
+*.ogg
+*.opus
 *.png
+*.sbv
+*.srt
+*.swf
+*.swp
+*.ttml
+*.url
+*.vtt
+*.wav
+*.webloc
+*.webm
 *.webp
-*.annotations.xml
-*.description
 
 # Allow config/media files in testdata
-!test/testdata/**
+!test/**
 
 # Python
 *.pyc
 *.pyo
+.pytest_cache
 wine-py2exe/
 py2exe.log
 build/
@@ -74,10 +86,10 @@ README.txt
 *.1
 *.bash-completion
 *.fish
-*.exe
 *.tar.gz
 *.zsh
 *.spec
+test/testdata/player-*.js
 
 # Binary
 /youtube-dl

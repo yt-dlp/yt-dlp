@@ -7,13 +7,12 @@ import itertools
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
 )
 from ..utils import (
     determine_ext,
     bool_or_none,
     int_or_none,
+    parse_qs,
     try_get,
     unified_timestamp,
     url_or_none,
@@ -178,7 +177,7 @@ class RutubeEmbedIE(RutubeBaseIE):
         embed_id = self._match_id(url)
         # Query may contain private videos token and should be passed to API
         # requests (see #19163)
-        query = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        query = parse_qs(url)
         options = self._download_api_options(embed_id, query)
         video_id = options['effective_video']
         formats = self._extract_formats(options, video_id)
@@ -231,9 +230,9 @@ class RutubePlaylistBaseIE(RutubeBaseIE):
         return self._extract_playlist(self._match_id(url))
 
 
-class RutubeChannelIE(RutubePlaylistBaseIE):
-    IE_NAME = 'rutube:channel'
-    IE_DESC = 'Rutube channels'
+class RutubeTagsIE(RutubePlaylistBaseIE):
+    IE_NAME = 'rutube:tags'
+    IE_DESC = 'Rutube tags'
     _VALID_URL = r'https?://rutube\.ru/tags/video/(?P<id>\d+)'
     _TESTS = [{
         'url': 'http://rutube.ru/tags/video/1800/',
@@ -298,16 +297,33 @@ class RutubePlaylistIE(RutubePlaylistBaseIE):
 
     @classmethod
     def suitable(cls, url):
+        from ..utils import int_or_none, parse_qs
+
         if not super(RutubePlaylistIE, cls).suitable(url):
             return False
-        params = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        params = parse_qs(url)
         return params.get('pl_type', [None])[0] and int_or_none(params.get('pl_id', [None])[0])
 
     def _next_page_url(self, page_num, playlist_id, item_kind):
         return self._PAGE_TEMPLATE % (item_kind, playlist_id, page_num)
 
     def _real_extract(self, url):
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(url)
         playlist_kind = qs['pl_type'][0]
         playlist_id = qs['pl_id'][0]
         return self._extract_playlist(playlist_id, item_kind=playlist_kind)
+
+
+class RutubeChannelIE(RutubePlaylistBaseIE):
+    IE_NAME = 'rutube:channel'
+    IE_DESC = 'Rutube channel'
+    _VALID_URL = r'https?://rutube\.ru/channel/(?P<id>\d+)/videos'
+    _TESTS = [{
+        'url': 'https://rutube.ru/channel/639184/videos/',
+        'info_dict': {
+            'id': '639184',
+        },
+        'playlist_mincount': 133,
+    }]
+
+    _PAGE_TEMPLATE = 'http://rutube.ru/api/video/person/%s/?page=%s&format=json'

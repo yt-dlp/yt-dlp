@@ -6,13 +6,7 @@ import subprocess
 import sys
 import time
 
-try:
-    from Crypto.Cipher import AES
-    can_decrypt_frag = True
-except ImportError:
-    can_decrypt_frag = False
-
-from .common import FileDownloader
+from .fragment import FragmentFD
 from ..compat import (
     compat_setenv,
     compat_str,
@@ -22,20 +16,18 @@ from ..utils import (
     cli_option,
     cli_valueless_option,
     cli_bool_option,
-    cli_configuration_args,
+    _configuration_args,
     encodeFilename,
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
-    is_outdated_version,
-    process_communicate_or_kill,
-    sanitized_Request,
-    sanitize_open,
+    Popen,
 )
 
 
-class ExternalFD(FileDownloader):
+class ExternalFD(FragmentFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
+    can_download_to_stdout = False
 
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
@@ -67,7 +59,7 @@ class ExternalFD(FileDownloader):
                     'downloaded_bytes': fsize,
                     'total_bytes': fsize,
                 })
-            self._hook_progress(status)
+            self._hook_progress(status, info_dict)
             return True
         else:
             self.to_stderr('\n')
@@ -93,7 +85,9 @@ class ExternalFD(FileDownloader):
 
     @classmethod
     def supports(cls, info_dict):
-        return info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS
+        return (
+            (cls.can_download_to_stdout or not info_dict.get('to_stdout'))
+            and info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS)
 
     @classmethod
     def can_download(cls, info_dict, path=None):
@@ -108,11 +102,10 @@ class ExternalFD(FileDownloader):
     def _valueless_option(self, command_option, param, expected_value=True):
         return cli_valueless_option(self.params, command_option, param, expected_value)
 
-    def _configuration_args(self, *args, **kwargs):
-        return cli_configuration_args(
-            self.params.get('external_downloader_args'),
-            [self.get_basename(), 'default'],
-            *args, **kwargs)
+    def _configuration_args(self, keys=None, *args, **kwargs):
+        return _configuration_args(
+            self.get_basename(), self.params.get('external_downloader_args'), self.get_basename(),
+            keys, *args, **kwargs)
 
     def _call_downloader(self, tmpfilename, info_dict):
         """ Either overwrite this or implement _make_cmd """
@@ -120,73 +113,54 @@ class ExternalFD(FileDownloader):
 
         self._debug_cmd(cmd)
 
-        if 'fragments' in info_dict:
-            fragment_retries = self.params.get('fragment_retries', 0)
-            skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
-
-            count = 0
-            while count <= fragment_retries:
-                p = subprocess.Popen(
-                    cmd, stderr=subprocess.PIPE)
-                _, stderr = process_communicate_or_kill(p)
-                if p.returncode == 0:
-                    break
-                # TODO: Decide whether to retry based on error code
-                # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
-                self.to_stderr(stderr.decode('utf-8', 'replace'))
-                count += 1
-                if count <= fragment_retries:
-                    self.to_screen(
-                        '[%s] Got error. Retrying fragments (attempt %d of %s)...'
-                        % (self.get_basename(), count, self.format_retries(fragment_retries)))
-            if count > fragment_retries:
-                if not skip_unavailable_fragments:
-                    self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                    return -1
-
-            dest, _ = sanitize_open(tmpfilename, 'wb')
-            for frag_index, fragment in enumerate(info_dict['fragments']):
-                fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
-                try:
-                    src, _ = sanitize_open(fragment_filename, 'rb')
-                except IOError:
-                    if skip_unavailable_fragments and frag_index > 1:
-                        self.to_screen('[%s] Skipping fragment %d ...' % (self.get_basename(), frag_index))
-                        continue
-                    self.report_error('Unable to open fragment %d' % frag_index)
-                    return -1
-                decrypt_info = fragment.get('decrypt_info')
-                if decrypt_info:
-                    if decrypt_info['METHOD'] == 'AES-128':
-                        iv = decrypt_info.get('IV')
-                        decrypt_info['KEY'] = decrypt_info.get('KEY') or self.ydl.urlopen(
-                            self._prepare_url(info_dict, info_dict.get('_decryption_key_url') or decrypt_info['URI'])).read()
-                        encrypted_data = src.read()
-                        decrypted_data = AES.new(
-                            decrypt_info['KEY'], AES.MODE_CBC, iv).decrypt(encrypted_data)
-                        dest.write(decrypted_data)
-                    else:
-                        fragment_data = src.read()
-                        dest.write(fragment_data)
-                else:
-                    fragment_data = src.read()
-                    dest.write(fragment_data)
-                src.close()
-                if not self.params.get('keep_fragments', False):
-                    os.remove(encodeFilename(fragment_filename))
-            dest.close()
-            os.remove(encodeFilename('%s.frag.urls' % tmpfilename))
-        else:
-            p = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE)
-            _, stderr = process_communicate_or_kill(p)
+        if 'fragments' not in info_dict:
+            p = Popen(cmd, stderr=subprocess.PIPE)
+            _, stderr = p.communicate_or_kill()
             if p.returncode != 0:
                 self.to_stderr(stderr.decode('utf-8', 'replace'))
-        return p.returncode
+            return p.returncode
 
-    def _prepare_url(self, info_dict, url):
-        headers = info_dict.get('http_headers')
-        return sanitized_Request(url, None, headers) if headers else url
+        fragment_retries = self.params.get('fragment_retries', 0)
+        skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
+
+        count = 0
+        while count <= fragment_retries:
+            p = Popen(cmd, stderr=subprocess.PIPE)
+            _, stderr = p.communicate_or_kill()
+            if p.returncode == 0:
+                break
+            # TODO: Decide whether to retry based on error code
+            # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
+            self.to_stderr(stderr.decode('utf-8', 'replace'))
+            count += 1
+            if count <= fragment_retries:
+                self.to_screen(
+                    '[%s] Got error. Retrying fragments (attempt %d of %s)...'
+                    % (self.get_basename(), count, self.format_retries(fragment_retries)))
+        if count > fragment_retries:
+            if not skip_unavailable_fragments:
+                self.report_error('Giving up after %s fragment retries' % fragment_retries)
+                return -1
+
+        decrypt_fragment = self.decrypter(info_dict)
+        dest, _ = self.sanitize_open(tmpfilename, 'wb')
+        for frag_index, fragment in enumerate(info_dict['fragments']):
+            fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
+            try:
+                src, _ = self.sanitize_open(fragment_filename, 'rb')
+            except IOError as err:
+                if skip_unavailable_fragments and frag_index > 1:
+                    self.report_skip_fragment(frag_index, err)
+                    continue
+                self.report_error(f'Unable to open fragment {frag_index}; {err}')
+                return -1
+            dest.write(decrypt_fragment(fragment, src.read()))
+            src.close()
+            if not self.params.get('keep_fragments', False):
+                os.remove(encodeFilename(fragment_filename))
+        dest.close()
+        os.remove(encodeFilename('%s.frag.urls' % tmpfilename))
+        return 0
 
 
 class CurlFD(ExternalFD):
@@ -221,8 +195,8 @@ class CurlFD(ExternalFD):
         self._debug_cmd(cmd)
 
         # curl writes the progress to stderr so don't capture it.
-        p = subprocess.Popen(cmd)
-        process_communicate_or_kill(p)
+        p = Popen(cmd)
+        p.communicate_or_kill()
         return p.returncode
 
 
@@ -286,10 +260,12 @@ class Aria2cFD(ExternalFD):
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
+        cmd += self._option('--max-overall-download-limit', 'ratelimit')
         cmd += self._option('--interface', 'source_address')
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
@@ -314,7 +290,7 @@ class Aria2cFD(ExternalFD):
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
-            stream, _ = sanitize_open(url_list_file, 'wb')
+            stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode('utf-8'))
             stream.close()
             cmd += ['-i', url_list_file]
@@ -328,7 +304,7 @@ class HttpieFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
-        return ExternalFD.available(cls, path or 'http')
+        return super().available(path or 'http')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -340,16 +316,31 @@ class HttpieFD(ExternalFD):
 
 
 class FFmpegFD(ExternalFD):
-    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms')
+    SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms', 'http_dash_segments')
+    can_download_to_stdout = True
 
     @classmethod
     def available(cls, path=None):
         # TODO: Fix path for ffmpeg
+        # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
+
+    @classmethod
+    def supports(cls, info_dict):
+        return all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+'))
 
     def on_process_started(self, proc, stdin):
         """ Override this in subclasses  """
         pass
+
+    @classmethod
+    def can_merge_formats(cls, info_dict, params):
+        return (
+            info_dict.get('requested_formats')
+            and info_dict.get('protocol')
+            and not params.get('allow_unplayable_formats')
+            and 'no-direct-merge' not in params.get('compat_opts', [])
+            and cls.can_download(info_dict))
 
     def _call_downloader(self, tmpfilename, info_dict):
         urls = [f['url'] for f in info_dict.get('requested_formats', [])] or [info_dict['url']]
@@ -368,6 +359,9 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
+        args += info_dict.get('_ffmpeg_args', [])
+
+        # This option exists only for compatibility. Extractors should use `_ffmpeg_args` instead
         seekable = info_dict.get('_seekable')
         if seekable is not None:
             # setting -seekable prevents ffmpeg from guessing if the server
@@ -442,20 +436,19 @@ class FFmpegFD(ExternalFD):
             elif isinstance(conn, compat_str):
                 args += ['-rtmp_conn', conn]
 
-        for url in urls:
-            args += ['-i', url]
+        for i, url in enumerate(urls):
+            args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
 
-        args += self._configuration_args() + ['-c', 'copy']
-        if info_dict.get('requested_formats'):
-            for (i, fmt) in enumerate(info_dict['requested_formats']):
-                if fmt.get('acodec') != 'none':
-                    args.extend(['-map', '%d:a:0' % i])
-                if fmt.get('vcodec') != 'none':
-                    args.extend(['-map', '%d:v:0' % i])
+        args += ['-c', 'copy']
+        if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
+            for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
+                stream_number = fmt.get('manifest_stream_number', 0)
+                args.extend(['-map', f'{i}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
 
+        ext = info_dict['ext']
         if protocol in ('m3u8', 'm3u8_native'):
             use_mpegts = (tmpfilename == '-') or self.params.get('hls_use_mpegts')
             if use_mpegts is None:
@@ -464,19 +457,22 @@ class FFmpegFD(ExternalFD):
                 args += ['-f', 'mpegts']
             else:
                 args += ['-f', 'mp4']
-                if (ffpp.basename == 'ffmpeg' and is_outdated_version(ffpp._versions['ffmpeg'], '3.2', False)) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
+                if (ffpp.basename == 'ffmpeg' and ffpp._features.get('needs_adtstoasc')) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
                     args += ['-bsf:a', 'aac_adtstoasc']
         elif protocol == 'rtmp':
             args += ['-f', 'flv']
+        elif ext == 'mp4' and tmpfilename == '-':
+            args += ['-f', 'mpegts']
         else:
-            args += ['-f', EXT_TO_OUT_FORMATS.get(info_dict['ext'], info_dict['ext'])]
+            args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
+
+        args += self._configuration_args(('_o1', '_o', ''))
 
         args = [encodeArgument(opt) for opt in args]
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
-
         self._debug_cmd(args)
 
-        proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
+        proc = Popen(args, stdin=subprocess.PIPE, env=env)
         if url in ('-', 'pipe:'):
             self.on_process_started(proc, proc.stdin)
         try:
@@ -488,7 +484,7 @@ class FFmpegFD(ExternalFD):
             # streams). Note that Windows is not affected and produces playable
             # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
             if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
-                process_communicate_or_kill(proc, b'q')
+                proc.communicate_or_kill(b'q')
             else:
                 proc.kill()
                 proc.wait()
@@ -503,7 +499,7 @@ class AVconvFD(FFmpegFD):
 _BY_NAME = dict(
     (klass.get_basename(), klass)
     for name, klass in globals().items()
-    if name.endswith('FD') and name != 'ExternalFD'
+    if name.endswith('FD') and name not in ('ExternalFD', 'FragmentFD')
 )
 
 

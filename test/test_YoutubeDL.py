@@ -10,14 +10,15 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import copy
+import json
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_str, compat_urllib_error
+from yt_dlp.compat import compat_os_name, compat_setenv, compat_str, compat_urllib_error
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
-from yt_dlp.utils import ExtractorError, int_or_none, match_filter_func
+from yt_dlp.utils import ExtractorError, int_or_none, match_filter_func, LazyList
 
 TEST_URL = 'http://localhost/sample.mp4'
 
@@ -29,11 +30,15 @@ class YDL(FakeYDL):
         self.msgs = []
 
     def process_info(self, info_dict):
+        info_dict = info_dict.copy()
         info_dict.pop('__original_infodict', None)
         self.downloaded_info_dicts.append(info_dict)
 
     def to_screen(self, msg):
         self.msgs.append(msg)
+
+    def dl(self, *args, **kwargs):
+        assert False, 'Downloader must not be invoked for test_YoutubeDL'
 
 
 def _make_result(formats, **kwargs):
@@ -117,35 +122,24 @@ class TestFormatSelection(unittest.TestCase):
         ]
         info_dict = _make_result(formats)
 
-        ydl = YDL({'format': '20/47'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '47')
+        def test(inp, *expected, multi=False):
+            ydl = YDL({
+                'format': inp,
+                'allow_multiple_video_streams': multi,
+                'allow_multiple_audio_streams': multi,
+            })
+            ydl.process_ie_result(info_dict.copy())
+            downloaded = map(lambda x: x['format_id'], ydl.downloaded_info_dicts)
+            self.assertEqual(list(downloaded), list(expected))
 
-        ydl = YDL({'format': '20/71/worst'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '35')
-
-        ydl = YDL()
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '2')
-
-        ydl = YDL({'format': 'webm/mp4'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '47')
-
-        ydl = YDL({'format': '3gp/40/mp4'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], '35')
-
-        ydl = YDL({'format': 'example-with-dashes'})
-        ydl.process_ie_result(info_dict.copy())
-        downloaded = ydl.downloaded_info_dicts[0]
-        self.assertEqual(downloaded['format_id'], 'example-with-dashes')
+        test('20/47', '47')
+        test('20/71/worst', '35')
+        test(None, '2')
+        test('webm/mp4', '47')
+        test('3gp/40/mp4', '35')
+        test('example-with-dashes', 'example-with-dashes')
+        test('all', '2', '47', '45', 'example-with-dashes', '35')
+        test('mergeall', '2+47+45+example-with-dashes+35', multi=True)
 
     def test_format_selection_audio(self):
         formats = [
@@ -527,7 +521,7 @@ class TestFormatSelection(unittest.TestCase):
         ydl = YDL({'format': 'all[width>=400][width<=600]'})
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['B', 'C', 'D'])
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
 
         ydl = YDL({'format': 'best[height<40]'})
         try:
@@ -652,15 +646,19 @@ class TestYoutubeDL(unittest.TestCase):
         'ext': 'mp4',
         'width': None,
         'height': 1080,
+        'filesize': 1024,
         'title1': '$PATH',
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
+        'title4': 'foo "bar" test',
+        'title5': 'áéí 𝐀',
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
+        'playlist_autonumber': 2,
         '_last_playlist_index': 100,
         'n_entries': 10,
-        'formats': [{'id': 'id1'}, {'id': 'id2'}, {'id': 'id3'}]
+        'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
     }
 
     def test_prepare_outtmpl_and_filename(self):
@@ -670,32 +668,45 @@ class TestYoutubeDL(unittest.TestCase):
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, info or self.outtmpl_info)
-            out = outtmpl % tmpl_dict
+            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info)
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
-            if callable(expected):
-                self.assertTrue(expected(out))
-                self.assertTrue(expected(fname))
-            elif isinstance(expected, compat_str):
-                self.assertEqual((out, fname), (expected, expected))
-            else:
-                self.assertEqual((out, fname), expected)
+            if not isinstance(expected, (list, tuple)):
+                expected = (expected, expected)
+            for (name, got), expect in zip((('outtmpl', out), ('filename', fname)), expected):
+                if callable(expect):
+                    self.assertTrue(expect(got), f'Wrong {name} from {tmpl}')
+                else:
+                    self.assertEqual(got, expect, f'Wrong {name} from {tmpl}')
+
+        # Side-effects
+        original_infodict = dict(self.outtmpl_info)
+        test('foo.bar', 'foo.bar')
+        original_infodict['epoch'] = self.outtmpl_info.get('epoch')
+        self.assertTrue(isinstance(original_infodict['epoch'], int))
+        test('%(epoch)d', int_or_none)
+        self.assertEqual(original_infodict, self.outtmpl_info)
 
         # Auto-generated fields
         test('%(id)s.%(ext)s', '1234.mp4')
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
-        test('%(epoch)d', int_or_none)
         test('%(resolution)s', '1080p')
         test('%(playlist_index)s', '001')
+        test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
         test('%(autonumber)s', '001', autonumber_size=3)
 
         # Escaping %
+        test('%', '%')
         test('%%', '%')
         test('%%%%', '%%')
+        test('%s', '%s')
+        test('%%%s', '%%s')
+        test('%d', '%d')
+        test('%abc%', '%abc%')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
+        test('%%%(height)s', '%1080')
         test('%(width)06d.%(ext)s', 'NA.mp4')
         test('%(width)06d.%%(ext)s', 'NA.%(ext)s')
         test('%%(width)06d.%(ext)s', '%(width)06d.mp4')
@@ -708,20 +719,28 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', '.abcd', info={'id': '.abcd'})
         test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
         test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
+        test('%(id.0)s', '-', info={'id': '--'})
 
         # Invalid templates
-        self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%'), ValueError))
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
         test('%(invalid@tmpl|def)s', 'none', outtmpl_na_placeholder='none')
-        test('%()s', 'NA')
-        test('%s', '%s')
-        test('%d', '%d')
+        test('%(..)s', 'NA')
+
+        # Entire info_dict
+        def expect_same_infodict(out):
+            got_dict = json.loads(out)
+            for info_field, expected in self.outtmpl_info.items():
+                self.assertEqual(got_dict.get(info_field), expected, info_field)
+            return True
+
+        test('%()j', (expect_same_infodict, str))
 
         # NA placeholder
         NA_TEST_OUTTMPL = '%(uploader_date)s-%(width)d-%(x|def)s-%(id)s.%(ext)s'
         test(NA_TEST_OUTTMPL, 'NA-NA-def-1234.mp4')
         test(NA_TEST_OUTTMPL, 'none-none-def-1234.mp4', outtmpl_na_placeholder='none')
         test(NA_TEST_OUTTMPL, '--def-1234.mp4', outtmpl_na_placeholder='')
+        test('%(non_existent.0)s', 'NA')
 
         # String formatting
         FMT_TEST_OUTTMPL = '%%(height)%s.%%(ext)s'
@@ -746,13 +765,42 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(width|0)04d', '0000')
         test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
 
-        # Internal formatting
         FORMATS = self.outtmpl_info['formats']
+        sanitize = lambda x: x.replace(':', ' -').replace('"', "'").replace('\n', ' ')
+
+        # Custom type casting
+        test('%(formats.:.id)l', 'id 1, id 2, id 3')
+        test('%(formats.:.id)#l', ('id 1\nid 2\nid 3', 'id 1 id 2 id 3'))
+        test('%(ext)l', 'mp4')
+        test('%(formats.:.id) 18l', '  id 1, id 2, id 3')
+        test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
+        test('%(formats)#j', (json.dumps(FORMATS, indent=4), sanitize(json.dumps(FORMATS, indent=4))))
+        test('%(title5).3B', 'á')
+        test('%(title5)U', 'áéí 𝐀')
+        test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
+        test('%(title5)+U', 'áéí A')
+        test('%(title5)+#U', 'a\u0301e\u0301i\u0301 A')
+        test('%(height)D', '1k')
+        test('%(filesize)#D', '1Ki')
+        test('%(height)5.2D', ' 1.08k')
+        test('%(title4)#S', 'foo_bar_test')
+        test('%(title4).10S', ('foo \'bar\' ', 'foo \'bar\'' + ('#' if compat_os_name == 'nt' else ' ')))
+        if compat_os_name == 'nt':
+            test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
+            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', "'id 1' 'id 2' 'id 3'"))
+            test('%(formats.0.id)#q', ('"id 1"', "'id 1'"))
+        else:
+            test('%(title4)q', ('\'foo "bar" test\'', "'foo 'bar' test'"))
+            test('%(formats.:.id)#q', "'id 1' 'id 2' 'id 3'")
+            test('%(formats.0.id)#q', "'id 1'")
+
+        # Internal formatting
         test('%(timestamp-1000>%H-%M-%S)s', '11-43-20')
+        test('%(title|%)s %(title|%%)s', '% %%')
         test('%(id+1-height+3)05d', '00158')
         test('%(width+100)05d', 'NA')
-        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % str(FORMATS[0]).replace(':', ' -')))
-        test('%(formats.0)r', (repr(FORMATS[0]), repr(FORMATS[0]).replace(':', ' -')))
+        test('%(formats.0) 15s', ('% 15s' % FORMATS[0], '% 15s' % sanitize(str(FORMATS[0]))))
+        test('%(formats.0)r', (repr(FORMATS[0]), sanitize(repr(FORMATS[0]))))
         test('%(height.0)03d', '001')
         test('%(-height.0)04d', '-001')
         test('%(formats.-1.id)s', FORMATS[-1]['id'])
@@ -762,10 +810,38 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
 
+        # Alternates
+        test('%(title,id)s', '1234')
+        test('%(width-100,height+20|def)d', '1100')
+        test('%(width-100,height+width|def)s', 'def')
+        test('%(timestamp-x>%H\\,%M\\,%S,timestamp>%H\\,%M\\,%S)s', '12,00,00')
+
+        # Replacement
+        test('%(id&foo)s.bar', 'foo.bar')
+        test('%(title&foo)s.bar', 'NA.bar')
+        test('%(title&foo|baz)s.bar', 'baz.bar')
+
+        # Laziness
+        def gen():
+            yield from range(5)
+            raise self.assertTrue(False, 'LazyList should not be evaluated till here')
+        test('%(key.4)s', '4', info={'key': LazyList(gen())})
+
         # Empty filename
         test('%(foo|)s-%(bar|)s.%(ext)s', '-.mp4')
         # test('%(foo|)s.%(ext)s', ('.mp4', '_.mp4'))  # fixme
         # test('%(foo|)s', ('', '_'))  # fixme
+
+        # Environment variable expansion for prepare_filename
+        compat_setenv('__yt_dlp_var', 'expanded')
+        envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
+        test(envvar, (envvar, 'expanded'))
+        if compat_os_name == 'nt':
+            test('%s%', ('%s%', '%s%'))
+            compat_setenv('s', 'expanded')
+            test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
+            compat_setenv('(test)s', 'expanded')
+            test('%(test)s%', ('NA%', 'expanded'))  # Environment should take priority over template
 
         # Path expansion and escaping
         test('Hello %(title1)s', 'Hello $PATH')
@@ -833,7 +909,7 @@ class TestYoutubeDL(unittest.TestCase):
             def _match_entry(self, info_dict, incomplete=False):
                 res = super(FilterYDL, self)._match_entry(info_dict, incomplete)
                 if res is None:
-                    self.downloaded_info_dicts.append(info_dict)
+                    self.downloaded_info_dicts.append(info_dict.copy())
                 return res
 
         first = {
@@ -941,54 +1017,32 @@ class TestYoutubeDL(unittest.TestCase):
             ydl.process_ie_result(copy.deepcopy(playlist))
             return ydl.downloaded_info_dicts
 
-        def get_ids(params):
-            return [int(v['id']) for v in get_downloaded_info_dicts(params)]
+        def test_selection(params, expected_ids):
+            results = [
+                (v['playlist_autonumber'] - 1, (int(v['id']), v['playlist_index']))
+                for v in get_downloaded_info_dicts(params)]
+            self.assertEqual(results, list(enumerate(zip(expected_ids, expected_ids))))
 
-        result = get_ids({})
-        self.assertEqual(result, [1, 2, 3, 4])
-
-        result = get_ids({'playlistend': 10})
-        self.assertEqual(result, [1, 2, 3, 4])
-
-        result = get_ids({'playlistend': 2})
-        self.assertEqual(result, [1, 2])
-
-        result = get_ids({'playliststart': 10})
-        self.assertEqual(result, [])
-
-        result = get_ids({'playliststart': 2})
-        self.assertEqual(result, [2, 3, 4])
-
-        result = get_ids({'playlist_items': '2-4'})
-        self.assertEqual(result, [2, 3, 4])
-
-        result = get_ids({'playlist_items': '2,4'})
-        self.assertEqual(result, [2, 4])
-
-        result = get_ids({'playlist_items': '10'})
-        self.assertEqual(result, [])
-
-        result = get_ids({'playlist_items': '3-10'})
-        self.assertEqual(result, [3, 4])
-
-        result = get_ids({'playlist_items': '2-4,3-4,3'})
-        self.assertEqual(result, [2, 3, 4])
+        test_selection({}, [1, 2, 3, 4])
+        test_selection({'playlistend': 10}, [1, 2, 3, 4])
+        test_selection({'playlistend': 2}, [1, 2])
+        test_selection({'playliststart': 10}, [])
+        test_selection({'playliststart': 2}, [2, 3, 4])
+        test_selection({'playlist_items': '2-4'}, [2, 3, 4])
+        test_selection({'playlist_items': '2,4'}, [2, 4])
+        test_selection({'playlist_items': '10'}, [])
+        test_selection({'playlist_items': '0'}, [])
 
         # Tests for https://github.com/ytdl-org/youtube-dl/issues/10591
-        # @{
-        result = get_downloaded_info_dicts({'playlist_items': '2-4,3-4,3'})
-        self.assertEqual(result[0]['playlist_index'], 2)
-        self.assertEqual(result[1]['playlist_index'], 3)
+        test_selection({'playlist_items': '2-4,3-4,3'}, [2, 3, 4])
+        test_selection({'playlist_items': '4,2'}, [4, 2])
 
-        result = get_downloaded_info_dicts({'playlist_items': '2-4,3-4,3'})
-        self.assertEqual(result[0]['playlist_index'], 2)
-        self.assertEqual(result[1]['playlist_index'], 3)
-        self.assertEqual(result[2]['playlist_index'], 4)
-
-        result = get_downloaded_info_dicts({'playlist_items': '4,2'})
-        self.assertEqual(result[0]['playlist_index'], 4)
-        self.assertEqual(result[1]['playlist_index'], 2)
-        # @}
+        # Tests for https://github.com/yt-dlp/yt-dlp/issues/720
+        # https://github.com/yt-dlp/yt-dlp/issues/302
+        test_selection({'playlistreverse': True}, [4, 3, 2, 1])
+        test_selection({'playliststart': 2, 'playlistreverse': True}, [4, 3, 2])
+        test_selection({'playlist_items': '2,4', 'playlistreverse': True}, [4, 2])
+        test_selection({'playlist_items': '4,2'}, [4, 2])
 
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227
@@ -1100,6 +1154,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertTrue(entries[1] is None)
         self.assertEqual(len(ydl.downloaded_info_dicts), 1)
         downloaded = ydl.downloaded_info_dicts[0]
+        entries[2].pop('requested_downloads', None)
         self.assertEqual(entries[2], downloaded)
         self.assertEqual(downloaded['url'], TEST_URL)
         self.assertEqual(downloaded['title'], 'Video Transparent 2')

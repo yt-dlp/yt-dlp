@@ -8,13 +8,14 @@ import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import try_rm
+from test.helper import is_download_test, try_rm
 
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 download_file = join(root_dir, 'test.webm')
 
 
+@is_download_test
 class TestOverwrites(unittest.TestCase):
     def setUp(self):
         # create an empty file

@@ -1,52 +1,33 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+from itertools import zip_longest
 import re
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
+    extract_attributes,
     ExtractorError,
     float_or_none,
+    get_element_by_class,
     int_or_none,
+    srt_subtitles_timecode,
+    strip_or_none,
+    mimetype2ext,
+    try_get,
     urlencode_postdata,
     urljoin,
 )
 
 
-class LinkedInLearningBaseIE(InfoExtractor):
+class LinkedInBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'linkedin'
-    _LOGIN_URL = 'https://www.linkedin.com/uas/login?trk=learning'
-
-    def _call_api(self, course_slug, fields, video_slug=None, resolution=None):
-        query = {
-            'courseSlug': course_slug,
-            'fields': fields,
-            'q': 'slugs',
-        }
-        sub = ''
-        if video_slug:
-            query.update({
-                'videoSlug': video_slug,
-                'resolution': '_%s' % resolution,
-            })
-            sub = ' %dp' % resolution
-        api_url = 'https://www.linkedin.com/learning-api/detailedCourses'
-        return self._download_json(
-            api_url, video_slug, 'Downloading%s JSON metadata' % sub, headers={
-                'Csrf-Token': self._get_cookies(api_url)['JSESSIONID'].value,
-            }, query=query)['elements'][0]
-
-    def _get_urn_id(self, video_data):
-        urn = video_data.get('urn')
-        if urn:
-            mobj = re.search(r'urn:li:lyndaCourse:\d+,(\d+)', urn)
-            if mobj:
-                return mobj.group(1)
-
-    def _get_video_id(self, video_data, course_slug, video_slug):
-        return self._get_urn_id(video_data) or '%s/%s' % (course_slug, video_slug)
+    _logged_in = False
 
     def _real_initialize(self):
+        if self._logged_in:
+            return
         email, password = self._get_login_info()
         if email is None:
             return
@@ -69,6 +50,84 @@ class LinkedInLearningBaseIE(InfoExtractor):
             login_submit_page, 'error', default=None)
         if error:
             raise ExtractorError(error, expected=True)
+        LinkedInBaseIE._logged_in = True
+
+
+class LinkedInLearningBaseIE(LinkedInBaseIE):
+    _LOGIN_URL = 'https://www.linkedin.com/uas/login?trk=learning'
+
+    def _call_api(self, course_slug, fields, video_slug=None, resolution=None):
+        query = {
+            'courseSlug': course_slug,
+            'fields': fields,
+            'q': 'slugs',
+        }
+        sub = ''
+        if video_slug:
+            query.update({
+                'videoSlug': video_slug,
+                'resolution': '_%s' % resolution,
+            })
+            sub = ' %dp' % resolution
+        api_url = 'https://www.linkedin.com/learning-api/detailedCourses'
+        if not self._get_cookies(api_url).get('JSESSIONID'):
+            self.raise_login_required()
+        return self._download_json(
+            api_url, video_slug, 'Downloading%s JSON metadata' % sub, headers={
+                'Csrf-Token': self._get_cookies(api_url)['JSESSIONID'].value,
+            }, query=query)['elements'][0]
+
+    def _get_urn_id(self, video_data):
+        urn = video_data.get('urn')
+        if urn:
+            mobj = re.search(r'urn:li:lyndaCourse:\d+,(\d+)', urn)
+            if mobj:
+                return mobj.group(1)
+
+    def _get_video_id(self, video_data, course_slug, video_slug):
+        return self._get_urn_id(video_data) or '%s/%s' % (course_slug, video_slug)
+
+
+class LinkedInIE(LinkedInBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?linkedin\.com/posts/.+?(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.linkedin.com/posts/mishalkhawaja_sendinblueviews-toronto-digitalmarketing-ugcPost-6850898786781339649-mM20',
+        'info_dict': {
+            'id': '6850898786781339649',
+            'ext': 'mp4',
+            'title': 'Mishal K. on LinkedIn: #sendinblueviews #toronto #digitalmarketing',
+            'description': 'md5:be125430bab1c574f16aeb186a4d5b19',
+            'creator': 'Mishal K.'
+        },
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+
+        title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
+        description = clean_html(get_element_by_class('share-update-card__update-text', webpage))
+        like_count = int_or_none(get_element_by_class('social-counts-reactions__social-counts-numRections', webpage))
+        creator = strip_or_none(clean_html(get_element_by_class('comment__actor-name', webpage)))
+
+        sources = self._parse_json(extract_attributes(self._search_regex(r'(<video[^>]+>)', webpage, 'video'))['data-sources'], video_id)
+        formats = [{
+            'url': source['src'],
+            'ext': mimetype2ext(source.get('type')),
+            'tbr': float_or_none(source.get('data-bitrate'), scale=1000),
+        } for source in sources]
+
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'title': title,
+            'like_count': like_count,
+            'creator': creator,
+            'thumbnail': self._og_search_thumbnail(webpage),
+            'description': description,
+        }
 
 
 class LinkedInLearningIE(LinkedInLearningBaseIE):
@@ -86,10 +145,19 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         },
     }
 
-    def _real_extract(self, url):
-        course_slug, video_slug = re.match(self._VALID_URL, url).groups()
+    def json2srt(self, transcript_lines, duration=None):
+        srt_data = ''
+        for line, (line_dict, next_dict) in enumerate(zip_longest(transcript_lines, transcript_lines[1:])):
+            start_time, caption = line_dict['transcriptStartAt'] / 1000, line_dict['caption']
+            end_time = next_dict['transcriptStartAt'] / 1000 if next_dict else duration or start_time + 1
+            srt_data += '%d\n%s --> %s\n%s\n\n' % (line + 1, srt_subtitles_timecode(start_time),
+                                                   srt_subtitles_timecode(end_time),
+                                                   caption)
+        return srt_data
 
-        video_data = None
+    def _real_extract(self, url):
+        course_slug, video_slug = self._match_valid_url(url).groups()
+
         formats = []
         for width, height in ((640, 360), (960, 540), (1280, 720)):
             video_data = self._call_api(
@@ -101,6 +169,7 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
                 formats.append({
                     'format_id': 'progressive-%dp' % height,
                     'url': progressive_url,
+                    'ext': 'mp4',
                     'height': height,
                     'width': width,
                     'source_preference': 1,
@@ -128,6 +197,14 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
         # However, unless someone can confirm this, the old
         # behaviour is being kept as-is
         self._sort_formats(formats, ('res', 'source_preference'))
+        subtitles = {}
+        duration = int_or_none(video_data.get('durationInSeconds'))
+        transcript_lines = try_get(video_data, lambda x: x['transcript']['lines'], expected_type=list)
+        if transcript_lines:
+            subtitles['en'] = [{
+                'ext': 'srt',
+                'data': self.json2srt(transcript_lines, duration)
+            }]
 
         return {
             'id': self._get_video_id(video_data, course_slug, video_slug),
@@ -135,7 +212,8 @@ class LinkedInLearningIE(LinkedInLearningBaseIE):
             'formats': formats,
             'thumbnail': video_data.get('defaultThumbnail'),
             'timestamp': float_or_none(video_data.get('publishedOn'), 1000),
-            'duration': int_or_none(video_data.get('durationInSeconds')),
+            'duration': duration,
+            'subtitles': subtitles,
         }
 
 

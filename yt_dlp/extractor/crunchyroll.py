@@ -27,8 +27,10 @@ from ..utils import (
     int_or_none,
     lowercase_escape,
     merge_dicts,
+    qualities,
     remove_end,
     sanitized_Request,
+    try_get,
     urlencode_postdata,
     xpath_text,
 )
@@ -412,7 +414,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         return subtitles
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
 
         if mobj.group('prefix') == 'm':
@@ -458,6 +460,18 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         video_description = (self._parse_json(self._html_search_regex(
             r'<script[^>]*>\s*.+?\[media_id=%s\].+?({.+?"description"\s*:.+?})\);' % video_id,
             webpage, 'description', default='{}'), video_id) or media_metadata).get('description')
+
+        thumbnails = []
+        thumbnail_url = (self._parse_json(self._html_search_regex(
+            r'<script type="application\/ld\+json">\n\s*(.+?)<\/script>',
+            webpage, 'thumbnail_url', default='{}'), video_id)).get('image')
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 1920,
+                'height': 1080
+            })
+
         if video_description:
             video_description = lowercase_escape(video_description.replace(r'\r\n', '\n'))
         video_uploader = self._html_search_regex(
@@ -465,19 +479,24 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             [r'<a[^>]+href="/publisher/[^"]+"[^>]*>([^<]+)</a>', r'<div>\s*Publisher:\s*<span>\s*(.+?)\s*</span>\s*</div>'],
             webpage, 'video_uploader', default=False)
 
+        requested_languages = self._configuration_arg('language')
+        requested_hardsubs = [('' if val == 'none' else val) for val in self._configuration_arg('hardsub')]
+        language_preference = qualities((requested_languages or [language or ''])[::-1])
+        hardsub_preference = qualities((requested_hardsubs or ['', language or ''])[::-1])
+
         formats = []
         for stream in media.get('streams', []):
-            audio_lang = stream.get('audio_lang')
-            hardsub_lang = stream.get('hardsub_lang')
+            audio_lang = stream.get('audio_lang') or ''
+            hardsub_lang = stream.get('hardsub_lang') or ''
+            if (requested_languages and audio_lang.lower() not in requested_languages
+                    or requested_hardsubs and hardsub_lang.lower() not in requested_hardsubs):
+                continue
             vrv_formats = self._extract_vrv_formats(
                 stream.get('url'), video_id, stream.get('format'),
                 audio_lang, hardsub_lang)
             for f in vrv_formats:
-                f['language_preference'] = 1 if audio_lang == language else 0
-                f['quality'] = (
-                    1 if not hardsub_lang
-                    else 0 if hardsub_lang == language
-                    else -1)
+                f['language_preference'] = language_preference(audio_lang)
+                f['quality'] = hardsub_preference(hardsub_lang)
             formats.extend(vrv_formats)
         if not formats:
             available_fmts = []
@@ -592,21 +611,25 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             r'(?s)<h\d[^>]+\bid=["\']showmedia_about_episode_num[^>]+>(.+?)</h\d',
             webpage, 'series', fatal=False)
 
-        season = episode = episode_number = duration = thumbnail = None
+        season = episode = episode_number = duration = None
 
         if isinstance(metadata, compat_etree_Element):
             season = xpath_text(metadata, 'series_title')
             episode = xpath_text(metadata, 'episode_title')
             episode_number = int_or_none(xpath_text(metadata, 'episode_number'))
             duration = float_or_none(media_metadata.get('duration'), 1000)
-            thumbnail = xpath_text(metadata, 'episode_image_url')
 
         if not episode:
             episode = media_metadata.get('title')
         if not episode_number:
             episode_number = int_or_none(media_metadata.get('episode_number'))
-        if not thumbnail:
-            thumbnail = media_metadata.get('thumbnail', {}).get('url')
+        thumbnail_url = try_get(media, lambda x: x['thumbnail']['url'])
+        if thumbnail_url:
+            thumbnails.append({
+                'url': thumbnail_url,
+                'width': 640,
+                'height': 360
+            })
 
         season_number = int_or_none(self._search_regex(
             r'(?s)<h\d[^>]+id=["\']showmedia_about_episode_num[^>]+>.+?</h\d>\s*<h4>\s*Season (\d+)',
@@ -619,7 +642,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             'title': video_title,
             'description': video_description,
             'duration': duration,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
             'uploader': video_uploader,
             'series': series,
             'season': season,
@@ -633,10 +656,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
     IE_NAME = 'crunchyroll:playlist'
-    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
+    _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.com/(?:\w{1,2}/)?(?!(?:news|anime-news|library|forum|launchcalendar|lineup|store|comics|freetrial|login|media-\d+))(?P<id>[\w\-]+))/?(?:\?|$)'
 
     _TESTS = [{
-        'url': 'http://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
+        'url': 'https://www.crunchyroll.com/a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
         'info_dict': {
             'id': 'a-bridge-to-the-starry-skies-hoshizora-e-kakaru-hashi',
             'title': 'A Bridge to the Starry Skies - Hoshizora e Kakaru Hashi'
@@ -655,28 +678,86 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
         # geo-restricted (US), 18+ maturity wall, non-premium will be available since 2015.11.14
         'url': 'http://www.crunchyroll.com/ladies-versus-butlers?skip_wall=1',
         'only_matching': True,
+    }, {
+        'url': 'http://www.crunchyroll.com/fr/ladies-versus-butlers',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
 
         webpage = self._download_webpage(
-            self._add_skip_wall(url), show_id,
+            # https:// gives a 403, but http:// does not
+            self._add_skip_wall(url).replace('https://', 'http://'), show_id,
             headers=self.geo_verification_headers())
         title = self._html_search_meta('name', webpage, default=None)
 
-        episode_paths = re.findall(
-            r'(?s)<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"',
-            webpage)
-        entries = [
-            self.url_result('http://www.crunchyroll.com' + ep, 'Crunchyroll', ep_id)
-            for ep_id, ep in episode_paths
-        ]
-        entries.reverse()
+        episode_re = r'<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"'
+        season_re = r'<a [^>]+season-dropdown[^>]+>([^<]+)'
+        paths = re.findall(f'(?s){episode_re}|{season_re}', webpage)
+
+        entries, current_season = [], None
+        for ep_id, ep, season in paths:
+            if season:
+                current_season = season
+                continue
+            entries.append(self.url_result(
+                f'http://www.crunchyroll.com{ep}', CrunchyrollIE.ie_key(), ep_id, season=current_season))
 
         return {
             '_type': 'playlist',
             'id': show_id,
             'title': title,
-            'entries': entries,
+            'entries': reversed(entries),
         }
+
+
+class CrunchyrollBetaIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:beta'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)watch/(?P<internal_id>\w+)/(?P<id>[\w\-]+)/?(?:\?|$)'
+    _TESTS = [{
+        'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
+        'info_dict': {
+            'id': '696363',
+            'ext': 'mp4',
+            'timestamp': 1459610100,
+            'description': 'md5:a022fbec4fbb023d43631032c91ed64b',
+            'uploader': 'Toei Animation',
+            'title': 'World Trigger Episode 73 – To the Future',
+            'upload_date': '20160402',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Unable to download XML']
+    }]
+
+    def _real_extract(self, url):
+        lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'internal_id', 'id')
+        webpage = self._download_webpage(url, display_id)
+        episode_data = self._parse_json(
+            self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'episode data'),
+            display_id)['content']['byId'][internal_id]
+        video_id = episode_data['external_id'].split('.')[1]
+        series_id = episode_data['episode_metadata']['series_slug_title']
+        return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
+                               CrunchyrollIE.ie_key(), video_id)
+
+
+class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
+    IE_NAME = 'crunchyroll:playlist:beta'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)series/\w+/(?P<id>[\w\-]+)/?(?:\?|$)'
+    _TESTS = [{
+        'url': 'https://beta.crunchyroll.com/series/GY19NQ2QR/Girl-Friend-BETA',
+        'info_dict': {
+            'id': 'girl-friend-beta',
+            'title': 'Girl Friend BETA',
+        },
+        'playlist_mincount': 10,
+    }, {
+        'url': 'https://beta.crunchyroll.com/it/series/GY19NQ2QR/Girl-Friend-BETA',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        lang, series_id = self._match_valid_url(url).group('lang', 'id')
+        return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id.lower()}',
+                               CrunchyrollShowPlaylistIE.ie_key(), series_id)

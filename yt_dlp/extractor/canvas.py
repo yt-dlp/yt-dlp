@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
-
-import re
 import json
+
 
 from .common import InfoExtractor
 from .gigya import GigyaBaseIE
@@ -17,6 +16,7 @@ from ..utils import (
     str_or_none,
     strip_or_none,
     url_or_none,
+    urlencode_postdata
 )
 
 
@@ -42,12 +42,12 @@ class CanvasIE(InfoExtractor):
     _GEO_BYPASS = False
     _HLS_ENTRY_PROTOCOLS_MAP = {
         'HLS': 'm3u8_native',
-        'HLS_AES': 'm3u8',
+        'HLS_AES': 'm3u8_native',
     }
-    _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v1'
+    _REST_API_BASE = 'https://media-services-public.vrt.be/vualto-video-aggregator-web/rest/external/v2'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site_id, video_id = mobj.group('site_id'), mobj.group('id')
 
         data = None
@@ -60,18 +60,23 @@ class CanvasIE(InfoExtractor):
 
         # New API endpoint
         if not data:
+            vrtnutoken = self._download_json('https://token.vrt.be/refreshtoken',
+                                             video_id, note='refreshtoken: Retrieve vrtnutoken',
+                                             errnote='refreshtoken failed')['vrtnutoken']
             headers = self.geo_verification_headers()
-            headers.update({'Content-Type': 'application/json'})
-            token = self._download_json(
+            headers.update({'Content-Type': 'application/json; charset=utf-8'})
+            vrtPlayerToken = self._download_json(
                 '%s/tokens' % self._REST_API_BASE, video_id,
-                'Downloading token', data=b'', headers=headers)['vrtPlayerToken']
+                'Downloading token', headers=headers, data=json.dumps({
+                    'identityToken': vrtnutoken
+                }).encode('utf-8'))['vrtPlayerToken']
             data = self._download_json(
                 '%s/videos/%s' % (self._REST_API_BASE, video_id),
                 video_id, 'Downloading video JSON', query={
-                    'vrtPlayerToken': token,
-                    'client': '%s@PROD' % site_id,
+                    'vrtPlayerToken': vrtPlayerToken,
+                    'client': 'null',
                 }, expected_status=400)
-            if not data.get('title'):
+            if 'title' not in data:
                 code = data.get('code')
                 if code == 'AUTHENTICATION_REQUIRED':
                     self.raise_login_required()
@@ -79,7 +84,8 @@ class CanvasIE(InfoExtractor):
                     self.raise_geo_restricted(countries=['BE'])
                 raise ExtractorError(data.get('message') or code, expected=True)
 
-        title = data['title']
+        # Note: The title may be an empty string
+        title = data['title'] or f'{site_id} {video_id}'
         description = data.get('description')
 
         formats = []
@@ -192,7 +198,7 @@ class CanvasEenIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         site_id, display_id = mobj.group('site_id'), mobj.group('id')
 
         webpage = self._download_webpage(url, display_id)
@@ -276,35 +282,39 @@ class VrtNUIE(GigyaBaseIE):
         if username is None:
             return
 
-        auth_data = {
+        auth_info = self._gigya_login({
             'APIKey': self._APIKEY,
             'targetEnv': 'jssdk',
             'loginID': username,
             'password': password,
             'authMode': 'cookie',
-        }
+        })
 
-        auth_info = self._gigya_login(auth_data)
+        if auth_info.get('errorDetails'):
+            raise ExtractorError('Unable to login: VrtNU said: ' + auth_info.get('errorDetails'), expected=True)
 
         # Sometimes authentication fails for no good reason, retry
         login_attempt = 1
         while login_attempt <= 3:
             try:
-                # When requesting a token, no actual token is returned, but the
-                # necessary cookies are set.
+                self._request_webpage('https://token.vrt.be/vrtnuinitlogin',
+                                      None, note='Requesting XSRF Token', errnote='Could not get XSRF Token',
+                                      query={'provider': 'site', 'destination': 'https://www.vrt.be/vrtnu/'})
+
+                post_data = {
+                    'UID': auth_info['UID'],
+                    'UIDSignature': auth_info['UIDSignature'],
+                    'signatureTimestamp': auth_info['signatureTimestamp'],
+                    '_csrf': self._get_cookies('https://login.vrt.be').get('OIDCXSRF').value,
+                }
+
                 self._request_webpage(
-                    'https://token.vrt.be',
-                    None, note='Requesting a token', errnote='Could not get a token',
-                    headers={
-                        'Content-Type': 'application/json',
-                        'Referer': 'https://www.vrt.be/vrtnu/',
-                    },
-                    data=json.dumps({
-                        'uid': auth_info['UID'],
-                        'uidsig': auth_info['UIDSignature'],
-                        'ts': auth_info['signatureTimestamp'],
-                        'email': auth_info['profile']['email'],
-                    }).encode('utf-8'))
+                    'https://login.vrt.be/perform_login',
+                    None, note='Performing login', errnote='perform login failed',
+                    headers={}, query={
+                        'client_id': 'vrtnu-site'
+                    }, data=urlencode_postdata(post_data))
+
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                     login_attempt += 1

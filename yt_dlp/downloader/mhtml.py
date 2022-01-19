@@ -114,15 +114,15 @@ body > figure > img {
         fragment_base_url = info_dict.get('fragment_base_url')
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
-        title = info_dict['title']
-        origin = info_dict['webpage_url']
+        title = info_dict.get('title', info_dict['format_id'])
+        origin = info_dict.get('webpage_url', info_dict['url'])
 
         ctx = {
             'filename': filename,
             'total_frags': len(fragments),
         }
 
-        self._prepare_and_start_frag_download(ctx)
+        self._prepare_and_start_frag_download(ctx, info_dict)
 
         extra_state = ctx.setdefault('extra_state', {
             'header_written': False,
@@ -198,5 +198,5 @@ body > figure > img {
 
         ctx['dest_stream'].write(
             b'--%b--\r\n\r\n' % frag_boundary.encode('us-ascii'))
-        self._finish_frag_download(ctx)
+        self._finish_frag_download(ctx, info_dict)
         return True

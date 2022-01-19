@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -31,7 +30,6 @@ class WatchBoxIE(InfoExtractor):
             'release_year': 2009,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to download m3u8 information'],
@@ -53,7 +51,6 @@ class WatchBoxIE(InfoExtractor):
             'episode_number': 1,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to download m3u8 information'],
@@ -63,7 +60,7 @@ class WatchBoxIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         kind, video_id = mobj.group('kind', 'id')
 
         webpage = self._download_webpage(url, video_id)

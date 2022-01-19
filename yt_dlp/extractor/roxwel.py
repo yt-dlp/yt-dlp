@@ -1,6 +1,5 @@
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import unified_strdate, determine_ext
@@ -27,7 +26,7 @@ class RoxwelIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         filename = mobj.group('filename')
         info_url = 'http://www.roxwel.com/api/videos/%s' % filename
         info = self._download_json(info_url, filename)

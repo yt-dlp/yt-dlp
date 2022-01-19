@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import itertools
-import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -13,6 +12,7 @@ from ..compat import (
     compat_zip
 )
 from ..utils import (
+    ExtractorError,
     int_or_none,
     parse_iso8601,
     strip_or_none,
@@ -79,7 +79,7 @@ class MixcloudIE(MixcloudBaseIE):
             for ch, k in compat_zip(ciphertext, itertools.cycle(key))])
 
     def _real_extract(self, url):
-        username, slug = re.match(self._VALID_URL, url).groups()
+        username, slug = self._match_valid_url(url).groups()
         username, slug = compat_urllib_parse_unquote(username), compat_urllib_parse_unquote(slug)
         track_id = '%s_%s' % (username, slug)
 
@@ -126,7 +126,20 @@ class MixcloudIE(MixcloudBaseIE):
       tag {
         name
       }
-    }''', track_id, username, slug)
+    }
+    restrictedReason
+    id''', track_id, username, slug)
+
+        if not cloudcast:
+            raise ExtractorError('Track not found', expected=True)
+
+        reason = cloudcast.get('restrictedReason')
+        if reason == 'tracklist':
+            raise ExtractorError('Track unavailable in your country due to licensing restrictions', expected=True)
+        elif reason == 'repeat_play':
+            raise ExtractorError('You have reached your play limit for this track', expected=True)
+        elif reason:
+            raise ExtractorError('Track is restricted', expected=True)
 
         title = cloudcast['name']
 
@@ -214,7 +227,7 @@ class MixcloudPlaylistBaseIE(MixcloudBaseIE):
         return title
 
     def _real_extract(self, url):
-        username, slug = re.match(self._VALID_URL, url).groups()
+        username, slug = self._match_valid_url(url).groups()
         username = compat_urllib_parse_unquote(username)
         if not slug:
             slug = 'uploads'

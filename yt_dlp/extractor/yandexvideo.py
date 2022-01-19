@@ -1,9 +1,13 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import itertools
+import re
+
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    extract_attributes,
     int_or_none,
     try_get,
     url_or_none,
@@ -142,3 +146,121 @@ class YandexVideoIE(InfoExtractor):
             'release_year': int_or_none(content.get('release_year')),
             'formats': formats,
         }
+
+
+class ZenYandexIE(InfoExtractor):
+    _VALID_URL = r'https?://zen\.yandex\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
+    _TESTS = [{
+        'url': 'https://zen.yandex.ru/media/popmech/izverjenie-vulkana-iz-spichek-zreliscnyi-opyt-6002240ff8b1af50bb2da5e3',
+        'info_dict': {
+            'id': '6002240ff8b1af50bb2da5e3',
+            'ext': 'mp4',
+            'title': 'Извержение вулкана из спичек: зрелищный опыт',
+            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
+            'thumbnail': 're:^https://avatars.mds.yandex.net/',
+            'uploader': 'Популярная механика',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
+        'info_dict': {
+            'id': '60c7c443da18892ebfe85ed7',
+            'ext': 'mp4',
+            'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
+            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'thumbnail': 're:^https://avatars.mds.yandex.net/',
+            'uploader': 'AcademeG DailyStream'
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'format': 'bestvideo',
+        },
+    }, {
+        'url': 'https://zen.yandex.ru/video/watch/6002240ff8b1af50bb2da5e3',
+        'info_dict': {
+            'id': '6002240ff8b1af50bb2da5e3',
+            'ext': 'mp4',
+            'title': 'Извержение вулкана из спичек: зрелищный опыт',
+            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
+            'uploader': 'Популярная механика',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+    }, {
+        'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        data_json = self._parse_json(
+            self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
+        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
+                                         webpage, 'server state').replace('State', 'Settings')
+        uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
+                                      webpage, 'uploader', default='<a>')
+        uploader_name = extract_attributes(uploader).get('aria-label')
+        video_json = try_get(data_json, lambda x: x[serverstate]['exportData']['video'], dict)
+        stream_urls = try_get(video_json, lambda x: x['video']['streams'])
+        formats = []
+        for s_url in stream_urls:
+            ext = determine_ext(s_url)
+            if ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(s_url, id, mpd_id='dash'))
+            elif ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(s_url, id, 'mp4'))
+        self._sort_formats(formats)
+        return {
+            'id': id,
+            'title': video_json.get('title') or self._og_search_title(webpage),
+            'formats': formats,
+            'duration': int_or_none(video_json.get('duration')),
+            'view_count': int_or_none(video_json.get('views')),
+            'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
+            'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
+            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
+        }
+
+
+class ZenYandexChannelIE(InfoExtractor):
+    _VALID_URL = r'https?://zen\.yandex\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
+    _TESTS = [{
+        'url': 'https://zen.yandex.ru/tok_media',
+        'info_dict': {
+            'id': 'tok_media',
+        },
+        'playlist_mincount': 169,
+    }, {
+        'url': 'https://zen.yandex.ru/id/606fd806cc13cb3c58c05cf5',
+        'info_dict': {
+            'id': '606fd806cc13cb3c58c05cf5',
+        },
+        'playlist_mincount': 657,
+    }]
+
+    def _entries(self, id, url):
+        webpage = self._download_webpage(url, id)
+        data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
+        for key in data_json.keys():
+            if key.startswith('__serverState__'):
+                data_json = data_json[key]
+        items = list(try_get(data_json, lambda x: x['feed']['items'], dict).values())
+        more = try_get(data_json, lambda x: x['links']['more']) or None
+        for page in itertools.count(1):
+            for item in items:
+                video_id = item.get('publication_id') or item.get('publicationId')
+                video_url = item.get('link')
+                yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
+            if not more:
+                break
+            data_json = self._download_json(more, id, note='Downloading Page %d' % page)
+            items = data_json.get('items', [])
+            more = try_get(data_json, lambda x: x['more']['link']) or None
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        return self.playlist_result(self._entries(id, url), playlist_id=id)

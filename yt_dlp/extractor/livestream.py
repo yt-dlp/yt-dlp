@@ -176,7 +176,7 @@ class LivestreamIE(InfoExtractor):
         return {
             'id': broadcast_id,
             'formats': formats,
-            'title': self._live_title(stream_info['stream_title']) if is_live else stream_info['stream_title'],
+            'title': stream_info['stream_title'],
             'thumbnail': stream_info.get('thumbnail_url'),
             'is_live': is_live,
         }
@@ -212,7 +212,7 @@ class LivestreamIE(InfoExtractor):
         return self.playlist_result(entries, event_id, event_data['full_name'])
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         video_id = mobj.group('id')
         event = mobj.group('event_id') or mobj.group('event_name')
         account = mobj.group('account_id') or mobj.group('account_name')
@@ -319,7 +319,7 @@ class LivestreamOriginalIE(InfoExtractor):
         return self.playlist_result(entries, folder_id)
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         user = mobj.group('user')
         url_type = mobj.group('type')
         content_id = mobj.group('id')
@@ -344,7 +344,7 @@ class LivestreamOriginalIE(InfoExtractor):
             is_live = video_data.get('isLive')
             info.update({
                 'id': content_id,
-                'title': self._live_title(info['title']) if is_live else info['title'],
+                'title': info['title'],
                 'formats': self._extract_video_formats(video_data, content_id),
                 'is_live': is_live,
             })
@@ -359,7 +359,7 @@ class LivestreamShortenerIE(InfoExtractor):
     _VALID_URL = r'https?://livestre\.am/(?P<id>.+)'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         id = mobj.group('id')
         webpage = self._download_webpage(url, id)
 

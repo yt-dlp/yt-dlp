@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
@@ -82,12 +81,11 @@ class RedBullTVIE(InfoExtractor):
 
         title = video['title'].strip()
 
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             'https://dms.redbull.tv/v3/%s/%s/playlist.m3u8' % (video_id, token),
             video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
         self._sort_formats(formats)
 
-        subtitles = {}
         for resource in video.get('resources', []):
             if resource.startswith('closed_caption_'):
                 splitted_resource = resource.split('_')
@@ -161,7 +159,7 @@ class RedBullTVRrnContentIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        region, lang, rrn_id = re.search(self._VALID_URL, url).groups()
+        region, lang, rrn_id = self._match_valid_url(url).groups()
         rrn_id += ':%s-%s' % (lang, region.upper())
         return self.url_result(
             'https://www.redbull.com/embed/' + rrn_id,
@@ -204,7 +202,7 @@ class RedBullIE(InfoExtractor):
     _LAT_FALLBACK_MAP = ['ar', 'bo', 'car', 'cl', 'co', 'mx', 'pe']
 
     def _real_extract(self, url):
-        region, lang, filter_type, display_id = re.search(self._VALID_URL, url).groups()
+        region, lang, filter_type, display_id = self._match_valid_url(url).groups()
         if filter_type == 'episodes':
             filter_type = 'episode-videos'
         elif filter_type == 'live':

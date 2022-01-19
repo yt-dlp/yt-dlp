@@ -366,7 +366,7 @@ class F4mFD(FragmentFD):
         ctx = {
             'filename': filename,
             'total_frags': total_frags,
-            'live': live,
+            'live': bool(live),
         }
 
         self._prepare_frag_download(ctx)
@@ -380,7 +380,7 @@ class F4mFD(FragmentFD):
 
         base_url_parsed = compat_urllib_parse_urlparse(base_url)
 
-        self._start_frag_download(ctx)
+        self._start_frag_download(ctx, info_dict)
 
         frag_index = 0
         while fragments_list:
@@ -434,6 +434,6 @@ class F4mFD(FragmentFD):
                     msg = 'Missed %d fragments' % (fragments_list[0][1] - (frag_i + 1))
                     self.report_warning(msg)
 
-        self._finish_frag_download(ctx)
+        self._finish_frag_download(ctx, info_dict)
 
         return True

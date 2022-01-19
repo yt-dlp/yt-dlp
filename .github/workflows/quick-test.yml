@@ -11,12 +11,10 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: 3.9
-    - name: Install nose
-      run: pip install nose
+    - name: Install test requirements
+      run: pip install pytest pycryptodomex
     - name: Run tests
-      env:
-        YTDL_TEST_SET: core
-      run: ./devscripts/run_tests.sh
+      run: ./devscripts/run_tests.sh core
   flake8:
     name: Linter
     if: "!contains(github.event.head_commit.message, 'ci skip all')"
@@ -29,5 +27,7 @@ jobs:
         python-version: 3.9
     - name: Install flake8
       run: pip install flake8
+    - name: Make lazy extractors
+      run: python devscripts/make_lazy_extractors.py
     - name: Run flake8
       run: flake8 .

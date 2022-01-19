@@ -193,7 +193,7 @@ class PBSIE(InfoExtractor):
            # Article with embedded player (or direct video)
            (?:www\.)?pbs\.org/(?:[^/]+/){1,5}(?P<presumptive_id>[^/]+?)(?:\.html)?/?(?:$|[?\#]) |
            # Player
-           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)/
+           (?:video|player)\.pbs\.org/(?:widget/)?partnerplayer/(?P<player_id>[^/]+)
         )
     ''' % '|'.join(list(zip(*_STATIONS))[0])
 
@@ -436,7 +436,7 @@ class PBSIE(InfoExtractor):
                 self._set_cookie('.pbs.org', 'pbsol.station', station)
 
     def _extract_webpage(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
 
         description = None
 
@@ -545,7 +545,7 @@ class PBSIE(InfoExtractor):
                 for vid_id in video_id]
             return self.playlist_result(entries, display_id)
 
-        info = None
+        info = {}
         redirects = []
         redirect_urls = set()
 
@@ -600,6 +600,7 @@ class PBSIE(InfoExtractor):
 
         formats = []
         http_url = None
+        hls_subs = {}
         for num, redirect in enumerate(redirects):
             redirect_id = redirect.get('eeid')
 
@@ -622,8 +623,9 @@ class PBSIE(InfoExtractor):
                 continue
 
             if determine_ext(format_url) == 'm3u8':
-                formats.extend(self._extract_m3u8_formats(
-                    format_url, display_id, 'mp4', m3u8_id='hls', fatal=False))
+                hls_formats, hls_subs = self._extract_m3u8_formats_and_subtitles(
+                    format_url, display_id, 'mp4', m3u8_id='hls', fatal=False)
+                formats.extend(hls_formats)
             else:
                 formats.append({
                     'url': format_url,
@@ -658,6 +660,9 @@ class PBSIE(InfoExtractor):
                     'protocol': 'http',
                 })
                 formats.append(f)
+        for f in formats:
+            if (f.get('format_note') or '').endswith(' AD'):  # Audio description
+                f['language_preference'] = -10
         self._sort_formats(formats)
 
         rating_str = info.get('rating')
@@ -666,25 +671,12 @@ class PBSIE(InfoExtractor):
         age_limit = US_RATINGS.get(rating_str)
 
         subtitles = {}
-        closed_captions_url = info.get('closed_captions_url')
-        if closed_captions_url:
-            subtitles['en'] = [{
-                'ext': 'ttml',
-                'url': closed_captions_url,
-            }]
-            mobj = re.search(r'/(\d+)_Encoded\.dfxp', closed_captions_url)
-            if mobj:
-                ttml_caption_suffix, ttml_caption_id = mobj.group(0, 1)
-                ttml_caption_id = int(ttml_caption_id)
-                subtitles['en'].extend([{
-                    'url': closed_captions_url.replace(
-                        ttml_caption_suffix, '/%d_Encoded.srt' % (ttml_caption_id + 1)),
-                    'ext': 'srt',
-                }, {
-                    'url': closed_captions_url.replace(
-                        ttml_caption_suffix, '/%d_Encoded.vtt' % (ttml_caption_id + 2)),
-                    'ext': 'vtt',
-                }])
+        captions = info.get('cc') or {}
+        for caption_url in captions.values():
+            subtitles.setdefault('en', []).append({
+                'url': caption_url
+            })
+        subtitles = self._merge_subtitles(subtitles, hls_subs)
 
         # info['title'] is often incomplete (e.g. 'Full Episode', 'Episode 5', etc)
         # Try turning it to 'program - title' naming scheme if possible

@@ -1,13 +1,13 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_iso8601,
     qualities,
     try_get,
@@ -82,7 +82,7 @@ class SRGSSRIE(InfoExtractor):
         return media_data
 
     def _real_extract(self, url):
-        bu, media_type, media_id = re.match(self._VALID_URL, url).groups()
+        bu, media_type, media_id = self._match_valid_url(url).groups()
         media_data = self._get_media_data(bu, media_type, media_id)
         title = media_data['title']
 
@@ -95,11 +95,7 @@ class SRGSSRIE(InfoExtractor):
                 continue
             protocol = source.get('protocol')
             quality = source.get('quality')
-            format_id = []
-            for e in (protocol, source.get('encoding'), quality):
-                if e:
-                    format_id.append(e)
-            format_id = '-'.join(format_id)
+            format_id = join_nonempty(protocol, source.get('encoding'), quality)
 
             if protocol in ('HDS', 'HLS'):
                 if source.get('tokenType') == 'AKAMAI':
@@ -249,7 +245,7 @@ class SRGSSRPlayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         bu = mobj.group('bu')
         media_type = mobj.group('type') or mobj.group('type_2')
         media_id = mobj.group('id')

@@ -9,7 +9,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-18.04]
-        python-version: [3.7, 3.8, 3.9, pypy-3.6, pypy-3.7]
+        python-version: [3.7, 3.8, 3.9, 3.10-dev, pypy-3.6, pypy-3.7]
         run-tests-ext: [sh]
         include:
         - os: windows-latest
@@ -21,10 +21,8 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install nose
-      run: pip install nose
+    - name: Install pytest
+      run: pip install pytest
     - name: Run tests
       continue-on-error: true
-      env:
-        YTDL_TEST_SET: download
-      run: ./devscripts/run_tests.${{ matrix.run-tests-ext }}
+      run: ./devscripts/run_tests.${{ matrix.run-tests-ext }} download

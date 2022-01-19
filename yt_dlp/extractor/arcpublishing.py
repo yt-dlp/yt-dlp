@@ -86,7 +86,7 @@ class ArcPublishingIE(InfoExtractor):
         return entries
 
     def _real_extract(self, url):
-        org, uuid = re.match(self._VALID_URL, url).groups()
+        org, uuid = self._match_valid_url(url).groups()
         for orgs, tmpl in self._POWA_DEFAULTS:
             if org in orgs:
                 base_api_tmpl = tmpl
@@ -158,7 +158,7 @@ class ArcPublishingIE(InfoExtractor):
 
         return {
             'id': uuid,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'thumbnail': try_get(video, lambda x: x['promo_image']['url']),
             'description': try_get(video, lambda x: x['subheadlines']['basic']),
             'formats': formats,

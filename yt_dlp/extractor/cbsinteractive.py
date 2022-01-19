@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .cbs import CBSIE
 from ..utils import int_or_none
@@ -71,7 +70,7 @@ class CBSInteractiveIE(CBSIE):
     }
 
     def _real_extract(self, url):
-        site, display_id = re.match(self._VALID_URL, url).groups()
+        site, display_id = self._match_valid_url(url).groups()
         webpage = self._download_webpage(url, display_id)
 
         data_json = self._html_search_regex(

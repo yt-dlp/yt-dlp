@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 import uuid
 
 from .common import InfoExtractor
@@ -9,6 +8,7 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     qualities,
 )
 
@@ -64,7 +64,7 @@ class LEGOIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        locale, video_id = re.match(self._VALID_URL, url).groups()
+        locale, video_id = self._match_valid_url(url).groups()
         countries = [locale.split('-')[1].upper()]
         self._initialize_geo_bypass({
             'countries': countries,
@@ -103,12 +103,8 @@ class LEGOIE(InfoExtractor):
                     m3u8_id=video_source_format, fatal=False))
             else:
                 video_source_quality = video_source.get('Quality')
-                format_id = []
-                for v in (video_source_format, video_source_quality):
-                    if v:
-                        format_id.append(v)
                 f = {
-                    'format_id': '-'.join(format_id),
+                    'format_id': join_nonempty(video_source_format, video_source_quality),
                     'quality': q(video_source_quality),
                     'url': video_source_url,
                 }

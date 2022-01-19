@@ -22,7 +22,11 @@ from ..utils import (
 
 
 class WDRIE(InfoExtractor):
-    _VALID_URL = r'https?://deviceids-medp\.wdr\.de/ondemand/\d+/(?P<id>\d+)\.js'
+    _VALID_URL = r'''(?x)https?://
+        (?:deviceids-medp\.wdr\.de/ondemand/\d+/|
+           kinder\.wdr\.de/(?!mediathek/)[^#?]+-)
+        (?P<id>\d+)\.(?:js|assetjsonp)
+    '''
     _GEO_COUNTRIES = ['DE']
     _TEST = {
         'url': 'http://deviceids-medp.wdr.de/ondemand/155/1557833.js',
@@ -113,7 +117,7 @@ class WDRIE(InfoExtractor):
 
         return {
             'id': tracker_data.get('trackerClipId', video_id),
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'alt_title': tracker_data.get('trackerClipSubcategory'),
             'formats': formats,
             'subtitles': subtitles,
@@ -240,7 +244,7 @@ class WDRPageIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('display_id')
         webpage = self._download_webpage(url, display_id)
 
@@ -342,7 +346,7 @@ class WDRMobileIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         return {
             'id': mobj.group('id'),
             'title': mobj.group('title'),

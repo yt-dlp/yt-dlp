@@ -246,7 +246,7 @@ class IsmFD(FragmentFD):
             'total_frags': len(segments),
         }
 
-        self._prepare_and_start_frag_download(ctx)
+        self._prepare_and_start_frag_download(ctx, info_dict)
 
         extra_state = ctx.setdefault('extra_state', {
             'ism_track_written': False,
@@ -284,6 +284,6 @@ class IsmFD(FragmentFD):
                 self.report_error('giving up after %s fragment retries' % fragment_retries)
                 return False
 
-        self._finish_frag_download(ctx)
+        self._finish_frag_download(ctx, info_dict)
 
         return True

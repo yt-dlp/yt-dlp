@@ -264,7 +264,7 @@ class YahooIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'formats': formats,
             'thumbnails': thumbnails,
             'description': clean_html(video.get('description')),
@@ -279,7 +279,7 @@ class YahooIE(InfoExtractor):
         }
 
     def _real_extract(self, url):
-        url, country, display_id = re.match(self._VALID_URL, url).groups()
+        url, country, display_id = self._match_valid_url(url).groups()
         if not country:
             country = 'us'
         else:
@@ -334,35 +334,19 @@ class YahooSearchIE(SearchInfoExtractor):
     IE_NAME = 'screen.yahoo:search'
     _SEARCH_KEY = 'yvsearch'
 
-    def _get_n_results(self, query, n):
-        """Get a specified number of results for a query"""
-        entries = []
+    def _search_results(self, query):
         for pagenum in itertools.count(0):
             result_url = 'http://video.search.yahoo.com/search/?p=%s&fr=screen&o=js&gs=0&b=%d' % (compat_urllib_parse.quote_plus(query), pagenum * 30)
             info = self._download_json(result_url, query,
                                        note='Downloading results page ' + str(pagenum + 1))
-            m = info['m']
-            results = info['results']
-
-            for (i, r) in enumerate(results):
-                if (pagenum * 30) + i >= n:
-                    break
-                mobj = re.search(r'(?P<url>screen\.yahoo\.com/.*?-\d*?\.html)"', r)
-                e = self.url_result('http://' + mobj.group('url'), 'Yahoo')
-                entries.append(e)
-            if (pagenum * 30 + i >= n) or (m['last'] >= (m['total'] - 1)):
+            yield from (self.url_result(result['rurl']) for result in info['results'])
+            if info['m']['last'] >= info['m']['total'] - 1:
                 break
-
-        return {
-            '_type': 'playlist',
-            'id': query,
-            'entries': entries,
-        }
 
 
 class YahooGyaOPlayerIE(InfoExtractor):
     IE_NAME = 'yahoo:gyao:player'
-    _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:player|episode/[^/]+)|streaming\.yahoo\.co\.jp/c/y)/(?P<id>\d+/v\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
+    _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:player|episode(?:/[^/]+)?)|streaming\.yahoo\.co\.jp/c/y)/(?P<id>\d+/v\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
         'url': 'https://gyao.yahoo.co.jp/player/00998/v00818/v0000000000000008564/',
         'info_dict': {
@@ -383,6 +367,9 @@ class YahooGyaOPlayerIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://gyao.yahoo.co.jp/episode/%E3%81%8D%E3%81%AE%E3%81%86%E4%BD%95%E9%A3%9F%E3%81%B9%E3%81%9F%EF%BC%9F%20%E7%AC%AC2%E8%A9%B1%202019%2F4%2F12%E6%94%BE%E9%80%81%E5%88%86/5cb02352-b725-409e-9f8d-88f947a9f682',
+        'only_matching': True,
+    }, {
+        'url': 'https://gyao.yahoo.co.jp/episode/5fa1226c-ef8d-4e93-af7a-fd92f4e30597',
         'only_matching': True,
     }]
     _GEO_BYPASS = False
@@ -427,11 +414,14 @@ class YahooGyaOIE(InfoExtractor):
     IE_NAME = 'yahoo:gyao'
     _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:p|title(?:/[^/]+)?)|streaming\.yahoo\.co\.jp/p/y)/(?P<id>\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://gyao.yahoo.co.jp/p/00449/v03102/',
+        'url': 'https://gyao.yahoo.co.jp/title/%E3%82%BF%E3%82%A4%E3%83%A0%E3%83%9C%E3%82%AB%E3%83%B3%E3%82%B7%E3%83%AA%E3%83%BC%E3%82%BA%20%E3%83%A4%E3%83%83%E3%82%BF%E3%83%BC%E3%83%9E%E3%83%B3/5f60ceb3-6e5e-40ef-ba40-d68b598d067f',
         'info_dict': {
-            'id': '00449:v03102',
+            'id': '5f60ceb3-6e5e-40ef-ba40-d68b598d067f',
         },
-        'playlist_count': 2,
+        'playlist_mincount': 80,
+    }, {
+        'url': 'https://gyao.yahoo.co.jp/p/00449/v03102/',
+        'only_matching': True,
     }, {
         'url': 'https://streaming.yahoo.co.jp/p/y/01034/v00133/',
         'only_matching': True,
@@ -443,19 +433,30 @@ class YahooGyaOIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _entries(self, program_id):
+        page = 1
+        while True:
+            playlist = self._download_json(
+                f'https://gyao.yahoo.co.jp/api/programs/{program_id}/videos?page={page}', program_id,
+                note=f'Downloading JSON metadata page {page}')
+            if not playlist:
+                break
+            for video in playlist['videos']:
+                video_id = video.get('id')
+                if not video_id:
+                    continue
+                if video.get('streamingAvailability') == 'notYet':
+                    continue
+                yield self.url_result(
+                    'https://gyao.yahoo.co.jp/player/%s/' % video_id.replace(':', '/'),
+                    YahooGyaOPlayerIE.ie_key(), video_id)
+            if playlist.get('ended'):
+                break
+            page += 1
+
     def _real_extract(self, url):
         program_id = self._match_id(url).replace('/', ':')
-        videos = self._download_json(
-            'https://gyao.yahoo.co.jp/api/programs/%s/videos' % program_id, program_id)['videos']
-        entries = []
-        for video in videos:
-            video_id = video.get('id')
-            if not video_id:
-                continue
-            entries.append(self.url_result(
-                'https://gyao.yahoo.co.jp/player/%s/' % video_id.replace(':', '/'),
-                YahooGyaOPlayerIE.ie_key(), video_id))
-        return self.playlist_result(entries, program_id)
+        return self.playlist_result(self._entries(program_id), program_id)
 
 
 class YahooJapanNewsIE(InfoExtractor):
@@ -524,7 +525,7 @@ class YahooJapanNewsIE(InfoExtractor):
         return formats
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host = mobj.group('host')
         display_id = mobj.group('id') or host
 

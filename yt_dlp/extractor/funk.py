@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from .nexx import NexxIE
@@ -12,7 +11,7 @@ from ..utils import (
 
 
 class FunkIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?funk\.net/(?:channel|playlist)/[^/]+/(?P<display_id>[0-9a-z-]+)-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.|origin\.)?funk\.net/(?:channel|playlist)/[^/]+/(?P<display_id>[0-9a-z-]+)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.funk.net/channel/ba-793/die-lustigsten-instrumente-aus-dem-internet-teil-2-1155821',
         'md5': '8dd9d9ab59b4aa4173b3197f2ea48e81',
@@ -31,7 +30,7 @@ class FunkIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        display_id, nexx_id = re.match(self._VALID_URL, url).groups()
+        display_id, nexx_id = self._match_valid_url(url).groups()
         video = self._download_json(
             'https://www.funk.net/api/v4.0/videos/' + nexx_id, nexx_id)
         return {

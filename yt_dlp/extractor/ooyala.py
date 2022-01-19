@@ -204,6 +204,6 @@ class OoyalaExternalIE(OoyalaBaseIE):
     }
 
     def _real_extract(self, url):
-        partner_id, video_id, pcode = re.match(self._VALID_URL, url).groups()
+        partner_id, video_id, pcode = self._match_valid_url(url).groups()
         content_tree_url = self._CONTENT_TREE_BASE + 'external_id/%s/%s:%s' % (pcode, partner_id, video_id)
         return self._extract(content_tree_url, video_id)

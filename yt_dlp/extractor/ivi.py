@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 import json
 import re
-import sys
 
 from .common import InfoExtractor
 from ..utils import (
@@ -94,20 +93,21 @@ class IviIE(InfoExtractor):
             ]
         })
 
-        bundled = hasattr(sys, 'frozen')
-
         for site in (353, 183):
             content_data = (data % site).encode()
             if site == 353:
-                if bundled:
-                    continue
                 try:
                     from Cryptodome.Cipher import Blowfish
                     from Cryptodome.Hash import CMAC
-                    pycryptodomex_found = True
+                    pycryptodome_found = True
                 except ImportError:
-                    pycryptodomex_found = False
-                    continue
+                    try:
+                        from Crypto.Cipher import Blowfish
+                        from Crypto.Hash import CMAC
+                        pycryptodome_found = True
+                    except ImportError:
+                        pycryptodome_found = False
+                        continue
 
                 timestamp = (self._download_json(
                     self._LIGHT_URL, video_id,
@@ -140,14 +140,8 @@ class IviIE(InfoExtractor):
                     extractor_msg = 'Video %s does not exist'
                 elif site == 353:
                     continue
-                elif bundled:
-                    raise ExtractorError(
-                        'This feature does not work from bundled exe. Run yt-dlp from sources.',
-                        expected=True)
-                elif not pycryptodomex_found:
-                    raise ExtractorError(
-                        'pycryptodomex not found. Please install',
-                        expected=True)
+                elif not pycryptodome_found:
+                    raise ExtractorError('pycryptodomex not found. Please install', expected=True)
                 elif message:
                     extractor_msg += ': ' + message
                 raise ExtractorError(extractor_msg % video_id, expected=True)
@@ -245,7 +239,7 @@ class IviCompilationIE(InfoExtractor):
                 r'<a\b[^>]+\bhref=["\']/watch/%s/(\d+)["\']' % compilation_id, html)]
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         compilation_id = mobj.group('compilationid')
         season_id = mobj.group('seasonid')
 

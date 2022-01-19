@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from ..utils import smuggle_url
@@ -57,7 +56,7 @@ class CNBCVideoIE(InfoExtractor):
     }
 
     def _real_extract(self, url):
-        path, display_id = re.match(self._VALID_URL, url).groups()
+        path, display_id = self._match_valid_url(url).groups()
         video_id = self._download_json(
             'https://webql-redesign.cnbcfm.com/graphql', display_id, query={
                 'query': '''{

@@ -123,7 +123,7 @@ class EaglePlatformIE(InfoExtractor):
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
 
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         host, video_id = mobj.group('custom_host') or mobj.group('host'), mobj.group('id')
 
         headers = {}

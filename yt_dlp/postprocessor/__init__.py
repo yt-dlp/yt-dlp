@@ -1,10 +1,16 @@
-from __future__ import unicode_literals
+# flake8: noqa: F401
 
+from ..utils import load_plugins
+
+from .common import PostProcessor
 from .embedthumbnail import EmbedThumbnailPP
+from .exec import ExecPP, ExecAfterDownloadPP
 from .ffmpeg import (
     FFmpegPostProcessor,
+    FFmpegConcatPP,
     FFmpegEmbedSubtitlePP,
     FFmpegExtractAudioPP,
+    FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
     FFmpegFixupStretchedPP,
     FFmpegFixupTimestampPP,
@@ -18,39 +24,23 @@ from .ffmpeg import (
     FFmpegVideoConvertorPP,
     FFmpegVideoRemuxerPP,
 )
-from .xattrpp import XAttrMetadataPP
-from .execafterdownload import ExecAfterDownloadPP
-from .metadatafromfield import MetadataFromFieldPP
-from .metadatafromfield import MetadataFromTitlePP
+from .metadataparser import (
+    MetadataFromFieldPP,
+    MetadataFromTitlePP,
+    MetadataParserPP,
+)
+from .modify_chapters import ModifyChaptersPP
 from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
+from .sponsorblock import SponsorBlockPP
+from .xattrpp import XAttrMetadataPP
+
+_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP', globals())
 
 
 def get_postprocessor(key):
     return globals()[key + 'PP']
 
 
-__all__ = [
-    'FFmpegPostProcessor',
-    'EmbedThumbnailPP',
-    'ExecAfterDownloadPP',
-    'FFmpegEmbedSubtitlePP',
-    'FFmpegExtractAudioPP',
-    'FFmpegSplitChaptersPP',
-    'FFmpegFixupDurationPP',
-    'FFmpegFixupM3u8PP',
-    'FFmpegFixupM4aPP',
-    'FFmpegFixupStretchedPP',
-    'FFmpegFixupTimestampPP',
-    'FFmpegMergerPP',
-    'FFmpegMetadataPP',
-    'FFmpegSubtitlesConvertorPP',
-    'FFmpegThumbnailsConvertorPP',
-    'FFmpegVideoConvertorPP',
-    'FFmpegVideoRemuxerPP',
-    'MetadataFromFieldPP',
-    'MetadataFromTitlePP',
-    'MoveFilesAfterDownloadPP',
-    'SponSkrubPP',
-    'XAttrMetadataPP',
-]
+__all__ = [name for name in globals().keys() if name.endswith('PP')]
+__all__.extend(('PostProcessor', 'FFmpegPostProcessor'))

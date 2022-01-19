@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
 
 from .common import InfoExtractor
 from .brightcove import BrightcoveLegacyIE
@@ -27,7 +26,6 @@ class RMCDecouverteIE(InfoExtractor):
             'upload_date': '20210428',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
@@ -60,7 +58,7 @@ class RMCDecouverteIE(InfoExtractor):
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/1969646226001/default_default/index.html?videoId=%s'
 
     def _real_extract(self, url):
-        mobj = re.match(self._VALID_URL, url)
+        mobj = self._match_valid_url(url)
         display_id = mobj.group('id') or 'direct'
         webpage = self._download_webpage(url, display_id)
         brightcove_legacy_url = BrightcoveLegacyIE._extract_brightcove_url(webpage)

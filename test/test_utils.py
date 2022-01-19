@@ -23,6 +23,7 @@ from yt_dlp.utils import (
     caesar,
     clean_html,
     clean_podcast_url,
+    Config,
     date_from_str,
     datetime_from_str,
     DateRange,
@@ -37,11 +38,18 @@ from yt_dlp.utils import (
     ExtractorError,
     find_xpath_attr,
     fix_xml_ampersands,
+    format_bytes,
     float_or_none,
     get_element_by_class,
     get_element_by_attribute,
     get_elements_by_class,
     get_elements_by_attribute,
+    get_element_html_by_class,
+    get_element_html_by_attribute,
+    get_elements_html_by_class,
+    get_elements_html_by_attribute,
+    get_elements_text_and_html_by_attribute,
+    get_element_text_and_html_by_tag,
     InAdvancePagedList,
     int_or_none,
     intlist_to_bytes,
@@ -62,6 +70,7 @@ from yt_dlp.utils import (
     parse_iso8601,
     parse_resolution,
     parse_bitrate,
+    parse_qs,
     pkcs1pad,
     read_batch_urls,
     sanitize_filename,
@@ -115,10 +124,9 @@ from yt_dlp.compat import (
     compat_chr,
     compat_etree_fromstring,
     compat_getenv,
+    compat_HTMLParseError,
     compat_os_name,
     compat_setenv,
-    compat_urlparse,
-    compat_parse_qs,
 )
 
 
@@ -635,6 +643,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('PT1H0.040S'), 3600.04)
         self.assertEqual(parse_duration('PT00H03M30SZ'), 210)
         self.assertEqual(parse_duration('P0Y0M0DT0H4M20.880S'), 260.88)
+        self.assertEqual(parse_duration('01:02:03:050'), 3723.05)
+        self.assertEqual(parse_duration('103:050'), 103.05)
 
     def test_fix_xml_ampersands(self):
         self.assertEqual(
@@ -688,38 +698,36 @@ class TestUtil(unittest.TestCase):
         self.assertTrue(isinstance(data, bytes))
 
     def test_update_url_query(self):
-        def query_dict(url):
-            return compat_parse_qs(compat_urlparse.urlparse(url).query)
-        self.assertEqual(query_dict(update_url_query(
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'quality': ['HD'], 'format': ['mp4']})),
-            query_dict('http://example.com/path?quality=HD&format=mp4'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?quality=HD&format=mp4'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'system': ['LINUX', 'WINDOWS']})),
-            query_dict('http://example.com/path?system=LINUX&system=WINDOWS'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?system=LINUX&system=WINDOWS'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': 'id,formats,subtitles'})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': ('id,formats,subtitles', 'thumbnails')})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles&fields=thumbnails'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles&fields=thumbnails'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path?manifest=f4m', {'manifest': []})),
-            query_dict('http://example.com/path'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path?system=LINUX&system=WINDOWS', {'system': 'LINUX'})),
-            query_dict('http://example.com/path?system=LINUX'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?system=LINUX'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'fields': b'id,formats,subtitles'})),
-            query_dict('http://example.com/path?fields=id,formats,subtitles'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?fields=id,formats,subtitles'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'width': 1080, 'height': 720})),
-            query_dict('http://example.com/path?width=1080&height=720'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?width=1080&height=720'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'bitrate': 5020.43})),
-            query_dict('http://example.com/path?bitrate=5020.43'))
-        self.assertEqual(query_dict(update_url_query(
+            parse_qs('http://example.com/path?bitrate=5020.43'))
+        self.assertEqual(parse_qs(update_url_query(
             'http://example.com/path', {'test': '第二行тест'})),
-            query_dict('http://example.com/path?test=%E7%AC%AC%E4%BA%8C%E8%A1%8C%D1%82%D0%B5%D1%81%D1%82'))
+            parse_qs('http://example.com/path?test=%E7%AC%AC%E4%BA%8C%E8%A1%8C%D1%82%D0%B5%D1%81%D1%82'))
 
     def test_multipart_encode(self):
         self.assertEqual(
@@ -851,30 +859,52 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_codecs('avc1.77.30, mp4a.40.2'), {
             'vcodec': 'avc1.77.30',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.2'), {
             'vcodec': 'none',
             'acodec': 'mp4a.40.2',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('mp4a.40.5,avc1.42001e'), {
             'vcodec': 'avc1.42001e',
             'acodec': 'mp4a.40.5',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('avc3.640028'), {
             'vcodec': 'avc3.640028',
             'acodec': 'none',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs(', h264,,newcodec,aac'), {
             'vcodec': 'h264',
             'acodec': 'aac',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('av01.0.05M.08'), {
             'vcodec': 'av01.0.05M.08',
             'acodec': 'none',
+            'dynamic_range': None,
+        })
+        self.assertEqual(parse_codecs('vp9.2'), {
+            'vcodec': 'vp9.2',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('av01.0.12M.10.0.110.09.16.09.0'), {
+            'vcodec': 'av01.0.12M.10',
+            'acodec': 'none',
+            'dynamic_range': 'HDR10',
+        })
+        self.assertEqual(parse_codecs('dvhe'), {
+            'vcodec': 'dvhe',
+            'acodec': 'none',
+            'dynamic_range': 'DV',
         })
         self.assertEqual(parse_codecs('theora, vorbis'), {
             'vcodec': 'theora',
             'acodec': 'vorbis',
+            'dynamic_range': None,
         })
         self.assertEqual(parse_codecs('unknownvcodec, unknownacodec'), {
             'vcodec': 'unknownvcodec',
@@ -1054,6 +1084,9 @@ class TestUtil(unittest.TestCase):
         on = js_to_json('{ "040": "040" }')
         self.assertEqual(json.loads(on), {'040': '040'})
 
+        on = js_to_json('[1,//{},\n2]')
+        self.assertEqual(json.loads(on), [1, 2])
+
     def test_js_to_json_malformed(self):
         self.assertEqual(js_to_json('42a1'), '42"a1"')
         self.assertEqual(js_to_json('42a-1'), '42"a"-1')
@@ -1134,19 +1167,29 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_count('1000'), 1000)
         self.assertEqual(parse_count('1.000'), 1000)
         self.assertEqual(parse_count('1.1k'), 1100)
+        self.assertEqual(parse_count('1.1 k'), 1100)
+        self.assertEqual(parse_count('1,1 k'), 1100)
         self.assertEqual(parse_count('1.1kk'), 1100000)
         self.assertEqual(parse_count('1.1kk '), 1100000)
+        self.assertEqual(parse_count('1,1kk'), 1100000)
+        self.assertEqual(parse_count('100 views'), 100)
+        self.assertEqual(parse_count('1,100 views'), 1100)
         self.assertEqual(parse_count('1.1kk views'), 1100000)
+        self.assertEqual(parse_count('10M views'), 10000000)
+        self.assertEqual(parse_count('has 10M views'), 10000000)
 
     def test_parse_resolution(self):
         self.assertEqual(parse_resolution(None), {})
         self.assertEqual(parse_resolution(''), {})
-        self.assertEqual(parse_resolution('1920x1080'), {'width': 1920, 'height': 1080})
-        self.assertEqual(parse_resolution('1920×1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution(' 1920x1080'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('1920×1080 '), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('1920 x 1080'), {'width': 1920, 'height': 1080})
         self.assertEqual(parse_resolution('720p'), {'height': 720})
         self.assertEqual(parse_resolution('4k'), {'height': 2160})
         self.assertEqual(parse_resolution('8K'), {'height': 4320})
+        self.assertEqual(parse_resolution('pre_1920x1080_post'), {'width': 1920, 'height': 1080})
+        self.assertEqual(parse_resolution('ep1x2'), {})
+        self.assertEqual(parse_resolution('1920, 1080'), {'width': 1920, 'height': 1080})
 
     def test_parse_bitrate(self):
         self.assertEqual(parse_bitrate(None), None)
@@ -1197,42 +1240,56 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
     def test_render_table(self):
         self.assertEqual(
             render_table(
-                ['a', 'bcd'],
-                [[123, 4], [9999, 51]]),
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]]),
+            'a    empty bcd\n'
+            '123        4\n'
+            '9999       51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'empty', 'bcd'],
+                [[123, '', 4], [9999, '', 51]],
+                hide_empty=True),
             'a    bcd\n'
             '123  4\n'
             '9999 51')
 
+        self.assertEqual(
+            render_table(
+                ['\ta', 'bcd'],
+                [['1\t23', 4], ['\t9999', 51]]),
+            '   a bcd\n'
+            '1 23 4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-'),
+            'a    bcd\n'
+            '--------\n'
+            '123  4\n'
+            '9999 51')
+
+        self.assertEqual(
+            render_table(
+                ['a', 'bcd'],
+                [[123, 4], [9999, 51]],
+                delim='-', extra_gap=2),
+            'a      bcd\n'
+            '----------\n'
+            '123    4\n'
+            '9999   51')
+
     def test_match_str(self):
-        self.assertRaises(ValueError, match_str, 'xy>foobar', {})
+        # Unary
         self.assertFalse(match_str('xy', {'x': 1200}))
         self.assertTrue(match_str('!xy', {'x': 1200}))
         self.assertTrue(match_str('x', {'x': 1200}))
         self.assertFalse(match_str('!x', {'x': 1200}))
         self.assertTrue(match_str('x', {'x': 0}))
-        self.assertFalse(match_str('x>0', {'x': 0}))
-        self.assertFalse(match_str('x>0', {}))
-        self.assertTrue(match_str('x>?0', {}))
-        self.assertTrue(match_str('x>1K', {'x': 1200}))
-        self.assertFalse(match_str('x>2K', {'x': 1200}))
-        self.assertTrue(match_str('x>=1200 & x < 1300', {'x': 1200}))
-        self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
-        self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
-        self.assertTrue(match_str('y=foobar42', {'y': 'foobar42'}))
-        self.assertFalse(match_str('y!=foobar42', {'y': 'foobar42'}))
-        self.assertTrue(match_str('y!=foobar2', {'y': 'foobar42'}))
-        self.assertFalse(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 90, 'description': 'foo'}))
-        self.assertTrue(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 190, 'description': 'foo'}))
-        self.assertFalse(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 190, 'dislike_count': 60, 'description': 'foo'}))
-        self.assertFalse(match_str(
-            'like_count > 100 & dislike_count <? 50 & description',
-            {'like_count': 190, 'dislike_count': 10}))
         self.assertTrue(match_str('is_live', {'is_live': True}))
         self.assertFalse(match_str('is_live', {'is_live': False}))
         self.assertFalse(match_str('is_live', {'is_live': None}))
@@ -1245,6 +1302,76 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
         self.assertTrue(match_str('title', {'title': ''}))
         self.assertFalse(match_str('!title', {'title': 'abc'}))
         self.assertFalse(match_str('!title', {'title': ''}))
+
+        # Numeric
+        self.assertFalse(match_str('x>0', {'x': 0}))
+        self.assertFalse(match_str('x>0', {}))
+        self.assertTrue(match_str('x>?0', {}))
+        self.assertTrue(match_str('x>1K', {'x': 1200}))
+        self.assertFalse(match_str('x>2K', {'x': 1200}))
+        self.assertTrue(match_str('x>=1200 & x < 1300', {'x': 1200}))
+        self.assertFalse(match_str('x>=1100 & x < 1200', {'x': 1200}))
+        self.assertTrue(match_str('x > 1:0:0', {'x': 3700}))
+
+        # String
+        self.assertFalse(match_str('y=a212', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y=foobar42', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y!=foobar42', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y!=foobar2', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y^=foo', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y!^=foo', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y^=bar', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y!^=bar', {'y': 'foobar42'}))
+        self.assertRaises(ValueError, match_str, 'x^=42', {'x': 42})
+        self.assertTrue(match_str('y*=bar', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y!*=bar', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y*=baz', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y!*=baz', {'y': 'foobar42'}))
+        self.assertTrue(match_str('y$=42', {'y': 'foobar42'}))
+        self.assertFalse(match_str('y$=43', {'y': 'foobar42'}))
+
+        # And
+        self.assertFalse(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 90, 'description': 'foo'}))
+        self.assertTrue(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 190, 'description': 'foo'}))
+        self.assertFalse(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 190, 'dislike_count': 60, 'description': 'foo'}))
+        self.assertFalse(match_str(
+            'like_count > 100 & dislike_count <? 50 & description',
+            {'like_count': 190, 'dislike_count': 10}))
+
+        # Regex
+        self.assertTrue(match_str(r'x~=\bbar', {'x': 'foo bar'}))
+        self.assertFalse(match_str(r'x~=\bbar.+', {'x': 'foo bar'}))
+        self.assertFalse(match_str(r'x~=^FOO', {'x': 'foo bar'}))
+        self.assertTrue(match_str(r'x~=(?i)^FOO', {'x': 'foo bar'}))
+
+        # Quotes
+        self.assertTrue(match_str(r'x^="foo"', {'x': 'foo "bar"'}))
+        self.assertFalse(match_str(r'x^="foo  "', {'x': 'foo "bar"'}))
+        self.assertFalse(match_str(r'x$="bar"', {'x': 'foo "bar"'}))
+        self.assertTrue(match_str(r'x$=" \"bar\""', {'x': 'foo "bar"'}))
+
+        # Escaping &
+        self.assertFalse(match_str(r'x=foo & bar', {'x': 'foo & bar'}))
+        self.assertTrue(match_str(r'x=foo \& bar', {'x': 'foo & bar'}))
+        self.assertTrue(match_str(r'x=foo \& bar & x^=foo', {'x': 'foo & bar'}))
+        self.assertTrue(match_str(r'x="foo \& bar" & x^=foo', {'x': 'foo & bar'}))
+
+        # Example from docs
+        self.assertTrue(match_str(
+            r"!is_live & like_count>?100 & description~='(?i)\bcats \& dogs\b'",
+            {'description': 'Raining Cats & Dogs'}))
+
+        # Incomplete
+        self.assertFalse(match_str('id!=foo', {'id': 'foo'}, True))
+        self.assertTrue(match_str('x', {'id': 'foo'}, True))
+        self.assertTrue(match_str('!x', {'id': 'foo'}, True))
+        self.assertFalse(match_str('x', {'id': 'foo'}, False))
 
     def test_parse_dfxp_time_expr(self):
         self.assertEqual(parse_dfxp_time_expr(None), None)
@@ -1321,21 +1448,21 @@ The first line
   </body>
 </tt>'''.encode('utf-8')
         srt_data = '''1
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <font color="white" face="sansSerif" size="16">default style<font color="red">custom style</font></font>
 
 2
-00:00:02,080 --> 00:00:05,839
+00:00:02,080 --> 00:00:05,840
 <b><font color="cyan" face="sansSerif" size="16"><font color="lime">part 1
 </font>part 2</font></b>
 
 3
-00:00:05,839 --> 00:00:09,560
+00:00:05,840 --> 00:00:09,560
 <u><font color="lime">line 3
 part 3</font></u>
 
 4
-00:00:09,560 --> 00:00:12,359
+00:00:09,560 --> 00:00:12,360
 <i><u><font color="yellow"><font color="lime">inner
  </font>style</font></u></i>
 
@@ -1457,45 +1584,115 @@ Line 1
         self.assertEqual(urshift(3, 1), 1)
         self.assertEqual(urshift(-3, 1), 2147483646)
 
+    GET_ELEMENT_BY_CLASS_TEST_STRING = '''
+        <span class="foo bar">nice</span>
+    '''
+
     def test_get_element_by_class(self):
-        html = '''
-            <span class="foo bar">nice</span>
-        '''
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_element_by_class('foo', html), 'nice')
         self.assertEqual(get_element_by_class('no-such-class', html), None)
 
+    def test_get_element_html_by_class(self):
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_element_html_by_class('foo', html), html.strip())
+        self.assertEqual(get_element_by_class('no-such-class', html), None)
+
+    GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING = '''
+        <div itemprop="author" itemscope>foo</div>
+    '''
+
     def test_get_element_by_attribute(self):
-        html = '''
-            <span class="foo bar">nice</span>
-        '''
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_element_by_attribute('class', 'foo bar', html), 'nice')
         self.assertEqual(get_element_by_attribute('class', 'foo', html), None)
         self.assertEqual(get_element_by_attribute('class', 'no-such-foo', html), None)
 
-        html = '''
-            <div itemprop="author" itemscope>foo</div>
-        '''
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
 
         self.assertEqual(get_element_by_attribute('itemprop', 'author', html), 'foo')
 
+    def test_get_element_html_by_attribute(self):
+        html = self.GET_ELEMENT_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('class', 'foo bar', html), html.strip())
+        self.assertEqual(get_element_html_by_attribute('class', 'foo', html), None)
+        self.assertEqual(get_element_html_by_attribute('class', 'no-such-foo', html), None)
+
+        html = self.GET_ELEMENT_BY_ATTRIBUTE_TEST_STRING
+
+        self.assertEqual(get_element_html_by_attribute('itemprop', 'author', html), html.strip())
+
+    GET_ELEMENTS_BY_CLASS_TEST_STRING = '''
+        <span class="foo bar">nice</span><span class="foo bar">also nice</span>
+    '''
+    GET_ELEMENTS_BY_CLASS_RES = ['<span class="foo bar">nice</span>', '<span class="foo bar">also nice</span>']
+
     def test_get_elements_by_class(self):
-        html = '''
-            <span class="foo bar">nice</span><span class="foo bar">also nice</span>
-        '''
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_elements_by_class('foo', html), ['nice', 'also nice'])
         self.assertEqual(get_elements_by_class('no-such-class', html), [])
 
+    def test_get_elements_html_by_class(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_elements_html_by_class('foo', html), self.GET_ELEMENTS_BY_CLASS_RES)
+        self.assertEqual(get_elements_html_by_class('no-such-class', html), [])
+
     def test_get_elements_by_attribute(self):
-        html = '''
-            <span class="foo bar">nice</span><span class="foo bar">also nice</span>
-        '''
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(get_elements_by_attribute('class', 'foo bar', html), ['nice', 'also nice'])
         self.assertEqual(get_elements_by_attribute('class', 'foo', html), [])
         self.assertEqual(get_elements_by_attribute('class', 'no-such-foo', html), [])
+
+    def test_get_elements_html_by_attribute(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(get_elements_html_by_attribute('class', 'foo bar', html), self.GET_ELEMENTS_BY_CLASS_RES)
+        self.assertEqual(get_elements_html_by_attribute('class', 'foo', html), [])
+        self.assertEqual(get_elements_html_by_attribute('class', 'no-such-foo', html), [])
+
+    def test_get_elements_text_and_html_by_attribute(self):
+        html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
+
+        self.assertEqual(
+            list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
+            list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
+
+    GET_ELEMENT_BY_TAG_TEST_STRING = '''
+    random text lorem ipsum</p>
+    <div>
+        this should be returned
+        <span>this should also be returned</span>
+        <div>
+            this should also be returned
+        </div>
+        closing tag above should not trick, so this should also be returned
+    </div>
+    but this text should not be returned
+    '''
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[32:276]
+    GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT = GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML[5:-6]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML = GET_ELEMENT_BY_TAG_TEST_STRING.strip()[78:119]
+    GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT = GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML[6:-7]
+
+    def test_get_element_text_and_html_by_tag(self):
+        html = self.GET_ELEMENT_BY_TAG_TEST_STRING
+
+        self.assertEqual(
+            get_element_text_and_html_by_tag('div', html),
+            (self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_TEXT, self.GET_ELEMENT_BY_TAG_RES_OUTERDIV_HTML))
+        self.assertEqual(
+            get_element_text_and_html_by_tag('span', html),
+            (self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_TEXT, self.GET_ELEMENT_BY_TAG_RES_INNERSPAN_HTML))
+        self.assertRaises(compat_HTMLParseError, get_element_text_and_html_by_tag, 'article', html)
 
     def test_iri_to_uri(self):
         self.assertEqual(
@@ -1534,8 +1731,11 @@ Line 1
         self.assertEqual(LazyList(it).exhaust(), it)
         self.assertEqual(LazyList(it)[5], it[5])
 
+        self.assertEqual(LazyList(it)[5:], it[5:])
+        self.assertEqual(LazyList(it)[:5], it[:5])
         self.assertEqual(LazyList(it)[::2], it[::2])
         self.assertEqual(LazyList(it)[1::2], it[1::2])
+        self.assertEqual(LazyList(it)[5::-1], it[5::-1])
         self.assertEqual(LazyList(it)[6:2:-2], it[6:2:-2])
         self.assertEqual(LazyList(it)[::-1], it[::-1])
 
@@ -1545,8 +1745,9 @@ Line 1
         self.assertEqual(repr(LazyList(it)), repr(it))
         self.assertEqual(str(LazyList(it)), str(it))
 
-        self.assertEqual(list(LazyList(it).reverse()), it[::-1])
-        self.assertEqual(list(LazyList(it).reverse()[1:3:7]), it[::-1][1:3:7])
+        self.assertEqual(list(LazyList(it, reverse=True)), it[::-1])
+        self.assertEqual(list(reversed(LazyList(it))[::-1]), it)
+        self.assertEqual(list(reversed(LazyList(it))[1:3:7]), it[::-1][1:3:7])
 
     def test_LazyList_laziness(self):
 
@@ -1559,14 +1760,35 @@ Line 1
         test(ll, 5, 5, range(6))
         test(ll, -3, 7, range(10))
 
-        ll = LazyList(range(10)).reverse()
+        ll = LazyList(range(10), reverse=True)
         test(ll, -1, 0, range(1))
         test(ll, 3, 6, range(10))
 
         ll = LazyList(itertools.count())
         test(ll, 10, 10, range(11))
-        ll.reverse()
+        ll = reversed(ll)
         test(ll, -15, 14, range(15))
+
+    def test_format_bytes(self):
+        self.assertEqual(format_bytes(0), '0.00B')
+        self.assertEqual(format_bytes(1000), '1000.00B')
+        self.assertEqual(format_bytes(1024), '1.00KiB')
+        self.assertEqual(format_bytes(1024**2), '1.00MiB')
+        self.assertEqual(format_bytes(1024**3), '1.00GiB')
+        self.assertEqual(format_bytes(1024**4), '1.00TiB')
+        self.assertEqual(format_bytes(1024**5), '1.00PiB')
+        self.assertEqual(format_bytes(1024**6), '1.00EiB')
+        self.assertEqual(format_bytes(1024**7), '1.00ZiB')
+        self.assertEqual(format_bytes(1024**8), '1.00YiB')
+
+    def test_hide_login_info(self):
+        self.assertEqual(Config.hide_login_info(['-u', 'foo', '-p', 'bar']),
+                         ['-u', 'PRIVATE', '-p', 'PRIVATE'])
+        self.assertEqual(Config.hide_login_info(['-u']), ['-u'])
+        self.assertEqual(Config.hide_login_info(['-u', 'foo', '-u', 'bar']),
+                         ['-u', 'PRIVATE', '-u', 'PRIVATE'])
+        self.assertEqual(Config.hide_login_info(['--username=foo']),
+                         ['--username=PRIVATE'])
 
 
 if __name__ == '__main__':

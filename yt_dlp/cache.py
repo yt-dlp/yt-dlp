@@ -50,6 +50,7 @@ class Cache(object):
             except OSError as ose:
                 if ose.errno != errno.EEXIST:
                     raise
+            self._ydl.write_debug(f'Saving {section}.{key} to cache')
             write_json_file(data, fn)
         except Exception:
             tb = traceback.format_exc()
@@ -66,6 +67,7 @@ class Cache(object):
         try:
             try:
                 with io.open(cache_fn, 'r', encoding='utf-8') as cachef:
+                    self._ydl.write_debug(f'Loading {section}.{key} from cache')
                     return json.load(cachef)
             except ValueError:
                 try:

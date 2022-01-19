@@ -266,7 +266,7 @@ class ViuOTTIE(InfoExtractor):
 
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
-        country_code, lang_code, video_id = re.match(self._VALID_URL, url).groups()
+        country_code, lang_code, video_id = self._match_valid_url(url).groups()
 
         query = {
             'r': 'vod/ajax-detail',
