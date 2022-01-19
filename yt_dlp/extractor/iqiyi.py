@@ -596,7 +596,7 @@ class IqIE(InfoExtractor):
             self.report_warning(f'This preview video is limited to {preview_time} seconds')
 
         # TODO: Extract audio-only formats
-        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
+        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str, default=[])):
             dash_path = dash_paths.get(bid)
             if not dash_path:
                 self.report_warning(f'Unknown format id: {bid}. It is currently not being extracted')
@@ -611,26 +611,26 @@ class IqIE(InfoExtractor):
             extracted_formats = []
             if video_format.get('m3u8Url'):
                 extracted_formats.extend(self._extract_m3u8_formats(
-                    urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['m3u8Url']), 'mp4', m3u8_id=bid), fatal=False)
+                    urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['m3u8Url']),
+                    'mp4', m3u8_id=bid, fatal=False))
             if video_format.get('mpdUrl'):
                 # TODO: Properly extract mpd hostname
                 extracted_formats.extend(self._extract_mpd_formats(
-                    urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['mpdUrl']), mpd_id=bid), fatal=False)
+                    urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['mpdUrl']),
+                    mpd_id=bid, fatal=False))
             if video_format.get('m3u8'):
                 ff = video_format.get('ff', 'ts')
                 if ff == 'ts':
                     m3u8_formats, _ = self._parse_m3u8_formats_and_subtitles(
-                        video_format['m3u8'], 'data:application/x-mpegurl;base64,' + base64.b64encode(video_format['m3u8'].encode('utf-8')).decode('ascii'),
-                        'mp4', m3u8_id=bid, fatal=False)
+                        video_format['m3u8'], ext='mp4', m3u8_id=bid, fatal=False)
                     extracted_formats.extend(m3u8_formats)
                 elif ff == 'm4s':
                     mpd_data = traverse_obj(
-                        self._parse_json(video_format['m3u8'], video_id, fatal=False), ('payload', ..., 'data'), expected_type=str_or_none)
+                        self._parse_json(video_format['m3u8'], video_id, fatal=False), ('payload', ..., 'data'), expected_type=str)
                     if not mpd_data:
                         continue
                     mpd_formats, _ = self._parse_mpd_formats_and_subtitles(
-                        mpd_data, bid, format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'),
-                        'data:application/dash+xml;base64,' + base64.b64encode(mpd_data.encode('utf-8')).decode('ascii'), fatal=False)
+                        mpd_data, bid, format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'))
                     extracted_formats.extend(mpd_formats)
                 else:
                     self.report_warning(f'{ff} formats are currently not supported')
@@ -668,8 +668,8 @@ class IqIE(InfoExtractor):
             'age_limit': parse_age_limit(video_info.get('rating')),
             'average_rating': traverse_obj(page_data, ('playScoreInfo', 'score'), expected_type=float_or_none),
             'timestamp': parse_iso8601(video_info.get('isoUploadDate')),
-            'categories': traverse_obj(extra_metadata, ('videoTagMap', ..., ..., 'name'), expected_type=str_or_none),
-            'cast': traverse_obj(extra_metadata, ('actorArr', ..., 'name'), expected_type=str_or_none),
+            'categories': traverse_obj(extra_metadata, ('videoTagMap', ..., ..., 'name'), expected_type=str),
+            'cast': traverse_obj(extra_metadata, ('actorArr', ..., 'name'), expected_type=str),
             'episode_number': int_or_none(video_info.get('order')) or None,
             'series': video_info.get('albumName'),
         }
