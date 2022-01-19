@@ -118,13 +118,18 @@ class ERTFlixIE(ERTFlixBaseIE):
     _VALID_URL = r'https?://www\.ertflix\.gr/(?:series|vod)/(?P<id>[a-z]{3}\.\d+)'
     _TESTS = [{
         'url': 'https://www.ertflix.gr/vod/vod.173258-aoratoi-ergates',
-        'md5': '388f47a70e1935c8dabe454e871446bb',
+        'md5': '6479d5e60fd7e520b07ba5411dcdd6e7',
         'info_dict': {
             'id': 'aoratoi-ergates',
             'ext': 'mp4',
             'title': 'md5:c1433d598fbba0211b0069021517f8b4',
-            'description': 'md5:8cc02e5cdb31058c8f6e0423db813770',
+            'description': 'md5:01a64d113c31957eb7eb07719ab18ff4',
             'thumbnail': r're:https?://.+\.jpg',
+            'episode_id': 'vod.173258',
+            'timestamp': 1639648800,
+            'upload_date': '20211216',
+            'duration': 3166,
+            'age_limit': 8,
         },
     }, {
         'url': 'https://www.ertflix.gr/series/ser.3448-monogramma',
@@ -137,6 +142,24 @@ class ERTFlixIE(ERTFlixBaseIE):
         'playlist_mincount': 64,
     },
     ]
+    _TESTS += [{
+        'url': 'https://www.ertflix.gr/series/ser.3448-monogramma?season=1',
+        'info_dict': _TESTS[1]['info_dict'],
+        'playlist_count': 22,
+    }, {
+        'url': 'https://www.ertflix.gr/series/ser.3448-monogramma?season=1&season=2021%20-%202022',
+        'info_dict': _TESTS[1]['info_dict'],
+        'playlist_mincount': 36,
+    }, {
+        'url': 'https://www.ertflix.gr/series/ser.164991-to-diktuo-1?season=1-9',
+        'info_dict': {
+            'id': 'ser.164991',
+            'age_limit': 8,
+            'description': 'Η πρώτη ελληνική εκπομπή με θεματολογία αποκλειστικά γύρω από το ίντερνετ.',
+            'title': 'Το δίκτυο',
+        },
+        'playlist_mincount': 9,
+    }]
 
     def _extract_episode(self, episode):
         codename = try_get(episode, lambda x: x['Codename'], compat_str)
