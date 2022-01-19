@@ -455,63 +455,12 @@ class IqIE(InfoExtractor):
         '28': 'ar',
     }
 
-    def _extract_vms_player_js(self, webpage, video_id):
-        player_js_cache = self._downloader.cache.load('iq', 'player_js')
-        if player_js_cache:
-            return player_js_cache
-        webpack_js_url = self._proto_relative_url(self._search_regex(
-            r'<script src="((?:https?)?//stc.iqiyipic.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
-        webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
-        webpack_map1, webpack_map2 = [self._parse_json(js_map, video_id, transform_source=js_to_json) for js_map in self._search_regex(
-            r'\(({[^}]*})\[\w+\][^\)]*\)\s*\+\s*["\']\.["\']\s*\+\s*({[^}]*})\[\w+\]\+["\']\.js', webpack_js, 'JS locations', group=(1, 2))]
-        for module_index in reversed(webpack_map2.keys()):
-            module_js = self._download_webpage(
-                f'https://stc.iqiyipic.com/_next/static/chunks/{webpack_map1.get(module_index, module_index)}.{webpack_map2[module_index]}.js',
-                video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
-            if 'vms request' in module_js:
-                self._downloader.cache.store('iq', 'player_js', module_js)
-                return module_js
-        raise ExtractorError('Unable to extract player JS')
-
-    def _extract_cmd5x_function(self, webpage, video_id):
-        return self._search_regex(r',\s*(function\s*\([^\)]*\)\s*{\s*var _qda.+_qdc\(\)\s*})\s*,',
-                                  self._extract_vms_player_js(webpage, video_id), 'signature function')
-
-    def _update_bid_tags(self, webpage, video_id):
-        extracted_bid_tags = self._parse_json(
-            self._search_regex(
-                r'arguments\[1\][^,]*,\s*function\s*\([^\)]*\)\s*{\s*"use strict";?\s*var \w=({.+}})\s*,\s*\w\s*=\s*{\s*getNewVd',
-                self._extract_vms_player_js(webpage, video_id), 'video tags', default=''),
-            video_id, transform_source=js_to_json, fatal=False)
-        if not extracted_bid_tags:
-            return
-        self._BID_TAGS = {
-            bid: traverse_obj(extracted_bid_tags, (bid, 'value'), expected_type=str_or_none, default=self._BID_TAGS.get(bid))
-            for bid in extracted_bid_tags.keys()
-        }
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
-        self._update_bid_tags(webpage, video_id)
-
-        next_props = self._search_nextjs_data(webpage, video_id)['props']
-        page_data = next_props['initialState']['play']
-        video_info = page_data['curVideoInfo']
-        tvid, vid = video_info['tvId'], video_info['vid']
-        src = traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'), expected_type=str_or_none, default='01010031010018000000')
-        get_cookie = lambda name, default: self._get_cookies('https://iq.com/')[name].value if self._get_cookies('https://iq.com').get(name) else default
-        dfp, mode, lang = get_cookie('dfp', ''), get_cookie('mod', 'intl'), get_cookie('lang', 'en_us')
-        js_bid_list = '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']'
-        cmd5x_func = self._extract_cmd5x_function(webpage, video_id)
-
-        # bid 0 as an initial format checker
-        dash_paths = self._parse_json(PhantomJSwrapper(self).get(url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code', jscode="""
+    _DASH_JS = '''
             console.log(page.evaluate(function() {
-                var tvid = "%s"; var vid = "%s"; var src = "%s";
-                var dfp = "%s"; var mode = "%s"; var lang = "%s"; var bid_list = %s;
+                var tvid = "%(tvid)s"; var vid = "%(vid)s"; var src = "%(src)s";
+                var dfp = "%(dfp)s"; var mode = "%(mode)s"; var lang = "%(lang)s"; var bid_list = %(bid_list)s;
                 var tm = new Date().getTime();
-                var cmd5x_func = %s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
+                var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
                 var authKey = cmd5x(cmd5x('') + tm + '' + tvid);
                 var k_uid = Array.apply(null, Array(32)).map(function() {return Math.floor(Math.random() * 15).toString(16)}).join('');
                 var dash_paths = {};
@@ -573,7 +522,69 @@ class IqIE(InfoExtractor):
                 return JSON.stringify(dash_paths);
             }));
             saveAndExit();
-        """ % (tvid, vid, src, dfp, mode, lang, js_bid_list, cmd5x_func))[1].strip(), video_id)
+        '''
+
+    def _extract_vms_player_js(self, webpage, video_id):
+        player_js_cache = self._downloader.cache.load('iq', 'player_js')
+        if player_js_cache:
+            return player_js_cache
+        webpack_js_url = self._proto_relative_url(self._search_regex(
+            r'<script src="((?:https?)?//stc.iqiyipic.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
+        webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
+        webpack_map1, webpack_map2 = [self._parse_json(js_map, video_id, transform_source=js_to_json) for js_map in self._search_regex(
+            r'\(({[^}]*})\[\w+\][^\)]*\)\s*\+\s*["\']\.["\']\s*\+\s*({[^}]*})\[\w+\]\+["\']\.js', webpack_js, 'JS locations', group=(1, 2))]
+        for module_index in reversed(webpack_map2.keys()):
+            module_js = self._download_webpage(
+                f'https://stc.iqiyipic.com/_next/static/chunks/{webpack_map1.get(module_index, module_index)}.{webpack_map2[module_index]}.js',
+                video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
+            if 'vms request' in module_js:
+                self._downloader.cache.store('iq', 'player_js', module_js)
+                return module_js
+        raise ExtractorError('Unable to extract player JS')
+
+    def _extract_cmd5x_function(self, webpage, video_id):
+        return self._search_regex(r',\s*(function\s*\([^\)]*\)\s*{\s*var _qda.+_qdc\(\)\s*})\s*,',
+                                  self._extract_vms_player_js(webpage, video_id), 'signature function')
+
+    def _update_bid_tags(self, webpage, video_id):
+        extracted_bid_tags = self._parse_json(
+            self._search_regex(
+                r'arguments\[1\][^,]*,\s*function\s*\([^\)]*\)\s*{\s*"use strict";?\s*var \w=({.+}})\s*,\s*\w\s*=\s*{\s*getNewVd',
+                self._extract_vms_player_js(webpage, video_id), 'video tags', default=''),
+            video_id, transform_source=js_to_json, fatal=False)
+        if not extracted_bid_tags:
+            return
+        self._BID_TAGS = {
+            bid: traverse_obj(extracted_bid_tags, (bid, 'value'), expected_type=str, default=self._BID_TAGS.get(bid))
+            for bid in extracted_bid_tags.keys()
+        }
+
+    def _get_cookie(self, name, default=None):
+        cookie = self._get_cookies('https://iq.com/').get(name)
+        return cookie.value if cookie else default
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        self._update_bid_tags(webpage, video_id)
+
+        next_props = self._search_nextjs_data(webpage, video_id)['props']
+        page_data = next_props['initialState']['play']
+        video_info = page_data['curVideoInfo']
+
+        # bid 0 as an initial format checker
+        dash_paths = self._parse_json(PhantomJSwrapper(self).get(
+            url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code', jscode=self._DASH_JS % {
+                'tvid': video_info['tvId'],
+                'vid': video_info['vid'],
+                'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
+                                    expected_type=str, default='01010031010018000000'),
+                'dfp': self._get_cookie('dfp', ''),
+                'mode': self._get_cookie('mod', 'intl'),
+                'lang': self._get_cookie('lang', 'en_us'),
+                'bid_list': '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']',
+                'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
+            })[1].strip(), video_id)
 
         formats, subtitles = [], {}
         initial_format_data = self._download_json(
@@ -640,7 +651,8 @@ class IqIE(InfoExtractor):
         self._sort_formats(formats)
 
         for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict, default=[]):
-            subtitles.setdefault(self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name')), []).extend([{
+            lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))
+            subtitles.setdefault(lang, []).extend([{
                 'ext': format_ext,
                 'url': urljoin(format_data.get('dstl', 'http://meta.video.iqiyi.com'), sub_format[format_key])
             } for format_key, format_ext in [('srt', 'srt'), ('webvtt', 'vtt')] if sub_format.get(format_key)])
@@ -649,6 +661,8 @@ class IqIE(InfoExtractor):
         return {
             'id': video_id,
             'title': video_info['name'],
+            'formats': formats,
+            'subtitles': subtitles,
             'description': video_info.get('mergeDesc'),
             'duration': parse_duration(video_info.get('len')),
             'age_limit': parse_age_limit(video_info.get('rating')),
@@ -658,8 +672,6 @@ class IqIE(InfoExtractor):
             'cast': traverse_obj(extra_metadata, ('actorArr', ..., 'name'), expected_type=str_or_none),
             'episode_number': int_or_none(video_info.get('order')) or None,
             'series': video_info.get('albumName'),
-            'formats': formats,
-            'subtitles': subtitles,
         }
 
 
