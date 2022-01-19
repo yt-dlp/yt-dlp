@@ -321,6 +321,7 @@ from .curiositystream import (
     CuriosityStreamSeriesIE,
 )
 from .cwtv import CWTVIE
+from .daftsex import DaftsexIE
 from .dailymail import DailyMailIE
 from .dailymotion import (
     DailymotionIE,
