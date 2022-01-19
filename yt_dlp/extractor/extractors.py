@@ -866,6 +866,7 @@ from .mtv import (
     MTVItaliaProgrammaIE,
 )
 from .muenchentv import MuenchenTVIE
+from .murrtube import MurrtubeIE, MurrtubeUserIE
 from .musescore import MuseScoreIE
 from .mwave import MwaveIE, MwaveMeetGreetIE
 from .mxplayer import (
