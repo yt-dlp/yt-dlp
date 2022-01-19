@@ -451,12 +451,9 @@ class TikTokIE(TikTokBaseIE):
         # If we only call once, we get a 403 when downlaoding the video.
         self._download_webpage(url, video_id)
         webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
-        next_json = self._search_regex(
-            r'id=\"__NEXT_DATA__\"\s+type=\"application\/json\"\s*[^>]+>\s*(?P<next_data>[^<]+)',
-            webpage, 'next data', group='next_data', default=None)
+        next_data = self._search_nextjs_data(webpage, video_id, default='{}')
 
-        if next_json:
-            next_data = self._parse_json(next_json, video_id)
+        if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:

@@ -1544,12 +1544,12 @@ class InfoExtractor(object):
 
         return dict((k, v) for k, v in info.items() if v is not None)
 
-    def _search_nextjs_data(self, webpage, video_id, **kw):
+    def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
         return self._parse_json(
             self._search_regex(
                 r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
-                webpage, 'next.js data', **kw),
-            video_id, **kw)
+                webpage, 'next.js data', fatal=fatal, **kw),
+            video_id, transform_source=transform_source, fatal=fatal)
 
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__'):
         ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
