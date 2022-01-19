@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
     int_or_none,
+    parse_count,
     js_to_json,
     get_elements_by_class,
     parse_duration,
@@ -28,11 +29,11 @@ class DaftsexIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         title = get_elements_by_class('heading', webpage)[-1]
         duration = parse_duration(self._search_regex(
-            r'Duration: ([0-9]{2}:[0-9]{2})',
+            r'Duration: ((?:[0-9]{2}:){0,2}[0-9]{2})',
             webpage, 'duration', fatal=False))
-        views = int_or_none(self._search_regex(
+        views = parse_count(self._search_regex(
             r'Views: ([0-9 ]+)',
-            webpage, 'views', fatal=False).replace(' ', ''))
+            webpage, 'views', fatal=False))
 
         player_hash = self._search_regex(
             r'DaxabPlayer\.Init\({[\s\S]*hash:\s*"([0-9a-zA-Z_\-]+)"[\s\S]*}',
