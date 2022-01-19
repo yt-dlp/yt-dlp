@@ -4932,6 +4932,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         if tabs:
             selected_tab = self._extract_selected_tab(tabs)
             selected_tab_name = selected_tab.get('title', '').lower()
+            if selected_tab_name == 'home':
+                selected_tab_name = 'featured'
             requested_tab_name = mobj['tab'][1:]
             if 'no-youtube-channel-redirect' not in compat_opts:
                 if requested_tab_name == 'live':
