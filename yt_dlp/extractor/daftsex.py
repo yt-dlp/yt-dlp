@@ -39,9 +39,7 @@ class DaftsexIE(InfoExtractor):
             webpage, 'player hash')
         player_color = self._search_regex(
             r'DaxabPlayer\.Init\({[\s\S]*color:\s*"([0-9a-z]+)"[\s\S]*}',
-            webpage, 'player color', fatal=False)
-        if not player_color:
-            player_color = ''
+            webpage, 'player color', fatal=False) or ''
 
         embed_page = self._download_webpage(
             'https://daxab.com/player/%s?color=%s' % (player_hash,
