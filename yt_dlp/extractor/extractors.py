@@ -1522,7 +1522,12 @@ from .teachingchannel import TeachingChannelIE
 from .teamcoco import TeamcocoIE
 from .teamtreehouse import TeamTreeHouseIE
 from .techtalks import TechTalksIE
-from .ted import TEDIE
+from .ted import (
+    TedEmbedIE,
+    TedPlaylistIE,
+    TedSeriesIE,
+    TedTalkIE,
+)
 from .tele5 import Tele5IE
 from .tele13 import Tele13IE
 from .telebruxelles import TeleBruxellesIE
