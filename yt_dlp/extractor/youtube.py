@@ -3922,7 +3922,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             data, ('header', ..., ['banner', 'mobileBanner', 'tvBanner']))
         for banner in channel_banners:
             banner['preference'] = -10
-        # Get original banner
+
         if channel_banners:
             # We can get the uncropped banner by replacing the crop params with '=s0'
             # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
