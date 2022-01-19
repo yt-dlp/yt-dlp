@@ -3058,9 +3058,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_storyboard(self, player_responses, duration):
         spec = get_first(
             player_responses, ('storyboards', 'playerStoryboardSpecRenderer', 'spec'), default='').split('|')[::-1]
-        if not spec:
+        base_url = url_or_none(urljoin('https://i.ytimg.com/', spec.pop() or None))
+        if not base_url:
             return
-        base_url = spec.pop()
         L = len(spec) - 1
         for i, args in enumerate(spec):
             args = args.split('#')
