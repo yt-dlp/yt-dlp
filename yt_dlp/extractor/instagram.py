@@ -542,3 +542,90 @@ class InstagramTagIE(InstagramPlaylistBaseIE):
             'tag_name':
                 data['entry_data']['TagPage'][0]['graphql']['hashtag']['name']
         }
+
+
+class InstagramStoryIE(InstagramBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?instagram\.com/stories/(?P<user>[^/]+)/(?P<id>\d+)'
+    IE_NAME = 'instagram:story'
+
+    _TESTS = [{
+        'url': 'https://www.instagram.com/stories/highlights/18090946048123978/',
+        'info_dict': {
+            'id': '18090946048123978',
+            'title': 'Rare',
+        },
+        'playlist_mincount': 50
+    }]
+
+    def _real_extract(self, url):
+        username, story_id = self._match_valid_url(url).groups()
+
+        story_info_url = f'{username}/{story_id}/?__a=1' if username == 'highlights' else f'{username}/?__a=1'
+        story_info = self._download_json(f'https://www.instagram.com/stories/{story_info_url}', story_id, headers={
+            'X-IG-App-ID': 936619743392459,
+            'X-ASBD-ID': 198387,
+            'X-IG-WWW-Claim': 0,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Referer': url,
+        })
+        user_id = story_info['user']['id']
+        highlight_title = traverse_obj(story_info, ('highlight', 'title'))
+
+        story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
+        videos = self._download_json(f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}', story_id, headers={
+            'X-IG-App-ID': 936619743392459,
+            'X-ASBD-ID': 198387,
+            'X-IG-WWW-Claim': 0,
+        })['reels']
+        entites = []
+
+        full_name = traverse_obj(videos, ('user', 'full_name'))
+
+        user_info = {}
+        if not (username and username != 'highlights' and full_name):
+            user_info = self._download_json(
+                f'https://i.instagram.com/api/v1/users/{user_id}/info/', story_id, headers={
+                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-A505F Build/RP1A.200720.012; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/96.0.4664.45 Mobile Safari/537.36 Instagram 214.1.0.29.120 Android (30/11; 450dpi; 1080x2122; samsung; SM-A505F; a50; exynos9610; en_US; 333717274)',
+                }, note='Downloading user info')
+
+        username = traverse_obj(user_info, ('user', 'username')) or username
+        full_name = traverse_obj(user_info, ('user', 'full_name')) or full_name
+
+        videos = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
+        for video_info in videos:
+            formats = []
+            if isinstance(video_info, list):
+                video_info = video_info[0]
+            vcodec = video_info.get('video_codec')
+            dash_manifest_raw = video_info.get('video_dash_manifest')
+            videos_list = video_info.get('video_versions')
+            if not (dash_manifest_raw or videos_list):
+                continue
+            for format in videos_list:
+                formats.append({
+                    'url': format.get('url'),
+                    'width': format.get('width'),
+                    'height': format.get('height'),
+                    'vcodec': vcodec,
+                })
+            if dash_manifest_raw:
+                formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, story_id), mpd_id='dash'))
+            self._sort_formats(formats)
+            thumbnails = [{
+                'url': thumbnail.get('url'),
+                'width': thumbnail.get('width'),
+                'height': thumbnail.get('height')
+            } for thumbnail in traverse_obj(video_info, ('image_versions2', 'candidates')) or []]
+            entites.append({
+                'id': video_info.get('id'),
+                'title': f'Story by {username}',
+                'timestamp': int_or_none(video_info.get('taken_at')),
+                'channel': username,
+                'uploader': full_name,
+                'duration': float_or_none(video_info.get('video_duration')),
+                'uploader_id': user_id,
+                'thumbnails': thumbnails,
+                'formats': formats,
+            })
+
+        return self.playlist_result(entites, playlist_id=story_id, playlist_title=highlight_title)

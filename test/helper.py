@@ -211,7 +211,7 @@ def sanitize_got_info_dict(got_dict):
 
         # Auto-generated
         'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch',
-        'fulltitle', 'extractor', 'extractor_key', 'filepath', 'infojson_filename', 'original_url',
+        'fulltitle', 'extractor', 'extractor_key', 'filepath', 'infojson_filename', 'original_url', 'n_entries',
 
         # Only live_status needs to be checked
         'is_live', 'was_live',
@@ -224,6 +224,8 @@ def sanitize_got_info_dict(got_dict):
             return f'md5:{md5(value)}'
         elif isinstance(value, list) and len(value) > 10:
             return f'count:{len(value)}'
+        elif key.endswith('_count') and isinstance(value, int):
+            return int
         return value
 
     test_info_dict = {
@@ -259,6 +261,8 @@ def expect_info_dict(self, got_dict, expected_dict):
         def _repr(v):
             if isinstance(v, compat_str):
                 return "'%s'" % v.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n')
+            elif isinstance(v, type):
+                return v.__name__
             else:
                 return repr(v)
         info_dict_str = ''

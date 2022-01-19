@@ -88,6 +88,7 @@ class Zee5IE(InfoExtractor):
     _USER_TOKEN = None
     _LOGIN_HINT = 'Use "--username <mobile_number>" to login using otp or "--username token" and "--password <user_token>" to login using user token.'
     _NETRC_MACHINE = 'zee5'
+    _GEO_COUNTRIES = ['IN']
 
     def _login(self):
         username, password = self._get_login_info()
@@ -110,6 +111,8 @@ class Zee5IE(InfoExtractor):
                     raise ExtractorError(otp_request_json['message'], expected=True)
             elif username.lower() == 'token' and len(password) > 1198:
                 self._USER_TOKEN = password
+            else:
+                raise ExtractorError(self._LOGIN_HINT, expected=True)
 
     def _real_initialize(self):
         self._login()
