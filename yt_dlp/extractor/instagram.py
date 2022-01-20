@@ -579,6 +579,18 @@ class InstagramStoryIE(InstagramBaseIE):
         })['reels']
         entites = []
 
+        full_name = traverse_obj(videos, ('user', 'full_name'))
+
+        user_info = {}
+        if not (username and username != 'highlights' and full_name):
+            user_info = self._download_json(
+                f'https://i.instagram.com/api/v1/users/{user_id}/info/', story_id, headers={
+                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-A505F Build/RP1A.200720.012; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/96.0.4664.45 Mobile Safari/537.36 Instagram 214.1.0.29.120 Android (30/11; 450dpi; 1080x2122; samsung; SM-A505F; a50; exynos9610; en_US; 333717274)',
+                }, note='Downloading user info')
+
+        username = traverse_obj(user_info, ('user', 'username')) or username
+        full_name = traverse_obj(user_info, ('user', 'full_name')) or full_name
+
         videos = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
         for video_info in videos:
             formats = []
@@ -608,7 +620,8 @@ class InstagramStoryIE(InstagramBaseIE):
                 'id': video_info.get('id'),
                 'title': f'Story by {username}',
                 'timestamp': int_or_none(video_info.get('taken_at')),
-                'uploader': traverse_obj(videos, ('user', 'full_name')),
+                'channel': username,
+                'uploader': full_name,
                 'duration': float_or_none(video_info.get('video_duration')),
                 'uploader_id': user_id,
                 'thumbnails': thumbnails,

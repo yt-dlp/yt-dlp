@@ -2751,7 +2751,9 @@ class YoutubeDL(object):
         if not test:
             for ph in self._progress_hooks:
                 fd.add_progress_hook(ph)
-            urls = '", "'.join([f['url'] for f in info.get('requested_formats', [])] or [info['url']])
+            urls = '", "'.join(
+                (f['url'].split(',')[0] + ',<data>' if f['url'].startswith('data:') else f['url'])
+                for f in info.get('requested_formats', []) or [info])
             self.write_debug('Invoking downloader on "%s"' % urls)
 
         # Note: Ideally info should be a deep-copied so that hooks cannot modify it.

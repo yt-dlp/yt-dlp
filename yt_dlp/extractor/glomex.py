@@ -75,7 +75,7 @@ class GlomexBaseIE(InfoExtractor):
                     format_url, video_id, 'mp4', m3u8_id=format_id,
                     fatal=False)
                 formats.extend(formats_)
-                subs.update(subs_)
+                self._merge_subtitles(subs_, target=subs)
             else:
                 formats.append({
                     'url': format_url,
@@ -205,8 +205,6 @@ class GlomexEmbedIE(GlomexBaseIE):
             mdict = mobj.groupdict()
             if mdict.get('url'):
                 url = unescapeHTML(mdict['url'])
-                if url.startswith('//'):
-                    url = f'https:{url}'
                 if not cls.suitable(url):
                     continue
                 yield cls._smuggle_origin_url(url, origin_url)
