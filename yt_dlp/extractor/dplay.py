@@ -417,6 +417,29 @@ class DIYNetworkIE(DiscoveryPlusBaseIE):
     }
 
 
+class AmHistoryChannelIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?ahctv\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.ahctv.com/video/modern-sniper-ahc/army',
+        'info_dict': {
+            'id': '2309730',
+            'display_id': 'modern-sniper-ahc/army',
+            'ext': 'mp4',
+            'title': 'Army',
+            'description': 'Snipers today face challenges their predecessors couldve only dreamed of.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'ahc'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.ahctv.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
 class AnimalPlanetIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
