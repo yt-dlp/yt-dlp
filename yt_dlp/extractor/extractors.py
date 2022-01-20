@@ -752,7 +752,10 @@ from .livestream import (
     LivestreamOriginalIE,
     LivestreamShortenerIE,
 )
-from .lnkgo import LnkGoIE
+from .lnkgo import (
+    LnkGoIE,
+    LnkIE,
+)
 from .localnews8 import LocalNews8IE
 from .lovehomeporn import LoveHomePornIE
 from .lrt import LRTIE
