@@ -59,7 +59,6 @@ class PRXBaseIE(InfoExtractor):
             'title': response.get('title') or item_id,
             'thumbnails': [thumbnail_dict] if thumbnail_dict else None,
             'description': description,
-            # TODO: there is also sometimes a producedOn date (not timestamp) available
             'release_timestamp': unified_timestamp(response.get('releasedAt')),
             'timestamp': unified_timestamp(response.get('createdAt')),
             'modified_timestamp': unified_timestamp(response.get('updatedAt')),
