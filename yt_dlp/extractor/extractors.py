@@ -361,6 +361,7 @@ from .dplay import (
     DIYNetworkIE,
     AnimalPlanetIE,
     TLCIE,
+    AmHistoryChannelIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,
