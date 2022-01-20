@@ -357,11 +357,17 @@ from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
     HGTVDeIE,
+    GoDiscoveryIE,
+    TravelChannelIE,
+    CookingChannelIE,
+    HGTVUsaIE,
+    FoodNetworkIE,
+    DestinationAmericaIE,
+    AmHistoryChannelIE,
     ScienceChannelIE,
     DIYNetworkIE,
     AnimalPlanetIE,
     TLCIE,
-    AmHistoryChannelIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,
@@ -385,11 +391,6 @@ from .dumpert import DumpertIE
 from .defense import DefenseGouvFrIE
 from .digitalconcerthall import DigitalConcertHallIE
 from .discovery import DiscoveryIE
-from .discoverygo import (
-    DiscoveryGoIE,
-    DiscoveryGoPlaylistIE,
-)
-from .discoveryvr import DiscoveryVRIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
 from .doodstream import DoodStreamIE
