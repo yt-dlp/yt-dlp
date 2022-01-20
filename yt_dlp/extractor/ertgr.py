@@ -20,6 +20,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     url_or_none,
+    variadic,
 )
 
 
@@ -140,15 +141,23 @@ class ERTFlixIE(ERTFlixBaseIE):
             'title': 'Μονόγραμμα',
         },
         'playlist_mincount': 64,
-    },
-    ]
-    _TESTS += [{
+    }, {
         'url': 'https://www.ertflix.gr/series/ser.3448-monogramma?season=1',
-        'info_dict': _TESTS[1]['info_dict'],
+        'info_dict': {
+            'id': 'ser.3448',
+            'age_limit': 8,
+            'description': 'Η εκπομπή σαράντα ετών που σημάδεψε τον πολιτισμό μας.',
+            'title': 'Μονόγραμμα',
+        },
         'playlist_count': 22,
     }, {
         'url': 'https://www.ertflix.gr/series/ser.3448-monogramma?season=1&season=2021%20-%202022',
-        'info_dict': _TESTS[1]['info_dict'],
+        'info_dict': {
+            'id': 'ser.3448',
+            'age_limit': 8,
+            'description': 'Η εκπομπή σαράντα ετών που σημάδεψε τον πολιτισμό μας.',
+            'title': 'Μονόγραμμα',
+        },
         'playlist_mincount': 36,
     }, {
         'url': 'https://www.ertflix.gr/series/ser.164991-to-diktuo-1?season=1-9',
@@ -167,12 +176,11 @@ class ERTFlixIE(ERTFlixBaseIE):
         description = clean_html(dict_get(episode, ('ShortDescription', 'TinyDescription', )))
         if not codename or not title or not episode.get('HasPlayableStream', True):
             return
-        for _t in try_get(episode, lambda x: x['Images'], list) or [episode.get('Image', {})]:
-            if _t.get('IsMain'):
-                thumbnail = url_or_none(_t.get('Url'))
-                break
-        else:
-            thumbnail = None
+        thumbnail = next((
+            url_or_none(thumb.get('Url'))
+            for thumb in variadic(dict_get(episode, ('Images', 'Image')) or {})
+            if thumb.get('IsMain')),
+            None)
         return {
             '_type': 'url_transparent',
             'thumbnail': thumbnail,
