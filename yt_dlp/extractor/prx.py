@@ -22,6 +22,7 @@ class PRXBaseIE(InfoExtractor):
         return self._download_json(
             urljoin('https://cms.prx.org/api/v1/', path), item_id, query=query, fatal=fatal, note=note)
 
+    @staticmethod
     def _get_prx_embed_response(response, section):
         return traverse_obj(response, ('_embedded', f'prx:{section}'))
 
