@@ -373,7 +373,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 pref = dict(compat_urlparse.parse_qsl(pref_cookie.value))
             except ValueError:
                 self.report_warning('Failed to parse user PREF cookie' + bug_reports_message())
-        pref.update({'hl': 'en'})
+        pref.update({'hl': 'en', 'tz': 'UTC'})
         self._set_cookie('.youtube.com', name='PREF', value=compat_urllib_parse_urlencode(pref))
 
     def _real_initialize(self):
@@ -412,8 +412,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_context(self, ytcfg=None, default_client='web'):
         context = get_first(
             (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
-        # Enforce language for extraction
-        traverse_obj(context, 'client', expected_type=dict, default={})['hl'] = 'en'
+        # Enforce language and tz for extraction
+        client_context = traverse_obj(context, 'client', expected_type=dict, default={})
+        client_context.update({'hl': 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
         return context
 
     _SAPISID = None
@@ -729,7 +730,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
                     self._search_regex(
-                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'), text.lower(), 'time text', default=None)))
+                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'),
+                        text.lower(), 'time text', default=None)))
 
         if text and timestamp is None:
             self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
@@ -3913,10 +3915,37 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             playlist_id = channel_id
             tags = renderer.get('keywords', '').split()
 
-        thumbnails = (
-            self._extract_thumbnails(renderer, 'avatar')
-            or self._extract_thumbnails(
-                primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail')))
+        # We can get the uncropped banner/avatar by replacing the crop params with '=s0'
+        # See: https://github.com/yt-dlp/yt-dlp/issues/2237#issuecomment-1013694714
+        def _get_uncropped(url):
+            return url_or_none((url or '').split('=')[0] + '=s0')
+
+        avatar_thumbnails = self._extract_thumbnails(renderer, 'avatar')
+        if avatar_thumbnails:
+            uncropped_avatar = _get_uncropped(avatar_thumbnails[0]['url'])
+            if uncropped_avatar:
+                avatar_thumbnails.append({
+                    'url': uncropped_avatar,
+                    'id': 'avatar_uncropped',
+                    'preference': 1
+                })
+
+        channel_banners = self._extract_thumbnails(
+            data, ('header', ..., ['banner', 'mobileBanner', 'tvBanner']))
+        for banner in channel_banners:
+            banner['preference'] = -10
+
+        if channel_banners:
+            uncropped_banner = _get_uncropped(channel_banners[0]['url'])
+            if uncropped_banner:
+                channel_banners.append({
+                    'url': uncropped_banner,
+                    'id': 'banner_uncropped',
+                    'preference': -5
+                })
+
+        primary_thumbnails = self._extract_thumbnails(
+            primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail'))
 
         if playlist_id is None:
             playlist_id = item_id
@@ -3935,7 +3964,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'uploader': channel_name,
             'uploader_id': channel_id,
             'uploader_url': channel_url,
-            'thumbnails': thumbnails,
+            'thumbnails': primary_thumbnails + avatar_thumbnails + channel_banners,
             'tags': tags,
             'view_count': self._get_count(playlist_stats, 1),
             'availability': self._extract_availability(data),
