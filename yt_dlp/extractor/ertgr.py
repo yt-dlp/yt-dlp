@@ -214,8 +214,8 @@ class ERTFlixIE(ERTFlixBaseIE):
         if season_numbers:
             season_titles = season_titles or []
             for season in try_get(series, lambda x: x['Seasons'], list) or []:
-                if season.get('SeasonNumber') in season_numbers:
-                    season_titles.append(season.get('Title'))
+                if season.get('SeasonNumber') in season_numbers and season.get('Title'):
+                    season_titles.append(season['Title'])
 
         def gen_episode(m_info, season_titles):
             for episode_group in try_get(m_info, lambda x: x['EpisodeGroups'], list) or []:
