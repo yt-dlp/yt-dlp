@@ -123,26 +123,19 @@ class PRXBaseIE(InfoExtractor):
         """
         total = 0
         for page in itertools.count(1):
-            query = {
+            response = self._call_api(f'{item_id}: page {page}', endpoint, query={
                 **(query or {}),
                 'page': page,
                 'per': 100
-            }
-            response = self._call_api(
-                f'{item_id}: page {page}', endpoint, query=query) or {}
-
-            items = self._get_prx_embed_response(response, 'items')
-
-            if not (response or items):
+            })
+            if not response:
                 break
 
-            for entry_response in items:
-                res = entry_func(entry_response)
-                if res:
-                    yield res
+            items = self._get_prx_embed_response(response, 'items')
+            yield from filter(None, map(entry_func, items))
 
-            total += response.get('count')
-            if total >= response.get('total'):
+            total += response['count']
+            if total >= response['total']:
                 break
 
     def _story_playlist_entry(self, response):
