@@ -360,6 +360,7 @@ from .dplay import (
     ScienceChannelIE,
     DIYNetworkIE,
     AnimalPlanetIE,
+    TLCIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,
