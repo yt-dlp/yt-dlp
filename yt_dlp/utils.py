@@ -3383,7 +3383,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.now(), precision)
+    today = datetime_round(datetime.datetime.utcnow(), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
