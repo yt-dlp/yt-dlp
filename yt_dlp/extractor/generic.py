@@ -3705,10 +3705,10 @@ class GenericIE(InfoExtractor):
 
         # Look for ert.gr webtv embeds
         ertwebtv_urls = list(ERTWebtvEmbedIE._extract_urls(webpage))
-        if ertwebtv_urls:
-            return self.playlist_from_matches(
-                ertwebtv_urls, video_id, video_title, ie=ERTWebtvEmbedIE.ie_key(),
-                url_transparent=True, title=video_title)
+        if len(ertwebtv_urls) == 1:
+            return self.url_result(self._proto_relative_url(ertwebtv_urls[0]), video_title=video_title, transparent=True)
+        elif ertwebtv_urls:
+            return self.playlist_from_matches(ertwebtv_urls, video_id, video_title, ie=ERTWebtvEmbedIE.ie_key())
 
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
