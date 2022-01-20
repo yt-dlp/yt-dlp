@@ -304,28 +304,24 @@ class PRXStoryIE(PRXBaseIE):
         info = self._extract_story_info(story_response)
         if not info:
             return
-        entries = []
         audio_pieces = self._extract_audio_pieces(
             self._get_prx_embed_response(story_response, 'audio'))
-        if len(audio_pieces) > 1:
-            for idx, fmt in enumerate(audio_pieces):
-                entries.append({
-                    '_type': 'video',
-                    **info,  # needs to be before id to override
-                    'id': '%s_part%d' % (info['id'], (idx + 1)),
-                    'formats': [fmt],
-                })
+        if len(audio_pieces) == 1:
             return {
-                '_type': 'multi_video',
-                'entries': entries,
-                **info
-            }
-        else:
-            return {
-                '_type': 'video',
                 'formats': audio_pieces,
                 **info
             }
+
+        entries = [{
+            **info,
+            'id': '%s_part%d' % (info['id'], (idx + 1)),
+            'formats': [fmt],
+        } for idx, fmt in enumerate(audio_pieces)]
+        return {
+            '_type': 'multi_video',
+            'entries': entries,
+            **info
+        }
 
     def _real_extract(self, url):
         story_id = self._match_id(url)
