@@ -40,12 +40,11 @@ class ERTFlixBaseIE(InfoExtractor):
             self, video_id, method='Player/AcquireContent', api_version=1,
             param_headers=None, data=None, headers=None, **params):
         platform_codename = {'platformCodename': 'www'}
-        headers_as_param = {"X-Api-Date-Format": "iso", "X-Api-Camel-Case": False}
+        headers_as_param = {'X-Api-Date-Format': 'iso', 'X-Api-Camel-Case': False}
         headers_as_param.update(param_headers or {})
         headers = headers or {}
         if data:
-            headers["Content-Type"] = headers_as_param["Content-Type"] = \
-                "application/json;charset=utf-8"
+            headers['Content-Type'] = headers_as_param['Content-Type'] =  'application/json;charset=utf-8'
             data = json.dumps(merge_dicts(platform_codename, data)).encode('utf-8')
         query = merge_dicts(
             {} if data else platform_codename,
@@ -59,10 +58,10 @@ class ERTFlixBaseIE(InfoExtractor):
 
     def _call_api_get_tiles(self, video_id, *tile_ids):
         requested_tile_ids = [video_id] + list(tile_ids)
-        requested_tiles = [{"Id": tile_id} for tile_id in requested_tile_ids]
+        requested_tiles = [{'Id': tile_id} for tile_id in requested_tile_ids]
         tiles_response = self._call_api(
-            video_id, method="Tile/GetTiles", api_version=2,
-            data={"RequestedTiles": requested_tiles})
+            video_id, method='Tile/GetTiles', api_version=2,
+            data={'RequestedTiles': requested_tiles})
         tiles = try_get(tiles_response, lambda x: x['Tiles'], list) or []
         if tile_ids:
             if sorted([tile['Id'] for tile in tiles]) != sorted(requested_tile_ids):
@@ -234,9 +233,8 @@ class ERTFlixIE(ERTFlixBaseIE):
                     info.update(season_info)
                     yield info
 
-        result = self.playlist_result(list(gen_episode(media_info, season_titles)), playlist_id=video_id)
-        result.update(series_info)
-        return result
+        return self.playlist_result(
+            gen_episode(media_info, season_titles), playlist_id=video_id, **series_info)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -263,8 +261,6 @@ class ERTWebtvEmbedIE(InfoExtractor):
     IE_DESC = 'ert.gr webtv embedded videos'
     _BASE_PLAYER_URL_RE = re.escape('//www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php')
     _VALID_URL = rf'https?:{_BASE_PLAYER_URL_RE}\?([^#]+&)?f=(?P<id>[^#&]+)'
-    _EMBED_URL_RE = rf'(?:https?:)?{_BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
-    _EMBED_RE = re.compile(rf'''<iframe[^>]+?src=(?P<_q1>["'])(?P<url>{_EMBED_URL_RE})(?P=_q1)''')
 
     _TESTS = [{
         'url': 'https://www.ert.gr/webtv/live-uni/vod/dt-uni-vod.php?f=trailers/E2251_TO_DIKTYO_E09_16-01_1900.mp4&bgimg=/photos/2022/1/to_diktio_ep09_i_istoria_tou_diadiktiou_stin_Ellada_1021x576.jpg',
@@ -279,7 +275,10 @@ class ERTWebtvEmbedIE(InfoExtractor):
 
     @classmethod
     def _extract_urls(cls, webpage):
-        for mobj in cls._EMBED_RE.finditer(webpage):
+        EMBED_URL_RE = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
+        EMBED_RE = rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{EMBED_URL_RE})(?P=_q1)'
+
+        for mobj in re.finditer(EMBED_RE, webpage):
             url = unescapeHTML(mobj.group('url'))
             if not cls.suitable(url):
                 continue
