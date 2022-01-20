@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import urllib
+import itertools
 
 from .common import InfoExtractor
 from ..utils import (
@@ -33,13 +33,9 @@ class CrowdBunkerIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        headers = {
-            'referer': 'https://crowdbunker.com/',
-            'origin': 'https://crowdbunker.com',
-            'accept': 'application/json, text/plain, */*',
-        }
         id = self._match_id(url)
-        data_json = self._download_json(f'https://api.divulg.org/post/{id}/details', id, headers=headers)
+        data_json = self._download_json(f'https://api.divulg.org/post/{id}/details',
+                                        id, headers={'accept': 'application/json, text/plain, */*'})
         video_json = data_json['video']
         formats, subtitles = [], {}
         for sub in video_json.get('captions') or []:
@@ -81,7 +77,6 @@ class CrowdBunkerIE(InfoExtractor):
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subtitles,
-            'http_headers': headers,
         }
 
 
@@ -97,30 +92,21 @@ class CrowdBunkerChannelIE(InfoExtractor):
     }]
 
     def _entries(self, id):
-        headers = {
-            'referer': 'https://crowdbunker.com/',
-            'origin': 'https://crowdbunker.com',
-            'accept': 'application/json, text/plain, */*',
-        }
-        channel_json = self._download_json(f'https://api.divulg.org/organization/{id}/posts',
-                                           id, note='Downloading Page 0', headers=headers)
         last = None
-        page = 1
 
-        while True:
+        for page in itertools.count():
+            channel_json = self._download_json(
+                f'https://api.divulg.org/organization/{id}/posts', id, headers={'accept': 'application/json, text/plain, */*'},
+                query={'after': last} if last else {}, note=f'Downloading Page {page}')
             for item in channel_json.get('items') or []:
                 v_id = item.get('uid')
                 if not v_id:
                     continue
                 yield self.url_result(
-                    'https://crowdbunker.com/v/%s' % v_id,
-                    ie=CrowdBunkerIE.ie_key(), video_id=v_id)
+                    'https://crowdbunker.com/v/%s' % v_id, ie=CrowdBunkerIE.ie_key(), video_id=v_id)
             last = channel_json.get('last')
             if not last:
                 break
-            channel_json = self._download_json(f'https://api.divulg.org/organization/{id}/posts?after={urllib.parse.quote(last)}',
-                                               id, note=f'Downloading Page {page}', headers=headers)
-            page += 1
 
     def _real_extract(self, url):
         id = self._match_id(url)
