@@ -283,22 +283,19 @@ class PRXStoryIE(PRXBaseIE):
     ]
 
     def _extract_audio_pieces(self, audio_response):
-        pieces = []
-        piece_response = self._get_prx_embed_response(audio_response, 'items') or []
-        piece_response.sort(key=lambda x: int_or_none(x.get('position')))
-        for piece_response in self._get_prx_embed_response(audio_response, 'items'):
-            pieces.append({
-                'format_id': str_or_none(piece_response.get('id')),
-                'format_note': str_or_none(piece_response.get('label')),
-                'filesize': int_or_none(piece_response.get('size')),
-                'duration': int_or_none(piece_response.get('duration')),
-                'ext': mimetype2ext(piece_response.get('contentType')),
-                'asr': int_or_none(piece_response.get('frequency'), scale=1000),
-                'abr': int_or_none(piece_response.get('bitRate')),
-                'url': self._extract_file_link(piece_response),
-                'vcodec': 'none',
-            })
-        return pieces
+        return [{
+            'format_id': str_or_none(piece_response.get('id')),
+            'format_note': str_or_none(piece_response.get('label')),
+            'filesize': int_or_none(piece_response.get('size')),
+            'duration': int_or_none(piece_response.get('duration')),
+            'ext': mimetype2ext(piece_response.get('contentType')),
+            'asr': int_or_none(piece_response.get('frequency'), scale=1000),
+            'abr': int_or_none(piece_response.get('bitRate')),
+            'url': self._extract_file_link(piece_response),
+            'vcodec': 'none'
+        } for piece_response in sorted(
+            self._get_prx_embed_response(audio_response, 'items') or [],
+            key=lambda p: int_or_none(p.get('position')))]
 
     def _extract_story(self, story_response):
         info = self._extract_story_info(story_response)
