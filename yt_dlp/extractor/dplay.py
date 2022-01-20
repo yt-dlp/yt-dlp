@@ -441,6 +441,30 @@ class AnimalPlanetIE(DiscoveryPlusBaseIE):
     }
 
 
+class TLCIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:go\.)?tlc\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://go.tlc.com/video/my-600-lb-life-tlc/melissas-story-part-1',
+        'info_dict': {
+            'id': '2206540',
+            'display_id': 'my-600-lb-life-tlc/melissas-story-part-1',
+            'ext': 'mp4',
+            'title': 'Melissas Story (Part 1)',
+            'description': 'At 650 lbs, Melissa is ready to begin her seven-year weight loss journey.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'tlc'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.tlc.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
 class DiscoveryPlusIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?discoveryplus\.com/(?!it/)(?:\w{2}/)?video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
