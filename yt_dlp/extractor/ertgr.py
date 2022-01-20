@@ -25,18 +25,6 @@ from ..utils import (
 
 
 class ERTFlixBaseIE(InfoExtractor):
-    _VALID_URL = r'ertflix:(?P<id>[\w-]+)'
-    _TESTS = [{
-        'url': 'ertflix:monogramma-praxitelis-tzanoylinos',
-        'md5': '5b9c2cd171f09126167e4082fc1dd0ef',
-        'info_dict': {
-            'id': 'monogramma-praxitelis-tzanoylinos',
-            'ext': 'mp4',
-            'title': 'md5:ef0b439902963d56c43ac83c3f41dd0e',
-        },
-    },
-    ]
-
     def _call_api(
             self, video_id, method='Player/AcquireContent', api_version=1,
             param_headers=None, data=None, headers=None, **params):
@@ -72,6 +60,22 @@ class ERTFlixBaseIE(InfoExtractor):
             return next(tile for tile in tiles if tile['Id'] == video_id)
         except StopIteration:
             raise ExtractorError('No matching tile found', video_id=video_id)
+
+
+class ERTFlixCodenameIE(ERTFlixBaseIE):
+    IE_NAME = 'ertflix:codename'
+    IE_DESC = 'ERTFLIX videos by codename'
+    _VALID_URL = r'ertflix:(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'ertflix:monogramma-praxitelis-tzanoylinos',
+        'md5': '5b9c2cd171f09126167e4082fc1dd0ef',
+        'info_dict': {
+            'id': 'monogramma-praxitelis-tzanoylinos',
+            'ext': 'mp4',
+            'title': 'md5:ef0b439902963d56c43ac83c3f41dd0e',
+        },
+    },
+    ]
 
     def _extract_formats_and_subs(self, video_id, allow_none=True):
         media_info = self._call_api(video_id, codename=video_id)
@@ -116,6 +120,8 @@ class ERTFlixBaseIE(InfoExtractor):
 
 
 class ERTFlixIE(ERTFlixBaseIE):
+    IE_NAME = 'ertflix'
+    IE_DESC = 'ERTFLIX videos'
     _VALID_URL = r'https?://www\.ertflix\.gr/(?:series|vod)/(?P<id>[a-z]{3}\.\d+)'
     _TESTS = [{
         'url': 'https://www.ertflix.gr/vod/vod.173258-aoratoi-ergates',

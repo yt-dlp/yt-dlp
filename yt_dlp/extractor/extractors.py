@@ -430,7 +430,7 @@ from .eroprofile import (
     EroProfileAlbumIE,
 )
 from .ertgr import (
-    ERTFlixBaseIE,
+    ERTFlixCodenameIE,
     ERTFlixIE,
     ERTWebtvEmbedIE,
 )
