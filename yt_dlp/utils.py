@@ -4094,9 +4094,14 @@ def parse_duration(s):
         return None
 
     days, hours, mins, secs, ms = [None] * 5
-    m = re.match(r'(?:(?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?(?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?Z?$', s)
+    m = re.match(r'''(?x)
+            (?P<before_secs>
+                (?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?
+            (?P<secs>(?(before_secs)[0-9]{1,2}|[0-9]+))
+            (?P<ms>[.:][0-9]+)?Z?$
+        ''', s)
     if m:
-        days, hours, mins, secs, ms = m.groups()
+        days, hours, mins, secs, ms = m.group('days', 'hours', 'mins', 'secs', 'ms')
     else:
         m = re.match(
             r'''(?ix)(?:P?
@@ -4141,7 +4146,7 @@ def parse_duration(s):
     if days:
         duration += float(days) * 24 * 60 * 60
     if ms:
-        duration += float(ms)
+        duration += float(ms.replace(':', '.'))
     return duration
 
 

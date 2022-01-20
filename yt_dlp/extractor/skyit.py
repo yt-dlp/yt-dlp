@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_str,
     compat_parse_qs,
     compat_urllib_parse_urlparse,
 )
@@ -125,9 +124,7 @@ class SkyItVideoLiveIE(SkyItPlayerIE):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        asset_id = compat_str(self._parse_json(self._search_regex(
-            r'<script[^>]+id="__NEXT_DATA__"[^>]*>({.+?})</script>',
-            webpage, 'next data'), display_id)['props']['initialState']['livePage']['content']['asset_id'])
+        asset_id = str(self._search_nextjs_data(webpage, display_id)['props']['initialState']['livePage']['content']['asset_id'])
         livestream = self._download_json(
             'https://apid.sky.it/vdp/v1/getLivestream',
             asset_id, query={'id': asset_id})
