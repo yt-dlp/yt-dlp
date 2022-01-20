@@ -328,8 +328,7 @@ class PRXStoryIE(PRXBaseIE):
     def _real_extract(self, url):
         story_id = self._match_id(url)
         response = self._call_api(story_id, f'stories/{story_id}')
-        story = self._extract_story(response)
-        return story
+        return self._extract_story(response)
 
 
 class PRXSeriesIE(PRXBaseIE):
