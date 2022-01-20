@@ -3490,7 +3490,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
                     info.update({
                         'channel': self._get_text(vor, 'title'),
-                        'channel_followers': self._get_count(vor, 'subscriberCountText')})
+                        'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
 
                     rows = try_get(
                         vsir,
@@ -3945,7 +3945,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'availability': self._extract_availability(data),
             'modified_date': strftime_or_none(last_updated_unix, '%Y%m%d'),
             'playlist_count': self._get_count(playlist_stats, 0),
-            'channel_followers': self._get_count(data, ('header', ..., 'subscriberCountText')),
+            'channel_follower_count': self._get_count(data, ('header', ..., 'subscriberCountText')),
         }
         if not channel_id:
             metadata.update(self._extract_uploader(data))
