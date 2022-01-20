@@ -369,6 +369,174 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
         return self._get_disco_api_info(url, self._match_id(url), **self._DISCO_API_PARAMS)
 
 
+class GoDiscoveryIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:go\.)?discovery\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://go.discovery.com/video/dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
+        'info_dict': {
+            'id': '4164906',
+            'display_id': 'dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
+            'ext': 'mp4',
+            'title': 'Rodbuster / Galvanizer',
+            'description': 'Mike installs rebar with a team of rodbusters, then he galvanizes steel.',
+            'season_number': 9,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'dsc'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.go.discovery.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class TravelChannelIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?travelchannel\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.travelchannel.com/video/ghost-adventures-travel-channel/ghost-train-of-ely',
+        'info_dict': {
+            'id': '2220256',
+            'display_id': 'ghost-adventures-travel-channel/ghost-train-of-ely',
+            'ext': 'mp4',
+            'title': 'Ghost Train of Ely',
+            'description': 'The crew investigates the dark history of the Nevada Northern Railway.',
+            'season_number': 24,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'trav'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.travelchannel.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class CookingChannelIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?cookingchanneltv\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.cookingchanneltv.com/video/carnival-eats-cooking-channel/the-postman-always-brings-rice-2348634',
+        'info_dict': {
+            'id': '2348634',
+            'display_id': 'carnival-eats-cooking-channel/the-postman-always-brings-rice-2348634',
+            'ext': 'mp4',
+            'title': 'The Postman Always Brings Rice',
+            'description': 'Noah visits the Maui Fair and the Aurora Winter Festival in Vancouver.',
+            'season_number': 9,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'cook'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.cookingchanneltv.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class HGTVUsaIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?hgtv\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.hgtv.com/video/home-inspector-joe-hgtv-atve-us/this-mold-house',
+        'info_dict': {
+            'id': '4289736',
+            'display_id': 'home-inspector-joe-hgtv-atve-us/this-mold-house',
+            'ext': 'mp4',
+            'title': 'This Mold House',
+            'description': 'Joe and Noel help take a familys dream home from hazardous to fabulous.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'hgtv'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.hgtv.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class FoodNetworkIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?foodnetwork\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.foodnetwork.com/video/kids-baking-championship-food-network/float-like-a-butterfly',
+        'info_dict': {
+            'id': '4116449',
+            'display_id': 'kids-baking-championship-food-network/float-like-a-butterfly',
+            'ext': 'mp4',
+            'title': 'Float Like a Butterfly',
+            'description': 'The 12 kid bakers create colorful carved butterfly cakes.',
+            'season_number': 10,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'food'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.foodnetwork.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class DestinationAmericaIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?destinationamerica\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.destinationamerica.com/video/alaska-monsters-destination-america-atve-us/central-alaskas-bigfoot',
+        'info_dict': {
+            'id': '4210904',
+            'display_id': 'alaska-monsters-destination-america-atve-us/central-alaskas-bigfoot',
+            'ext': 'mp4',
+            'title': 'Central Alaskas Bigfoot',
+            'description': 'A team heads to central Alaska to investigate an aggressive Bigfoot.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'dam'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.destinationamerica.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class AmHistoryChannelIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?ahctv\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.ahctv.com/video/modern-sniper-ahc/army',
+        'info_dict': {
+            'id': '2309730',
+            'display_id': 'modern-sniper-ahc/army',
+            'ext': 'mp4',
+            'title': 'Army',
+            'description': 'Snipers today face challenges their predecessors couldve only dreamed of.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'ahc'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.ahctv.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
 class ScienceChannelIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
@@ -416,29 +584,6 @@ class DIYNetworkIE(DiscoveryPlusBaseIE):
         'country': 'us',
     }
 
-
-class AmHistoryChannelIE(DiscoveryPlusBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?ahctv\.com/video' + DPlayBaseIE._PATH_REGEX
-    _TESTS = [{
-        'url': 'https://www.ahctv.com/video/modern-sniper-ahc/army',
-        'info_dict': {
-            'id': '2309730',
-            'display_id': 'modern-sniper-ahc/army',
-            'ext': 'mp4',
-            'title': 'Army',
-            'description': 'Snipers today face challenges their predecessors couldve only dreamed of.',
-            'season_number': 1,
-            'episode_number': 1,
-        },
-        'skip': 'Available for Premium users',
-    }]
-
-    _PRODUCT = 'ahc'
-    _DISCO_API_PARAMS = {
-        'disco_host': 'us1-prod-direct.ahctv.com',
-        'realm': 'go',
-        'country': 'us',
-    }
 
 class AnimalPlanetIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayBaseIE._PATH_REGEX
