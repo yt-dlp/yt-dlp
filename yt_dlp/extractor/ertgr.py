@@ -44,7 +44,7 @@ class ERTFlixBaseIE(InfoExtractor):
         headers_as_param.update(param_headers or {})
         headers = headers or {}
         if data:
-            headers['Content-Type'] = headers_as_param['Content-Type'] =  'application/json;charset=utf-8'
+            headers['Content-Type'] = headers_as_param['Content-Type'] = 'application/json;charset=utf-8'
             data = json.dumps(merge_dicts(platform_codename, data)).encode('utf-8')
         query = merge_dicts(
             {} if data else platform_codename,
