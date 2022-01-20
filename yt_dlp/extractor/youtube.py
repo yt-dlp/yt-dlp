@@ -373,7 +373,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 pref = dict(compat_urlparse.parse_qsl(pref_cookie.value))
             except ValueError:
                 self.report_warning('Failed to parse user PREF cookie' + bug_reports_message())
-        pref.update({'hl': 'en'})
+        pref.update({'hl': 'en', 'tz': 'UTC'})
         self._set_cookie('.youtube.com', name='PREF', value=compat_urllib_parse_urlencode(pref))
 
     def _real_initialize(self):
@@ -412,8 +412,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_context(self, ytcfg=None, default_client='web'):
         context = get_first(
             (ytcfg, self._get_default_ytcfg(default_client)), 'INNERTUBE_CONTEXT', expected_type=dict)
-        # Enforce language for extraction
-        traverse_obj(context, 'client', expected_type=dict, default={})['hl'] = 'en'
+        # Enforce language and tz for extraction
+        client_context = traverse_obj(context, 'client', expected_type=dict, default={})
+        client_context.update({'hl': 'en', 'timeZone': 'UTC', 'utcOffsetMinutes': 0})
         return context
 
     _SAPISID = None
@@ -729,7 +730,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
                     self._search_regex(
-                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'), text.lower(), 'time text', default=None)))
+                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'),
+                        text.lower(), 'time text', default=None)))
 
         if text and timestamp is None:
             self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
