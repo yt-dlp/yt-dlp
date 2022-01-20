@@ -1930,7 +1930,7 @@ class GenericIE(InfoExtractor):
                 'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
                 'ext': 'mp4',
                 'title': 'md5:df64f5b61c06d0e9556c0cdd5cf14464',
-                'thumbnail': 'https://program.ert.gr/photos/2021/20220114-apotis6-gouales-pita.jpg',
+                'thumbnail': 'https://www.ert.gr/themata/photos/2021/20220114-apotis6-gouales-pita.jpg',
             },
         },
         {

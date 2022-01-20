@@ -292,10 +292,12 @@ class ERTWebtvEmbedIE(InfoExtractor):
             video_id, 'mp4')
         self._sort_formats(formats)
         thumbnail_id = parse_qs(url).get('bgimg', [None])[0]
+        if thumbnail_id and not thumbnail_id.startswith('http'):
+            thumbnail_id = f'https://program.ert.gr{thumbnail_id}'
         return {
             'id': video_id,
             'title': f'VOD - {video_id}',
-            'thumbnail': f'https://program.ert.gr{thumbnail_id}' if thumbnail_id else None,
+            'thumbnail': thumbnail_id,
             'formats': formats,
             'subtitles': subs,
         }
