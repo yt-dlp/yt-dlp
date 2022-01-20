@@ -514,7 +514,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         Appears to be used to track session state
         """
         return get_first(
-            args, (('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))),
+            args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
             expected_type=str)
 
     @property
@@ -4835,6 +4835,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'info_dict': {
             'id': 'recommended',
             'title': 'recommended',
+            'tags': [],
         },
         'playlist_mincount': 50,
         'params': {
