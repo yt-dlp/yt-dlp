@@ -128,10 +128,10 @@ class PRXBaseIE(InfoExtractor):
                 'page': page,
                 'per': 100
             })
-            if not response:
+            items = self._get_prx_embed_response(response, 'items')
+            if not response or not items:
                 break
 
-            items = self._get_prx_embed_response(response, 'items')
             yield from filter(None, map(entry_func, items))
 
             total += response['count']
@@ -207,7 +207,7 @@ class PRXStoryIE(PRXBaseIE):
                     'episode': 'Episode 8',
                     'release_date': '20211223',
                     'season': 'Season 5',
-
+                    'modified_date': '20220104'
                 }
             }, {
                 'info_dict': {
@@ -231,6 +231,7 @@ class PRXStoryIE(PRXBaseIE):
                     'episode': 'Episode 8',
                     'release_date': '20211223',
                     'season': 'Season 5',
+                    'modified_date': '20220104'
                 }
             }
 
@@ -272,7 +273,8 @@ class PRXStoryIE(PRXBaseIE):
                 'ext': 'mp3',
                 'tags': 'count:0',
                 'thumbnail': r're:https?://cms\.prx\.org/pub/\w+/0/web/story_image/767965/medium/Aurora_Over_Trees\.jpg',
-                'upload_date': '20220103'
+                'upload_date': '20220103',
+                'modified_date': '20220103'
             }
         }, {
             'url': 'https://listen.prx.org/stories/399200',
