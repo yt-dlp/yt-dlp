@@ -304,6 +304,10 @@ from .cozytv import CozyTVIE
 from .cracked import CrackedIE
 from .crackle import CrackleIE
 from .crooksandliars import CrooksAndLiarsIE
+from .crowdbunker import (
+    CrowdBunkerIE,
+    CrowdBunkerChannelIE,
+)
 from .crunchyroll import (
     CrunchyrollIE,
     CrunchyrollShowPlaylistIE,
