@@ -48,16 +48,19 @@ class LineLiveBaseIE(InfoExtractor):
 class LineLiveIE(LineLiveBaseIE):
     _VALID_URL = r'https?://live\.line\.me/channels/(?P<channel_id>\d+)/broadcast/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://live.line.me/channels/4867368/broadcast/16331360',
-        'md5': 'bc931f26bf1d4f971e3b0982b3fab4a3',
+        'url': 'https://live.line.me/channels/5833718/broadcast/18373277',
+        'md5': '2c15843b8cb3acd55009ddcb2db91f7c',
         'info_dict': {
-            'id': '16331360',
-            'title': '振りコピ講座😙😙😙',
+            'id': '18373277',
+            'title': '2021/12/05 （15分犬）定例譲渡会🐶',
             'ext': 'mp4',
-            'timestamp': 1617095132,
-            'upload_date': '20210330',
-            'channel': '白川ゆめか',
-            'channel_id': '4867368',
+            'timestamp': 1638674925,
+            'upload_date': '20211205',
+            'thumbnail': 'md5:e1f5817e60f4a72b7e43377cf308d7ef',
+            'channel_url': 'https://live.line.me/channels/5833718',
+            'channel': 'Yahooニュース掲載🗞プロフ見てね🐕🐕',
+            'channel_id': '5833718',
+            'duration': 937,
             'view_count': int,
             'comment_count': int,
             'is_live': False,
@@ -109,8 +112,8 @@ class LineLiveChannelIE(LineLiveBaseIE):
         'url': 'https://live.line.me/channels/5893542',
         'info_dict': {
             'id': '5893542',
-            'title': 'いくらちゃん',
-            'description': 'md5:c3a4af801f43b2fac0b02294976580be',
+            'title': 'いくらちゃんだよぉ🦒',
+            'description': 'md5:4d418087973ad081ceb1b3481f0b1816',
         },
         'playlist_mincount': 29
     }
