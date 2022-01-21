@@ -175,7 +175,7 @@ class FC2LiveIE(InfoExtractor):
         'url': 'https://live.fc2.com/57892267/',
         'info_dict': {
             'id': '57892267',
-            'title': 'どこまで・・・ 2022-01-21 16:48',
+            'title': 'どこまで・・・',
             'uploader': 'あつあげ',
             'uploader_id': '57892267',
             'thumbnail': r're:https?://.+fc2.+',
