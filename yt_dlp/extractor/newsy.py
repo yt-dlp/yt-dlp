@@ -2,7 +2,10 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import js_to_json
+from ..utils import (
+    js_to_json,
+    merge_dicts,
+)
 
 
 class NewsyIE(InfoExtractor):
@@ -37,14 +40,12 @@ class NewsyIE(InfoExtractor):
             formats.extend(fmts)
             subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats)
-        return {
+        return merge_dicts(ld_json, {
             'id': data_json['id'],
             'display_id': display_id,
-            'title': ld_json.get('title') or data_json.get('headline'),
-            'description': ld_json.get('description'),
-            'timestamp': ld_json.get('timestamp'),
+            'title': data_json.get('headline'),
             'duration': data_json.get('duration'),
             'thumbnail': data_json.get('image'),
             'formats': formats,
             'subtitles': subtitles,
-        }
+        })
