@@ -323,6 +323,8 @@ class YoutubeDL(object):
     cookiesfrombrowser:  A tuple containing the name of the browser, the profile
                        name/pathfrom where cookies are loaded, and the name of the
                        keyring. Eg: ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
+    legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
+                       support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.

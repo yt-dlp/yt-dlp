@@ -997,6 +997,8 @@ def make_HTTPS_handler(params, **kwargs):
     opts_check_certificate = not params.get('nocheckcertificate')
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = opts_check_certificate
+    if params.get('legacyserverconnect'):
+        context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
         try:

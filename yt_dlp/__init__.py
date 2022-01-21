@@ -756,6 +756,7 @@ def _real_main(argv=None):
         'skip_playlist_after_errors': opts.skip_playlist_after_errors,
         'cookiefile': opts.cookiefile,
         'cookiesfrombrowser': opts.cookiesfrombrowser,
+        'legacyserverconnect': opts.legacy_server_connect,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,
         'proxy': opts.proxy,
