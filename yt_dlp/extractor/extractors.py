@@ -1117,6 +1117,7 @@ from .patreon import (
 )
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
+from .peekvids import PeekVidsIE
 from .peertube import (
     PeerTubeIE,
     PeerTubePlaylistIE,
