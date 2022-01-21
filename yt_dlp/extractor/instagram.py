@@ -12,6 +12,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    format_field,
     float_or_none,
     get_element_by_attribute,
     int_or_none,
@@ -341,7 +342,7 @@ class InstagramIE(InstagramBaseIE):
             if nodes:
                 return self.playlist_result(
                     self._extract_nodes(nodes, True), video_id,
-                    'Post by %s' % uploader_id if uploader_id else None, description)
+                    format_field(uploader_id, template='Post by %s'), description)
 
             video_url = self._og_search_video_url(webpage, secure=False)
 

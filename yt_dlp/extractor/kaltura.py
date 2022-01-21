@@ -12,6 +12,7 @@ from ..compat import (
 from ..utils import (
     clean_html,
     ExtractorError,
+    format_field,
     int_or_none,
     unsmuggle_url,
     smuggle_url,
@@ -372,6 +373,6 @@ class KalturaIE(InfoExtractor):
             'thumbnail': info.get('thumbnailUrl'),
             'duration': info.get('duration'),
             'timestamp': info.get('createdAt'),
-            'uploader_id': info.get('userId') if info.get('userId') != 'None' else None,
+            'uploader_id': format_field(info, 'userId', ignore=('None', None)),
             'view_count': info.get('plays'),
         }
