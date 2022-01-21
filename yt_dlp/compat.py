@@ -251,6 +251,7 @@ __all__ = [
     'compat_asyncio_run',
     'compat_b64decode',
     'compat_basestring',
+    'compat_brotli',
     'compat_chr',
     'compat_cookiejar',
     'compat_cookiejar_Cookie',
