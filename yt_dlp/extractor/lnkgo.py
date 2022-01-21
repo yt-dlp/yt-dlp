@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     compat_str,
+    format_field,
     int_or_none,
     parse_iso8601,
     unified_strdate,
@@ -162,7 +163,7 @@ class LnkIE(InfoExtractor):
             'view_count': video_json.get('viewsCount'),
             'duration': video_json.get('duration'),
             'upload_date': unified_strdate(video_json.get('airDate')),
-            'thumbnail': f'https://lnk.lt/all-images/{video_json["posterImage"]}' if video_json.get('posterImage') else None,
+            'thumbnail': format_field(video_json, 'posterImage', 'https://lnk.lt/all-images/%s'),
             'episode_number': int_or_none(video_json.get('episodeNumber')),
             'series': video_json.get('programTitle'),
             'formats': formats,
