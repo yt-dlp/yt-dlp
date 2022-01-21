@@ -116,10 +116,10 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
         if len(embed_urls) == 1:
             return self.url_result(self._proto_relative_url(embed_urls[0]),
                                    ie=Ant1NewsGrEmbedIE.ie_key(),
-                                   transparent=True, timestamp=info.get('timestamp'))
+                                   url_transparent=True, timestamp=info.get('timestamp'))
         return self.playlist_from_matches(
             embed_urls, video_id, info['title'], ie=Ant1NewsGrEmbedIE.ie_key(),
-            url_transparent=True, timestamp=info.get('timestamp'))
+            video_kwargs=dict(url_transparent=True, timestamp=info.get('timestamp')))
 
 
 class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
