@@ -1709,7 +1709,10 @@ class YoutubeDL(object):
         ie_result['requested_entries'] = playlistitems
 
         _infojson_written = False
-        if not self.params.get('simulate') and self.params.get('allow_playlist_files', True):
+        write_playlist_files = self.params.get('allow_playlist_files', True)
+        if write_playlist_files and self.params.get('list_thumbnails'):
+            self.list_thumbnails(ie_result)
+        if write_playlist_files and not self.params.get('simulate'):
             ie_copy = self._playlist_infodict(ie_result, n_entries=n_entries)
             _infojson_written = self._write_info_json(
                 'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
