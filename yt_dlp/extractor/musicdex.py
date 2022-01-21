@@ -28,6 +28,8 @@ class MusicdexBaseIE(InfoExtractor):
             'thumbnail': format_field(album_json, 'image', 'https://www.musicdex.org/%s'),
             'album': album_json.get('name'),
             'release_year': try_get(album_json, lambda x: date_from_str(unified_strdate(x['release_date'])).year),
+            'extractor_key': MusicdexSongIE.ie_key(),
+            'extractor': 'MusicdexSong',
         }
 
 
