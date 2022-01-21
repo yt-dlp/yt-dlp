@@ -88,7 +88,7 @@ class ImgGamingBaseIE(InfoExtractor):
         video_data = self._download_json(dve_api_url, media_id)
         is_live = media_type == 'live'
         if is_live:
-            title = self._live_title(self._call_api('event/', media_id)['title'])
+            title = self._call_api('event/', media_id)['title']
         else:
             title = video_data['name']
 

@@ -1,6 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+from urllib.parse import unquote
+
 from .common import InfoExtractor
 from ..utils import (
     merge_dicts,
@@ -23,7 +25,6 @@ class WakanimIE(InfoExtractor):
             'episode_number': 2,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
     }, {
@@ -31,26 +32,37 @@ class WakanimIE(InfoExtractor):
         'url': 'https://www.wakanim.tv/de/v2/catalogue/episode/7843/sword-art-online-alicization-omu-arc-2-folge-15-omu',
         'only_matching': True,
     }]
+    _GEO_BYPASS = False
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
 
-        m3u8_url = urljoin(url, self._search_regex(
-            r'file\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage, 'm3u8 url',
+        if 'Geoblocking' in webpage:
+            if '/de/' in url:
+                self.raise_geo_restricted(countries=['DE', 'AT', 'CH'])
+            else:
+                self.raise_geo_restricted(countries=['RU'])
+
+        manifest_url = urljoin(url, self._search_regex(
+            r'file\s*:\s*(["\'])(?P<url>(?:(?!\1).)+)\1', webpage, 'manifest url',
             group='url'))
         if not self.get_param('allow_unplayable_formats'):
             # https://docs.microsoft.com/en-us/azure/media-services/previous/media-services-content-protection-overview#streaming-urls
             encryption = self._search_regex(
                 r'encryption%3D(c(?:enc|bc(?:s-aapl)?))',
-                m3u8_url, 'encryption', default=None)
+                manifest_url, 'encryption', default=None)
             if encryption in ('cenc', 'cbcs-aapl'):
                 self.report_drm(video_id)
 
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native',
-            m3u8_id='hls')
+        if 'format=mpd-time-cmaf' in unquote(manifest_url):
+            formats = self._extract_mpd_formats(
+                manifest_url, video_id, mpd_id='dash')
+        else:
+            formats = self._extract_m3u8_formats(
+                manifest_url, video_id, 'mp4', entry_protocol='m3u8_native',
+                m3u8_id='hls')
 
         info = self._search_json_ld(webpage, video_id, default={})
 

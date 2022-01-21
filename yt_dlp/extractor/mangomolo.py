@@ -33,7 +33,7 @@ class MangomoloBaseIE(InfoExtractor):
 
         return {
             'id': page_id,
-            'title': self._live_title(page_id) if self._IS_LIVE else page_id,
+            'title': page_id,
             'uploader_id': hidden_inputs.get('userid'),
             'duration': int_or_none(hidden_inputs.get('duration')),
             'is_live': self._IS_LIVE,

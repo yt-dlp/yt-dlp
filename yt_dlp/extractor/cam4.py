@@ -25,7 +25,7 @@ class CAM4IE(InfoExtractor):
 
         return {
             'id': channel_id,
-            'title': self._live_title(channel_id),
+            'title': channel_id,
             'is_live': True,
             'age_limit': 18,
             'formats': formats,

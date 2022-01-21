@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import collections
 import io
 import itertools
 import os
@@ -12,11 +13,13 @@ from .common import AudioConversionError, PostProcessor
 
 from ..compat import compat_str
 from ..utils import (
+    determine_ext,
     dfxp2srt,
     encodeArgument,
     encodeFilename,
     float_or_none,
-    get_exe_version,
+    _get_exe_version_output,
+    detect_exe_version,
     is_outdated_version,
     ISO639Utils,
     orderedSet,
@@ -27,6 +30,7 @@ from ..utils import (
     shell_quote,
     traverse_obj,
     variadic,
+    write_json_file,
 )
 
 
@@ -41,6 +45,7 @@ EXT_TO_OUT_FORMATS = {
     'ts': 'mpegts',
     'wma': 'asf',
     'wmv': 'asf',
+    'vtt': 'webvtt',
 }
 ACODECS = {
     'mp3': 'libmp3lame',
@@ -50,6 +55,7 @@ ACODECS = {
     'opus': 'libopus',
     'vorbis': 'libvorbis',
     'wav': None,
+    'alac': None,
 }
 
 
@@ -74,15 +80,20 @@ class FFmpegPostProcessor(PostProcessor):
             self.report_warning(warning)
 
     @staticmethod
+    def get_versions_and_features(downloader=None):
+        pp = FFmpegPostProcessor(downloader)
+        return pp._versions, pp._features
+
+    @staticmethod
     def get_versions(downloader=None):
-        return FFmpegPostProcessor(downloader)._versions
+        return FFmpegPostProcessor.get_version_and_features(downloader)[0]
 
     def _determine_executables(self):
         programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
-        prefer_ffmpeg = True
 
-        def get_ffmpeg_version(path):
-            ver = get_exe_version(path, args=['-version'])
+        def get_ffmpeg_version(path, prog):
+            out = _get_exe_version_output(path, ['-bsfs'])
+            ver = detect_exe_version(out) if out else False
             if ver:
                 regexs = [
                     r'(?:\d+:)?([0-9.]+)-[0-9]+ubuntu[0-9.]+$',  # Ubuntu, see [1]
@@ -93,42 +104,52 @@ class FFmpegPostProcessor(PostProcessor):
                     mobj = re.match(regex, ver)
                     if mobj:
                         ver = mobj.group(1)
-            return ver
+            self._versions[prog] = ver
+            if prog != 'ffmpeg' or not out:
+                return
+
+            mobj = re.search(r'(?m)^\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
+            lavf_runtime_version = mobj.group('runtime').replace(' ', '') if mobj else None
+            self._features = {
+                'fdk': '--enable-libfdk-aac' in out,
+                'setts': 'setts' in out.splitlines(),
+                'needs_adtstoasc': is_outdated_version(lavf_runtime_version, '57.56.100', False),
+            }
 
         self.basename = None
         self.probe_basename = None
-
         self._paths = None
         self._versions = None
-        if self._downloader:
-            prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
-            location = self.get_param('ffmpeg_location')
-            if location is not None:
-                if not os.path.exists(location):
-                    self.report_warning(
-                        'ffmpeg-location %s does not exist! '
-                        'Continuing without ffmpeg.' % (location))
-                    self._versions = {}
-                    return
-                elif os.path.isdir(location):
-                    dirname, basename = location, None
-                else:
-                    basename = os.path.splitext(os.path.basename(location))[0]
-                    basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
-                    dirname = os.path.dirname(os.path.abspath(location))
-                    if basename in ('ffmpeg', 'ffprobe'):
-                        prefer_ffmpeg = True
+        self._features = {}
 
-                self._paths = dict(
-                    (p, os.path.join(dirname, p)) for p in programs)
-                if basename:
-                    self._paths[basename] = location
-                self._versions = dict(
-                    (p, get_ffmpeg_version(self._paths[p])) for p in programs)
-        if self._versions is None:
-            self._versions = dict(
-                (p, get_ffmpeg_version(p)) for p in programs)
-            self._paths = dict((p, p) for p in programs)
+        prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
+        location = self.get_param('ffmpeg_location')
+        if location is None:
+            self._paths = {p: p for p in programs}
+        else:
+            if not os.path.exists(location):
+                self.report_warning(
+                    'ffmpeg-location %s does not exist! '
+                    'Continuing without ffmpeg.' % (location))
+                self._versions = {}
+                return
+            elif os.path.isdir(location):
+                dirname, basename = location, None
+            else:
+                basename = os.path.splitext(os.path.basename(location))[0]
+                basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
+                dirname = os.path.dirname(os.path.abspath(location))
+                if basename in ('ffmpeg', 'ffprobe'):
+                    prefer_ffmpeg = True
+
+            self._paths = dict(
+                (p, os.path.join(dirname, p)) for p in programs)
+            if basename:
+                self._paths[basename] = location
+
+        self._versions = {}
+        for p in programs:
+            get_ffmpeg_version(self._paths[p], p)
 
         if prefer_ffmpeg is False:
             prefs = ('avconv', 'ffmpeg')
@@ -148,6 +169,13 @@ class FFmpegPostProcessor(PostProcessor):
                 self.probe_basename = p
                 break
 
+        if self.basename == 'avconv':
+            self.deprecation_warning(
+                'Support for avconv is deprecated and may be removed in a future version. Use ffmpeg instead')
+        if self.probe_basename == 'avprobe':
+            self.deprecation_warning(
+                'Support for avprobe is deprecated and may be removed in a future version. Use ffprobe instead')
+
     @property
     def available(self):
         return self.basename is not None
@@ -163,6 +191,18 @@ class FFmpegPostProcessor(PostProcessor):
     @property
     def probe_executable(self):
         return self._paths[self.probe_basename]
+
+    @staticmethod
+    def stream_copy_opts(copy=True, *, ext=None):
+        yield from ('-map', '0')
+        # Don't copy Apple TV chapters track, bin_data
+        # See https://github.com/yt-dlp/yt-dlp/issues/2, #19042, #19024, https://trac.ffmpeg.org/ticket/6016
+        yield from ('-dn', '-ignore_unknown')
+        if copy:
+            yield from ('-c', 'copy')
+        # For some reason, '-c copy -map 0' is not enough to copy subtitles
+        if ext in ('mp4', 'mov'):
+            yield from ('-c:s', 'mov_text')
 
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
@@ -232,22 +272,23 @@ class FFmpegPostProcessor(PostProcessor):
             None)
         return num, len(streams)
 
-    def _get_real_video_duration(self, info, fatal=True):
+    def _get_real_video_duration(self, filepath, fatal=True):
         try:
-            if '_real_duration' not in info:
-                info['_real_duration'] = float_or_none(
-                    traverse_obj(self.get_metadata_object(info['filepath']), ('format', 'duration')))
-            if not info['_real_duration']:
+            duration = float_or_none(
+                traverse_obj(self.get_metadata_object(filepath), ('format', 'duration')))
+            if not duration:
                 raise PostProcessingError('ffprobe returned empty duration')
+            return duration
         except PostProcessingError as e:
             if fatal:
-                raise PostProcessingError(f'Unable to determine video duration; {e}')
-        return info.setdefault('_real_duration', None)
+                raise PostProcessingError(f'Unable to determine video duration: {e.msg}')
 
     def _duration_mismatch(self, d1, d2):
         if not d1 or not d2:
             return None
-        return abs(d1 - d2) > 1
+        # The duration is often only known to nearest second. So there can be <1sec disparity natually.
+        # Further excuse an additional <1sec difference.
+        return abs(d1 - d2) > 2
 
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
@@ -267,8 +308,10 @@ class FFmpegPostProcessor(PostProcessor):
 
         def make_args(file, args, name, number):
             keys = ['_%s%d' % (name, number), '_%s' % name]
-            if name == 'o' and number == 1:
-                keys.append('')
+            if name == 'o':
+                args += ['-movflags', '+faststart']
+                if number == 1:
+                    keys.append('')
             args += self._configuration_args(self.basename, keys)
             if name == 'i':
                 args.append('-i')
@@ -322,8 +365,9 @@ class FFmpegPostProcessor(PostProcessor):
             timestamps = timestamps[1:]
         keyframe_file = prepend_extension(filename, 'keyframes.temp')
         self.to_screen(f'Re-encoding "{filename}" with appropriate keyframes')
-        self.run_ffmpeg(filename, keyframe_file, ['-force_key_frames', ','.join(
-            f'{t:.6f}' for t in timestamps)])
+        self.run_ffmpeg(filename, keyframe_file, [
+            *self.stream_copy_opts(False, ext=determine_ext(filename)),
+            '-force_key_frames', ','.join(f'{t:.6f}' for t in timestamps)])
         return keyframe_file
 
     def concat_files(self, in_files, out_file, concat_opts=None):
@@ -338,10 +382,7 @@ class FFmpegPostProcessor(PostProcessor):
         with open(concat_file, 'wt', encoding='utf-8') as f:
             f.writelines(self._concat_spec(in_files, concat_opts))
 
-        out_flags = ['-c', 'copy']
-        if out_file.rpartition('.')[-1] in ('mp4', 'mov'):
-            # For some reason, '-c copy' is not enough to copy subtitles
-            out_flags.extend(['-c:s', 'mov_text', '-movflags', '+faststart'])
+        out_flags = list(self.stream_copy_opts(ext=determine_ext(out_file)))
 
         try:
             self.real_run_ffmpeg(
@@ -365,13 +406,35 @@ class FFmpegPostProcessor(PostProcessor):
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
     COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
-    SUPPORTED_EXTS = ('best', 'aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav')
+    SUPPORTED_EXTS = ('best', 'aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav', 'alac')
 
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._preferredcodec = preferredcodec or 'best'
-        self._preferredquality = preferredquality
+        self._preferredquality = float_or_none(preferredquality)
         self._nopostoverwrites = nopostoverwrites
+
+    def _quality_args(self, codec):
+        if self._preferredquality is None:
+            return []
+        elif self._preferredquality > 10:
+            return ['-b:a', f'{self._preferredquality}k']
+
+        limits = {
+            'libmp3lame': (10, 0),
+            'libvorbis': (0, 10),
+            # FFmpeg's AAC encoder does not have an upper limit for the value of -q:a.
+            # Experimentally, with values over 4, bitrate changes were minimal or non-existent
+            'aac': (0.1, 4),
+            'libfdk_aac': (1, 5),
+        }.get(codec)
+        if not limits:
+            return []
+
+        q = limits[1] + (limits[0] - limits[1]) * (self._preferredquality / 10)
+        if codec == 'libfdk_aac':
+            return ['-vbr', f'{int(q)}']
+        return ['-q:a', f'{q}']
 
     def run_ffmpeg(self, path, out_path, codec, more_opts):
         if codec is None:
@@ -386,7 +449,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, information):
-        path = information['filepath']
+        orig_path = path = information['filepath']
         orig_ext = information['ext']
 
         if self._preferredcodec == 'best' and orig_ext in self.COMMON_AUDIO_EXTS:
@@ -412,57 +475,59 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                     more_opts = ['-f', 'adts']
                 if filecodec == 'vorbis':
                     extension = 'ogg'
+            elif filecodec == 'alac':
+                acodec = None
+                extension = 'm4a'
+                more_opts += ['-acodec', 'alac']
             else:
                 # MP3 otherwise.
                 acodec = 'libmp3lame'
                 extension = 'mp3'
-                more_opts = []
-                if self._preferredquality is not None:
-                    if int(self._preferredquality) < 10:
-                        more_opts += ['-q:a', self._preferredquality]
-                    else:
-                        more_opts += ['-b:a', self._preferredquality + 'k']
+                more_opts = self._quality_args(acodec)
         else:
             # We convert the audio (lossy if codec is lossy)
             acodec = ACODECS[self._preferredcodec]
+            if acodec == 'aac' and self._features.get('fdk'):
+                acodec = 'libfdk_aac'
             extension = self._preferredcodec
-            more_opts = []
-            if self._preferredquality is not None:
-                # The opus codec doesn't support the -aq option
-                if int(self._preferredquality) < 10 and extension != 'opus':
-                    more_opts += ['-q:a', self._preferredquality]
-                else:
-                    more_opts += ['-b:a', self._preferredquality + 'k']
+            more_opts = self._quality_args(acodec)
             if self._preferredcodec == 'aac':
                 more_opts += ['-f', 'adts']
-            if self._preferredcodec == 'm4a':
+            elif self._preferredcodec == 'm4a':
                 more_opts += ['-bsf:a', 'aac_adtstoasc']
-            if self._preferredcodec == 'vorbis':
+            elif self._preferredcodec == 'vorbis':
                 extension = 'ogg'
-            if self._preferredcodec == 'wav':
+            elif self._preferredcodec == 'wav':
                 extension = 'wav'
                 more_opts += ['-f', 'wav']
+            elif self._preferredcodec == 'alac':
+                extension = 'm4a'
+                more_opts += ['-acodec', 'alac']
 
         prefix, sep, ext = path.rpartition('.')  # not os.path.splitext, since the latter does not work on unicode in all setups
-        new_path = prefix + sep + extension
+        temp_path = new_path = prefix + sep + extension
 
-        information['filepath'] = new_path
-        information['ext'] = extension
-
-        # If we download foo.mp3 and convert it to... foo.mp3, then don't delete foo.mp3, silly.
-        if (new_path == path
-                or (self._nopostoverwrites and os.path.exists(encodeFilename(new_path)))):
+        if new_path == path:
+            orig_path = prepend_extension(path, 'orig')
+            temp_path = prepend_extension(path, 'temp')
+        if (self._nopostoverwrites and os.path.exists(encodeFilename(new_path))
+                and os.path.exists(encodeFilename(orig_path))):
             self.to_screen('Post-process file %s exists, skipping' % new_path)
             return [], information
 
         try:
-            self.to_screen('Destination: ' + new_path)
-            self.run_ffmpeg(path, new_path, acodec, more_opts)
+            self.to_screen(f'Destination: {new_path}')
+            self.run_ffmpeg(path, temp_path, acodec, more_opts)
         except AudioConversionError as e:
             raise PostProcessingError(
                 'audio conversion failed: ' + e.msg)
         except Exception:
             raise PostProcessingError('error running ' + self.basename)
+
+        os.replace(path, orig_path)
+        os.replace(temp_path, new_path)
+        information['filepath'] = new_path
+        information['ext'] = extension
 
         # Try to update the date time for extracted audio file.
         if information.get('filetime') is not None:
@@ -470,7 +535,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
                 new_path, time.time(), information['filetime'],
                 errnote='Cannot update utime of audio file')
 
-        return [path], information
+        return [orig_path], information
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
@@ -520,10 +585,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
     @staticmethod
     def _options(target_ext):
-        options = ['-c', 'copy', '-map', '0', '-dn']
-        if target_ext in ['mp4', 'm4a', 'mov']:
-            options.extend(['-movflags', '+faststart'])
-        return options
+        return FFmpegPostProcessor.stream_copy_opts()
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
@@ -532,22 +594,28 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         self._already_have_subtitle = already_have_subtitle
 
     @PostProcessor._restrict_to(images=False)
-    def run(self, information):
-        if information['ext'] not in ('mp4', 'webm', 'mkv'):
+    def run(self, info):
+        if info['ext'] not in ('mp4', 'webm', 'mkv'):
             self.to_screen('Subtitles can only be embedded in mp4, webm or mkv files')
-            return [], information
-        subtitles = information.get('requested_subtitles')
+            return [], info
+        subtitles = info.get('requested_subtitles')
         if not subtitles:
             self.to_screen('There aren\'t any subtitles to embed')
-            return [], information
+            return [], info
 
-        filename = information['filepath']
-        if information.get('duration') and self._duration_mismatch(
-                self._get_real_video_duration(information, False), information['duration']):
+        filename = info['filepath']
+
+        # Disabled temporarily. There needs to be a way to overide this
+        # in case of duration actually mismatching in extractor
+        # See: https://github.com/yt-dlp/yt-dlp/issues/1870, https://github.com/yt-dlp/yt-dlp/issues/1385
+        '''
+        if info.get('duration') and not info.get('__real_download') and self._duration_mismatch(
+                self._get_real_video_duration(filename, False), info['duration']):
             self.to_screen(f'Skipping {self.pp_key()} since the real and expected durations mismatch')
-            return [], information
+            return [], info
+        '''
 
-        ext = information['ext']
+        ext = info['ext']
         sub_langs, sub_names, sub_filenames = [], [], []
         webm_vtt_warn = False
         mp4_ass_warn = False
@@ -572,21 +640,16 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 self.report_warning('ASS subtitles cannot be properly embedded in mp4 files; expect issues')
 
         if not sub_langs:
-            return [], information
+            return [], info
 
         input_files = [filename] + sub_filenames
 
         opts = [
-            '-c', 'copy', '-map', '0', '-dn',
+            *self.stream_copy_opts(ext=info['ext']),
             # Don't copy the existing subtitles, we may be running the
             # postprocessor a second time
             '-map', '-0:s',
-            # Don't copy Apple TV chapters track, bin_data (see #19042, #19024,
-            # https://trac.ffmpeg.org/ticket/6016)
-            '-map', '-0:d',
         ]
-        if information['ext'] == 'mp4':
-            opts += ['-c:s', 'mov_text']
         for i, (lang, name) in enumerate(zip(sub_langs, sub_names)):
             opts.extend(['-map', '%d:0' % (i + 1)])
             lang_code = ISO639Utils.short2long(lang) or lang
@@ -601,33 +664,43 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
         os.replace(temp_filename, filename)
 
         files_to_delete = [] if self._already_have_subtitle else sub_filenames
-        return files_to_delete, information
+        return files_to_delete, info
 
 
 class FFmpegMetadataPP(FFmpegPostProcessor):
 
-    def __init__(self, downloader, add_metadata=True, add_chapters=True):
+    def __init__(self, downloader, add_metadata=True, add_chapters=True, add_infojson='if_exists'):
         FFmpegPostProcessor.__init__(self, downloader)
         self._add_metadata = add_metadata
         self._add_chapters = add_chapters
+        self._add_infojson = add_infojson
 
     @staticmethod
     def _options(target_ext):
-        yield from ('-map', '0', '-dn')
-        if target_ext == 'm4a':
+        audio_only = target_ext == 'm4a'
+        yield from FFmpegPostProcessor.stream_copy_opts(not audio_only)
+        if audio_only:
             yield from ('-vn', '-acodec', 'copy')
-        else:
-            yield from ('-c', 'copy')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename, metadata_filename = info['filepath'], None
-        options = []
+        files_to_delete, options = [], []
         if self._add_chapters and info.get('chapters'):
             metadata_filename = replace_extension(filename, 'meta')
             options.extend(self._get_chapter_opts(info['chapters'], metadata_filename))
+            files_to_delete.append(metadata_filename)
         if self._add_metadata:
             options.extend(self._get_metadata_opts(info))
+
+        if self._add_infojson:
+            if info['ext'] in ('mkv', 'mka'):
+                infojson_filename = info.get('infojson_filename')
+                options.extend(self._get_infojson_opts(info, infojson_filename))
+                if not infojson_filename:
+                    files_to_delete.append(info.get('infojson_filename'))
+            elif self._add_infojson is True:
+                self.to_screen('The info-json can only be attached to mkv/mka files')
 
         if not options:
             self.to_screen('There isn\'t any metadata to add')
@@ -638,8 +711,8 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
             itertools.chain(self._options(info['ext']), *options))
-        if metadata_filename:
-            os.remove(metadata_filename)
+        for file in filter(None, files_to_delete):
+            os.remove(file)  # Don't obey --keep-files
         os.replace(temp_filename, filename)
         return [], info
 
@@ -661,15 +734,15 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         yield ('-map_metadata', '1')
 
     def _get_metadata_opts(self, info):
-        metadata = {}
-        meta_prefix = 'meta_'
+        meta_prefix = 'meta'
+        metadata = collections.defaultdict(dict)
 
         def add(meta_list, info_list=None):
             value = next((
-                str(info[key]) for key in [meta_prefix] + list(variadic(info_list or meta_list))
+                str(info[key]) for key in [f'{meta_prefix}_'] + list(variadic(info_list or meta_list))
                 if info.get(key) is not None), None)
             if value not in ('', None):
-                metadata.update({meta_f: value for meta_f in variadic(meta_list)})
+                metadata['common'].update({meta_f: value for meta_f in variadic(meta_list)})
 
         # See [1-4] for some info on media metadata/metadata supported
         # by ffmpeg.
@@ -691,32 +764,50 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         add('season_number')
         add('episode_id', ('episode', 'episode_id'))
         add('episode_sort', 'episode_number')
+        if 'embed-metadata' in self.get_param('compat_opts', []):
+            add('comment', 'description')
+            metadata['common'].pop('synopsis', None)
 
+        meta_regex = rf'{re.escape(meta_prefix)}(?P<i>\d+)?_(?P<key>.+)'
         for key, value in info.items():
-            if value is not None and key != meta_prefix and key.startswith(meta_prefix):
-                metadata[key[len(meta_prefix):]] = value
+            mobj = re.fullmatch(meta_regex, key)
+            if value is not None and mobj:
+                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value
 
-        for name, value in metadata.items():
+        for name, value in metadata['common'].items():
             yield ('-metadata', f'{name}={value}')
 
         stream_idx = 0
         for fmt in info.get('requested_formats') or []:
             stream_count = 2 if 'none' not in (fmt.get('vcodec'), fmt.get('acodec')) else 1
-            if fmt.get('language'):
-                lang = ISO639Utils.short2long(fmt['language']) or fmt['language']
-                for i in range(stream_count):
-                    yield ('-metadata:s:%d' % (stream_idx + i), 'language=%s' % lang)
+            lang = ISO639Utils.short2long(fmt.get('language') or '') or fmt.get('language')
+            for i in range(stream_idx, stream_idx + stream_count):
+                if lang:
+                    metadata[str(i)].setdefault('language', lang)
+                for name, value in metadata[str(i)].items():
+                    yield (f'-metadata:s:{i}', f'{name}={value}')
             stream_idx += stream_count
 
-        if ('no-attach-info-json' not in self.get_param('compat_opts', [])
-                and '__infojson_filename' in info and info['ext'] in ('mkv', 'mka')):
-            old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
-            if old_stream is not None:
-                yield ('-map', '-0:%d' % old_stream)
-                new_stream -= 1
+    def _get_infojson_opts(self, info, infofn):
+        if not infofn or not os.path.exists(infofn):
+            if self._add_infojson is not True:
+                return
+            infofn = infofn or '%s.temp' % (
+                self._downloader.prepare_filename(info, 'infojson')
+                or replace_extension(self._downloader.prepare_filename(info), 'info.json', info['ext']))
+            if not self._downloader._ensure_dir_exists(infofn):
+                return
+            self.write_debug(f'Writing info-json to: {infofn}')
+            write_json_file(self._downloader.sanitize_info(info, self.get_param('clean_infojson', True)), infofn)
+            info['infojson_filename'] = infofn
 
-            yield ('-attach', info['__infojson_filename'],
-                   '-metadata:s:%d' % new_stream, 'mimetype=application/json')
+        old_stream, new_stream = self.get_stream_number(info['filepath'], ('tags', 'mimetype'), 'application/json')
+        if old_stream is not None:
+            yield ('-map', '-0:%d' % old_stream)
+            new_stream -= 1
+
+        yield ('-attach', infofn,
+               '-metadata:s:%d' % new_stream, 'mimetype=application/json')
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):
@@ -773,7 +864,7 @@ class FFmpegFixupStretchedPP(FFmpegFixupPostProcessor):
         stretched_ratio = info.get('stretched_ratio')
         if stretched_ratio not in (None, 1):
             self._fixup('Fixing aspect ratio', info['filepath'], [
-                '-c', 'copy', '-map', '0', '-dn', '-aspect', '%f' % stretched_ratio])
+                *self.stream_copy_opts(), '-aspect', '%f' % stretched_ratio])
         return [], info
 
 
@@ -781,17 +872,27 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False, video=False)
     def run(self, info):
         if info.get('container') == 'm4a_dash':
-            self._fixup('Correcting container', info['filepath'], [
-                '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4'])
+            self._fixup('Correcting container', info['filepath'], [*self.stream_copy_opts(), '-f', 'mp4'])
         return [], info
 
 
 class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
+    def _needs_fixup(self, info):
+        yield info['ext'] in ('mp4', 'm4a')
+        yield info['protocol'].startswith('m3u8')
+        try:
+            metadata = self.get_metadata_object(info['filepath'])
+        except PostProcessingError as e:
+            self.report_warning(f'Unable to extract metadata: {e.msg}')
+            yield True
+        else:
+            yield traverse_obj(metadata, ('format', 'format_name'), casesense=False) == 'mpegts'
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if self.get_audio_codec(info['filepath']) == 'aac':
-            self._fixup('Fixing malformed AAC bitstream', info['filepath'], [
-                '-c', 'copy', '-map', '0', '-dn', '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
+        if all(self._needs_fixup(info)):
+            self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
+                *self.stream_copy_opts(), '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
         return [], info
 
 
@@ -805,23 +906,32 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        required_version = '4.4'
-        if is_outdated_version(self._versions[self.basename], required_version):
+        if not self._features.get('setts'):
             self.report_warning(
                 'A re-encode is needed to fix timestamps in older versions of ffmpeg. '
-                f'Please install ffmpeg {required_version} or later to fixup without re-encoding')
+                'Please install ffmpeg 4.4 or later to fixup without re-encoding')
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
-        self._fixup('Fixing frame timestamp', info['filepath'], opts + ['-map', '0', '-dn', '-ss', self.trim])
+        self._fixup('Fixing frame timestamp', info['filepath'], opts + [*self.stream_copy_opts(False), '-ss', self.trim])
         return [], info
 
 
-class FFmpegFixupDurationPP(FFmpegFixupPostProcessor):
+class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
+    MESSAGE = 'Copying stream'
+
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup('Fixing video duration', info['filepath'], ['-c', 'copy', '-map', '0', '-dn'])
+        self._fixup(self.MESSAGE, info['filepath'], self.stream_copy_opts())
         return [], info
+
+
+class FFmpegFixupDurationPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing video duration'
+
+
+class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPostProcessor):
+    MESSAGE = 'Fixing duplicate MOOV atoms'
 
 
 class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
@@ -940,7 +1050,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         self.to_screen('Splitting video by chapters; %d chapters found' % len(chapters))
         for idx, chapter in enumerate(chapters):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
-            self.real_run_ffmpeg([(in_file, opts)], [(destination, ['-c', 'copy'])])
+            self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])
         if in_file != info['filepath']:
             os.remove(in_file)
         return [], info
@@ -991,12 +1101,12 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         files_to_delete = []
         has_thumbnail = False
 
-        for idx, thumbnail_dict in enumerate(info['thumbnails']):
-            if 'filepath' not in thumbnail_dict:
+        for idx, thumbnail_dict in enumerate(info.get('thumbnails') or []):
+            original_thumbnail = thumbnail_dict.get('filepath')
+            if not original_thumbnail:
                 continue
             has_thumbnail = True
             self.fixup_webp(info, idx)
-            original_thumbnail = thumbnail_dict['filepath']
             _, thumbnail_ext = os.path.splitext(original_thumbnail)
             if thumbnail_ext:
                 thumbnail_ext = thumbnail_ext[1:].lower()
@@ -1013,3 +1123,48 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         if not has_thumbnail:
             self.to_screen('There aren\'t any thumbnails to convert')
         return files_to_delete, info
+
+
+class FFmpegConcatPP(FFmpegPostProcessor):
+    def __init__(self, downloader, only_multi_video=False):
+        self._only_multi_video = only_multi_video
+        super().__init__(downloader)
+
+    def concat_files(self, in_files, out_file):
+        if len(in_files) == 1:
+            os.replace(in_files[0], out_file)
+            return
+
+        codecs = [traverse_obj(self.get_metadata_object(file), ('streams', ..., 'codec_name')) for file in in_files]
+        if len(set(map(tuple, codecs))) > 1:
+            raise PostProcessingError(
+                'The files have different streams/codecs and cannot be concatenated. '
+                'Either select different formats or --recode-video them to a common format')
+        super().concat_files(in_files, out_file)
+
+    @PostProcessor._restrict_to(images=False)
+    def run(self, info):
+        if not info.get('entries') or self._only_multi_video and info['_type'] != 'multi_video':
+            return [], info
+        elif None in info['entries']:
+            raise PostProcessingError('Aborting concatenation because some downloads failed')
+        elif any(len(entry) > 1 for entry in traverse_obj(info, ('entries', ..., 'requested_downloads')) or []):
+            raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
+
+        in_files = traverse_obj(info, ('entries', ..., 'requested_downloads', 0, 'filepath'))
+        if not in_files:
+            self.to_screen('There are no files to concatenate')
+            return [], info
+
+        ie_copy = self._downloader._playlist_infodict(info)
+        exts = [traverse_obj(entry, ('requested_downloads', 0, 'ext'), 'ext') for entry in info['entries']]
+        ie_copy['ext'] = exts[0] if len(set(exts)) == 1 else 'mkv'
+        out_file = self._downloader.prepare_filename(ie_copy, 'pl_video')
+
+        self.concat_files(in_files, out_file)
+
+        info['requested_downloads'] = [{
+            'filepath': out_file,
+            'ext': ie_copy['ext'],
+        }]
+        return in_files, info

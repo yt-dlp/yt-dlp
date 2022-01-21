@@ -203,6 +203,9 @@ class HotStarIE(HotStarBaseIE):
             format_url = re.sub(
                 r'(?<=//staragvod)(\d)', r'web\1', format_url)
             tags = str_or_none(playback_set.get('tagsCombination')) or ''
+            ingored_res, ignored_vcodec, ignored_dr = self._configuration_arg('res'), self._configuration_arg('vcodec'), self._configuration_arg('dr')
+            if any(f'resolution:{ig_res}' in tags for ig_res in ingored_res) or any(f'video_codec:{ig_vc}' in tags for ig_vc in ignored_vcodec) or any(f'dynamic_range:{ig_dr}' in tags for ig_dr in ignored_dr):
+                continue
             ext = determine_ext(format_url)
             current_formats, current_subs = [], {}
             try:
@@ -230,6 +233,11 @@ class HotStarIE(HotStarBaseIE):
             if tags and 'encryption:plain' not in tags:
                 for f in current_formats:
                     f['has_drm'] = True
+            if tags and 'language' in tags:
+                lang = re.search(r'language:(?P<lang>[a-z]+)', tags).group('lang')
+                for f in current_formats:
+                    if not f.get('langauge'):
+                        f['language'] = lang
             formats.extend(current_formats)
             subs = self._merge_subtitles(subs, current_subs)
         if not formats and geo_restricted:
@@ -291,7 +299,7 @@ class HotStarPlaylistIE(HotStarBaseIE):
 
 class HotStarSeriesIE(HotStarBaseIE):
     IE_NAME = 'hotstar:series'
-    _VALID_URL = r'(?P<url>(?:https?://)(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))'
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?hotstar\.com(?:/in)?/tv/[^/]+/(?P<id>\d+))'
     _TESTS = [{
         'url': 'https://www.hotstar.com/in/tv/radhakrishn/1260000646',
         'info_dict': {

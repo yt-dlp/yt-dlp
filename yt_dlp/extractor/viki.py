@@ -135,9 +135,6 @@ class VikiIE(VikiBaseIE):
             'uploader': 'FCC',
             'upload_date': '20201127',
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }, {
         'url': 'http://www.viki.com/videos/1023585v-heirs-episode-14',
         'info_dict': {
@@ -150,9 +147,6 @@ class VikiIE(VikiBaseIE):
             'age_limit': 13,
             'duration': 3570,
             'episode_number': 14,
-        },
-        'params': {
-            'format': 'bestvideo',
         },
         'skip': 'Blocked in the US',
     }, {
@@ -203,9 +197,6 @@ class VikiIE(VikiBaseIE):
             'age_limit': 13,
             'episode_number': 1,
         },
-        'params': {
-            'format': 'bestvideo',
-        },
     }, {
         # youtube external
         'url': 'http://www.viki.com/videos/50562v-poor-nastya-complete-episode-1',
@@ -240,9 +231,6 @@ class VikiIE(VikiBaseIE):
             'description': 'md5:44b1e46619df3a072294645c770cef36',
             'title': 'Love In Magic',
             'age_limit': 13,
-        },
-        'params': {
-            'format': 'bestvideo',
         },
     }]
 

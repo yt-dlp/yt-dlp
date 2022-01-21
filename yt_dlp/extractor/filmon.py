@@ -170,7 +170,7 @@ class FilmOnChannelIE(InfoExtractor):
         return {
             'id': channel_id,
             'display_id': channel_data.get('alias'),
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': channel_data.get('description'),
             'thumbnails': thumbnails,
             'formats': formats,

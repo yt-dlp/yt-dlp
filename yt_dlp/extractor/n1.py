@@ -3,8 +3,6 @@ from __future__ import unicode_literals
 
 import re
 
-from .youtube import YoutubeIE
-from .reddit import RedditRIE
 from .common import InfoExtractor
 from ..utils import (
     unified_timestamp,
@@ -40,7 +38,7 @@ class N1InfoAssetIE(InfoExtractor):
 
 class N1InfoIIE(InfoExtractor):
     IE_NAME = 'N1Info:article'
-    _VALID_URL = r'https?://(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:(?:(?:ba|rs|hr)\.)?n1info\.(?:com|si)|nova\.rs)/(?:[^/]+/){1,2}(?P<id>[^/]+)'
     _TESTS = [{
         # Youtube embedded
         'url': 'https://rs.n1info.com/sport-klub/tenis/kako-je-djokovic-propustio-istorijsku-priliku-video/',
@@ -90,8 +88,16 @@ class N1InfoIIE(InfoExtractor):
             'uploader': 'YouLotWhatDontStop',
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
+        },
+    }, {
+        'url': 'https://nova.rs/vesti/politika/zaklina-tatalovic-ani-brnabic-pricate-lazi-video/',
+        'info_dict': {
+            'id': 'tnjganabrnabicizaklinatatalovic100danavladegp-novas-worldwide',
+            'ext': 'mp4',
+            'title': 'Žaklina Tatalović Ani Brnabić: Pričate laži (VIDEO)',
+            'upload_date': '20211102',
+            'timestamp': 1635861677,
         },
     }, {
         'url': 'https://hr.n1info.com/vijesti/pravobraniteljica-o-ubojstvu-u-zagrebu-radi-se-o-doista-nezapamcenoj-situaciji/',
@@ -116,16 +122,16 @@ class N1InfoIIE(InfoExtractor):
                 'title': title,
                 'thumbnail': video_data.get('data-thumbnail'),
                 'timestamp': timestamp,
-                'ie_key': N1InfoAssetIE.ie_key()})
+                'ie_key': 'N1InfoAsset'})
 
         embedded_videos = re.findall(r'(<iframe[^>]+>)', webpage)
         for embedded_video in embedded_videos:
             video_data = extract_attributes(embedded_video)
-            url = video_data.get('src')
+            url = video_data.get('src') or ''
             if url.startswith('https://www.youtube.com'):
-                entries.append(self.url_result(url, ie=YoutubeIE.ie_key()))
+                entries.append(self.url_result(url, ie='Youtube'))
             elif url.startswith('https://www.redditmedia.com'):
-                entries.append(self.url_result(url, ie=RedditRIE.ie_key()))
+                entries.append(self.url_result(url, ie='RedditR'))
 
         return {
             '_type': 'playlist',
