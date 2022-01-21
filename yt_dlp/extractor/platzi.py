@@ -104,50 +104,40 @@ class PlatziIE(PlatziBaseIE):
         lecture_id = self._match_id(url)
 
         webpage = self._download_webpage(url, lecture_id)
-
-        data = self._parse_json(
-            self._search_regex(
-                # client_data may contain "};" so that we have to try more
-                # strict regex first
-                (r'client_data\s*=\s*({.+?})\s*;\s*\n',
-                 r'client_data\s*=\s*({.+?})\s*;'),
-                webpage, 'client data'),
+        data_preloaded_state = self._parse_json(
+            self._search_regex((r'window.__PRELOADED_STATE__ = (.*)\<\/script'), webpage, 'client data'),
             lecture_id)
 
-        material = data['initialState']['material']
-        desc = material['description']
-        title = desc['title']
-
+        # desc = data_preloaded_state['videoPlayer']['courseDescription']
+        title = data_preloaded_state['videoPlayer']['name']
+        duration = data_preloaded_state['videoPlayer']['duration']
+        servers = data_preloaded_state['videoPlayer']['video']['servers']
         formats = []
-        for server_id, server in material['videos'].items():
-            if not isinstance(server, dict):
-                continue
+        for server in servers.keys():
             for format_id in ('hls', 'dash'):
-                format_url = url_or_none(server.get(format_id))
-                if not format_url:
-                    continue
-                if format_id == 'hls':
+                server_json = servers[server]
+                if 'hls' in server_json.keys():
                     formats.extend(self._extract_m3u8_formats(
-                        format_url, lecture_id, 'mp4',
+                        server_json['hls'], lecture_id, 'mp4',
                         entry_protocol='m3u8_native', m3u8_id=format_id,
-                        note='Downloading %s m3u8 information' % server_id,
+                        note='Downloading %s m3u8 information' % server_json['id'],
                         fatal=False))
-                elif format_id == 'dash':
+                elif 'dash' in server_json.keys():
                     formats.extend(self._extract_mpd_formats(
-                        format_url, lecture_id, mpd_id=format_id,
-                        note='Downloading %s MPD manifest' % server_id,
+                        server_json['dash'], lecture_id, mpd_id=format_id,
+                        note='Downloading %s MPD manifest' % server_json['id'],
                         fatal=False))
         self._sort_formats(formats)
 
-        content = str_or_none(desc.get('content'))
-        description = (clean_html(compat_b64decode(content).decode('utf-8'))
-                       if content else None)
-        duration = int_or_none(material.get('duration'), invscale=60)
+        # content = str_or_none(data['videoPlayer']['content'])
+        # description = (clean_html(compat_b64decode(content).decode('utf-8'))
+        #               if content else None)
+        duration = int_or_none(duration, invscale=60)
 
         return {
             'id': lecture_id,
             'title': title,
-            'description': description,
+            'description': '',
             'duration': duration,
             'formats': formats,
         }
@@ -186,10 +176,12 @@ class PlatziCourseIE(PlatziBaseIE):
 
         webpage = self._download_webpage(url, course_name)
 
+        initialData = self._search_regex(
+            (r'window.initialData\s*=\s*({.+?})\s*;\s*\n', r'window.initialData\s*=\s*({.+?})\s*;'),
+            webpage, 'window.initialData')
         props = self._parse_json(
-            self._search_regex(r'data\s*=\s*({.+?})\s*;', webpage, 'data'),
-            course_name)['initialProps']
-
+            initialData,
+            course_name)['initialState']
         entries = []
         for chapter_num, chapter in enumerate(props['concepts'], 1):
             if not isinstance(chapter, dict):
