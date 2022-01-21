@@ -1154,6 +1154,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertTrue(entries[1] is None)
         self.assertEqual(len(ydl.downloaded_info_dicts), 1)
         downloaded = ydl.downloaded_info_dicts[0]
+        entries[2].pop('requested_downloads', None)
         self.assertEqual(entries[2], downloaded)
         self.assertEqual(downloaded['url'], TEST_URL)
         self.assertEqual(downloaded['title'], 'Video Transparent 2')

@@ -243,8 +243,8 @@ class ITVBTCCIE(InfoExtractor):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        json_map = try_get(self._parse_json(self._html_search_regex(
-            '(?s)<script[^>]+id=[\'"]__NEXT_DATA__[^>]*>([^<]+)</script>', webpage, 'json_map'), playlist_id),
+        json_map = try_get(
+            self._search_nextjs_data(webpage, playlist_id),
             lambda x: x['props']['pageProps']['article']['body']['content']) or []
 
         entries = []
