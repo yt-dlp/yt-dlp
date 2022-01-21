@@ -18,7 +18,10 @@ from ..utils import (
     traverse_obj,
     urlencode_postdata,
 )
-from ..websocket import WebSocket
+try:
+    from ..syncws import WebSocketsWrapper
+except ImportError:
+    WebSocketsWrapper = None
 
 
 class FC2IE(InfoExtractor):
@@ -167,7 +170,6 @@ class FC2EmbedIE(InfoExtractor):
 class FC2LiveIE(InfoExtractor):
     _VALID_URL = r'^https?://live\.fc2\.com/(?P<id>\d+)'
     IE_NAME = 'fc2:live'
-    _FEATURE_DEPENDENCY = ('websocket', )
 
     _TESTS = [{
         'url': 'https://live.fc2.com/57892267/',
@@ -182,6 +184,8 @@ class FC2LiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        if not WebSocketsWrapper:
+            raise ExtractorError('websockets library is not available. Please install it.', expected=True)
         video_id = self._match_id(url)
         webpage = self._download_webpage('https://live.fc2.com/%s/' % video_id, video_id)
 
@@ -214,7 +218,7 @@ class FC2LiveIE(InfoExtractor):
         playlist_data = None
 
         self.to_screen('%s: Fetching HLS playlist info via WebSocket' % video_id)
-        ws = WebSocket(ws_url, {
+        ws = WebSocketsWrapper(ws_url, {
             'Cookie': str(self._get_cookies('https://live.fc2.com/'))[12:],
             'Origin': 'https://live.fc2.com',
             'Accept': '*/*',
