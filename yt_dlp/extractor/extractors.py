@@ -958,6 +958,7 @@ from .newgrounds import (
     NewgroundsUserIE,
 )
 from .newstube import NewstubeIE
+from .newsy import NewsyIE
 from .nextmedia import (
     NextMediaIE,
     NextMediaActionNewsIE,
