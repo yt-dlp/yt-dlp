@@ -5,6 +5,7 @@ from ..compat import compat_os_name
 from ..utils import (
     hyphenate_date,
     write_xattr,
+    PostProcessingError,
     XAttrMetadataError,
     XAttrUnavailableError,
 )
@@ -57,8 +58,7 @@ class XAttrMetadataPP(PostProcessor):
             return [], info
 
         except XAttrUnavailableError as e:
-            self.report_error(str(e))
-            return [], info
+            raise PostProcessingError(str(e))
 
         except XAttrMetadataError as e:
             if e.reason == 'NO_SPACE':
@@ -74,5 +74,5 @@ class XAttrMetadataPP(PostProcessor):
                     msg += 'You need to use NTFS.'
                 else:
                     msg += '(You may have to enable them in your /etc/fstab)'
-                self.report_error(msg)
+                raise PostProcessingError(str(e))
             return [], info

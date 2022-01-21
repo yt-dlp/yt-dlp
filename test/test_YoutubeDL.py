@@ -30,6 +30,7 @@ class YDL(FakeYDL):
         self.msgs = []
 
     def process_info(self, info_dict):
+        info_dict = info_dict.copy()
         info_dict.pop('__original_infodict', None)
         self.downloaded_info_dicts.append(info_dict)
 
@@ -137,7 +138,7 @@ class TestFormatSelection(unittest.TestCase):
         test('webm/mp4', '47')
         test('3gp/40/mp4', '35')
         test('example-with-dashes', 'example-with-dashes')
-        test('all', '35', 'example-with-dashes', '45', '47', '2')  # Order doesn't actually matter for this
+        test('all', '2', '47', '45', 'example-with-dashes', '35')
         test('mergeall', '2+47+45+example-with-dashes+35', multi=True)
 
     def test_format_selection_audio(self):
@@ -520,7 +521,7 @@ class TestFormatSelection(unittest.TestCase):
         ydl = YDL({'format': 'all[width>=400][width<=600]'})
         ydl.process_ie_result(info_dict)
         downloaded_ids = [info['format_id'] for info in ydl.downloaded_info_dicts]
-        self.assertEqual(downloaded_ids, ['B', 'C', 'D'])
+        self.assertEqual(downloaded_ids, ['D', 'C', 'B'])
 
         ydl = YDL({'format': 'best[height<40]'})
         try:
@@ -645,16 +646,19 @@ class TestYoutubeDL(unittest.TestCase):
         'ext': 'mp4',
         'width': None,
         'height': 1080,
+        'filesize': 1024,
         'title1': '$PATH',
         'title2': '%PATH%',
         'title3': 'foo/bar\\test',
         'title4': 'foo "bar" test',
+        'title5': 'áéí 𝐀',
         'timestamp': 1618488000,
         'duration': 100000,
         'playlist_index': 1,
+        'playlist_autonumber': 2,
         '_last_playlist_index': 100,
         'n_entries': 10,
-        'formats': [{'id': 'id1'}, {'id': 'id2'}, {'id': 'id3'}]
+        'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
     }
 
     def test_prepare_outtmpl_and_filename(self):
@@ -664,8 +668,7 @@ class TestYoutubeDL(unittest.TestCase):
             ydl._num_downloads = 1
             self.assertEqual(ydl.validate_outtmpl(tmpl), None)
 
-            outtmpl, tmpl_dict = ydl.prepare_outtmpl(tmpl, info or self.outtmpl_info)
-            out = ydl.escape_outtmpl(outtmpl) % tmpl_dict
+            out = ydl.evaluate_outtmpl(tmpl, info or self.outtmpl_info)
             fname = ydl.prepare_filename(info or self.outtmpl_info)
 
             if not isinstance(expected, (list, tuple)):
@@ -689,6 +692,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(duration_string)s', ('27:46:40', '27-46-40'))
         test('%(resolution)s', '1080p')
         test('%(playlist_index)s', '001')
+        test('%(playlist_autonumber)s', '02')
         test('%(autonumber)s', '00001')
         test('%(autonumber+2)03d', '005', autonumber_start=3)
         test('%(autonumber)s', '001', autonumber_size=3)
@@ -715,6 +719,7 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id)s', '.abcd', info={'id': '.abcd'})
         test('%(id)s', 'ab__cd', info={'id': 'ab__cd'})
         test('%(id)s', ('ab:cd', 'ab -cd'), info={'id': 'ab:cd'})
+        test('%(id.0)s', '-', info={'id': '--'})
 
         # Invalid templates
         self.assertTrue(isinstance(YoutubeDL.validate_outtmpl('%(title)'), ValueError))
@@ -735,6 +740,7 @@ class TestYoutubeDL(unittest.TestCase):
         test(NA_TEST_OUTTMPL, 'NA-NA-def-1234.mp4')
         test(NA_TEST_OUTTMPL, 'none-none-def-1234.mp4', outtmpl_na_placeholder='none')
         test(NA_TEST_OUTTMPL, '--def-1234.mp4', outtmpl_na_placeholder='')
+        test('%(non_existent.0)s', 'NA')
 
         # String formatting
         FMT_TEST_OUTTMPL = '%%(height)%s.%%(ext)s'
@@ -760,17 +766,33 @@ class TestYoutubeDL(unittest.TestCase):
         test('a%(width|)d', 'a', outtmpl_na_placeholder='none')
 
         FORMATS = self.outtmpl_info['formats']
-        sanitize = lambda x: x.replace(':', ' -').replace('"', "'")
+        sanitize = lambda x: x.replace(':', ' -').replace('"', "'").replace('\n', ' ')
 
         # Custom type casting
-        test('%(formats.:.id)l', 'id1, id2, id3')
+        test('%(formats.:.id)l', 'id 1, id 2, id 3')
+        test('%(formats.:.id)#l', ('id 1\nid 2\nid 3', 'id 1 id 2 id 3'))
         test('%(ext)l', 'mp4')
-        test('%(formats.:.id) 15l', '  id1, id2, id3')
+        test('%(formats.:.id) 18l', '  id 1, id 2, id 3')
         test('%(formats)j', (json.dumps(FORMATS), sanitize(json.dumps(FORMATS))))
+        test('%(formats)#j', (json.dumps(FORMATS, indent=4), sanitize(json.dumps(FORMATS, indent=4))))
+        test('%(title5).3B', 'á')
+        test('%(title5)U', 'áéí 𝐀')
+        test('%(title5)#U', 'a\u0301e\u0301i\u0301 𝐀')
+        test('%(title5)+U', 'áéí A')
+        test('%(title5)+#U', 'a\u0301e\u0301i\u0301 A')
+        test('%(height)D', '1k')
+        test('%(filesize)#D', '1Ki')
+        test('%(height)5.2D', ' 1.08k')
+        test('%(title4)#S', 'foo_bar_test')
+        test('%(title4).10S', ('foo \'bar\' ', 'foo \'bar\'' + ('#' if compat_os_name == 'nt' else ' ')))
         if compat_os_name == 'nt':
             test('%(title4)q', ('"foo \\"bar\\" test"', "'foo _'bar_' test'"))
+            test('%(formats.:.id)#q', ('"id 1" "id 2" "id 3"', "'id 1' 'id 2' 'id 3'"))
+            test('%(formats.0.id)#q', ('"id 1"', "'id 1'"))
         else:
             test('%(title4)q', ('\'foo "bar" test\'', "'foo 'bar' test'"))
+            test('%(formats.:.id)#q', "'id 1' 'id 2' 'id 3'")
+            test('%(formats.0.id)#q', "'id 1'")
 
         # Internal formatting
         test('%(timestamp-1000>%H-%M-%S)s', '11-43-20')
@@ -788,6 +810,17 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(formats.0.id.-1+id)f', '1235.000000')
         test('%(formats.0.id.-1+formats.1.id.-1)d', '3')
 
+        # Alternates
+        test('%(title,id)s', '1234')
+        test('%(width-100,height+20|def)d', '1100')
+        test('%(width-100,height+width|def)s', 'def')
+        test('%(timestamp-x>%H\\,%M\\,%S,timestamp>%H\\,%M\\,%S)s', '12,00,00')
+
+        # Replacement
+        test('%(id&foo)s.bar', 'foo.bar')
+        test('%(title&foo)s.bar', 'NA.bar')
+        test('%(title&foo|baz)s.bar', 'baz.bar')
+
         # Laziness
         def gen():
             yield from range(5)
@@ -803,6 +836,12 @@ class TestYoutubeDL(unittest.TestCase):
         compat_setenv('__yt_dlp_var', 'expanded')
         envvar = '%__yt_dlp_var%' if compat_os_name == 'nt' else '$__yt_dlp_var'
         test(envvar, (envvar, 'expanded'))
+        if compat_os_name == 'nt':
+            test('%s%', ('%s%', '%s%'))
+            compat_setenv('s', 'expanded')
+            test('%s%', ('%s%', 'expanded'))  # %s% should be expanded before escaping %s
+            compat_setenv('(test)s', 'expanded')
+            test('%(test)s%', ('NA%', 'expanded'))  # Environment should take priority over template
 
         # Path expansion and escaping
         test('Hello %(title1)s', 'Hello $PATH')
@@ -870,7 +909,7 @@ class TestYoutubeDL(unittest.TestCase):
             def _match_entry(self, info_dict, incomplete=False):
                 res = super(FilterYDL, self)._match_entry(info_dict, incomplete)
                 if res is None:
-                    self.downloaded_info_dicts.append(info_dict)
+                    self.downloaded_info_dicts.append(info_dict.copy())
                 return res
 
         first = {
@@ -992,6 +1031,7 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '2-4'}, [2, 3, 4])
         test_selection({'playlist_items': '2,4'}, [2, 4])
         test_selection({'playlist_items': '10'}, [])
+        test_selection({'playlist_items': '0'}, [])
 
         # Tests for https://github.com/ytdl-org/youtube-dl/issues/10591
         test_selection({'playlist_items': '2-4,3-4,3'}, [2, 3, 4])
@@ -1114,6 +1154,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertTrue(entries[1] is None)
         self.assertEqual(len(ydl.downloaded_info_dicts), 1)
         downloaded = ydl.downloaded_info_dicts[0]
+        entries[2].pop('requested_downloads', None)
         self.assertEqual(entries[2], downloaded)
         self.assertEqual(downloaded['url'], TEST_URL)
         self.assertEqual(downloaded['title'], 'Video Transparent 2')

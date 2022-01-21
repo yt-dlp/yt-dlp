@@ -11,22 +11,28 @@ from ..utils import (
     encodeFilename,
     shell_quote,
     str_or_none,
+    Popen,
     PostProcessingError,
     prepend_extension,
-    process_communicate_or_kill,
 )
 
 
+# Deprecated in favor of the native implementation
 class SponSkrubPP(PostProcessor):
     _temp_ext = 'spons'
     _exe_name = 'sponskrub'
 
-    def __init__(self, downloader, path='', args=None, ignoreerror=False, cut=False, force=False):
+    def __init__(self, downloader, path='', args=None, ignoreerror=False, cut=False, force=False, _from_cli=False):
         PostProcessor.__init__(self, downloader)
         self.force = force
         self.cutout = cut
         self.args = str_or_none(args) or ''  # For backward compatibility
         self.path = self.get_exe(path)
+
+        if not _from_cli:
+            self.deprecation_warning(
+                'yt_dlp.postprocessor.SponSkrubPP support is deprecated and may be removed in a future version. '
+                'Use yt_dlp.postprocessor.SponsorBlock and yt_dlp.postprocessor.ModifyChaptersPP instead')
 
         if not ignoreerror and self.path is None:
             if path:
@@ -80,12 +86,11 @@ class SponSkrubPP(PostProcessor):
 
         self.write_debug('sponskrub command line: %s' % shell_quote(cmd))
         pipe = None if self.get_param('verbose') else subprocess.PIPE
-        p = subprocess.Popen(cmd, stdout=pipe)
-        stdout = process_communicate_or_kill(p)[0]
+        p = Popen(cmd, stdout=pipe)
+        stdout = p.communicate_or_kill()[0]
 
         if p.returncode == 0:
-            os.remove(encodeFilename(filename))
-            os.rename(encodeFilename(temp_filename), encodeFilename(filename))
+            os.replace(temp_filename, filename)
             self.to_screen('Sponsor sections have been %s' % ('removed' if self.cutout else 'marked'))
         elif p.returncode == 3:
             self.to_screen('No segments in the SponsorBlock database')

@@ -108,7 +108,7 @@ class PalcoMP3ArtistIE(PalcoMP3BaseIE):
     }
     name'''
 
-    @ classmethod
+    @classmethod
     def suitable(cls, url):
         return False if PalcoMP3IE._match_valid_url(url) else super(PalcoMP3ArtistIE, cls).suitable(url)
 

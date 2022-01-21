@@ -22,7 +22,7 @@ from yt_dlp.utils import (
 )
 
 
-if "pytest" in sys.modules:
+if 'pytest' in sys.modules:
     import pytest
     is_download_test = pytest.mark.download
 else:
@@ -32,9 +32,9 @@ else:
 
 def get_params(override=None):
     PARAMETERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                   "parameters.json")
+                                   'parameters.json')
     LOCAL_PARAMETERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                         "local_parameters.json")
+                                         'local_parameters.json')
     with io.open(PARAMETERS_FILE, encoding='utf-8') as pf:
         parameters = json.load(pf)
     if os.path.exists(LOCAL_PARAMETERS_FILE):
@@ -194,6 +194,53 @@ def expect_dict(self, got_dict, expected_dict):
         expect_value(self, got, expected, info_field)
 
 
+def sanitize_got_info_dict(got_dict):
+    IGNORED_FIELDS = (
+        # Format keys
+        'url', 'manifest_url', 'format', 'format_id', 'format_note', 'width', 'height', 'resolution',
+        'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'vbr', 'fps', 'vcodec', 'container', 'filesize',
+        'filesize_approx', 'player_url', 'protocol', 'fragment_base_url', 'fragments', 'preference',
+        'language', 'language_preference', 'quality', 'source_preference', 'http_headers',
+        'stretched_ratio', 'no_resume', 'has_drm', 'downloader_options',
+
+        # RTMP formats
+        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
+
+        # Lists
+        'formats', 'thumbnails', 'subtitles', 'automatic_captions', 'comments', 'entries',
+
+        # Auto-generated
+        'autonumber', 'playlist', 'format_index', 'video_ext', 'audio_ext', 'duration_string', 'epoch',
+        'fulltitle', 'extractor', 'extractor_key', 'filepath', 'infojson_filename', 'original_url', 'n_entries',
+
+        # Only live_status needs to be checked
+        'is_live', 'was_live',
+    )
+
+    IGNORED_PREFIXES = ('', 'playlist', 'requested', 'webpage')
+
+    def sanitize(key, value):
+        if isinstance(value, str) and len(value) > 100:
+            return f'md5:{md5(value)}'
+        elif isinstance(value, list) and len(value) > 10:
+            return f'count:{len(value)}'
+        elif key.endswith('_count') and isinstance(value, int):
+            return int
+        return value
+
+    test_info_dict = {
+        key: sanitize(key, value) for key, value in got_dict.items()
+        if value is not None and key not in IGNORED_FIELDS and not any(
+            key.startswith(f'{prefix}_') for prefix in IGNORED_PREFIXES)
+    }
+
+    # display_id may be generated from id
+    if test_info_dict.get('display_id') == test_info_dict['id']:
+        test_info_dict.pop('display_id')
+
+    return test_info_dict
+
+
 def expect_info_dict(self, got_dict, expected_dict):
     expect_dict(self, got_dict, expected_dict)
     # Check for the presence of mandatory fields
@@ -207,15 +254,15 @@ def expect_info_dict(self, got_dict, expected_dict):
     for key in ['webpage_url', 'extractor', 'extractor_key']:
         self.assertTrue(got_dict.get(key), 'Missing field: %s' % key)
 
-    # Are checkable fields missing from the test case definition?
-    test_info_dict = dict((key, value if not isinstance(value, compat_str) or len(value) < 250 else 'md5:' + md5(value))
-                          for key, value in got_dict.items()
-                          if value and key in ('id', 'title', 'description', 'uploader', 'upload_date', 'timestamp', 'uploader_id', 'location', 'age_limit'))
+    test_info_dict = sanitize_got_info_dict(got_dict)
+
     missing_keys = set(test_info_dict.keys()) - set(expected_dict.keys())
     if missing_keys:
         def _repr(v):
             if isinstance(v, compat_str):
                 return "'%s'" % v.replace('\\', '\\\\').replace("'", "\\'").replace('\n', '\\n')
+            elif isinstance(v, type):
+                return v.__name__
             else:
                 return repr(v)
         info_dict_str = ''

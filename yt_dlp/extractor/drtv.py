@@ -321,7 +321,7 @@ class DRTVLiveIE(InfoExtractor):
         channel_data = self._download_json(
             'https://www.dr.dk/mu-online/api/1.0/channel/' + channel_id,
             channel_id)
-        title = self._live_title(channel_data['Title'])
+        title = channel_data['Title']
 
         formats = []
         for streaming_server in channel_data.get('StreamingServers', []):

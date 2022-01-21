@@ -8,6 +8,7 @@ from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
+    join_nonempty,
     qualities,
 )
 
@@ -102,12 +103,8 @@ class LEGOIE(InfoExtractor):
                     m3u8_id=video_source_format, fatal=False))
             else:
                 video_source_quality = video_source.get('Quality')
-                format_id = []
-                for v in (video_source_format, video_source_quality):
-                    if v:
-                        format_id.append(v)
                 f = {
-                    'format_id': '-'.join(format_id),
+                    'format_id': join_nonempty(video_source_format, video_source_quality),
                     'quality': q(video_source_quality),
                     'url': video_source_url,
                 }

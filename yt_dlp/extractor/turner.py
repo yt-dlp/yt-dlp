@@ -205,7 +205,7 @@ class TurnerBaseIE(AdobePassIE):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': thumbnails,

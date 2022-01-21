@@ -13,7 +13,7 @@ in RFC 8216 §3.5 <https://tools.ietf.org/html/rfc8216#section-3.5>.
 
 import re
 import io
-from .utils import int_or_none
+from .utils import int_or_none, timetuple_from_msec
 from .compat import (
     compat_str as str,
     compat_Pattern,
@@ -89,8 +89,12 @@ class ParseError(Exception):
         ))
 
 
+# While the specification <https://www.w3.org/TR/webvtt1/#webvtt-timestamp>
+# prescribes that hours must be *2 or more* digits, timestamps with a single
+# digit for the hour part has been seen in the wild.
+# See https://github.com/yt-dlp/yt-dlp/issues/921
 _REGEX_TS = re.compile(r'''(?x)
-    (?:([0-9]{2,}):)?
+    (?:([0-9]{1,}):)?
     ([0-9]{2}):
     ([0-9]{2})\.
     ([0-9]{3})?
@@ -120,11 +124,7 @@ def _format_ts(ts):
     Convert an MPEG PES timestamp into a WebVTT timestamp.
     This will lose sub-millisecond precision.
     """
-    msec = int((ts + 45) // 90)
-    secs, msec = divmod(msec, 1000)
-    mins, secs = divmod(secs, 60)
-    hrs, mins = divmod(mins, 60)
-    return '%02u:%02u:%02u.%03u' % (hrs, mins, secs, msec)
+    return '%02u:%02u:%02u.%03u' % timetuple_from_msec(int((ts + 45) // 90))
 
 
 class Block(object):
@@ -172,6 +172,7 @@ class Magic(HeaderBlock):
     _REGEX_TSMAP = re.compile(r'X-TIMESTAMP-MAP=')
     _REGEX_TSMAP_LOCAL = re.compile(r'LOCAL:')
     _REGEX_TSMAP_MPEGTS = re.compile(r'MPEGTS:([0-9]+)')
+    _REGEX_TSMAP_SEP = re.compile(r'[ \t]*,[ \t]*')
 
     @classmethod
     def __parse_tsmap(cls, parser):
@@ -194,7 +195,7 @@ class Magic(HeaderBlock):
                         raise ParseError(parser)
                 else:
                     raise ParseError(parser)
-            if parser.consume(','):
+            if parser.consume(cls._REGEX_TSMAP_SEP):
                 continue
             if parser.consume(_REGEX_NL):
                 break
