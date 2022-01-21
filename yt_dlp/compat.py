@@ -159,6 +159,13 @@ except ImportError:
     except ImportError:
         compat_pycrypto_AES = None
 
+try:
+    import brotlicffi as compat_brotli
+except ImportError:
+    try:
+        import brotli as compat_brotli
+    except ImportError:
+        compat_brotli = None
 
 WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 

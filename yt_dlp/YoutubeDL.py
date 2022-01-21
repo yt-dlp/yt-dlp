@@ -32,6 +32,7 @@ from string import ascii_letters
 
 from .compat import (
     compat_basestring,
+    compat_brotli,
     compat_get_terminal_size,
     compat_kwargs,
     compat_numeric_types,
@@ -3615,6 +3616,7 @@ class YoutubeDL(object):
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
             has_websockets and 'websockets',
+            compat_brotli and compat_brotli.__name__,
             delim=', ') or 'none'
         write_debug('Optional libraries: %s' % lib_str)
 
