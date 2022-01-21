@@ -88,7 +88,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
     * Redirect channel's home URL automatically to `/video` to preserve the old behaviour
     * `255kbps` audio is extracted (if available) from youtube music when premium cookies are given
     * Youtube music Albums, channels etc can be downloaded ([except self-uploaded music](https://github.com/yt-dlp/yt-dlp/issues/723))
-    * Download livestreams from the start using `--live-from-start`
+    * Download livestreams from the start using `--live-from-start` (experimental)
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE]`
 
@@ -110,9 +110,9 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
 
-* **Other new options**: Many new options have been added such as `--print`, `--wait-for-video`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Other new options**: Many new options have been added such as `--concat-playlist`, `--print`, `--wait-for-video`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
-* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, etc
+* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
 
 * **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -723,6 +723,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 ## Workarounds:
     --encoding ENCODING              Force the specified encoding (experimental)
+    --legacy-server-connect          Explicitly allow HTTPS connection to
+                                     servers that do not support RFC 5746 secure
+                                     renegotiation
     --no-check-certificates          Suppress HTTPS certificate validation
     --prefer-insecure                Use an unencrypted connection to retrieve
                                      information about the video (Currently
