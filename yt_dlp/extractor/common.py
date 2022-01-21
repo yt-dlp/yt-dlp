@@ -1134,6 +1134,13 @@ class InfoExtractor(object):
             'url': url,
         }
 
+    def url_result_or_playlist_from_matches(self, matches, *args, ie=None, video_kwargs=None, **kwargs):
+        if variadic(matches) != matches:
+            matches = variadic(matches)
+        if len(matches) == 1:
+            return self.url_result(self._proto_relative_url(matches[0]), ie=ie, **(video_kwargs or {}))
+        return self.playlist_from_matches(self, matches, *args, ie=ie, video_kwargs=video_kwargs, **kwargs)
+
     def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, video_kwargs=None, **kwargs):
         urls = (self.url_result(self._proto_relative_url(m), ie, **(video_kwargs or {}))
                 for m in orderedSet(map(getter, matches) if getter else matches))
