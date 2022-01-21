@@ -21,9 +21,7 @@ from ..utils import (
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
-    is_outdated_version,
     Popen,
-    sanitize_open,
 )
 
 
@@ -145,11 +143,11 @@ class ExternalFD(FragmentFD):
                 return -1
 
         decrypt_fragment = self.decrypter(info_dict)
-        dest, _ = sanitize_open(tmpfilename, 'wb')
+        dest, _ = self.sanitize_open(tmpfilename, 'wb')
         for frag_index, fragment in enumerate(info_dict['fragments']):
             fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
             try:
-                src, _ = sanitize_open(fragment_filename, 'rb')
+                src, _ = self.sanitize_open(fragment_filename, 'rb')
             except IOError as err:
                 if skip_unavailable_fragments and frag_index > 1:
                     self.report_skip_fragment(frag_index, err)
@@ -267,6 +265,7 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
@@ -291,7 +290,7 @@ class Aria2cFD(ExternalFD):
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
-            stream, _ = sanitize_open(url_list_file, 'wb')
+            stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode('utf-8'))
             stream.close()
             cmd += ['-i', url_list_file]
@@ -305,7 +304,7 @@ class HttpieFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
-        return ExternalFD.available(cls, path or 'http')
+        return ExternalFD.available(path or 'http')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -444,8 +443,7 @@ class FFmpegFD(ExternalFD):
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
             for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
                 stream_number = fmt.get('manifest_stream_number', 0)
-                a_or_v = 'a' if fmt.get('acodec') != 'none' else 'v'
-                args.extend(['-map', f'{i}:{a_or_v}:{stream_number}'])
+                args.extend(['-map', f'{i}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
@@ -459,7 +457,7 @@ class FFmpegFD(ExternalFD):
                 args += ['-f', 'mpegts']
             else:
                 args += ['-f', 'mp4']
-                if (ffpp.basename == 'ffmpeg' and is_outdated_version(ffpp._versions['ffmpeg'], '3.2', False)) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
+                if (ffpp.basename == 'ffmpeg' and ffpp._features.get('needs_adtstoasc')) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
                     args += ['-bsf:a', 'aac_adtstoasc']
         elif protocol == 'rtmp':
             args += ['-f', 'flv']
