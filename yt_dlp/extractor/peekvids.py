@@ -21,6 +21,7 @@ class PeekVidsIE(InfoExtractor):
             'age_limit': 18,
         },
     }]
+    _DOMAIN = 'www.peekvids.com'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -29,7 +30,7 @@ class PeekVidsIE(InfoExtractor):
         short_video_id = self._html_search_regex(r'<video [^>]*data-id="(.+?)"',
                                                  webpage, 'short video ID')
         srcs = self._download_json(
-            f'https://www.peekvids.com/v-alt/{short_video_id}', video_id,
+            f'https://{self._DOMAIN}/v-alt/{short_video_id}', video_id,
             note='Downloading list of source files')
 
         formats = [{
@@ -42,7 +43,7 @@ class PeekVidsIE(InfoExtractor):
             formats = [{'url': url} for url in srcs.values()]
 
         title = self._html_search_regex(
-            r'<h1\s+class="title-video"\s*>\s*(.+?)\s*</h1>', webpage,
+            r'<h1.*?>\s*(.+?)\s*</h1>', webpage,
             'video title', default=None)
         if title is None:
             title = self._html_search_regex(r'<title>\s*(.+?)\s*</title>',
@@ -56,3 +57,36 @@ class PeekVidsIE(InfoExtractor):
             'age_limit': 18,
             'formats': formats,
         }
+
+
+class PlayVidsIE(PeekVidsIE):
+    _VALID_URL = r'https?://(?:www\.)?playvids\.com/(?:embed/|[^/]{2}/)?(?P<id>[^/?#]*)'
+    _TESTS = [{
+        'url': 'https://www.playvids.com/U3pBrYhsjXM/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp',
+        'md5': '2f12e50213dd65f142175da633c4564c',
+        'info_dict': {
+            'id': 'U3pBrYhsjXM',
+            'ext': 'mp4',
+            'title': 'Dane Jones - Cute redhead with perfect tits with Mini Vamp',
+            'age_limit': 18,
+        },
+    }, {
+        'url': 'https://www.playvids.com/es/U3pBrYhsjXM/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp',
+        'md5': '2f12e50213dd65f142175da633c4564c',
+        'info_dict': {
+            'id': 'U3pBrYhsjXM',
+            'ext': 'mp4',
+            'title': 'Dane Jones - Cute redhead with perfect tits with Mini Vamp',
+            'age_limit': 18,
+        },
+    }, {
+        'url': 'https://www.playvids.com/embed/U3pBrYhsjXM',
+        'md5': '2f12e50213dd65f142175da633c4564c',
+        'info_dict': {
+            'id': 'U3pBrYhsjXM',
+            'ext': 'mp4',
+            'title': 'U3pBrYhsjXM',
+            'age_limit': 18,
+        },
+    }]
+    _DOMAIN = 'www.playvids.com'
