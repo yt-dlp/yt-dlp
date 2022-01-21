@@ -41,7 +41,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 * Improved/fixed support for HiDive, HotStar, Hungama, LBRY, LinkedInLearning, Mxplayer, SonyLiv, TV2, Vimeo, VLive etc
 
 
-## [Lesmicore](https://github.com/Lesmiscore) (nao20010128nao)
+## [Lesmiscore](https://github.com/Lesmiscore) (nao20010128nao)
 
 **Bitcoin**: bc1qfd02r007cutfdjwjmyy9w23rjvtls6ncve7r3s  
 **Monacoin**: mona1q3tf7dzvshrhfe3md379xtvt2n22duhglv5dskr

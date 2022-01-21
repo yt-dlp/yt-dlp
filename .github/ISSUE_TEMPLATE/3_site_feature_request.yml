@@ -32,7 +32,7 @@ body:
       label: Example URLs
       description: |
         Example URLs that can be used to demonstrate the requested feature
-      value: |
+      placeholder: |
         https://www.youtube.com/watch?v=BaW_jenozKc
     validations:
       required: true
