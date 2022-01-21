@@ -532,7 +532,7 @@ class IqIE(InfoExtractor):
         webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
         webpack_map1, webpack_map2 = [self._parse_json(js_map, video_id, transform_source=js_to_json) for js_map in self._search_regex(
             r'\(({[^}]*})\[\w+\][^\)]*\)\s*\+\s*["\']\.["\']\s*\+\s*({[^}]*})\[\w+\]\+["\']\.js', webpack_js, 'JS locations', group=(1, 2))]
-        for module_index in reversed(webpack_map2.keys()):
+        for module_index in reversed(list(webpack_map2.keys())):
             module_js = self._download_webpage(
                 f'https://stc.iqiyipic.com/_next/static/chunks/{webpack_map1.get(module_index, module_index)}.{webpack_map2[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
