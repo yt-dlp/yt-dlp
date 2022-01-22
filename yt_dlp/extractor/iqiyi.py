@@ -586,8 +586,7 @@ class IqIE(InfoExtractor):
 
         if uid:
             vip_data = self._download_json(
-                'https://pcw-api.iq.com/api/vtype',
-                video_id, note='Downloading VIP data', errnote='Unable to download VIP data', query={
+                'https://pcw-api.iq.com/api/vtype', video_id, note='Downloading VIP data', errnote='Unable to download VIP data', query={
                     'batch': 1,
                     'platformId': 3,
                     'modeCode': self._get_cookie('mod', 'intl'),
