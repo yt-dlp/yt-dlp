@@ -208,8 +208,8 @@ class TubeTuGrazIE(InfoExtractor):
         framerate = traverse_obj(format_info, ("video", "framerate"))
         resolution = traverse_obj(format_info, ("video", "resolution"))
 
-        type = str(type).replace("/delivery", "")
-        transport = str(transport).lower()
+        type = type.replace("/delivery", "")
+        transport = transport.lower()
 
         if isinstance(audio_bitrate, int):
             audio_bitrate = audio_bitrate / 1000
