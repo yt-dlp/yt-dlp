@@ -86,8 +86,7 @@ class TubeTuGrazIE(InfoExtractor):
 
     def _extract_series(self, id):
         series_data = self._download_json(
-            'https://tube.tugraz.at/series/series.json',
-            None,
+            'https://tube.tugraz.at/series/series.json', id,
             note='downloading series metadata',
             errnote='failed to download series metadata',
             fatal=False,
@@ -107,7 +106,7 @@ class TubeTuGrazIE(InfoExtractor):
         title = traverse_obj(series_info, ('title', 0, 'value'))
 
         episodes_data = self._download_json(
-            self._API_EPISODE, None,
+            self._API_EPISODE, id,
             note='downloading episode list',
             errnote='failed to download episode list',
             fatal=False,
@@ -127,7 +126,7 @@ class TubeTuGrazIE(InfoExtractor):
 
     def _extract_episode(self, id):
         episode_data = self._download_json(
-            self._API_EPISODE, None,
+            self._API_EPISODE, id,
             note='downloading episode metadata',
             errnote='failed to download episode metadata',
             fatal=False,
@@ -175,7 +174,7 @@ class TubeTuGrazIE(InfoExtractor):
         formats = []
         format_types = defaultdict(lambda: defaultdict(int))
         for format_info in format_infos:
-            formats.extend(self._extract_formats(format_info, format_types))
+            formats.extend(self._extract_formats(format_info, format_types, id))
 
         self._guess_formats(formats, format_types, id)
         self._sort_formats(formats)
@@ -191,7 +190,7 @@ class TubeTuGrazIE(InfoExtractor):
             'formats': formats
         }
 
-    def _extract_formats(self, format_info, format_types):
+    def _extract_formats(self, format_info, format_types, id):
         PREFERRED_TYPE = 'presentation'
 
         url = traverse_obj(format_info, ('tags', 'url'), 'url')
@@ -224,13 +223,13 @@ class TubeTuGrazIE(InfoExtractor):
             }]
         elif transport == 'hls':
             formats = self._extract_m3u8_formats(
-                url, None,
+                url, id,
                 note='downloading %s HLS manifest' % type,
                 fatal=False,
                 ext='mp4')
         elif transport == 'dash':
             formats = self._extract_mpd_formats(
-                url, None,
+                url, id,
                 note='downloading %s DASH manifest' % type,
                 fatal=False)
         else:
@@ -261,7 +260,7 @@ class TubeTuGrazIE(InfoExtractor):
             if 'hls' not in format_types[type]:
                 # guessing location of HLS manifest
                 hls_formats = self._extract_m3u8_formats(
-                    m3u8_url, None,
+                    m3u8_url, id,
                     note='downloading %s HLS manifest' % type,
                     fatal=False,
                     errnote=False,
@@ -275,7 +274,7 @@ class TubeTuGrazIE(InfoExtractor):
             if 'dash' not in format_types[type]:
                 # guessing location of DASH manifest
                 dash_formats = self._extract_mpd_formats(
-                    mpd_url, None,
+                    mpd_url, id,
                     note='downloading %s DASH manifest' % type,
                     fatal=False,
                     errnote=False)
