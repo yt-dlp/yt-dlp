@@ -30,8 +30,7 @@ class TubeTuGrazIE(InfoExtractor):
         }
     }
 
-    _LOGIN_REQUIRED = False
-    _NETRC_MACHINE = None
+    _NETRC_MACHINE = "tubetugraz"
 
     _LOGIN_URL = 'https://tube.tugraz.at/Shibboleth.sso/Login?target=/paella/ui/index.html'
     _LOGIN_SUCCESS_URL = 'https://tube.tugraz.at/paella/ui/index.html'
