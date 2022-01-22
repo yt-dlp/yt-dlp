@@ -180,7 +180,6 @@ class TubeTuGrazIE(InfoExtractor):
         self._sort_formats(formats)
 
         return {
-            '_type': 'video',
             'id': id,
             'title': title,
             'creator': creator,
