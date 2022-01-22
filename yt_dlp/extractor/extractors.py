@@ -362,6 +362,7 @@ from .dplay import (
     CookingChannelIE,
     HGTVUsaIE,
     FoodNetworkIE,
+    InvestigationDiscoveryIE,
     DestinationAmericaIE,
     AmHistoryChannelIE,
     ScienceChannelIE,
