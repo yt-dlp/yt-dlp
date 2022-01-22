@@ -137,6 +137,7 @@ from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
+from .mailru import MailRuIE
 
 
 class GenericIE(InfoExtractor):
@@ -2382,6 +2383,21 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1636788683.0,
                 'upload_date': '20211113'
             }
+        },
+        {
+            # mail.ru embed
+            'url': 'http://uzmovi.com/tarjima-kinolar/4127-abadiylar-umrboqiylar-premyera-uzbek-ozbek-tilida.html',
+            'info_dict': {
+                'id': '73801668_1899',
+                'ext': 'mp4',
+                'title': "sss",
+                'uploader': 'kinolanet',
+                'timestamp': 1642690643,
+                'upload_date': '20220120'
+            },
+            'params': {
+                'skip_download': True,
+            }
         }
         #
     ]
@@ -3571,6 +3587,10 @@ class GenericIE(InfoExtractor):
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
+        
+        mailru_urls = MailRuIE._extract_urls(webpage)
+        if mailru_urls:
+            return self.playlist_from_matches(mailru_urls, video_id, video_title, ie=MailRuIE.ie_key())
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
