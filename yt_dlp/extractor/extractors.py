@@ -1830,7 +1830,7 @@ from .vimeo import (
     VHXEmbedIE,
 )
 from .vimm import (
-    VimmStreamIE,
+    VimmIE,
     VimmRecordingIE,
 )
 from .vimple import VimpleIE

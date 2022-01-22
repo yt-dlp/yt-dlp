@@ -2,7 +2,8 @@
 from .common import InfoExtractor
 
 
-class VimmStreamIE(InfoExtractor):
+class VimmIE(InfoExtractor):
+    IE_NAME = 'Vimm:stream'
     _VALID_URL = r'https?://(?:www\.)?vimm\.tv/(?:c/)?(?P<id>[0-9a-z-]+)$'
     _TESTS = [{
         'url': 'https://www.vimm.tv/c/calimeatwagon',
@@ -35,6 +36,7 @@ class VimmStreamIE(InfoExtractor):
 
 
 class VimmRecordingIE(InfoExtractor):
+    IE_NAME = 'Vimm:recording'
     _VALID_URL = r'https?://(?:www\.)?vimm\.tv/c/(?P<channel_id>[0-9a-z-]+)\?v=(?P<video_id>[0-9A-Za-z]+)'
     _TESTS = [{
         'url': 'https://www.vimm.tv/c/kaldewei?v=2JZsrPTFxsSz',
