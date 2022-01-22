@@ -270,40 +270,32 @@ class TubeTuGrazIE(InfoExtractor):
                 preference = -2
 
             if 'hls' not in format_types[type]:
-                hls_page = self._download_webpage_handle(
+                # guessing location of HLS manifest
+                hls_formats = self._extract_m3u8_formats(
                     m3u8_url, None,
-                    note='guessing location of %s HLS manifest' % type,
+                    note='downloading %s HLS manifest' % type,
+                    fatal=False,
                     errnote=False,
-                    fatal=False)
-                if hls_page is not False:
-                    hls_formats = self._extract_m3u8_formats(
-                        m3u8_url, None,
-                        note='downloading %s HLS manifest' % type,
-                        fatal=False,
-                        ext='mp4')
+                    ext='mp4')
 
-                    for format in hls_formats:
-                        format['preference'] = preference
-                        self._gen_format_id(format, type, 'hls', format_types)
+                for format in hls_formats:
+                    format['preference'] = preference
+                    self._gen_format_id(format, type, 'hls', format_types)
 
-                    formats.extend(hls_formats)
+                formats.extend(hls_formats)
             if 'dash' not in format_types[type]:
-                dash_page = self._download_webpage_handle(
+                # guessing location of DASH manifest
+                dash_formats = self._extract_mpd_formats(
                     mpd_url, None,
-                    note='guessing location of %s DASH manifest' % type,
-                    errnote=False,
-                    fatal=False)
-                if dash_page is not False:
-                    dash_formats = self._extract_mpd_formats(
-                        mpd_url, None,
-                        note='downloading %s DASH manifest' % type,
-                        fatal=False)
+                    note='downloading %s DASH manifest' % type,
+                    fatal=False,
+                    errnote=False)
 
-                    for format in dash_formats:
-                        format['preference'] = preference
-                        self._gen_format_id(format, type, 'dash', format_types)
+                for format in dash_formats:
+                    format['preference'] = preference
+                    self._gen_format_id(format, type, 'dash', format_types)
 
-                    formats.extend(dash_formats)
+                formats.extend(dash_formats)
 
     def _gen_format_id(self, format, type, transport, format_types):
         format_types[type][transport] += 1
