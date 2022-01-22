@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 from .common import InfoExtractor
-from ..utils import ExtractorError, urlencode_postdata, try_get, traverse_obj
+from ..utils import ExtractorError, urlencode_postdata, traverse_obj
 from collections import defaultdict
 import re
 
@@ -149,7 +149,7 @@ class TubeTuGrazIE(InfoExtractor):
         return self._extract_episode_inner(id, episode_info)
 
     def _extract_episode_from_info(self, episode_info):
-        id = try_get(episode_info, 'id')
+        id = episode_info.get('id')
         return self._extract_episode_inner(id, episode_info)
 
     def _extract_episode_inner(self, id, episode_info):
@@ -198,8 +198,8 @@ class TubeTuGrazIE(InfoExtractor):
         PREFERRED_TYPE = 'presentation'
 
         url = traverse_obj(format_info, ('tags', 'url'), 'url')
-        type = try_get(format_info, 'type') or 'unknown'
-        transport = try_get(format_info, 'transport') or 'https'
+        type = format_info.get('type') or 'unknown'
+        transport = format_info.get('transport') or 'https'
         audio_bitrate = traverse_obj(format_info, ('audio', 'bitrate'))
         video_bitrate = traverse_obj(format_info, ('video', 'bitrate'))
         framerate = traverse_obj(format_info, ('video', 'framerate'))
