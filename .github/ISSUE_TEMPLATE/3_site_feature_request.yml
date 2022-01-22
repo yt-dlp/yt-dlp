@@ -11,7 +11,7 @@ body:
       options:
         - label: I'm reporting a site feature request
           required: true
-        - label: I've verified that I'm running yt-dlp version **2021.12.27**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
+        - label: I've verified that I'm running yt-dlp version **2022.01.21**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
           required: true
         - label: I've checked that all provided URLs are alive and playable in a browser
           required: true
@@ -32,7 +32,7 @@ body:
       label: Example URLs
       description: |
         Example URLs that can be used to demonstrate the requested feature
-      value: |
+      placeholder: |
         https://www.youtube.com/watch?v=BaW_jenozKc
     validations:
       required: true
@@ -53,19 +53,19 @@ body:
       label: Verbose log
       description: |
         Provide the complete verbose output of yt-dlp that demonstrates the need for the enhancement.
-        Add the `-Uv` flag to your command line you run yt-dlp with (`yt-dlp -Uv <your command line>`), copy the WHOLE output and insert it below.
+        Add the `-vU` flag to your command line you run yt-dlp with (`yt-dlp -vU <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |
-        [debug] Command-line config: ['-Uv', 'http://www.youtube.com/watch?v=BaW_jenozKc']
+        [debug] Command-line config: ['-vU', 'http://www.youtube.com/watch?v=BaW_jenozKc']
         [debug] Portable config file: yt-dlp.conf
         [debug] Portable config: ['-i']
         [debug] Encodings: locale cp1252, fs utf-8, stdout utf-8, stderr utf-8, pref cp1252
-        [debug] yt-dlp version 2021.12.27 (exe)
+        [debug] yt-dlp version 2022.01.21 (exe)
         [debug] Python version 3.8.8 (CPython 64bit) - Windows-10-10.0.19041-SP0
         [debug] exe versions: ffmpeg 3.0.1, ffprobe 3.0.1
         [debug] Optional libraries: Cryptodome, keyring, mutagen, sqlite, websockets
         [debug] Proxy map: {}
-        yt-dlp is up to date (2021.12.27)
+        yt-dlp is up to date (2022.01.21)
         <more lines>
       render: shell
     validations:

@@ -45,6 +45,7 @@ from ..utils import (
     determine_ext,
     determine_protocol,
     dict_get,
+    encode_data_uri,
     error_to_compat_str,
     extract_attributes,
     ExtractorError,
@@ -243,11 +244,16 @@ class InfoExtractor(object):
     uploader:       Full name of the video uploader.
     license:        License name the video is licensed under.
     creator:        The creator of the video.
-    release_timestamp: UNIX timestamp of the moment the video was released.
-    release_date:   The date (YYYYMMDD) when the video was released.
     timestamp:      UNIX timestamp of the moment the video was uploaded
     upload_date:    Video upload date (YYYYMMDD).
-                    If not explicitly set, calculated from timestamp.
+                    If not explicitly set, calculated from timestamp
+    release_timestamp: UNIX timestamp of the moment the video was released.
+                    If it is not clear whether to use timestamp or this, use the former
+    release_date:   The date (YYYYMMDD) when the video was released.
+                    If not explicitly set, calculated from release_timestamp
+    modified_timestamp: UNIX timestamp of the moment the video was last modified.
+    modified_date:   The date (YYYYMMDD) when the video was last modified.
+                    If not explicitly set, calculated from modified_timestamp
     uploader_id:    Nickname or id of the video uploader.
     uploader_url:   Full URL to a personal webpage of the video uploader.
     channel:        Full name of the channel the video is uploaded on.
@@ -255,6 +261,7 @@ class InfoExtractor(object):
                     fields. This depends on a particular extractor.
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
+    channel_follower_count: Number of followers of the channel.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -370,6 +377,7 @@ class InfoExtractor(object):
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
     release_year:   Year (YYYY) when the album was released.
+    composer:       Composer of the piece
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 
@@ -382,6 +390,11 @@ class InfoExtractor(object):
 
     Additionally, playlists can have "id", "title", and any other relevent
     attributes with the same semantics as videos (see above).
+
+    It can also have the following optional fields:
+
+    playlist_count: The total number of videos in a playlist. If not given,
+                    YoutubeDL tries to calculate it from "entries"
 
 
     _type "multi_video" indicates that there are multiple videos that
@@ -1108,39 +1121,39 @@ class InfoExtractor(object):
 
     # Methods for following #608
     @staticmethod
-    def url_result(url, ie=None, video_id=None, video_title=None, **kwargs):
+    def url_result(url, ie=None, video_id=None, video_title=None, *, url_transparent=False, **kwargs):
         """Returns a URL that points to a page that should be processed"""
-        # TODO: ie should be the class used for getting the info
-        video_info = {'_type': 'url',
-                      'url': url,
-                      'ie_key': ie}
-        video_info.update(kwargs)
+        if ie is not None:
+            kwargs['ie_key'] = ie if isinstance(ie, str) else ie.ie_key()
         if video_id is not None:
-            video_info['id'] = video_id
+            kwargs['id'] = video_id
         if video_title is not None:
-            video_info['title'] = video_title
-        return video_info
+            kwargs['title'] = video_title
+        return {
+            **kwargs,
+            '_type': 'url_transparent' if url_transparent else 'url',
+            'url': url,
+        }
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None):
-        urls = orderedSet(
-            self.url_result(self._proto_relative_url(getter(m) if getter else m), ie)
-            for m in matches)
-        return self.playlist_result(
-            urls, playlist_id=playlist_id, playlist_title=playlist_title)
+    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, **kwargs):
+        urls = (self.url_result(self._proto_relative_url(m), ie)
+                for m in orderedSet(map(getter, matches) if getter else matches))
+        return self.playlist_result(urls, playlist_id, playlist_title, **kwargs)
 
     @staticmethod
-    def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None, **kwargs):
+    def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None, *, multi_video=False, **kwargs):
         """Returns a playlist"""
-        video_info = {'_type': 'playlist',
-                      'entries': entries}
-        video_info.update(kwargs)
         if playlist_id:
-            video_info['id'] = playlist_id
+            kwargs['id'] = playlist_id
         if playlist_title:
-            video_info['title'] = playlist_title
+            kwargs['title'] = playlist_title
         if playlist_description is not None:
-            video_info['description'] = playlist_description
-        return video_info
+            kwargs['description'] = playlist_description
+        return {
+            **kwargs,
+            '_type': 'multi_video' if multi_video else 'playlist',
+            'entries': entries,
+        }
 
     def _search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
@@ -1532,12 +1545,12 @@ class InfoExtractor(object):
 
         return dict((k, v) for k, v in info.items() if v is not None)
 
-    def _search_nextjs_data(self, webpage, video_id, **kw):
+    def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
         return self._parse_json(
             self._search_regex(
                 r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
-                webpage, 'next.js data', **kw),
-            video_id, **kw)
+                webpage, 'next.js data', fatal=fatal, **kw),
+            video_id, transform_source=transform_source, fatal=fatal)
 
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__'):
         ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
@@ -2095,7 +2108,7 @@ class InfoExtractor(object):
             headers=headers, query=query, video_id=video_id)
 
     def _parse_m3u8_formats_and_subtitles(
-            self, m3u8_doc, m3u8_url, ext=None, entry_protocol='m3u8_native',
+            self, m3u8_doc, m3u8_url=None, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
@@ -2145,7 +2158,7 @@ class InfoExtractor(object):
             formats = [{
                 'format_id': join_nonempty(m3u8_id, idx),
                 'format_index': idx,
-                'url': m3u8_url,
+                'url': m3u8_url or encode_data_uri(m3u8_doc.encode('utf-8'), 'application/x-mpegurl'),
                 'ext': ext,
                 'protocol': entry_protocol,
                 'preference': preference,
@@ -3491,8 +3504,6 @@ class InfoExtractor(object):
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
-        if 'get_attr' in kwargs:
-            print(getattr(v, kwargs['get_attr']))
         if res is None:
             msg = 'Failed to extract %s: Could not parse value %r' % (name, v)
             if fatal:

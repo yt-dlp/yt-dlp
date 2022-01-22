@@ -30,6 +30,7 @@ class YDL(FakeYDL):
         self.msgs = []
 
     def process_info(self, info_dict):
+        info_dict = info_dict.copy()
         info_dict.pop('__original_infodict', None)
         self.downloaded_info_dicts.append(info_dict)
 
@@ -908,7 +909,7 @@ class TestYoutubeDL(unittest.TestCase):
             def _match_entry(self, info_dict, incomplete=False):
                 res = super(FilterYDL, self)._match_entry(info_dict, incomplete)
                 if res is None:
-                    self.downloaded_info_dicts.append(info_dict)
+                    self.downloaded_info_dicts.append(info_dict.copy())
                 return res
 
         first = {
@@ -1153,6 +1154,7 @@ class TestYoutubeDL(unittest.TestCase):
         self.assertTrue(entries[1] is None)
         self.assertEqual(len(ydl.downloaded_info_dicts), 1)
         downloaded = ydl.downloaded_info_dicts[0]
+        entries[2].pop('requested_downloads', None)
         self.assertEqual(entries[2], downloaded)
         self.assertEqual(downloaded['url'], TEST_URL)
         self.assertEqual(downloaded['title'], 'Video Transparent 2')

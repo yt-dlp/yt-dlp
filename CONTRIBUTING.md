@@ -19,6 +19,7 @@
         - [Provide fallbacks](#provide-fallbacks)
         - [Regular expressions](#regular-expressions)
         - [Long lines policy](#long-lines-policy)
+        - [Quotes](#quotes)
         - [Inline values](#inline-values)
         - [Collapse fallbacks](#collapse-fallbacks)
         - [Trailing parentheses](#trailing-parentheses)
@@ -31,9 +32,9 @@
 
 Bugs and suggestions should be reported at: [yt-dlp/yt-dlp/issues](https://github.com/yt-dlp/yt-dlp/issues). Unless you were prompted to or there is another pertinent reason (e.g. GitHub fails to accept the bug report), please do not send bug reports via personal email. For discussions, join us in our [discord server](https://discord.gg/H5MNcFW63r).
 
-**Please include the full output of yt-dlp when run with `-Uv`**, i.e. **add** `-Uv` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
+**Please include the full output of yt-dlp when run with `-vU`**, i.e. **add** `-vU` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
 ```
-$ yt-dlp -Uv <your command line>
+$ yt-dlp -vU <your command line>
 [debug] Command-line config: ['-v', 'demo.com']
 [debug] Encodings: locale UTF-8, fs utf-8, out utf-8, pref UTF-8
 [debug] yt-dlp version 2021.09.25 (zip)
@@ -64,7 +65,7 @@ So please elaborate on what feature you are requesting, or what bug you want to 
 
 If your report is shorter than two lines, it is almost certainly missing some of these, which makes it hard for us to respond to it. We're often too polite to close the issue outright, but the missing info makes misinterpretation likely. We often get frustrated by these issues, since the only possible way for us to move forward on them is to ask for clarification over and over.
 
-For bug reports, this means that your report should contain the **complete** output of yt-dlp when called with the `-Uv` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
+For bug reports, this means that your report should contain the **complete** output of yt-dlp when called with the `-vU` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
 
 If the error is `ERROR: Unable to extract ...` and you cannot reproduce it from multiple countries, add `--write-pages` and upload the `.dump` files you get [somewhere](https://gist.github.com).
 
@@ -452,9 +453,13 @@ Here the presence or absence of other attributes including `style` is irrelevent
 
 ### Long lines policy
 
-There is a soft limit to keep lines of code under 100 characters long. This means it should be respected if possible and if it does not make readability and code maintenance worse. Sometimes, it may be reasonable to go upto 120 characters and sometimes even 80 can be unreadable. Keep in mind that this is not a hard limit and is just one of many tools to make the code more readable
+There is a soft limit to keep lines of code under 100 characters long. This means it should be respected if possible and if it does not make readability and code maintenance worse. Sometimes, it may be reasonable to go upto 120 characters and sometimes even 80 can be unreadable. Keep in mind that this is not a hard limit and is just one of many tools to make the code more readable.
 
 For example, you should **never** split long string literals like URLs or some other often copied entities over multiple lines to fit this limit:
+
+Conversely, don't unecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
+
+##### Examples
 
 Correct:
 
@@ -468,6 +473,47 @@ Incorrect:
 'https://www.youtube.com/watch?v=FqZTN594JQw&list='
 'PLMYEtVRpaqY00V9W81Cwmzp6N6vZqfUKD4'
 ```
+
+Correct:
+
+```python
+uploader = traverse_obj(info, ('uploader', 'name'), ('author', 'fullname'))
+```
+
+Incorrect:
+
+```python
+uploader = traverse_obj(
+    info,
+    ('uploader', 'name'),
+    ('author', 'fullname'))
+```
+
+Correct:
+
+```python
+formats = self._extract_m3u8_formats(
+    m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls',
+    note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')
+```
+
+Incorrect:
+
+```python
+formats = self._extract_m3u8_formats(m3u8_url,
+                                     video_id,
+                                     'mp4',
+                                     'm3u8_native',
+                                     m3u8_id='hls',
+                                     note='Downloading HD m3u8 information',
+                                     errnote='Unable to download HD m3u8 information')
+```
+
+
+### Quotes
+
+Always use single quotes for strings (even if the string has `'`) and double quotes for docstrings. Use `'''` only for multi-line strings. An exception can be made if a string has multiple single quotes in it and escaping makes it significantly harder to read. For f-strings, use you can use double quotes on the inside. But avoid f-strings that have too many quotes inside.
+
 
 ### Inline values
 
@@ -518,25 +564,66 @@ Methods supporting list of patterns are: `_search_regex`, `_html_search_regex`, 
 
 ### Trailing parentheses
 
-Always move trailing parentheses after the last argument.
+Always move trailing parentheses used for grouping/functions after the last argument. On the other hand, literal list/tuple/dict/set should closed be in a new line. Generators and list/dict comprehensions may use either style
 
-Note that this *does not* apply to braces `}` or square brackets `]` both of which should closed be in a new line
-
-#### Example
+#### Examples
 
 Correct:
 
 ```python
+url = try_get(
+    info,
     lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
     list)
+```
+Correct:
+
+```python
+url = try_get(info,
+              lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
+              list)
 ```
 
 Incorrect:
 
 ```python
+url = try_get(
+    info,
     lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
     list,
 )
+```
+
+Correct:
+
+```python
+f = {
+    'url': url,
+    'format_id': format_id,
+}
+```
+
+Incorrect:
+
+```python
+f = {'url': url,
+     'format_id': format_id}
+```
+
+Correct:
+
+```python
+formats = [process_formats(f) for f in format_data
+           if f.get('type') in ('hls', 'dash', 'direct') and f.get('downloadable')]
+```
+
+Correct:
+
+```python
+formats = [
+    process_formats(f) for f in format_data
+    if f.get('type') in ('hls', 'dash', 'direct') and f.get('downloadable')
+]
 ```
 
 

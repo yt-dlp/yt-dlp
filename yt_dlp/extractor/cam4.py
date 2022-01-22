@@ -13,6 +13,8 @@ class CAM4IE(InfoExtractor):
             'ext': 'mp4',
             'title': 're:^foxynesss [0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$',
             'age_limit': 18,
+            'live_status': 'is_live',
+            'thumbnail': 'https://snapshots.xcdnpro.com/thumbnails/foxynesss',
         }
     }
 
@@ -29,4 +31,5 @@ class CAM4IE(InfoExtractor):
             'is_live': True,
             'age_limit': 18,
             'formats': formats,
+            'thumbnail': f'https://snapshots.xcdnpro.com/thumbnails/{channel_id}',
         }
