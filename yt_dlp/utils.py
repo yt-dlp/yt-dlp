@@ -5371,5 +5371,5 @@ class WebSocketsWrapper():
             self.loop.close()
             _cancel_all_tasks(self.loop)
 
-if not compat_websockets:
-    WebSocketsWrapper = None
+
+has_websockets = bool(compat_websockets)
