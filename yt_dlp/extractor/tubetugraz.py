@@ -1,16 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 from .common import InfoExtractor
-from ..utils import ExtractorError, urlencode_postdata, try_get
+from ..utils import ExtractorError, urlencode_postdata, try_get, traverse_obj
 from collections import defaultdict
 import re
-
-
-def try_get_or(src, getters, expected_type=None):
-    for getter in getters:
-        v = try_get(src, getter, expected_type)
-        if v is not None:
-            return v
 
 
 class TubeTuGrazIE(InfoExtractor):
@@ -99,7 +92,7 @@ class TubeTuGrazIE(InfoExtractor):
             raise ExtractorError("no video found on page")
 
     def _extract_series(self, id):
-        series_info_data = self._download_json(
+        series_data = self._download_json(
             self._API_SERIES, None,
             note='downloading series metadata',
             errnote='failed to download series metadata',
@@ -109,20 +102,17 @@ class TubeTuGrazIE(InfoExtractor):
                 "count": 1,
                 "sort": "TITLE"
             })
-        series_info = try_get(
-            series_info_data,
-            lambda x: x["catalogs"][0]["http://purl.org/dc/terms/"]) or {}
+        series_info = traverse_obj(series_data,
+            ("catalogs", 0, "http://purl.org/dc/terms/")) or {}
 
         if len(series_info) == 0:
             self.report_warning(
                 "failed to download series metadata: "
                 + "authentication required or series does not exist", id)
 
-        title = try_get(
-            series_info,
-            lambda x: x["title"][0]["value"])
+        title = traverse_obj(series_info, ("title", 0, "value"))
 
-        episodes_info_data = self._download_json(
+        episodes_data = self._download_json(
             self._API_EPISODE, None,
             note='downloading episode list',
             errnote='failed to download episode list',
@@ -130,9 +120,8 @@ class TubeTuGrazIE(InfoExtractor):
             query={
                 "sid": id
             })
-        episodes_info = try_get(
-            episodes_info_data,
-            lambda x: x["search-results"]["result"]) or []
+        episodes_info = traverse_obj(episodes_data,
+            ("search-results", "result")) or []
 
         return {
             "_type": "playlist",
@@ -143,7 +132,7 @@ class TubeTuGrazIE(InfoExtractor):
         }
 
     def _extract_episode(self, id):
-        episode_info_data = self._download_json(
+        episode_data = self._download_json(
             self._API_EPISODE, None,
             note='downloading episode metadata',
             errnote='failed to download episode metadata',
@@ -152,9 +141,8 @@ class TubeTuGrazIE(InfoExtractor):
                 "id": id,
                 "limit": 1
             })
-        episode_info = try_get(
-            episode_info_data,
-            lambda x: x["search-results"]["result"]) or {}
+        episode_info = traverse_obj(episode_data,
+            ("search-results", "result")) or {}
 
         if len(episode_info) == 0:
             self.report_warning(
@@ -164,37 +152,31 @@ class TubeTuGrazIE(InfoExtractor):
         return self._extract_episode_inner(id, episode_info)
 
     def _extract_episode_from_info(self, episode_info):
-        id = try_get(episode_info, lambda x: x["id"])
+        id = try_get(episode_info, "id")
         return self._extract_episode_inner(id, episode_info)
 
     def _extract_episode_inner(self, id, episode_info):
-        title = try_get_or(episode_info, [
-            lambda x: x["mediapackage"]["title"],
-            lambda x: x["dcTitle"]]) or id
+        title = traverse_obj(episode_info,
+            ("mediapackage", "title"), "dcTitle") or id
 
-        creator = try_get_or(episode_info, [
-            lambda x: x["mediapackage"]["creators"]["creator"],
-            lambda x: x["dcCreator"]])
+        creator = traverse_obj(episode_info,
+            ("mediapackage", "creators", "creator"), "dcCreator")
         if isinstance(creator, list):
             creator = ", ".join(creator)
 
-        duration = try_get_or(episode_info, [
-            lambda x: x["mediapackage"]["duration"],
-            lambda x: x["dcExtent"]])
+        duration = traverse_obj(episode_info,
+            ("mediapackage", "duration"), "dcExtent")
 
-        series_id = try_get_or(episode_info, [
-            lambda x: x["mediapackage"]["series"],
-            lambda x: x["dcIsPartOf"]])
+        series_id = traverse_obj(episode_info,
+            ("mediapackage", "series"), "dcIsPartOf")
 
-        series_title = try_get(
-            episode_info,
-            lambda x: x["mediapackage"]["seriestitle"]) or series_id
+        series_title = traverse_obj(episode_info,
+            ("mediapackage", "seriestitle")) or series_id
 
         episode_title = title if series_title is not None else None
 
-        format_infos = try_get(
-            episode_info,
-            lambda x: x["mediapackage"]["media"]["track"]) or []
+        format_infos = traverse_obj(episode_info,
+            ("mediapackage", "media", "track")) or []
 
         formats = []
         format_types = defaultdict(lambda: defaultdict(int))
@@ -218,13 +200,13 @@ class TubeTuGrazIE(InfoExtractor):
     def _extract_formats(self, format_info, format_types):
         PREFERRED_TYPE = "presentation"
 
-        url = try_get(format_info, lambda x: x["url"])
-        type = try_get(format_info, lambda x: x["type"]) or "unknown"
-        transport = try_get(format_info, lambda x: x["transport"]) or "https"
-        audio_bitrate = try_get(format_info, lambda x: x["audio"]["bitrate"])
-        video_bitrate = try_get(format_info, lambda x: x["video"]["bitrate"])
-        framerate = try_get(format_info, lambda x: x["video"]["framerate"])
-        resolution = try_get(format_info, lambda x: x["video"]["resolution"])
+        url = try_get(format_info, "url")
+        type = try_get(format_info, "type") or "unknown"
+        transport = try_get(format_info, "transport") or "https"
+        audio_bitrate = traverse_obj(format_info, ("audio", "bitrate"))
+        video_bitrate = traverse_obj(format_info, ("video", "bitrate"))
+        framerate = traverse_obj(format_info, ("video", "framerate"))
+        resolution = traverse_obj(format_info, ("video", "resolution"))
 
         type = str(type).replace("/delivery", "")
         transport = str(transport).lower()
