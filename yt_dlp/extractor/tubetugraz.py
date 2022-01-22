@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import ExtractorError, urlencode_postdata, try_get, traverse_obj
+from ..utils import parse_resolution
 from collections import defaultdict
 import re
 
@@ -207,6 +208,7 @@ class TubeTuGrazIE(InfoExtractor):
 
         type = type.replace('/delivery', '')
         transport = transport.lower()
+        resolution = parse_resolution(resolution)
 
         if type == PREFERRED_TYPE:
             preference = -1
@@ -220,8 +222,9 @@ class TubeTuGrazIE(InfoExtractor):
                 'url': url,
                 'abr': audio_bitrate,
                 'vbr': video_bitrate,
-                'framerate': framerate,
-                'resolution': resolution,
+                'fps': framerate,
+                'width': resolution.get('width'),
+                'height': resolution.get('height')
             }]
         elif transport == 'hls':
             formats = self._extract_m3u8_formats(
