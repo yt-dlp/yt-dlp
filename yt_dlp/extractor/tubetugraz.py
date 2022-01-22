@@ -16,7 +16,7 @@ class TubeTuGrazIE(InfoExtractor):
             (?P<episode>watch.html\?id=)
         )(?P<id>[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})
     '''
-    _TEST = {
+    _TESTS = [{
         'url': 'https://tube.tugraz.at/paella/ui/watch.html?id=f2634392-e40e-4ac7-9ddc-47764aa23d40',
         'md5': 'a23a3d5c9aaca2b84932fdba66e17145',
         'info_dict': {
@@ -28,7 +28,7 @@ class TubeTuGrazIE(InfoExtractor):
             'creator': 'Safran C',
             'duration': 3295818,
         }
-    }
+    }]
 
     _NETRC_MACHINE = "tubetugraz"
 
