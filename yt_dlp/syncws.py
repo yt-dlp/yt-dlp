@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import asyncio
 import websockets
+import sys
 
 
 # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
@@ -23,7 +24,11 @@ def run_with_loop(main, loop):
 
 
 def _cancel_all_tasks(loop):
-    to_cancel = asyncio.tasks.all_tasks(loop)
+    if sys.version_info <= (3, 6):  # <= 3.6
+        to_cancel = asyncio.tasks.Task.all_tasks(loop)
+    else:  # > 3.7
+        to_cancel = asyncio.tasks.all_tasks(loop)
+
     if not to_cancel:
         return
 
