@@ -74,7 +74,7 @@ class TubeTuGrazIE(InfoExtractor):
         self._login()
 
     def _real_extract(self, url):
-        match = re.match(self._VALID_URL, url)
+        match = self._match_valid_url(url)
 
         id = match.group('id')
         if match.group('series') is not None:
