@@ -100,7 +100,7 @@ class MusicdexAlbumIE(MusicdexBaseIE):
         }
 
 
-class MusicdexPageIE(InfoExtractor):
+class MusicdexPageIE(MusicdexBaseIE):
     def _entries(self, id):
         next_page_url = self._API_URL % id
         while next_page_url:
@@ -110,7 +110,7 @@ class MusicdexPageIE(InfoExtractor):
             next_page_url = data_json.get('next_page_url')
 
 
-class MusicdexArtistIE(MusicdexBaseIE, MusicdexPageIE):
+class MusicdexArtistIE(MusicdexPageIE):
     _VALID_URL = r'https?://(?:www\.)?musicdex\.org/artist/(?P<id>\d+)'
     _API_URL = 'https://www.musicdex.org/secure/artists/%s/albums?page=1'
 
@@ -142,25 +142,34 @@ class MusicdexArtistIE(MusicdexBaseIE, MusicdexPageIE):
         }
 
 
-class MusicdexPlaylistIE(MusicdexBaseIE, MusicdexPageIE):
+class MusicdexPlaylistIE(MusicdexPageIE):
     _VALID_URL = r'https?://(?:www\.)?musicdex\.org/playlist/(?P<id>\d+)'
-    _API_URL = ''
+    _API_URL = 'https://www.musicdex.org/secure/playlists/%s/tracks?perPage=10000&page=1'
 
-    _TESTS = []
+    _TESTS = [{
+        'url': 'https://www.musicdex.org/playlist/9/test',
+        'playlist_mincount': 73,
+        'info_dict': {
+            'id': '9',
+            'view_count': int,
+            'title': 'Test',
+            'thumbnail': 'https://www.musicdex.org/storage/album/jXATI79f0IbQ2sgsKYOYRCW3zRwF3XsfHhzITCuJ.jpg',
+            'description': 'Test 123 123 21312 32121321321321312',
+        },
+    }]
 
     def _real_extract(self, url):
-        return {}
         id = self._match_id(url)
-        data_json = self._download_json(f'https://www.musicdex.org/secure/artists/{id}', id)['artist']
-        entries = []
-        for album in self._entries(id):
-            entries.extend(self._return_info(track, album, track['id']) for track in album.get('tracks') or [] if track.get('id'))
+        data_json = self._download_json(f'https://www.musicdex.org/secure/playlists/{id}', id)['playlist']
+        entries = [self._return_info(track, track.get('album') or {}, track['id'])
+                   for track in self._entries(id) or [] if track.get('id')]
 
         return {
             '_type': 'playlist',
             'id': id,
             'title': data_json.get('name'),
+            'description': data_json.get('description'),
             'view_count': data_json.get('plays'),
-            'thumbnail': format_field(data_json, 'image_small', 'https://www.musicdex.org/%s'),
+            'thumbnail': format_field(data_json, 'image', 'https://www.musicdex.org/%s'),
             'entries': entries,
         }
