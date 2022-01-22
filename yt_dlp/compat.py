@@ -133,9 +133,9 @@ except AttributeError:
     asyncio.run = compat_asyncio_run
 
 
-if sys.version_info <= (3, 6):  # <= 3.6
+try:  # <= 3.6
     compat_asyncio_all_tasks = asyncio.tasks.Task.all_tasks
-else:  # > 3.7
+except AttributeError:  # > 3.7
     compat_asyncio_all_tasks = asyncio.tasks.all_tasks
 
 try:
