@@ -30,7 +30,7 @@ class TubeTuGrazIE(InfoExtractor):
         }
     }]
 
-    _NETRC_MACHINE = "tubetugraz"
+    _NETRC_MACHINE = 'tubetugraz'
 
     _API_EPISODE = 'https://tube.tugraz.at/search/episode.json'
 
