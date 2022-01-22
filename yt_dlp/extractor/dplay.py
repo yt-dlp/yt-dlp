@@ -513,6 +513,30 @@ class DestinationAmericaIE(DiscoveryPlusBaseIE):
     }
 
 
+class InvestigationDiscoveryIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?investigationdiscovery\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.investigationdiscovery.com/video/unmasked-investigation-discovery/the-killer-clown',
+        'info_dict': {
+            'id': '2139409',
+            'display_id': 'unmasked-investigation-discovery/the-killer-clown',
+            'ext': 'mp4',
+            'title': 'The Killer Clown',
+            'description': 'A wealthy Florida woman is fatally shot in the face by a clown at her door.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'ids'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.investigationdiscovery.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
 class AmHistoryChannelIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?ahctv\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
