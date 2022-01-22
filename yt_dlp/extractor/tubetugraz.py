@@ -197,7 +197,7 @@ class TubeTuGrazIE(InfoExtractor):
     def _extract_formats(self, format_info, format_types):
         PREFERRED_TYPE = 'presentation'
 
-        url = try_get(format_info, 'url')
+        url = traverse_obj(format_info, ('tags', 'url'), 'url')
         type = try_get(format_info, 'type') or 'unknown'
         transport = try_get(format_info, 'transport') or 'https'
         audio_bitrate = traverse_obj(format_info, ('audio', 'bitrate'))
@@ -222,7 +222,9 @@ class TubeTuGrazIE(InfoExtractor):
         else:
             preference = -2
 
-        if transport == 'https':
+        if url is None:
+            formats = []
+        elif transport == 'https':
             formats = [{
                 'url': url,
                 'tbr': bitrate,
