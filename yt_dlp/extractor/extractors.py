@@ -1829,7 +1829,10 @@ from .vimeo import (
     VimeoWatchLaterIE,
     VHXEmbedIE,
 )
-from .vimm import VimmIE
+from .vimm import (
+    VimmStreamIE,
+    VimmRecordingIE,
+)
 from .vimple import VimpleIE
 from .vine import (
     VineIE,
