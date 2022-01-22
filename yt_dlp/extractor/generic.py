@@ -147,7 +147,6 @@ from .gfycat import GfycatIE
 from .mailru import MailRuIE
 
 
-
 class GenericIE(InfoExtractor):
     IE_DESC = 'Generic downloader that works on some sites'
     _VALID_URL = r'.*'
@@ -2496,7 +2495,7 @@ class GenericIE(InfoExtractor):
             'playlist_count': 9
         },
         {
-                  # mail.ru embed
+            # mail.ru embed
             'url': 'http://uzmovi.com/tarjima-kinolar/4127-abadiylar-umrboqiylar-premyera-uzbek-ozbek-tilida.html',
             'info_dict': {
                 'id': '73801668_1899',
@@ -2505,9 +2504,6 @@ class GenericIE(InfoExtractor):
                 'uploader': 'kinolanet',
                 'timestamp': 1642690643,
                 'upload_date': '20220120'
-            },
-            'params': {
-                'skip_download': True,
             }
         }
     ]
@@ -3713,7 +3709,7 @@ class GenericIE(InfoExtractor):
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
-        
+
         mailru_urls = MailRuIE._extract_urls(webpage)
         if mailru_urls:
             return self.playlist_from_matches(mailru_urls, video_id, video_title, ie=MailRuIE.ie_key())
