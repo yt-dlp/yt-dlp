@@ -32,10 +32,6 @@ class TubeTuGrazIE(InfoExtractor):
 
     _NETRC_MACHINE = "tubetugraz"
 
-    _LOGIN_URL = 'https://tube.tugraz.at/Shibboleth.sso/Login?target=/paella/ui/index.html'
-    _LOGIN_SUCCESS_URL = 'https://tube.tugraz.at/paella/ui/index.html'
-
-    _API_SERIES = 'https://tube.tugraz.at/series/series.json'
     _API_EPISODE = 'https://tube.tugraz.at/search/episode.json'
 
     def _login(self):
@@ -44,7 +40,8 @@ class TubeTuGrazIE(InfoExtractor):
             return
 
         result = self._download_webpage_handle(
-            self._LOGIN_URL, None,
+            'https://tube.tugraz.at/Shibboleth.sso/Login?target=/paella/ui/index.html',
+            None,
             note='downloading login page',
             errnote='unable to fetch login page',
             fatal=False)
@@ -72,7 +69,7 @@ class TubeTuGrazIE(InfoExtractor):
         else:
             _, result_page_handle = result
 
-        if result_page_handle.url != self._LOGIN_SUCCESS_URL:
+        if result_page_handle.url != 'https://tube.tugraz.at/paella/ui/index.html':
             self.report_warning('unable to login: incorrect password')
             return
 
@@ -92,7 +89,8 @@ class TubeTuGrazIE(InfoExtractor):
 
     def _extract_series(self, id):
         series_data = self._download_json(
-            self._API_SERIES, None,
+            'https://tube.tugraz.at/series/series.json',
+            None,
             note='downloading series metadata',
             errnote='failed to download series metadata',
             fatal=False,
