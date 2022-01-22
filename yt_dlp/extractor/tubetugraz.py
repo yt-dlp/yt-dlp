@@ -51,26 +51,22 @@ class TubeTuGrazIE(InfoExtractor):
         else:
             _, login_page_handle = result
 
-        result = self._download_webpage_handle(
-            login_page_handle.url, None,
+        result_page_handle = self._request_webpage(
+            login_page_handle.geturl(), None,
             note='logging in',
             errnote='unable to log in',
             fatal=False,
             data=urlencode_postdata({
-                b'lang': 'de',
-                b'_eventId_proceed': '',
-                b'j_username': username,
-                b'j_password': password
+                'lang': 'de',
+                '_eventId_proceed': '',
+                'j_username': username,
+                'j_password': password
             }),
             headers={
                 'referer': login_page_handle.url
             })
-        if result is False:
-            return
-        else:
-            _, result_page_handle = result
 
-        if result_page_handle.url != 'https://tube.tugraz.at/paella/ui/index.html':
+        if result_page_handle.geturl() != 'https://tube.tugraz.at/paella/ui/index.html':
             self.report_warning('unable to login: incorrect password')
             return
 
