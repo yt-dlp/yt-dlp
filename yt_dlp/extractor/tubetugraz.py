@@ -1,7 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 from .common import InfoExtractor
-from ..utils import ExtractorError, urlencode_postdata, traverse_obj
+from ..utils import ExtractorError, urlencode_postdata, try_get, traverse_obj
 from collections import defaultdict
 import re
 
@@ -200,22 +200,13 @@ class TubeTuGrazIE(InfoExtractor):
         url = traverse_obj(format_info, ('tags', 'url'), 'url')
         type = format_info.get('type') or 'unknown'
         transport = format_info.get('transport') or 'https'
-        audio_bitrate = traverse_obj(format_info, ('audio', 'bitrate'))
-        video_bitrate = traverse_obj(format_info, ('video', 'bitrate'))
+        audio_bitrate = try_get(format_info, lambda x: x['audio']['bitrate'] / 1000)
+        video_bitrate = try_get(format_info, lambda x: x['video']['bitrate'] / 1000)
         framerate = traverse_obj(format_info, ('video', 'framerate'))
         resolution = traverse_obj(format_info, ('video', 'resolution'))
 
         type = type.replace('/delivery', '')
         transport = transport.lower()
-
-        if isinstance(audio_bitrate, int):
-            audio_bitrate = audio_bitrate / 1000
-        if isinstance(video_bitrate, int):
-            video_bitrate = video_bitrate / 1000
-        if isinstance(audio_bitrate, int) and isinstance(video_bitrate, int):
-            bitrate = audio_bitrate + video_bitrate
-        else:
-            bitrate = None
 
         if type == PREFERRED_TYPE:
             preference = -1
@@ -227,7 +218,6 @@ class TubeTuGrazIE(InfoExtractor):
         elif transport == 'https':
             formats = [{
                 'url': url,
-                'tbr': bitrate,
                 'abr': audio_bitrate,
                 'vbr': video_bitrate,
                 'framerate': framerate,
