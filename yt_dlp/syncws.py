@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
 import asyncio
-import websockets
-import sys
+from .compat import compat_asyncio_all_tasks, compat_websockets
 
 
 # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
@@ -24,10 +23,7 @@ def run_with_loop(main, loop):
 
 
 def _cancel_all_tasks(loop):
-    if sys.version_info <= (3, 6):  # <= 3.6
-        to_cancel = asyncio.tasks.Task.all_tasks(loop)
-    else:  # > 3.7
-        to_cancel = asyncio.tasks.all_tasks(loop)
+    to_cancel = compat_asyncio_all_tasks(loop)
 
     if not to_cancel:
         return
@@ -55,7 +51,7 @@ class WebSocketsWrapper():
     def __init__(self, url, headers=None):
         # self.loop = asyncio.events.get_event_loop() or asyncio.events.new_event_loop()
         self.loop = asyncio.events.new_event_loop()
-        self.conn = websockets.connect(
+        self.conn = compat_websockets.connect(
             url, extra_headers=headers, ping_interval=None,
             close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
 
@@ -75,3 +71,6 @@ class WebSocketsWrapper():
         finally:
             self.loop.close()
             _cancel_all_tasks(self.loop)
+
+if not compat_websockets:
+    WebSocketsWrapper = None
