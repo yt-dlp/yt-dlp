@@ -300,7 +300,7 @@ class ABCIViewShowSeriesIE(InfoExtractor):
             unescapeHTML(webpage_data).encode('utf-8').decode('unicode_escape'), show_id)
         video_data = video_data['route']['pageData']['_embedded']
 
-        highlight = try_get(video_data, lambda x: ['highlightVideo']['shareUrl'])
+        highlight = try_get(video_data, lambda x: x['highlightVideo']['shareUrl'])
         if not self._yes_playlist(show_id, bool(highlight), video_label='highlight video'):
             return self.url_result(highlight, ie=ABCIViewIE.ie_key())
 

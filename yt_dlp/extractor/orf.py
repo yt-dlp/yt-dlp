@@ -22,7 +22,6 @@ from ..utils import (
     unified_strdate,
     unsmuggle_url,
     url_or_none,
-    urljoin,
 )
 
 

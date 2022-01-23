@@ -440,7 +440,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         }, {
             'url': 'ytarchive:BaW_jenozKc:20050214000000',
             'only_matching': True
-        },{
+        }, {
             'url': 'ytarchive:BaW_jenozKc',
             'only_matching': True
         },

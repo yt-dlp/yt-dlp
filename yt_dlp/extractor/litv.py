@@ -65,7 +65,7 @@ class LiTVIE(InfoExtractor):
         return self.playlist_result(all_episodes, content_id, episode_title)
 
     def _real_extract(self, url):
-        url, data = unsmuggle_url(url, {})
+        url, smuggled_data = unsmuggle_url(url, {})
 
         video_id = self._match_id(url)
 

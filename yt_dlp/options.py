@@ -345,7 +345,7 @@ def create_parser():
         help=(
             'Use the specified HTTP/HTTPS/SOCKS proxy. To enable '
             'SOCKS proxy, specify a proper scheme. For example '
-            'socks5://127.0.0.1:1080/. Pass in an empty string (--proxy "") '
+            'socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") '
             'for direct connection'))
     network.add_option(
         '--socket-timeout',
