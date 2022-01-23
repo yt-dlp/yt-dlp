@@ -37,7 +37,7 @@ class TikTokBaseIE(InfoExtractor):
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
-                  note='Downloading API JSON', errnote='Unable to download API page'):
+                       note='Downloading API JSON', errnote='Unable to download API page'):
         self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
         if webpage_cookies.get('sid_tt'):
