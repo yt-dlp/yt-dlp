@@ -207,7 +207,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'discnumber': int_or_none(f.get('disc')),
                     'release_year': int_or_none(f.get('year'))})
                 entry = entries[f['name']]
-            elif f.get('original') in entries:
+            elif traverse_obj(f, 'original', expected_type=str) in entries:
                 entry = entries[f['original']]
             else:
                 continue
