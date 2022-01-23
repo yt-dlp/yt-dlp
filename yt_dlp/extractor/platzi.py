@@ -112,7 +112,7 @@ class PlatziIE(PlatziBaseIE):
         servers = video_player.get('video', '').get('servers', {})
         formats = []
         for server in servers.keys():
-            server_json = servers[server]
+            server_json = servers.get(server, {})
             if 'hls' in server_json.keys():
                 formats.extend(self._extract_m3u8_formats(
                     server_json['hls'], lecture_id, 'mp4',
