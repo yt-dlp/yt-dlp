@@ -3,16 +3,13 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..compat import (
-    # compat_b64decode,
     compat_str,
 )
 from ..utils import (
-    # clean_html,
     ExtractorError,
     int_or_none,
     str_or_none,
     try_get,
-    # url_or_none,
     urlencode_postdata,
     urljoin,
 )
@@ -105,39 +102,35 @@ class PlatziIE(PlatziBaseIE):
 
         webpage = self._download_webpage(url, lecture_id)
         data_preloaded_state = self._parse_json(
-            self._search_regex((r'window.__PRELOADED_STATE__ = (.*)\<\/script'), webpage, 'client data'),
+            self._search_regex(
+                (r'window\s*.\s*__PRELOADED_STATE__\s*=\s*({.*?});?\s*</script'), webpage, 'client data'),
             lecture_id)
 
-        # desc = data_preloaded_state['videoPlayer']['courseDescription']
-        title = data_preloaded_state['videoPlayer']['name']
-        duration = data_preloaded_state['videoPlayer']['duration']
-        servers = data_preloaded_state['videoPlayer']['video']['servers']
+        video_player = try_get(data_preloaded_state, lambda x: x['videoPlayer'], dict)
+        title = video_player.get('name', '')
+        duration = video_player.get('duration', '')
+        servers = video_player.get('video', '').get('servers', {})
         formats = []
         for server in servers.keys():
-            for format_id in ('hls', 'dash'):
-                server_json = servers[server]
-                if 'hls' in server_json.keys():
-                    formats.extend(self._extract_m3u8_formats(
-                        server_json['hls'], lecture_id, 'mp4',
-                        entry_protocol='m3u8_native', m3u8_id=format_id,
-                        note='Downloading %s m3u8 information' % server_json['id'],
-                        fatal=False))
-                elif 'dash' in server_json.keys():
-                    formats.extend(self._extract_mpd_formats(
-                        server_json['dash'], lecture_id, mpd_id=format_id,
-                        note='Downloading %s MPD manifest' % server_json['id'],
-                        fatal=False))
+            server_json = servers[server]
+            if 'hls' in server_json.keys():
+                formats.extend(self._extract_m3u8_formats(
+                    server_json['hls'], lecture_id, 'mp4',
+                    entry_protocol='m3u8_native', m3u8_id='hls',
+                    note='Downloading %s m3u8 information' % server_json.get('id', ''),
+                    fatal=False))
+            elif 'dash' in server_json.keys():
+                formats.extend(self._extract_mpd_formats(
+                    server_json['dash'], lecture_id, mpd_id='dash',
+                    note='Downloading %s MPD manifest' % server_json.get('id', ''),
+                    fatal=False))
         self._sort_formats(formats)
 
-        # content = str_or_none(data['videoPlayer']['content'])
-        # description = (clean_html(compat_b64decode(content).decode('utf-8'))
-        #               if content else None)
         duration = int_or_none(duration, invscale=60)
 
         return {
             'id': lecture_id,
             'title': title,
-            'description': '',
             'duration': duration,
             'formats': formats,
         }
