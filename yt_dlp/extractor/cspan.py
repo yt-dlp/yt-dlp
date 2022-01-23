@@ -1,10 +1,6 @@
 from __future__ import unicode_literals
 
 import re
-from urllib.parse import (
-    parse_qs,
-    urlparse,
-)
 
 from .common import InfoExtractor
 from ..utils import (
@@ -18,6 +14,7 @@ from ..utils import (
     js_to_json,
     merge_dicts,
     parse_iso8601,
+    parse_qs,
     smuggle_url,
     str_to_int,
     unescapeHTML,
@@ -187,7 +184,6 @@ class CSpanIE(InfoExtractor):
         data = self._download_json(
             'http://www.c-span.org/assets/player/ajax-player.php?os=android&html5=%s&id=%s' % (video_type, video_id),
             video_id)['video']
-
         if data['@status'] != 'Success':
             raise ExtractorError('%s said: %s' % (self.IE_NAME, get_text_attr(data, 'error')), expected=True)
 
@@ -258,19 +254,28 @@ class CSpanCongressIE(InfoExtractor):
         'url': 'https://www.c-span.org/congress/?chamber=house&date=2017-12-13&t=1513208380',
         'info_dict': {
             'id': 'house_2017-12-13',
-            'title': 'Congressional Chronicle - Members of Congress, Hearings and More | C-SPAN.org',
+            'title': 'Congressional Chronicle - Members of Congress, Hearings and More',
             'description': 'md5:54c264b7a8f219937987610243305a84',
-            'thumbnail': 'https://ximage.c-spanvideo.org/eyJidWNrZXQiOiJwaWN0dXJlcy5jLXNwYW52aWRlby5vcmciLCJrZXkiOiJGaWxlc1wvODdkXC8yMDE3MTIxMzEwMDAzMjAwMV9oZC5qcGciLCJlZGl0cyI6eyJyZXNpemUiOnsiZml0IjoiY292ZXIiLCJoZWlnaHQiOjU3Niwid2lkdGgiOjEwMjR9fX0=',
+            'thumbnail': r're:https://ximage.c-spanvideo.org/.+',
+            'ext': 'mp4'
+        }
+    }, {
+        'url': 'https://www.c-span.org/congress/',
+        'info_dict': {
+            'id': 'congress',
+            'title': 'Congressional Chronicle - Members of Congress, Hearings and More',
+            'description': 'md5:54c264b7a8f219937987610243305a84',
+            'thumbnail': r're:https://ximage.c-spanvideo.org/.+',
             'ext': 'mp4'
         }
     }]
 
     def _real_extract(self, url):
-        parsed_url = urlparse(url)
-        if parse_qs(parsed_url.query)['chamber'] is not None:
-            display_id = parse_qs(parsed_url.query)['chamber'][0]
-            if parse_qs(parsed_url.query)['date'] is not None:
-                display_id = display_id + '_' + parse_qs(parsed_url.query)['date'][0]
+        query = parse_qs(url)
+        if 'chamber' in query:
+            display_id = query['chamber'][0]
+            if 'date' in query:
+                display_id = display_id + '_' + query['date'][0]
         else:
             display_id = self._generic_id(url)
 
@@ -278,14 +283,15 @@ class CSpanCongressIE(InfoExtractor):
         jwplayer_data = self._parse_json(
             self._search_regex(r'jwsetup\s*=\s*({(?:.|\n)[^;]+});', webpage, 'player config'),
             display_id, transform_source=js_to_json)
-        result = self._parse_jwplayer_data(jwplayer_data, display_id, False)
 
-        for f in result['formats']:
-            f.setdefault('http_headers', {})['Referer'] = 'https://www.c-span.org/'
+        title = (self._og_search_title(webpage, default=None)
+                 or self._html_search_regex(r'(?s)<title>(.*?)</title>', webpage, 'video title'))
+        description = (self._og_search_description(webpage, default=None)
+                       or self._html_search_meta('description', webpage, 'description', default=None))
 
-        result['title'] = self._og_search_title(webpage, default=None) or self._html_search_regex(
-            r'(?s)<title>(.*?)</title>', webpage, 'video title')
-        result['description'] = self._og_search_description(webpage, default=None) or self._html_search_meta(
-            'description', webpage, 'meta description', default=None)
-
-        return result
+        return {
+            **self._parse_jwplayer_data(jwplayer_data, display_id, False),
+            'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
+            'description': description,
+            'http_headers': {'Referer': 'https://www.c-span.org/'},
+        }
