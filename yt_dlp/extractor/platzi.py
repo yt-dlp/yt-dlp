@@ -3,16 +3,16 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_b64decode,
+    # compat_b64decode,
     compat_str,
 )
 from ..utils import (
-    clean_html,
+    # clean_html,
     ExtractorError,
     int_or_none,
     str_or_none,
     try_get,
-    url_or_none,
+    # url_or_none,
     urlencode_postdata,
     urljoin,
 )
