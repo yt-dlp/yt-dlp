@@ -342,7 +342,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
-            'edit_year': original_year,
+            'release_year': edit_year,
         }
 
         info.update(relinker_info)
