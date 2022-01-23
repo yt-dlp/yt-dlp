@@ -324,7 +324,6 @@ class RaiPlayIE(RaiBaseIE):
 
         edit_year = media.get('track_info').get('edit_year')
 
-
         info = {
             'id': remove_start(media.get('id'), 'ContentItem-') or video_id,
             'display_id': video_id,
