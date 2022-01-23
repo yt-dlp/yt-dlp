@@ -13,7 +13,6 @@ from ..compat import (
     compat_urllib_parse_urlparse
 )
 from ..utils import (
-    bug_reports_message,
     ExtractorError,
     int_or_none,
     join_nonempty,
@@ -96,8 +95,7 @@ class TikTokBaseIE(InfoExtractor):
                             return
                     self.report_warning('%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
                     continue
-                raise e
-                    
+                raise e                    
 
     def _get_subtitles(self, aweme_detail, aweme_id):
         # TODO: Extract text positioning info
