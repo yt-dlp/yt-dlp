@@ -1528,6 +1528,8 @@ class InfoExtractor(object):
                         'title': unescapeHTML(e.get('headline')),
                         'description': unescapeHTML(e.get('articleBody') or e.get('description')),
                     })
+                    if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
+                        extract_video_object(e['video'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
                     if expected_type is None:
