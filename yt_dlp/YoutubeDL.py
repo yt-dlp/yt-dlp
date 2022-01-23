@@ -3211,6 +3211,7 @@ class YoutubeDL(object):
         if info_dict is None:
             return info_dict
         info_dict.setdefault('epoch', int(time.time()))
+        info_dict.setdefault('_type', 'video')
         remove_keys = {'__original_infodict'}  # Always remove this since this may contain a copy of the entire dict
         keep_keys = ['_type']  # Always keep this to facilitate load-info-json
         if remove_private_keys:
