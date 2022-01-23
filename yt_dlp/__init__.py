@@ -356,6 +356,10 @@ def _real_main(argv=None):
     for type_, tmpl_list in opts.forceprint.items():
         for tmpl in tmpl_list:
             validate_outtmpl(tmpl, f'{type_} print template')
+    for type_, tmpl_list in opts.print_to_file.items():
+        for tmpl, file in tmpl_list:
+            validate_outtmpl(tmpl, f'{type_} print-to-file template')
+            validate_outtmpl(file, f'{type_} print-to-file filename')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
     for k, tmpl in opts.progress_template.items():
         k = f'{k[:-6]} console title' if '-title' in k else f'{k} progress'
@@ -663,6 +667,7 @@ def _real_main(argv=None):
         'forcefilename': opts.getfilename,
         'forceformat': opts.getformat,
         'forceprint': opts.forceprint,
+        'print_to_file': opts.print_to_file,
         'forcejson': opts.dumpjson or opts.print_json,
         'dump_single_json': opts.dump_single_json,
         'force_write_download_archive': opts.force_write_download_archive,

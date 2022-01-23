@@ -686,6 +686,12 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      Implies --quiet and --simulate (unless
                                      --no-simulate is used). This option can be
                                      used multiple times
+    --print-to-file [WHEN:]TEMPLATE FILE
+                                     Append given template to the file. The
+                                     values of WHEN and TEMPLATE are same as
+                                     that of --print. FILE uses the same syntax
+                                     as the output template. This option can be
+                                     used multiple times
     -j, --dump-json                  Quiet, but print JSON information for each
                                      video. Simulate unless --no-simulate is
                                      used. See "OUTPUT TEMPLATE" for a

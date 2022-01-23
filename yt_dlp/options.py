@@ -173,11 +173,16 @@ def create_parser():
             process_key=str.lower, append=False):
 
         out_dict = dict(getattr(parser.values, option.dest))
+        multiple_args = not isinstance(value, str)
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
-        mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
+        mobj = re.match(
+            r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter),
+            value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
+            if multiple_args:
+                val = [val, *value[1:]]
         elif default_key is not None:
             keys, val = [default_key], value
         else:
@@ -923,6 +928,18 @@ def create_parser():
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
             'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
+    verbosity.add_option(
+        '--print-to-file',
+        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+            'default_key': 'video',
+            'multiple_keys': False,
+            'append': True,
+        }, help=(
+            'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
+            'FILE uses the same syntax as the output template. This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
