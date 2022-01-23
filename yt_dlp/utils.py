@@ -2845,8 +2845,7 @@ class InAdvancePagedList(PagedList):
 
     def _getslice(self, start, end):
         start_page = start // self._pagesize
-        end_page = (
-            self._pagecount if end is None else (end // self._pagesize + 1))
+        end_page = self._pagecount if end is None else min(self._pagecount, end // self._pagesize + 1)
         skip_elems = start - start_page * self._pagesize
         only_more = None if end is None else end - start
         for pagenum in range(start_page, end_page):

@@ -72,6 +72,7 @@ from .utils import (
     GeoRestrictedError,
     get_domain,
     HEADRequest,
+    InAdvancePagedList,
     int_or_none,
     iri_to_uri,
     ISO3166Utils,
@@ -1662,6 +1663,9 @@ class YoutubeDL(object):
             msg = 'Downloading %d videos'
             if not isinstance(ie_entries, (PagedList, LazyList)):
                 ie_entries = LazyList(ie_entries)
+            elif isinstance(ie_entries, InAdvancePagedList):
+                if ie_entries._pagesize == 1:
+                    playlist_count = ie_entries._pagecount
 
             def get_entry(i):
                 return YoutubeDL.__handle_extraction_exceptions(
