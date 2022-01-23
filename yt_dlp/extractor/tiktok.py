@@ -95,7 +95,7 @@ class TikTokBaseIE(InfoExtractor):
                             return
                     self.report_warning('%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
                     continue
-                raise e                    
+                raise e
 
     def _get_subtitles(self, aweme_detail, aweme_id):
         # TODO: Extract text positioning info
