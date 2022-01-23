@@ -664,6 +664,8 @@ def _get_linux_desktop_environment(env):
             return _LinuxDesktopEnvironment.KDE
         elif 'xfce' in desktop_session:
             return _LinuxDesktopEnvironment.XFCE
+        else:
+            return _LinuxDesktopEnvironment.OTHER
     else:
         if 'GNOME_DESKTOP_SESSION_ID' in env:
             return _LinuxDesktopEnvironment.GNOME
