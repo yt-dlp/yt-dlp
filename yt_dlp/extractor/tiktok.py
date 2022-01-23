@@ -28,6 +28,7 @@ from ..utils import (
 
 class TikTokBaseIE(InfoExtractor):
     _APP_VERSIONS = [('20.9.3', '291'), ('20.1.0', '210'), ('20.0.0', '200')]
+    _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-h2.tiktokv.com'
@@ -35,56 +36,70 @@ class TikTokBaseIE(InfoExtractor):
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
-    def _call_api(self, ep, query, video_id, fatal=True,
+    def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
         self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
         webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
         if webpage_cookies.get('sid_tt'):
             self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
+        return self._download_json(
+            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
+            fatal=fatal, note=note, errnote=errnote, headers={
+                'User-Agent': f'com.ss.android.ugc.trill/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'Accept': 'application/json',
+            }, query=query)
+
+    def _build_api_query(self, query, app_version, manifest_app_version):
+        return {
+            **query,
+            'version_name': app_version,
+            'version_code': manifest_app_version,
+            'build_number': app_version,
+            'manifest_version_code': manifest_app_version,
+            'update_version_code': manifest_app_version,
+            'openudid': ''.join(random.choice('0123456789abcdef') for _ in range(16)),
+            'uuid': ''.join([random.choice(string.digits) for _ in range(16)]),
+            '_rticket': int(time.time() * 1000),
+            'ts': int(time.time()),
+            'device_brand': 'Google',
+            'device_type': 'Pixel 4',
+            'device_platform': 'android',
+            'resolution': '1080*1920',
+            'dpi': 420,
+            'os_version': '10',
+            'os_api': '29',
+            'carrier_region': 'US',
+            'sys_region': 'US',
+            'region': 'US',
+            'app_name': self._APP_NAME,
+            'app_language': 'en',
+            'language': 'en',
+            'timezone_name': 'America/New_York',
+            'timezone_offset': '-14400',
+            'channel': 'googleplay',
+            'ac': 'wifi',
+            'mcc_mnc': '310260',
+            'is_my_cn': 0,
+            'aid': self._AID,
+            'ssmix': 'a',
+            'as': 'a1qwert123',
+            'cp': 'cbfhckdckkde1',
+        }
+
+    def _call_api(self, ep, query, video_id, fatal=True,
+                  note='Downloading API JSON', errnote='Unable to download API page'):
+        if self._WORKING_APP_VERSION:
+            app_version, manifest_app_version = self._WORKING_APP_VERSION
+            real_query = self._build_api_query(query, app_version, manifest_app_version)
+            return self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
+
         for count, val in enumerate(self._APP_VERSIONS, start=1):
             app_version, manifest_app_version = val
-            real_query = {
-                **query,
-                'version_name': app_version,
-                'version_code': manifest_app_version,
-                'build_number': app_version,
-                'manifest_version_code': manifest_app_version,
-                'update_version_code': manifest_app_version,
-                'openudid': ''.join(random.choice('0123456789abcdef') for _ in range(16)),
-                'uuid': ''.join([random.choice(string.digits) for _ in range(16)]),
-                '_rticket': int(time.time() * 1000),
-                'ts': int(time.time()),
-                'device_brand': 'Google',
-                'device_type': 'Pixel 4',
-                'device_platform': 'android',
-                'resolution': '1080*1920',
-                'dpi': 420,
-                'os_version': '10',
-                'os_api': '29',
-                'carrier_region': 'US',
-                'sys_region': 'US',
-                'region': 'US',
-                'app_name': self._APP_NAME,
-                'app_language': 'en',
-                'language': 'en',
-                'timezone_name': 'America/New_York',
-                'timezone_offset': '-14400',
-                'channel': 'googleplay',
-                'ac': 'wifi',
-                'mcc_mnc': '310260',
-                'is_my_cn': 0,
-                'aid': self._AID,
-                'ssmix': 'a',
-                'as': 'a1qwert123',
-                'cp': 'cbfhckdckkde1',
-            }
+            real_query = self._build_api_query(query, app_version, manifest_app_version)
             try:
-                return self._download_json(
-                    'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
-                    fatal=fatal, note=note, errnote=errnote, headers={
-                        'User-Agent': f'com.ss.android.ugc.trill/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
-                        'Accept': 'application/json',
-                    }, query=real_query)
+                res = self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
+                self._WORKING_APP_VERSION = val
+                return res
             except ExtractorError as e:
                 if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
                     if count == len(self._APP_VERSIONS):
