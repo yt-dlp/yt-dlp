@@ -109,7 +109,7 @@ class PlatziIE(PlatziBaseIE):
         video_player = try_get(data_preloaded_state, lambda x: x['videoPlayer'], dict)
         title = video_player.get('name', '')
         duration = video_player.get('duration', '')
-        servers = video_player.get('video', '').get('servers', {})
+        servers = try_get(video_player, lambda x: x['video']['servers'])
         formats = []
         for server in servers.keys():
             server_json = servers.get(server, {})
