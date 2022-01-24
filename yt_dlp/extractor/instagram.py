@@ -18,6 +18,7 @@ from ..utils import (
     int_or_none,
     lowercase_escape,
     std_headers,
+    str_or_none,
     str_to_int,
     traverse_obj,
     url_or_none,
@@ -127,6 +128,74 @@ class InstagramBaseIE(InfoExtractor):
                 'like_count': self._get_count(node, 'likes', 'preview_like'),
             }
 
+    def _extract_product_media(self, product_media):
+        media_id = product_media.get('code') or product_media.get('id')
+        vcodec = product_media.get('video_codec')
+        dash_manifest_raw = product_media.get('video_dash_manifest')
+        videos_list = product_media.get('video_versions')
+        if not (dash_manifest_raw or videos_list):
+            return None
+
+        formats = [{
+            'format_id': format.get('id'),
+            'url': format.get('url'),
+            'width': format.get('width'),
+            'height': format.get('height'),
+            'vcodec': vcodec,
+        } for format in videos_list or []]
+        if dash_manifest_raw:
+            formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, media_id), mpd_id='dash'))
+        self._sort_formats(formats)
+
+        thumbnails = [{
+            'url': thumbnail.get('url'),
+            'width': thumbnail.get('width'),
+            'height': thumbnail.get('height')
+        } for thumbnail in traverse_obj(product_media, ('image_versions2', 'candidates')) or []]
+        return {
+            'id': media_id,
+            'duration': float_or_none(product_media.get('video_duration')),
+            'formats': formats,
+            'thumbnails': thumbnails
+        }
+
+    def _extract_product(self, product_info):
+        if isinstance(product_info, list):
+            product_info = product_info[0]
+
+        user_info = product_info.get('user') or {}
+        info_dict = {
+            'id': product_info.get('code') or product_info.get('id'),
+            'title': product_info.get('title') or f'Video by {user_info.get("username")}',
+            'description': traverse_obj(product_info, ('caption', 'text'), expected_type=str_or_none),
+            'timestamp': int_or_none(product_info.get('taken_at')),
+            'channel': user_info.get('username'),
+            'uploader': user_info.get('full_name'),
+            'uploader_id': str_or_none(user_info.get('pk')),
+            'view_count': int_or_none(product_info.get('view_count')),
+            'like_count': int_or_none(product_info.get('like_count')),
+            'comment_count': int_or_none(product_info.get('comment_count')),
+            'http_headers': {
+                'Referer': 'https://www.instagram.com/',
+            }
+        }
+        carousel_media = product_info.get('carousel_media')
+        if carousel_media:
+            return {
+                '_type': 'playlist',
+                **info_dict,
+                'title': f'Post by {user_info.get("username")}',
+                'entries': [{
+                    **info_dict,
+                    **self._extract_product_media(product_media),
+                } for product_media in carousel_media],
+            }
+
+        return {
+            **info_dict,
+            **self._extract_product_media(product_info)
+        }
+
 
 class InstagramIOSIE(InfoExtractor):
     IE_DESC = 'IOS instagram:// URL'
@@ -185,8 +254,9 @@ class InstagramIE(InstagramBaseIE):
             'duration': 0,
             'timestamp': 1371748545,
             'upload_date': '20130620',
-            'uploader_id': 'naomipq',
+            'uploader_id': '2815873',
             'uploader': 'B E A U T Y  F O R  A S H E S',
+            'channel': 'naomipq',
             'like_count': int,
             'comment_count': int,
             'comments': list,
@@ -202,8 +272,9 @@ class InstagramIE(InstagramBaseIE):
             'duration': 0,
             'timestamp': 1453760977,
             'upload_date': '20160125',
-            'uploader_id': 'britneyspears',
+            'uploader_id': '12246775',
             'uploader': 'Britney Spears',
+            'channel': 'britneyspears',
             'like_count': int,
             'comment_count': int,
             'comments': list,
@@ -249,8 +320,9 @@ class InstagramIE(InstagramBaseIE):
             'duration': 53.83,
             'timestamp': 1530032919,
             'upload_date': '20180626',
-            'uploader_id': 'instagram',
+            'uploader_id': '25025320',
             'uploader': 'Instagram',
+            'channel': 'instagram',
             'like_count': int,
             'comment_count': int,
             'comments': list,
@@ -316,16 +388,19 @@ class InstagramIE(InstagramBaseIE):
         if not media:
             additional_data = self._parse_json(
                 self._search_regex(
-                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*({.+?})\s*\)\s*;',
+                    r'window\.__additionalDataLoaded\s*\(\s*[^,]+,\s*({.+?})\s*\);',
                     webpage, 'additional data', default='{}'),
                 video_id, fatal=False)
+            product_item = traverse_obj(additional_data, ('items', 0), expected_type=dict)
+            if product_item:
+                return self._extract_product(product_item)
             media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
 
         if not media and 'www.instagram.com/accounts/login' in urlh.geturl():
             self.raise_login_required('You need to log in to access this content')
 
-        uploader_id = traverse_obj(media, ('owner', 'username')) or self._search_regex(
-            r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'uploader id', fatal=False)
+        username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
+            r'"owner"\s*:\s*{\s*"username"\s*:\s*"(.+?)"', webpage, 'username', fatal=False)
 
         description = (
             traverse_obj(media, ('edge_media_to_caption', 'edges', 0, 'node', 'text'), expected_type=str)
@@ -342,7 +417,7 @@ class InstagramIE(InstagramBaseIE):
             if nodes:
                 return self.playlist_result(
                     self._extract_nodes(nodes, True), video_id,
-                    format_field(uploader_id, template='Post by %s'), description)
+                    format_field(username, template='Post by %s'), description)
 
             video_url = self._og_search_video_url(webpage, secure=False)
 
@@ -378,12 +453,13 @@ class InstagramIE(InstagramBaseIE):
         return {
             'id': video_id,
             'formats': formats,
-            'title': media.get('title') or 'Video by %s' % uploader_id,
+            'title': media.get('title') or 'Video by %s' % username,
             'description': description,
             'duration': float_or_none(media.get('video_duration')),
             'timestamp': traverse_obj(media, 'taken_at_timestamp', 'date', expected_type=int_or_none),
-            'uploader_id': uploader_id,
+            'uploader_id': traverse_obj(media, ('owner', 'id')),
             'uploader': traverse_obj(media, ('owner', 'full_name')),
+            'channel': username,
             'like_count': self._get_count(media, 'likes', 'preview_like') or str_to_int(self._search_regex(
                 r'data-log-event="likeCountClick"[^>]*>[^\d]*([\d,\.]+)', webpage, 'like count', fatal=False)),
             'comment_count': self._get_count(media, 'comments', 'preview_comment', 'to_comment', 'to_parent_comment'),
@@ -578,7 +654,6 @@ class InstagramStoryIE(InstagramBaseIE):
             'X-ASBD-ID': 198387,
             'X-IG-WWW-Claim': 0,
         })['reels']
-        entites = []
 
         full_name = traverse_obj(videos, ('user', 'full_name'))
 
@@ -592,41 +667,10 @@ class InstagramStoryIE(InstagramBaseIE):
         username = traverse_obj(user_info, ('user', 'username')) or username
         full_name = traverse_obj(user_info, ('user', 'full_name')) or full_name
 
-        videos = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
-        for video_info in videos:
-            formats = []
-            if isinstance(video_info, list):
-                video_info = video_info[0]
-            vcodec = video_info.get('video_codec')
-            dash_manifest_raw = video_info.get('video_dash_manifest')
-            videos_list = video_info.get('video_versions')
-            if not (dash_manifest_raw or videos_list):
-                continue
-            for format in videos_list:
-                formats.append({
-                    'url': format.get('url'),
-                    'width': format.get('width'),
-                    'height': format.get('height'),
-                    'vcodec': vcodec,
-                })
-            if dash_manifest_raw:
-                formats.extend(self._parse_mpd_formats(self._parse_xml(dash_manifest_raw, story_id), mpd_id='dash'))
-            self._sort_formats(formats)
-            thumbnails = [{
-                'url': thumbnail.get('url'),
-                'width': thumbnail.get('width'),
-                'height': thumbnail.get('height')
-            } for thumbnail in traverse_obj(video_info, ('image_versions2', 'candidates')) or []]
-            entites.append({
-                'id': video_info.get('id'),
-                'title': f'Story by {username}',
-                'timestamp': int_or_none(video_info.get('taken_at')),
-                'channel': username,
-                'uploader': full_name,
-                'duration': float_or_none(video_info.get('video_duration')),
-                'uploader_id': user_id,
-                'thumbnails': thumbnails,
-                'formats': formats,
-            })
-
-        return self.playlist_result(entites, playlist_id=story_id, playlist_title=highlight_title)
+        highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
+        return self.playlist_result([{
+            **self._extract_product(highlight),
+            'title': f'Story by {username}',
+            'uploader': full_name,
+            'uploader_id': user_id,
+        } for highlight in highlights], playlist_id=story_id, playlist_title=highlight_title)
