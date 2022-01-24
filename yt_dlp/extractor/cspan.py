@@ -259,30 +259,27 @@ class CSpanCongressIE(InfoExtractor):
             'thumbnail': r're:https://ximage.c-spanvideo.org/.+',
             'ext': 'mp4'
         }
-    }, {
-        'url': 'https://www.c-span.org/congress/',
-        'info_dict': {
-            'id': 'congress',
-            'title': 'Congressional Chronicle - Members of Congress, Hearings and More',
-            'description': 'md5:54c264b7a8f219937987610243305a84',
-            'thumbnail': r're:https://ximage.c-spanvideo.org/.+',
-            'ext': 'mp4'
-        }
     }]
 
     def _real_extract(self, url):
         query = parse_qs(url)
         if 'chamber' in query:
-            display_id = query['chamber'][0]
-            if 'date' in query:
-                display_id = display_id + '_' + query['date'][0]
+            video_id = query['chamber'][0]
         else:
-            display_id = self._generic_id(url)
-
-        webpage = self._download_webpage(url, display_id)
+            video_id = 'senate'
+        if 'date' in query:
+            video_date = query['date'][0]
+            video_id = video_id + '_' + video_date
+        else:
+            video_date = ''
+        webpage = self._download_webpage(url, video_id)
+        if video_date == '':
+            jwp_date = re.search(r'jwsetup.clipprogdate = \'(?P<date>\d{4}-\d{2}-\d{2})\';', webpage)
+            if jwp_date:
+                video_id = video_id + '_' + jwp_date.group('date')
         jwplayer_data = self._parse_json(
             self._search_regex(r'jwsetup\s*=\s*({(?:.|\n)[^;]+});', webpage, 'player config'),
-            display_id, transform_source=js_to_json)
+            video_id, transform_source=js_to_json)
 
         title = (self._og_search_title(webpage, default=None)
                  or self._html_search_regex(r'(?s)<title>(.*?)</title>', webpage, 'video title'))
@@ -290,7 +287,7 @@ class CSpanCongressIE(InfoExtractor):
                        or self._html_search_meta('description', webpage, 'description', default=None))
 
         return {
-            **self._parse_jwplayer_data(jwplayer_data, display_id, False),
+            **self._parse_jwplayer_data(jwplayer_data, video_id, False),
             'title': re.sub(r'\s+', ' ', title.split('|')[0]).strip(),
             'description': description,
             'http_headers': {'Referer': 'https://www.c-span.org/'},
