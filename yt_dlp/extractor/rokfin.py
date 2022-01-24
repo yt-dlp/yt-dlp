@@ -219,7 +219,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
                 # The stream is pending.
                 self.raise_no_formats(
                     msg='the ' + ('premium-only ' if availability == 'premium_only' else '')
-                    + 'stream is/was expected to start at '
+                    + 'stream is/was scheduled for '
                     + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S') + ' (YYYY-MM-DD, 24H clock, GMT)' + ('' if self.get_param('wait_for_video') else '. Consider adding --wait-for-video'),
                     video_id=video_id,
                     expected=True)
@@ -231,8 +231,8 @@ class RokfinStreamIE(RokfinSingleVideoIE):
                 # We don't know why there is no (valid) meta data present.
                 self.raise_no_formats(msg='unable to download: don\'t know where to find meta data', video_id=video_id, expected=True)
 
-            # Self-reminder: --wait-for-video causes raise_no_formats(... expected=True ...) to print a warning message
-            # and quit without raising ExtractorError.
+            # --wait-for-video causes raise_no_formats(... expected=True ...) to print a warning message
+            # and exit without raising ExtractorError.
 
         # 'postedAtMilli' shows when the stream (live or pending) appeared on Rokfin. As soon as the pending stream goes live,
         # the value of 'postedAtMilli' changes to reflect the stream's starting time.
