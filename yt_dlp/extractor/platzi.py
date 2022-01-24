@@ -111,17 +111,16 @@ class PlatziIE(PlatziBaseIE):
         duration = video_player.get('duration', '')
         servers = try_get(video_player, lambda x: x['video']['servers'])
         formats = []
-        for server in servers.keys():
-            server_json = servers.get(server, {})
-            if 'hls' in server_json.keys():
+        for _, server_json in servers.items():
+            if server_json.get('hls'):
                 formats.extend(self._extract_m3u8_formats(
-                    server_json['hls'], lecture_id, 'mp4',
+                    server_json.get('hls'), lecture_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls',
                     note='Downloading %s m3u8 information' % server_json.get('id', ''),
                     fatal=False))
-            elif 'dash' in server_json.keys():
+            elif server_json.get('dash'):
                 formats.extend(self._extract_mpd_formats(
-                    server_json['dash'], lecture_id, mpd_id='dash',
+                    server_json.get('dash'), lecture_id, mpd_id='dash',
                     note='Downloading %s MPD manifest' % server_json.get('id', ''),
                     fatal=False))
         self._sort_formats(formats)
@@ -172,9 +171,7 @@ class PlatziCourseIE(PlatziBaseIE):
         initialData = self._search_regex(
             (r'window.initialData\s*=\s*({.+?})\s*;\s*\n', r'window.initialData\s*=\s*({.+?})\s*;'),
             webpage, 'window.initialData')
-        props = self._parse_json(
-            initialData,
-            course_name)['initialState']
+        props = self._parse_json(initialData, course_name)['initialState']
         entries = []
         for chapter_num, chapter in enumerate(props['concepts'], 1):
             if not isinstance(chapter, dict):
