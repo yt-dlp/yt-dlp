@@ -114,13 +114,13 @@ class PlatziIE(PlatziBaseIE):
         for server_json in servers.values():
             if server_json.get('hls'):
                 formats.extend(self._extract_m3u8_formats(
-                    server_json.get('hls'), lecture_id, 'mp4',
+                    server_json['hls'], lecture_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls',
                     note='Downloading %s m3u8 information' % server_json.get('id', ''),
                     fatal=False))
             elif server_json.get('dash'):
                 formats.extend(self._extract_mpd_formats(
-                    server_json.get('dash'), lecture_id, mpd_id='dash',
+                    server_json['dash'], lecture_id, mpd_id='dash',
                     note='Downloading %s MPD manifest' % server_json.get('id', ''),
                     fatal=False))
         self._sort_formats(formats)
