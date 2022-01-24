@@ -5,6 +5,7 @@ import time
 
 from .common import FileDownloader
 from ..utils import (
+    FormatProgressInfos,
     Popen,
     check_executable,
     encodeArgument,
@@ -50,8 +51,8 @@ class RtmpFD(FileDownloader):
                             resume_percent = percent
                             resume_downloaded_data_len = downloaded_data_len
                         time_now = time.time()
-                        eta = self.calc_eta(start, time_now, 100 - resume_percent, percent - resume_percent)
-                        speed = self.calc_speed(start, time_now, downloaded_data_len - resume_downloaded_data_len)
+                        eta = FormatProgressInfos.calc_eta(start, time_now, 100 - resume_percent, percent - resume_percent)
+                        speed = FormatProgressInfos.calc_speed(start, time_now, downloaded_data_len - resume_downloaded_data_len)
                         data_len = None
                         if percent > 0:
                             data_len = int(downloaded_data_len * 100 / percent)
