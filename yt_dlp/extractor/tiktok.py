@@ -27,7 +27,7 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSIONS = [('20.9.3', '291'), ('20.1.0', '210'), ('20.0.0', '200')]
+    _APP_VERSIONS = [('20.9.3', '293'), ('20.4.3', '243'), ('20.2.1', '221'), ('20.1.0', '210'), ('20.0.0', '200')]
     _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
