@@ -669,8 +669,7 @@ def _get_linux_desktop_environment(env):
             return _LinuxDesktopEnvironment.GNOME
         elif 'KDE_FULL_SESSION' in env:
             return _LinuxDesktopEnvironment.KDE
-        else:
-            return _LinuxDesktopEnvironment.OTHER
+    return _LinuxDesktopEnvironment.OTHER
 
 
 def _choose_linux_keyring(logger):
