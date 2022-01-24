@@ -603,7 +603,7 @@ class IqIE(InfoExtractor):
                 'tvid': video_info['tvId'],
                 'vid': video_info['vid'],
                 'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
-                                    expected_type=str, default='01010031010018000000'),
+                                    expected_type=str, default='04022001010011000000'),
                 'uid': uid,
                 'dfp': self._get_cookie('dfp', ''),
                 'mode': self._get_cookie('mod', 'intl'),
