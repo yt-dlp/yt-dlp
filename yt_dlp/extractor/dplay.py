@@ -609,6 +609,30 @@ class DIYNetworkIE(DiscoveryPlusBaseIE):
     }
 
 
+class DiscoveryLifeIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoverylife\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.discoverylife.com/video/surviving-death-discovery-life-atve-us/bodily-trauma',
+        'info_dict': {
+            'id': '2218238',
+            'display_id': 'surviving-death-discovery-life-atve-us/bodily-trauma',
+            'ext': 'mp4',
+            'title': 'Bodily Trauma',
+            'description': 'Meet three people who tested the limits of the human body.',
+            'season_number': 1,
+            'episode_number': 2,
+        },
+        'skip': 'Available for Premium users',
+    }]
+
+    _PRODUCT = 'dlf'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.discoverylife.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
 class AnimalPlanetIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animalplanet\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
