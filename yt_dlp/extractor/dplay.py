@@ -383,6 +383,9 @@ class GoDiscoveryIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://go.discovery.com/video/dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dsc'
@@ -407,6 +410,9 @@ class TravelChannelIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.travelchannel.com/video/ghost-adventures-travel-channel/ghost-train-of-ely',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'trav'
@@ -431,6 +437,9 @@ class CookingChannelIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.cookingchanneltv.com/video/carnival-eats-cooking-channel/the-postman-always-brings-rice-2348634',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'cook'
@@ -455,6 +464,9 @@ class HGTVUsaIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.hgtv.com/video/home-inspector-joe-hgtv-atve-us/this-mold-house',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'hgtv'
@@ -479,6 +491,9 @@ class FoodNetworkIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.foodnetwork.com/video/kids-baking-championship-food-network/float-like-a-butterfly',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'food'
@@ -503,6 +518,9 @@ class DestinationAmericaIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.destinationamerica.com/video/alaska-monsters-destination-america-atve-us/central-alaskas-bigfoot',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dam'
@@ -527,6 +545,9 @@ class InvestigationDiscoveryIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.investigationdiscovery.com/video/unmasked-investigation-discovery/the-killer-clown',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'ids'
@@ -551,6 +572,9 @@ class AmHistoryChannelIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.ahctv.com/video/modern-sniper-ahc/army',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'ahc'
@@ -575,6 +599,9 @@ class ScienceChannelIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.sciencechannel.com/video/strangest-things-science-atve-us/nazi-mystery-machine',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'sci'
@@ -599,6 +626,9 @@ class DIYNetworkIE(DiscoveryPlusBaseIE):
             'episode_number': 2,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'diy'
@@ -623,6 +653,9 @@ class DiscoveryLifeIE(DiscoveryPlusBaseIE):
             'episode_number': 2,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.discoverylife.com/video/surviving-death-discovery-life-atve-us/bodily-trauma',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'dlf'
@@ -647,6 +680,9 @@ class AnimalPlanetIE(DiscoveryPlusBaseIE):
             'episode_number': 11,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.animalplanet.com/video/north-woods-law-animal-planet/squirrel-showdown',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'apl'
@@ -671,6 +707,9 @@ class TLCIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://go.tlc.com/video/my-600-lb-life-tlc/melissas-story-part-1',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'tlc'
