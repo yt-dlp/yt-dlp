@@ -2299,10 +2299,15 @@ class YoutubeDL(object):
         self._num_videos += 1
 
         if 'id' not in info_dict:
-            raise ExtractorError('Missing "id" field in extractor result')
+            raise ExtractorError('Missing "id" field in extractor result', ie=info_dict['extractor'])
+        elif not info_dict.get('id'):
+            raise ExtractorError('Extractor failed to obtain "id"', ie=info_dict['extractor'])
         if 'title' not in info_dict:
             raise ExtractorError('Missing "title" field in extractor result',
                                  video_id=info_dict['id'], ie=info_dict['extractor'])
+        elif not info_dict.get('title'):
+            self.report_warning('Extractor failed to obtain "title". Creating a generic title instead')
+            info_dict['title'] = f'{info_dict["extractor"]} video #{info_dict["id"]}'
 
         def report_force_conversion(field, field_not, conversion):
             self.report_warning(

@@ -252,7 +252,9 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
  - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatibility reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While all extractors must return a `title`, they must also allow it's extraction to be non-fatal.
+
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
