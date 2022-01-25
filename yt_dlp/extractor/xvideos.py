@@ -190,7 +190,7 @@ class XVideosUserIE(InfoExtractor):
             page = self._download_webpage(
                 next_page_url, user_id, 'Downloading page %s' % str(page_number + 1))
 
-            for mobj in re.finditer(r'<p[^>]+class="[^"]*title[^"]*"[^>]*><a[^>]+href="(?P<href>[^"]+)"', page):
+            for mobj in re.finditer(r'<p[^>]+class="[^"]*title[^"]*"[^>]*>[^<]*<a[^>]+href="(?P<href>[^"]+)"', page):
                 href = mobj.group('href')
                 href = re.sub(
                     r'/prof-video-click/(?:model|upload)/.+?/([0-9]+)/(.+)',
