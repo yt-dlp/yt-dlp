@@ -172,28 +172,40 @@ class XVideosUserIE(InfoExtractor):
             'id': 'amateur-channels/queanfuckingcucking',
         },
         'playlist_mincount': 8,
+    }, {
+        # /profiles/***
+        'url': 'https://www.xvideos.com/profiles/jacobsy',
+        'info_dict': {
+            'id': 'profiles/jacobsy',
+        },
+        'playlist_mincount': 85,
     }]
 
     def _entries(self, user_id):
-        next_page_url = 'https://www.xvideos.com/%s/videos/new/0' % user_id
+        page_number = 0
 
-        page = self._download_webpage(
-            next_page_url, user_id, 'Downloading page %s' % 1)
+        while True:
+            next_page_url = 'https://www.xvideos.com/%s/videos/new/%s' % (user_id, page_number)
 
-        for mobj in re.finditer(
-                r'<p class="title"><a href="(?P<href>.+?)"',
-                page):
-            href = mobj.group('href')
-            href = re.sub(
-                r'/prof-video-click/model/.+?/([0-9]+)/(.+)',
-                r"/video\1/\2",
-                href)
+            page = self._download_webpage(
+                next_page_url, user_id, 'Downloading page %s' % str(page_number + 1))
 
-            video_url = 'https://www.xvideos.com' + href
-            video_id = XVideosIE._match_id(video_url)
+            for mobj in re.finditer(
+                    r'<p class="title"><a href="(?P<href>.+?)"', page):
+                href = mobj.group('href')
+                href = re.sub(
+                    r'/prof-video-click/(?:model|upload)/.+?/([0-9]+)/(.+)',
+                    r"/video\1/\2", href)
 
-            yield self.url_result(
-                video_url, ie=XVideosIE.ie_key(), video_id=video_id)
+                video_url = 'https://www.xvideos.com' + href
+                video_id = XVideosIE._match_id(video_url)
+
+                yield self.url_result(video_url, ie=XVideosIE.ie_key(), video_id=video_id)
+
+            if not re.search(r'<a[^>]+class="[^"]+next-page[^>]+>', page):
+                break
+
+            page_number += 1
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
