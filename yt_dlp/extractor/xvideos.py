@@ -166,7 +166,7 @@ class XVideosIE(InfoExtractor):
 class XVideosUserIE(InfoExtractor):
     _VALID_URL = r'''(?x)
         https?://(?:.+?\.)?xvideos\.com/
-        (?P<id>(?:channels|amateur-channels|pornstar-channels|profiles)/[^/?#&]+)'''
+        (?P<id>(?:channels|amateur-channels|model-channels|pornstar-channels|profiles)/[^/?#&]+)'''
     _TESTS = [{
         # channels profile and # in url
         'url': 'https://www.xvideos.com/channels/college_girls_gone_bad#_tabVideos,videos-best',
@@ -174,6 +174,13 @@ class XVideosUserIE(InfoExtractor):
             'id': 'channels/college_girls_gone_bad',
         },
         'playlist_mincount': 109,
+    }, {
+        # model-channels profile and # in url
+        'url': 'https://www.xvideos.com/model-channels/shonariver#_tabVideos,videos-best',
+        'info_dict': {
+            'id': 'model-channels/shonariver',
+        },
+        'playlist_mincount': 198,
     }, {
         # amateur-channels profile
         'url': 'https://www.xvideos.com/amateur-channels/queanfuckingcucking',
