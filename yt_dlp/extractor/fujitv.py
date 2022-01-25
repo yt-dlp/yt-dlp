@@ -51,7 +51,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': json_info.get('ep_title') or video_id,
+            'title': json_info.get('ep_title'),
             'series': json_info.get('lu_title'),
             'series_id': series_id,
             'description': json_info.get('ep_description'),
