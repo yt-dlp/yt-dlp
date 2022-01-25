@@ -161,3 +161,40 @@ class XVideosIE(InfoExtractor):
             'thumbnails': thumbnails,
             'age_limit': 18,
         }
+
+
+class XVideosUserIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:.+?\.)?xvideos\.com/(?P<id>(?:amateur-channels|pornstar-channels|profiles)/[^/?#&]+)'
+    _TESTS = [{
+        # amateur-channels profile
+        'url': 'https://www.xvideos.com/amateur-channels/queanfuckingcucking',
+        'info_dict': {
+            'id': 'amateur-channels/queanfuckingcucking',
+        },
+        'playlist_mincount': 8,
+    }]
+
+    def _entries(self, user_id):
+        next_page_url = 'https://www.xvideos.com/%s/videos/new/0' % user_id
+
+        page = self._download_webpage(
+            next_page_url, user_id, 'Downloading page %s' % 1)
+
+        for mobj in re.finditer(
+                r'<p class="title"><a href="(?P<href>.+?)"',
+                page):
+            href = mobj.group('href')
+            href = re.sub(
+                r'/prof-video-click/model/.+?/([0-9]+)/(.+)',
+                r"/video\1/\2",
+                href)
+
+            video_url = 'https://www.xvideos.com' + href
+            video_id = XVideosIE._match_id(video_url)
+
+            yield self.url_result(
+                video_url, ie=XVideosIE.ie_key(), video_id=video_id)
+
+    def _real_extract(self, url):
+        user_id = self._match_id(url)
+        return self.playlist_result(self._entries(user_id), user_id)
