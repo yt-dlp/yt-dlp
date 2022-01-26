@@ -1985,6 +1985,7 @@ from .yandexmusic import (
 )
 from .yandexvideo import (
     YandexVideoIE,
+    YandexVideoPreviewIE,
     ZenYandexIE,
     ZenYandexChannelIE,
 )
