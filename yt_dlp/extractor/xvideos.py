@@ -261,6 +261,4 @@ class XVideosUserIE(InfoExtractor):
         else:
             description = ''
 
-        return self.playlist_result(
-            self._entries(user_id), user_id,
-            playlist_title=strip_or_none(title), playlist_description=strip_or_none(description))
+        return self.playlist_result(self._entries(user_id), user_id, strip_or_none(title), strip_or_none(description))
