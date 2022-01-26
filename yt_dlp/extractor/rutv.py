@@ -201,7 +201,7 @@ class RUTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': description,
             'thumbnail': thumbnail,
             'view_count': view_count,

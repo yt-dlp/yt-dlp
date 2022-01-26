@@ -7,6 +7,7 @@ import json
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    format_field,
     int_or_none,
     str_or_none,
     try_get,
@@ -28,7 +29,7 @@ class TrovoBaseIE(InfoExtractor):
         return {
             'uploader': streamer_info.get('nickName'),
             'uploader_id': str_or_none(streamer_info.get('uid')),
-            'uploader_url': 'https://trovo.live/' + username if username else None,
+            'uploader_url': format_field(username, template='https://trovo.live/%s'),
         }
 
 
@@ -62,7 +63,7 @@ class TrovoIE(TrovoBaseIE):
             raise ExtractorError('%s is offline' % username, expected=True)
         program_info = live_info['programInfo']
         program_id = program_info['id']
-        title = self._live_title(program_info['title'])
+        title = program_info['title']
 
         formats = []
         for stream_info in (program_info.get('streamInfo') or []):

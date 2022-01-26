@@ -6,7 +6,7 @@ from ..utils import try_get
 
 
 class ThetaStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?!video/)(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?theta\.tv/(?!video/)(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://www.theta.tv/davirus',
         'skip': 'The live may have ended',
@@ -23,6 +23,14 @@ class ThetaStreamIE(InfoExtractor):
             'id': 'MST3K',
             'ext': 'mp4',
             'title': 'Mystery Science Theatre 3000 24/7 Powered by the THETA Network.',
+            'thumbnail': r're:https://user-prod-theta-tv\.imgix\.net/.+\.jpg',
+        }
+    }, {
+        'url': 'https://www.theta.tv/contv-anime',
+        'info_dict': {
+            'id': 'ConTVAnime',
+            'ext': 'mp4',
+            'title': 'CONTV ANIME 24/7. Powered by THETA Network.',
             'thumbnail': r're:https://user-prod-theta-tv\.imgix\.net/.+\.jpg',
         }
     }]

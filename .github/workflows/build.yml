@@ -96,7 +96,7 @@ jobs:
       env:
         BREW_TOKEN: ${{ secrets.BREW_TOKEN }}
       if: "env.BREW_TOKEN != ''"
-      uses: webfactory/ssh-agent@v0.5.3
+      uses: yt-dlp/ssh-agent@v0.5.3
       with:
           ssh-private-key: ${{ env.BREW_TOKEN }}
     - name: Update Homebrew Formulae
@@ -165,7 +165,7 @@ jobs:
     - name: Install Requirements
       run: |
           brew install coreutils
-          /usr/bin/python3 -m pip install -U --user pip Pyinstaller==4.5.1 mutagen pycryptodomex websockets
+          /usr/bin/python3 -m pip install -U --user pip Pyinstaller==4.5.1 -r requirements.txt
     - name: Bump version
       id: bump_version
       run: /usr/bin/python3 devscripts/update-version.py
@@ -192,11 +192,9 @@ jobs:
       run: echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
 
     - name: Run PyInstaller Script with --onedir
-      run: /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
-    - uses: papeloto/action-zip@v1
-      with:
-        files: ./dist/yt-dlp_macos
-        dest: ./dist/yt-dlp_macos.zip
+      run: |
+        /usr/bin/python3 pyinst.py --target-architecture universal2 --onedir
+        zip ./dist/yt-dlp_macos.zip ./dist/yt-dlp_macos
     - name: Upload yt-dlp MacOS onedir
       id: upload-release-macos-zip
       uses: actions/upload-release-asset@v1
@@ -210,7 +208,7 @@ jobs:
     - name: Get SHA2-256SUMS for yt-dlp_macos.zip
       id: sha256_macos_zip
       run: echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
-    - name: Get SHA2-512SUMS for yt-dlp_macos
+    - name: Get SHA2-512SUMS for yt-dlp_macos.zip
       id: sha512_macos_zip
       run: echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
 
@@ -236,7 +234,7 @@ jobs:
       # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
       run: |
           python -m pip install --upgrade pip setuptools wheel py2exe
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" -r requirements.txt
     - name: Bump version
       id: bump_version
       env:
@@ -265,11 +263,9 @@ jobs:
       run: echo "::set-output name=sha512_win::$((Get-FileHash dist\yt-dlp.exe -Algorithm SHA512).Hash.ToLower())"
 
     - name: Run PyInstaller Script with --onedir
-      run: python pyinst.py --onedir
-    - uses: papeloto/action-zip@v1
-      with:
-        files: ./dist/yt-dlp
-        dest: ./dist/yt-dlp_win.zip
+      run: |
+        python pyinst.py --onedir
+        Compress-Archive -LiteralPath ./dist/yt-dlp -DestinationPath ./dist/yt-dlp_win.zip
     - name: Upload yt-dlp Windows onedir
       id: upload-release-windows-zip
       uses: actions/upload-release-asset@v1
@@ -325,7 +321,7 @@ jobs:
     - name: Install Requirements
       run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" mutagen pycryptodomex websockets
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" -r requirements.txt
     - name: Bump version
       id: bump_version
       env:
