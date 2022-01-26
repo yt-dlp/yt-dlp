@@ -150,7 +150,7 @@ class YandexVideoIE(InfoExtractor):
 
 
 class YandexVideoPreviewIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?yandex\.ru/video/preview/?(?:\?.*?filmId=|)(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?yandex\.ru/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
     _TESTS = [{  # Odnoklassniki
         'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
         'info_dict': {
@@ -183,7 +183,7 @@ class YandexVideoPreviewIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
-        data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, "data_raw")
+        data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
         data_json = self._parse_json(data_raw, id, transform_source=lowercase_escape)
         return self.url_result(data_json['video']['url'])
 
