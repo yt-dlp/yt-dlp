@@ -30,8 +30,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        series_id = self._match_valid_url(url).group('sid')
+        series_id, video_id = self._match_valid_url(url).groups()
         self._download_webpage(url, video_id)
         json_info = {}
         if self._get_cookies(url).get('CT'):
