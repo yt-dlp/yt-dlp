@@ -41,7 +41,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
                                             video_id, headers={'x-authorization': f'Bearer {token}'}, fatal=False)
         else:
             self.report_warning('Unable to extract token cookie, video information is unavailable')
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         for f in formats:
             wh = self._BITRATE_MAP.get(f.get('tbr'))
