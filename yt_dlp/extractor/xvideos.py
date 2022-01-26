@@ -165,7 +165,7 @@ class XVideosIE(InfoExtractor):
 
 class XVideosUserIE(InfoExtractor):
     _VALID_URL = r'''(?x)
-        https?://(?:.+?\.)?xvideos\.com/
+        https?://(?:.+?\.)?xvideos\.(?:com|es)/
         (?P<id>(?:channels|amateur-channels|model-channels|pornstar-channels|profiles)/[^/?#&]+)'''
     _TESTS = [{
         # channels profile and # in url
@@ -195,6 +195,13 @@ class XVideosUserIE(InfoExtractor):
             'id': 'profiles/jacobsy',
         },
         'playlist_mincount': 85,
+    }, {
+        # .es
+        'url': 'https://www.xvideos.es/profiles/espoder',
+        'info_dict': {
+            'id': 'profiles/espoder',
+        },
+        'playlist_mincount': 13,
     }]
 
     def _entries(self, user_id):
