@@ -245,11 +245,13 @@ class XVideosUserIE(InfoExtractor):
         page = self._download_webpage(url, user_id, 'Downloading page')
 
         mobj = re.search(r'<script>.*window\.xv\.conf=(?P<json>.*);</script>', page)
-
-        try:
+        if mobj:
             conf = self._parse_json(mobj.group('json'), user_id)
-            title = conf['data']['user']['display']
-        except AttributeError:
+            try:
+                title = conf['data']['user']['display']
+            except AttributeError:
+                title = ''
+        else:
             title = ''
 
         mobj = re.search(r'<div[^>]+id="header-about-me"[^>]*>(?P<description>[^<]+?)<', page)
