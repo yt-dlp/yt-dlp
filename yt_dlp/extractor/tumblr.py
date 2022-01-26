@@ -163,7 +163,9 @@ class TumblrIE(InfoExtractor):
         if iframe_url is None:
             return self.url_result(redirect_url, 'Generic')
 
-        iframe = self._download_webpage(iframe_url, video_id, 'Downloading iframe page')
+        iframe = self._download_webpage(
+            iframe_url, video_id, 'Downloading iframe page',
+            headers={'Referer': redirect_url})
 
         duration = None
         sources = []
