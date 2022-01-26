@@ -161,7 +161,10 @@ class TumblrIE(InfoExtractor):
             r'src=\'(https?://www\.tumblr\.com/video/[^\']+)\'',
             webpage, 'iframe url', default=None)
         if iframe_url is None:
-            return self.url_result(redirect_url, 'Generic')
+            iframe_url = self._search_regex(
+                r'src=["\'](https?://safe\.txmblr\.com/svc/embed/inline/[^"\']+)["\']',
+                webpage, 'embed iframe url', default=None)
+            return self.url_result(iframe_url or redirect_url, 'Generic')
 
         iframe = self._download_webpage(
             iframe_url, video_id, 'Downloading iframe page',
