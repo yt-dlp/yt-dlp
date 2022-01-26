@@ -88,6 +88,15 @@ class TikTokBaseIE(InfoExtractor):
 
     def _call_api(self, ep, query, video_id, fatal=True,
                   note='Downloading API JSON', errnote='Unable to download API page'):
+        if not self._WORKING_APP_VERSION:
+            app_version = self._configuration_arg('app_version', [''], ie_key=TikTokIE.ie_key())[0]
+            manifest_app_version = self._configuration_arg('manifest_app_version', [''], ie_key=TikTokIE.ie_key())[0]
+            if app_version and manifest_app_version:
+                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
+                self.write_debug('Imported app version combo from extractor arguments')
+            elif app_version or manifest_app_version:
+                self.report_warning('Only one of the two required version params are passed as extractor arguments', only_once=True) 
+
         if self._WORKING_APP_VERSION:
             app_version, manifest_app_version = self._WORKING_APP_VERSION
             real_query = self._build_api_query(query, app_version, manifest_app_version)
