@@ -16,15 +16,18 @@ class FujiTVFODPlus7IE(InfoExtractor):
     }
 
     _TESTS = [{
-        'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810076',
+        'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810081',
         'info_dict': {
-            'id': '5d40810076',
-            'ext': 'mp4',
-            'title': '#1318 『まる子、まぼろしの洋館を見る』の巻',
-            'series': 'ちびまる子ちゃん',
+            'id': '5d40810081',
+            'title': '#1323 『まぼろしの「ツチノコ株式会社」』の巻',
+            'description': 'md5:c7b39106e5dd4891f67cc858585d1b0c',
             'series_id': '5d40',
-            'description': 'md5:b3f51dbfdda162ac4f789e0ff4d65750',
-            'thumbnail': 'http://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810076_a.jpg',
+            'series': 'ちびまる子ちゃん',
+            'thumbnail': 'http://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810081_a.jpg',
+            'ext': 'mp4',
+        },
+        'params': {
+            'skip_download': True
         },
     }]
 
