@@ -581,10 +581,9 @@ class BrightcoveNewIE(AdobePassIE):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': clean_html(json_data.get('description')),
-            'thumbnail': json_data.get('thumbnail') or json_data.get('poster'),
-            'thumbnials': thumbnails,
+            'thumbnails': thumbnails,
             'duration': duration,
             'timestamp': parse_iso8601(json_data.get('published_at')),
             'uploader_id': json_data.get('account_id'),

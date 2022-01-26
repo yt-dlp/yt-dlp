@@ -177,6 +177,7 @@ class CeskaTelevizeIE(InfoExtractor):
                 is_live = item.get('type') == 'LIVE'
                 formats = []
                 for format_id, stream_url in item.get('streamUrls', {}).items():
+                    stream_url = stream_url.replace('https://', 'http://')
                     if 'playerType=flash' in stream_url:
                         stream_formats = self._extract_m3u8_formats(
                             stream_url, playlist_id, 'mp4', 'm3u8_native',
@@ -212,8 +213,6 @@ class CeskaTelevizeIE(InfoExtractor):
 
                 if playlist_len == 1:
                     final_title = playlist_title or title
-                    if is_live:
-                        final_title = self._live_title(final_title)
                 else:
                     final_title = '%s (%s)' % (playlist_title, title)
 

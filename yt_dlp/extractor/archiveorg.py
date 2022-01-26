@@ -19,6 +19,7 @@ from ..utils import (
     get_element_by_id,
     HEADRequest,
     int_or_none,
+    join_nonempty,
     KNOWN_EXTENSIONS,
     merge_dicts,
     mimetype2ext,
@@ -64,7 +65,7 @@ class ArchiveOrgIE(InfoExtractor):
             'description': 'md5:43a603fd6c5b4b90d12a96b921212b9c',
             'uploader': 'yorkmba99@hotmail.com',
             'timestamp': 1387699629,
-            'upload_date': "20131222",
+            'upload_date': '20131222',
         },
     }, {
         'url': 'http://archive.org/embed/XD300-23_68HighlightsAResearchCntAugHumanIntellect',
@@ -150,8 +151,7 @@ class ArchiveOrgIE(InfoExtractor):
 
         # Archive.org metadata API doesn't clearly demarcate playlist entries
         # or subtitle tracks, so we get them from the embeddable player.
-        embed_page = self._download_webpage(
-            'https://archive.org/embed/' + identifier, identifier)
+        embed_page = self._download_webpage(f'https://archive.org/embed/{identifier}', identifier)
         playlist = self._playlist_data(embed_page)
 
         entries = {}
@@ -166,17 +166,17 @@ class ArchiveOrgIE(InfoExtractor):
                 'thumbnails': [],
                 'artist': p.get('artist'),
                 'track': p.get('title'),
-                'subtitles': {}}
+                'subtitles': {},
+            }
 
             for track in p.get('tracks', []):
                 if track['kind'] != 'subtitles':
                     continue
-
                 entries[p['orig']][track['label']] = {
-                    'url': 'https://archive.org/' + track['file'].lstrip('/')}
+                    'url': 'https://archive.org/' + track['file'].lstrip('/')
+                }
 
-        metadata = self._download_json(
-            'http://archive.org/metadata/' + identifier, identifier)
+        metadata = self._download_json('http://archive.org/metadata/' + identifier, identifier)
         m = metadata['metadata']
         identifier = m['identifier']
 
@@ -189,7 +189,7 @@ class ArchiveOrgIE(InfoExtractor):
             'license': m.get('licenseurl'),
             'release_date': unified_strdate(m.get('date')),
             'timestamp': unified_timestamp(dict_get(m, ['publicdate', 'addeddate'])),
-            'webpage_url': 'https://archive.org/details/' + identifier,
+            'webpage_url': f'https://archive.org/details/{identifier}',
             'location': m.get('venue'),
             'release_year': int_or_none(m.get('year'))}
 
@@ -207,7 +207,7 @@ class ArchiveOrgIE(InfoExtractor):
                     'discnumber': int_or_none(f.get('disc')),
                     'release_year': int_or_none(f.get('year'))})
                 entry = entries[f['name']]
-            elif f.get('original') in entries:
+            elif traverse_obj(f, 'original', expected_type=str) in entries:
                 entry = entries[f['original']]
             else:
                 continue
@@ -230,13 +230,12 @@ class ArchiveOrgIE(InfoExtractor):
                     'filesize': int_or_none(f.get('size')),
                     'protocol': 'https'})
 
-        # Sort available formats by filesize
         for entry in entries.values():
-            entry['formats'] = list(sorted(entry['formats'], key=lambda x: x.get('filesize', -1)))
+            self._sort_formats(entry['formats'])
 
         if len(entries) == 1:
             # If there's only one item, use it as the main info dict
-            only_video = entries[list(entries.keys())[0]]
+            only_video = next(iter(entries.values()))
             if entry_id:
                 info = merge_dicts(only_video, info)
             else:
@@ -261,19 +260,19 @@ class ArchiveOrgIE(InfoExtractor):
 
 class YoutubeWebArchiveIE(InfoExtractor):
     IE_NAME = 'web.archive:youtube'
-    IE_DESC = 'web.archive.org saved youtube videos'
-    _VALID_URL = r"""(?x)^
-                (?:https?://)?web\.archive\.org/
-                    (?:web/)?
-                    (?:(?P<date>[0-9]{14})?[0-9A-Za-z_*]*/)?  # /web and the version index is optional
-
-                (?:https?(?::|%3[Aa])//)?
-                (?:
-                    (?:\w+\.)?youtube\.com(?::(?:80|443))?/watch(?:\.php)?(?:\?|%3[fF])(?:[^\#]+(?:&|%26))?v(?:=|%3[dD])  # Youtube URL
-                    |(?:wayback-fakeurl\.archive\.org/yt/)  # Or the internal fake url
-                )
-                (?P<id>[0-9A-Za-z_-]{11})(?:%26|\#|&|$)
-                """
+    IE_DESC = 'web.archive.org saved youtube videos, "ytarchive:" prefix'
+    _VALID_URL = r'''(?x)(?:(?P<prefix>ytarchive:)|
+            (?:https?://)?web\.archive\.org/
+            (?:web/)?(?:(?P<date>[0-9]{14})?[0-9A-Za-z_*]*/)?  # /web and the version index is optional
+            (?:https?(?::|%3[Aa])//)?(?:
+                (?:\w+\.)?youtube\.com(?::(?:80|443))?/watch(?:\.php)?(?:\?|%3[fF])(?:[^\#]+(?:&|%26))?v(?:=|%3[dD])  # Youtube URL
+                |(?:wayback-fakeurl\.archive\.org/yt/)  # Or the internal fake url
+            )
+        )(?P<id>[0-9A-Za-z_-]{11})
+        (?(prefix)
+            (?::(?P<date2>[0-9]{14}))?$|
+            (?:%26|[#&]|$)
+        )'''
 
     _TESTS = [
         {
@@ -438,7 +437,13 @@ class YoutubeWebArchiveIE(InfoExtractor):
         }, {
             'url': 'https://web.archive.org/http://www.youtube.com:80/watch?v=-05VVye-ffg',
             'only_matching': True
-        }
+        }, {
+            'url': 'ytarchive:BaW_jenozKc:20050214000000',
+            'only_matching': True
+        }, {
+            'url': 'ytarchive:BaW_jenozKc',
+            'only_matching': True
+        },
     ]
     _YT_INITIAL_DATA_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_DATA_RE
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'(?:(?:(?:window\s*\[\s*["\']ytInitialPlayerResponse["\']\s*\]|ytInitialPlayerResponse)\s*=[(\s]*({.+?})[)\s]*;)|%s)' % YoutubeBaseInfoExtractor._YT_INITIAL_PLAYER_RESPONSE_RE
@@ -484,7 +489,6 @@ class YoutubeWebArchiveIE(InfoExtractor):
             page_title, 'title', default='')
 
     def _extract_metadata(self, video_id, webpage):
-
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None)) if webpage else (lambda x: None))
         player_response = self._extract_yt_initial_variable(
             webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE, video_id, 'initial player response') or {}
@@ -596,7 +600,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         # Prefer the new polymer UI captures as we support extracting more metadata from them
         # WBM captures seem to all switch to this layout ~July 2020
-        modern_captures = list(filter(lambda x: x >= 20200701000000, all_captures))
+        modern_captures = [x for x in all_captures if x >= 20200701000000]
         if modern_captures:
             capture_dates.append(modern_captures[0])
         capture_dates.append(url_date)
@@ -608,11 +612,11 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
         # Fallbacks if any of the above fail
         capture_dates.extend([self._OLDEST_CAPTURE_DATE, self._NEWEST_CAPTURE_DATE])
-        return orderedSet(capture_dates)
+        return orderedSet(filter(None, capture_dates))
 
     def _real_extract(self, url):
-
-        url_date, video_id = self._match_valid_url(url).groups()
+        video_id, url_date, url_date_2 = self._match_valid_url(url).group('id', 'date', 'date2')
+        url_date = url_date or url_date_2
 
         urlh = None
         try:
@@ -629,11 +633,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
                 raise
 
         capture_dates = self._get_capture_dates(video_id, int_or_none(url_date))
-        self.write_debug('Captures to try: ' + ', '.join(str(i) for i in capture_dates if i is not None))
+        self.write_debug('Captures to try: ' + join_nonempty(*capture_dates, delim=', '))
         info = {'id': video_id}
         for capture in capture_dates:
-            if not capture:
-                continue
             webpage = self._download_webpage(
                 (self._WAYBACK_BASE_URL + 'http://www.youtube.com/watch?v=%s') % (capture, video_id),
                 video_id=video_id, fatal=False, errnote='unable to download capture webpage (it may not be archived)',
@@ -648,7 +650,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         info['thumbnails'] = self._extract_thumbnails(video_id)
 
         if urlh:
-            url = compat_urllib_parse_unquote(urlh.url)
+            url = compat_urllib_parse_unquote(urlh.geturl())
             video_file_url_qs = parse_qs(url)
             # Attempt to recover any ext & format info from playback url & response headers
             format = {'url': url, 'filesize': int_or_none(urlh.headers.get('x-archive-orig-content-length'))}

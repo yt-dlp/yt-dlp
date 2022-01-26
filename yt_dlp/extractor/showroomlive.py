@@ -73,7 +73,7 @@ class ShowRoomLiveIE(InfoExtractor):
 
         return {
             'id': compat_str(room.get('live_id') or broadcaster_id),
-            'title': self._live_title(title),
+            'title': title,
             'description': room.get('description'),
             'timestamp': int_or_none(room.get('current_live_started_at')),
             'uploader': uploader,
