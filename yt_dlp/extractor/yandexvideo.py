@@ -11,6 +11,7 @@ from ..utils import (
     int_or_none,
     try_get,
     url_or_none,
+    lowercase_escape,
 )
 
 
@@ -149,16 +150,22 @@ class YandexVideoIE(InfoExtractor):
 
 
 class YandexVideoPreviewIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:
-                            yandex\.ru/video/preview(?:/?\?.*?filmId=|/)
-                        )
-                        (?P<id>\d+)
-                    '''
+    _VALID_URL = r'https?://(?:www\.)?yandex\.ru/video/preview/?(?:\?.*?filmId=|)(?P<id>\d+)'
     _TESTS = [{  # Odnoklassniki
         'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
-        'only_matching': True,
+        'info_dict': {
+            'id': '1352565459459',
+            'ext': 'mp4',
+            'like_count': int,
+            'upload_date': '20191202',
+            'age_limit': 0,
+            'duration': 196,
+            'thumbnail': 'https://i.mycdn.me/videoPreview?id=544866765315&type=37&idx=13&tkn=TY5qjLYZHxpmcnK8U2LgzYkgmaU&fn=external_8',
+            'uploader_id': '481054701571',
+            'title': 'LOFT - summer, summer, summer HD',
+            'manifest_stream_number': 0,
+            'uploader': 'АРТЁМ КУДРОВ',
+        },
     }, {  # youtube
         'url': 'https://yandex.ru/video/preview/?filmId=4479424425337895262&source=main_redirect&text=видео&utm_source=main_stripe_big',
         'only_matching': True,
@@ -176,10 +183,9 @@ class YandexVideoPreviewIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
-        data_raw = re.findall(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage)[-1].encode().decode("unicode-escape")
-        data_json = self._parse_json(data_raw, id)
-        video_page_url = try_get(data_json, lambda x: x['video']['url'])
-        return self.url_result(video_page_url)
+        data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, "data_raw")
+        data_json = self._parse_json(data_raw, id, transform_source=lowercase_escape)
+        return self.url_result(data_json['video']['url'])
 
 
 class ZenYandexIE(InfoExtractor):
