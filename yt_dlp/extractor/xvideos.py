@@ -9,7 +9,7 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
-    parse_duration,
+    parse_duration, strip_or_none,
 )
 
 
@@ -172,6 +172,8 @@ class XVideosUserIE(InfoExtractor):
         'url': 'https://www.xvideos.com/channels/college_girls_gone_bad#_tabVideos,videos-best',
         'info_dict': {
             'id': 'channels/college_girls_gone_bad',
+            'title': 'College Girls Gone Bad',
+            'description': 'Hot college girls in real sorority hazing acts!',
         },
         'playlist_mincount': 109,
     }, {
@@ -179,6 +181,8 @@ class XVideosUserIE(InfoExtractor):
         'url': 'https://www.xvideos.com/model-channels/shonariver#_tabVideos,videos-best',
         'info_dict': {
             'id': 'model-channels/shonariver',
+            'title': 'Shona River',
+            'description': 'Thanks for taking an interest in me. You probably already know me from porn. But just in case you don&rsquo;t, let me tell you a bit more.',
         },
         'playlist_mincount': 198,
     }, {
@@ -186,6 +190,8 @@ class XVideosUserIE(InfoExtractor):
         'url': 'https://www.xvideos.com/amateur-channels/queanfuckingcucking',
         'info_dict': {
             'id': 'amateur-channels/queanfuckingcucking',
+            'title': 'Queanfuckingcucking',
+            'description': 'I&rsquo;m a cuckquean with no interest in men only women for my man to do what he does best please me by pleasing other women',
         },
         'playlist_mincount': 8,
     }, {
@@ -193,13 +199,17 @@ class XVideosUserIE(InfoExtractor):
         'url': 'https://www.xvideos.com/profiles/jacobsy',
         'info_dict': {
             'id': 'profiles/jacobsy',
+            'title': 'Jacobsy',
+            'description': 'fetishist and bdsm lover...',
         },
         'playlist_mincount': 85,
     }, {
-        # .es
-        'url': 'https://www.xvideos.es/profiles/espoder',
+        # no description
+        'url': 'https://www.xvideos.com/profiles/espoder',
         'info_dict': {
             'id': 'profiles/espoder',
+            'title': 'Espoder',
+            'description': '',
         },
         'playlist_mincount': 13,
     }]
@@ -231,4 +241,24 @@ class XVideosUserIE(InfoExtractor):
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
-        return self.playlist_result(self._entries(user_id), user_id)
+
+        page = self._download_webpage(url, user_id, 'Downloading page')
+
+        mobj = re.search(r'<script>.*window\.xv\.conf=(?P<json>.*);</script>', page)
+
+        try:
+            conf = self._parse_json(mobj.group('json'), user_id)
+            title = conf['data']['user']['display']
+        except AttributeError:
+            title = ''
+
+        mobj = re.search(r'<div[^>]+id="header-about-me"[^>]*>(?P<description>[^<]+?)<', page)
+
+        if mobj:
+            description = mobj.group('description')
+        else:
+            description = ''
+
+        return self.playlist_result(
+            self._entries(user_id), user_id,
+            playlist_title=strip_or_none(title), playlist_description=strip_or_none(description))
