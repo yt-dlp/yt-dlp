@@ -19,13 +19,13 @@ class FujiTVFODPlus7IE(InfoExtractor):
     _TESTS = [{
         'url': 'https://fod.fujitv.co.jp/title/5d40/5d40110076',
         'info_dict': {
-            'id': '5d40810076',
+            'id': '5d40110076',
             'ext': 'mp4',
             'title': '#1318 『まる子、まぼろしの洋館を見る』の巻',
             'series': 'ちびまる子ちゃん',
             'series_id': '5d40',
             'description': 'md5:b3f51dbfdda162ac4f789e0ff4d65750',
-            'thumbnail': 'http://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810076_a.jpg',
+            'thumbnail': 'https://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40110076_a.jpg',
         },
     }]
 
@@ -43,7 +43,9 @@ class FujiTVFODPlus7IE(InfoExtractor):
         #     self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         formats = []
         src_json = self._download_json(self._BASE_URL + 'abrjson_v2/tv_android/%s' % video_id, video_id)
-        formats += [self._extract_m3u8_formats(src.get('url'), video_id, 'mp4') for src in src_json.get('video_selector') or []]
+        src_json = src_json.get('video_selector')
+        for src in src_json:
+            formats += self._extract_m3u8_formats(src.get('url'), video_id, 'mp4')
 
         # for f in formats:
         #     wh = self._BITRATE_MAP.get(f.get('tbr'))
