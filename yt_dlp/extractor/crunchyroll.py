@@ -740,18 +740,18 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         initial_state = self._parse_json(
             self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
             display_id)
-        episode_data = traverse_obj(initial_state, ('content', 'byId', internal_id))
+        episode_data = initial_state['content']['byId'][internal_id]
         if not self._get_cookies(url).get('etp_rt'):
-            video_id = episode_data.get('external_id').split('.')[1]
-            series_id = traverse_obj(episode_data, ('episode_metadata', 'series_slug_title'))
+            video_id = episode_data['external_id'].split('.')[1]
+            series_id = episode_data['episode_metadata']['series_slug_title']
             return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
                                    CrunchyrollIE.ie_key(), video_id)
 
         app_config = self._parse_json(
             self._search_regex(r'__APP_CONFIG__\s*=\s*({.+?})\s*;', webpage, 'app config'),
             display_id)
-        client_id = traverse_obj(app_config, ('cxApiParams', 'accountAuthClientId'))
-        api_domain = traverse_obj(app_config, ('cxApiParams', 'apiDomain'))
+        client_id = app_config['cxApiParams']['accountAuthClientId']
+        api_domain = app_config['cxApiParams']['apiDomain']
         basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
         auth_response = self._download_json(
             f'{api_domain}/auth/v1/token', display_id,
@@ -760,24 +760,26 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'Authorization': 'Basic ' + basic_token
             }, data='grant_type=etp_rt_cookie'.encode('ascii'))
         policy_response = self._download_json(
-            api_domain + '/index/v2', display_id,
+            f'{api_domain}/index/v2', display_id,
             note='Retrieving signed policy',
             headers={
-                'Authorization': auth_response.get('token_type') + ' ' + auth_response.get('access_token')
+                'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
             })
-        bucket = traverse_obj(policy_response, ('cms', 'bucket'))
+        bucket = policy_response['cms']['bucket']
         params = {
-            'Policy': traverse_obj(policy_response, ('cms', 'policy')),
-            'Signature': traverse_obj(policy_response, ('cms', 'signature')),
-            'Key-Pair-Id': traverse_obj(policy_response, ('cms', 'key_pair_id')),
-            'locale': traverse_obj(initial_state, ('localization', 'locale'))
+            'Policy': policy_response['cms']['policy'],
+            'Signature': policy_response['cms']['signature'],
+            'Key-Pair-Id': policy_response['cms']['key_pair_id']
         }
+        locale = traverse_obj(initial_state, ('localization', 'locale'))
+        if locale:
+            params['locale'] = locale
         episode_response = self._download_json(
-            api_domain + '/cms/v2' + bucket + '/episodes/' + internal_id, display_id,
+            f'{api_domain}/cms/v2{bucket}/episodes/{internal_id}', display_id,
             note='Retrieving episode metadata',
             query=params)
         stream_response = self._download_json(
-            episode_response.get('playback'), display_id,
+            episode_response['playback'], display_id,
             note='Retrieving stream info')
 
         thumbnails = []
@@ -808,14 +810,16 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                         stream_type,
                         format_field(stream_response, 'audio_locale', 'audio-%s'),
                         format_field(stream_response, 'hardsub_locale', 'hardsub-%s'))
+                    if not stream.get('url'):
+                        continue
                     if stream_type.split('_')[-1] == 'hls':
                         adaptive_formats = self._extract_m3u8_formats(
-                            stream.get('url'), display_id, 'mp4', m3u8_id=format_id,
+                            stream['url'], display_id, 'mp4', m3u8_id=format_id,
                             note='Downloading %s information' % format_id,
                             fatal=False)
                     elif stream_type.split('_')[-1] == 'dash':
                         adaptive_formats = self._extract_mpd_formats(
-                            stream.get('url'), display_id, mpd_id=format_id,
+                            stream['url'], display_id, mpd_id=format_id,
                             note='Downloading %s information' % format_id,
                             fatal=False)
                     for f in adaptive_formats:
