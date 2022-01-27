@@ -809,7 +809,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     format_id = join_nonempty(
                         stream_type,
                         format_field(stream_response, 'audio_locale', 'audio-%s'),
-                        format_field(stream_response, 'hardsub_locale', 'hardsub-%s'))
+                        format_field(stream, 'hardsub_locale', 'hardsub-%s'))
                     if not stream.get('url'):
                         continue
                     if stream_type.split('_')[-1] == 'hls':
