@@ -42,11 +42,14 @@ class FujiTVFODPlus7IE(InfoExtractor):
         # formats = self._extract_m3u8_formats(
         #     self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         formats = []
+        subtitles = []
         src_json = self._download_json(self._BASE_URL + 'abrjson_v2/tv_android/%s' % video_id, video_id)
-        src_json = src_json.get('video_selector')
-        for src in src_json:
-            formats += self._extract_m3u8_formats(src.get('url'), video_id, 'mp4')
-
+        for src in src_json.get('video_selector'):
+            format, subtitle = self._extract_m3u8_formats_and_subtitles(src.get('url'), video_id, 'mp4')
+            formats += format
+            subtitles += subtitle
+        # formats += [self._extract_m3u8_formats(src.get('url'), video_id, 'mp4') for src in src_json.get('video_selector')]
+        # formats = list(map(lambda src: self._extract_m3u8_formats(src.get('url'), video_id, 'ts'),src_json.get('video_selector')))
         # for f in formats:
         #     wh = self._BITRATE_MAP.get(f.get('tbr'))
         #     if wh:
@@ -63,5 +66,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'series_id': series_id,
             'description': json_info.get('ep_description'),
             'formats': formats,
+            'subtitles': subtitles,
             'thumbnail': self._BASE_URL + f'img/program/{series_id}/episode/{video_id}_a.jpg',
         }
