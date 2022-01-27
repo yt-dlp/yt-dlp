@@ -42,7 +42,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         # formats = self._extract_m3u8_formats(
         #     self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         formats = []
-        src_json = self._download_json(self._BASE_URL+'abrjson_v2/tv_android/%s' % video_id, video_id)
+        src_json = self._download_json(self._BASE_URL + 'abrjson_v2/tv_android/%s' % video_id, video_id)
         formats += [self._extract_m3u8_formats(src.get('url'), video_id, 'mp4') for src in src_json.get('video_selector') or []]
 
         # for f in formats:
@@ -52,7 +52,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         #             'width': wh[0],
         #             'height': wh[1],
         #         })
-        self._sort_formats(formats,['tbr'])
+        self._sort_formats(formats, ['tbr'])
 
         return {
             'id': video_id,
