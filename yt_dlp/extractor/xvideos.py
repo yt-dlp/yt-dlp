@@ -202,7 +202,7 @@ class XVideosUserIE(InfoExtractor):
             'title': 'Jacobsy',
             'description': 'fetishist and bdsm lover...',
         },
-        'playlist_mincount': 85,
+        'playlist_mincount': 84,
     }, {
         # no description
         'url': 'https://www.xvideos.com/profiles/espoder',
@@ -245,20 +245,12 @@ class XVideosUserIE(InfoExtractor):
         page = self._download_webpage(url, user_id, 'Downloading page')
 
         mobj = re.search(r'<script>.*window\.xv\.conf=(?P<json>.*);</script>', page)
+        title = ''
         if mobj:
             conf = self._parse_json(mobj.group('json'), user_id)
-            try:
-                title = conf['data']['user']['display']
-            except AttributeError:
-                title = ''
-        else:
-            title = ''
+            title = conf.get('data').get('user').get('display')
 
         mobj = re.search(r'<div[^>]+id="header-about-me"[^>]*>(?P<description>[^<]+?)<', page)
-
-        if mobj:
-            description = mobj.group('description')
-        else:
-            description = ''
+        description = mobj.group('description') if mobj else ''
 
         return self.playlist_result(self._entries(user_id), user_id, strip_or_none(title), strip_or_none(description))
