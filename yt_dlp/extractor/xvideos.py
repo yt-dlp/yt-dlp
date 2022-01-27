@@ -184,7 +184,7 @@ class XVideosUserIE(InfoExtractor):
         'info_dict': {
             'id': 'model-channels/shonariver',
             'title': 'Shona River',
-            'description': 'Thanks for taking an interest in me. You probably already know me from porn. But just in case you don&rsquo;t, let me tell you a bit more.',
+            'description': 'md5:4c695588123b2fb3d39f4d0dbf1da9a0',
         },
         'playlist_mincount': 198,
     }, {
@@ -193,7 +193,7 @@ class XVideosUserIE(InfoExtractor):
         'info_dict': {
             'id': 'amateur-channels/queanfuckingcucking',
             'title': 'Queanfuckingcucking',
-            'description': 'I&rsquo;m a cuckquean with no interest in men only women for my man to do what he does best please me by pleasing other women',
+            'description': 'md5:bf4514baf23bc7d0525727deeaea96a9',
         },
         'playlist_mincount': 8,
     }, {
