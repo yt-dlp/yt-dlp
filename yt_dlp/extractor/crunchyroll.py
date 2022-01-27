@@ -828,7 +828,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
 
         return {
             'id': internal_id,
-            'title': episode_response.get('season_title') + ' Episode ' + episode_response.get('episode') + ' – ' + episode_response.get('title'),
+            'title': '%s Episode %s – %s' % (episode_response.get('season_title'), episode_response.get('episode'), episode_response.get('title')),
             'description': episode_response.get('description').replace(r'\r\n', '\n'),
             'duration': float_or_none(episode_response.get('duration_ms'), 1000),
             'thumbnails': thumbnails,
