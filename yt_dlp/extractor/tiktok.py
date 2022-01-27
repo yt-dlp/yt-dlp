@@ -95,7 +95,7 @@ class TikTokBaseIE(InfoExtractor):
                 self._WORKING_APP_VERSION = (app_version, manifest_app_version)
                 self.write_debug('Imported app version combo from extractor arguments')
             elif app_version or manifest_app_version:
-                self.report_warning('Only one of the two required version params are passed as extractor arguments', only_once=True) 
+                self.report_warning('Only one of the two required version params are passed as extractor arguments', only_once=True)
 
         if self._WORKING_APP_VERSION:
             app_version, manifest_app_version = self._WORKING_APP_VERSION
