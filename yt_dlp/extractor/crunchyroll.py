@@ -24,6 +24,7 @@ from ..utils import (
     bytes_to_intlist,
     extract_attributes,
     float_or_none,
+    format_field,
     intlist_to_bytes,
     int_or_none,
     join_nonempty,
