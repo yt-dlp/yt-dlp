@@ -229,10 +229,7 @@ class XVideosUserIE(InfoExtractor):
                     r'/prof-video-click/(?:model|upload)/.+?/([0-9]+)/(.+)',
                     r'/video\1/\2', mobj.group('href'))
 
-                video_url = 'https://www.xvideos.com' + href
-                video_id = XVideosIE._match_id(video_url)
-
-                yield self.url_result(video_url, ie=XVideosIE.ie_key(), video_id=video_id)
+                yield self.url_result(f'https://www.xvideos.com{href}', ie=XVideosIE.ie_key())
 
             if not re.search(r'<a[^>]+class="[^"]+next-page[^>]+>', webpage):
                 break
