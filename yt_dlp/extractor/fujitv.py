@@ -17,7 +17,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
     # }
 
     _TESTS = [{
-        'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810076',
+        'url': 'https://fod.fujitv.co.jp/title/5d40/5d40110076',
         'info_dict': {
             'id': '5d40810076',
             'ext': 'mp4',
