@@ -753,7 +753,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         api_domain = traverse_obj(app_config, ('cxApiParams', 'apiDomain'))
         basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
         auth_response = self._download_json(
-            api_domain + '/auth/v1/token', display_id,
+            f'{api_domain}/auth/v1/token', display_id,
             note='Authenticating with cookie',
             headers={
                 'Authorization': 'Basic ' + basic_token
@@ -805,8 +805,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 for stream in streams.values():
                     format_id = join_nonempty(
                         stream_type,
-                        'audio-%s' % stream_response.get('audio_locale'),
-                        stream.get('hardsub_locale') and 'hardsub-%s' % stream.get('hardsub_locale'))
+                        format_field(stream_response, 'audio_locale', 'audio-%s'),
+                        format_field(stream_response, 'hardsub_locale', 'hardsub-%s'))
                     if stream_type.split('_')[-1] == 'hls':
                         adaptive_formats = self._extract_m3u8_formats(
                             stream.get('url'), display_id, 'mp4', m3u8_id=format_id,
