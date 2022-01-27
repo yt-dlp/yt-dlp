@@ -838,7 +838,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             'season_id': episode_response.get('season_id'),
             'season_number': episode_response.get('season_number'),
             'episode': episode_response.get('title'),
-            'episode_number': episode_response.get('episode_number'),
+            'episode_number': episode_response.get('sequence_number'),
             'subtitles': subtitles,
             'formats': formats
         }
