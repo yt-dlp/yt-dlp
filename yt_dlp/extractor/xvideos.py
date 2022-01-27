@@ -9,7 +9,9 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
-    parse_duration, strip_or_none,
+    parse_duration,
+    strip_or_none,
+    traverse_obj,
 )
 
 
@@ -209,7 +211,7 @@ class XVideosUserIE(InfoExtractor):
         'info_dict': {
             'id': 'profiles/espoder',
             'title': 'Espoder',
-            'description': '',
+            'description': None,
         },
         'playlist_mincount': 13,
     }]
@@ -220,21 +222,20 @@ class XVideosUserIE(InfoExtractor):
         while True:
             next_page_url = 'https://www.xvideos.com/%s/videos/new/%s' % (user_id, page_number)
 
-            page = self._download_webpage(
+            webpage = self._download_webpage(
                 next_page_url, user_id, 'Downloading page %s' % str(page_number + 1))
 
-            for mobj in re.finditer(r'<p[^>]+class="[^"]*title[^"]*"[^>]*>[^<]*<a[^>]+href="(?P<href>[^"]+)"', page):
-                href = mobj.group('href')
+            for mobj in re.finditer(r'<p[^>]+class="[^"]*title[^"]*"[^>]*>[^<]*<a[^>]+href="(?P<href>[^"]+)"', webpage):
                 href = re.sub(
                     r'/prof-video-click/(?:model|upload)/.+?/([0-9]+)/(.+)',
-                    r'/video\1/\2', href)
+                    r'/video\1/\2', mobj.group('href'))
 
                 video_url = 'https://www.xvideos.com' + href
                 video_id = XVideosIE._match_id(video_url)
 
                 yield self.url_result(video_url, ie=XVideosIE.ie_key(), video_id=video_id)
 
-            if not re.search(r'<a[^>]+class="[^"]+next-page[^>]+>', page):
+            if not re.search(r'<a[^>]+class="[^"]+next-page[^>]+>', webpage):
                 break
 
             page_number += 1
@@ -242,15 +243,15 @@ class XVideosUserIE(InfoExtractor):
     def _real_extract(self, url):
         user_id = self._match_id(url)
 
-        page = self._download_webpage(url, user_id, 'Downloading page')
+        webpage = self._download_webpage(url, user_id, 'Downloading page')
 
-        mobj = re.search(r'<script>.*window\.xv\.conf=(?P<json>.*);</script>', page)
-        title = ''
-        if mobj:
-            conf = self._parse_json(mobj.group('json'), user_id)
-            title = conf.get('data').get('user').get('display')
+        title = strip_or_none(traverse_obj(self._parse_json(self._search_regex(
+            r'<script>.*window\.xv\.conf=(.*);</script>',
+            webpage, 'json', default='{}', fatal=False), user_id),
+            ('data', 'user', 'display')))
 
-        mobj = re.search(r'<div[^>]+id="header-about-me"[^>]*>(?P<description>[^<]+?)<', page)
-        description = mobj.group('description') if mobj else ''
+        description = strip_or_none(self._search_regex(
+            r'<div[^>]+id="header-about-me"[^>]*>([^<]+?)<',
+            webpage, 'description', default=None, fatal=False))
 
-        return self.playlist_result(self._entries(user_id), user_id, strip_or_none(title), strip_or_none(description))
+        return self.playlist_result(self._entries(user_id), user_id, title, description)
