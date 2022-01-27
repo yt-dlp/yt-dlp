@@ -211,7 +211,6 @@ class XVideosUserIE(InfoExtractor):
         'info_dict': {
             'id': 'profiles/espoder',
             'title': 'Espoder',
-            'description': None,
         },
         'playlist_mincount': 13,
     }]
