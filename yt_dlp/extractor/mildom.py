@@ -15,6 +15,7 @@ from ..utils import (
 )
 from ..compat import (
     compat_str,
+    compat_numeric_types
 )
 
 
@@ -158,7 +159,7 @@ class MildomIE(MildomBaseIE):
 class MildomVodIE(MildomBaseIE):
     IE_NAME = 'mildom:vod'
     IE_DESC = 'Download a VOD in Mildom'
-    _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9\-]+)'
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
@@ -208,11 +209,24 @@ class MildomVodIE(MildomBaseIE):
             })
 
         self._sort_formats(formats)
+        
+        timestamp = try_get(autoplay['publish_time'], compat_numeric_types)
+
+        duration = try_get(autoplay['video_length'], compat_numeric_types)
+
+        thumbnails=[]
+        thumbnail_url=try_get(autoplay['upload_pic'], compat_str)
+        thumbnails.append({
+                'url': thumbnail_url,
+            })
 
         return {
             'id': video_id,
             'title': title,
             'description': description,
+            'timestamp': timestamp//1000,
+            'duration': duration//1000,
+            'thumbnails': thumbnails,
             'uploader': uploader,
             'uploader_id': user_id,
             'formats': formats,
