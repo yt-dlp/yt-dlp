@@ -25,12 +25,12 @@ class FujiTVFODPlus7IE(InfoExtractor):
         series_id, video_id = self._match_valid_url(url).groups()
         self._download_webpage(url, video_id)
         json_info = {}
-        if self._get_cookies(url).get('CT'):
-            token = self._get_cookies(url).get('CT').value
-            json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token}'}, fatal=False)
+        token = self._get_cookies(url).get('CT')
+        if token:
+            json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token.value}'}, fatal=False)
         else:
-            print(self._get_cookies(url))
             self.report_warning('Unable to extract token cookie, video information is unavailable')
+            print(self._LOGIN_HINTS['cookies'])
         formats = []
         subtitles = []
         src_json = self._download_json(self._BASE_URL + 'abrjson_v2/tv_android/%s' % video_id, video_id)
