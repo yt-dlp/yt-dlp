@@ -1670,6 +1670,11 @@ The following extractors use this feature:
 * `language`: Languages to extract. Eg: `crunchyroll:language=jaJp`
 * `hardsub`: Which hard-sub versions to extract. Eg: `crunchyroll:hardsub=None,enUS`
 
+#### crunchyroll:beta
+* `format`: Which stream type(s) to extract. Default is `adaptive_hls` Eg: `crunchyrollbeta:format=vo_adaptive_hls`
+    * Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `trailer_hls`, `trailer_dash`
+* `hardsub`: Preference order for which hardsub versions to extract. Default is `None` (no hardsubs). Eg: `crunchyrollbeta:hardsub=en-US,None`
+
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
