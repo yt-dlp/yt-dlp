@@ -799,33 +799,35 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
 
         requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
         hardsub_preference = qualities(requested_hardsubs[::-1])
+        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
 
         formats = []
         for stream_type, streams in stream_response.get('streams', {}).items():
-            if stream_type in ('adaptive_hls'):
-                for stream in streams.values():
-                    hardsub_lang = stream.get('hardsub_locale') or ''
-                    if hardsub_lang.lower() not in requested_hardsubs:
-                        continue
-                    format_id = join_nonempty(
-                        stream_type,
-                        format_field(stream, 'hardsub_locale', 'hardsub-%s'))
-                    if not stream.get('url'):
-                        continue
-                    if stream_type.split('_')[-1] == 'hls':
-                        adaptive_formats = self._extract_m3u8_formats(
-                            stream['url'], display_id, 'mp4', m3u8_id=format_id,
-                            note='Downloading %s information' % format_id,
-                            fatal=False)
-                    elif stream_type.split('_')[-1] == 'dash':
-                        adaptive_formats = self._extract_mpd_formats(
-                            stream['url'], display_id, mpd_id=format_id,
-                            note='Downloading %s information' % format_id,
-                            fatal=False)
-                    for f in adaptive_formats:
-                        if f.get('acodec') != 'none':
-                            f['language'] = stream_response.get('audio_locale')
-                        f['quality'] = hardsub_preference(hardsub_lang.lower())
+            if stream_type not in requested_formats:
+                continue
+            for stream in streams.values():
+                hardsub_lang = stream.get('hardsub_locale') or ''
+                if hardsub_lang.lower() not in requested_hardsubs:
+                    continue
+                format_id = join_nonempty(
+                    stream_type,
+                    format_field(stream, 'hardsub_locale', 'hardsub-%s'))
+                if not stream.get('url'):
+                    continue
+                if stream_type.split('_')[-1] == 'hls':
+                    adaptive_formats = self._extract_m3u8_formats(
+                        stream['url'], display_id, 'mp4', m3u8_id=format_id,
+                        note='Downloading %s information' % format_id,
+                        fatal=False)
+                elif stream_type.split('_')[-1] == 'dash':
+                    adaptive_formats = self._extract_mpd_formats(
+                        stream['url'], display_id, mpd_id=format_id,
+                        note='Downloading %s information' % format_id,
+                        fatal=False)
+                for f in adaptive_formats:
+                    if f.get('acodec') != 'none':
+                        f['language'] = stream_response.get('audio_locale')
+                    f['quality'] = hardsub_preference(hardsub_lang.lower())
                     formats.extend(adaptive_formats)
         self._sort_formats(formats)
 
