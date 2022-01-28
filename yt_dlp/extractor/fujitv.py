@@ -7,14 +7,6 @@ from .common import InfoExtractor
 class FujiTVFODPlus7IE(InfoExtractor):
     _VALID_URL = r'https?://fod\.fujitv\.co\.jp/title/(?P<sid>[0-9a-z]{4})/(?P<id>[0-9a-z]+)'
     _BASE_URL = 'https://i.fod.fujitv.co.jp/'
-    # _BITRATE_MAP = {
-    #     300: (320, 180),
-    #     800: (640, 360),
-    #     1200: (1280, 720),
-    #     2000: (1280, 720),
-    #     4000: (1920, 1080),
-    #     6000: (1920, 1080),
-    # }
 
     _TESTS = [{
         'url': 'https://fod.fujitv.co.jp/title/5d40/5d40110076',
@@ -39,8 +31,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
         else:
             print(self._get_cookies(url))
             self.report_warning('Unable to extract token cookie, video information is unavailable')
-        # formats = self._extract_m3u8_formats(
-        #     self._BASE_URL + 'abr/tv_android/%s.m3u8' % video_id, video_id, 'mp4')
         formats = []
         subtitles = []
         src_json = self._download_json(self._BASE_URL + 'abrjson_v2/tv_android/%s' % video_id, video_id)
@@ -48,15 +38,6 @@ class FujiTVFODPlus7IE(InfoExtractor):
             format, subtitle = self._extract_m3u8_formats_and_subtitles(src.get('url'), video_id, 'mp4')
             formats += format
             subtitles += subtitle
-        # formats += [self._extract_m3u8_formats(src.get('url'), video_id, 'mp4') for src in src_json.get('video_selector')]
-        # formats = list(map(lambda src: self._extract_m3u8_formats(src.get('url'), video_id, 'ts'),src_json.get('video_selector')))
-        # for f in formats:
-        #     wh = self._BITRATE_MAP.get(f.get('tbr'))
-        #     if wh:
-        #         f.update({
-        #             'width': wh[0],
-        #             'height': wh[1],
-        #         })
         self._sort_formats(formats, ['tbr'])
 
         return {
