@@ -30,13 +30,14 @@ class FujiTVFODPlus7IE(InfoExtractor):
             json_info = self._download_json('https://fod-sp.fujitv.co.jp/apps/api/episode/detail/?ep_id=%s&is_premium=false' % video_id, video_id, headers={'x-authorization': f'Bearer {token.value}'}, fatal=False)
         else:
             self.report_warning(f'The token cookie is needed to extract video metadata. {self._LOGIN_HINTS["cookies"]}')
-        formats = []
-        subtitles = []
-        src_json = self._download_json(self._BASE_URL + 'abrjson_v2/tv_android/%s' % video_id, video_id)
-        for src in src_json.get('video_selector'):
-            format, subtitle = self._extract_m3u8_formats_and_subtitles(src.get('url'), video_id, 'mp4')
-            formats += format
-            subtitles += subtitle
+        formats, subtitles = [], {}
+        src_json = self._download_json(f'{self._BASE_URL}abrjson_v2/tv_android/{video_id}', video_id)
+        for src in src_json['video_selector']:
+            if not src.get('url'):
+                continue
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'mp4')
+            formats.extend(fmt)
+            subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats, ['tbr'])
 
         return {
