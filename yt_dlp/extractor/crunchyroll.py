@@ -778,6 +778,8 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
             f'{api_domain}/cms/v2{bucket}/episodes/{internal_id}', display_id,
             note='Retrieving episode metadata',
             query=params)
+        if episode_response.get('is_premium_only') and not episode_response.get('playback'):
+            raise ExtractorError('This video is for premium members only.', expected=True)
         stream_response = self._download_json(
             episode_response['playback'], display_id,
             note='Retrieving stream info')
