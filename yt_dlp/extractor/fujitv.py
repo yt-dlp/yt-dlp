@@ -47,5 +47,5 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'description': json_info.get('ep_description'),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': self._BASE_URL + f'img/program/{series_id}/episode/{video_id}_a.jpg',
+            'thumbnail': f'{self._BASE_URL}img/program/{series_id}/episode/{video_id}_a.jpg',
         }
