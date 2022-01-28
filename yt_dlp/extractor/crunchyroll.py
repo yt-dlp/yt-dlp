@@ -797,18 +797,18 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                 'ext': subtitle_data.get('format')
             }]
 
-        requested_languages = self._configuration_arg('language')
-        requested_hardsubs = [('' if val == 'none' else val) for val in self._configuration_arg('hardsub')]
-        language_preference = qualities((requested_languages or [traverse_obj(initial_state, ('localization', 'locale')) or ''])[::-1])
-        hardsub_preference = qualities((requested_hardsubs or ['', traverse_obj(initial_state, ('localization', 'locale')) or ''])[::-1])
+        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
+        hardsub_preference = qualities(requested_hardsubs[::-1])
 
         formats = []
         for stream_type, streams in stream_response.get('streams', {}).items():
             if stream_type in ('adaptive_hls'):
                 for stream in streams.values():
+                    hardsub_lang = stream.get('hardsub_locale') or ''
+                    if hardsub_lang.lower() not in requested_hardsubs:
+                        continue
                     format_id = join_nonempty(
                         stream_type,
-                        format_field(stream_response, 'audio_locale', 'audio-%s'),
                         format_field(stream, 'hardsub_locale', 'hardsub-%s'))
                     if not stream.get('url'):
                         continue
@@ -825,8 +825,7 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
                     for f in adaptive_formats:
                         if f.get('acodec') != 'none':
                             f['language'] = stream_response.get('audio_locale')
-                        f['language_preference'] = language_preference(stream_response.get('audio_locale'))
-                        f['quality'] = hardsub_preference(stream.get('hardsub_locale'))
+                        f['quality'] = hardsub_preference(hardsub_lang.lower())
                     formats.extend(adaptive_formats)
         self._sort_formats(formats)
 
