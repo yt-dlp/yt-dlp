@@ -1,8 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
@@ -77,11 +75,10 @@ class MySpassIE(InfoExtractor):
         title = xpath_text(metadata, 'title', fatal=True)
         video_url = xpath_text(metadata, 'url_flv', 'download url', True)
         video_id_int = int(video_id)
-        for group in self._search_regex(r'/myspass2009/\d+/(\d+)/(\d+)/(\d+)/', video_url, 'myspass', group=(1,2,3), default=[]):
-                group_int = int(group)
-                if group_int > video_id_int:
-                    video_url = video_url.replace(
-                        group, compat_str(group_int // video_id_int))
+        for group in self._search_regex(r'/myspass2009/\d+/(\d+)/(\d+)/(\d+)/', video_url, 'myspass', group=(1, 2, 3), default=[]):
+            group_int = int(group)
+            if group_int > video_id_int:
+                video_url = video_url.replace(group, compat_str(group_int // video_id_int))
 
         return {
             'id': video_id,
