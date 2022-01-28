@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import math
 import re
 
 from .common import InfoExtractor
@@ -8,6 +9,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     ExtractorError,
+    InAdvancePagedList,
     int_or_none,
     parse_duration,
     strip_or_none,
@@ -214,32 +216,26 @@ class XVideosUserIE(InfoExtractor):
         },
         'playlist_mincount': 13,
     }]
+    _PAGE_SIZE = 36
 
-    def _entries(self, user_id):
-        page_number = 0
+    def _entries(self, webpage):
+        for mobj in re.finditer(r'<p[^>]+class="[^"]*title[^"]*"[^>]*>[^<]*<a[^>]+href="(?P<href>[^"]+)"', webpage):
+            href = re.sub(
+                r'/prof-video-click/(?:model|upload)/.+?/([0-9]+)/(.+)',
+                r'/video\1/\2', mobj.group('href'))
 
-        while True:
-            next_page_url = 'https://www.xvideos.com/%s/videos/new/%s' % (user_id, page_number)
-
-            webpage = self._download_webpage(
-                next_page_url, user_id, 'Downloading page %s' % str(page_number + 1))
-
-            for mobj in re.finditer(r'<p[^>]+class="[^"]*title[^"]*"[^>]*>[^<]*<a[^>]+href="(?P<href>[^"]+)"', webpage):
-                href = re.sub(
-                    r'/prof-video-click/(?:model|upload)/.+?/([0-9]+)/(.+)',
-                    r'/video\1/\2', mobj.group('href'))
-
-                yield self.url_result(f'https://www.xvideos.com{href}', ie=XVideosIE.ie_key())
-
-            if not re.search(r'<a[^>]+class="[^"]+next-page[^>]+>', webpage):
-                break
-
-            page_number += 1
+            yield self.url_result(f'https://www.xvideos.com{href}', ie=XVideosIE.ie_key())
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
 
         webpage = self._download_webpage(url, user_id, 'Downloading page')
+
+        video_count = int_or_none(re.sub('[^0-9]', '', self._search_regex(
+            r'<a[^>]+id="tab-videos"[^>]*>.*<span[^>]+>(.*)</span>.*?</a>',
+            webpage, 'video_count', default='0', fatal=False)), default=0)
+
+        page_count = int(math.ceil(video_count / self._PAGE_SIZE))
 
         title = strip_or_none(traverse_obj(self._parse_json(self._search_regex(
             r'<script>.*window\.xv\.conf=(.*);</script>',
@@ -250,4 +246,14 @@ class XVideosUserIE(InfoExtractor):
             r'<div[^>]+id="header-about-me"[^>]*>([^<]+?)<',
             webpage, 'description', default=None, fatal=False))
 
-        return self.playlist_result(self._entries(user_id), user_id, title, description)
+        def _get_page(idx):
+            page_url = 'https://www.xvideos.com/%s/videos/new/%s' % (user_id, idx)
+
+            webpage = self._download_webpage(
+                page_url, user_id, 'Downloading page %d/%d' % (idx + 1, page_count))
+
+            return self._entries(webpage)
+
+        return self.playlist_result(
+            InAdvancePagedList(_get_page, page_count, self._PAGE_SIZE),
+            user_id, title, description)
