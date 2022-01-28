@@ -28,7 +28,6 @@ from ..utils import (
     parse_qs,
     sanitized_Request,
     smuggle_url,
-    std_headers,
     str_or_none,
     try_get,
     unified_timestamp,
@@ -758,7 +757,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
     def _real_extract(self, url):
         url, data = unsmuggle_url(url, {})
-        headers = std_headers.copy()
+        headers = self.get_param('http_headers').copy()
         if 'http_headers' in data:
             headers.update(data['http_headers'])
         if 'Referer' not in headers:

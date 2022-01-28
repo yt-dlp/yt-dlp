@@ -83,6 +83,7 @@ from .utils import (
     make_dir,
     make_HTTPS_handler,
     MaxDownloadsReached,
+    merge_headers,
     network_exceptions,
     number_of_digits,
     orderedSet,
@@ -332,6 +333,7 @@ class YoutubeDL(object):
     nocheckcertificate:  Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
+    http_headers:      A dictionary of custom headers to be used for all requests
     proxy:             URL of the proxy server to use
     geo_verification_proxy:  URL of the proxy to use for IP address verification
                        on geo-restricted sites.
@@ -646,6 +648,9 @@ class YoutubeDL(object):
             self.params.get('format') if self.params.get('format') in (None, '-')
             else self.params['format'] if callable(self.params['format'])
             else self.build_format_selector(self.params['format']))
+
+        # Set http_headers defaults according to std_headers
+        self.params['http_headers'] = merge_headers(std_headers, self.params.get('http_headers', {}))
 
         self._setup_opener()
 
@@ -2250,8 +2255,7 @@ class YoutubeDL(object):
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = std_headers.copy()
-        res.update(info_dict.get('http_headers') or {})
+        res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
 
         cookies = self._calc_cookies(info_dict)
         if cookies:
