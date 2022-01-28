@@ -23,7 +23,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
 
     def _real_extract(self, url):
         series_id, video_id = self._match_valid_url(url).groups()
-        self._download_webpage(Request(url,method='head'), video_id)
+        self._download_webpage(Request(url, method='head'), video_id)
         json_info = {}
         token = self._get_cookies(url).get('CT')
         if token:
