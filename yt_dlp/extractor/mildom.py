@@ -231,9 +231,7 @@ class MildomVodIE(MildomBaseIE):
                 lambda x: x['video_pic'],
             ), compat_str)
 
-        thumbnails.append({
-                'url': thumbnail_url,
-            })
+        thumbnails.append({'url': thumbnail_url})
 
         return {
             'id': video_id,
@@ -286,3 +284,4 @@ class MildomUserVodIE(MildomBaseIE):
 
         return self.playlist_result(
             self._entries(user_id), user_id, 'Uploads from %s' % profile['loginname'])
+    
