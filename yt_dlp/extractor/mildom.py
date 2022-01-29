@@ -25,7 +25,12 @@ class MildomBaseIE(InfoExtractor):
 
     def _call_api(self, url, video_id, query={}, note='Downloading JSON metadata', init=False):
         url = update_url_query(url, self._common_queries(query, init=init))
-        return self._download_json(url, video_id, note=note)['body']
+        content = self._download_json(url, video_id, note=note)
+        if content['code'] == 0:
+            return content['body']
+        else:
+            self.raise_no_formats('Video not found or premium content. Mildom error code %i, "%s"' 
+                                  % (content['code'] , content['message']), expected=True)
 
     def _common_queries(self, query={}, init=False):
         dc = self._fetch_dispatcher_config()
@@ -103,7 +108,7 @@ class MildomIE(MildomBaseIE):
 
         enterstudio = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/live/enterstudio', video_id,
-            note='Downloading live metadata', query={'user_id': video_id})
+            note='Downloading live metadata', query={'user_id': video_id , '__platform': "web"})
         result_video_id = enterstudio.get('log_id', video_id)
 
         title = try_get(
@@ -127,6 +132,7 @@ class MildomIE(MildomBaseIE):
             note='Downloading live server list', query={
                 'user_id': video_id,
                 'live_server_type': 'hls',
+                '__platform': "web",
             })
 
         stream_query = self._common_queries({
@@ -144,11 +150,14 @@ class MildomIE(MildomBaseIE):
             fmt.setdefault('http_headers', {})['Referer'] = 'https://www.mildom.com/'
 
         self._sort_formats(formats)
+        
+        timestamp = try_get(enterstudio['live_start_ms'], compat_numeric_types)
 
         return {
             'id': result_video_id,
             'title': title,
             'description': description,
+            'timestamp': timestamp//1000,
             'uploader': uploader,
             'uploader_id': video_id,
             'formats': formats,
@@ -159,7 +168,7 @@ class MildomIE(MildomBaseIE):
 class MildomVodIE(MildomBaseIE):
     IE_NAME = 'mildom:vod'
     IE_DESC = 'Download a VOD in Mildom'
-    _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9\-]+)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9]+-?[0-9]*)'
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
@@ -171,7 +180,7 @@ class MildomVodIE(MildomBaseIE):
         autoplay = self._call_api(
             'https://cloudac.mildom.com/nonolive/videocontent/playback/getPlaybackDetail', video_id,
             note='Downloading playback metadata', query={
-                'v_id': video_id,
+                'v_id': video_id, '__platform': "web",
             })['playback']
 
         title = try_get(
@@ -215,10 +224,16 @@ class MildomVodIE(MildomBaseIE):
         duration = try_get(autoplay['video_length'], compat_numeric_types)
 
         thumbnails=[]
-        thumbnail_url=try_get(autoplay['upload_pic'], compat_str)
+
+        thumbnail_url = try_get(
+            autoplay, (
+                lambda x: x['upload_pic'],
+                lambda x: x['video_pic'],
+            ), compat_str)
+        
         thumbnails.append({
-                'url': thumbnail_url,
-            })
+                    'url': thumbnail_url,
+                })
 
         return {
             'id': video_id,
@@ -254,6 +269,7 @@ class MildomUserVodIE(MildomBaseIE):
                     'user_id': user_id,
                     'page': page,
                     'limit': '30',
+                    '__platform': "web",
                 })
             if not reply:
                 break
@@ -266,7 +282,7 @@ class MildomUserVodIE(MildomBaseIE):
 
         profile = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/user/profileV2', user_id,
-            query={'user_id': user_id}, note='Downloading user profile')['user_info']
+            query={'user_id': user_id , '__platform': "web"}, note='Downloading user profile')['user_info']
 
         return self.playlist_result(
             self._entries(user_id), user_id, 'Uploads from %s' % profile['loginname'])
