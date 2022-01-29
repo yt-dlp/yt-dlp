@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import base64
 import re
 import json
 import zlib
@@ -23,13 +24,16 @@ from ..utils import (
     bytes_to_intlist,
     extract_attributes,
     float_or_none,
+    format_field,
     intlist_to_bytes,
     int_or_none,
+    join_nonempty,
     lowercase_escape,
     merge_dicts,
     qualities,
     remove_end,
     sanitized_Request,
+    traverse_obj,
     try_get,
     urlencode_postdata,
     xpath_text,
@@ -733,13 +737,118 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
     def _real_extract(self, url):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'internal_id', 'id')
         webpage = self._download_webpage(url, display_id)
-        episode_data = self._parse_json(
-            self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'episode data'),
-            display_id)['content']['byId'][internal_id]
-        video_id = episode_data['external_id'].split('.')[1]
-        series_id = episode_data['episode_metadata']['series_slug_title']
-        return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
-                               CrunchyrollIE.ie_key(), video_id)
+        initial_state = self._parse_json(
+            self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
+            display_id)
+        episode_data = initial_state['content']['byId'][internal_id]
+        if not self._get_cookies(url).get('etp_rt'):
+            video_id = episode_data['external_id'].split('.')[1]
+            series_id = episode_data['episode_metadata']['series_slug_title']
+            return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
+                                   CrunchyrollIE.ie_key(), video_id)
+
+        app_config = self._parse_json(
+            self._search_regex(r'__APP_CONFIG__\s*=\s*({.+?})\s*;', webpage, 'app config'),
+            display_id)
+        client_id = app_config['cxApiParams']['accountAuthClientId']
+        api_domain = app_config['cxApiParams']['apiDomain']
+        basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
+        auth_response = self._download_json(
+            f'{api_domain}/auth/v1/token', display_id,
+            note='Authenticating with cookie',
+            headers={
+                'Authorization': 'Basic ' + basic_token
+            }, data='grant_type=etp_rt_cookie'.encode('ascii'))
+        policy_response = self._download_json(
+            f'{api_domain}/index/v2', display_id,
+            note='Retrieving signed policy',
+            headers={
+                'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
+            })
+        bucket = policy_response['cms']['bucket']
+        params = {
+            'Policy': policy_response['cms']['policy'],
+            'Signature': policy_response['cms']['signature'],
+            'Key-Pair-Id': policy_response['cms']['key_pair_id']
+        }
+        locale = traverse_obj(initial_state, ('localization', 'locale'))
+        if locale:
+            params['locale'] = locale
+        episode_response = self._download_json(
+            f'{api_domain}/cms/v2{bucket}/episodes/{internal_id}', display_id,
+            note='Retrieving episode metadata',
+            query=params)
+        if episode_response.get('is_premium_only') and not episode_response.get('playback'):
+            raise ExtractorError('This video is for premium members only.', expected=True)
+        stream_response = self._download_json(
+            episode_response['playback'], display_id,
+            note='Retrieving stream info')
+
+        thumbnails = []
+        for thumbnails_data in traverse_obj(episode_response, ('images', 'thumbnail')):
+            for thumbnail_data in thumbnails_data:
+                thumbnails.append({
+                    'url': thumbnail_data.get('source'),
+                    'width': thumbnail_data.get('width'),
+                    'height': thumbnail_data.get('height'),
+                })
+        subtitles = {}
+        for lang, subtitle_data in stream_response.get('subtitles').items():
+            subtitles[lang] = [{
+                'url': subtitle_data.get('url'),
+                'ext': subtitle_data.get('format')
+            }]
+
+        requested_hardsubs = [('' if val == 'none' else val) for val in (self._configuration_arg('hardsub') or ['none'])]
+        hardsub_preference = qualities(requested_hardsubs[::-1])
+        requested_formats = self._configuration_arg('format') or ['adaptive_hls']
+
+        formats = []
+        for stream_type, streams in stream_response.get('streams', {}).items():
+            if stream_type not in requested_formats:
+                continue
+            for stream in streams.values():
+                hardsub_lang = stream.get('hardsub_locale') or ''
+                if hardsub_lang.lower() not in requested_hardsubs:
+                    continue
+                format_id = join_nonempty(
+                    stream_type,
+                    format_field(stream, 'hardsub_locale', 'hardsub-%s'))
+                if not stream.get('url'):
+                    continue
+                if stream_type.split('_')[-1] == 'hls':
+                    adaptive_formats = self._extract_m3u8_formats(
+                        stream['url'], display_id, 'mp4', m3u8_id=format_id,
+                        note='Downloading %s information' % format_id,
+                        fatal=False)
+                elif stream_type.split('_')[-1] == 'dash':
+                    adaptive_formats = self._extract_mpd_formats(
+                        stream['url'], display_id, mpd_id=format_id,
+                        note='Downloading %s information' % format_id,
+                        fatal=False)
+                for f in adaptive_formats:
+                    if f.get('acodec') != 'none':
+                        f['language'] = stream_response.get('audio_locale')
+                    f['quality'] = hardsub_preference(hardsub_lang.lower())
+                formats.extend(adaptive_formats)
+        self._sort_formats(formats)
+
+        return {
+            'id': internal_id,
+            'title': '%s Episode %s – %s' % (episode_response.get('season_title'), episode_response.get('episode'), episode_response.get('title')),
+            'description': episode_response.get('description').replace(r'\r\n', '\n'),
+            'duration': float_or_none(episode_response.get('duration_ms'), 1000),
+            'thumbnails': thumbnails,
+            'series': episode_response.get('series_title'),
+            'series_id': episode_response.get('series_id'),
+            'season': episode_response.get('season_title'),
+            'season_id': episode_response.get('season_id'),
+            'season_number': episode_response.get('season_number'),
+            'episode': episode_response.get('title'),
+            'episode_number': episode_response.get('sequence_number'),
+            'subtitles': subtitles,
+            'formats': formats
+        }
 
 
 class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
