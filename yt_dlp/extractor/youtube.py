@@ -2078,6 +2078,25 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'age_limit': 0,
                 'channel_follower_count': int
             }, 'params': {'format': 'mhtml', 'skip_download': True}
+        },
+        {
+            # Translated title
+            'url': 'UnIhRpIT7nc',
+            'info_dict': {
+                'id': 'UnIhRpIT7nc',
+                'ext': 'mp4',
+                'title': 'inabakumori - Lagtrain (Vo. Kaai Yuki) / 稲葉曇『ラグトレイン』Vo. 歌愛ユキ',
+                # Translated description
+                'description': 'md5:d0865e57701acd99b4d89679a66e9632',
+                'upload_date': '20200716',
+                'uploader': '稲葉曇',
+                'channel': 'inabakumori',
+                'uploader_id': 'UCNElM45JypxqAR73RoUQ10g',
+                'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCNElM45JypxqAR73RoUQ10g',
+            },
+            'params': {
+                'skip_download': True,
+            },
         }
     ]
 
@@ -3170,10 +3189,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             player_responses, (..., 'microformat', 'playerMicroformatRenderer'),
             expected_type=dict, default=[])
         video_title = (
-            get_first(video_details, 'title')
-            or self._get_text(microformats, (..., 'title'))
+            self._get_text(microformats, (..., 'title'))
+            or get_first(video_details, 'title')
             or search_meta(['og:title', 'twitter:title', 'title']))
-        video_description = get_first(video_details, 'shortDescription')
+        video_description = (
+            self._get_text(microformats, (..., 'description'))
+            or get_first(video_details, 'shortDescription'))
 
         multifeed_metadata_list = get_first(
             player_responses,
