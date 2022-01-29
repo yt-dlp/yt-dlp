@@ -284,4 +284,3 @@ class MildomUserVodIE(MildomBaseIE):
 
         return self.playlist_result(
             self._entries(user_id), user_id, 'Uploads from %s' % profile['loginname'])
-    
