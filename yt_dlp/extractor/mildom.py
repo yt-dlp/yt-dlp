@@ -239,7 +239,7 @@ class MildomVodIE(MildomBaseIE):
             'description': description,
             'timestamp': timestamp // 1000,
             'duration': duration // 1000,
-            'thumbnails': thumbnails,
+            'thumbnail': dict_get(autoplay, ('upload_pic', 'video_pic')),
             'uploader': uploader,
             'uploader_id': user_id,
             'formats': formats,
