@@ -218,13 +218,13 @@ class XVideosUserIE(InfoExtractor):
     }]
     _PAGE_SIZE = 36
 
-    def _entries(self, webpage):
-        for mobj in re.finditer(r'<p[^>]+class="[^"]*title[^"]*"[^>]*>[^<]*<a[^>]+href="(?P<href>[^"]+)"', webpage):
-            href = re.sub(
-                r'/prof-video-click/(?:model|upload)/.+?/([0-9]+)/(.+)',
-                r'/video\1/\2', mobj.group('href'))
+    def _entries(self, json):
+        for video in json.get('videos'):
+            slug = self._search_regex(r'.*/([^/]+)$', video.get('u'), 'slug')
 
-            yield self.url_result(f'https://www.xvideos.com{href}', ie=XVideosIE.ie_key())
+            yield self.url_result(
+                'https://www.xvideos.com/video%s/%s' % (video.get('id'), slug),
+                ie=XVideosIE.ie_key())
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
@@ -249,10 +249,10 @@ class XVideosUserIE(InfoExtractor):
         def _get_page(idx):
             page_url = 'https://www.xvideos.com/%s/videos/new/%s' % (user_id, idx)
 
-            webpage = self._download_webpage(
+            json = self._download_json(
                 page_url, user_id, 'Downloading page %d/%d' % (idx + 1, page_count))
 
-            return self._entries(webpage)
+            return self._entries(json)
 
         return self.playlist_result(
             InAdvancePagedList(_get_page, page_count, self._PAGE_SIZE),
