@@ -14,7 +14,10 @@ cookies
 *.frag.urls
 *.info.json
 *.live_chat.json
+*.meta
 *.part*
+*.tmp
+*.temp
 *.unknown_video
 *.ytdl
 .cache/

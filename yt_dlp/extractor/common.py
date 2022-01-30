@@ -45,6 +45,7 @@ from ..utils import (
     determine_ext,
     determine_protocol,
     dict_get,
+    encode_data_uri,
     error_to_compat_str,
     extract_attributes,
     ExtractorError,
@@ -260,6 +261,7 @@ class InfoExtractor(object):
                     fields. This depends on a particular extractor.
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
+    channel_follower_count: Number of followers of the channel.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -375,6 +377,7 @@ class InfoExtractor(object):
     disc_number:    Number of the disc or other physical medium the track belongs to,
                     as an integer.
     release_year:   Year (YYYY) when the album was released.
+    composer:       Composer of the piece
 
     Unless mentioned otherwise, the fields should be Unicode strings.
 
@@ -1118,39 +1121,39 @@ class InfoExtractor(object):
 
     # Methods for following #608
     @staticmethod
-    def url_result(url, ie=None, video_id=None, video_title=None, **kwargs):
+    def url_result(url, ie=None, video_id=None, video_title=None, *, url_transparent=False, **kwargs):
         """Returns a URL that points to a page that should be processed"""
-        # TODO: ie should be the class used for getting the info
-        video_info = {'_type': 'url',
-                      'url': url,
-                      'ie_key': ie}
-        video_info.update(kwargs)
+        if ie is not None:
+            kwargs['ie_key'] = ie if isinstance(ie, str) else ie.ie_key()
         if video_id is not None:
-            video_info['id'] = video_id
+            kwargs['id'] = video_id
         if video_title is not None:
-            video_info['title'] = video_title
-        return video_info
+            kwargs['title'] = video_title
+        return {
+            **kwargs,
+            '_type': 'url_transparent' if url_transparent else 'url',
+            'url': url,
+        }
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None):
-        urls = orderedSet(
-            self.url_result(self._proto_relative_url(getter(m) if getter else m), ie)
-            for m in matches)
-        return self.playlist_result(
-            urls, playlist_id=playlist_id, playlist_title=playlist_title)
+    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, **kwargs):
+        urls = (self.url_result(self._proto_relative_url(m), ie)
+                for m in orderedSet(map(getter, matches) if getter else matches))
+        return self.playlist_result(urls, playlist_id, playlist_title, **kwargs)
 
     @staticmethod
-    def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None, **kwargs):
+    def playlist_result(entries, playlist_id=None, playlist_title=None, playlist_description=None, *, multi_video=False, **kwargs):
         """Returns a playlist"""
-        video_info = {'_type': 'playlist',
-                      'entries': entries}
-        video_info.update(kwargs)
         if playlist_id:
-            video_info['id'] = playlist_id
+            kwargs['id'] = playlist_id
         if playlist_title:
-            video_info['title'] = playlist_title
+            kwargs['title'] = playlist_title
         if playlist_description is not None:
-            video_info['description'] = playlist_description
-        return video_info
+            kwargs['description'] = playlist_description
+        return {
+            **kwargs,
+            '_type': 'multi_video' if multi_video else 'playlist',
+            'entries': entries,
+        }
 
     def _search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
@@ -1288,7 +1291,7 @@ class InfoExtractor(object):
         return self._og_search_property('description', html, fatal=False, **kargs)
 
     def _og_search_title(self, html, **kargs):
-        return self._og_search_property('title', html, **kargs)
+        return self._og_search_property('title', html, fatal=False, **kargs)
 
     def _og_search_video_url(self, html, name='video url', secure=True, **kargs):
         regexes = self._og_regexes('video') + self._og_regexes('video:url')
@@ -1525,6 +1528,8 @@ class InfoExtractor(object):
                         'title': unescapeHTML(e.get('headline')),
                         'description': unescapeHTML(e.get('articleBody') or e.get('description')),
                     })
+                    if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
+                        extract_video_object(e['video'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
                     if expected_type is None:
@@ -1542,12 +1547,12 @@ class InfoExtractor(object):
 
         return dict((k, v) for k, v in info.items() if v is not None)
 
-    def _search_nextjs_data(self, webpage, video_id, **kw):
+    def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
         return self._parse_json(
             self._search_regex(
                 r'(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
-                webpage, 'next.js data', **kw),
-            video_id, **kw)
+                webpage, 'next.js data', fatal=fatal, **kw),
+            video_id, transform_source=transform_source, fatal=fatal)
 
     def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__'):
         ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
@@ -2105,7 +2110,7 @@ class InfoExtractor(object):
             headers=headers, query=query, video_id=video_id)
 
     def _parse_m3u8_formats_and_subtitles(
-            self, m3u8_doc, m3u8_url, ext=None, entry_protocol='m3u8_native',
+            self, m3u8_doc, m3u8_url=None, ext=None, entry_protocol='m3u8_native',
             preference=None, quality=None, m3u8_id=None, live=False, note=None,
             errnote=None, fatal=True, data=None, headers={}, query={},
             video_id=None):
@@ -2155,7 +2160,7 @@ class InfoExtractor(object):
             formats = [{
                 'format_id': join_nonempty(m3u8_id, idx),
                 'format_index': idx,
-                'url': m3u8_url,
+                'url': m3u8_url or encode_data_uri(m3u8_doc.encode('utf-8'), 'application/x-mpegurl'),
                 'ext': ext,
                 'protocol': entry_protocol,
                 'preference': preference,
@@ -3501,8 +3506,6 @@ class InfoExtractor(object):
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
-        if 'get_attr' in kwargs:
-            print(getattr(v, kwargs['get_attr']))
         if res is None:
             msg = 'Failed to extract %s: Could not parse value %r' % (name, v)
             if fatal:
@@ -3708,6 +3711,22 @@ class InfoExtractor(object):
         if val is None:
             return [] if default is NO_DEFAULT else default
         return list(val) if casesense else [x.lower() for x in val]
+
+    def _yes_playlist(self, playlist_id, video_id, smuggled_data=None, *, playlist_label='playlist', video_label='video'):
+        if not playlist_id or not video_id:
+            return not video_id
+
+        no_playlist = (smuggled_data or {}).get('force_noplaylist')
+        if no_playlist is not None:
+            return not no_playlist
+
+        video_id = '' if video_id is True else f' {video_id}'
+        playlist_id = '' if playlist_id is True else f' {playlist_id}'
+        if self.get_param('noplaylist'):
+            self.to_screen(f'Downloading just the {video_label}{video_id} because of --no-playlist')
+            return False
+        self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
+        return True
 
 
 class SearchInfoExtractor(InfoExtractor):

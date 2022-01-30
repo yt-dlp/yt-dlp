@@ -145,6 +145,7 @@ std_headers = {
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
     'Accept-Encoding': 'gzip, deflate',
     'Accept-Language': 'en-us,en;q=0.5',
+    'Sec-Fetch-Mode': 'navigate',
 }
 
 
@@ -473,24 +474,23 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
     attribute in the passed HTML document
     """
 
+    value_quote_optional = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
+
     value = re.escape(value) if escape_value else value
 
-    retlist = []
-    for m in re.finditer(r'''(?xs)
+    partial_element_re = r'''(?x)
         <(?P<tag>[a-zA-Z0-9:._-]+)
-         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
-         \s+%(attribute)s(?:=%(value)s|\s*=\s*(?P<_q>['"]?)%(value)s(?P=_q))
-         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
-        \s*>
-    ''' % {'attribute': re.escape(attribute), 'value': value}, html):
+         (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+         \s%(attribute)s\s*=\s*(?P<_q>['"]%(vqo)s)(?-x:%(value)s)(?P=_q)
+        ''' % {'attribute': re.escape(attribute), 'value': value, 'vqo': value_quote_optional}
+
+    for m in re.finditer(partial_element_re, html):
         content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
-        retlist.append((
-            unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content)),
-            whole,
-        ))
-
-    return retlist
+        yield (
+            unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)),
+            whole
+        )
 
 
 class HTMLBreakOnClosingTagParser(compat_HTMLParser):
@@ -997,6 +997,8 @@ def make_HTTPS_handler(params, **kwargs):
     opts_check_certificate = not params.get('nocheckcertificate')
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = opts_check_certificate
+    if params.get('legacyserverconnect'):
+        context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
         try:
@@ -1846,7 +1848,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.now(), precision)
+    today = datetime_round(datetime.datetime.utcnow(), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -2557,9 +2559,14 @@ def parse_duration(s):
         return None
 
     days, hours, mins, secs, ms = [None] * 5
-    m = re.match(r'(?:(?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?(?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?Z?$', s)
+    m = re.match(r'''(?x)
+            (?P<before_secs>
+                (?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?
+            (?P<secs>(?(before_secs)[0-9]{1,2}|[0-9]+))
+            (?P<ms>[.:][0-9]+)?Z?$
+        ''', s)
     if m:
-        days, hours, mins, secs, ms = m.groups()
+        days, hours, mins, secs, ms = m.group('days', 'hours', 'mins', 'secs', 'ms')
     else:
         m = re.match(
             r'''(?ix)(?:P?
@@ -2604,7 +2611,7 @@ def parse_duration(s):
     if days:
         duration += float(days) * 24 * 60 * 60
     if ms:
-        duration += float(ms)
+        duration += float(ms.replace(':', '.'))
     return duration
 
 
@@ -2838,8 +2845,7 @@ class InAdvancePagedList(PagedList):
 
     def _getslice(self, start, end):
         start_page = start // self._pagesize
-        end_page = (
-            self._pagecount if end is None else (end // self._pagesize + 1))
+        end_page = self._pagecount if end is None else min(self._pagecount, end // self._pagesize + 1)
         skip_elems = start - start_page * self._pagesize
         only_more = None if end is None else end - start
         for pagenum in range(start_page, end_page):
@@ -3158,6 +3164,7 @@ OUTTMPL_TYPES = {
     'annotation': 'annotations.xml',
     'infojson': 'info.json',
     'link': None,
+    'pl_video': None,
     'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',
@@ -4967,13 +4974,10 @@ def to_high_limit_path(path):
 
 
 def format_field(obj, field=None, template='%s', ignore=(None, ''), default='', func=None):
-    if field is None:
-        val = obj if obj is not None else default
-    else:
-        val = obj.get(field, default)
-    if func and val not in ignore:
-        val = func(val)
-    return template % val if val not in ignore else default
+    val = traverse_obj(obj, *variadic(field))
+    if val in ignore:
+        return default
+    return template % (func(val) if func else val)
 
 
 def clean_podcast_url(url):

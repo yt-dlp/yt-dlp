@@ -11,7 +11,7 @@ from ..utils import (
 
 
 class FunkIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?funk\.net/(?:channel|playlist)/[^/]+/(?P<display_id>[0-9a-z-]+)-(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.|origin\.)?funk\.net/(?:channel|playlist)/[^/]+/(?P<display_id>[0-9a-z-]+)-(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.funk.net/channel/ba-793/die-lustigsten-instrumente-aus-dem-internet-teil-2-1155821',
         'md5': '8dd9d9ab59b4aa4173b3197f2ea48e81',

@@ -643,6 +643,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('PT1H0.040S'), 3600.04)
         self.assertEqual(parse_duration('PT00H03M30SZ'), 210)
         self.assertEqual(parse_duration('P0Y0M0DT0H4M20.880S'), 260.88)
+        self.assertEqual(parse_duration('01:02:03:050'), 3723.05)
+        self.assertEqual(parse_duration('103:050'), 103.05)
 
     def test_fix_xml_ampersands(self):
         self.assertEqual(
@@ -1659,10 +1661,10 @@ Line 1
         html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(
-            get_elements_text_and_html_by_attribute('class', 'foo bar', html),
+            list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
             list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
-        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'foo', html), [])
-        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
     GET_ELEMENT_BY_TAG_TEST_STRING = '''
     random text lorem ipsum</p>

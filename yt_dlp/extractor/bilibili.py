@@ -252,7 +252,7 @@ class BiliBiliIE(InfoExtractor):
         title = self._html_search_regex(
             (r'<h1[^>]+\btitle=(["\'])(?P<title>(?:(?!\1).)+)\1',
              r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
-            group='title')
+            group='title', fatal=False)
 
         # Get part title for anthologies
         if page_id is not None:

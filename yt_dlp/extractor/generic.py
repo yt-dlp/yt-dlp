@@ -28,6 +28,7 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_duration,
+    parse_resolution,
     sanitized_Request,
     smuggle_url,
     unescapeHTML,
@@ -100,6 +101,8 @@ from .ustream import UstreamIE
 from .arte import ArteTVEmbedIE
 from .videopress import VideoPressIE
 from .rutube import RutubeIE
+from .glomex import GlomexEmbedIE
+from .megatvcom import MegaTVComEmbedIE
 from .limelight import LimelightBaseIE
 from .anvato import AnvatoIE
 from .washingtonpost import WashingtonPostIE
@@ -112,6 +115,7 @@ from .channel9 import Channel9IE
 from .vshare import VShareIE
 from .mediasite import MediasiteIE
 from .springboardplatform import SpringboardPlatformIE
+from .ted import TedEmbedIE
 from .yapfiles import YapFilesIE
 from .vice import ViceIE
 from .xfileshare import XFileShareIE
@@ -135,6 +139,7 @@ from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
+from .tvopengr import TVOpenGrEmbedIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
@@ -1872,6 +1877,53 @@ class GenericIE(InfoExtractor):
             'add_ie': [RutubeIE.ie_key()],
         },
         {
+            # glomex:embed
+            'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
+            'info_dict': {
+                'id': 'v-ch2nkhcirwc9-sf',
+                'ext': 'mp4',
+                'title': 'md5:786e1e24e06c55993cee965ef853a0c1',
+                'description': 'md5:8b517a61d577efe7e36fde72fd535995',
+                'timestamp': 1641885019,
+                'upload_date': '20220111',
+                'duration': 460000,
+                'thumbnail': 'https://i3thumbs.glomex.com/dC1idjJwdndiMjRzeGwvMjAyMi8wMS8xMS8wNy8xMF8zNV82MWRkMmQ2YmU5ZTgyLmpwZw==/profile:player-960x540',
+            },
+        },
+        {
+            # megatvcom:embed
+            'url': 'https://www.in.gr/2021/12/18/greece/apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize/',
+            'info_dict': {
+                'id': 'apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize',
+                'title': 'md5:5e569cf996ec111057c2764ec272848f',
+            },
+            'playlist': [{
+                'md5': '1afa26064ff00ccb91617957dbc73dc1',
+                'info_dict': {
+                    'ext': 'mp4',
+                    'id': '564916',
+                    'display_id': 'md5:6cdf22d3a2e7bacb274b7295089a1770',
+                    'title': 'md5:33b9dd39584685b62873043670eb52a6',
+                    'description': 'md5:c1db7310f390518ac36dd69d947ef1a1',
+                    'timestamp': 1639753145,
+                    'upload_date': '20211217',
+                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/prezerakos-1024x597.jpg',
+                },
+            }, {
+                'md5': '4a1c220695f1ef865a8b7966a53e2474',
+                'info_dict': {
+                    'ext': 'mp4',
+                    'id': '564905',
+                    'display_id': 'md5:ead15695e485e649aed2b81ebd699b88',
+                    'title': 'md5:2b71fd54249a3ca34609fe39ae31c47b',
+                    'description': 'md5:c42e12f638d0a97d6de4508e2c4df982',
+                    'timestamp': 1639753047,
+                    'upload_date': '20211217',
+                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/tsiodras-mitsotakis-1024x545.jpg',
+                },
+            }]
+        },
+        {
             # ThePlatform embedded with whitespaces in URLs
             'url': 'http://www.golfchannel.com/topics/shows/golftalkcentral.htm',
             'only_matching': True,
@@ -2175,6 +2227,22 @@ class GenericIE(InfoExtractor):
             'params': {
                 'skip_download': True,
             },
+        },
+        {
+            # tvopengr:embed
+            'url': 'https://www.ethnos.gr/World/article/190604/hparosiaxekinoynoisynomiliessthgeneyhmethskiatoypolemoypanoapothnoykrania',
+            'md5': 'eb0c3995d0a6f18f6538c8e057865d7d',
+            'info_dict': {
+                'id': '101119',
+                'ext': 'mp4',
+                'display_id': 'oikarpoitondiapragmateyseonhparosias',
+                'title': 'md5:b979f4d640c568617d6547035528a149',
+                'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
+                'timestamp': 1641772800,
+                'upload_date': '20220110',
+                'thumbnail': 'https://opentv-static.siliconweb.com/imgHandler/1920/70bc39fa-895b-4918-a364-c39d2135fc6d.jpg',
+
+            }
         },
         {
             # blogger embed
@@ -3124,10 +3192,9 @@ class GenericIE(InfoExtractor):
             return self.url_result(mobj.group('url'), 'Tvigle')
 
         # Look for embedded TED player
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://embed(?:-ssl)?\.ted\.com/.+?)\1', webpage)
-        if mobj is not None:
-            return self.url_result(mobj.group('url'), 'TED')
+        ted_urls = TedEmbedIE._extract_urls(webpage)
+        if ted_urls:
+            return self.playlist_from_matches(ted_urls, video_id, video_title, ie=TedEmbedIE.ie_key())
 
         # Look for embedded Ustream videos
         ustream_url = UstreamIE._extract_url(webpage)
@@ -3463,6 +3530,18 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 rutube_urls, video_id, video_title, ie=RutubeIE.ie_key())
 
+        # Look for Glomex embeds
+        glomex_urls = list(GlomexEmbedIE._extract_urls(webpage, url))
+        if glomex_urls:
+            return self.playlist_from_matches(
+                glomex_urls, video_id, video_title, ie=GlomexEmbedIE.ie_key())
+
+        # Look for megatv.com embeds
+        megatvcom_urls = list(MegaTVComEmbedIE._extract_urls(webpage))
+        if megatvcom_urls:
+            return self.playlist_from_matches(
+                megatvcom_urls, video_id, video_title, ie=MegaTVComEmbedIE.ie_key())
+
         # Look for WashingtonPost embeds
         wapo_urls = WashingtonPostIE._extract_urls(webpage)
         if wapo_urls:
@@ -3609,6 +3688,11 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
 
+        # Look for (tvopen|ethnos).gr embeds
+        tvopengr_urls = list(TVOpenGrEmbedIE._extract_urls(webpage))
+        if tvopengr_urls:
+            return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
+
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
@@ -3720,6 +3804,7 @@ class GenericIE(InfoExtractor):
                 json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
                     json_ld['url'], video_id, 'mp4')
                 json_ld.pop('url')
+                self._sort_formats(json_ld['formats'])
             return merge_dicts(json_ld, info_dict)
 
         def check_video(vurl):
@@ -3774,20 +3859,21 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d*').fullmatch, flashvars.keys()))
                 formats = []
-                for key in ('video_url', 'video_alt_url', 'video_alt_url2'):
-                    if key in flashvars and '/get_file/' in flashvars[key]:
-                        next_format = {
-                            'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
-                            'format_id': flashvars.get(key + '_text', key),
-                            'ext': 'mp4',
-                        }
-                        height = re.search(r'%s_(\d+)p\.mp4(?:/[?].*)?$' % flashvars['video_id'], flashvars[key])
-                        if height:
-                            next_format['height'] = int(height.group(1))
-                        else:
-                            next_format['quality'] = 1
-                        formats.append(next_format)
+                for key in url_keys:
+                    if '/get_file/' not in flashvars[key]:
+                        continue
+                    format_id = flashvars.get(f'{key}_text', key)
+                    formats.append({
+                        'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
+                        'format_id': format_id,
+                        'ext': 'mp4',
+                        **(parse_resolution(format_id) or parse_resolution(flashvars[key]))
+                    })
+                    if not formats[-1].get('height'):
+                        formats[-1]['quality'] = 1
+
                 self._sort_formats(formats)
 
                 return {

@@ -108,7 +108,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             self.run_ffmpeg_multiple_files([filename, thumbnail_filename], temp_filename, options)
 
         elif info['ext'] in ['mkv', 'mka']:
-            options = ['-c', 'copy', '-map', '0', '-dn']
+            options = list(self.stream_copy_opts())
 
             mimetype = 'image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')
             old_stream, new_stream = self.get_stream_number(
@@ -184,7 +184,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             if not success:
                 success = True
                 try:
-                    options = ['-c', 'copy', '-map', '0', '-dn', '-map', '1']
+                    options = [*self.stream_copy_opts(), '-map', '1']
 
                     old_stream, new_stream = self.get_stream_number(
                         filename, ('disposition', 'attached_pic'), 1)

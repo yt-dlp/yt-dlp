@@ -173,11 +173,16 @@ def create_parser():
             process_key=str.lower, append=False):
 
         out_dict = dict(getattr(parser.values, option.dest))
+        multiple_args = not isinstance(value, str)
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
-        mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
+        mobj = re.match(
+            r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter),
+            value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
+            if multiple_args:
+                val = [val, *value[1:]]
         elif default_key is not None:
             keys, val = [default_key], value
         else:
@@ -262,7 +267,8 @@ def create_parser():
         action='store_true', dest='ignoreconfig',
         help=(
             'Don\'t load any more configuration files except those given by --config-locations. '
-            'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded'))
+            'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded. '
+            '(Alias: --no-config)'))
     general.add_option(
         '--no-config-locations',
         action='store_const', dest='config_locations', const=[],
@@ -339,7 +345,7 @@ def create_parser():
         help=(
             'Use the specified HTTP/HTTPS/SOCKS proxy. To enable '
             'SOCKS proxy, specify a proper scheme. For example '
-            'socks5://127.0.0.1:1080/. Pass in an empty string (--proxy "") '
+            'socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") '
             'for direct connection'))
     network.add_option(
         '--socket-timeout',
@@ -827,6 +833,10 @@ def create_parser():
         dest='encoding', metavar='ENCODING',
         help='Force the specified encoding (experimental)')
     workarounds.add_option(
+        '--legacy-server-connect',
+        action='store_true', dest='legacy_server_connect', default=False,
+        help='Explicitly allow HTTPS connection to servers that do not support RFC 5746 secure renegotiation')
+    workarounds.add_option(
         '--no-check-certificates',
         action='store_true', dest='no_check_certificate', default=False,
         help='Suppress HTTPS certificate validation')
@@ -910,14 +920,26 @@ def create_parser():
         metavar='[WHEN:]TEMPLATE', dest='forceprint', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
         callback_kwargs={
-            'allowed_keys': 'video|playlist',
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
             'default_key': 'video',
             'multiple_keys': False,
             'append': True,
         }, help=(
-            'Field name or output template to print to screen per video. '
-            'Prefix the template with "playlist:" to print it once per playlist instead. '
+            'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
+            'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
             'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
+    verbosity.add_option(
+        '--print-to-file',
+        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+            'default_key': 'video',
+            'multiple_keys': False,
+            'append': True,
+        }, help=(
+            'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
+            'FILE uses the same syntax as the output template. This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
@@ -1396,6 +1418,16 @@ def create_parser():
         '--xattrs',
         action='store_true', dest='xattrs', default=False,
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
+    postproc.add_option(
+        '--concat-playlist',
+        metavar='POLICY', dest='concat_playlist', default='multi_video',
+        choices=('never', 'always', 'multi_video'),
+        help=(
+            'Concatenate videos in a playlist. One of "never", "always", or '
+            '"multi_video" (default; only when the videos form a single show). '
+            'All the video files must have same codecs and number of streams to be concatable. '
+            'The "pl_video:" prefix can be used with "--paths" and "--output" to '
+            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,

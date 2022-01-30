@@ -376,9 +376,24 @@ class ARDIE(InfoExtractor):
             formats.append(f)
         self._sort_formats(formats)
 
+        _SUB_FORMATS = (
+            ('./dataTimedText', 'ttml'),
+            ('./dataTimedTextNoOffset', 'ttml'),
+            ('./dataTimedTextVtt', 'vtt'),
+        )
+
+        subtitles = {}
+        for subsel, subext in _SUB_FORMATS:
+            for node in video_node.findall(subsel):
+                subtitles.setdefault('de', []).append({
+                    'url': node.attrib['url'],
+                    'ext': subext,
+                })
+
         return {
             'id': xpath_text(video_node, './videoId', default=display_id),
             'formats': formats,
+            'subtitles': subtitles,
             'display_id': display_id,
             'title': video_node.find('./title').text,
             'duration': parse_duration(video_node.find('./duration').text),
