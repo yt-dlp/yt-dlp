@@ -151,7 +151,7 @@ class MildomIE(MildomBaseIE):
 
         self._sort_formats(formats)
 
-        timestamp = try_get(enterstudio['live_start_ms'], compat_numeric_types)
+        timestamp = float_or_none(enterstudio.get('live_start_ms'), scale=1000)
 
         return {
             'id': result_video_id,
