@@ -63,12 +63,19 @@ class PladformIE(InfoExtractor):
             'http://out.pladform.ru/getVideo', video_id, query={
                 'pl': pl,
                 'videoid': video_id,
-            })
+            }, fatal=False)
 
         def fail(text):
             raise ExtractorError(
                 '%s returned error: %s' % (self.IE_NAME, text),
                 expected=True)
+
+        if not video:
+            targetUrl = self._request_webpage(url, None, note='Resolving final URL').geturl()
+            if (targetUrl != url):
+                return self.url_result(targetUrl)
+            else:
+                fail("Can't parse page")
 
         if video.tag == 'error':
             fail(video.text)
