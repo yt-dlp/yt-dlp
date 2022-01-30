@@ -199,13 +199,12 @@ class GlomexEmbedIE(GlomexBaseIE):
         )''' % {'quot_re': r'["\']', 'url_re': VALID_SRC}
 
         for mtup in re.findall(EMBED_RE, webpage):
-            mdict = dict(zip(
-                (
-                    'url', '_',
-                    'html_tag', '_', 'integration_html', '_', 'id_html', '_', 'glomex_player',
-                    'script_tag', '_', '_', 'integration_js', '_', 'id_js',
-                ),
-                mtup))
+            # re.finditer causes a memory spike. See https://github.com/yt-dlp/yt-dlp/issues/2512
+            mdict = dict(zip((
+                'url', '_',
+                'html_tag', '_', 'integration_html', '_', 'id_html', '_', 'glomex_player',
+                'script_tag', '_', '_', 'integration_js', '_', 'id_js',
+            ), mtup))
             if mdict.get('url'):
                 url = unescapeHTML(mdict['url'])
                 if not cls.suitable(url):
