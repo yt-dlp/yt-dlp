@@ -52,7 +52,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://www.bilibili.com/video/av1074402/',
         'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
         'info_dict': {
-            'id': '1074402_part1',
+            'id': '1074402',
             'ext': 'mp4',
             'title': '【金坷垃】金泡沫',
             'uploader_id': '156160',
@@ -82,7 +82,7 @@ class BiliBiliIE(InfoExtractor):
     }, {
         'url': 'http://www.bilibili.com/video/av8903802/',
         'info_dict': {
-            'id': '8903802_part1',
+            'id': '8903802',
             'ext': 'mp4',
             'title': '阿滴英文｜英文歌分享#6 "Closer',
             'upload_date': '20170301',
