@@ -108,7 +108,7 @@ class MildomIE(MildomBaseIE):
 
         enterstudio = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/live/enterstudio', video_id,
-            note='Downloading live metadata', query={'user_id': video_id, '__platform': "web"})
+            note='Downloading live metadata', query={'user_id': video_id, '__platform': 'web'})
         result_video_id = enterstudio.get('log_id', video_id)
 
         title = try_get(
