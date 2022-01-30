@@ -172,6 +172,51 @@ class MildomVodIE(MildomBaseIE):
     IE_NAME = 'mildom:vod'
     IE_DESC = 'Download a VOD in Mildom'
     _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9]+-?[0-9]*)'
+    _TESTS = [{
+        'url': 'https://www.mildom.com/playback/10882672/10882672-1597662269',
+        'info_dict': {
+            'id': '10882672-1597662269',
+            'ext': 'mp4',
+            'title': '始めてのミルダム配信じゃぃ！',
+            'thumbnail': r're:^https?://.*\.(png|jpg)$',
+            'upload_date': '20200817',
+            'duration': 4138.37,
+            'description': 'ゲームをしたくて！',
+            'timestamp': 1597662269.0,
+            'uploader_id': '10882672',
+            'uploader': 'kson組長(けいそん)',
+        },
+    },
+        {
+        'url': 'https://www.mildom.com/playback/10882672/10882672-1597758589870-477',
+        'info_dict': {
+            'id': '10882672-1597758589870-477',
+            'ext': 'mp4',
+            'title': '【kson】感染メイズ！麻酔銃で無双する',
+            'thumbnail': r're:^https?://.*\.(png|jpg)$',
+            'timestamp': 1597759093.0,
+            'uploader': 'kson組長(けいそん)',
+            'duration': 4302.58,
+            'uploader_id': '10882672',
+            'description': 'このステージ絶対乗り越えたい',
+            'upload_date': '20200818',
+        },
+    },
+        {
+        'url': 'https://www.mildom.com/playback/10882672/10882672-buha9td2lrn97fk2jme0',
+        'info_dict': {
+            'id': '10882672-buha9td2lrn97fk2jme0',
+            'ext': 'mp4',
+            'title': '【kson組長】CART RACER!!!',
+            'thumbnail': r're:^https?://.*\.(png|jpg)$',
+            'uploader_id': '10882672',
+            'uploader': 'kson組長(けいそん)',
+            'upload_date': '20201104',
+            'timestamp': 1604494797.0,
+            'duration': 4657.25,
+            'description': 'WTF',
+        },
+    }]
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
@@ -250,6 +295,14 @@ class MildomUserVodIE(MildomBaseIE):
             'title': 'Uploads from ねこばたけ',
         },
         'playlist_mincount': 351,
+    },
+        {
+        'url': 'https://www.mildom.com/profile/10882672',
+        'info_dict': {
+            'id': '10882672',
+            'title': 'Uploads from kson組長(けいそん)',
+        },
+        'playlist_mincount': 191,
     }]
 
     def _entries(self, user_id):
