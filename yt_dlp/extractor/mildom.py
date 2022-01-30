@@ -12,10 +12,11 @@ from ..utils import (
     update_url_query,
     random_uuidv4,
     try_get,
+    float_or_none,
+    dict_get
 )
 from ..compat import (
-    compat_str,
-    compat_numeric_types
+    compat_str
 )
 
 
@@ -24,6 +25,9 @@ class MildomBaseIE(InfoExtractor):
     _DISPATCHER_CONFIG = None
 
     def _call_api(self, url, video_id, query={}, note='Downloading JSON metadata', init=False):
+        query = query or {}
+        if query:
+            query['__platform'] = 'web'
         url = update_url_query(url, self._common_queries(query, init=init))
         content = self._download_json(url, video_id, note=note)
         if content['code'] == 0:
@@ -108,7 +112,7 @@ class MildomIE(MildomBaseIE):
 
         enterstudio = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/live/enterstudio', video_id,
-            note='Downloading live metadata', query={'user_id': video_id, '__platform': 'web'})
+            note='Downloading live metadata', query={'user_id': video_id})
         result_video_id = enterstudio.get('log_id', video_id)
 
         title = try_get(
@@ -132,7 +136,6 @@ class MildomIE(MildomBaseIE):
             note='Downloading live server list', query={
                 'user_id': video_id,
                 'live_server_type': 'hls',
-                '__platform': "web",
             })
 
         stream_query = self._common_queries({
@@ -157,7 +160,7 @@ class MildomIE(MildomBaseIE):
             'id': result_video_id,
             'title': title,
             'description': description,
-            'timestamp': timestamp // 1000,
+            'timestamp': timestamp,
             'uploader': uploader,
             'uploader_id': video_id,
             'formats': formats,
@@ -180,7 +183,7 @@ class MildomVodIE(MildomBaseIE):
         autoplay = self._call_api(
             'https://cloudac.mildom.com/nonolive/videocontent/playback/getPlaybackDetail', video_id,
             note='Downloading playback metadata', query={
-                'v_id': video_id, '__platform': "web",
+                'v_id': video_id
             })['playback']
 
         title = try_get(
@@ -219,26 +222,16 @@ class MildomVodIE(MildomBaseIE):
 
         self._sort_formats(formats)
 
-        timestamp = try_get(autoplay['publish_time'], compat_numeric_types)
+        timestamp = float_or_none(autoplay['publish_time'], scale=1000)
 
-        duration = try_get(autoplay['video_length'], compat_numeric_types)
-
-        thumbnails = []
-
-        thumbnail_url = try_get(
-            autoplay, (
-                lambda x: x['upload_pic'],
-                lambda x: x['video_pic'],
-            ), compat_str)
-
-        thumbnails.append({'url': thumbnail_url})
+        duration = float_or_none(autoplay['video_length'], scale=1000)
 
         return {
             'id': video_id,
             'title': title,
             'description': description,
-            'timestamp': timestamp // 1000,
-            'duration': duration // 1000,
+            'timestamp': timestamp,
+            'duration': duration,
             'thumbnail': dict_get(autoplay, ('upload_pic', 'video_pic')),
             'uploader': uploader,
             'uploader_id': user_id,
@@ -266,8 +259,7 @@ class MildomUserVodIE(MildomBaseIE):
                 user_id, note='Downloading page %d' % page, query={
                     'user_id': user_id,
                     'page': page,
-                    'limit': '30',
-                    '__platform': "web",
+                    'limit': '30'
                 })
             if not reply:
                 break
@@ -280,7 +272,7 @@ class MildomUserVodIE(MildomBaseIE):
 
         profile = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/user/profileV2', user_id,
-            query={'user_id': user_id, '__platform': "web"}, note='Downloading user profile')['user_info']
+            query={'user_id': user_id}, note='Downloading user profile')['user_info']
 
         return self.playlist_result(
             self._entries(user_id), user_id, 'Uploads from %s' % profile['loginname'])
