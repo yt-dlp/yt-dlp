@@ -71,11 +71,10 @@ class PladformIE(InfoExtractor):
                 expected=True)
 
         if not video:
-            targetUrl = self._request_webpage(url, None, note='Resolving final URL').geturl()
-            if (targetUrl != url):
-                return self.url_result(targetUrl)
-            else:
-                fail("Can't parse page")
+            targetUrl = self._request_webpage(url, video_id, note='Resolving final URL').geturl()
+            if targetUrl == url:
+                raise ExtractorError('Can\'t parse page')
+            return self.url_result(targetUrl)
 
         if video.tag == 'error':
             fail(video.text)
