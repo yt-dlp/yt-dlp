@@ -53,10 +53,8 @@ class ZattooPlatformBaseIE(InfoExtractor):
         self._power_guide_hash = data['session']['power_guide_hash']
 
     def _real_initialize(self):
-        data = self._download_json(
-            '%s/token.json' % self._host_url(), None,
-            'Downloading session token')
-        session_token = data['session_token']
+        session_token = self._download_json(
+            f'{self._host_url()}/token.json', None, 'Downloading session token')['session_token']
 
         # Will setup appropriate cookies
         self._request_webpage(
@@ -73,15 +71,11 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
     def _extract_video_id_from_recording(self, recid):
         playlist = self._download_json(
-            '%s/zapi/v2/playlist' % self._host_url(),
-            recid, 'Downloading playlist')
+            f'{self._host_url()}/zapi/v2/playlist', recid, 'Downloading playlist')
         try:
-            recordings = playlist['recordings']
             return next(
-                compat_str(item['program_id']) for item in recordings
-                if item.get('program_id') and compat_str(
-                    item.get('id')) == recid
-            )
+                str(item['program_id']) for item in playlist['recordings']
+                if item.get('program_id') and str(item.get('id')) == recid)
         except (StopIteration, KeyError):
             raise ExtractorError('Could not extract video id from recording')
 
@@ -140,7 +134,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
         )
         info_dict = {
             'id': ondemand_id,
-            'title': data['title'],
+            'title': data.get('title'),
             'description': data.get('description'),
             'duration': int_or_none(data.get('duration')),
             'release_year': int_or_none(data.get('year')),
@@ -161,9 +155,11 @@ class ZattooPlatformBaseIE(InfoExtractor):
         elif record_id:
             url = '%s/zapi/watch/recording/%s' % (self._host_url(), record_id)
         elif ondemand_id:
-            postdata_common.update({'teasable_id': ondemand_id,
-                                    'term_token': ondemand_termtoken,
-                                    'teasable_type': ondemand_type})
+            postdata_common.update({
+                'teasable_id': ondemand_id,
+                'term_token': ondemand_termtoken,
+                'teasable_type': ondemand_type
+            })
             url = '%s/zapi/watch/vod/video' % self._host_url()
         else:
             url = '%s/zapi/v3/watch/replay/%s/%s' % (self._host_url(), cid, video_id)
@@ -217,34 +213,29 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
     def _extract_video(self, video_id, record_id=None):
         cid, info_dict = self._extract_cid_and_video_info(video_id)
-        formats = self._extract_formats(cid, video_id, record_id=record_id)
-        info_dict['formats'] = formats
+        info_dict['formats'] = self._extract_formats(cid, video_id, record_id=record_id)
         return info_dict
 
     def _extract_live(self, channel_name):
         cid = self._extract_cid(channel_name, channel_name)
-        info_dict = {
+        return {
             'id': channel_name,
             'title': channel_name,
             'is_live': True,
+            'format': self._extract_formats(cid, cid, is_live=True),
         }
-        formats = self._extract_formats(cid, cid, is_live=True)
-        info_dict['formats'] = formats
-        return info_dict
 
     def _extract_record(self, record_id):
         video_id = self._extract_video_id_from_recording(record_id)
         cid, info_dict = self._extract_cid_and_video_info(video_id)
-        formats = self._extract_formats(cid, video_id, record_id=record_id)
-        info_dict['formats'] = formats
+        info_dict['formats'] = self._extract_formats(cid, video_id, record_id=record_id)
         return info_dict
 
     def _extract_ondemand(self, ondemand_id):
         ondemand_termtoken, ondemand_type, info_dict = self._extract_ondemand_info(ondemand_id)
         formats = self._extract_formats(
             None, ondemand_id, ondemand_id=ondemand_id,
-            ondemand_termtoken=ondemand_termtoken,
-            ondemand_type=ondemand_type)
+            ondemand_termtoken=ondemand_termtoken, ondemand_type=ondemand_type)
         info_dict['formats'] = formats
         return info_dict
 
@@ -263,8 +254,7 @@ class QuicklineIE(QuicklineBaseIE):
     }
 
     def _real_extract(self, url):
-        video_id = self._match_valid_url(url).groups()
-        return self._extract_video(video_id)
+        return self._extract_video(self._match_id(url))
 
 
 class QuicklineLiveIE(QuicklineBaseIE):
@@ -280,8 +270,7 @@ class QuicklineLiveIE(QuicklineBaseIE):
         return False if QuicklineIE.suitable(url) else super(QuicklineLiveIE, cls).suitable(url)
 
     def _real_extract(self, url):
-        channel_name = self._match_id(url)
-        return self._extract_live(channel_name)
+        return self._extract_live(self._match_id(url))
 
 
 class ZattooBaseIE(ZattooPlatformBaseIE):
