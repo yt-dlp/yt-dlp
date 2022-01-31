@@ -63,20 +63,13 @@ class CrunchyrollBaseIE(InfoExtractor):
         if self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             return
 
-        # login_page = self._download_webpage(
-        #     self._LOGIN_URL, None, 'Downloading login page')
-        # window_etp = self._parse_json(
-        #     self._search_regex(r'<script>\s*window\.etp\s*=\s*({.+?})\s*</script>', login_page, 'etp data'),
-        #     'etp_data')
-        api_url = 'https://api.crunchyroll.com'  # api_url = window_etp['config']['crapiApiUrl']
-
         upsell_response = self._download_json(
-            f'{api_url}/get_upsell_data.0.json', None, 'Getting session id',
+            'https://api.crunchyroll.com/get_upsell_data.0.json', None, 'Getting session id',
             query={
                 'sess_id': 1,
-                'device_id': 'whatvalueshouldbeforweb',  # window_etp['config']['deviceId'],
-                'device_type': 'com.crunchyroll.static',  # window_etp['config']['deviceType'],
-                'access_token': 'giKq5eY27ny3cqz',  # window_etp['config']['accessToken'],
+                'device_id': 'whatvalueshouldbeforweb',
+                'device_type': 'com.crunchyroll.static',
+                'access_token': 'giKq5eY27ny3cqz',
                 'referer': self._LOGIN_URL
             })
         if upsell_response['code'] != 'ok':
