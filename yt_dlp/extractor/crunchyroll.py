@@ -44,6 +44,7 @@ from ..aes import (
 
 class CrunchyrollBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://www.crunchyroll.com/welcome/login'
+    _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
 
     def _call_rpc_api(self, method, video_id, note=None, data=None):
@@ -64,7 +65,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             return
 
         upsell_response = self._download_json(
-            'https://api.crunchyroll.com/get_upsell_data.0.json', None, 'Getting session id',
+            f'{self._API_BASE}/get_upsell_data.0.json', None, 'Getting session id',
             query={
                 'sess_id': 1,
                 'device_id': 'whatvalueshouldbeforweb',
@@ -77,7 +78,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         session_id = upsell_response['data']['session_id']
 
         login_response = self._download_json(
-            f'{api_url}/login.1.json', None, 'Logging in',
+            f'{self._API_BASE}/login.1.json', None, 'Logging in',
             data=compat_urllib_parse_urlencode({
                 'account': username,
                 'password': password,
