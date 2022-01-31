@@ -35,7 +35,6 @@ from ..utils import (
     sanitized_Request,
     traverse_obj,
     try_get,
-    urlencode_postdata,
     xpath_text,
 )
 from ..aes import (
@@ -44,8 +43,8 @@ from ..aes import (
 
 
 class CrunchyrollBaseIE(InfoExtractor):
-    _LOGIN_URL = 'https://www.crunchyroll.com/login'
-    _LOGIN_FORM = 'login_form'
+    _LOGIN_URL = 'https://www.crunchyroll.com/welcome/login'
+    _API_BASE = 'https://api.crunchyroll.com'
     _NETRC_MACHINE = 'crunchyroll'
 
     def _call_rpc_api(self, method, video_id, note=None, data=None):
@@ -62,50 +61,33 @@ class CrunchyrollBaseIE(InfoExtractor):
         username, password = self._get_login_info()
         if username is None:
             return
-
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-
-        def is_logged(webpage):
-            return 'href="/logout"' in webpage
-
-        # Already logged in
-        if is_logged(login_page):
+        if self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             return
 
-        login_form_str = self._search_regex(
-            r'(?P<form><form[^>]+?id=(["\'])%s\2[^>]*>)' % self._LOGIN_FORM,
-            login_page, 'login form', group='form')
+        upsell_response = self._download_json(
+            f'{self._API_BASE}/get_upsell_data.0.json', None, 'Getting session id',
+            query={
+                'sess_id': 1,
+                'device_id': 'whatvalueshouldbeforweb',
+                'device_type': 'com.crunchyroll.static',
+                'access_token': 'giKq5eY27ny3cqz',
+                'referer': self._LOGIN_URL
+            })
+        if upsell_response['code'] != 'ok':
+            raise ExtractorError('Could not get session id')
+        session_id = upsell_response['data']['session_id']
 
-        post_url = extract_attributes(login_form_str).get('action')
-        if not post_url:
-            post_url = self._LOGIN_URL
-        elif not post_url.startswith('http'):
-            post_url = compat_urlparse.urljoin(self._LOGIN_URL, post_url)
-
-        login_form = self._form_hidden_inputs(self._LOGIN_FORM, login_page)
-
-        login_form.update({
-            'login_form[name]': username,
-            'login_form[password]': password,
-        })
-
-        response = self._download_webpage(
-            post_url, None, 'Logging in', 'Wrong login info',
-            data=urlencode_postdata(login_form),
-            headers={'Content-Type': 'application/x-www-form-urlencoded'})
-
-        # Successful login
-        if is_logged(response):
-            return
-
-        error = self._html_search_regex(
-            '(?s)<ul[^>]+class=["\']messages["\'][^>]*>(.+?)</ul>',
-            response, 'error message', default=None)
-        if error:
-            raise ExtractorError('Unable to login: %s' % error, expected=True)
-
-        raise ExtractorError('Unable to log in')
+        login_response = self._download_json(
+            f'{self._API_BASE}/login.1.json', None, 'Logging in',
+            data=compat_urllib_parse_urlencode({
+                'account': username,
+                'password': password,
+                'session_id': session_id
+            }).encode('ascii'))
+        if login_response['code'] != 'ok':
+            raise ExtractorError('Login failed. Bad username or password?', expected=True)
+        if not self._get_cookies(self._LOGIN_URL).get('etp_rt'):
+            raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
     def _real_initialize(self):
         self._login()
