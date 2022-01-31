@@ -26,6 +26,7 @@ class VikiBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'viki'
 
     _token = None
+    _retrying_login = False
 
     _ERRORS = {
         'geo': 'Sorry, this content is not available in your region.',
@@ -73,6 +74,13 @@ class VikiBaseIE(InfoExtractor):
                      else self._stream_headers(timestamp, sig) if query is None
                      else None), expected_status=400) or {}
 
+        if resp.get('vcode') == 11 and not self._retrying_login:
+            self.report_warning('Cached token expired, logging in again')
+            self._token = None
+            self._retrying_login = True
+            self._login()
+            return self._call_api(path, video_id, note, data, query, fatal)
+
         self._raise_error(resp.get('error'), fatal)
         return resp
 
@@ -98,11 +106,22 @@ class VikiBaseIE(InfoExtractor):
                 self._raise_error(message)
 
     def _perform_login(self, username, password):
+        if not self._retrying_login:
+            self._token = self._downloader.cache.load('viki', 'session_token')
+            if self._token:
+                return
+
+        username, password = self._get_login_info()
+        if username is None:
+            return
+
         self._token = self._call_api(
             'sessions.json', None, 'Logging in', fatal=False,
             data={'username': username, 'password': password}).get('token')
         if not self._token:
             self.report_warning('Login Failed: Unable to get session token')
+
+        self._downloader.cache.store('viki', 'session_token', self._token)
 
     @staticmethod
     def dict_selection(dict_obj, preferred_key):
