@@ -16,7 +16,7 @@ from ..utils import (
     dict_get
 )
 from ..compat import (
-    compat_str
+    compat_str,
 )
 
 
@@ -24,7 +24,7 @@ class MildomBaseIE(InfoExtractor):
     _GUEST_ID = None
     _DISPATCHER_CONFIG = None
 
-    def _call_api(self, url, video_id, query={}, note='Downloading JSON metadata', init=False):
+    def _call_api(self, url, video_id, query=None, note='Downloading JSON metadata', init=False):
         query = query or {}
         if query:
             query['__platform'] = 'web'
@@ -33,8 +33,9 @@ class MildomBaseIE(InfoExtractor):
         if content['code'] == 0:
             return content['body']
         else:
-            self.raise_no_formats('Video not found or premium content. Mildom error code %i, "%s"'
-                                  % (content['code'], content['message']), expected=True)
+            self.raise_no_formats(
+                f'Video not found or premium content. {content["code"]} - {content["message"]}',
+                expected=True)
 
     def _common_queries(self, query={}, init=False):
         dc = self._fetch_dispatcher_config()
@@ -154,13 +155,11 @@ class MildomIE(MildomBaseIE):
 
         self._sort_formats(formats)
 
-        timestamp = float_or_none(enterstudio.get('live_start_ms'), scale=1000)
-
         return {
             'id': result_video_id,
             'title': title,
             'description': description,
-            'timestamp': timestamp,
+            'timestamp': float_or_none(enterstudio.get('live_start_ms'), scale=1000),
             'uploader': uploader,
             'uploader_id': video_id,
             'formats': formats,
@@ -228,7 +227,7 @@ class MildomVodIE(MildomBaseIE):
         autoplay = self._call_api(
             'https://cloudac.mildom.com/nonolive/videocontent/playback/getPlaybackDetail', video_id,
             note='Downloading playback metadata', query={
-                'v_id': video_id
+                'v_id': video_id,
             })['playback']
 
         title = try_get(
@@ -267,16 +266,12 @@ class MildomVodIE(MildomBaseIE):
 
         self._sort_formats(formats)
 
-        timestamp = float_or_none(autoplay['publish_time'], scale=1000)
-
-        duration = float_or_none(autoplay['video_length'], scale=1000)
-
         return {
             'id': video_id,
             'title': title,
             'description': description,
-            'timestamp': timestamp,
-            'duration': duration,
+            'timestamp': float_or_none(autoplay['publish_time'], scale=1000),
+            'duration': float_or_none(autoplay['video_length'], scale=1000),
             'thumbnail': dict_get(autoplay, ('upload_pic', 'video_pic')),
             'uploader': uploader,
             'uploader_id': user_id,
@@ -312,7 +307,7 @@ class MildomUserVodIE(MildomBaseIE):
                 user_id, note='Downloading page %d' % page, query={
                     'user_id': user_id,
                     'page': page,
-                    'limit': '30'
+                    'limit': '30',
                 })
             if not reply:
                 break
