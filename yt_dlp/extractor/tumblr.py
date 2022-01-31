@@ -103,7 +103,6 @@ class TumblrIE(InfoExtractor):
             'channel': 'silbulterman',
             'comment_count': int,
             'upload_date': '20140429',
-            'duration': 0.0,  # [sic] (per instagram itself, not just the extractor)
         },
         'add_ie': ['Instagram'],
     }]
