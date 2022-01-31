@@ -1865,6 +1865,7 @@ from .vlive import (
     VLiveChannelIE,
 )
 from .vodlocker import VodlockerIE
+from .voe import VoeIE
 from .vodpl import VODPlIE
 from .vodplatform import VODPlatformIE
 from .voicerepublic import VoiceRepublicIE
