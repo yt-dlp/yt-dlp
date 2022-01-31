@@ -115,13 +115,21 @@ class VikiBaseIE(InfoExtractor):
         if username is None:
             return
 
+        cache = self._downloader.cache.load('viki', 'session_token') or {}
+
+        if not self._retrying_login:
+            self._token = cache.get(username)
+            if self._token:
+                return
+
         self._token = self._call_api(
             'sessions.json', None, 'Logging in', fatal=False,
             data={'username': username, 'password': password}).get('token')
         if not self._token:
             self.report_warning('Login Failed: Unable to get session token')
 
-        self._downloader.cache.store('viki', 'session_token', self._token)
+        cache[username] = self._token
+        self._downloader.cache.store('viki', 'session_token', cache)
 
     @staticmethod
     def dict_selection(dict_obj, preferred_key):
