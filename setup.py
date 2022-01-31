@@ -19,7 +19,7 @@ exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
 LONG_DESCRIPTION = '\n\n'.join((
-    'Official repository: <https://github.com/yt-dlp/yt-dlp>',
+    'Official repository: <https://github.com/Daniel02md/yt-dlp-scrapy>',
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
     open('README.md', 'r', encoding='utf-8').read()))
 
@@ -105,19 +105,19 @@ else:
 
 
 setup(
-    name='yt-dlp',
+    name='yt-dlp-scrapy',
     version=__version__,
-    maintainer='pukkandan',
-    maintainer_email='pukkandan.ytdlp@gmail.com',
+    maintainer='Marcos Daniel',
+    maintainer_email='dbezerr94@gmail.com',
     description=DESCRIPTION,
     long_description=LONG_DESCRIPTION,
     long_description_content_type='text/markdown',
-    url='https://github.com/yt-dlp/yt-dlp',
+    url='https://github.com/Daniel02md/yt-dlp-scrapy',
     packages=packages,
     install_requires=REQUIREMENTS,
     project_urls={
         'Documentation': 'https://yt-dlp.readthedocs.io',
-        'Source': 'https://github.com/yt-dlp/yt-dlp',
+        'Source': 'https://github.com/Daniel02md/yt-dlp-scrapy',
         'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
         'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',
     },

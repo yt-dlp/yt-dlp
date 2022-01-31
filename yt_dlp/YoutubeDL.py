@@ -26,6 +26,7 @@ import tokenize
 import traceback
 import random
 import unicodedata
+import platform
 
 from enum import Enum
 from string import ascii_letters
@@ -759,6 +760,28 @@ class YoutubeDL(object):
         for pps in self._pps.values():
             for pp in pps:
                 pp.add_progress_hook(ph)
+
+    @staticmethod
+    def create_folder(path: str) -> str:
+        import os
+        import platform
+        import subprocess
+        
+        with open(os.devnull, 'a') as devnull:
+            try:
+                subprocess.check_call(['mkdir', f'{path}'], shell=True, stdout=devnull, stderr=devnull)
+            except:
+                pass
+            finally:
+                pass
+        if 'windows' in platform.system().lower():
+            var = os.popen(f'cd {path} & cd').read().replace('\n', '')
+            return var
+
+        elif 'linux' in platform.system().lower():
+            var = os.popen(f'cd {path} && cd').read().replace('\n', '')
+            return var
+
 
     def _bidi_workaround(self, message):
         if not hasattr(self, '_output_channel'):
