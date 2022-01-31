@@ -185,8 +185,7 @@ class MildomVodIE(MildomBaseIE):
             'uploader_id': '10882672',
             'uploader': 'kson組長(けいそん)',
         },
-    },
-        {
+    }, {
         'url': 'https://www.mildom.com/playback/10882672/10882672-1597758589870-477',
         'info_dict': {
             'id': '10882672-1597758589870-477',
@@ -200,8 +199,7 @@ class MildomVodIE(MildomBaseIE):
             'description': 'このステージ絶対乗り越えたい',
             'upload_date': '20200818',
         },
-    },
-        {
+    }, {
         'url': 'https://www.mildom.com/playback/10882672/10882672-buha9td2lrn97fk2jme0',
         'info_dict': {
             'id': '10882672-buha9td2lrn97fk2jme0',
@@ -290,8 +288,7 @@ class MildomUserVodIE(MildomBaseIE):
             'title': 'Uploads from ねこばたけ',
         },
         'playlist_mincount': 351,
-    },
-        {
+    }, {
         'url': 'https://www.mildom.com/profile/10882672',
         'info_dict': {
             'id': '10882672',
