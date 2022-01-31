@@ -127,11 +127,7 @@ class CSpanIE(InfoExtractor):
                         ext = 'vtt'
                     subtitle['ext'] = ext
             ld_info = self._search_json_ld(webpage, video_id, default={})
-            try:
-                title = get_element_by_class('video-page-title', webpage) or \
-                    self._og_search_title(webpage)
-            except Exception:
-                title = 'No title'
+            title = get_element_by_class('video-page-title', webpage) or self._og_search_title(webpage)
             description = get_element_by_attribute('itemprop', 'description', webpage) or \
                 self._html_search_meta(['og:description', 'description'], webpage)
             return merge_dicts(info, ld_info, {
@@ -263,20 +259,13 @@ class CSpanCongressIE(InfoExtractor):
 
     def _real_extract(self, url):
         query = parse_qs(url)
-        if 'chamber' in query:
-            video_id = query['chamber'][0]
-        else:
-            video_id = 'senate'
-        if 'date' in query:
-            video_date = query['date'][0]
-            video_id = video_id + '_' + video_date
-        else:
-            video_date = ''
+        video_date = query.get('date', [None])[0]
+        video_id = join_nonempty(query.get('chamber', ['senate'])[0], video_date, delim='_')
         webpage = self._download_webpage(url, video_id)
-        if video_date == '':
+        if not video_date:
             jwp_date = re.search(r'jwsetup.clipprogdate = \'(?P<date>\d{4}-\d{2}-\d{2})\';', webpage)
             if jwp_date:
-                video_id = video_id + '_' + jwp_date.group('date')
+                video_id = f'{video_id}_{jwp_date.group("date")}'
         jwplayer_data = self._parse_json(
             self._search_regex(r'jwsetup\s*=\s*({(?:.|\n)[^;]+});', webpage, 'player config'),
             video_id, transform_source=js_to_json)
