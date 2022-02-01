@@ -8,7 +8,9 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     sanitized_Request,
+    traverse_obj,
     urlencode_postdata,
+    urljoin,
 )
 
 
