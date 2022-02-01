@@ -4,7 +4,7 @@ from ..utils import ExtractorError, traverse_obj, parse_duration, unified_timest
 
 class RTVSLOIE(InfoExtractor):
     IE_NAME = 'rtvslo.si'
-    _VALID_URL = r'https?://((365|4d)\.rtvslo.si/arhiv/[^/?#&;]+|(www\.)?rtvslo\.si/rtv365/arhiv)/(?P<id>([0-9]+))'
+    _VALID_URL = r'https?://(?:(?:365|4d)\.rtvslo.si/arhiv/[^/?#&;]+|(?:www\.)?rtvslo\.si/rtv365/arhiv)/(?P<id>(\d+))'
     _API_BASE = 'https://api.rtvslo.si/ava/{}/{}?client_id=82013fb3a531d5414f478747c1aca622'
     _GEO_COUNTRIES = ['SI']
     _TESTS = [
