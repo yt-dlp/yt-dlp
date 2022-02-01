@@ -42,6 +42,7 @@ from ..utils import (
     int_or_none,
     is_html,
     join_nonempty,
+    js_to_json,
     mimetype2ext,
     network_exceptions,
     NO_DEFAULT,
@@ -2420,9 +2421,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
 
     def _extract_n_function_name(self, jscode):
-        return self._search_regex(
-            (r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})\([a-zA-Z0-9]\)',),
-            jscode, 'Initial JS player n function name', group='nfunc')
+        nfunc, idx = self._search_regex(
+            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})(\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
+            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
+        if not idx:
+            return nfunc
+        return json.loads(js_to_json(self._search_regex(
+            rf'var {nfunc}\s*=\s*(\[.+?\]);', jscode,
+            f'Initial JS player n function list ({nfunc}.{idx})')))[int(idx)]
 
     def _extract_n_function(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
