@@ -68,7 +68,7 @@ class RTVSLOIE(InfoExtractor):
         meta = self._download_json(self._API_BASE.format('getRecordingDrm', v_id), v_id).get('response')
         date = unified_timestamp(meta.get('broadcastDate') or meta.get('broadcastDates')[0])
 
-        thumbs = [{'url': v, 'id': k} for (k, v) in meta.get('images').items()]
+        thumbs = [{'id': k, 'url': v} for (k, v) in meta.get('images').items()]
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
 
         subs = {}
@@ -102,12 +102,13 @@ class RTVSLOIE(InfoExtractor):
                         'ext': f.get('mediaType').lower(),
                         'format_id': f'files_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}'
                     })
+
         if media.get('addaptiveMedia_sl', False):
-            formats.extend([
+            for f in self._extract_wowza_formats(
+                traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec')), v_id, skip_protocols=['f4m', 'rtmp']
+            ):
                 f.update({'format_note': 'Sign language interpretation', 'preference': -3})
-                for f in self._extract_wowza_formats(
-                    traverse_obj(media, ('addaptiveMedia', 'hls_sec')),
-                    v_id, skip_protocols=['f4m', 'rtmp'])])
+                formats.append(f)
         for strm in ('http', 'https'):
             for f in media.get('mediaFiles_sl'):
                 if traverse_obj(f, ('streams', strm)):
@@ -118,7 +119,7 @@ class RTVSLOIE(InfoExtractor):
                         'width': f.get('width'),
                         'height': f.get('height'),
                         'ext': f.get('mediaType').lower(),
-                        'format_id': f'files_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}',
+                        'format_id': f'files-sl_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}',
                         'format_note': 'Sign language interpretation',
                         'preference': -3
                     })
