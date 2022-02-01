@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import traverse_obj, parse_duration, unified_timestamp
+from ..utils import ExtractorError, traverse_obj, parse_duration, unified_timestamp
 
 
 class RTVSLOIE(InfoExtractor):
@@ -10,10 +10,53 @@ class RTVSLOIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
-            'only_matching': True
+            'info_dict': {
+                'id': '174842550',
+                'ext': 'mp4',
+                'release_timestamp': 1643140032,
+                'upload_date': '20220125',
+                'series': 'Dnevnik',
+                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/92/dnevnik_3_wide2.jpg',
+                'description': 'md5:76a18692757aeb8f0f51221106277dd2',
+                'timestamp': 1643137046,
+                'title': 'Dnevnik',
+                'series_id': '92',
+                'release_date': '20220125',
+                'duration': 1789,
+            },
         }, {
             'url': 'https://365.rtvslo.si/arhiv/utrip/174843754',
-            'only_matching': True
+            'info_dict': {
+                'id': '174843754',
+                'ext': 'mp4',
+                'series_id': '94',
+                'release_date': '20220129',
+                'timestamp': 1643484455,
+                'title': 'Utrip',
+                'duration': 813,
+                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/94/utrip_1_wide2.jpg',
+                'description': 'md5:77f2892630c7b17bb7a5bb84319020c9',
+                'release_timestamp': 1643485825,
+                'upload_date': '20220129',
+                'series': 'Utrip',
+            },
+        }, {
+            'url': 'https://365.rtvslo.si/arhiv/il-giornale-della-sera/174844609',
+            'info_dict': {
+                'id': '174844609',
+                'ext': 'mp3',
+                'series_id': '106615841',
+                'title': 'Il giornale della sera',
+                'duration': 1328,
+                'series': 'Il giornale della sera',
+                'timestamp': 1643743800,
+                'release_timestamp': 1643745424,
+                'thumbnail': 'https://img.rtvcdn.si/_up/ava/ava_misc/show_logos/il-giornale-della-sera_wide2.jpg',
+                'upload_date': '20220201',
+                'bitrate': 128000,
+                'release_date': '20220201',
+            },
+
         }, {
             'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
             'only_matching': True
@@ -73,6 +116,8 @@ class RTVSLOIE(InfoExtractor):
 
         if any('intermission.mp4' in x.get('url', '') for x in formats):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
+        if any('dummy_720p.mp4' in x.get('manifest_url', '') for x in formats) and meta.get('stub', '') == 'error':
+            raise ExtractorError(f'{self.IE_NAME} said: Clip not available')
 
         info = {
             'thumbnails': thumbs,
