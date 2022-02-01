@@ -4,14 +4,21 @@ from ..utils import traverse_obj, parse_duration, unified_timestamp
 
 class RTVSLOIE(InfoExtractor):
     IE_NAME = 'rtvslo.si'
-    _VALID_URL = r'https?://(www\.)?rtvslo\.si\/rtv365\/arhiv\/(?P<id>[0-9]+)'
-    'https://(4d|365).rtvslo.si/arhiv/dnevnik/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://((365|4d)\.rtvslo.si/arhiv/[^/?#&;]+|(www\.)?rtvslo\.si/rtv365/arhiv)/(?P<id>([0-9]+))'
     _API_BASE = 'https://api.rtvslo.si/ava/{}/{}?client_id=82013fb3a531d5414f478747c1aca622'
     _GEO_COUNTRIES = ['SI']
-    _TESTS = [{
-        'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
-        'only_matching': True
-    }]
+    _TESTS = [
+        {
+            'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
+            'only_matching': True
+        }, {
+            'url': 'https://365.rtvslo.si/arhiv/utrip/174843754',
+            'only_matching': True
+        }, {
+            'url': 'https://4d.rtvslo.si/arhiv/dnevnik/174842550',
+            'only_matching': True
+        }
+    ]
 
     def _real_extract(self, url):
         v_id = self._match_id(url)
@@ -22,7 +29,7 @@ class RTVSLOIE(InfoExtractor):
         subs = {}
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
 
-        for s in meta.get('subtitles'):
+        for s in meta.get('subtitles', []):
             if s.get('language') in SUB_LANGS_MAP.keys():
                 s['language'] = SUB_LANGS_MAP[s['language']]
             if not subs.get(s.get('language'), False):
@@ -60,15 +67,12 @@ class RTVSLOIE(InfoExtractor):
 
         def _extract_adaptive(data):
             return [_determine_extract_func(name)(url, v_id) for name, url in data.items()]
-        [formats.extend(g) for g in _extract_adaptive(media.get('addaptiveMedia'))]
-        [formats.extend(g) for g in _extract_adaptive(media.get('addaptiveMedia_sl'))]
+        [formats.extend(g) for g in _extract_adaptive(media.get('addaptiveMedia', {}))]
+        [formats.extend(g) for g in _extract_adaptive(media.get('addaptiveMedia_sl', {}))]
         self._sort_formats(formats)
 
-        geoblocked = meta.get('geoblocked', 0) == 1
-        must_circumvent_geoblock = None  # TODO check whether playlist redirects to https://vodstr.rtvslo.si/encrypted11/intermission.mp4/playlist.m3u8
-        paywall = bool(meta.get('payTv')) or meta.get('source') == 'ZKP'
-        must_circumvent_paywall = None  # TODO check whether media data returns mediaFiles[0][stream] elements contain: http://progressive.rtvslo.si/encrypted06/preroll/payable.mp4
-        
+        if any('intermission.mp4' in x.get('url', '') for x in formats):
+            self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
 
         info = {
             'thumbnails': thumbs,
