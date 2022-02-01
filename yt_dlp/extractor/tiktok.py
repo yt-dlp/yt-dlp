@@ -102,12 +102,11 @@ class TikTokBaseIE(InfoExtractor):
             real_query = self._build_api_query(query, app_version, manifest_app_version)
             return self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
 
-        for count, val in enumerate(self._APP_VERSIONS, start=1):
-            app_version, manifest_app_version = val
+        for count, (app_version, manifest_app_version) in enumerate(self._APP_VERSIONS, start=1):
             real_query = self._build_api_query(query, app_version, manifest_app_version)
             try:
                 res = self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
-                self._WORKING_APP_VERSION = val
+                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
                 return res
             except ExtractorError as e:
                 if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
