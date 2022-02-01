@@ -3668,6 +3668,24 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                             ep_url, ie=ie.ie_key(), video_id=ie._match_id(ep_url), video_title=title)
                         break
 
+    def _music_reponsive_list_entry(self, renderer):
+        video_id = traverse_obj(renderer, ('playlistItemData', 'videoId'))
+        if video_id:
+            return self.url_result(f'https://music.youtube.com/watch?v={video_id}',
+                                   ie=YoutubeIE.ie_key(), video_id=video_id)
+        playlist_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'playlistId'))
+        if playlist_id:
+            video_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'videoId'))
+            if video_id:
+                return self.url_result(f'https://music.youtube.com/watch?v={video_id}&list={playlist_id}',
+                                       ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+            return self.url_result(f'https://music.youtube.com/playlist?list={playlist_id}',
+                                   ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+        browse_id = traverse_obj(renderer, ('navigationEndpoint', 'browseEndpoint', 'browseId'))
+        if browse_id:
+            return self.url_result(f'https://music.youtube.com/browse/{browse_id}',
+                                   ie=YoutubeTabIE.ie_key(), video_id=browse_id)
+
     def _shelf_entries_from_content(self, shelf_renderer):
         content = shelf_renderer.get('content')
         if not isinstance(content, dict):
@@ -3789,7 +3807,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         for content in contents:
             if not isinstance(content, dict):
                 continue
-            is_renderer = try_get(content, lambda x: x['itemSectionRenderer'], dict)
+            is_renderer = traverse_obj(
+                content, 'itemSectionRenderer', 'musicShelfRenderer', 'musicShelfContinuation',
+                expected_type=dict)
             if not is_renderer:
                 renderer = content.get('richItemRenderer')
                 if renderer:
@@ -3806,6 +3826,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'playlistVideoListRenderer': self._playlist_entries,
                     'gridRenderer': self._grid_entries,
                     'shelfRenderer': lambda x: self._shelf_entries(x),
+                    'musicResponsiveListItemRenderer': lambda x: [self._music_reponsive_list_entry(x)],
                     'backstagePostThreadRenderer': self._post_thread_entries,
                     'videoRenderer': lambda x: [self._video_entry(x)],
                     'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
@@ -4239,24 +4260,30 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     _SEARCH_PARAMS = None
 
-    def _search_results(self, query, params=NO_DEFAULT):
+    def _search_results(self, query, params=NO_DEFAULT, client=None):
         data = {'query': query}
         if params is NO_DEFAULT:
             params = self._SEARCH_PARAMS
         if params:
             data['params'] = params
+
+        content_keys = (
+            ('contents', 'twoColumnSearchResultsRenderer', 'primaryContents', 'sectionListRenderer', 'contents'),
+            ('onResponseReceivedCommands', 0, 'appendContinuationItemsAction', 'continuationItems'),
+            # ytmusic search
+            ('contents', 'tabbedSearchResultsRenderer', 'tabs', 0, 'tabRenderer', 'content', 'sectionListRenderer', 'contents'),
+            ('continuationContents', ),
+        )
+        check_get_keys = tuple(set(keys[0] for keys in content_keys))
+
         continuation_list = [None]
         for page_num in itertools.count(1):
             data.update(continuation_list[0] or {})
             search = self._extract_response(
                 item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
-                check_get_keys=('contents', 'onResponseReceivedCommands'))
-            slr_contents = try_get(
-                search,
-                (lambda x: x['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'],
-                 lambda x: x['onResponseReceivedCommands'][0]['appendContinuationItemsAction']['continuationItems']),
-                list)
-            yield from self._extract_entries({'contents': slr_contents}, continuation_list)
+                default_client=client, check_get_keys=check_get_keys)
+            slr_contents = traverse_obj(search, *content_keys)
+            yield from self._extract_entries({'contents': list(variadic(slr_contents))}, continuation_list)
             if not continuation_list[0]:
                 break
 
@@ -5317,6 +5344,59 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
         qs = parse_qs(url)
         query = (qs.get('search_query') or qs.get('q'))[0]
         return self.playlist_result(self._search_results(query, qs.get('sp', (None,))[0]), query, query)
+
+
+class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
+    IE_DESC = 'YouTube music search URLs with sorting and filter support'
+    IE_NAME = 'youtube:music:search_url'
+    _VALID_URL = r'https?://music\.youtube\.com/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)'
+    _TESTS = [{
+        'url': 'https://music.youtube.com/search?q=royalty+free+music',
+        'playlist_count': 16,
+        'info_dict': {
+            'id': 'royalty free music',
+            'title': 'royalty free music',
+        }
+    }, {
+        'url': 'https://music.youtube.com/search?q=royalty+free+music&sp=EgWKAQIIAWoKEAoQAxAEEAkQBQ%3D%3D',
+        'playlist_mincount': 30,
+        'info_dict': {
+            'id': 'royalty free music - songs',
+            'title': 'royalty free music - songs',
+        },
+        'params': {'extract_flat': 'in_playlist'}
+    }, {
+        'url': 'https://music.youtube.com/search?q=royalty+free+music#community+playlists',
+        'playlist_mincount': 30,
+        'info_dict': {
+            'id': 'royalty free music - community playlists',
+            'title': 'royalty free music - community playlists',
+        },
+        'params': {'extract_flat': 'in_playlist'}
+    }]
+
+    _SECTIONS = {
+        'albums': 'EgWKAQIYAWoKEAoQAxAEEAkQBQ==',
+        'artists': 'EgWKAQIgAWoKEAoQAxAEEAkQBQ==',
+        'community playlists': 'EgeKAQQoAEABagoQChADEAQQCRAF',
+        'featured playlists': 'EgeKAQQoADgBagwQAxAJEAQQDhAKEAU==',
+        'songs': 'EgWKAQIIAWoKEAoQAxAEEAkQBQ==',
+        'videos': 'EgWKAQIQAWoKEAoQAxAEEAkQBQ==',
+    }
+
+    def _real_extract(self, url):
+        qs = parse_qs(url)
+        query = (qs.get('search_query') or qs.get('q'))[0]
+        params = qs.get('sp', (None,))[0]
+        if params:
+            section = next((k for k, v in self._SECTIONS.items() if v == params), params)
+        else:
+            section = compat_urllib_parse_unquote_plus((url.split('#') + [''])[1]).lower()
+            params = self._SECTIONS.get(section)
+            if not params:
+                section = None
+        title = join_nonempty(query, section, delim=' - ')
+        return self.playlist_result(self._search_results(query, params, client='web_music'), title, title)
 
 
 class YoutubeFeedsInfoExtractor(YoutubeTabIE):
