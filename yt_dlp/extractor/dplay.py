@@ -384,7 +384,7 @@ class GoDiscoveryIE(DiscoveryPlusBaseIE):
         },
         'skip': 'Available for Premium users',
     }, {
-        'url': 'https://go.discovery.com/video/dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
+        'url': 'https://discovery.com/video/dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
         'only_matching': True,
     }]
 
