@@ -433,6 +433,11 @@ from .eroprofile import (
     EroProfileIE,
     EroProfileAlbumIE,
 )
+from .ertgr import (
+    ERTFlixCodenameIE,
+    ERTFlixIE,
+    ERTWebtvEmbedIE,
+)
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,
