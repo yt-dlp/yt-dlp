@@ -69,10 +69,10 @@ class RTVSLOIE(InfoExtractor):
         date = unified_timestamp(meta.get('broadcastDate') or meta.get('broadcastDates')[0])
 
         thumbs = [{'url': v, 'id': k} for (k, v) in meta.get('images').items()]
-        subs = {}
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
 
-        for s in meta.get('subtitles', []):
+        subs = {}
+        for s in traverse_obj(meta, 'subs', 'subtitles'):
             if s.get('language') in SUB_LANGS_MAP.keys():
                 s['language'] = SUB_LANGS_MAP[s['language']]
             if not subs.get(s.get('language'), False):
@@ -80,38 +80,49 @@ class RTVSLOIE(InfoExtractor):
             subs[s.get('language')].append({'url': s.get('file'), 'format': s.get('format').lower()})
 
         jwt = meta.get('jwt')
-
-        def _determine_extract_func(name):
-            if name in ('hls', 'hls_sec'):
-                return self._extract_m3u8_formats
-            elif name == 'mpeg-dash':
-                return self._extract_mpd_formats
-            elif name == 'jwplayer':
-                return self._extract_smil_formats
-            else:
-                return lambda x, y: {}
-
-        def _extract_media_file_formats(formats, media_source_key):
-            return [[_determine_extract_func(src)(url, v_id) or [{
-                'bitrate': f.get('bitrate'),
-                'url': url,
-                'filesize': f.get('filesize'),
-                'width': f.get('width'),
-                'height': f.get('height'),
-                'ext': f.get('mediaType').lower(),
-                'format_id': f'{media_source_key}_{f.get("mediaType").lower()}_{f.get("bitrate")}_{src}'
-            }] for src, url in f.get('streams', {}).items()] for f in formats]
+        if not jwt:
+            raise ExtractorError('Site did not provide an authentication token, cannot proceed.')
 
         media = self._download_json(self._API_BASE.format('getMedia', v_id) + f'&jwt={jwt}', v_id).get('response')
 
         formats = []
-        [[formats.extend(g) for g in f] for f in _extract_media_file_formats(media.get('mediaFiles_sl', {}), 'files_sl')]
-        [[formats.extend(g) for g in f] for f in _extract_media_file_formats(media.get('mediaFiles', {}), 'files')]
+        if media.get('addaptiveMedia', False):
+            formats = self._extract_wowza_formats(
+                traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=str),
+                v_id, skip_protocols=['f4m', 'rtmp'])
+        for strm in ('http', 'https'):
+            for f in media.get('mediaFiles'):
+                if traverse_obj(f, ('streams', strm)):
+                    formats.append({
+                        'bitrate': f.get('bitrate'),
+                        'url': traverse_obj(f, ('streams', strm)),
+                        'filesize': f.get('filesize'),
+                        'width': f.get('width'),
+                        'height': f.get('height'),
+                        'ext': f.get('mediaType').lower(),
+                        'format_id': f'files_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}'
+                    })
+        if media.get('addaptiveMedia_sl', False):
+            formats.extend([
+                f.update({'format_note': 'Sign language interpretation', 'preference': -3})
+                for f in self._extract_wowza_formats(
+                    traverse_obj(media, ('addaptiveMedia', 'hls_sec')),
+                    v_id, skip_protocols=['f4m', 'rtmp'])])
+        for strm in ('http', 'https'):
+            for f in media.get('mediaFiles_sl'):
+                if traverse_obj(f, ('streams', strm)):
+                    formats.append({
+                        'bitrate': f.get('bitrate'),
+                        'url': traverse_obj(f, ('streams', strm)),
+                        'filesize': f.get('filesize'),
+                        'width': f.get('width'),
+                        'height': f.get('height'),
+                        'ext': f.get('mediaType').lower(),
+                        'format_id': f'files_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}',
+                        'format_note': 'Sign language interpretation',
+                        'preference': -3
+                    })
 
-        def _extract_adaptive(data):
-            return [_determine_extract_func(name)(url, v_id) for name, url in data.items()]
-        [formats.extend(g) for g in _extract_adaptive(media.get('addaptiveMedia', {}))]
-        [formats.extend(g) for g in _extract_adaptive(media.get('addaptiveMedia_sl', {}))]
         self._sort_formats(formats)
 
         if any('intermission.mp4' in x.get('url', '') for x in formats):
