@@ -12,6 +12,7 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
+    HEADRequest,
     ExtractorError,
     float_or_none,
     orderedSet,
@@ -85,7 +86,9 @@ class GloboIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        self._download_webpage('https://globo-ab.globo.com/v2/selected-alternatives?experiments=player-isolated-experiment-02&skipImpressions=true', video_id, 'Getting cookies')
+        self._request_webpage(
+            HEADRequest('https://globo-ab.globo.com/v2/selected-alternatives?experiments=player-isolated-experiment-02&skipImpressions=true'),
+            video_id, 'Getting cookies')
 
         video = self._download_json(
             'http://api.globovideos.com/videos/%s/playlist' % video_id,
@@ -107,8 +110,7 @@ class GloboIE(InfoExtractor):
                 "tz": "-3.0:00"
             }).encode())
 
-        manifest = security['sources'][0]['url_template']
-        self._download_webpage(manifest, video_id, 'Getting locksession cookie')
+        self._request_webpage(HEADRequest(security['sources'][0]['url_template']), video_id, 'Getting locksession cookie')
 
         security_hash = security['sources'][0]['token']
         if not security_hash:
