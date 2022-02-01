@@ -1678,8 +1678,8 @@ The following extractors use this feature:
 * `dr`: dynamic range to ignore - one or more of `sdr`, `hdr10`, `dv`
 
 #### tiktok
-* `app_version`: `hot` (default), `you` (cookies needed), `top`, `new` - choose comment sorting mode (on GameJolt's side)
-* `manifest_app_version`: `hot` (default), `you` (cookies needed), `top`, `new` - choose comment sorting mode (on GameJolt's side)
+* `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`. (e.g. `20.2.1`)
+* `manifest_app_version`: Numeric app version to call mobile APIs with. (e.g. `221`)
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
