@@ -52,7 +52,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://www.bilibili.com/video/av1074402/',
         'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
         'info_dict': {
-            'id': '1074402',
+            'id': '1074402_part1',
             'ext': 'mp4',
             'title': '【金坷垃】金泡沫',
             'uploader_id': '156160',
@@ -73,7 +73,7 @@ class BiliBiliIE(InfoExtractor):
         'url': 'http://bangumi.bilibili.com/anime/5802/play#100643',
         'md5': '3f721ad1e75030cc06faf73587cfec57',
         'info_dict': {
-            'id': '100643',
+            'id': '100643_part1',
             'ext': 'mp4',
             'title': 'CHAOS;CHILD',
             'description': '如果你是神明，并且能够让妄想成为现实。那你会进行怎么样的妄想？是淫靡的世界？独裁社会？毁灭性的制裁？还是……2015年，涩谷。从6年前发生的大灾害“涩谷地震”之后复兴了的这个街区里新设立的私立高中...',
@@ -82,7 +82,7 @@ class BiliBiliIE(InfoExtractor):
     }, {
         'url': 'http://www.bilibili.com/video/av8903802/',
         'info_dict': {
-            'id': '8903802',
+            'id': '8903802_part1',
             'ext': 'mp4',
             'title': '阿滴英文｜英文歌分享#6 "Closer',
             'upload_date': '20170301',
@@ -181,8 +181,8 @@ class BiliBiliIE(InfoExtractor):
         headers.update(self.geo_verification_headers())
 
         video_info = self._parse_json(
-            self._search_regex(r'window.__playinfo__\s*=\s*({.+?})</script>', webpage, 'video info', default=None),
-            video_id, fatal=False) or {}
+            self._search_regex(r'window.__playinfo__\s*=\s*({.+?})</script>', webpage, 'video info', default=None) or '{}',
+            video_id, fatal=False)
         video_info = video_info.get('data') or {}
 
         durl = traverse_obj(video_info, ('dash', 'video'))
@@ -257,10 +257,11 @@ class BiliBiliIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        title = self._html_search_regex(
-            (r'<h1[^>]+title=(["\'])(?P<title>[^"\']+)',
-             r'(?s)<h1[^>]*>(?P<title>.+?)</h1>'), webpage, 'title',
-            group='title', fatal=False)
+        title = self._html_search_regex((
+            r'<h1[^>]+title=(["\'])(?P<content>[^"\']+)',
+            r'(?s)<h1[^>]*>(?P<content>.+?)</h1>',
+            self._meta_regex('title')
+        ), webpage, 'title', group='content', fatal=False)
 
         # Get part title for anthologies
         if page_id is not None:
@@ -279,7 +280,7 @@ class BiliBiliIE(InfoExtractor):
 
         # TODO 'view_count' requires deobfuscating Javascript
         info.update({
-            'id': str(video_id) if page_id is None else '%s_part%s' % (video_id, page_id),
+            'id': f'{video_id}_part{page_id or 1}',
             'cid': cid,
             'title': title,
             'description': description,
