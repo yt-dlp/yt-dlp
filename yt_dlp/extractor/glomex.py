@@ -210,6 +210,7 @@ class GlomexEmbedIE(GlomexBaseIE):
             playlist_id = re.search(regex % 'playlistId', script)
             if playlist_id:
                 yield cls.build_player_url(playlist_id, integration_id, origin_url)
+
     def _real_extract(self, url):
         url, origin_url = self._unsmuggle_origin_url(url)
         playlist_id = self._match_id(url)
