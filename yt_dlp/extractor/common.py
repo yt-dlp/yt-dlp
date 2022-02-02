@@ -1447,7 +1447,7 @@ class InfoExtractor(object):
                 'title': part.get('name'),
                 'start_time': part.get('startOffset'),
                 'end_time': part.get('endOffset'),
-            } for part in e.get('hasPart', []) if part.get('@type') == 'Clip']
+            } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
                     [{'end_time': 0}] + chapters, chapters, chapters[1:])):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
