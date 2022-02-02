@@ -3430,12 +3430,11 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
         return [max(width(str(v)) for v in col) for col in zip(*table)]
 
     def filter_using_list(row, filterArray):
-        return [col for (take, col) in zip(filterArray, row) if take]
+        return [col for take, col in itertools.zip_longest(filterArray, row, fillvalue=True) if take]
 
-    if hide_empty:
-        max_lens = get_max_lens(data)
-        header_row = filter_using_list(header_row, max_lens)
-        data = [filter_using_list(row, max_lens) for row in data]
+    max_lens = get_max_lens(data) if hide_empty else []
+    header_row = filter_using_list(header_row, max_lens)
+    data = [filter_using_list(row, max_lens) for row in data]
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
