@@ -19,7 +19,11 @@ from ..utils import (
 )
 
 
-class RokfinSingleVideoIE(InfoExtractor):
+class RokfinIE(InfoExtractor):
+    _NETRC_MACHINE = 'rokfin'
+
+
+class RokfinSingleVideoIE(RokfinIE):
     _META_DATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
     _RECOMMENDED_VIDEO_BASE_URL = 'https://rokfin.com/'
     _CHANNEL_BASE_URL = 'https://rokfin.com/'
@@ -64,7 +68,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
             is_unlisted=False)
 
         if downloaded_json_meta_data.get('premiumPlan') not in (0, 1, None):
-            self.report_warning(f'unknown availability code: {downloaded_json_meta_data.get("premiumPlan")}. The extractor should be updated')
+            self.report_warning(f'unknown availability code: {downloaded_json_meta_data.get("premiumPlan")}. Rokfin extractor should be updated')
 
         if video_formats_url:
             if try_get(video_formats_url, lambda x: urlparse(x).path.endswith('.m3u8')):
@@ -220,7 +224,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
                 self.raise_no_formats(
                     msg='the ' + ('premium-only ' if availability == 'premium_only' else '')
                     + 'stream is/was scheduled for '
-                    + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S') + ' (YYYY-MM-DD, 24H clock, GMT)' + ('' if self.get_param('wait_for_video') else '. Consider adding --wait-for-video'),
+                    + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S') + ' (YYYY-MM-DD, 24H clock, GMT)' + ('' if self.get_param('wait_for_video') else '. Try --wait-for-video'),
                     video_id=video_id,
                     expected=True)
             elif availability == 'premium_only':
@@ -229,7 +233,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
                 self.raise_no_formats(msg='unable to download: missing meta data', video_id=video_id, expected=True)
             else:
                 # We don't know why there is no (valid) meta data present.
-                self.raise_no_formats(msg='unable to download: don\'t know where to find meta data', video_id=video_id, expected=True)
+                self.raise_no_formats(msg='unable to download', video_id=video_id, expected=True)
 
             # --wait-for-video causes raise_no_formats(... expected=True ...) to print a warning message
             # and exit without raising ExtractorError.
@@ -276,7 +280,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         raise ExtractorError(msg='downloading stream chat is unsupported', expected=True)
 
 
-class RokfinPlaylistIE(InfoExtractor):
+class RokfinPlaylistIE(RokfinIE):
     def _get_video_data(self, json_data, video_base_url):
         def real_get_video_data(content):
             media_type = content.get('mediaType')
@@ -319,7 +323,7 @@ class RokfinPlaylistIE(InfoExtractor):
             yield self.url_result(url=video_data.get('url'), video_id=video_data.get('id'), video_title=str_or_none(video_data.get('title')))
 
 
-# A stack is an aggregation of content. On the website, stacks are shown as a collection of videos
+# Stack is an aggregation of content. On the website, stacks are shown as a collection of videos
 # or other materials stacked over each other.
 class RokfinStackIE(RokfinPlaylistIE):
     IE_NAME = 'rokfin:stack'
@@ -441,8 +445,8 @@ class RokfinSearchIE(SearchInfoExtractor):
                         self.service_url,
                         self._SEARCH_KEY,
                         headers={'authorization': self.service_access_key},
-                        data=dumps(POST_DATA).encode('utf8'),
-                        encoding='utf8',
+                        data=dumps(POST_DATA).encode('utf-8'),
+                        encoding='utf-8',
                         note=f'Downloading search results (page {page_n}' + (f' of {min(pages_total, max_pages_to_download)}' if pages_total is not None and max_pages_to_download is not None else '') + ')',
                         fatal=True)
                 else:
@@ -457,8 +461,8 @@ class RokfinSearchIE(SearchInfoExtractor):
                             service_url,
                             self._SEARCH_KEY,
                             headers={'authorization': service_access_key},
-                            data=dumps(POST_DATA).encode('utf8'),
-                            encoding='utf8',
+                            data=dumps(POST_DATA).encode('utf-8'),
+                            encoding='utf-8',
                             note='Downloading search results (page 1)',
                             fatal=False) or {}
 
