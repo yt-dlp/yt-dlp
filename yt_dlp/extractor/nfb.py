@@ -24,18 +24,6 @@ class NFBIE(InfoExtractor):
 
         webpage = self._download_webpage('https://www.nfb.ca/film/%s/' % video_id, video_id)
 
-        title = self._html_search_regex(
-            r'<[^>]+\bid=["\']titleHeader["\'][^>]*>\s*<h1[^>]*>\s*([^<]+?)\s*</h1>',
-            webpage, 'title', default=None)
-        director = self._html_search_regex(
-            r'<[^>]+\bitemprop=["\']name["\'][^>]*>([^<]+)',
-            webpage, 'director', default=None)
-        year = self._html_search_regex(
-            r'<[^>]+\bitemprop=["\']datePublished["\'][^>]*>([^<]+)',
-            webpage, 'year', default=None)
-        description = self._html_search_regex(
-            r'<[^>]+\bid=["\']tabSynopsis["\'][^>]*>\s*<p[^>]*>\s*([^<]+)',
-            webpage, 'description', default=None)
         iframe = self._html_search_regex(
             r'<[^>]+\bid=["\']player-iframe["\'][^>]*src=["\']([^"\']+)',
             webpage, 'iframe', default=None, fatal=True)
@@ -47,20 +35,27 @@ class NFBIE(InfoExtractor):
         source = self._html_search_regex(
             r'source:\s*\'([^\']+)',
             player, 'source', default=None, fatal=True)
-        thumbnail = self._html_search_regex(
-            r'poster:\s*\'([^\']+)',
-            player, 'thumbnail', default=None)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(source, video_id, ext='mp4')
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'uploader': director,
-            'release_date': year,
+            'title': self._html_search_regex(
+                r'<[^>]+\bid=["\']titleHeader["\'][^>]*>\s*<h1[^>]*>\s*([^<]+?)\s*</h1>',
+                webpage, 'title', default=None),
+            'description': self._html_search_regex(
+                r'<[^>]+\bid=["\']tabSynopsis["\'][^>]*>\s*<p[^>]*>\s*([^<]+)',
+                webpage, 'description', default=None),
+            'thumbnail': self._html_search_regex(
+                r'poster:\s*\'([^\']+)',
+                player, 'thumbnail', default=None),
+            'uploader': self._html_search_regex(
+                r'<[^>]+\bitemprop=["\']name["\'][^>]*>([^<]+)',
+                webpage, 'uploader', default=None),
+            'release_date': self._html_search_regex(
+                r'<[^>]+\bitemprop=["\']datePublished["\'][^>]*>([^<]+)',
+                webpage, 'release_date', default=None),
             'formats': formats,
             'subtitles': subtitles,
         }
