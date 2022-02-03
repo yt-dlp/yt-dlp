@@ -1,13 +1,11 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
+
 from ..utils import (
     int_or_none,
-    unified_timestamp,
     traverse_obj,
+
 )
 
 
@@ -20,12 +18,9 @@ class BeegIE(InfoExtractor):
             'id': '0983946056129650',
             'ext': 'mp4',
             'title': 'sucked cock and fucked in a private plane',
-            'timestamp': 1642406589,
             'duration': 927,
             'tags': list,
             'age_limit': 18,
-            'display_id': 2540839,
-            'upload_date': '20220117',
         }
     }, {
         'url': 'https://beeg.com/-0599050563103750?t=4-861',
@@ -34,12 +29,9 @@ class BeegIE(InfoExtractor):
             'id': '0599050563103750',
             'ext': 'mp4',
             'title': 'Bad Relatives',
-            'timestamp': 1643623200,
             'duration': 2060,
             'tags': list,
             'age_limit': 18,
-            'display_id': 2569966,
-            'upload_date': '20220131',
             'description': 'md5:b4fc879a58ae6c604f8f259155b7e3b9',
         }
     }, {
@@ -61,7 +53,7 @@ class BeegIE(InfoExtractor):
             'https://store.externulls.com/facts/file/%s' % video_id,
             video_id, 'Downloading JSON for %s' % video_id)
 
-        resources = video['file']['hls_resources'] if traverse_obj(video, ('file', 'hls_resources')) else video['fc_facts'][0]['hls_resources']
+        resources = traverse_obj(video, ('file', 'hls_resources'), ('fc_facts', 0, 'hls_resources'))
 
         formats = []
         for format_id, video_uri in resources.items():
@@ -71,8 +63,8 @@ class BeegIE(InfoExtractor):
                 r'fl_cdn_(\d+)', format_id, 'height', default=None)
             if not height:
                 continue
-#                formats.extend(self._extract_m3u8_formats(
-#                'https://video.beeg.com/' + video_uri, video_id, ext='m3u8', m3u8_id='hls'))
+#            formats.extend(self._extract_m3u8_formats(
+#            'https://video.beeg.com/' + video_uri, video_id, ext='mp4', m3u8_id='hls'))
             formats.append({
                 'url': 'https://video.beeg.com/' + video_uri,
                 'format_id': 'hls',
@@ -84,23 +76,12 @@ class BeegIE(InfoExtractor):
             })
         self._sort_formats(formats)
 
-        title = traverse_obj(video, ('file', 'stuff', 'sf_name'))
-        video_id = compat_str(video_id)
-        display_id = traverse_obj(video, ('fc_facts', 0, 'id'))
-        description = traverse_obj(video, ('file', 'stuff', 'sf_story'))
-        timestamp = unified_timestamp(traverse_obj(video, ('fc_facts', 0, 'fc_created')))
-        duration = int_or_none(traverse_obj(video, ('file', 'fl_duration')))
-
-        tags = [tag.get('tg_name') for tag in video['tags']] if video.get('tags') else None
-
         return {
             'id': video_id,
-            'display_id': display_id,
-            'title': title,
-            'description': description,
-            'timestamp': timestamp,
-            'duration': duration,
-            'tags': tags,
+            'title': traverse_obj(video, ('file', 'stuff', 'sf_name')),
+            'description': traverse_obj(video, ('file', 'stuff', 'sf_story')),
+            'duration': int_or_none(traverse_obj(video, ('file', 'fl_duration'))),
+            'tags': traverse_obj(video, ('tags', ..., 'tg_name')),
             'formats': formats,
             'age_limit': self._rta_search(webpage),
         }
