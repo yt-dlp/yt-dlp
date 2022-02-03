@@ -62,8 +62,8 @@ class BeegIE(InfoExtractor):
         fc_facts = video.get('fc_facts')
         firstKey = None
         for i in range(len(fc_facts)):
-            if not firstKey or fc_facts[i-1]['id'] < fc_facts[firstKey]['id']:
-                firstKey = i-1
+            if not firstKey or fc_facts[i - 1]['id'] < fc_facts[firstKey]['id']:
+                firstKey = i - 1
 
         resources = traverse_obj(video, ('file', 'hls_resources'), ('fc_facts', firstKey, 'hls_resources'))
 
