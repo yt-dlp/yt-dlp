@@ -5353,7 +5353,7 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
 
 
 class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
-    IE_DESC = 'YouTube music search URLs with sorting and filter support'
+    IE_DESC = 'YouTube music search URLs with selectable sections (Eg: #songs)'
     IE_NAME = 'youtube:music:search_url'
     _VALID_URL = r'https?://music\.youtube\.com/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)'
     _TESTS = [{

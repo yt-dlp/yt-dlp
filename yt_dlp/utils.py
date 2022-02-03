@@ -1018,13 +1018,9 @@ def make_HTTPS_handler(params, **kwargs):
 
 
 def bug_reports_message(before=';'):
-    if ytdl_is_updateable():
-        update_cmd = 'type  yt-dlp -U  to update'
-    else:
-        update_cmd = 'see  https://github.com/yt-dlp/yt-dlp  on how to update'
-    msg = 'please report this issue on  https://github.com/yt-dlp/yt-dlp .'
-    msg += ' Make sure you are using the latest version; %s.' % update_cmd
-    msg += ' Be sure to call yt-dlp with the --verbose flag and include its complete output.'
+    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
+           'filling out the "Broken site" issue template properly. '
+           'Confirm you are on the latest version using -U')
 
     before = before.rstrip()
     if not before or before.endswith(('.', '!', '?')):

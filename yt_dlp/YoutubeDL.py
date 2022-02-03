@@ -596,14 +596,14 @@ class YoutubeDL(object):
         else:
             self.params['nooverwrites'] = not self.params['overwrites']
 
-        params.setdefault('forceprint', {})
-        params.setdefault('print_to_file', {})
+        self.params.setdefault('forceprint', {})
+        self.params.setdefault('print_to_file', {})
 
         # Compatibility with older syntax
         if not isinstance(params['forceprint'], dict):
-            params['forceprint'] = {'video': params['forceprint']}
+            self.params['forceprint'] = {'video': params['forceprint']}
 
-        if params.get('bidi_workaround', False):
+        if self.params.get('bidi_workaround', False):
             try:
                 import pty
                 master, slave = pty.openpty()
@@ -631,7 +631,7 @@ class YoutubeDL(object):
 
         if (sys.platform != 'win32'
                 and sys.getfilesystemencoding() in ['ascii', 'ANSI_X3.4-1968']
-                and not params.get('restrictfilenames', False)):
+                and not self.params.get('restrictfilenames', False)):
             # Unicode filesystem API will throw errors (#1474, #13027)
             self.report_warning(
                 'Assuming --restrict-filenames since file system encoding '
@@ -2240,10 +2240,7 @@ class YoutubeDL(object):
 
     def _calc_headers(self, info_dict):
         res = std_headers.copy()
-
-        add_headers = info_dict.get('http_headers')
-        if add_headers:
-            res.update(add_headers)
+        res.update(info_dict.get('http_headers') or {})
 
         cookies = self._calc_cookies(info_dict)
         if cookies:
@@ -2309,6 +2306,8 @@ class YoutubeDL(object):
             raise ExtractorError('Missing "id" field in extractor result', ie=info_dict['extractor'])
         elif not info_dict.get('id'):
             raise ExtractorError('Extractor failed to obtain "id"', ie=info_dict['extractor'])
+
+        info_dict['fulltitle'] = info_dict.get('title')
         if 'title' not in info_dict:
             raise ExtractorError('Missing "title" field in extractor result',
                                  video_id=info_dict['id'], ie=info_dict['extractor'])
@@ -2421,9 +2420,6 @@ class YoutubeDL(object):
         info_dict['__has_drm'] = any(f.get('has_drm') for f in formats)
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
-
-        # backward compatibility
-        info_dict['fulltitle'] = info_dict['title']
 
         if info_dict.get('is_live'):
             get_from_start = bool(self.params.get('live_from_start'))

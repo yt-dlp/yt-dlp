@@ -381,10 +381,10 @@ def create_parser():
     geo.add_option(
         '--geo-bypass',
         action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass', default=True,
+        action='store_false', dest='geo_bypass',
         help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
     geo.add_option(
         '--geo-bypass-country', metavar='CODE',
