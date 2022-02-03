@@ -11,6 +11,14 @@
 -->
 
 
+### 2022.02.04
+
+* [youtube:search] Fix extractor by [coletdjnz](https://github.com/coletdjnz)
+* [youtube:search] Add tests
+* [twitcasting] Enforce UTF-8 for POST payload by [Lesmiscore](https://github.com/Lesmiscore)
+* [mediaset] Fix extractor by [nixxo](https://github.com/nixxo)
+* [websocket] Make syntax error in `websockets` module non-fatal
+
 ### 2022.02.03
 
 * Merge youtube-dl: Upto [commit/78ce962](https://github.com/ytdl-org/youtube-dl/commit/78ce962f4fe020994c216dd2671546fbe58a5c67)
