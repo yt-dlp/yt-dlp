@@ -11,6 +11,63 @@
 -->
 
 
+### 2022.02.03
+
+* Merge youtube-dl: Upto [commit/78ce962](https://github.com/ytdl-org/youtube-dl/commit/78ce962f4fe020994c216dd2671546fbe58a5c67)
+* Add option `--print-to-file`
+* Make nested --config-locations relative to parent file
+* Ensure `_type` is present in `info.json`
+* Fix `--compat-options list-formats`
+* Fix/improve `InAdvancePagedList`
+* [downloader/ffmpeg] Handle unknown formats better
+* [outtmpl] Handle `-o ""` better
+* [outtmpl] Handle hard-coded file extension better
+* [extractor] Add convinience function `_yes_playlist`
+* [extractor] Allow non-fatal `title` extraction
+* [extractor] Extract video inside `Article` json_ld
+* [generic] Allow further processing of json_ld URL
+* [cookies] Fix keyring selection for unsupported desktops
+* [utils] Strip double spaces in `clean_html` by [dirkf](https://github.com/dirkf)
+* [aes] Add `unpad_pkcs7`
+* [test] Fix `test_youtube_playlist_noplaylist`
+* [docs,cleanup] Misc cleanup
+* [dplay] Add extractors for site changes by [Sipherdrakon](https://github.com/Sipherdrakon)
+* [ertgr] Add  extractors by [zmousm](https://github.com/zmousm), [dirkf](https://github.com/dirkf)
+* [Musicdex] Add extractors by [Ashish0804](https://github.com/Ashish0804)
+* [YandexVideoPreview] Add extractor by [KiberInfinity](https://github.com/KiberInfinity)
+* [youtube] Add extractor `YoutubeMusicSearchURLIE`
+* [archive.org] Ignore unnecessary files
+* [Bilibili] Add 8k support by [u-spec-png](https://github.com/u-spec-png)
+* [bilibili] Fix extractor, make anthology title non-fatal
+* [CAM4] Add thumbnail extraction by [alerikaisattera](https://github.com/alerikaisattera)
+* [cctv] De-prioritize sample format
+* [crunchyroll:beta] Add cookies support by [tejing1](https://github.com/tejing1)
+* [crunchyroll] Fix login by [tejing1](https://github.com/tejing1)
+* [doodstream] Fix extractor
+* [fc2] Fix extraction by [Lesmiscore](https://github.com/Lesmiscore)
+* [FFmpegConcat] Abort on --skip-download and download errors
+* [Fujitv] Extract metadata and support premium by [YuenSzeHong](https://github.com/YuenSzeHong)
+* [globo] Fix extractor by [Bricio](https://github.com/Bricio)
+* [glomex] Simplify embed detection
+* [GoogleSearch] Fix extractor
+* [Instagram] Fix extraction when logged in by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [iq.com] Add VIP support by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [mildom] Fix extractor by [lazypete365](https://github.com/lazypete365)
+* [MySpass] Fix video url processing by [trassshhub](https://github.com/trassshhub)
+* [Odnoklassniki] Improve embedded players extraction by [KiberInfinity](https://github.com/KiberInfinity)
+* [orf:tvthek] Lazy playlist extraction and obey --no-playlist
+* [Pladform] Fix redirection to external player by [KiberInfinity](https://github.com/KiberInfinity)
+* [ThisOldHouse] Improve Premium URL check by [Ashish0804](https://github.com/Ashish0804)
+* [TikTok] Iterate through app versions by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [tumblr] Fix 403 errors and handle vimeo embeds by [foghawk](https://github.com/foghawk)
+* [viki] Fix "Bad request" for manifest by [nyuszika7h](https://github.com/nyuszika7h)
+* [Vimm] add recording extractor by [alerikaisattera](https://github.com/alerikaisattera)
+* [web.archive:youtube] Add `ytarchive:` prefix and misc cleanup
+* [youtube:api] Do not use seek when reading HTTPError response by [coletdjnz](https://github.com/coletdjnz)
+* [youtube] Fix n-sig for player e06dea74
+* [youtube, cleanup] Misc fixes and cleanup
+
+
 ### 2022.01.21
 
 * Add option `--concat-playlist` to **concat videos in a playlist**
