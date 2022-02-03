@@ -120,9 +120,16 @@ class TestPlayerInfo(unittest.TestCase):
 class TestSignature(unittest.TestCase):
     def setUp(self):
         TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-        self.TESTDATA_DIR = os.path.join(TEST_DIR, 'testdata')
+        self.TESTDATA_DIR = os.path.join(TEST_DIR, 'testdata/sigs')
         if not os.path.exists(self.TESTDATA_DIR):
             os.mkdir(self.TESTDATA_DIR)
+
+    def tearDown(self):
+        try:
+            for f in os.listdir(self.TESTDATA_DIR):
+                os.remove(f)
+        except OSError:
+            pass
 
 
 def t_factory(name, sig_func, url_pattern):
