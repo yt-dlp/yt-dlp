@@ -5,7 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     traverse_obj,
-
+    unified_timestamp,
 )
 
 
@@ -21,6 +21,9 @@ class BeegIE(InfoExtractor):
             'duration': 927,
             'tags': list,
             'age_limit': 18,
+            'upload_date': '20220117',
+            'timestamp': 1642406589,
+            'display_id': 2540839,
         }
     }, {
         'url': 'https://beeg.com/-0599050563103750?t=4-861',
@@ -33,6 +36,9 @@ class BeegIE(InfoExtractor):
             'tags': list,
             'age_limit': 18,
             'description': 'md5:b4fc879a58ae6c604f8f259155b7e3b9',
+            'timestamp': 1643623200,
+            'display_id': 2569965,
+            'upload_date': '20220131',
         }
     }, {
         # api/v6 v2
@@ -53,7 +59,13 @@ class BeegIE(InfoExtractor):
             'https://store.externulls.com/facts/file/%s' % video_id,
             video_id, 'Downloading JSON for %s' % video_id)
 
-        resources = traverse_obj(video, ('file', 'hls_resources'), ('fc_facts', 0, 'hls_resources'))
+        fc_facts = video.get('fc_facts')
+        firstKey = None
+        for i in range(len(fc_facts)):
+            if not firstKey or fc_facts[i-1]['id'] < fc_facts[firstKey]['id']:
+                firstKey = i-1
+
+        resources = traverse_obj(video, ('file', 'hls_resources'), ('fc_facts', firstKey, 'hls_resources'))
 
         formats = []
         for format_id, video_uri in resources.items():
@@ -63,23 +75,20 @@ class BeegIE(InfoExtractor):
                 r'fl_cdn_(\d+)', format_id, 'height', default=None)
             if not height:
                 continue
-#            formats.extend(self._extract_m3u8_formats(
-#            'https://video.beeg.com/' + video_uri, video_id, ext='mp4', m3u8_id='hls'))
-            formats.append({
-                'url': 'https://video.beeg.com/' + video_uri,
-                'format_id': 'hls',
+            format = self._extract_m3u8_formats('https://video.beeg.com/' + video_uri, video_id, ext='mp4', m3u8_id='hls')
+            format[0].update({
                 'height': int(height),
-                'ext': 'mp4',
-                'format': 'm3u8',
-                'protocol': 'm3u8_native',
-                'video_ext': 'mp4',
             })
+            formats.extend(format)
+
         self._sort_formats(formats)
 
         return {
             'id': video_id,
+            'display_id': traverse_obj(video, ('fc_facts', firstKey, 'id')),
             'title': traverse_obj(video, ('file', 'stuff', 'sf_name')),
             'description': traverse_obj(video, ('file', 'stuff', 'sf_story')),
+            'timestamp': unified_timestamp(traverse_obj(video, ('fc_facts', firstKey, 'fc_created'))),
             'duration': int_or_none(traverse_obj(video, ('file', 'fl_duration'))),
             'tags': traverse_obj(video, ('tags', ..., 'tg_name')),
             'formats': formats,
