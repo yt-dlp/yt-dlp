@@ -5222,8 +5222,10 @@ class Config:
 
     def init(self, args=None, filename=None):
         assert not self.__initialized
+        directory = ''
         if filename:
             location = os.path.realpath(filename)
+            directory = os.path.dirname(location)
             if location in self._loaded_paths:
                 return False
             self._loaded_paths.add(location)
@@ -5231,7 +5233,7 @@ class Config:
         self.__initialized = True
         self.own_args, self.filename = args, filename
         for location in self._parser.parse_args(args)[0].config_locations or []:
-            location = compat_expanduser(location)
+            location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
             if not os.path.exists(location):
