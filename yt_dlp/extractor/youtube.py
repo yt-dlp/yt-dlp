@@ -4273,7 +4273,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     _SEARCH_PARAMS = None
 
-    def _search_results(self, query, params=NO_DEFAULT, client=None):
+    def _search_results(self, query, params=NO_DEFAULT, default_client='web'):
         data = {'query': query}
         if params is NO_DEFAULT:
             params = self._SEARCH_PARAMS
@@ -4294,7 +4294,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             data.update(continuation_list[0] or {})
             search = self._extract_response(
                 item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
-                default_client=client, check_get_keys=check_get_keys)
+                default_client=default_client, check_get_keys=check_get_keys)
             slr_contents = traverse_obj(search, *content_keys)
             yield from self._extract_entries({'contents': list(variadic(slr_contents))}, continuation_list)
             if not continuation_list[0]:
@@ -5402,7 +5402,7 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
             if not params:
                 section = None
         title = join_nonempty(query, section, delim=' - ')
-        return self.playlist_result(self._search_results(query, params, client='web_music'), title, title)
+        return self.playlist_result(self._search_results(query, params, default_client='web_music'), title, title)
 
 
 class YoutubeFeedsInfoExtractor(InfoExtractor):
