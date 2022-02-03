@@ -89,7 +89,7 @@ class RTVSLOIE(InfoExtractor):
         if media.get('addaptiveMedia', False):
             formats = self._extract_wowza_formats(
                 traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=str),
-                v_id, skip_protocols=['f4m', 'rtmp'])
+                v_id, skip_protocols=['smil'])
         for strm in ('http', 'https'):
             for f in media.get('mediaFiles'):
                 if traverse_obj(f, ('streams', strm)):
@@ -105,7 +105,7 @@ class RTVSLOIE(InfoExtractor):
 
         if media.get('addaptiveMedia_sl', False):
             for f in self._extract_wowza_formats(
-                traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec')), v_id, skip_protocols=['f4m', 'rtmp']
+                traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec')), v_id, skip_protocols=['smil']
             ):
                 f.update({'format_note': 'Sign language interpretation', 'preference': -3})
                 formats.append(f)
