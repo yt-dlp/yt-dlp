@@ -72,7 +72,7 @@ class RTVSLOIE(InfoExtractor):
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
 
         subs = {}
-        for s in traverse_obj(meta, 'subs', 'subtitles'):
+        for s in traverse_obj(meta, 'subs', 'subtitles', default={}):
             if s.get('language') in SUB_LANGS_MAP.keys():
                 s['language'] = SUB_LANGS_MAP[s['language']]
             if not subs.get(s.get('language'), False):
