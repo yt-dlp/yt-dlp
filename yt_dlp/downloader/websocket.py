@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import os
 import signal
@@ -15,6 +14,7 @@ else:
 
 from .common import FileDownloader
 from .external import FFmpegFD
+from ..compat import asyncio
 
 
 class FFmpegSinkFD(FileDownloader):

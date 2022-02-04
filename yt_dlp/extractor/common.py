@@ -7,7 +7,6 @@ import math
 import netrc
 import os
 import random
-import re
 import sys
 import time
 import xml.etree.ElementTree
@@ -20,13 +19,13 @@ from ..compat import (
     compat_getpass,
     compat_http_client,
     compat_os_name,
-    compat_Pattern,
     compat_str,
     compat_urllib_error,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlencode,
     compat_urllib_request,
     compat_urlparse,
+    re,
 )
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
@@ -1198,7 +1197,7 @@ class InfoExtractor:
         """
         if string is None:
             mobj = None
-        elif isinstance(pattern, (str, compat_Pattern)):
+        elif isinstance(pattern, (str, re.Pattern)):
             mobj = re.search(pattern, string, flags)
         else:
             for p in pattern:

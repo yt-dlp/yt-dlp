@@ -42,14 +42,6 @@ class TestCompat(unittest.TestCase):
         finally:
             compat_setenv('HOME', old_home or '')
 
-    def test_all_present(self):
-        import yt_dlp.compat
-        all_names = yt_dlp.compat.__all__
-        present_names = set(filter(
-            lambda c: '_' in c and not c.startswith('_'),
-            dir(yt_dlp.compat))) - {'unicode_literals'}
-        self.assertEqual(all_names, sorted(present_names))
-
     def test_compat_urllib_parse_unquote(self):
         self.assertEqual(compat_urllib_parse_unquote('abc%20def'), 'abc def')
         self.assertEqual(compat_urllib_parse_unquote('%7e/abc+def'), '~/abc+def')
