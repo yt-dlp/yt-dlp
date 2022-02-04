@@ -984,6 +984,7 @@ from .nexx import (
     NexxIE,
     NexxEmbedIE,
 )
+from .nfb import NFBIE
 from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
     NFLIE,
