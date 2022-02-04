@@ -2,11 +2,12 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
+from ..utils import int_or_none
 
 
 class NFBIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?nfb\.ca/film/(?P<id>[^/?#&]+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.nfb.ca/film/trafficopter/',
         'info_dict': {
             'id': 'trafficopter',
@@ -15,9 +16,9 @@ class NFBIE(InfoExtractor):
             'description': 'md5:060228455eb85cf88785c41656776bc0',
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Barrie Howells',
-            'release_date': '1972',
+            'release_year': 1972,
         },
-    }
+    }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -27,8 +28,8 @@ class NFBIE(InfoExtractor):
         iframe = self._html_search_regex(
             r'<[^>]+\bid=["\']player-iframe["\'][^>]*src=["\']([^"\']+)',
             webpage, 'iframe', default=None, fatal=True)
-        if iframe.startswith("/"):
-            iframe = 'https://www.nfb.ca' + iframe
+        if iframe.startswith('/'):
+            iframe = f'https://www.nfb.ca{iframe}'
 
         player = self._download_webpage(iframe, video_id)
 
@@ -53,9 +54,9 @@ class NFBIE(InfoExtractor):
             'uploader': self._html_search_regex(
                 r'<[^>]+\bitemprop=["\']name["\'][^>]*>([^<]+)',
                 webpage, 'uploader', default=None),
-            'release_date': self._html_search_regex(
+            'release_year': int_or_none(self._html_search_regex(
                 r'<[^>]+\bitemprop=["\']datePublished["\'][^>]*>([^<]+)',
-                webpage, 'release_date', default=None),
+                webpage, 'release_year', default=None)),
             'formats': formats,
             'subtitles': subtitles,
         }
