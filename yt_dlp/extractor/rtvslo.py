@@ -1,5 +1,8 @@
 from .common import InfoExtractor
-from ..utils import ExtractorError, traverse_obj, parse_duration, unified_timestamp
+from ..utils import (
+    ExtractorError, traverse_obj, parse_duration, unified_timestamp,
+    url_or_none
+)
 
 
 class RTVSLOIE(InfoExtractor):
@@ -108,7 +111,7 @@ class RTVSLOIE(InfoExtractor):
                 traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec')), v_id, skip_protocols=['smil']
             ):
                 f.update({
-                    'format_id': 'sign-'+f['format_id'],
+                    'format_id': 'sign-' + f['format_id'],
                     'format_note': 'Sign language interpretation', 'preference': -10,
                     'language': 'slv' if f.get('language', '') == 'eng' and f.get('acodec', '') else f.get('language')})
                 formats.append(f)
