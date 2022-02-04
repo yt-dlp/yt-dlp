@@ -68,7 +68,6 @@ class RTVSLOIE(InfoExtractor):
 
     def _real_extract(self, url):
         v_id = self._match_id(url)
-        date = unified_timestamp(meta.get('broadcastDate') or meta.get('broadcastDates')[0])
         meta = self._download_json(self._API_BASE.format('getRecordingDrm', v_id), v_id)['response']
 
         thumbs = [{'id': k, 'url': v} for (k, v) in meta.get('images').items()]
@@ -144,7 +143,7 @@ class RTVSLOIE(InfoExtractor):
             'id': v_id,
             'description': meta.get('description'),
             'formats': formats,
-            'timestamp': date,
+            'timestamp': unified_timestamp(traverse_obj(meta, 'broadcastDate', ('broadcastDates', 0))),
             'release_timestamp': unified_timestamp(meta.get('recordingDate')),
             'duration': meta.get('duration') or parse_duration(meta.get('length')),
             'webpage_url': ''.join(traverse_obj(meta, ('canonical', ('domain', 'path')))),
