@@ -13,7 +13,7 @@ from test.helper import FakeYDL, md5, is_download_test
 from yt_dlp.extractor import (
     YoutubeIE,
     DailymotionIE,
-    TEDIE,
+    TedTalkIE,
     VimeoIE,
     WallaIE,
     CeskaTelevizeIE,
@@ -141,7 +141,7 @@ class TestDailymotionSubtitles(BaseTestSubtitles):
 @is_download_test
 class TestTedSubtitles(BaseTestSubtitles):
     url = 'http://www.ted.com/talks/dan_dennett_on_our_consciousness.html'
-    IE = TEDIE
+    IE = TedTalkIE
 
     def test_allsubtitles(self):
         self.DL.params['writesubtitles'] = True

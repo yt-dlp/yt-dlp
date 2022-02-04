@@ -220,7 +220,7 @@ def sanitize_got_info_dict(got_dict):
     IGNORED_PREFIXES = ('', 'playlist', 'requested', 'webpage')
 
     def sanitize(key, value):
-        if isinstance(value, str) and len(value) > 100:
+        if isinstance(value, str) and len(value) > 100 and key != 'thumbnail':
             return f'md5:{md5(value)}'
         elif isinstance(value, list) and len(value) > 10:
             return f'count:{len(value)}'
@@ -235,7 +235,7 @@ def sanitize_got_info_dict(got_dict):
     }
 
     # display_id may be generated from id
-    if test_info_dict.get('display_id') == test_info_dict['id']:
+    if test_info_dict.get('display_id') == test_info_dict.get('id'):
         test_info_dict.pop('display_id')
 
     return test_info_dict

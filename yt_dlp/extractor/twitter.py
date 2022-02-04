@@ -13,6 +13,7 @@ from ..compat import (
 from ..utils import (
     dict_get,
     ExtractorError,
+    format_field,
     float_or_none,
     int_or_none,
     traverse_obj,
@@ -469,7 +470,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': uploader,
             'timestamp': unified_timestamp(status.get('created_at')),
             'uploader_id': uploader_id,
-            'uploader_url': 'https://twitter.com/' + uploader_id if uploader_id else None,
+            'uploader_url': format_field(uploader_id, template='https://twitter.com/%s'),
             'like_count': int_or_none(status.get('favorite_count')),
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),

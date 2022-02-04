@@ -643,6 +643,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('PT1H0.040S'), 3600.04)
         self.assertEqual(parse_duration('PT00H03M30SZ'), 210)
         self.assertEqual(parse_duration('P0Y0M0DT0H4M20.880S'), 260.88)
+        self.assertEqual(parse_duration('01:02:03:050'), 3723.05)
+        self.assertEqual(parse_duration('103:050'), 103.05)
 
     def test_fix_xml_ampersands(self):
         self.assertEqual(
@@ -1131,7 +1133,7 @@ class TestUtil(unittest.TestCase):
 
     def test_clean_html(self):
         self.assertEqual(clean_html('a:\nb'), 'a: b')
-        self.assertEqual(clean_html('a:\n   "b"'), 'a:    "b"')
+        self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
 
     def test_intlist_to_bytes(self):

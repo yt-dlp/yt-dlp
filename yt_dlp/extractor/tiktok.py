@@ -17,6 +17,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     LazyList,
+    srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
     try_get,
@@ -26,8 +27,8 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSION = '20.1.0'
-    _MANIFEST_APP_VERSION = '210'
+    _APP_VERSIONS = [('20.9.3', '293'), ('20.4.3', '243'), ('20.2.1', '221'), ('20.1.2', '212'), ('20.0.4', '204')]
+    _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-h2.tiktokv.com'
@@ -35,15 +36,27 @@ class TikTokBaseIE(InfoExtractor):
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
-    def _call_api(self, ep, query, video_id, fatal=True,
-                  note='Downloading API JSON', errnote='Unable to download API page'):
-        real_query = {
+    def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
+                       note='Downloading API JSON', errnote='Unable to download API page'):
+        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
+        webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
+        if webpage_cookies.get('sid_tt'):
+            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
+        return self._download_json(
+            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
+            fatal=fatal, note=note, errnote=errnote, headers={
+                'User-Agent': f'com.ss.android.ugc.trill/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'Accept': 'application/json',
+            }, query=query)
+
+    def _build_api_query(self, query, app_version, manifest_app_version):
+        return {
             **query,
-            'version_name': self._APP_VERSION,
-            'version_code': self._MANIFEST_APP_VERSION,
-            'build_number': self._APP_VERSION,
-            'manifest_version_code': self._MANIFEST_APP_VERSION,
-            'update_version_code': self._MANIFEST_APP_VERSION,
+            'version_name': app_version,
+            'version_code': manifest_app_version,
+            'build_number': app_version,
+            'manifest_version_code': manifest_app_version,
+            'update_version_code': manifest_app_version,
             'openudid': ''.join(random.choice('0123456789abcdef') for _ in range(16)),
             'uuid': ''.join([random.choice(string.digits) for _ in range(16)]),
             '_rticket': int(time.time() * 1000),
@@ -72,16 +85,61 @@ class TikTokBaseIE(InfoExtractor):
             'as': 'a1qwert123',
             'cp': 'cbfhckdckkde1',
         }
-        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
-        webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
-        if webpage_cookies.get('sid_tt'):
-            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
-        return self._download_json(
-            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
-            fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
-                'Accept': 'application/json',
-            }, query=real_query)
+
+    def _call_api(self, ep, query, video_id, fatal=True,
+                  note='Downloading API JSON', errnote='Unable to download API page'):
+        if not self._WORKING_APP_VERSION:
+            app_version = self._configuration_arg('app_version', [''], ie_key=TikTokIE.ie_key())[0]
+            manifest_app_version = self._configuration_arg('manifest_app_version', [''], ie_key=TikTokIE.ie_key())[0]
+            if app_version and manifest_app_version:
+                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
+                self.write_debug('Imported app version combo from extractor arguments')
+            elif app_version or manifest_app_version:
+                self.report_warning('Only one of the two required version params are passed as extractor arguments', only_once=True)
+
+        if self._WORKING_APP_VERSION:
+            app_version, manifest_app_version = self._WORKING_APP_VERSION
+            real_query = self._build_api_query(query, app_version, manifest_app_version)
+            return self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
+
+        for count, (app_version, manifest_app_version) in enumerate(self._APP_VERSIONS, start=1):
+            real_query = self._build_api_query(query, app_version, manifest_app_version)
+            try:
+                res = self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
+                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
+                return res
+            except ExtractorError as e:
+                if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                    if count == len(self._APP_VERSIONS):
+                        if fatal:
+                            raise e
+                        else:
+                            self.report_warning(str(e.cause or e.msg))
+                            return
+                    self.report_warning('%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
+                    continue
+                raise e
+
+    def _get_subtitles(self, aweme_detail, aweme_id):
+        # TODO: Extract text positioning info
+        subtitles = {}
+        captions_info = traverse_obj(
+            aweme_detail, ('interaction_stickers', ..., 'auto_video_caption_info', 'auto_captions', ...), expected_type=dict, default=[])
+        for caption in captions_info:
+            caption_url = traverse_obj(caption, ('url', 'url_list', ...), expected_type=url_or_none, get_all=False)
+            if not caption_url:
+                continue
+            caption_json = self._download_json(
+                caption_url, aweme_id, note='Downloading captions', errnote='Unable to download captions', fatal=False)
+            if not caption_json:
+                continue
+            subtitles.setdefault(caption.get('language', 'en'), []).append({
+                'ext': 'srt',
+                'data': '\n\n'.join(
+                    f'{i + 1}\n{srt_subtitles_timecode(line["start_time"] / 1000)} --> {srt_subtitles_timecode(line["end_time"] / 1000)}\n{line["text"]}'
+                    for i, line in enumerate(caption_json['utterances']) if line.get('text'))
+            })
+        return subtitles
 
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
@@ -218,6 +276,7 @@ class TikTokBaseIE(InfoExtractor):
             'artist': music_author,
             'timestamp': int_or_none(aweme_detail.get('create_time')),
             'formats': formats,
+            'subtitles': self.extract_subtitles(aweme_detail, aweme_id),
             'thumbnails': thumbnails,
             'duration': int_or_none(traverse_obj(video_info, 'duration', ('download_addr', 'duration')), scale=1000),
             'availability': self._availability(
@@ -396,6 +455,10 @@ class TikTokIE(TikTokBaseIE):
             'comment_count': int,
         },
         'expected_warnings': ['Video not available']
+    }, {
+        # Auto-captions available
+        'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
+        'only_matching': True
     }]
 
     def _extract_aweme_app(self, aweme_id):
@@ -424,12 +487,9 @@ class TikTokIE(TikTokBaseIE):
         # If we only call once, we get a 403 when downlaoding the video.
         self._download_webpage(url, video_id)
         webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
-        next_json = self._search_regex(
-            r'id=\"__NEXT_DATA__\"\s+type=\"application\/json\"\s*[^>]+>\s*(?P<next_data>[^<]+)',
-            webpage, 'next data', group='next_data', default=None)
+        next_data = self._search_nextjs_data(webpage, video_id, default='{}')
 
-        if next_json:
-            next_data = self._parse_json(next_json, video_id)
+        if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
@@ -730,8 +790,7 @@ class DouyinIE(TikTokIE):
             'comment_count': int,
         }
     }]
-    _APP_VERSION = '9.6.0'
-    _MANIFEST_APP_VERSION = '960'
+    _APP_VERSIONS = [('9.6.0', '960')]
     _APP_NAME = 'aweme'
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'
