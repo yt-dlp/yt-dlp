@@ -8,6 +8,7 @@ from ..utils import (
 
 import uuid
 
+
 class AmazonStoreIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?amazon\.(?:[a-z]{2,3})(?:\.[a-z]{2})?/(?:[^/]+/)?(?:dp|gp/product)/(?P<id>[^/&#$?]+)'
 
@@ -73,45 +74,36 @@ class AmazonTrailerIE(InfoExtractor):
         video_id = self._match_id(url)
 
 # Download Json with empty data to force POST method, 'deviceTypeID' : 'AOAGZA014O5RE' => WEB
+        query = {
+            'deviceID': uuid.uuid4(),
+            'deviceTypeID': 'AOAGZA014O5RE',
+            'firmware': '1',
+            'asin': video_id,
+            'consumptionType': 'Streaming',
+            'desiredResources': 'PlaybackUrls,CuepointPlaylist,CatalogMetadata,SubtitleUrls,ForcedNarratives,TrickplayUrls,TransitionTimecodes,PlaybackSettings,XRayMetadata',
+            'resourceUsage': 'CacheResources',
+            'videoMaterialType': 'Trailer',
+            'deviceProtocolOverride': 'Https',
+            'deviceStreamingTechnologyOverride': 'DASH',
+            'deviceDrmOverride': 'CENC',
+            'deviceBitrateAdaptationsOverride': 'CVBR,CBR',
+            'deviceHdrFormatsOverride': 'None',
+            'deviceVideoCodecOverride': 'H264',
+            'deviceVideoQualityOverride': 'HD',
+            'audioTrackId': 'all',
+            'languageFeature': 'MLFv2',
+            'liveManifestType': 'patternTemplate,accumulating,live',
+            'supportedDRMKeyScheme': 'DUAL_KEY',
+            'daiLiveManifestType': 'patternTemplate,accumulating,live',
+            'titleDecorationScheme': 'primary-content',
+            'subtitleFormat': 'TTMLv2',
+            'playbackSettingsFormatVersion': '1.0.0',
+            'xrayToken': 'XRAY_WEB_2021_V1',
+            'xrayPlaybackMode': 'playback',
+            'xrayDeviceClass': 'normal',
+        }
         video = self._download_json('https://atv-ps.amazon.com/cdp/catalog/GetPlaybackResources',
-             video_id, 'Downloading JSON for %s' % video_id, fatal=True, data=[], query={
-                'deviceID': uuid.uuid4(),
-                'deviceTypeID': 'AOAGZA014O5RE',
-#                'gascEnabled': 'false',
-#                'marketplaceID': '',
-#                'uxLocale': 'en_US',
-                'firmware': '1',
-#                'clientId': '',
-#                'deviceApplicationName': '',
-#                'playerType': '',
-#                'operatingSystemName': '',
-#                'operatingSystemVersion': '',
-                'asin': video_id,
-                'consumptionType': 'Streaming',
-                'desiredResources': 'PlaybackUrls,CuepointPlaylist,CatalogMetadata,SubtitleUrls,ForcedNarratives,TrickplayUrls,TransitionTimecodes,PlaybackSettings,XRayMetadata',
-                'resourceUsage': 'CacheResources',
-                'videoMaterialType': 'Trailer',
-#                'userWatchSessionId': '',
-                'deviceProtocolOverride': 'Https',
-                'deviceStreamingTechnologyOverride': 'DASH',
-                'deviceDrmOverride': 'CENC',
-                'deviceBitrateAdaptationsOverride': 'CVBR,CBR',
-                'deviceHdrFormatsOverride': 'None',
-                'deviceVideoCodecOverride': 'H264',
-                'deviceVideoQualityOverride': 'HD',
-                'audioTrackId': 'all',
-                'languageFeature': 'MLFv2',
-                'liveManifestType': 'patternTemplate,accumulating,live',
-                'supportedDRMKeyScheme': 'DUAL_KEY',
-                'daiLiveManifestType': 'patternTemplate,accumulating,live',
-                'titleDecorationScheme': 'primary-content',
-                'subtitleFormat': 'TTMLv2',
-                'playbackSettingsFormatVersion': '1.0.0',
-                'xrayToken': 'XRAY_WEB_2021_V1',
-                'xrayPlaybackMode': 'playback',
-                'xrayDeviceClass': 'normal',
-#                'playerAttributes': ''
-        })
+                                    video_id, 'Downloading JSON for %s' % video_id, fatal=True, data=[], query=query)
 
         for key, url in video['playbackUrls']['urlSets'].items():
             formats = self._extract_mpd_formats(traverse_obj(url, ('urls', 'manifest', 'url')) + '?amznDtid=AOAGZA014O5RE&encoding=segmentBase', video_id, mpd_id='dash', fatal=False)
@@ -125,5 +117,4 @@ class AmazonTrailerIE(InfoExtractor):
             'description': traverse_obj(video, ('catalogMetadata', 'catalog', 'synopsis')),
             'duration': int_or_none(traverse_obj(url, ('urls', 'manifest', 'duration'))),
             'formats': formats,
-            #'age_limit': traverse_obj(video, ('catalogMetadata', 'catalog', 'regulatoryRating')), #"PG-13" error when converting
         }
