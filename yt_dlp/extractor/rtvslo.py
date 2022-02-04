@@ -107,7 +107,10 @@ class RTVSLOIE(InfoExtractor):
             for f in self._extract_wowza_formats(
                 traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec')), v_id, skip_protocols=['smil']
             ):
-                f.update({'format_note': 'Sign language interpretation', 'preference': -10})
+                f.update({
+                    'format_id': 'sign-'+f['format_id'],
+                    'format_note': 'Sign language interpretation', 'preference': -10,
+                    'language': 'slv' if f.get('language', '') == 'eng' and f.get('acodec', '') else f.get('language')})
                 formats.append(f)
         for strm in ('http', 'https'):
             for f in media.get('mediaFiles_sl'):
