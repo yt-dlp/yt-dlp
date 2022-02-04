@@ -107,7 +107,7 @@ class RTVSLOIE(InfoExtractor):
             for f in self._extract_wowza_formats(
                 traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec')), v_id, skip_protocols=['smil']
             ):
-                f.update({'format_note': 'Sign language interpretation', 'preference': -3})
+                f.update({'format_note': 'Sign language interpretation', 'preference': -10})
                 formats.append(f)
         for strm in ('http', 'https'):
             for f in media.get('mediaFiles_sl'):
@@ -121,7 +121,7 @@ class RTVSLOIE(InfoExtractor):
                         'ext': f.get('mediaType').lower(),
                         'format_id': f'files-sl_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}',
                         'format_note': 'Sign language interpretation',
-                        'preference': -3
+                        'preference': -10
                     })
 
         self._sort_formats(formats)
@@ -129,9 +129,9 @@ class RTVSLOIE(InfoExtractor):
         if any('intermission.mp4' in x.get('url', '') for x in formats):
             self.raise_geo_restricted(countries=self._GEO_COUNTRIES, metadata_available=True)
         if any('dummy_720p.mp4' in x.get('manifest_url', '') for x in formats) and meta.get('stub', '') == 'error':
-            raise ExtractorError(f'{self.IE_NAME} said: Clip not available')
+            raise ExtractorError(f'{self.IE_NAME} said: Clip not available', expected=True)
 
-        info = {
+        return {
             'thumbnails': thumbs,
             'subtitles': subs,
             'title': meta.get('title'),
@@ -146,5 +146,3 @@ class RTVSLOIE(InfoExtractor):
             'series': meta.get('showName'),
             'series_id': meta.get('showId'),
         }
-
-        return info
