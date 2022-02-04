@@ -68,8 +68,8 @@ class RTVSLOIE(InfoExtractor):
 
     def _real_extract(self, url):
         v_id = self._match_id(url)
-        meta = self._download_json(self._API_BASE.format('getRecordingDrm', v_id), v_id).get('response')
         date = unified_timestamp(meta.get('broadcastDate') or meta.get('broadcastDates')[0])
+        meta = self._download_json(self._API_BASE.format('getRecordingDrm', v_id), v_id)['response']
 
         thumbs = [{'id': k, 'url': v} for (k, v) in meta.get('images').items()]
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
@@ -86,7 +86,7 @@ class RTVSLOIE(InfoExtractor):
         if not jwt:
             raise ExtractorError('Site did not provide an authentication token, cannot proceed.')
 
-        media = self._download_json(self._API_BASE.format('getMedia', v_id) + f'&jwt={jwt}', v_id).get('response')
+        media = self._download_json(self._API_BASE.format('getMedia', v_id), v_id, query={'jwt': jwt})['response']
 
         formats = []
         if media.get('addaptiveMedia', False):
