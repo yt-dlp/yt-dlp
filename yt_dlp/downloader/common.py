@@ -380,6 +380,10 @@ class FileDownloader(object):
         """Report file has already been fully downloaded."""
         return self.ydl.report_file_already_downloaded(*args, **kwargs)
 
+    def report_file_advisory_locked(self, *args, **kwargs):
+        """Report file has an outstanding advisory lock."""
+        return self.ydl.report_file_advisory_locked(*args, **kwargs)
+
     def report_unable_to_resume(self):
         """Report it was impossible to resume download."""
         self.to_screen('[download] Unable to resume')

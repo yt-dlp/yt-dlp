@@ -946,6 +946,13 @@ class YoutubeDL(object):
         except UnicodeEncodeError:
             self.to_screen('[download] The file has already been downloaded')
 
+    def report_file_advisory_locked(self, file_name):
+        """Report file has an outstanding advisory lock."""
+        try:
+            self.to_screen('[download] %s is being downloaded by another process' % file_name)
+        except UnicodeEncodeError:
+            self.to_screen('[download] The file is being downloaded by another process')
+
     def report_file_delete(self, file_name):
         """Report that existing file will be deleted."""
         try:
@@ -3091,6 +3098,9 @@ class YoutubeDL(object):
                 dl_filename = dl_filename or temp_filename
                 info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
 
+            except BlockingIOError as err:
+                self.report_file_advisory_locked(temp_filename)
+                return
             except network_exceptions as err:
                 self.report_error('unable to download video data: %s' % error_to_compat_str(err))
                 return

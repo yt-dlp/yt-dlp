@@ -267,6 +267,9 @@ class HttpFD(FileDownloader):
                         assert ctx.stream is not None
                         ctx.filename = self.undo_temp_name(ctx.tmpfilename)
                         self.report_destination(ctx.filename)
+                    except BlockingIOError as err:
+                        self.report_file_advisory_locked(ctx.tmpfilename)
+                        raise err
                     except (OSError, IOError) as err:
                         self.report_error('unable to open for writing: %s' % str(err))
                         return False
