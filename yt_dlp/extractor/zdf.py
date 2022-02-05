@@ -9,11 +9,13 @@ from ..utils import (
     determine_ext,
     float_or_none,
     int_or_none,
+    join_nonempty,
     merge_dicts,
     NO_DEFAULT,
     orderedSet,
     parse_codecs,
     qualities,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -49,35 +51,35 @@ class ZDFBaseIE(InfoExtractor):
 
     def _extract_format(self, video_id, formats, format_urls, meta):
         format_url = url_or_none(meta.get('url'))
-        if not format_url:
-            return
-        if format_url in format_urls:
+        if not format_url or format_url in format_urls:
             return
         format_urls.add(format_url)
-        mime_type = meta.get('mimeType')
-        ext = determine_ext(format_url)
+
+        mime_type, ext = meta.get('mimeType'), determine_ext(format_url)
         if mime_type == 'application/x-mpegURL' or ext == 'm3u8':
-            formats.extend(self._extract_m3u8_formats(
+            new_formats = self._extract_m3u8_formats(
                 format_url, video_id, 'mp4', m3u8_id='hls',
-                entry_protocol='m3u8_native', fatal=False))
+                entry_protocol='m3u8_native', fatal=False)
         elif mime_type == 'application/f4m+xml' or ext == 'f4m':
-            formats.extend(self._extract_f4m_formats(
-                update_url_query(format_url, {'hdcore': '3.7.0'}), video_id, f4m_id='hds', fatal=False))
+            new_formats = self._extract_f4m_formats(
+                update_url_query(format_url, {'hdcore': '3.7.0'}), video_id, f4m_id='hds', fatal=False)
         else:
             f = parse_codecs(meta.get('mimeCodec'))
-            format_id = ['http']
-            for p in (meta.get('type'), meta.get('quality')):
-                if p and isinstance(p, compat_str):
-                    format_id.append(p)
+            if not f and meta.get('type'):
+                data = meta['type'].split('_')
+                if try_get(data, lambda x: x[2]) == ext:
+                    f = {'vcodec': data[0], 'acodec': data[1]}
             f.update({
                 'url': format_url,
-                'format_id': '-'.join(format_id),
-                'format_note': meta.get('quality'),
-                'language': meta.get('language'),
-                'quality': qualities(self._QUALITIES)(meta.get('quality')),
-                'preference': -10,
+                'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
             })
-            formats.append(f)
+            new_formats = [f]
+        formats.extend(merge_dicts(f, {
+            'format_note': join_nonempty('quality', 'class', from_dict=meta, delim=', '),
+            'language': meta.get('language'),
+            'language_preference': 10 if meta.get('class') == 'main' else -10 if meta.get('class') == 'ad' else -1,
+            'quality': qualities(self._QUALITIES)(meta.get('quality')),
+        }) for f in new_formats)
 
     def _extract_ptmd(self, ptmd_url, video_id, api_token, referrer):
         ptmd = self._call_api(
@@ -106,9 +108,10 @@ class ZDFBaseIE(InfoExtractor):
                                 'type': f.get('type'),
                                 'mimeType': f.get('mimeType'),
                                 'quality': quality.get('quality'),
+                                'class': track.get('class'),
                                 'language': track.get('language'),
                             })
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('hasaud', 'res', 'quality', 'language_preference'))
 
         duration = float_or_none(try_get(
             ptmd, lambda x: x['attributes']['duration']['value']), scale=1000)
@@ -133,31 +136,18 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
-        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
-        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
-        'md5': '34ec321e7eb34231fd88616c65c92db0',
+        'url': 'https://www.zdf.de/nachrichten/heute-journal/heute-journal-vom-30-12-2021-100.html',
         'info_dict': {
-            'id': '210222_phx_nachgehakt_corona_protest',
+            'id': '211230_sendung_hjo',
             'ext': 'mp4',
-            'title': 'Wohin führt der Protest in der Pandemie?',
-            'description': 'md5:7d643fe7f565e53a24aac036b2122fbd',
-            'duration': 1691,
-            'timestamp': 1613948400,
-            'upload_date': '20210221',
-        },
-    }, {
-        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
-        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
-        'md5': '0aff3e7bc72c8813f5e0fae333316a1d',
-        'info_dict': {
-            'id': '141007_ab18_10wochensommer_film',
-            'ext': 'mp4',
-            'title': 'Ab 18! - 10 Wochen Sommer',
-            'description': 'md5:8253f41dc99ce2c3ff892dac2d65fe26',
-            'duration': 2660,
-            'timestamp': 1608604200,
-            'upload_date': '20201222',
-        },
+            'description': 'md5:47dff85977bde9fb8cba9e9c9b929839',
+            'duration': 1890.0,
+            'upload_date': '20211230',
+            'chapters': list,
+            'thumbnail': 'md5:e65f459f741be5455c952cd820eb188e',
+            'title': 'heute journal vom 30.12.2021',
+            'timestamp': 1640897100,
+        }
     }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
         'info_dict': {
@@ -168,6 +158,20 @@ class ZDFIE(ZDFBaseIE):
             'duration': 2615,
             'timestamp': 1465021200,
             'upload_date': '20160604',
+            'thumbnail': 'https://www.zdf.de/assets/mauve-im-labor-100~768x432?cb=1464909117806',
+        },
+    }, {
+        'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
+        'md5': '3d6f1049e9682178a11c54b91f3dd065',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'video_funk_1770473',
+            'duration': 1278,
+            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
+            'title': 'Alles ist verzaubert',
+            'timestamp': 1635520560,
+            'upload_date': '20211029',
+            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-100~1920x1080?cb=1636466431799',
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
@@ -190,6 +194,14 @@ class ZDFIE(ZDFBaseIE):
     }, {
         'url': 'https://www.zdf.de/dokumentation/planet-e/planet-e-uebersichtsseite-weitere-dokumentationen-von-planet-e-100.html',
         'only_matching': True,
+    }, {
+        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
+        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
+        'only_matching': True
+    }, {
+        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
+        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
+        'only_matching': True
     }]
 
     def _extract_entry(self, url, player, content, video_id):
@@ -200,8 +212,9 @@ class ZDFIE(ZDFBaseIE):
         ptmd_path = t.get('http://zdf.de/rels/streams/ptmd')
 
         if not ptmd_path:
-            ptmd_path = t[
-                'http://zdf.de/rels/streams/ptmd-template'].replace(
+            ptmd_path = traverse_obj(
+                t, ('streams', 'default', 'http://zdf.de/rels/streams/ptmd-template'),
+                'http://zdf.de/rels/streams/ptmd-template').replace(
                 '{playerId}', 'ngplayer_2_4')
 
         info = self._extract_ptmd(
@@ -227,12 +240,21 @@ class ZDFIE(ZDFBaseIE):
                     })
                 thumbnails.append(thumbnail)
 
+        chapter_marks = t.get('streamAnchorTag') or []
+        chapter_marks.append({'anchorOffset': int_or_none(t.get('duration'))})
+        chapters = [{
+            'start_time': chap.get('anchorOffset'),
+            'end_time': next_chap.get('anchorOffset'),
+            'title': chap.get('anchorLabel')
+        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
+
         return merge_dicts(info, {
             'title': title,
             'description': content.get('leadParagraph') or content.get('teasertext'),
             'duration': int_or_none(t.get('duration')),
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
+            'chapters': chapters or None
         })
 
     def _extract_regular(self, url, player, video_id):

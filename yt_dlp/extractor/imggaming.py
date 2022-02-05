@@ -64,10 +64,7 @@ class ImgGamingBaseIE(InfoExtractor):
         domain, media_type, media_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
-            if self.get_param('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % media_id)
-            else:
-                self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % playlist_id)
+            if self._yes_playlist(playlist_id, media_id):
                 media_type, media_id = 'playlist', playlist_id
 
         if media_type == 'playlist':
@@ -88,7 +85,7 @@ class ImgGamingBaseIE(InfoExtractor):
         video_data = self._download_json(dve_api_url, media_id)
         is_live = media_type == 'live'
         if is_live:
-            title = self._live_title(self._call_api('event/', media_id)['title'])
+            title = self._call_api('event/', media_id)['title']
         else:
             title = video_data['name']
 

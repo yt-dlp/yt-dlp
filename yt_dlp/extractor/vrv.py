@@ -19,6 +19,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    join_nonempty,
     traverse_obj,
 )
 
@@ -141,14 +142,10 @@ class VRVIE(VRVBaseIE):
     def _extract_vrv_formats(self, url, video_id, stream_format, audio_lang, hardsub_lang):
         if not url or stream_format not in ('hls', 'dash', 'adaptive_hls'):
             return []
-        stream_id_list = []
-        if audio_lang:
-            stream_id_list.append('audio-%s' % audio_lang)
-        if hardsub_lang:
-            stream_id_list.append('hardsub-%s' % hardsub_lang)
-        format_id = stream_format
-        if stream_id_list:
-            format_id += '-' + '-'.join(stream_id_list)
+        format_id = join_nonempty(
+            stream_format,
+            audio_lang and 'audio-%s' % audio_lang,
+            hardsub_lang and 'hardsub-%s' % hardsub_lang)
         if 'hls' in stream_format:
             adaptive_formats = self._extract_m3u8_formats(
                 url, video_id, 'mp4', m3u8_id=format_id,

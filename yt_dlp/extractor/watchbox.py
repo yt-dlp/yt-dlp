@@ -30,7 +30,6 @@ class WatchBoxIE(InfoExtractor):
             'release_year': 2009,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to download m3u8 information'],
@@ -52,7 +51,6 @@ class WatchBoxIE(InfoExtractor):
             'episode_number': 1,
         },
         'params': {
-            'format': 'bestvideo',
             'skip_download': True,
         },
         'expected_warnings': ['Failed to download m3u8 information'],

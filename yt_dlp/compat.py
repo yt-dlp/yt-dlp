@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import collections
 import ctypes
 import getpass
 import html
@@ -19,6 +20,7 @@ import shlex
 import shutil
 import socket
 import struct
+import subprocess
 import sys
 import tokenize
 import urllib
@@ -33,6 +35,8 @@ class compat_HTMLParseError(Exception):
     pass
 
 
+# compat_ctypes_WINFUNCTYPE = ctypes.WINFUNCTYPE
+# will not work since ctypes.WINFUNCTYPE does not exist in UNIX machines
 def compat_ctypes_WINFUNCTYPE(*args, **kwargs):
     return ctypes.WINFUNCTYPE(*args, **kwargs)
 
@@ -157,18 +161,37 @@ except ImportError:
         compat_pycrypto_AES = None
 
 
+WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+
+
+def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+    if compat_os_name != 'nt':
+        return
+    global WINDOWS_VT_MODE
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    try:
+        subprocess.Popen('', shell=True, startupinfo=startupinfo)
+        WINDOWS_VT_MODE = True
+    except Exception:
+        pass
+
+
 #  Deprecated
 
 compat_basestring = str
 compat_chr = chr
+compat_filter = filter
 compat_input = input
 compat_integer_types = (int, )
 compat_kwargs = lambda kwargs: kwargs
+compat_map = map
 compat_numeric_types = (int, float, complex)
 compat_str = str
 compat_xpath = lambda xpath: xpath
 compat_zip = zip
 
+compat_collections_abc = collections.abc
 compat_HTMLParser = html.parser.HTMLParser
 compat_HTTPError = urllib.error.HTTPError
 compat_Struct = struct.Struct
@@ -215,6 +238,7 @@ compat_xml_parse_error = etree.ParseError
 # Set public objects
 
 __all__ = [
+    'WINDOWS_VT_MODE',
     'compat_HTMLParseError',
     'compat_HTMLParser',
     'compat_HTTPError',
@@ -225,6 +249,7 @@ __all__ = [
     'compat_b64decode',
     'compat_basestring',
     'compat_chr',
+    'compat_collections_abc',
     'compat_cookiejar',
     'compat_cookiejar_Cookie',
     'compat_cookies',
@@ -234,6 +259,7 @@ __all__ = [
     'compat_etree_fromstring',
     'compat_etree_register_namespace',
     'compat_expanduser',
+    'compat_filter',
     'compat_get_terminal_size',
     'compat_getenv',
     'compat_getpass',
@@ -245,6 +271,7 @@ __all__ = [
     'compat_integer_types',
     'compat_itertools_count',
     'compat_kwargs',
+    'compat_map',
     'compat_numeric_types',
     'compat_ord',
     'compat_os_name',
@@ -279,5 +306,6 @@ __all__ = [
     'compat_xml_parse_error',
     'compat_xpath',
     'compat_zip',
+    'windows_enable_vt_mode',
     'workaround_optparse_bug9161',
 ]

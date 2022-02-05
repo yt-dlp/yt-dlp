@@ -1,25 +1,32 @@
+from hashlib import sha256
+import itertools
 import json
 import re
-from hashlib import sha256
+import time
 
 from .ffmpeg import FFmpegPostProcessor
 from ..compat import compat_urllib_parse_urlencode, compat_HTTPError
-from ..utils import PostProcessingError, sanitized_Request
+from ..utils import PostProcessingError, network_exceptions, sanitized_Request
 
 
 class SponsorBlockPP(FFmpegPostProcessor):
-
+    # https://wiki.sponsor.ajay.app/w/Types
     EXTRACTORS = {
         'Youtube': 'YouTube',
+    }
+    POI_CATEGORIES = {
+        'poi_highlight': 'Highlight',
     }
     CATEGORIES = {
         'sponsor': 'Sponsor',
         'intro': 'Intermission/Intro Animation',
         'outro': 'Endcards/Credits',
         'selfpromo': 'Unpaid/Self Promotion',
-        'interaction': 'Interaction Reminder',
         'preview': 'Preview/Recap',
-        'music_offtopic': 'Non-Music Section'
+        'filler': 'Filler Tangent',
+        'interaction': 'Interaction Reminder',
+        'music_offtopic': 'Non-Music Section',
+        **POI_CATEGORIES,
     }
 
     def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
@@ -33,6 +40,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
             self.to_screen(f'SponsorBlock is not supported for {extractor}')
             return [], info
 
+        self.to_screen('Fetching SponsorBlock segments')
         info['sponsorblock_chapters'] = self._get_sponsor_chapters(info, info['duration'])
         return [], info
 
@@ -44,6 +52,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
             # Ignore milliseconds difference at the start.
             if start_end[0] <= 1:
                 start_end[0] = 0
+            # Make POI chapters 1 sec so that we can properly mark them
+            if s['category'] in self.POI_CATEGORIES.keys():
+                start_end[1] += 1
             # Ignore milliseconds difference at the end.
             # Never allow the segment to exceed the video.
             if duration and duration - start_end[1] <= 1:
@@ -79,18 +90,28 @@ class SponsorBlockPP(FFmpegPostProcessor):
             'service': service,
             'categories': json.dumps(self._categories),
         })
+        self.write_debug(f'SponsorBlock query: {url}')
         for d in self._get_json(url):
             if d['videoID'] == video_id:
                 return d['segments']
         return []
 
     def _get_json(self, url):
-        self.write_debug(f'SponsorBlock query: {url}')
-        try:
-            rsp = self._downloader.urlopen(sanitized_Request(url))
-        except compat_HTTPError as e:
-            if e.code == 404:
-                return []
-            raise PostProcessingError(f'Error communicating with SponsorBlock API - {e}')
-
-        return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
+        # While this is not an extractor, it behaves similar to one and
+        # so obey extractor_retries and sleep_interval_requests
+        max_retries = self.get_param('extractor_retries', 3)
+        sleep_interval = self.get_param('sleep_interval_requests') or 0
+        for retries in itertools.count():
+            try:
+                rsp = self._downloader.urlopen(sanitized_Request(url))
+                return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
+            except network_exceptions as e:
+                if isinstance(e, compat_HTTPError) and e.code == 404:
+                    return []
+                if retries < max_retries:
+                    self.report_warning(f'{e}. Retrying...')
+                    if sleep_interval > 0:
+                        self.to_screen(f'Sleeping {sleep_interval} seconds ...')
+                        time.sleep(sleep_interval)
+                    continue
+                raise PostProcessingError(f'Unable to communicate with SponsorBlock API: {e}')

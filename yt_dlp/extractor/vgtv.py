@@ -242,7 +242,7 @@ class VGTVIE(XstreamIE):
 
         info.update({
             'id': video_id,
-            'title': self._live_title(data['title']) if is_live else data['title'],
+            'title': data['title'],
             'description': data['description'],
             'thumbnail': data['images']['main'] + '?t[]=900x506q80',
             'timestamp': data['published'],

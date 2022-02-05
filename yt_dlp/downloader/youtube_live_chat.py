@@ -183,7 +183,7 @@ class YoutubeLiveChatFD(FragmentFD):
                 request_data['currentPlayerState'] = {'playerOffsetMs': str(max(offset - 5000, 0))}
                 if click_tracking_params:
                     request_data['context']['clickTracking'] = {'clickTrackingParams': click_tracking_params}
-                headers = ie.generate_api_headers(ytcfg, visitor_data=visitor_data)
+                headers = ie.generate_api_headers(ytcfg=ytcfg, visitor_data=visitor_data)
                 headers.update({'content-type': 'application/json'})
                 fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode('utf-8') + b'\n'
                 success, continuation_id, offset, click_tracking_params = download_and_parse_fragment(

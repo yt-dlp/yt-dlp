@@ -7,6 +7,7 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    format_field,
     int_or_none,
     parse_resolution,
     str_or_none,
@@ -1386,8 +1387,7 @@ class PeerTubePlaylistIE(InfoExtractor):
         playlist_timestamp = unified_timestamp(info.get('createdAt'))
         channel = try_get(info, lambda x: x['ownerAccount']['name']) or info.get('displayName')
         channel_id = try_get(info, lambda x: x['ownerAccount']['id']) or info.get('id')
-        thumbnail = info.get('thumbnailPath')
-        thumbnail = f'https://{host}{thumbnail}' if thumbnail else None
+        thumbnail = format_field(info, 'thumbnailPath', f'https://{host}%s')
 
         entries = OnDemandPagedList(functools.partial(
             self.fetch_page, host, id, type), self._PAGE_SIZE)

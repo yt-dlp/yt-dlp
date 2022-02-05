@@ -141,7 +141,7 @@ class IviIE(InfoExtractor):
                 elif site == 353:
                     continue
                 elif not pycryptodome_found:
-                    raise ExtractorError('pycryptodome not found. Please install', expected=True)
+                    raise ExtractorError('pycryptodomex not found. Please install', expected=True)
                 elif message:
                     extractor_msg += ': ' + message
                 raise ExtractorError(extractor_msg % video_id, expected=True)

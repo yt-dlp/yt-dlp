@@ -21,7 +21,6 @@ class FancodeVodIE(InfoExtractor):
         'url': 'https://fancode.com/video/15043/match-preview-pbks-vs-mi',
         'params': {
             'skip_download': True,
-            'format': 'bestvideo'
         },
         'info_dict': {
             'id': '6249806281001',
@@ -42,7 +41,7 @@ class FancodeVodIE(InfoExtractor):
     _ACCESS_TOKEN = None
     _NETRC_MACHINE = 'fancode'
 
-    _LOGIN_HINT = 'Use "--user refresh --password <refresh_token>" to login using a refresh token'
+    _LOGIN_HINT = 'Use "--username refresh --password <refresh_token>" to login using a refresh token'
 
     headers = {
         'content-type': 'application/json',

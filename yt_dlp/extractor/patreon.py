@@ -161,7 +161,7 @@ class PatreonIE(InfoExtractor):
             if try_get(attributes, lambda x: x['embed']['provider']) == 'Vimeo':
                 embed_html = try_get(attributes, lambda x: x['embed']['html'])
                 v_url = url_or_none(compat_urllib_parse_unquote(
-                    self._search_regex(r'src=(https%3A%2F%2Fplayer\.vimeo\.com.+)%3F', embed_html, 'vimeo url', fatal=False)))
+                    self._search_regex(r'(https(?:%3A%2F%2F|://)player\.vimeo\.com.+app_id(?:=|%3D)+\d+)', embed_html, 'vimeo url', fatal=False)))
                 if v_url:
                     info.update({
                         '_type': 'url_transparent',
@@ -191,7 +191,7 @@ class PatreonIE(InfoExtractor):
 
 class PatreonUserIE(InfoExtractor):
 
-    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?P<id>[-_\w\d]+)/?(?:posts/?)?'
+    _VALID_URL = r'https?://(?:www\.)?patreon\.com/(?!rss)(?P<id>[-\w]+)'
 
     _TESTS = [{
         'url': 'https://www.patreon.com/dissonancepod/',

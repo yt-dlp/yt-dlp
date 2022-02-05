@@ -8,6 +8,8 @@ from yt_dlp.cookies import (
     WindowsChromeCookieDecryptor,
     parse_safari_cookies,
     pbkdf2_sha1,
+    _get_linux_desktop_environment,
+    _LinuxDesktopEnvironment,
 )
 
 
@@ -42,6 +44,37 @@ class MonkeyPatch:
 
 
 class TestCookies(unittest.TestCase):
+    def test_get_desktop_environment(self):
+        """ based on https://chromium.googlesource.com/chromium/src/+/refs/heads/main/base/nix/xdg_util_unittest.cc """
+        test_cases = [
+            ({}, _LinuxDesktopEnvironment.OTHER),
+
+            ({'DESKTOP_SESSION': 'gnome'}, _LinuxDesktopEnvironment.GNOME),
+            ({'DESKTOP_SESSION': 'mate'}, _LinuxDesktopEnvironment.GNOME),
+            ({'DESKTOP_SESSION': 'kde4'}, _LinuxDesktopEnvironment.KDE),
+            ({'DESKTOP_SESSION': 'kde'}, _LinuxDesktopEnvironment.KDE),
+            ({'DESKTOP_SESSION': 'xfce'}, _LinuxDesktopEnvironment.XFCE),
+
+            ({'GNOME_DESKTOP_SESSION_ID': 1}, _LinuxDesktopEnvironment.GNOME),
+            ({'KDE_FULL_SESSION': 1}, _LinuxDesktopEnvironment.KDE),
+
+            ({'XDG_CURRENT_DESKTOP': 'X-Cinnamon'}, _LinuxDesktopEnvironment.CINNAMON),
+            ({'XDG_CURRENT_DESKTOP': 'GNOME'}, _LinuxDesktopEnvironment.GNOME),
+            ({'XDG_CURRENT_DESKTOP': 'GNOME:GNOME-Classic'}, _LinuxDesktopEnvironment.GNOME),
+            ({'XDG_CURRENT_DESKTOP': 'GNOME : GNOME-Classic'}, _LinuxDesktopEnvironment.GNOME),
+
+            ({'XDG_CURRENT_DESKTOP': 'Unity', 'DESKTOP_SESSION': 'gnome-fallback'}, _LinuxDesktopEnvironment.GNOME),
+            ({'XDG_CURRENT_DESKTOP': 'KDE', 'KDE_SESSION_VERSION': '5'}, _LinuxDesktopEnvironment.KDE),
+            ({'XDG_CURRENT_DESKTOP': 'KDE'}, _LinuxDesktopEnvironment.KDE),
+            ({'XDG_CURRENT_DESKTOP': 'Pantheon'}, _LinuxDesktopEnvironment.PANTHEON),
+            ({'XDG_CURRENT_DESKTOP': 'Unity'}, _LinuxDesktopEnvironment.UNITY),
+            ({'XDG_CURRENT_DESKTOP': 'Unity:Unity7'}, _LinuxDesktopEnvironment.UNITY),
+            ({'XDG_CURRENT_DESKTOP': 'Unity:Unity8'}, _LinuxDesktopEnvironment.UNITY),
+        ]
+
+        for env, expected_desktop_environment in test_cases:
+            self.assertEqual(_get_linux_desktop_environment(env), expected_desktop_environment)
+
     def test_chrome_cookie_decryptor_linux_derive_key(self):
         key = LinuxChromeCookieDecryptor.derive_key(b'abc')
         self.assertEqual(key, b'7\xa1\xec\xd4m\xfcA\xc7\xb19Z\xd0\x19\xdcM\x17')
@@ -58,8 +91,7 @@ class TestCookies(unittest.TestCase):
             self.assertEqual(decryptor.decrypt(encrypted_value), value)
 
     def test_chrome_cookie_decryptor_linux_v11(self):
-        with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b'',
-                                   'KEYRING_AVAILABLE': True}):
+        with MonkeyPatch(cookies, {'_get_linux_keyring_password': lambda *args, **kwargs: b''}):
             encrypted_value = b'v11#\x81\x10>`w\x8f)\xc0\xb2\xc1\r\xf4\x1al\xdd\x93\xfd\xf8\xf8N\xf2\xa9\x83\xf1\xe9o\x0elVQd'
             value = 'tz=Europe.London'
             decryptor = LinuxChromeCookieDecryptor('Chrome', Logger())

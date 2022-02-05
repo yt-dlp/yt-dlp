@@ -1,18 +1,16 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import hashlib
-
 from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
-    compat_urllib_request,
-    compat_urlparse,
 )
 from ..utils import (
     ExtractorError,
     sanitized_Request,
+    traverse_obj,
     urlencode_postdata,
+    urljoin,
 )
 
 
@@ -82,41 +80,32 @@ class FC2IE(InfoExtractor):
             self._downloader.cookiejar.clear_session_cookies()  # must clear
             self._login()
 
-        title = 'FC2 video %s' % video_id
-        thumbnail = None
+        title, thumbnail, description = None, None, None
         if webpage is not None:
-            title = self._og_search_title(webpage)
+            title = self._html_search_regex(
+                (r'<h2\s+class="videoCnt_title">([^<]+?)</h2>',
+                 r'\s+href="[^"]+"\s*title="([^"]+?)"\s*rel="nofollow">\s*<img',
+                 # there's two matches in the webpage
+                 r'\s+href="[^"]+"\s*title="([^"]+?)"\s*rel="nofollow">\s*\1'),
+                webpage,
+                'title', fatal=False)
             thumbnail = self._og_search_thumbnail(webpage)
-        refer = url.replace('/content/', '/a/content/') if '/a/content/' not in url else url
+            description = self._og_search_description(webpage)
 
-        mimi = hashlib.md5((video_id + '_gGddgPfeaf_gzyr').encode('utf-8')).hexdigest()
-
-        info_url = (
-            'http://video.fc2.com/ginfo.php?mimi={1:s}&href={2:s}&v={0:s}&fversion=WIN%2011%2C6%2C602%2C180&from=2&otag=0&upid={0:s}&tk=null&'.
-            format(video_id, mimi, compat_urllib_request.quote(refer, safe=b'').replace('.', '%2E')))
-
-        info_webpage = self._download_webpage(
-            info_url, video_id, note='Downloading info page')
-        info = compat_urlparse.parse_qs(info_webpage)
-
-        if 'err_code' in info:
-            # most of the time we can still download wideo even if err_code is 403 or 602
-            self.report_warning(
-                'Error code was: %s... but still trying' % info['err_code'][0])
-
-        if 'filepath' not in info:
-            raise ExtractorError('Cannot download file. Are you logged in?')
-
-        video_url = info['filepath'][0] + '?mid=' + info['mid'][0]
-        title_info = info.get('title')
-        if title_info:
-            title = title_info[0]
+        vidplaylist = self._download_json(
+            'https://video.fc2.com/api/v3/videoplaylist/%s?sh=1&fs=0' % video_id, video_id,
+            note='Downloading info page')
+        vid_url = traverse_obj(vidplaylist, ('playlist', 'nq'))
+        if not vid_url:
+            raise ExtractorError('Unable to extract video URL')
+        vid_url = urljoin('https://video.fc2.com/', vid_url)
 
         return {
             'id': video_id,
             'title': title,
-            'url': video_url,
-            'ext': 'flv',
+            'url': vid_url,
+            'ext': 'mp4',
+            'description': description,
             'thumbnail': thumbnail,
         }
 

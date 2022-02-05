@@ -7,9 +7,11 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    extract_attributes,
     int_or_none,
     try_get,
     url_or_none,
+    lowercase_escape,
 )
 
 
@@ -147,8 +149,47 @@ class YandexVideoIE(InfoExtractor):
         }
 
 
+class YandexVideoPreviewIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?yandex\.ru/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
+    _TESTS = [{  # Odnoklassniki
+        'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
+        'info_dict': {
+            'id': '1352565459459',
+            'ext': 'mp4',
+            'like_count': int,
+            'upload_date': '20191202',
+            'age_limit': 0,
+            'duration': 196,
+            'thumbnail': 'https://i.mycdn.me/videoPreview?id=544866765315&type=37&idx=13&tkn=TY5qjLYZHxpmcnK8U2LgzYkgmaU&fn=external_8',
+            'uploader_id': '481054701571',
+            'title': 'LOFT - summer, summer, summer HD',
+            'manifest_stream_number': 0,
+            'uploader': 'АРТЁМ КУДРОВ',
+        },
+    }, {  # youtube
+        'url': 'https://yandex.ru/video/preview/?filmId=4479424425337895262&source=main_redirect&text=видео&utm_source=main_stripe_big',
+        'only_matching': True,
+    }, {  # YandexVideo
+        'url': 'https://yandex.ru/video/preview/5275069442094787341',
+        'only_matching': True,
+    }, {  # youtube
+        'url': 'https://yandex.ru/video/preview/?filmId=16658118429797832897&from=tabbar&p=1&text=%D0%BF%D1%80%D0%BE%D1%81%D0%BC%D0%BE%D1%82%D1%80+%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82%D0%B0+%D0%BC%D0%B0%D0%BB%D0%B5%D0%BD%D1%8C%D0%BA%D0%B8%D0%B9+%D0%BF%D1%80%D0%B8%D0%BD%D1%86+%D0%BC%D1%8B+%D0%B2+%D0%BE%D1%82%D0%B2%D0%B5%D1%82%D0%B5+%D0%B7%D0%B0+%D1%82%D0%B5%D1%85+%D0%BA%D0%BE%D0%B3%D0%BE+%D0%BF%D1%80%D0%B8%D1%80%D1%83%D1%87%D0%B8%D0%BB%D0%B8',
+        'only_matching': True,
+    }, {  # Odnoklassniki
+        'url': 'https://yandex.ru/video/preview/?text=Francis%20Lai%20-%20Le%20Bon%20Et%20Les%20MC)chants&path=wizard&parent-reqid=1643208087979310-1481782809207673478-sas3-0931-2f9-sas-l7-balancer-8080-BAL-9380&wiz_type=vital&filmId=12508152936505397283',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
+        data_json = self._parse_json(data_raw, id, transform_source=lowercase_escape)
+        return self.url_result(data_json['video']['url'])
+
+
 class ZenYandexIE(InfoExtractor):
-    _VALID_URL = r'https?://zen\.yandex\.ru/media/(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-(?P<id>[a-z0-9-]+)'
+    _VALID_URL = r'https?://zen\.yandex\.ru(?:/video)?/(media|watch)/(?:(?:id/[^/]+/|[^/]+/)(?:[a-z0-9-]+)-)?(?P<id>[a-z0-9-]+)'
     _TESTS = [{
         'url': 'https://zen.yandex.ru/media/popmech/izverjenie-vulkana-iz-spichek-zreliscnyi-opyt-6002240ff8b1af50bb2da5e3',
         'info_dict': {
@@ -156,8 +197,11 @@ class ZenYandexIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Извержение вулкана из спичек: зрелищный опыт',
             'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
-            'thumbnail': 'https://avatars.mds.yandex.net/get-zen-pub-og/3558619/pub_6002240ff8b1af50bb2da5e3_600bad814d953e4132a30b5e/orig',
+            'thumbnail': 're:^https://avatars.mds.yandex.net/',
             'uploader': 'Популярная механика',
+        },
+        'params': {
+            'skip_download': 'm3u8',
         },
     }, {
         'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/vot-eto-focus-dedy-morozy-na-gidrociklah-60c7c443da18892ebfe85ed7',
@@ -165,9 +209,25 @@ class ZenYandexIE(InfoExtractor):
             'id': '60c7c443da18892ebfe85ed7',
             'ext': 'mp4',
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
-            'description': 'md5:8684912f6086f298f8078d4af0e8a600',
-            'thumbnail': 'https://avatars.mds.yandex.net/get-zen-pub-og/4410519/pub_60c7c443da18892ebfe85ed7_60c7c48e060a163121f42cc3/orig',
+            'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
+            'thumbnail': 're:^https://avatars.mds.yandex.net/',
             'uploader': 'AcademeG DailyStream'
+        },
+        'params': {
+            'skip_download': 'm3u8',
+            'format': 'bestvideo',
+        },
+    }, {
+        'url': 'https://zen.yandex.ru/video/watch/6002240ff8b1af50bb2da5e3',
+        'info_dict': {
+            'id': '6002240ff8b1af50bb2da5e3',
+            'ext': 'mp4',
+            'title': 'Извержение вулкана из спичек: зрелищный опыт',
+            'description': 'md5:053ad3c61b5596d510c9a199dc8ee633',
+            'uploader': 'Популярная механика',
+        },
+        'params': {
+            'skip_download': 'm3u8',
         },
     }, {
         'url': 'https://zen.yandex.ru/media/id/606fd806cc13cb3c58c05cf5/novyi-samsung-fold-3-moskvich-barahlit-612f93b7f8d48e7e945792a2?from=channel&rid=2286618386.482.1630817595976.42360',
@@ -177,23 +237,37 @@ class ZenYandexIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(self._search_regex(r'w\._data\s?=\s?({.+?});', webpage, 'metadata'), id)
-        stream_json = try_get(data_json, lambda x: x['publication']['content']['gifContent'], dict)
-        stream_url = stream_json.get('stream') or try_get(stream_json, lambda x: x['streams']['url'])
-        formats = self._extract_m3u8_formats(stream_url, id)
+        data_json = self._parse_json(
+            self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
+        serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
+                                         webpage, 'server state').replace('State', 'Settings')
+        uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
+                                      webpage, 'uploader', default='<a>')
+        uploader_name = extract_attributes(uploader).get('aria-label')
+        video_json = try_get(data_json, lambda x: x[serverstate]['exportData']['video'], dict)
+        stream_urls = try_get(video_json, lambda x: x['video']['streams'])
+        formats = []
+        for s_url in stream_urls:
+            ext = determine_ext(s_url)
+            if ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(s_url, id, mpd_id='dash'))
+            elif ext == 'm3u8':
+                formats.extend(self._extract_m3u8_formats(s_url, id, 'mp4'))
         self._sort_formats(formats)
         return {
             'id': id,
-            'title': try_get(data_json, (lambda x: x['og']['title'], lambda x: x['publication']['content']['preview']['title'])),
-            'uploader': data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
-            'description': try_get(data_json, lambda x: x['og']['description']),
-            'thumbnail': try_get(data_json, lambda x: x['og']['imageUrl']),
+            'title': video_json.get('title') or self._og_search_title(webpage),
             'formats': formats,
+            'duration': int_or_none(video_json.get('duration')),
+            'view_count': int_or_none(video_json.get('views')),
+            'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
+            'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
+            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
         }
 
 
 class ZenYandexChannelIE(InfoExtractor):
-    _VALID_URL = r'https?://zen\.yandex\.ru/(?!media)(?:id/)?(?P<id>[a-z0-9-_]+)'
+    _VALID_URL = r'https?://zen\.yandex\.ru/(?!media|video)(?:id/)?(?P<id>[a-z0-9-_]+)'
     _TESTS = [{
         'url': 'https://zen.yandex.ru/tok_media',
         'info_dict': {

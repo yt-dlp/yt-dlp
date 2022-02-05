@@ -17,13 +17,13 @@ from ..utils import (
     cli_valueless_option,
     cli_bool_option,
     _configuration_args,
+    determine_ext,
     encodeFilename,
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
-    is_outdated_version,
-    process_communicate_or_kill,
-    sanitize_open,
+    Popen,
+    remove_end,
 )
 
 
@@ -115,55 +115,54 @@ class ExternalFD(FragmentFD):
 
         self._debug_cmd(cmd)
 
-        if 'fragments' in info_dict:
-            fragment_retries = self.params.get('fragment_retries', 0)
-            skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
-
-            count = 0
-            while count <= fragment_retries:
-                p = subprocess.Popen(
-                    cmd, stderr=subprocess.PIPE)
-                _, stderr = process_communicate_or_kill(p)
-                if p.returncode == 0:
-                    break
-                # TODO: Decide whether to retry based on error code
-                # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
-                self.to_stderr(stderr.decode('utf-8', 'replace'))
-                count += 1
-                if count <= fragment_retries:
-                    self.to_screen(
-                        '[%s] Got error. Retrying fragments (attempt %d of %s)...'
-                        % (self.get_basename(), count, self.format_retries(fragment_retries)))
-            if count > fragment_retries:
-                if not skip_unavailable_fragments:
-                    self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                    return -1
-
-            decrypt_fragment = self.decrypter(info_dict)
-            dest, _ = sanitize_open(tmpfilename, 'wb')
-            for frag_index, fragment in enumerate(info_dict['fragments']):
-                fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
-                try:
-                    src, _ = sanitize_open(fragment_filename, 'rb')
-                except IOError:
-                    if skip_unavailable_fragments and frag_index > 1:
-                        self.to_screen('[%s] Skipping fragment %d ...' % (self.get_basename(), frag_index))
-                        continue
-                    self.report_error('Unable to open fragment %d' % frag_index)
-                    return -1
-                dest.write(decrypt_fragment(fragment, src.read()))
-                src.close()
-                if not self.params.get('keep_fragments', False):
-                    os.remove(encodeFilename(fragment_filename))
-            dest.close()
-            os.remove(encodeFilename('%s.frag.urls' % tmpfilename))
-        else:
-            p = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE)
-            _, stderr = process_communicate_or_kill(p)
+        if 'fragments' not in info_dict:
+            p = Popen(cmd, stderr=subprocess.PIPE)
+            _, stderr = p.communicate_or_kill()
             if p.returncode != 0:
                 self.to_stderr(stderr.decode('utf-8', 'replace'))
-        return p.returncode
+            return p.returncode
+
+        fragment_retries = self.params.get('fragment_retries', 0)
+        skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
+
+        count = 0
+        while count <= fragment_retries:
+            p = Popen(cmd, stderr=subprocess.PIPE)
+            _, stderr = p.communicate_or_kill()
+            if p.returncode == 0:
+                break
+            # TODO: Decide whether to retry based on error code
+            # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
+            self.to_stderr(stderr.decode('utf-8', 'replace'))
+            count += 1
+            if count <= fragment_retries:
+                self.to_screen(
+                    '[%s] Got error. Retrying fragments (attempt %d of %s)...'
+                    % (self.get_basename(), count, self.format_retries(fragment_retries)))
+        if count > fragment_retries:
+            if not skip_unavailable_fragments:
+                self.report_error('Giving up after %s fragment retries' % fragment_retries)
+                return -1
+
+        decrypt_fragment = self.decrypter(info_dict)
+        dest, _ = self.sanitize_open(tmpfilename, 'wb')
+        for frag_index, fragment in enumerate(info_dict['fragments']):
+            fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
+            try:
+                src, _ = self.sanitize_open(fragment_filename, 'rb')
+            except IOError as err:
+                if skip_unavailable_fragments and frag_index > 1:
+                    self.report_skip_fragment(frag_index, err)
+                    continue
+                self.report_error(f'Unable to open fragment {frag_index}; {err}')
+                return -1
+            dest.write(decrypt_fragment(fragment, src.read()))
+            src.close()
+            if not self.params.get('keep_fragments', False):
+                os.remove(encodeFilename(fragment_filename))
+        dest.close()
+        os.remove(encodeFilename('%s.frag.urls' % tmpfilename))
+        return 0
 
 
 class CurlFD(ExternalFD):
@@ -198,8 +197,8 @@ class CurlFD(ExternalFD):
         self._debug_cmd(cmd)
 
         # curl writes the progress to stderr so don't capture it.
-        p = subprocess.Popen(cmd)
-        process_communicate_or_kill(p)
+        p = Popen(cmd)
+        p.communicate_or_kill()
         return p.returncode
 
 
@@ -268,6 +267,7 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
@@ -292,7 +292,7 @@ class Aria2cFD(ExternalFD):
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
-            stream, _ = sanitize_open(url_list_file, 'wb')
+            stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode('utf-8'))
             stream.close()
             cmd += ['-i', url_list_file]
@@ -306,7 +306,7 @@ class HttpieFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
-        return ExternalFD.available(cls, path or 'http')
+        return super().available(path or 'http')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -326,6 +326,10 @@ class FFmpegFD(ExternalFD):
         # TODO: Fix path for ffmpeg
         # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
+
+    @classmethod
+    def supports(cls, info_dict):
+        return all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+'))
 
     def on_process_started(self, proc, stdin):
         """ Override this in subclasses  """
@@ -441,8 +445,7 @@ class FFmpegFD(ExternalFD):
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
             for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
                 stream_number = fmt.get('manifest_stream_number', 0)
-                a_or_v = 'a' if fmt.get('acodec') != 'none' else 'v'
-                args.extend(['-map', f'{i}:{a_or_v}:{stream_number}'])
+                args.extend(['-map', f'{i}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
@@ -456,12 +459,21 @@ class FFmpegFD(ExternalFD):
                 args += ['-f', 'mpegts']
             else:
                 args += ['-f', 'mp4']
-                if (ffpp.basename == 'ffmpeg' and is_outdated_version(ffpp._versions['ffmpeg'], '3.2', False)) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
+                if (ffpp.basename == 'ffmpeg' and ffpp._features.get('needs_adtstoasc')) and (not info_dict.get('acodec') or info_dict['acodec'].split('.')[0] in ('aac', 'mp4a')):
                     args += ['-bsf:a', 'aac_adtstoasc']
         elif protocol == 'rtmp':
             args += ['-f', 'flv']
         elif ext == 'mp4' and tmpfilename == '-':
             args += ['-f', 'mpegts']
+        elif ext == 'unknown_video':
+            ext = determine_ext(remove_end(tmpfilename, '.part'))
+            if ext == 'unknown_video':
+                self.report_warning(
+                    'The video format is unknown and cannot be downloaded by ffmpeg. '
+                    'Explicitly set the extension in the filename to attempt download in that format')
+            else:
+                self.report_warning(f'The video format is unknown. Trying to download as {ext} according to the filename')
+                args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
         else:
             args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
 
@@ -471,7 +483,7 @@ class FFmpegFD(ExternalFD):
         args.append(encodeFilename(ffpp._ffmpeg_filename_argument(tmpfilename), True))
         self._debug_cmd(args)
 
-        proc = subprocess.Popen(args, stdin=subprocess.PIPE, env=env)
+        proc = Popen(args, stdin=subprocess.PIPE, env=env)
         if url in ('-', 'pipe:'):
             self.on_process_started(proc, proc.stdin)
         try:
@@ -483,7 +495,7 @@ class FFmpegFD(ExternalFD):
             # streams). Note that Windows is not affected and produces playable
             # files (see https://github.com/ytdl-org/youtube-dl/issues/8300).
             if isinstance(e, KeyboardInterrupt) and sys.platform != 'win32' and url not in ('-', 'pipe:'):
-                process_communicate_or_kill(proc, b'q')
+                proc.communicate_or_kill(b'q')
             else:
                 proc.kill()
                 proc.wait()
