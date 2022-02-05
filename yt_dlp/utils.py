@@ -2167,7 +2167,7 @@ class locked_file(object):
         self.block = block
 
     def __enter__(self):
-        exclusive = self.mode not in ['r', 'rb']
+        exclusive = 'r' not in self.mode
         try:
             _lock_file(self.f, exclusive, self.block)
         except IOError:
