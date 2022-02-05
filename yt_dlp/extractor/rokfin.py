@@ -221,12 +221,16 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         if not frmts:
             if stream_scheduled_for:
                 # The stream is pending.
-                self.raise_no_formats(
-                    msg='the ' + ('premium-only ' if availability == 'premium_only' else '')
-                    + 'stream is/was scheduled for '
-                    + datetime.datetime.strftime(stream_scheduled_for, '%Y-%m-%dT%H:%M:%S') + ' (YYYY-MM-DD, 24H clock, GMT)' + ('' if self.get_param('wait_for_video') else '. Try --wait-for-video'),
-                    video_id=video_id,
-                    expected=True)
+                def error_message(stream_scheduled_for, availability):
+                    time_diff = (stream_scheduled_for - datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)) if stream_scheduled_for >= datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc) else (datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc) - stream_scheduled_for)
+                    print(f'time_diff.seconds={time_diff.seconds}')
+                    main_part = (f'{time_diff.days}D+' if time_diff.days else '') + f'{(time_diff.seconds // 3600):02}:{((time_diff.seconds % 3600) // 60):02}:{((time_diff.seconds % 3600) % 60):02}'
+
+                    if stream_scheduled_for >= datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc):
+                        return 'live in ' + main_part + (' (premium-only)' if availability == 'premium_only' else '') + '. Try --wait-for-video'
+                    else:
+                        return 'not live; ' + main_part + ' behind schedule' + (' (premium-only)' if availability == 'premium_only' else '') + '. Try --wait-for-video'
+                self.raise_no_formats(error_message(stream_scheduled_for, availability), video_id=video_id, expected=True)
             elif availability == 'premium_only':
                 self.raise_no_formats(msg='premium content', video_id=video_id, expected=True)
             elif m3u8_url:
