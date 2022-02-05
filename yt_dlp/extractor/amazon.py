@@ -6,6 +6,8 @@ from ..utils import (
     traverse_obj,
 )
 
+import json
+import re
 import uuid
 
 
@@ -60,7 +62,7 @@ class AmazonStoreIE(InfoExtractor):
 
 
 class AmazonTrailerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?amazon\.(?:[a-z]{2,3})(?:\.[a-z]{2})?/gp/video/detail/(?P<id>[^/&#$?]+)/(ref=atv_dp_watch_trailer)?\?autoplay=trailer'
+    _VALID_URL = r'https?://(?:www\.)?((amazon\.(?:[a-z]{2,3})(?:\.[a-z]{2})?/gp/video)|(primevideo\.(?:[a-z]{2,3})(?:\.[a-z]{2})?))/detail/(?P<id>[^/&#$?]+)/?.*'
 
     _TESTS = [{
         'url': 'https://www.amazon.com/gp/video/detail/B07RK3CBNQ/ref=atv_dp_watch_trailer?autoplay=trailer',
@@ -68,53 +70,116 @@ class AmazonTrailerIE(InfoExtractor):
             'id': 'B07RK3CBNQ',
             'title': 'Mission: Impossible - Fallout (4K UHD',
         },
+    }, {
+        'url': 'https://www.amazon.com/gp/video/detail/B096FT1CFW',
+        'info_dict': {
+            'id': 'B096FT1CFW',
+            'title': 'Demon Slayer -Kimetsu no Yaiba- The Movie: Mugen Train (English Dubbed Version)',
+        },
+    }, {
+        'url': 'https://www.primevideo.com/detail/0FL5RNWP149JC50PVH0Q6PJ2TK/ref=atv_mv_hom_1_c_zbfcqv_brws_2_3',
+        'info_dict': {
+            'id': '0FL5RNWP149JC50PVH0Q6PJ2TK',
+            'title': 'After We Fell',
+        },
+    }, {
+        'url': 'https://www.primevideo.com/detail/0SP2T0F2VT868QB7T5OUUV18LG',
+        'info_dict': {
+            'id': '0SP2T0F2VT868QB7T5OUUV18LG',
+            'title': 'Spider-Man: Far From Home',
+        },
     }]
 
     def _real_extract(self, url):
+        self.report_warning('Amazon Prime videos use DRM and will not be supported. Downloading the trailer instead')
         video_id = self._match_id(url)
 
-# Download Json with empty data to force POST method, 'deviceTypeID' : 'AOAGZA014O5RE' => WEB
-        query = {
-            'deviceID': uuid.uuid4(),
-            'deviceTypeID': 'AOAGZA014O5RE',
-            'firmware': '1',
-            'asin': video_id,
-            'consumptionType': 'Streaming',
-            'desiredResources': 'PlaybackUrls,CuepointPlaylist,CatalogMetadata,SubtitleUrls,ForcedNarratives,TrickplayUrls,TransitionTimecodes,PlaybackSettings,XRayMetadata',
-            'resourceUsage': 'CacheResources',
-            'videoMaterialType': 'Trailer',
-            'deviceProtocolOverride': 'Https',
-            'deviceStreamingTechnologyOverride': 'DASH',
-            'deviceDrmOverride': 'CENC',
-            'deviceBitrateAdaptationsOverride': 'CVBR,CBR',
-            'deviceHdrFormatsOverride': 'None',
-            'deviceVideoCodecOverride': 'H264',
-            'deviceVideoQualityOverride': 'HD',
-            'audioTrackId': 'all',
-            'languageFeature': 'MLFv2',
-            'liveManifestType': 'patternTemplate,accumulating,live',
-            'supportedDRMKeyScheme': 'DUAL_KEY',
-            'daiLiveManifestType': 'patternTemplate,accumulating,live',
-            'titleDecorationScheme': 'primary-content',
-            'subtitleFormat': 'TTMLv2',
-            'playbackSettingsFormatVersion': '1.0.0',
-            'xrayToken': 'XRAY_WEB_2021_V1',
-            'xrayPlaybackMode': 'playback',
-            'xrayDeviceClass': 'normal',
-        }
-        video = self._download_json('https://atv-ps.amazon.com/cdp/catalog/GetPlaybackResources',
-                                    video_id, 'Downloading JSON for %s' % video_id, fatal=True, data=[], query=query)
+        titleID = None
+        title = None
+        description = None
+        duration = None
 
+        if re.search(r'^https?://(?:www\.)?amazon\.(?:[a-z]{2,3})(?:\.[a-z]{2})?', url) is not None:
+            json_url = 'https://atv-ps.amazon.com/cdp/catalog/GetPlaybackResources'
+# Download Json with empty data to force POST method, 'deviceTypeID' : 'AOAGZA014O5RE' => WEB
+            query = {
+                'deviceID': uuid.uuid4(),
+                'deviceTypeID': 'AOAGZA014O5RE',
+                'firmware': '1',
+                'asin': video_id,
+                'consumptionType': 'Streaming',
+                'desiredResources': 'PlaybackUrls,CuepointPlaylist,CatalogMetadata,SubtitleUrls,ForcedNarratives,TrickplayUrls,TransitionTimecodes,PlaybackSettings,XRayMetadata',
+                'resourceUsage': 'CacheResources',
+                'videoMaterialType': 'Trailer',
+                'deviceProtocolOverride': 'Https',
+                'deviceStreamingTechnologyOverride': 'DASH',
+                'deviceDrmOverride': 'CENC',
+                'deviceBitrateAdaptationsOverride': 'CVBR,CBR',
+                'deviceHdrFormatsOverride': 'None',
+                'deviceVideoCodecOverride': 'H264',
+                'deviceVideoQualityOverride': 'HD',
+                'audioTrackId': 'all',
+                'languageFeature': 'MLFv2',
+                'liveManifestType': 'patternTemplate,accumulating,live',
+                'supportedDRMKeyScheme': 'DUAL_KEY',
+                'daiLiveManifestType': 'patternTemplate,accumulating,live',
+                'titleDecorationScheme': 'primary-content',
+                'subtitleFormat': 'TTMLv2',
+                'playbackSettingsFormatVersion': '1.0.0',
+                'xrayToken': 'XRAY_WEB_2021_V1',
+                'xrayPlaybackMode': 'playback',
+                'xrayDeviceClass': 'normal',
+            }
+        else:
+            json_url = 'https://atv-ps.primevideo.com/cdp/catalog/GetPlaybackResources'
+            webpage = self._download_webpage(url, video_id)
+            matches = re.findall(r'<script[^>]*>({.*"titleID":"[^"]*".*})</script>', webpage)
+            for match in matches:
+                myjson = json.loads(match)
+                titleID = titleID or traverse_obj(myjson, ('args', 'titleID'))
+                if traverse_obj(myjson, ('props', 'state', 'detail', 'headerDetail', titleID, 'title')) is not None:
+                    title = traverse_obj(myjson, ('props', 'state', 'detail', 'headerDetail', titleID, 'title'))
+                    description = traverse_obj(myjson, ('props', 'state', 'detail', 'headerDetail', titleID, 'synopsis'))
+                    break
+            if titleID is None:
+                self.report_warning('Can not match in any know JSON structures. Extracting from string to continue.')
+                titleID = re.findall(r'"titleID":"([^"]*)"', matches[0])[0]
+            query = {
+                'deviceID': uuid.uuid4(),
+                'deviceTypeID': 'AOAGZA014O5RE',
+                'firmware': '1',
+                'asin': titleID,
+                'consumptionType': 'Streaming',
+                'desiredResources': 'PlaybackUrls,CuepointPlaylist',
+                'resourceUsage': 'ImmediateConsumption',
+                'videoMaterialType': 'Trailer',
+                'deviceProtocolOverride': 'Https',
+                'deviceStreamingTechnologyOverride': 'DASH',
+                'deviceDrmOverride': 'CENC',
+                'deviceBitrateAdaptationsOverride': 'CVBR,CBR',
+                'deviceHdrFormatsOverride': 'None',
+                'deviceVideoCodecOverride': 'H264',
+                'deviceVideoQualityOverride': 'HD',
+                'audioTrackId': 'all',
+                'languageFeature': 'MLFv2',
+                'liveManifestType': 'patternTemplate,accumulating,live',
+                'supportedDRMKeyScheme': 'DUAL_KEY',
+            }
+
+        video = self._download_json(json_url, video_id, 'Downloading JSON for %s' % video_id, fatal=True, data=[], query=query)
+
+        formats = []
         for key, url in video['playbackUrls']['urlSets'].items():
-            formats = self._extract_mpd_formats(traverse_obj(url, ('urls', 'manifest', 'url')) + '?amznDtid=AOAGZA014O5RE&encoding=segmentBase', video_id, mpd_id='dash', fatal=False)
-            if formats:
-                break
+            formats.extend(self._extract_mpd_formats(traverse_obj(url, ('urls', 'manifest', 'url')) + '?amznDtid=AOAGZA014O5RE&encoding=segmentBase',
+                           video_id, mpd_id='dash', note='Downloading MPD manifest - %s' % traverse_obj(url, ('urls', 'manifest', 'cdn')), fatal=False))
+            duration = duration or int_or_none(traverse_obj(url, ('urls', 'manifest', 'duration')) / 1000)
+        self._remove_duplicate_formats(formats)
 
         return {
             'id': video_id,
-            'display_id': traverse_obj(video, ('catalogMetadata', 'catalog', 'id')),
-            'title': traverse_obj(video, ('catalogMetadata', 'catalog', 'title')),
-            'description': traverse_obj(video, ('catalogMetadata', 'catalog', 'synopsis')),
-            'duration': int_or_none(traverse_obj(url, ('urls', 'manifest', 'duration'))),
+            'display_id': titleID or traverse_obj(video, ('catalogMetadata', 'catalog', 'id')),
+            'title': title or traverse_obj(video, ('catalogMetadata', 'catalog', 'title')),
+            'description': description or traverse_obj(video, ('catalogMetadata', 'catalog', 'synopsis')),
+            'duration': duration,
             'formats': formats,
         }
