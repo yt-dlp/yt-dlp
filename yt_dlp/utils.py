@@ -2190,7 +2190,7 @@ class locked_file(object):
     def read(self, *args):
         return self.f.read(*args)
 
-    def flush(self, *args):
+    def flush(self):
         self.f.flush()
 
     def close(self, *args):
