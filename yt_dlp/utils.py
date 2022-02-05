@@ -1832,7 +1832,7 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
 def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    (now|today|yesterday|date)[+-][0-9]+(microsecond|second|minute|hour|day|week|month|year)(s)?
 
     format: string date format used to return datetime object from
     precision: round the time portion of a datetime object.
@@ -1874,7 +1874,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
 def date_from_str(date_str, format='%Y%m%d'):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    (now|today|yesterday|date)[+-][0-9]+(microsecond|second|minute|hour|day|week|month|year)(s)?
 
     format: string date format used to return datetime object from
     """
