@@ -223,7 +223,6 @@ class RokfinStreamIE(RokfinSingleVideoIE):
                 # The stream is pending.
                 def error_message(stream_scheduled_for, availability):
                     time_diff = (stream_scheduled_for - datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)) if stream_scheduled_for >= datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc) else (datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc) - stream_scheduled_for)
-                    print(f'time_diff.seconds={time_diff.seconds}')
                     main_part = (f'{time_diff.days}D+' if time_diff.days else '') + f'{(time_diff.seconds // 3600):02}:{((time_diff.seconds % 3600) // 60):02}:{((time_diff.seconds % 3600) % 60):02}'
 
                     if stream_scheduled_for >= datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc):
