@@ -665,7 +665,7 @@ def sanitize_open(filename, open_mode):
                 import msvcrt
                 msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
             return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
-        stream = open(encodeFilename(filename), open_mode)
+        stream = locked_file(filename, open_mode, block=False).open()
         return (stream, filename)
     except (IOError, OSError) as err:
         if err.errno in (errno.EACCES,):
@@ -677,7 +677,7 @@ def sanitize_open(filename, open_mode):
             raise
         else:
             # An exception here should be caught in the caller
-            stream = open(encodeFilename(alt_filename), open_mode)
+            stream = locked_file(filename, open_mode, block=False).open()
             return (stream, alt_filename)
 
 
@@ -2115,7 +2115,7 @@ if sys.platform == 'win32':
     whole_low = 0xffffffff
     whole_high = 0x7fffffff
 
-    def _lock_file(f, exclusive):
+    def _lock_file(f, exclusive, block):  # todo: block unused on win32
         overlapped = OVERLAPPED()
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
@@ -2138,15 +2138,19 @@ else:
     try:
         import fcntl
 
-        def _lock_file(f, exclusive):
-            fcntl.flock(f, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+        def _lock_file(f, exclusive, block):
+            fcntl.flock(f,
+                        fcntl.LOCK_SH if not exclusive
+                        else fcntl.LOCK_EX if block
+                        else fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         def _unlock_file(f):
             fcntl.flock(f, fcntl.LOCK_UN)
+
     except ImportError:
         UNSUPPORTED_MSG = 'file locking is not supported on this platform'
 
-        def _lock_file(f, exclusive):
+        def _lock_file(f, exclusive, block):
             raise IOError(UNSUPPORTED_MSG)
 
         def _unlock_file(f):
@@ -2154,15 +2158,16 @@ else:
 
 
 class locked_file(object):
-    def __init__(self, filename, mode, encoding=None):
-        assert mode in ['r', 'a', 'w']
+    def __init__(self, filename, mode, block=True, encoding=None):
+        assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
         self.f = io.open(filename, mode, encoding=encoding)
         self.mode = mode
+        self.block = block
 
     def __enter__(self):
-        exclusive = self.mode != 'r'
+        exclusive = 'r' not in self.mode
         try:
-            _lock_file(self.f, exclusive)
+            _lock_file(self.f, exclusive, self.block)
         except IOError:
             self.f.close()
             raise
@@ -2182,6 +2187,15 @@ class locked_file(object):
 
     def read(self, *args):
         return self.f.read(*args)
+
+    def flush(self):
+        self.f.flush()
+
+    def open(self):
+        return self.__enter__()
+
+    def close(self, *args):
+        self.__exit__(self, *args, value=False, traceback=False)
 
 
 def get_filesystem_encoding():
