@@ -665,8 +665,7 @@ def sanitize_open(filename, open_mode):
                 import msvcrt
                 msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
             return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
-        stream = locked_file(encodeFilename(filename), open_mode, block=False)
-        stream = stream.__enter__()
+        stream = locked_file(filename, open_mode, block=False).open()
         return (stream, filename)
     except (IOError, OSError) as err:
         if err.errno in (errno.EACCES,):
@@ -678,8 +677,7 @@ def sanitize_open(filename, open_mode):
             raise
         else:
             # An exception here should be caught in the caller
-            stream = locked_file(encodeFilename(filename), open_mode, block=False)
-            stream = stream.__enter__()
+            stream = locked_file(filename, open_mode, block=False).open()
             return (stream, alt_filename)
 
 
@@ -2192,6 +2190,9 @@ class locked_file(object):
 
     def flush(self):
         self.f.flush()
+
+    def open(self):
+        return self.__enter__()
 
     def close(self, *args):
         self.__exit__(self, *args, value=False, traceback=False)
