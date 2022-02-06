@@ -91,7 +91,7 @@ class RTVSLOIE(InfoExtractor):
                 traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=url_or_none),
                 v_id, skip_protocols=['smil'])
         for strm in ('http', 'https'):
-            for f in media.get('mediaFiles'):
+            for f in media.get('mediaFiles', []):
                 if traverse_obj(f, ('streams', strm)):
                     formats.append({
                         'bitrate': f.get('bitrate'),
@@ -114,7 +114,7 @@ class RTVSLOIE(InfoExtractor):
                     'language': 'slv' if f.get('language', '') == 'eng' and f.get('acodec', '') else f.get('language')})
                 formats.append(f)
         for strm in ('http', 'https'):
-            for f in media.get('mediaFiles_sl'):
+            for f in media.get('mediaFiles_sl', []):
                 if traverse_obj(f, ('streams', strm)):
                     formats.append({
                         'bitrate': f.get('bitrate'),
