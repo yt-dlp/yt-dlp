@@ -63,9 +63,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
             needs_premium=True if downloaded_json_meta_data.get('premiumPlan') == 1 else False if downloaded_json_meta_data.get('premiumPlan') == 0 else None,
             # premiumPlan = 0 - no-premium content
             # premiumPlan = 1 - premium-only content
-            needs_subscription=False,
-            needs_auth=False,
-            is_unlisted=False)
+            needs_subscription=False, needs_auth=False, is_unlisted=False)
 
         if downloaded_json_meta_data.get('premiumPlan') not in (0, 1, None):
             self.report_warning(f'unknown availability code: {downloaded_json_meta_data.get("premiumPlan")}. Rokfin extractor should be updated')
@@ -124,8 +122,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
             for page_n in itertools.count(0):
                 raw_comments = self._download_json(
                     f'{base_url}?postId={video_id[5:]}&page={page_n}&size={comments_per_page}',
-                    video_id,
-                    note=f'Downloading viewer comments (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')',
+                    video_id, note=f'Downloading viewer comments (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')',
                     fatal=False) or {}
 
                 raw_comments = raw_comments.get
@@ -198,17 +195,13 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         downloaded_json_meta_data = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
         availability = self._availability(
             needs_premium=bool(downloaded_json_meta_data.get('premium')) if downloaded_json_meta_data.get('premium') in (True, False, 0, 1) else None,
-            is_private=False,
-            needs_subscription=False,
-            needs_auth=False,
-            is_unlisted=False)
+            is_private=False, needs_subscription=False, needs_auth=False, is_unlisted=False)
         m3u8_url = url_or_none(downloaded_json_meta_data.get('url'))
         stream_scheduled_for = try_get(downloaded_json_meta_data, lambda x: datetime.datetime.strptime(x.get('scheduledAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
         # 'scheduledAt' gets set to None after the stream becomes live.
         stream_ended_at = try_get(
             downloaded_json_meta_data,
-            lambda x: datetime.datetime.strptime(
-                x.get('stoppedAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
+            lambda x: datetime.datetime.strptime(x.get('stoppedAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
         # 'stoppedAt' is null unless the stream is finished. 'stoppedAt' likely contains an incorrect value,
         # so what matters to us is whether or not this field is *present*.
 
@@ -347,11 +340,9 @@ class RokfinStackIE(RokfinPlaylistIE):
 
         return self.playlist_result(
             entries=self._get_video_data(
-                json_data=self._download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id, fatal=False) or {},
-                video_base_url=_VIDEO_BASE_URL),
-            playlist_id=list_id, webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id,
-            # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
-            original_url=url_from_user)
+                json_data=self._download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id, fatal=False) or {}, video_base_url=_VIDEO_BASE_URL),
+            playlist_id=list_id, webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id, original_url=url_from_user)
+        # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
 
 
 class RokfinChannelIE(RokfinPlaylistIE):
@@ -408,9 +399,8 @@ class RokfinChannelIE(RokfinPlaylistIE):
             return self.playlist_result(
                 entries=dnl_video_meta_data_incrementally(tab=tab_dic[tabs[0] if tabs else "new"], channel_id=channel_id, channel_username=channel_username, channel_base_url=_CHANNEL_BASE_URL),
                 playlist_id=channel_id, playlist_title=channel_username, playlist_description=str_or_none(channel_info.get('description')),
-                webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username,
-                # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
-                original_url=url_from_user)
+                webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username, original_url=url_from_user)
+            # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
         else:
             raise ExtractorError(msg='unknown channel', expected=True)
 
@@ -455,13 +445,8 @@ class RokfinSearchIE(SearchInfoExtractor):
                     for service_url, service_access_key in itertools.product(service_urls, service_access_keys):
                         self.write_debug(msg=f'attempting to download 1st batch of search results from "{service_url}" using access key "{service_access_key}"')
                         srch_res = self._download_json(
-                            service_url,
-                            self._SEARCH_KEY,
-                            headers={'authorization': service_access_key},
-                            data=dumps(POST_DATA).encode('utf-8'),
-                            encoding='utf-8',
-                            note='Downloading search results (page 1)',
-                            fatal=False) or {}
+                            service_url, self._SEARCH_KEY, headers={'authorization': service_access_key}, data=dumps(POST_DATA).encode('utf-8'),
+                            encoding='utf-8', note='Downloading search results (page 1)', fatal=False) or {}
 
                         if srch_res:
                             self.service_url = service_url
