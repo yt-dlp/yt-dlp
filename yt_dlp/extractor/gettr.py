@@ -169,6 +169,8 @@ class GettrStreamingIE(GettrBaseIE):
                 'url': urljoin(self._MEDIA_BASE_URL, thumbnail),
             })
 
+        self._sort_formats(formats)
+
         return {
             'id': video_id,
             'title': try_get(video_info, lambda x: x['postData']['ttl']),
