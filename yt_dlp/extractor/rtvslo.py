@@ -91,17 +91,15 @@ class RTVSLOIE(InfoExtractor):
                 traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=url_or_none),
                 v_id, skip_protocols=['smil'])
         for strm in ('http', 'https'):
-            for f in media.get('mediaFiles', []):
-                if traverse_obj(f, ('streams', strm)):
-                    formats.append({
-                        'bitrate': f.get('bitrate'),
-                        'url': traverse_obj(f, ('streams', strm)),
-                        'filesize': f.get('filesize'),
-                        'width': f.get('width'),
-                        'height': f.get('height'),
-                        'ext': f.get('mediaType').lower(),
-                        'format_id': f'files_{strm}_{f.get("mediaType", "").lower()}_{f.get("bitrate")}'
-                    })
+            formats.extend({
+                'bitrate': f.get('bitrate'),
+                'url': traverse_obj(f, ('streams', strm)),
+                'filesize': f.get('filesize'),
+                'width': f.get('width'),
+                'height': f.get('height'),
+                'ext': f.get('mediaType', '').lower() or None,
+                'format_id': f'files_{strm}_{f.get("mediaType", "").lower()}_{f.get("bitrate")}',
+            } for f in media.get('mediaFiles', []) if traverse_obj(f, ('streams', strm)))
 
         if media.get('addaptiveMedia_sl', False):
             for f in self._extract_wowza_formats(
@@ -114,19 +112,17 @@ class RTVSLOIE(InfoExtractor):
                     'language': 'slv' if f.get('language', '') == 'eng' and f.get('acodec', '') else f.get('language')})
                 formats.append(f)
         for strm in ('http', 'https'):
-            for f in media.get('mediaFiles_sl', []):
-                if traverse_obj(f, ('streams', strm)):
-                    formats.append({
-                        'bitrate': f.get('bitrate'),
-                        'url': traverse_obj(f, ('streams', strm)),
-                        'filesize': f.get('filesize'),
-                        'width': f.get('width'),
-                        'height': f.get('height'),
-                        'ext': f.get('mediaType', "").lower() or None,
-                        'format_id': f'files-sl_{strm}_{f.get("mediaType", "").lower()}_{f.get("bitrate")}',
-                        'format_note': 'Sign language interpretation',
-                        'preference': -10
-                    })
+            formats.extend({
+                'bitrate': f.get('bitrate'),
+                'url': traverse_obj(f, ('streams', strm)),
+                'filesize': f.get('filesize'),
+                'width': f.get('width'),
+                'height': f.get('height'),
+                'ext': f.get('mediaType', '').lower() or None,
+                'format_id': f'files-sl_{strm}_{f.get("mediaType", "").lower()}_{f.get("bitrate")}',
+                'format_note': 'Sign language interpretation',
+                'preference': -10
+            } for f in media.get('mediaFiles_sl', []) if traverse_obj(f, ('streams', strm)))
 
         self._sort_formats(formats)
 
