@@ -349,8 +349,7 @@ class RokfinStackIE(RokfinPlaylistIE):
             entries=self._get_video_data(
                 json_data=self._download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id, fatal=False) or {},
                 video_base_url=_VIDEO_BASE_URL),
-            playlist_id=list_id,
-            webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id,
+            playlist_id=list_id, webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id,
             # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             original_url=url_from_user)
 
@@ -408,9 +407,7 @@ class RokfinChannelIE(RokfinPlaylistIE):
         if channel_id:
             return self.playlist_result(
                 entries=dnl_video_meta_data_incrementally(tab=tab_dic[tabs[0] if tabs else "new"], channel_id=channel_id, channel_username=channel_username, channel_base_url=_CHANNEL_BASE_URL),
-                playlist_id=channel_id,
-                playlist_title=channel_username,
-                playlist_description=str_or_none(channel_info.get('description')),
+                playlist_id=channel_id, playlist_title=channel_username, playlist_description=str_or_none(channel_info.get('description')),
                 webpage_url=_RECOMMENDED_CHANNEL_BASE_URL + channel_username,
                 # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
                 original_url=url_from_user)
@@ -445,11 +442,8 @@ class RokfinSearchIE(SearchInfoExtractor):
                 if self.service_url and self.service_access_key:
                     # Access has already been established.
                     srch_res = self._download_json(
-                        self.service_url,
-                        self._SEARCH_KEY,
-                        headers={'authorization': self.service_access_key},
-                        data=dumps(POST_DATA).encode('utf-8'),
-                        encoding='utf-8',
+                        self.service_url, self._SEARCH_KEY, headers={'authorization': self.service_access_key},
+                        data=dumps(POST_DATA).encode('utf-8'), encoding='utf-8',
                         note=f'Downloading search results (page {page_n}' + (f' of {min(pages_total, max_pages_to_download)}' if pages_total is not None and max_pages_to_download is not None else '') + ')',
                         fatal=True)
                 else:
@@ -552,9 +546,7 @@ class RokfinSearchIE(SearchInfoExtractor):
                 if page_n >= min(pages_total or float('inf'), max_pages_to_download or float('inf')) or (pages_total is None and max_pages_to_download is None):
                     return
 
-        return self.playlist_result(
-            entries=dnl_video_meta_data_incrementally(query, n_results),
-            playlist_id=query)
+        return self.playlist_result(entries=dnl_video_meta_data_incrementally(query, n_results), playlist_id=query)
 
     def _get_access_credentials(self):
         if self.service_url and self.service_access_key:
@@ -564,21 +556,16 @@ class RokfinSearchIE(SearchInfoExtractor):
         SERVICE_URL_PATH = '/api/as/v1/engines/rokfin-search/search.json'
         BASE_URL = 'https://rokfin.com'
 
-        notfound_err_page = self._download_webpage(
-            STARTING_WP_URL,
-            self._SEARCH_KEY,
-            expected_status=404,  # 'Not Found' is the expected outcome here.
-            fatal=False)
+        # 'Not Found' is the expected outcome here.
+        notfound_err_page = self._download_webpage(STARTING_WP_URL, self._SEARCH_KEY, expected_status=404, fatal=False)
 
         js = ''
         # <script src="/static/js/<filename>">
         for m in try_get(notfound_err_page, lambda x: finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', x)) or []:
             try:
-                js = js + try_get(m, lambda x: self._download_webpage(
-                    BASE_URL + x.group('path'),
-                    self._SEARCH_KEY,
-                    note='Downloading JavaScript file',
-                    fatal=False))
+                js = js + try_get(
+                    m, lambda x: self._download_webpage(BASE_URL + x.group('path'), self._SEARCH_KEY,
+                                                        note='Downloading JavaScript file', fatal=False))
             except TypeError:  # TypeError happens when try_get returns a non-string.
                 pass
 
