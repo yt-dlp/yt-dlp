@@ -112,7 +112,6 @@ class GettrIE(InfoExtractor):
 
 
 class GettrStreamingIE(GettrIE):
-    IE_NAME = 'Gettr:streaming'
     _VALID_URL = r'https?://(www\.)?gettr\.com/streaming/(?P<id>[a-z0-9]+)'
 
     _TESTS = [{
@@ -154,7 +153,7 @@ class GettrStreamingIE(GettrIE):
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             live_url, video_id, ext='mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if live_url else []
+            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if live_url else ([], {})
 
         thumbnails = []
         for thumbnail in try_get(video_info, lambda x: x['postData']['imgs']) or []:
@@ -172,7 +171,7 @@ class GettrStreamingIE(GettrIE):
             'uploader': try_get(video_info, lambda x: x['liveHostInfo']['nickname']),
             'uploader_id': try_get(video_info, lambda x: x['liveHostInfo']['_id']),
             'view_count': int_or_none(live_info.get('viewsCount')),
-            'timestamp': int_or_none(live_info.get('startAt')),
-            'duration': int_or_none(live_info.get('duration')),
+            'timestamp': float_or_none(live_info.get('startAt'), scale=1000),
+            'duration': float_or_none(live_info.get('duration'), scale=1000),
             'is_live': bool_or_none(live_info.get('isLive')),
         }
