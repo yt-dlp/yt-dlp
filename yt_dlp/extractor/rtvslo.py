@@ -100,7 +100,7 @@ class RTVSLOIE(InfoExtractor):
                         'width': f.get('width'),
                         'height': f.get('height'),
                         'ext': f.get('mediaType').lower(),
-                        'format_id': f'files_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}'
+                        'format_id': f'files_{strm}_{f.get("mediaType", "").lower()}_{f.get("bitrate")}'
                     })
 
         if media.get('addaptiveMedia_sl', False):
@@ -122,8 +122,8 @@ class RTVSLOIE(InfoExtractor):
                         'filesize': f.get('filesize'),
                         'width': f.get('width'),
                         'height': f.get('height'),
-                        'ext': f.get('mediaType').lower(),
-                        'format_id': f'files-sl_{strm}_{f.get("mediaType").lower()}_{f.get("bitrate")}',
+                        'ext': f.get('mediaType', "").lower() or None,
+                        'format_id': f'files-sl_{strm}_{f.get("mediaType", "").lower()}_{f.get("bitrate")}',
                         'format_note': 'Sign language interpretation',
                         'preference': -10
                     })
