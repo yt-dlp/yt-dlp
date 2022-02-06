@@ -74,12 +74,10 @@ class RTVSLOIE(InfoExtractor):
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
 
         subs = {}
-        for s in traverse_obj(meta, 'subs', 'subtitles', default={}):
-            if s.get('language') in SUB_LANGS_MAP.keys():
-                s['language'] = SUB_LANGS_MAP[s['language']]
-            if not subs.get(s.get('language'), False):
-                subs[s.get('language')] = []
-            subs[s.get('language')].append({'url': s.get('file'), 'format': s.get('format').lower()})
+        for s in traverse_obj(meta, 'subs', 'subtitles', default=[]):
+            lang = SUB_LANGS_MAP.get(s.get('language'), s.get('language') or 'und')
+            subs.setdefault(lang, []).append({
+                'url': s.get('file'), 'ext': s.get('format', '').lower() or None})
 
         jwt = meta.get('jwt')
         if not jwt:
@@ -90,7 +88,7 @@ class RTVSLOIE(InfoExtractor):
         formats = []
         if media.get('addaptiveMedia', False):
             formats = self._extract_wowza_formats(
-                traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=str),
+                traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=url_or_none),
                 v_id, skip_protocols=['smil'])
         for strm in ('http', 'https'):
             for f in media.get('mediaFiles'):
@@ -107,8 +105,9 @@ class RTVSLOIE(InfoExtractor):
 
         if media.get('addaptiveMedia_sl', False):
             for f in self._extract_wowza_formats(
-                traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec')), v_id, skip_protocols=['smil']
-            ):
+                traverse_obj(
+                    media, ('addaptiveMedia_sl', 'hls_sec'), expected_type=url_or_none),
+                    v_id, skip_protocols=['smil']):
                 f.update({
                     'format_id': 'sign-' + f['format_id'],
                     'format_note': 'Sign language interpretation', 'preference': -10,
