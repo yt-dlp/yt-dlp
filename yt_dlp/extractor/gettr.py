@@ -123,10 +123,11 @@ class GettrStreamingIE(GettrIE):
             'view_count': int,
             'uploader': 'Corona Investigative Committee',
             'uploader_id': 'coronacommittee',
-            'duration': 5180184,
+            'duration': 5180.184,
             'thumbnail': r're:^https?://.+',
             'title': 'Day 1: Opening Session of the Grand Jury Proceeding',
-            'timestamp': 1644080997164,
+            'timestamp': 1644080997.164,
+            'upload_date': '20220205',
         }
     }, {
         'url': 'https://gettr.com/streaming/psfmeefcc1',
@@ -139,8 +140,9 @@ class GettrStreamingIE(GettrIE):
             'description': 'md5:98986acdf656aa836bf36f9c9704c65b',
             'uploader': 'Corona Investigative Committee',
             'thumbnail': r're:^https?://.+',
-            'duration': 21872507,
-            'timestamp': 1643976662858,
+            'duration': 21872.507,
+            'timestamp': 1643976662.858,
+            'upload_date': '20220204',
         }
     }]
 
