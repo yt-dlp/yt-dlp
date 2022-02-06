@@ -16,9 +16,16 @@ from ..utils import (
 )
 
 
-class GettrIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?gettr\.com/post/(?P<id>[a-z0-9]+)'
+class GettrBaseIE(InfoExtractor):
     _MEDIA_BASE_URL = 'https://media.gettr.com/'
+    _API_BASE_URL = 'https://api.gettr.com/u/'
+
+    def _call_api(self, path, video_id, **kwargs):
+        return self._download_json(self._API_BASE_URL + path, video_id, **kwargs)
+
+
+class GettrIE(GettrBaseIE):
+    _VALID_URL = r'https?://(www\.)?gettr\.com/post/(?P<id>[a-z0-9]+)'
 
     _TESTS = [{
         'url': 'https://www.gettr.com/post/pcf6uv838f',
@@ -52,8 +59,7 @@ class GettrIE(InfoExtractor):
         post_id = self._match_id(url)
         webpage = self._download_webpage(url, post_id)
 
-        api_data = self._download_json(
-            'https://api.gettr.com/u/post/%s?incl="poststats|userinfo"' % post_id, post_id)
+        api_data = self._call_api('post/%s?incl="poststats|userinfo"' % post_id, post_id)
 
         post_data = try_get(api_data, lambda x: x['result']['data'])
         user_data = try_get(api_data, lambda x: x['result']['aux']['uinf'][post_data['uid']]) or {}
@@ -111,7 +117,7 @@ class GettrIE(InfoExtractor):
         }
 
 
-class GettrStreamingIE(GettrIE):
+class GettrStreamingIE(GettrBaseIE):
     _VALID_URL = r'https?://(www\.)?gettr\.com/streaming/(?P<id>[a-z0-9]+)'
 
     _TESTS = [{
@@ -148,7 +154,7 @@ class GettrStreamingIE(GettrIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._download_json('https://api.gettr.com/u/live/join/%s' % video_id, video_id, data={})['result']
+        video_info = self._call_api('live/join/%s' % video_id, video_id, data={})['result']
 
         live_info = video_info['broadcast']
         live_url = url_or_none(live_info.get('url'))
