@@ -563,10 +563,8 @@ class RokfinSearchIE(SearchInfoExtractor):
         # <script src="/static/js/<filename>">
         for m in try_get(notfound_err_page, lambda x: finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', x)) or []:
             try:
-                js = js + try_get(
-                    m, lambda x: self._download_webpage(BASE_URL + x.group('path'), self._SEARCH_KEY,
-                                                        note='Downloading JavaScript file', fatal=False))
-            except TypeError:  # TypeError happens when try_get returns a non-string.
+                js = js + try_get(m, lambda x: self._download_webpage(BASE_URL + x.group('path'), self._SEARCH_KEY, note='Downloading JavaScript file', fatal=False))
+            except TypeError:  # Happens when try_get returns a non-string.
                 pass
 
         service_urls = []
