@@ -18,10 +18,9 @@ from ..utils import (
 
 class GettrBaseIE(InfoExtractor):
     _MEDIA_BASE_URL = 'https://media.gettr.com/'
-    _API_BASE_URL = 'https://api.gettr.com/u/'
 
     def _call_api(self, path, video_id, **kwargs):
-        return self._download_json(self._API_BASE_URL + path, video_id, **kwargs)
+        return self._download_json('https://api.gettr.com/u/' + path, video_id, **kwargs)
 
 
 class GettrIE(GettrBaseIE):
@@ -163,11 +162,9 @@ class GettrStreamingIE(GettrBaseIE):
             live_url, video_id, ext='mp4',
             entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if live_url else ([], {})
 
-        thumbnails = []
-        for thumbnail in try_get(video_info, lambda x: x['postData']['imgs']) or []:
-            thumbnails.append({
-                'url': urljoin(self._MEDIA_BASE_URL, thumbnail),
-            })
+        thumbnails = [{
+            'url': urljoin(self._MEDIA_BASE_URL, thumbnail),
+        } for thumbnail in try_get(video_info, lambda x: x['postData']['imgs']) or []]
 
         self._sort_formats(formats)
 
