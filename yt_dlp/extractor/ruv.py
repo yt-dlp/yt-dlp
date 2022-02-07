@@ -161,27 +161,30 @@ class RuvSpilaIE(InfoExtractor):
         }}""" % (series_id, display_id)})['data']['Program']
         episode = program['episodes'][0]
 
-        description = episode['description'] or traverse_obj(program, 'description', 'short_description')
-
-        thumbnail = episode['image'].replace('$$IMAGESIZE$$', '1960') or None
-        timestamp = unified_timestamp(episode['firstrun'])
+        description = traverse_obj(program, ('episodes', 0, 'description'), 'description', 'short_description')
+        thumbnail = episode.get('image', '').replace('$$IMAGESIZE$$', '1960') or None
+        timestamp = unified_timestamp(episode.get('firstrun'))
         subs = {}
-        for trk in episode['subtitles']:
-            subs[trk['name']] = {'url': trk['value']}
+        for trk in episode.get('subtitles', []):
+            subs[trk.get('name')] = {'url': trk.get('value')}
+
         if '.m3u8' in episode['file']:
             formats = self._extract_m3u8_formats(episode['file'], display_id)
         else:
             formats = [{'url': episode['file']}]
-        clips = [{'start_time': parse_duration(c['time']), 'title': c['text']} for c in episode['clips']]
+
+        clips = [
+            {'start_time': parse_duration(c.get('time')), 'title': c.get('text')}
+            for c in episode.get('clips', [])]
 
         return {
             'id': display_id,
-            'title': episode['title'] or program['title'],
+            'title': traverse_obj(program, ('episodes', 0, 'title'), 'title'),
             'description': description,
             'thumbnail': thumbnail,
             'timestamp': timestamp,
             'formats': formats,
-            'age_limit': episode['rating'] or None,
-            'duration': episode['duration'],
+            'age_limit': episode.get('rating'),
+            'duration': episode.get('duration'),
             'chapters': clips
         }
