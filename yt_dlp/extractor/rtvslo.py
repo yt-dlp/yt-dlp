@@ -109,7 +109,9 @@ class RTVSLOIE(InfoExtractor):
                 f.update({
                     'format_id': 'sign-' + f['format_id'],
                     'format_note': 'Sign language interpretation', 'preference': -10,
-                    'language': 'slv' if f.get('language', '') == 'eng' and f.get('acodec', 'none') != 'none' else f.get('language')})
+                    'language': 'slv'
+                    if f.get('language', '') == 'eng' and f.get('acodec', 'none') != 'none'
+                    else f.get('language')})
                 formats.append(f)
         for strm in ('http', 'https'):
             formats.extend({
