@@ -20,7 +20,7 @@ class GettrBaseIE(InfoExtractor):
     _MEDIA_BASE_URL = 'https://media.gettr.com/'
 
     def _call_api(self, path, video_id, *args, **kwargs):
-        return self._download_json('https://api.gettr.com/u/' + path, video_id, *args, **kwargs)
+        return self._download_json(urljoin('https://api.gettr.com/u/', path), video_id, *args, **kwargs)
 
 
 class GettrIE(GettrBaseIE):
