@@ -1367,7 +1367,10 @@ from .megatvcom import (
 )
 from .rutv import RUTVIE
 from .ruutu import RuutuIE
-from .ruv import RuvIE
+from .ruv import (
+    RuvIE,
+    RuvSpilaIE
+)
 from .safari import (
     SafariIE,
     SafariApiIE,
