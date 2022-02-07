@@ -168,10 +168,11 @@ class RuvSpilaIE(InfoExtractor):
         for trk in episode.get('subtitles', []):
             subs[trk.get('name')] = {'url': trk.get('value')}
 
-        if '.m3u8' in episode['file']:
-            formats = self._extract_m3u8_formats(episode['file'], display_id)
+        media_url = episode['file']
+        if '.m3u8' in media_url:
+            formats = self._extract_m3u8_formats(media_url, display_id)
         else:
-            formats = [{'url': episode['file']}]
+            formats = [{'url': media_url}]
 
         clips = [
             {'start_time': parse_duration(c.get('time')), 'title': c.get('text')}
