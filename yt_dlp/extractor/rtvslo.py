@@ -15,7 +15,7 @@ class RTVSLOIE(InfoExtractor):
             'url': 'https://www.rtvslo.si/rtv365/arhiv/174842550?s=tv',
             'info_dict': {
                 'id': '174842550',
-                'ext': 'mp4',
+                'ext': 'flv',
                 'release_timestamp': 1643140032,
                 'upload_date': '20220125',
                 'series': 'Dnevnik',
@@ -109,7 +109,7 @@ class RTVSLOIE(InfoExtractor):
                 f.update({
                     'format_id': 'sign-' + f['format_id'],
                     'format_note': 'Sign language interpretation', 'preference': -10,
-                    'language': 'slv' if f.get('language', '') == 'eng' and f.get('acodec', '') else f.get('language')})
+                    'language': 'slv' if f.get('language', '') == 'eng' and f.get('acodec', 'none') != 'none' else f.get('language')})
                 formats.append(f)
         for strm in ('http', 'https'):
             formats.extend({
