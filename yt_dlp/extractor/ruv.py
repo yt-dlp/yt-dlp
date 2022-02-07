@@ -4,6 +4,8 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    parse_duration,
+    traverse_obj,
     unified_timestamp,
 )
 
@@ -98,4 +100,88 @@ class RuvIE(InfoExtractor):
             'thumbnail': thumbnail,
             'timestamp': timestamp,
             'formats': formats,
+        }
+
+
+class RuvSpilaIE(InfoExtractor):
+    IE_NAME = 'ruv.is:spila'
+    _VALID_URL = r'https?://(?:www\.)?ruv\.is/(?:(?:sjon|ut)varp|(?:krakka|ung)ruv)/spila/.+/(?P<series_id>[0-9]+)/(?P<id>[a-z0-9]+)'
+    _TESTS = [{
+        'url': 'https://www.ruv.is/sjonvarp/spila/ithrottir/30657/9jcnd4',
+        'info_dict': {
+            'id': '9jcnd4',
+            'ext': 'mp4',
+            'title': '01.02.2022',
+            'chapters': 'count:4',
+            'timestamp': 1643743500,
+            'upload_date': '20220201',
+            'thumbnail': 'https://d38kdhuogyllre.cloudfront.net/fit-in/1960x/filters:quality(65)/hd_posters/94boog-iti3jg.jpg',
+            'duration': 300,
+            'description': 'Íþróttafréttir.',
+        },
+    }, {
+        'url': 'https://www.ruv.is/utvarp/spila/i-ljosi-sogunnar/23795/7hqkre',
+        'info_dict': {
+            'id': '7hqkre',
+            'ext': 'mp3',
+            'thumbnail': 'https://d38kdhuogyllre.cloudfront.net/fit-in/1960x/filters:quality(65)/hd_posters/7hqkre-7uepao.jpg',
+            'description': 'md5:8d7046549daff35e9a3190dc9901a120',
+            'chapters': [],
+            'upload_date': '20220204',
+            'timestamp': 1643965500,
+            'title': 'Nellie Bly II',
+            'duration': 2400,
+        },
+    }, {
+        'url': 'https://www.ruv.is/ungruv/spila/ungruv/28046/8beuph',
+        'only_matching': True
+    }, {
+        'url': 'https://www.ruv.is/krakkaruv/spila/krakkafrettir/30712/9jbgb0',
+        'only_matching': True
+    }]
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        display_id = mobj.group('id')
+        series_id = mobj.group('series_id')
+        program = self._download_json(
+            'https://www.ruv.is/gql/', display_id,
+            query={'query': """{
+        Program(id: %s){
+            title image description short_description
+            episodes(id: {value: "%s"}) {
+                rating title duration file image firstrun description
+                clips {
+                    time text
+                }
+                subtitles {
+                    name value
+                }
+            }
+        }}""" % (series_id, display_id)})['data']['Program']
+        episode = program['episodes'][0]
+
+        description = episode['description'] or traverse_obj(program, 'description', 'short_description')
+
+        thumbnail = episode['image'].replace('$$IMAGESIZE$$', '1960') or None
+        timestamp = unified_timestamp(episode['firstrun'])
+        subs = {}
+        for trk in episode['subtitles']:
+            subs[trk['name']] = {'url': trk['value']}
+        if '.m3u8' in episode['file']:
+            formats = self._extract_m3u8_formats(episode['file'], display_id)
+        else:
+            formats = [{'url': episode['file']}]
+        clips = [{'start_time': parse_duration(c['time']), 'title': c['text']} for c in episode['clips']]
+
+        return {
+            'id': display_id,
+            'title': episode['title'] or program['title'],
+            'description': description,
+            'thumbnail': thumbnail,
+            'timestamp': timestamp,
+            'formats': formats,
+            'age_limit': episode['rating'] or None,
+            'duration': episode['duration'],
+            'chapters': clips
         }
