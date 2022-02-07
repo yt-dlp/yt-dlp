@@ -86,10 +86,9 @@ class RTVSLOIE(InfoExtractor):
         media = self._download_json(self._API_BASE.format('getMedia', v_id), v_id, query={'jwt': jwt})['response']
 
         formats = []
-        if media.get('addaptiveMedia', False):
-            formats = self._extract_wowza_formats(
-                traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=url_or_none),
-                v_id, skip_protocols=['smil'])
+        adaptive_url = traverse_obj(media, ('addaptiveMedia', 'hls_sec'), expected_type=url_or_none)
+        if adaptive_url:
+            formats = self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=['smil'])
         for strm in ('http', 'https'):
             formats.extend({
                 'bitrate': f.get('bitrate'),
@@ -101,11 +100,9 @@ class RTVSLOIE(InfoExtractor):
                 'format_id': f'files_{strm}_{f.get("mediaType", "").lower()}_{f.get("bitrate")}',
             } for f in media.get('mediaFiles', []) if traverse_obj(f, ('streams', strm)))
 
-        if media.get('addaptiveMedia_sl', False):
-            for f in self._extract_wowza_formats(
-                traverse_obj(
-                    media, ('addaptiveMedia_sl', 'hls_sec'), expected_type=url_or_none),
-                    v_id, skip_protocols=['smil']):
+        adaptive_url = traverse_obj(media, ('addaptiveMedia_sl', 'hls_sec'), expected_type=url_or_none)
+        if adaptive_url:
+            for f in self._extract_wowza_formats(adaptive_url, v_id, skip_protocols=['smil']):
                 f.update({
                     'format_id': 'sign-' + f['format_id'],
                     'format_note': 'Sign language interpretation', 'preference': -10,
