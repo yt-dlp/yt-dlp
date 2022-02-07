@@ -5,6 +5,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     traverse_obj,
+    try_get,
     unified_timestamp,
 )
 
@@ -21,8 +22,8 @@ class BeegIE(InfoExtractor):
             'duration': 927,
             'tags': list,
             'age_limit': 18,
-            'upload_date': '20220117',
-            'timestamp': 1642406589,
+            'upload_date': '20220131',
+            'timestamp': 1643656455,
             'display_id': 2540839,
         }
     }, {
@@ -60,14 +61,12 @@ class BeegIE(InfoExtractor):
             video_id, 'Downloading JSON for %s' % video_id)
 
         fc_facts = video.get('fc_facts')
-        firstFact = None
+        first_fact = {}
         for fact in fc_facts:
-            if firstFact is None:
-                firstFact = fact
-            elif fact['id'] < firstFact['id']:
-                firstFact = fact
+            if not first_fact or try_get(fact, lambda x: x['id'] < first_fact['id']):
+                first_fact = fact
 
-        resources = traverse_obj(video, ('file', 'hls_resources')) or firstFact.get('hls_resources')
+        resources = traverse_obj(video, ('file', 'hls_resources')) or first_fact.get('hls_resources')
 
         formats = []
         for format_id, video_uri in resources.items():
@@ -83,10 +82,10 @@ class BeegIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'display_id': firstFact.get('id'),
+            'display_id': first_fact.get('id'),
             'title': traverse_obj(video, ('file', 'stuff', 'sf_name')),
             'description': traverse_obj(video, ('file', 'stuff', 'sf_story')),
-            'timestamp': unified_timestamp(firstFact.get('fc_created')),
+            'timestamp': unified_timestamp(first_fact.get('fc_created')),
             'duration': int_or_none(traverse_obj(video, ('file', 'fl_duration'))),
             'tags': traverse_obj(video, ('tags', ..., 'tg_name')),
             'formats': formats,
