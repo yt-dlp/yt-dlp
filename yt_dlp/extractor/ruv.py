@@ -116,7 +116,6 @@ class RuvSpilaIE(InfoExtractor):
             'timestamp': 1643743500,
             'upload_date': '20220201',
             'thumbnail': 'https://d38kdhuogyllre.cloudfront.net/fit-in/1960x/filters:quality(65)/hd_posters/94boog-iti3jg.jpg',
-            'duration': 300,
             'description': 'Íþróttafréttir.',
         },
     }, {
@@ -130,7 +129,6 @@ class RuvSpilaIE(InfoExtractor):
             'upload_date': '20220204',
             'timestamp': 1643965500,
             'title': 'Nellie Bly II',
-            'duration': 2400,
         },
     }, {
         'url': 'https://www.ruv.is/ungruv/spila/ungruv/28046/8beuph',
@@ -186,6 +184,5 @@ class RuvSpilaIE(InfoExtractor):
             'timestamp': timestamp,
             'formats': formats,
             'age_limit': episode.get('rating'),
-            'duration': episode.get('duration'),
             'chapters': clips
         }
