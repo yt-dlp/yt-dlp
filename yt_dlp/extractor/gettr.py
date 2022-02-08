@@ -17,6 +17,7 @@ from ..utils import (
 
 
 class GettrBaseIE(InfoExtractor):
+    _BASE_REGEX = r'https?://(www\.)?gettr\.com/'
     _MEDIA_BASE_URL = 'https://media.gettr.com/'
 
     def _call_api(self, path, video_id, *args, **kwargs):
@@ -24,7 +25,7 @@ class GettrBaseIE(InfoExtractor):
 
 
 class GettrIE(GettrBaseIE):
-    _VALID_URL = r'https?://(www\.)?gettr\.com/post/(?P<id>[a-z0-9]+)'
+    _VALID_URL = GettrBaseIE._BASE_REGEX + r'post/(?P<id>[a-z0-9]+)'
 
     _TESTS = [{
         'url': 'https://www.gettr.com/post/pcf6uv838f',
@@ -117,7 +118,7 @@ class GettrIE(GettrBaseIE):
 
 
 class GettrStreamingIE(GettrBaseIE):
-    _VALID_URL = r'https?://(www\.)?gettr\.com/streaming/(?P<id>[a-z0-9]+)'
+    _VALID_URL = GettrBaseIE._BASE_REGEX + r'streaming/(?P<id>[a-z0-9]+)'
 
     _TESTS = [{
         'url': 'https://gettr.com/streaming/psoiulc122',
