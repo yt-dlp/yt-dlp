@@ -139,11 +139,11 @@ class GloboIE(InfoExtractor):
         resource_url = source['scheme'] + '://' + source['domain'] + source['path']
         signed_url = '%s?h=%s&k=html5&a=%s' % (resource_url, signed_hash, 'F' if video.get('subscriber_only') else 'A')
 
-        formats.extend(self._extract_m3u8_formats(
-            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
+            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+        formats.extend(fmts)
         self._sort_formats(formats)
 
-        subtitles = {}
         for resource in video['resources']:
             if resource.get('type') == 'subtitle':
                 subtitles.setdefault(resource.get('language') or 'por', []).append({
