@@ -610,6 +610,7 @@ from .hungama import (
     HungamaSongIE,
     HungamaAlbumPlaylistIE,
 )
+from .huya import HuyaIE
 from .hypem import HypemIE
 from .ichinanalive import (
     IchinanaLiveIE,
