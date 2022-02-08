@@ -26,6 +26,17 @@ class FujiTVFODPlus7IE(InfoExtractor):
             'description': 'md5:b3f51dbfdda162ac4f789e0ff4d65750',
             'thumbnail': 'https://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40110076_a.jpg',
         },
+    }, {
+        'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810083',
+        'info_dict': {
+            'id': '5d40810083',
+            'ext': 'mp4',
+            'title': '#1324 『まる子とオニの子』の巻／『結成！2月をムダにしない会』の巻',
+            'description': 'md5:3972d900b896adc8ab1849e310507efa',
+            'series': 'ちびまる子ちゃん',
+            'series_id': '5d40',
+            'thumbnail': 'https://i.fod.fujitv.co.jp/img/program/5d40/episode/5d40810083_a.jpg'},
+        'skip': 'Video available only in one week'
     }]
 
     def _real_extract(self, url):
@@ -43,12 +54,13 @@ class FujiTVFODPlus7IE(InfoExtractor):
             if not src.get('url'):
                 continue
             fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'mp4')
-            wh = self._BITRATE_MAP.get(fmt.get('tbr'))
-            if wh:
-                fmt.update({
-                    'width': wh[0],
-                    'height': wh[1],
-                })
+            for f in fmt:
+                wh = self._BITRATE_MAP.get(f.get('tbr'))
+                if wh:
+                    f.update({
+                        'width': wh[0],
+                        'height': wh[1],
+                    })
             formats.extend(fmt)
             subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats, ['tbr'])
