@@ -7,6 +7,13 @@ from .common import InfoExtractor
 class FujiTVFODPlus7IE(InfoExtractor):
     _VALID_URL = r'https?://fod\.fujitv\.co\.jp/title/(?P<sid>[0-9a-z]{4})/(?P<id>[0-9a-z]+)'
     _BASE_URL = 'https://i.fod.fujitv.co.jp/'
+    _BITRATE_MAP = {
+        300: (320, 180),
+        800: (640, 360),
+        1200: (1280, 720),
+        2000: (1280, 720),
+        4000: (1920, 1080),
+    }
 
     _TESTS = [{
         'url': 'https://fod.fujitv.co.jp/title/5d40/5d40110076',
@@ -36,6 +43,12 @@ class FujiTVFODPlus7IE(InfoExtractor):
             if not src.get('url'):
                 continue
             fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'mp4')
+            wh = self._BITRATE_MAP.get(fmt.get('tbr'))
+            if wh:
+                fmt.update({
+                    'width': wh[0],
+                    'height': wh[1],
+                })
             formats.extend(fmt)
             subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats, ['tbr'])
