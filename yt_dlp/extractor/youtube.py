@@ -42,6 +42,7 @@ from ..utils import (
     int_or_none,
     is_html,
     join_nonempty,
+    js_to_json,
     mimetype2ext,
     network_exceptions,
     NO_DEFAULT,
@@ -257,7 +258,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _RESERVED_NAMES = (
         r'channel|c|user|playlist|watch|w|v|embed|e|watch_popup|clip|'
-        r'shorts|movies|results|shared|hashtag|trending|explore|feed|feeds|'
+        r'shorts|movies|results|search|shared|hashtag|trending|explore|feed|feeds|'
         r'browse|oembed|get_video_info|iframe_api|s/player|'
         r'storefront|oops|index|account|reporthistory|t/terms|about|upload|signin|logout')
 
@@ -2420,9 +2421,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
 
     def _extract_n_function_name(self, jscode):
-        return self._search_regex(
-            (r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})\([a-zA-Z0-9]\)',),
-            jscode, 'Initial JS player n function name', group='nfunc')
+        nfunc, idx = self._search_regex(
+            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
+            jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
+        if not idx:
+            return nfunc
+        return json.loads(js_to_json(self._search_regex(
+            rf'var {nfunc}\s*=\s*(\[.+?\]);', jscode,
+            f'Initial JS player n function list ({nfunc}.{idx})')))[int(idx)]
 
     def _extract_n_function(self, video_id, player_url):
         player_id = self._extract_player_info(player_url)
@@ -3595,6 +3601,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
 class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
+    @staticmethod
+    def passthrough_smuggled_data(func):
+        def _smuggle(entries, smuggled_data):
+            for entry in entries:
+                # TODO: Convert URL to music.youtube instead.
+                # Do we need to passthrough any other smuggled_data?
+                entry['url'] = smuggle_url(entry['url'], smuggled_data)
+                yield entry
+
+        @functools.wraps(func)
+        def wrapper(self, url):
+            url, smuggled_data = unsmuggle_url(url, {})
+            if self.is_music_url(url):
+                smuggled_data['is_music_url'] = True
+            info_dict = func(self, url, smuggled_data)
+            if smuggled_data and info_dict.get('entries'):
+                info_dict['entries'] = _smuggle(info_dict['entries'], smuggled_data)
+            return info_dict
+        return wrapper
+
     def _extract_channel_id(self, webpage):
         channel_id = self._html_search_meta(
             'channelId', webpage, 'channel id', default=None)
@@ -3661,6 +3687,24 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                         yield self.url_result(
                             ep_url, ie=ie.ie_key(), video_id=ie._match_id(ep_url), video_title=title)
                         break
+
+    def _music_reponsive_list_entry(self, renderer):
+        video_id = traverse_obj(renderer, ('playlistItemData', 'videoId'))
+        if video_id:
+            return self.url_result(f'https://music.youtube.com/watch?v={video_id}',
+                                   ie=YoutubeIE.ie_key(), video_id=video_id)
+        playlist_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'playlistId'))
+        if playlist_id:
+            video_id = traverse_obj(renderer, ('navigationEndpoint', 'watchEndpoint', 'videoId'))
+            if video_id:
+                return self.url_result(f'https://music.youtube.com/watch?v={video_id}&list={playlist_id}',
+                                       ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+            return self.url_result(f'https://music.youtube.com/playlist?list={playlist_id}',
+                                   ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+        browse_id = traverse_obj(renderer, ('navigationEndpoint', 'browseEndpoint', 'browseId'))
+        if browse_id:
+            return self.url_result(f'https://music.youtube.com/browse/{browse_id}',
+                                   ie=YoutubeTabIE.ie_key(), video_id=browse_id)
 
     def _shelf_entries_from_content(self, shelf_renderer):
         content = shelf_renderer.get('content')
@@ -3783,7 +3827,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         for content in contents:
             if not isinstance(content, dict):
                 continue
-            is_renderer = try_get(content, lambda x: x['itemSectionRenderer'], dict)
+            is_renderer = traverse_obj(
+                content, 'itemSectionRenderer', 'musicShelfRenderer', 'musicShelfContinuation',
+                expected_type=dict)
             if not is_renderer:
                 renderer = content.get('richItemRenderer')
                 if renderer:
@@ -3800,6 +3846,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'playlistVideoListRenderer': self._playlist_entries,
                     'gridRenderer': self._grid_entries,
                     'shelfRenderer': lambda x: self._shelf_entries(x),
+                    'musicResponsiveListItemRenderer': lambda x: [self._music_reponsive_list_entry(x)],
                     'backstagePostThreadRenderer': self._post_thread_entries,
                     'videoRenderer': lambda x: [self._video_entry(x)],
                     'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
@@ -4224,33 +4271,32 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             raise ExtractorError(err_note, expected=True)
         self.report_warning(err_note, item_id)
 
-    @staticmethod
-    def _smuggle_data(entries, data):
-        for entry in entries:
-            if data:
-                entry['url'] = smuggle_url(entry['url'], data)
-            yield entry
-
     _SEARCH_PARAMS = None
 
-    def _search_results(self, query, params=NO_DEFAULT):
+    def _search_results(self, query, params=NO_DEFAULT, default_client='web'):
         data = {'query': query}
         if params is NO_DEFAULT:
             params = self._SEARCH_PARAMS
         if params:
             data['params'] = params
+
+        content_keys = (
+            ('contents', 'twoColumnSearchResultsRenderer', 'primaryContents', 'sectionListRenderer', 'contents'),
+            ('onResponseReceivedCommands', 0, 'appendContinuationItemsAction', 'continuationItems'),
+            # ytmusic search
+            ('contents', 'tabbedSearchResultsRenderer', 'tabs', 0, 'tabRenderer', 'content', 'sectionListRenderer', 'contents'),
+            ('continuationContents', ),
+        )
+        check_get_keys = tuple(set(keys[0] for keys in content_keys))
+
         continuation_list = [None]
         for page_num in itertools.count(1):
             data.update(continuation_list[0] or {})
             search = self._extract_response(
                 item_id='query "%s" page %s' % (query, page_num), ep='search', query=data,
-                check_get_keys=('contents', 'onResponseReceivedCommands'))
-            slr_contents = try_get(
-                search,
-                (lambda x: x['contents']['twoColumnSearchResultsRenderer']['primaryContents']['sectionListRenderer']['contents'],
-                 lambda x: x['onResponseReceivedCommands'][0]['appendContinuationItemsAction']['continuationItems']),
-                list)
-            yield from self._extract_entries({'contents': slr_contents}, continuation_list)
+                default_client=default_client, check_get_keys=check_get_keys)
+            slr_contents = traverse_obj(search, *content_keys)
+            yield from self._extract_entries({'contents': list(variadic(slr_contents))}, continuation_list)
             if not continuation_list[0]:
                 break
 
@@ -4927,18 +4973,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         return False if YoutubeIE.suitable(url) else super(
             YoutubeTabIE, cls).suitable(url)
 
-    def _real_extract(self, url):
-        url, smuggled_data = unsmuggle_url(url, {})
-        if self.is_music_url(url):
-            smuggled_data['is_music_url'] = True
-        info_dict = self.__real_extract(url, smuggled_data)
-        if info_dict.get('entries'):
-            info_dict['entries'] = self._smuggle_data(info_dict['entries'], smuggled_data)
-        return info_dict
-
     _URL_RE = re.compile(rf'(?P<pre>{_VALID_URL})(?(not_channel)|(?P<tab>/\w+))?(?P<post>.*)$')
 
-    def __real_extract(self, url, smuggled_data):
+    @YoutubeTabBaseInfoExtractor.passthrough_smuggled_data
+    def _real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
         url = compat_urlparse.urlunparse(
             compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
@@ -5273,7 +5311,14 @@ class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_NAME = 'youtube:search'
     _SEARCH_KEY = 'ytsearch'
     _SEARCH_PARAMS = 'EgIQAQ%3D%3D'  # Videos only
-    _TESTS = []
+    _TESTS = [{
+        'url': 'ytsearch5:youtube-dl test video',
+        'playlist_count': 5,
+        'info_dict': {
+            'id': 'youtube-dl test video',
+            'title': 'youtube-dl test video',
+        }
+    }]
 
 
 class YoutubeSearchDateIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
@@ -5281,12 +5326,20 @@ class YoutubeSearchDateIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     _SEARCH_KEY = 'ytsearchdate'
     IE_DESC = 'YouTube search, newest videos first'
     _SEARCH_PARAMS = 'CAISAhAB'  # Videos only, sorted by date
+    _TESTS = [{
+        'url': 'ytsearchdate5:youtube-dl test video',
+        'playlist_count': 5,
+        'info_dict': {
+            'id': 'youtube-dl test video',
+            'title': 'youtube-dl test video',
+        }
+    }]
 
 
 class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
     IE_DESC = 'YouTube search URLs with sorting and filter support'
     IE_NAME = YoutubeSearchIE.IE_NAME + '_url'
-    _VALID_URL = r'https?://(?:www\.)?youtube\.com/results\?(.*?&)?(?:search_query|q)=(?:[^&]+)(?:[&]|$)'
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/(?:results|search)\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)'
     _TESTS = [{
         'url': 'https://www.youtube.com/results?baz=bar&search_query=youtube-dl+test+video&filters=video&lclk=video',
         'playlist_mincount': 5,
@@ -5313,7 +5366,60 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
         return self.playlist_result(self._search_results(query, qs.get('sp', (None,))[0]), query, query)
 
 
-class YoutubeFeedsInfoExtractor(YoutubeTabIE):
+class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
+    IE_DESC = 'YouTube music search URLs with selectable sections (Eg: #songs)'
+    IE_NAME = 'youtube:music:search_url'
+    _VALID_URL = r'https?://music\.youtube\.com/search\?([^#]+&)?(?:search_query|q)=(?:[^&]+)(?:[&#]|$)'
+    _TESTS = [{
+        'url': 'https://music.youtube.com/search?q=royalty+free+music',
+        'playlist_count': 16,
+        'info_dict': {
+            'id': 'royalty free music',
+            'title': 'royalty free music',
+        }
+    }, {
+        'url': 'https://music.youtube.com/search?q=royalty+free+music&sp=EgWKAQIIAWoKEAoQAxAEEAkQBQ%3D%3D',
+        'playlist_mincount': 30,
+        'info_dict': {
+            'id': 'royalty free music - songs',
+            'title': 'royalty free music - songs',
+        },
+        'params': {'extract_flat': 'in_playlist'}
+    }, {
+        'url': 'https://music.youtube.com/search?q=royalty+free+music#community+playlists',
+        'playlist_mincount': 30,
+        'info_dict': {
+            'id': 'royalty free music - community playlists',
+            'title': 'royalty free music - community playlists',
+        },
+        'params': {'extract_flat': 'in_playlist'}
+    }]
+
+    _SECTIONS = {
+        'albums': 'EgWKAQIYAWoKEAoQAxAEEAkQBQ==',
+        'artists': 'EgWKAQIgAWoKEAoQAxAEEAkQBQ==',
+        'community playlists': 'EgeKAQQoAEABagoQChADEAQQCRAF',
+        'featured playlists': 'EgeKAQQoADgBagwQAxAJEAQQDhAKEAU==',
+        'songs': 'EgWKAQIIAWoKEAoQAxAEEAkQBQ==',
+        'videos': 'EgWKAQIQAWoKEAoQAxAEEAkQBQ==',
+    }
+
+    def _real_extract(self, url):
+        qs = parse_qs(url)
+        query = (qs.get('search_query') or qs.get('q'))[0]
+        params = qs.get('sp', (None,))[0]
+        if params:
+            section = next((k for k, v in self._SECTIONS.items() if v == params), params)
+        else:
+            section = compat_urllib_parse_unquote_plus((url.split('#') + [''])[1]).lower()
+            params = self._SECTIONS.get(section)
+            if not params:
+                section = None
+        title = join_nonempty(query, section, delim=' - ')
+        return self.playlist_result(self._search_results(query, params, default_client='web_music'), title, title)
+
+
+class YoutubeFeedsInfoExtractor(InfoExtractor):
     """
     Base class for feed extractors
     Subclasses must define the _FEED_NAME property.
@@ -5327,8 +5433,7 @@ class YoutubeFeedsInfoExtractor(YoutubeTabIE):
 
     def _real_extract(self, url):
         return self.url_result(
-            'https://www.youtube.com/feed/%s' % self._FEED_NAME,
-            ie=YoutubeTabIE.ie_key())
+            f'https://www.youtube.com/feed/{self._FEED_NAME}', ie=YoutubeTabIE.ie_key())
 
 
 class YoutubeWatchLaterIE(InfoExtractor):

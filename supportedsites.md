@@ -54,6 +54,7 @@
  - **AMCNetworks**
  - **AmericasTestKitchen**
  - **AmericasTestKitchenSeason**
+ - **AmHistoryChannel**
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **AnimalPlanet**
  - **AnimeLab**
@@ -227,6 +228,7 @@
  - **ComedyCentralTV**
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
+ - **CookingChannel**
  - **Corus**
  - **Coub**
  - **CozyTV**
@@ -268,21 +270,20 @@
  - **DeezerPlaylist**
  - **defense.gouv.fr**
  - **democracynow**
+ - **DestinationAmerica**
  - **DHM**: Filmarchiv - Deutsches Historisches Museum
  - **Digg**
  - **DigitalConcertHall**: DigitalConcertHall extractor
  - **DigitallySpeaking**
  - **Digiteka**
  - **Discovery**
- - **DiscoveryGo**
- - **DiscoveryGoPlaylist**
+ - **DiscoveryLife**
  - **DiscoveryNetworksDe**
  - **DiscoveryPlus**
  - **DiscoveryPlusIndia**
  - **DiscoveryPlusIndiaShow**
  - **DiscoveryPlusItaly**
  - **DiscoveryPlusItalyShow**
- - **DiscoveryVR**
  - **Disney**
  - **DIYNetwork**
  - **dlive:stream**
@@ -331,6 +332,9 @@
  - **Eporner**
  - **EroProfile**
  - **EroProfile:album**
+ - **ertflix**: ERTFLIX videos
+ - **ertflix:codename**: ERTFLIX videos by codename
+ - **ertwebtv:embed**: ert.gr webtv embedded videos
  - **Escapist**
  - **ESPN**
  - **ESPNArticle**
@@ -360,6 +364,7 @@
  - **FiveTV**
  - **Flickr**
  - **Folketinget**: Folketinget (ft.dk; Danish parliament)
+ - **FoodNetwork**
  - **FootyRoom**
  - **Formula1**
  - **FOX**
@@ -418,6 +423,7 @@
  - **glomex**: Glomex videos
  - **glomex:embed**: Glomex embedded videos
  - **Go**
+ - **GoDiscovery**
  - **GodTube**
  - **Gofile**
  - **Golem**
@@ -439,6 +445,7 @@
  - **hetklokhuis**
  - **hgtv.com:show**
  - **HGTVDe**
+ - **HGTVUsa**
  - **HiDive**
  - **HistoricFilms**
  - **history:player**
@@ -486,6 +493,7 @@
  - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
+ - **InvestigationDiscovery**
  - **IPrima**
  - **IPrimaCNN**
  - **iq.com**: International version of iQiyi
@@ -665,6 +673,10 @@
  - **MTVUutisetArticle**
  - **MuenchenTV**: münchen.tv
  - **MuseScore**
+ - **MusicdexAlbum**
+ - **MusicdexArtist**
+ - **MusicdexPlaylist**
+ - **MusicdexSong**
  - **mva**: Microsoft Virtual Academy videos
  - **mva:course**: Microsoft Virtual Academy courses
  - **Mwave**
@@ -1186,6 +1198,7 @@
  - **tiktok:tag**
  - **tiktok:user**
  - **tinypic**: tinypic.com videos
+ - **TLC**
  - **TMZ**
  - **TNAFlix**
  - **TNAFlixNetworkEmbed**
@@ -1198,6 +1211,7 @@
  - **Toypics**: Toypics video
  - **ToypicsUser**: Toypics user profile
  - **TrailerAddict** (Currently broken)
+ - **TravelChannel**
  - **Trilulilu**
  - **Trovo**
  - **TrovoChannelClip**: All Clips of a trovo.live channel; "trovoclip:" prefix
@@ -1310,7 +1324,7 @@
  - **Viddler**
  - **Videa**
  - **video.arnes.si**: Arnes Video
- - **video.google:search**: Google Video search; "gvsearch:" prefix (Currently broken)
+ - **video.google:search**: Google Video search; "gvsearch:" prefix
  - **video.sky.it**
  - **video.sky.it:live**
  - **VideoDetective**
@@ -1339,7 +1353,8 @@
  - **vimeo:review**: Review pages on vimeo
  - **vimeo:user**
  - **vimeo:watchlater**: Vimeo watch later list, "vimeowatchlater" keyword (requires authentication)
- - **Vimm**
+ - **Vimm:recording**
+ - **Vimm:stream**
  - **Vimple**: Vimple - one-click video hosting
  - **Vine**
  - **vine:user**
@@ -1392,7 +1407,7 @@
  - **wdr:mobile**
  - **WDRElefant**
  - **WDRPage**
- - **web.archive:youtube**: web.archive.org saved youtube videos
+ - **web.archive:youtube**: web.archive.org saved youtube videos, "ytarchive:" prefix
  - **Webcaster**
  - **WebcasterFeed**
  - **WebOfStories**
@@ -1443,6 +1458,7 @@
  - **yandexmusic:playlist**: Яндекс.Музыка - Плейлист
  - **yandexmusic:track**: Яндекс.Музыка - Трек
  - **YandexVideo**
+ - **YandexVideoPreview**
  - **YapFiles**
  - **YesJapan**
  - **yinyuetai:video**: 音悦Tai
@@ -1459,6 +1475,7 @@
  - **youtube**: YouTube
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
+ - **youtube:music:search_url**: YouTube music search URLs with selectable sections (Eg: #songs)
  - **youtube:playlist**: YouTube playlists
  - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword
  - **youtube:search**: YouTube search; "ytsearch:" prefix

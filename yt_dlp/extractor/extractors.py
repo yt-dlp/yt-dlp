@@ -361,9 +361,19 @@ from .dplay import (
     DPlayIE,
     DiscoveryPlusIE,
     HGTVDeIE,
+    GoDiscoveryIE,
+    TravelChannelIE,
+    CookingChannelIE,
+    HGTVUsaIE,
+    FoodNetworkIE,
+    InvestigationDiscoveryIE,
+    DestinationAmericaIE,
+    AmHistoryChannelIE,
     ScienceChannelIE,
     DIYNetworkIE,
+    DiscoveryLifeIE,
     AnimalPlanetIE,
+    TLCIE,
     DiscoveryPlusIndiaIE,
     DiscoveryNetworksDeIE,
     DiscoveryPlusItalyIE,
@@ -387,11 +397,6 @@ from .dumpert import DumpertIE
 from .defense import DefenseGouvFrIE
 from .digitalconcerthall import DigitalConcertHallIE
 from .discovery import DiscoveryIE
-from .discoverygo import (
-    DiscoveryGoIE,
-    DiscoveryGoPlaylistIE,
-)
-from .discoveryvr import DiscoveryVRIE
 from .disney import DisneyIE
 from .dispeak import DigitallySpeakingIE
 from .doodstream import DoodStreamIE
@@ -432,6 +437,11 @@ from .eporner import EpornerIE
 from .eroprofile import (
     EroProfileIE,
     EroProfileAlbumIE,
+)
+from .ertgr import (
+    ERTFlixCodenameIE,
+    ERTFlixIE,
+    ERTWebtvEmbedIE,
 )
 from .escapist import EscapistIE
 from .espn import (
@@ -974,6 +984,7 @@ from .nexx import (
     NexxIE,
     NexxEmbedIE,
 )
+from .nfb import NFBIE
 from .nfhsnetwork import NFHSNetworkIE
 from .nfl import (
     NFLIE,
@@ -1985,6 +1996,7 @@ from .yandexmusic import (
 )
 from .yandexvideo import (
     YandexVideoIE,
+    YandexVideoPreviewIE,
     ZenYandexIE,
     ZenYandexChannelIE,
 )
@@ -2017,6 +2029,7 @@ from .youtube import (
     YoutubeSearchDateIE,
     YoutubeSearchIE,
     YoutubeSearchURLIE,
+    YoutubeMusicSearchURLIE,
     YoutubeSubscriptionsIE,
     YoutubeTruncatedIDIE,
     YoutubeTruncatedURLIE,

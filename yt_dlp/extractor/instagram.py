@@ -134,7 +134,7 @@ class InstagramBaseIE(InfoExtractor):
         dash_manifest_raw = product_media.get('video_dash_manifest')
         videos_list = product_media.get('video_versions')
         if not (dash_manifest_raw or videos_list):
-            return None
+            return {}
 
         formats = [{
             'format_id': format.get('id'),

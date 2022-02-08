@@ -21,28 +21,20 @@ class TumblrIE(InfoExtractor):
             'id': '54196191430',
             'ext': 'mp4',
             'title': 'tatiana maslany news, Orphan Black || DVD extra - behind the scenes ↳...',
-            'description': 'md5:37db8211e40b50c7c44e95da14f630b7',
-            'thumbnail': r're:http://.*\.jpg',
+            'description': 'md5:390ab77358960235b6937ab3b8528956',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 127,
         }
     }, {
-        'url': 'http://5sostrum.tumblr.com/post/90208453769/yall-forgetting-the-greatest-keek-of-them-all',
-        'md5': 'bf348ef8c0ef84fbf1cbd6fa6e000359',
+        'url': 'https://maskofthedragon.tumblr.com/post/626907179849564160/mona-talking-in-english',
+        'md5': 'f43ff8a8861712b6cf0e0c2bd84cfc68',
         'info_dict': {
-            'id': '90208453769',
+            'id': '626907179849564160',
             'ext': 'mp4',
-            'title': '5SOS STRUM ;]',
-            'description': 'md5:dba62ac8639482759c8eb10ce474586a',
-            'thumbnail': r're:http://.*\.jpg',
-        }
-    }, {
-        'url': 'http://hdvideotest.tumblr.com/post/130323439814/test-description-for-my-hd-video',
-        'md5': '7ae503065ad150122dc3089f8cf1546c',
-        'info_dict': {
-            'id': '130323439814',
-            'ext': 'mp4',
-            'title': 'HD Video Testing \u2014 Test description for my HD video',
-            'description': 'md5:97cc3ab5fcd27ee4af6356701541319c',
-            'thumbnail': r're:http://.*\.jpg',
+            'title': 'Me roast is buggered!, Mona\xa0“talking” in\xa0“english”',
+            'description': 'md5:082a3a621530cb786ad2b7592a6d9e2c',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'duration': 7,
         },
         'params': {
             'format': 'hd',
@@ -60,16 +52,20 @@ class TumblrIE(InfoExtractor):
             'uploader_id': '1638622',
             'uploader': 'naked-yogi',
         },
-        'add_ie': ['Vidme'],
+        # 'add_ie': ['Vidme'],
+        'skip': 'dead embedded video host'
     }, {
-        'url': 'http://camdamage.tumblr.com/post/98846056295/',
-        'md5': 'a9e0c8371ea1ca306d6554e3fecf50b6',
+        'url': 'https://dominustempori.tumblr.com/post/673572712813297664/youtubes-all-right-for-some-pretty-cool',
+        'md5': '5e45724c70b748f64f5a1731ac72c84a',
         'info_dict': {
-            'id': '105463834',
+            'id': '87816359',
             'ext': 'mp4',
-            'title': 'Cam Damage-HD 720p',
-            'uploader': 'John Moyer',
-            'uploader_id': 'user32021558',
+            'title': 'Harold Ramis',
+            'uploader': 'Resolution Productions Group',
+            'uploader_id': 'resolutionproductions',
+            'uploader_url': 'https://vimeo.com/resolutionproductions',
+            'thumbnail': r're:^https?://i.vimeocdn.com/video/.*',
+            'duration': 291,
         },
         'add_ie': ['Vimeo'],
     }, {
@@ -86,18 +82,27 @@ class TumblrIE(InfoExtractor):
             'like_count': int,
             'comment_count': int,
             'repost_count': int,
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1455940159,
+            'view_count': int,
         },
         'add_ie': ['Vine'],
     }, {
-        'url': 'http://vitasidorkina.tumblr.com/post/134652425014/joskriver-victoriassecret-invisibility-or',
-        'md5': '01c12ceb82cbf6b2fe0703aa56b3ad72',
+        'url': 'https://silami.tumblr.com/post/84250043974/my-bad-river-flows-in-you-impression-on-maschine',
+        'md5': '3c92d7c3d867f14ccbeefa2119022277',
         'info_dict': {
-            'id': '-7LnUPGlSo',
+            'id': 'nYtvtTPuTl',
             'ext': 'mp4',
-            'title': 'Video by victoriassecret',
-            'description': 'Invisibility or flight…which superpower would YOU choose? #VSFashionShow #ThisOrThat',
-            'uploader_id': 'victoriassecret',
-            'thumbnail': r're:^https?://.*\.jpg'
+            'title': 'Video by silbulterman',
+            'description': '#maschine',
+            'uploader_id': '242859024',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'timestamp': 1398801174,
+            'like_count': int,
+            'uploader': 'Sil',
+            'channel': 'silbulterman',
+            'comment_count': int,
+            'upload_date': '20140429',
         },
         'add_ie': ['Instagram'],
     }]
@@ -161,9 +166,14 @@ class TumblrIE(InfoExtractor):
             r'src=\'(https?://www\.tumblr\.com/video/[^\']+)\'',
             webpage, 'iframe url', default=None)
         if iframe_url is None:
-            return self.url_result(redirect_url, 'Generic')
+            iframe_url = self._search_regex(
+                r'src=["\'](https?://safe\.txmblr\.com/svc/embed/inline/[^"\']+)["\']',
+                webpage, 'embed iframe url', default=None)
+            return self.url_result(iframe_url or redirect_url, 'Generic')
 
-        iframe = self._download_webpage(iframe_url, video_id, 'Downloading iframe page')
+        iframe = self._download_webpage(
+            iframe_url, video_id, 'Downloading iframe page',
+            headers={'Referer': redirect_url})
 
         duration = None
         sources = []

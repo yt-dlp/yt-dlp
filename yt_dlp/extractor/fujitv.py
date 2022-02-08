@@ -15,6 +15,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         4000: (1920, 1080),
     }
 
+
     _TESTS = [{
         'url': 'https://fod.fujitv.co.jp/title/5d40/5d40110076',
         'info_dict': {

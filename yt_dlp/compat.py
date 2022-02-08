@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import collections
 import ctypes
 import getpass
 import html
@@ -180,14 +181,17 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
 
 compat_basestring = str
 compat_chr = chr
+compat_filter = filter
 compat_input = input
 compat_integer_types = (int, )
 compat_kwargs = lambda kwargs: kwargs
+compat_map = map
 compat_numeric_types = (int, float, complex)
 compat_str = str
 compat_xpath = lambda xpath: xpath
 compat_zip = zip
 
+compat_collections_abc = collections.abc
 compat_HTMLParser = html.parser.HTMLParser
 compat_HTTPError = urllib.error.HTTPError
 compat_Struct = struct.Struct
@@ -245,6 +249,7 @@ __all__ = [
     'compat_b64decode',
     'compat_basestring',
     'compat_chr',
+    'compat_collections_abc',
     'compat_cookiejar',
     'compat_cookiejar_Cookie',
     'compat_cookies',
@@ -254,6 +259,7 @@ __all__ = [
     'compat_etree_fromstring',
     'compat_etree_register_namespace',
     'compat_expanduser',
+    'compat_filter',
     'compat_get_terminal_size',
     'compat_getenv',
     'compat_getpass',
@@ -265,6 +271,7 @@ __all__ = [
     'compat_integer_types',
     'compat_itertools_count',
     'compat_kwargs',
+    'compat_map',
     'compat_numeric_types',
     'compat_ord',
     'compat_os_name',

@@ -639,10 +639,9 @@ def clean_html(html):
     if html is None:  # Convenience for sanitizing descriptions etc.
         return html
 
-    # Newline vs <br />
-    html = html.replace('\n', ' ')
-    html = re.sub(r'(?u)\s*<\s*br\s*/?\s*>\s*', '\n', html)
-    html = re.sub(r'(?u)<\s*/\s*p\s*>\s*<\s*p[^>]*>', '\n', html)
+    html = re.sub(r'\s+', ' ', html)
+    html = re.sub(r'(?u)\s?<\s?br\s?/?\s?>\s?', '\n', html)
+    html = re.sub(r'(?u)<\s?/\s?p\s?>\s?<\s?p[^>]*>', '\n', html)
     # Strip html tags
     html = re.sub('<.*?>', '', html)
     # Replace html entities
@@ -666,7 +665,7 @@ def sanitize_open(filename, open_mode):
                 import msvcrt
                 msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
             return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
-        stream = open(encodeFilename(filename), open_mode)
+        stream = locked_file(filename, open_mode, block=False).open()
         return (stream, filename)
     except (IOError, OSError) as err:
         if err.errno in (errno.EACCES,):
@@ -678,7 +677,7 @@ def sanitize_open(filename, open_mode):
             raise
         else:
             # An exception here should be caught in the caller
-            stream = open(encodeFilename(alt_filename), open_mode)
+            stream = locked_file(filename, open_mode, block=False).open()
             return (stream, alt_filename)
 
 
@@ -1019,13 +1018,9 @@ def make_HTTPS_handler(params, **kwargs):
 
 
 def bug_reports_message(before=';'):
-    if ytdl_is_updateable():
-        update_cmd = 'type  yt-dlp -U  to update'
-    else:
-        update_cmd = 'see  https://github.com/yt-dlp/yt-dlp  on how to update'
-    msg = 'please report this issue on  https://github.com/yt-dlp/yt-dlp .'
-    msg += ' Make sure you are using the latest version; %s.' % update_cmd
-    msg += ' Be sure to call yt-dlp with the --verbose flag and include its complete output.'
+    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
+           'filling out the "Broken site" issue template properly. '
+           'Confirm you are on the latest version using -U')
 
     before = before.rstrip()
     if not before or before.endswith(('.', '!', '?')):
@@ -2120,7 +2115,7 @@ if sys.platform == 'win32':
     whole_low = 0xffffffff
     whole_high = 0x7fffffff
 
-    def _lock_file(f, exclusive):
+    def _lock_file(f, exclusive, block):  # todo: block unused on win32
         overlapped = OVERLAPPED()
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
@@ -2143,15 +2138,19 @@ else:
     try:
         import fcntl
 
-        def _lock_file(f, exclusive):
-            fcntl.flock(f, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+        def _lock_file(f, exclusive, block):
+            fcntl.flock(f,
+                        fcntl.LOCK_SH if not exclusive
+                        else fcntl.LOCK_EX if block
+                        else fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         def _unlock_file(f):
             fcntl.flock(f, fcntl.LOCK_UN)
+
     except ImportError:
         UNSUPPORTED_MSG = 'file locking is not supported on this platform'
 
-        def _lock_file(f, exclusive):
+        def _lock_file(f, exclusive, block):
             raise IOError(UNSUPPORTED_MSG)
 
         def _unlock_file(f):
@@ -2159,15 +2158,16 @@ else:
 
 
 class locked_file(object):
-    def __init__(self, filename, mode, encoding=None):
-        assert mode in ['r', 'a', 'w']
+    def __init__(self, filename, mode, block=True, encoding=None):
+        assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
         self.f = io.open(filename, mode, encoding=encoding)
         self.mode = mode
+        self.block = block
 
     def __enter__(self):
-        exclusive = self.mode != 'r'
+        exclusive = 'r' not in self.mode
         try:
-            _lock_file(self.f, exclusive)
+            _lock_file(self.f, exclusive, self.block)
         except IOError:
             self.f.close()
             raise
@@ -2187,6 +2187,15 @@ class locked_file(object):
 
     def read(self, *args):
         return self.f.read(*args)
+
+    def flush(self):
+        self.f.flush()
+
+    def open(self):
+        return self.__enter__()
+
+    def close(self, *args):
+        self.__exit__(self, *args, value=False, traceback=False)
 
 
 def get_filesystem_encoding():
@@ -3430,12 +3439,11 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
         return [max(width(str(v)) for v in col) for col in zip(*table)]
 
     def filter_using_list(row, filterArray):
-        return [col for (take, col) in zip(filterArray, row) if take]
+        return [col for take, col in itertools.zip_longest(filterArray, row, fillvalue=True) if take]
 
-    if hide_empty:
-        max_lens = get_max_lens(data)
-        header_row = filter_using_list(header_row, max_lens)
-        data = [filter_using_list(row, max_lens) for row in data]
+    max_lens = get_max_lens(data) if hide_empty else []
+    header_row = filter_using_list(header_row, max_lens)
+    data = [filter_using_list(row, max_lens) for row in data]
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
@@ -5223,8 +5231,10 @@ class Config:
 
     def init(self, args=None, filename=None):
         assert not self.__initialized
+        directory = ''
         if filename:
             location = os.path.realpath(filename)
+            directory = os.path.dirname(location)
             if location in self._loaded_paths:
                 return False
             self._loaded_paths.add(location)
@@ -5232,7 +5242,7 @@ class Config:
         self.__initialized = True
         self.own_args, self.filename = args, filename
         for location in self._parser.parse_args(args)[0].config_locations or []:
-            location = compat_expanduser(location)
+            location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
             if not os.path.exists(location):
