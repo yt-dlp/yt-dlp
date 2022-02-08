@@ -1699,7 +1699,9 @@ def create_parser():
 
 
 def _hide_login_info(opts):
-    write_string(
-        'DeprecationWarning: "yt_dlp.options._hide_login_info" is deprecated and may be removed in a future version. '
-        'Use "yt_dlp.utils.Config.hide_login_info" instead\n')
+    import warnings
+    warnings.warn(DeprecationWarning(
+        '"yt_dlp.options._hide_login_info" is deprecated and may be removed in a future version. '
+        'Use "yt_dlp.utils.Config.hide_login_info" instead\n'
+    ))
     return Config.hide_login_info(opts)

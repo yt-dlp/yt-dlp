@@ -4886,8 +4886,11 @@ def traverse_obj(
 
 
 def traverse_dict(dictn, keys, casesense=True):
-    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
+    import warnings
+    warnings.warn(DeprecationWarning(
+        'yt_dlp.utils.traverse_dict is deprecated '
+        'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead'
+    ))
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
