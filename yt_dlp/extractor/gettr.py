@@ -20,7 +20,7 @@ class GettrBaseIE(InfoExtractor):
     _MEDIA_BASE_URL = 'https://media.gettr.com/'
 
     def _call_api(self, path, video_id, *args, **kwargs):
-        return self._download_json(urljoin('https://api.gettr.com/u/', path), video_id, *args, **kwargs)
+        return self._download_json(urljoin('https://api.gettr.com/u/', path), video_id, *args, **kwargs)['result']
 
 
 class GettrIE(GettrBaseIE):
@@ -60,8 +60,8 @@ class GettrIE(GettrBaseIE):
 
         api_data = self._call_api('post/%s?incl="poststats|userinfo"' % post_id, post_id)
 
-        post_data = try_get(api_data, lambda x: x['result']['data'])
-        user_data = try_get(api_data, lambda x: x['result']['aux']['uinf'][post_data['uid']]) or {}
+        post_data = api_data.get('data')
+        user_data = try_get(api_data, lambda x: x['aux']['uinf'][post_data['uid']]) or {}
 
         if post_data.get('nfound'):
             raise ExtractorError(post_data.get('txt'), expected=True)
@@ -153,7 +153,7 @@ class GettrStreamingIE(GettrBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        video_info = self._call_api('live/join/%s' % video_id, video_id, data={})['result']
+        video_info = self._call_api('live/join/%s' % video_id, video_id, data={})
 
         live_info = video_info['broadcast']
         live_url = url_or_none(live_info.get('url'))
