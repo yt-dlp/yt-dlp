@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import os.path
 from typing import Union, Any
 
 from .common import InfoExtractor
@@ -13,9 +12,6 @@ from ..utils import (
     parse_filesize,
     urlencode_postdata,
     urljoin,
-)
-from ..compat import (
-    compat_urlparse,
 )
 
 
