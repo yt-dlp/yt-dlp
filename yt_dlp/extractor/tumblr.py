@@ -6,6 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     int_or_none,
+    traverse_obj,
     urlencode_postdata
 )
 
@@ -14,6 +15,7 @@ class TumblrIE(InfoExtractor):
     _VALID_URL = r'https?://(?P<blog_name>[^/?#&]+)\.tumblr\.com/(?:post|video)/(?P<id>[0-9]+)(?:$|[/?#])'
     _NETRC_MACHINE = 'tumblr'
     _LOGIN_URL = 'https://www.tumblr.com/login'
+    _OAUTH_URL = 'https://www.tumblr.com/api/v2/oauth2/token'
     _TESTS = [{
         'url': 'http://tatianamaslanydaily.tumblr.com/post/54196191430/orphan-black-dvd-extra-behind-the-scenes',
         'md5': '479bb068e5b16462f5176a6828829767',
@@ -49,6 +51,74 @@ class TumblrIE(InfoExtractor):
             'title': 'Shieldfoss',
             'thumbnail': r're:^https?://.*\.jpg',
         }
+    }, {
+        'note': 'dashboard only (original post)',
+        'url': 'https://nerviovago.tumblr.com/post/674979046803800064',
+        'md5': '12bdb75661ef443bffe5a4dac1dbf118',
+        'info_dict': {
+            'id': '674979046803800064',
+            'ext': 'mp4',
+            'title': 'nerviovago',
+            'uploader_id': 'nerviovago',
+            'uploader_url': 'https://nerviovago.tumblr.com/',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'like_count': int,
+            'repost_count': int,
+            'age_limit': 0,
+            'tags': ['pig', 'cuddly', 'cute animals', 'animals', 'sound', 'pigs'],
+        }
+    }, {
+        'note': 'dashboard only (reblog)',
+        'url': 'https://bartlebyshop.tumblr.com/post/180294460076/duality-of-bird',
+        'md5': '04334e7cadb1af680d162912559f51a5',
+        'info_dict': {
+            'id': '180294460076',
+            'ext': 'mp4',
+            'title': 'duality of bird',
+            'description': 'duality of bird',
+            'uploader_id': 'todaysbird',
+            'uploader_url': 'https://todaysbird.tumblr.com/',
+            'thumbnail': r're:^https?://.*\.jpg',
+            'like_count': int,
+            'repost_count': int,
+            'age_limit': 0,
+            'tags': [],
+        }
+    }, {
+        'note': 'dashboard only (external)',
+        'url': 'https://afloweroutofstone.tumblr.com/post/675661759168823296/the-blues-remembers-everything-the-country-forgot',
+        'info_dict': {
+            'id': 'q67_fd7b8SU',
+            'ext': 'mp4',
+            'title': 'The Blues Remembers Everything the Country Forgot',
+            'alt_title': 'The Blues Remembers Everything the Country Forgot',
+            'description': 'md5:1a6b4097e451216835a24c1023707c79',
+            'release_date': '20201224',
+            'creator': 'md5:c2239ba15430e87c3b971ba450773272',
+            'uploader': 'Moor Mother - Topic',
+            'upload_date': '20201223',
+            'uploader_id': 'UCxrMtFBRkFvQJ_vVM4il08w',
+            'uploader_url': 'http://www.youtube.com/channel/UCxrMtFBRkFvQJ_vVM4il08w',
+            'thumbnail': r're:^https?://i.ytimg.com/.*',
+            'channel': 'Moor Mother - Topic',
+            'channel_id': 'UCxrMtFBRkFvQJ_vVM4il08w',
+            'channel_url': 'https://www.youtube.com/channel/UCxrMtFBRkFvQJ_vVM4il08w',
+            'channel_follower_count': int,
+            'duration': 181,
+            'view_count': int,
+            'like_count': int,
+            'age_limit': 0,
+            'categories': ['Music'],
+            'tags': 'count:7',
+            'live_status': 'not_live',
+            'playable_in_embed': True,
+            'availability': 'public',
+            'track': 'The Blues Remembers Everything the Country Forgot',
+            'artist': 'md5:c2239ba15430e87c3b971ba450773272',
+            'album': 'Brass',
+            'release_year': 2020,
+        },
+        'add_ie': ['Youtube'],
     }, {
         'url': 'http://naked-yogi.tumblr.com/post/118312946248/naked-smoking-stretching',
         'md5': 'de07e5211d60d4f3a2c3df757ea9f6ab',
@@ -146,43 +216,36 @@ class TumblrIE(InfoExtractor):
     }]
 
     def _real_initialize(self):
+        self._ACCESS_TOKEN = None
         self._login()
+
+    def get_access_token(self):
+        if self._ACCESS_TOKEN:
+            return
+        login_page = self._download_webpage(
+            self._LOGIN_URL, None, 'Downloading login page')
+        self._ACCESS_TOKEN = self._search_regex(
+            r'"API_TOKEN":\s*"(\w+)"', login_page, 'API access token')
 
     def _login(self):
         username, password = self._get_login_info()
-        if username is None:
+        if not username:
             return
 
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-
-        login_form = self._hidden_inputs(login_page)
-        login_form.update({
-            'user[email]': username,
-            'user[password]': password
-        })
-
-        response, urlh = self._download_webpage_handle(
-            self._LOGIN_URL, None, 'Logging in',
-            data=urlencode_postdata(login_form), headers={
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Referer': self._LOGIN_URL,
-            })
-
-        # Successful login
-        if '/dashboard' in urlh.geturl():
-            return
-
-        login_errors = self._parse_json(
-            self._search_regex(
-                r'RegistrationForm\.errors\s*=\s*(\[.+?\])\s*;', response,
-                'login errors', default='[]'),
-            None, fatal=False)
-        if login_errors:
-            raise ExtractorError(
-                f'Unable to login: {login_errors[0]}', expected=True)
-
-        self.report_warning('Login has probably failed')
+        self.get_access_token()
+        try:
+            self._download_json(
+                self._OAUTH_URL, None, 'Logging in',
+                data=urlencode_postdata({
+                    'password': password,
+                    'grant_type': 'password',
+                    'username': username,
+                }), headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+                })
+        except ExtractorError:
+            self.report_warning('Login failed')
 
     def _real_extract(self, url):
         m_url = self._match_valid_url(url)
@@ -193,12 +256,56 @@ class TumblrIE(InfoExtractor):
         webpage, urlh = self._download_webpage_handle(url, video_id)
 
         redirect_url = urlh.geturl()
-        if 'tumblr.com/safe-mode' in redirect_url or redirect_url.startswith('/safe-mode'):
-            raise ExtractorError(
-                'This Tumblr may contain sensitive media. '
-                'Disable safe mode in your account settings '
-                'at https://www.tumblr.com/settings/account#safe_mode',
-                expected=True)
+
+        if self._search_regex(
+            r'(tumblr.com|^)/(safe-mode|login_required|blog/view)',
+            redirect_url, 'redirect', default=None):
+
+            # dashboard view only; use the api
+            self.get_access_token()
+            post_json = traverse_obj(
+                self._download_json(
+                    f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
+                    video_id,
+                    headers={
+                        'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+                    }),
+                ('response', 'timeline', 'elements', 0), default={})
+            content_json = traverse_obj(
+                post_json, ('trail', 0, 'content'), ('content'), default=[])
+            video_json = next(
+                (item for item in content_json if item.get('type') == 'video'),
+                {})
+            media_json = video_json.get('media', {})
+            if 'url' not in media_json and 'url' not in video_json:
+                raise ExtractorError('Failed to find video data for dashboard-only post')
+
+            if 'url' not in media_json:
+                # external video host
+                return self.url_result(video_json['url'], 'Generic')
+
+            uploader_id = traverse_obj(post_json, ('reblogged_root_name'), ('blog_name'))
+
+            return {
+                'id': video_id,
+                'title': post_json.get('summary') or blog,
+                'description': ('\n\n'.join(
+                    (item.get('text') for item in content_json if item.get('type') == 'text'))
+                    or None),
+                'thumbnail': traverse_obj(video_json, ('poster', 0, 'url')),
+                'uploader_id': uploader_id,
+                'uploader_url': f'https://{uploader_id}.tumblr.com/',
+                'like_count': post_json.get('like_count'),
+                'repost_count': post_json.get('reblog_count'),
+                'age_limit': 18 if post_json.get('is_nsfw') else 0,
+                'tags': post_json.get('tags'),
+                'formats': [{
+                    'url': media_json['url'],
+                    'format_id': '0',
+                    'width': media_json.get('width'),
+                    'height': media_json.get('height'),
+                }]
+            }
 
         video_url = self._og_search_video_url(webpage, default=None)
 
