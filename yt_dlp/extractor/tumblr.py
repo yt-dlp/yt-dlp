@@ -31,7 +31,7 @@ class TumblrIE(InfoExtractor):
         'info_dict': {
             'id': '626907179849564160',
             'ext': 'mp4',
-            'title': 'Me roast is buggered!, Mona\xa0“talking” in\xa0“english”',
+            'title': 'Me roast is buggered!, Mona “talking” in “english”',
             'description': 'md5:082a3a621530cb786ad2b7592a6d9e2c',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 7,
