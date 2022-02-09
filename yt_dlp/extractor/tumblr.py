@@ -191,7 +191,7 @@ class TumblrIE(InfoExtractor):
                 expected=True)
 
         iframe_url = self._search_regex(
-            r'src=\'(https?://www\.tumblr\.com/video/[^\']+)\'',
+            fr'src=\'(https?://www\.tumblr\.com/video/{blog}/{video_id}/[^\']+)\'',
             webpage, 'iframe url', default=None)
         if iframe_url is None:
             iframe_url = self._search_regex(
