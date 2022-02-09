@@ -40,6 +40,16 @@ class TumblrIE(InfoExtractor):
             'format': 'hd',
         },
     }, {
+        'note': 'non-iframe video (with related posts)',
+        'url': 'https://shieldfoss.tumblr.com/post/675519763813908480',
+        'md5': '12bdb75661ef443bffe5a4dac1dbf118',
+        'info_dict': {
+            'id': '675519763813908480',
+            'ext': 'mp4',
+            'title': 'Shieldfoss',
+            'thumbnail': r're:^https?://.*\.jpg',
+        }
+    }, {
         'url': 'http://naked-yogi.tumblr.com/post/118312946248/naked-smoking-stretching',
         'md5': 'de07e5211d60d4f3a2c3df757ea9f6ab',
         'info_dict': {
@@ -190,46 +200,61 @@ class TumblrIE(InfoExtractor):
                 'at https://www.tumblr.com/settings/account#safe_mode',
                 expected=True)
 
+        video_url = self._og_search_video_url(webpage, default=None)
+
+        # some videos are just <video> elements. others are embedded in iframes.
+        # iframes have better metadata and sometimes additional formats, so check for one
         iframe_url = self._search_regex(
             fr'src=\'(https?://www\.tumblr\.com/video/{blog}/{video_id}/[^\']+)\'',
             webpage, 'iframe url', default=None)
-        if iframe_url is None:
+
+        if not video_url and not iframe_url:
+            # external video host
             iframe_url = self._search_regex(
                 r'src=["\'](https?://safe\.txmblr\.com/svc/embed/inline/[^"\']+)["\']',
                 webpage, 'embed iframe url', default=None)
             return self.url_result(iframe_url or redirect_url, 'Generic')
 
-        iframe = self._download_webpage(
-            iframe_url, video_id, 'Downloading iframe page',
-            headers={'Referer': redirect_url})
-
-        duration = None
         sources = []
+        duration = None
 
-        sd_url = self._search_regex(
-            r'<source[^>]+src=(["\'])(?P<url>.+?)\1', iframe,
-            'sd video url', default=None, group='url')
-        if sd_url:
-            sources.append((sd_url, 'sd'))
+        if not iframe_url:
+            sources.append((
+                video_url,
+                self._og_search_property('video:width', webpage, default=None),
+                self._og_search_property('video:height', webpage, default=None),
+                '0'
+            ))
+        else:
+            iframe = self._download_webpage(
+                iframe_url, video_id, 'Downloading iframe page',
+                headers={'Referer': redirect_url})
 
-        options = self._parse_json(
-            self._search_regex(
-                r'data-crt-options=(["\'])(?P<options>.+?)\1', iframe,
-                'hd video url', default='', group='options'),
-            video_id, fatal=False)
-        if options:
-            duration = int_or_none(options.get('duration'))
-            hd_url = options.get('hdUrl')
-            if hd_url:
-                sources.append((hd_url, 'hd'))
+            sd_url = self._search_regex(
+                r'<source[^>]+src=(["\'])(?P<url>.+?)\1', iframe,
+                'sd video url', default=None, group='url')
+            if sd_url:
+                sources.append((sd_url, None, None, 'sd'))
+
+            options = self._parse_json(
+                self._search_regex(
+                    r'data-crt-options=(["\'])(?P<options>.+?)\1', iframe,
+                    'hd video url', default='', group='options'),
+                video_id, fatal=False)
+            if options:
+                duration = int_or_none(options.get('duration'))
+                hd_url = options.get('hdUrl')
+                if hd_url:
+                    sources.append((hd_url, None, None, 'hd'))
 
         formats = [{
             'url': video_url,
             'format_id': format_id,
-            'height': int_or_none(self._search_regex(
+            'width': int_or_none(video_width),
+            'height': int_or_none(video_height or self._search_regex(
                 r'_(\d+)\.\w+$', video_url, 'height', default=None)),
             'quality': quality,
-        } for quality, (video_url, format_id) in enumerate(sources)]
+        } for quality, (video_url, video_width, video_height, format_id) in enumerate(sources)]
 
         self._sort_formats(formats)
 
