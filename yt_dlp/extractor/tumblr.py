@@ -225,10 +225,9 @@ class TumblrIE(InfoExtractor):
 
         formats = [{
             'url': video_url,
-            'ext': 'mp4',
             'format_id': format_id,
             'height': int_or_none(self._search_regex(
-                r'/(\d{3,4})$', video_url, 'height', default=None)),
+                r'_(\d+)\.\w+$', video_url, 'height', default=None)),
             'quality': quality,
         } for quality, (video_url, format_id) in enumerate(sources)]
 
