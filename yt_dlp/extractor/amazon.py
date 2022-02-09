@@ -193,7 +193,7 @@ class AmazonTrailerIE(InfoExtractor):
 
         formats = []
         for key, url in video['playbackUrls']['urlSets'].items():
-            mpdUrl = ''.join(re.findall(r'(https?://[^/]+/[^/]+/[^/]+)~(/.+)', traverse_obj(url, ('urls', 'manifest', 'url')))[0])
+            mpdUrl = re.sub(r'(https?://[^/]+/[^/]+/[^/]+)~(/.+)', r'\1\2', traverse_obj(url, ('urls', 'manifest', 'url')))
             format = self._extract_mpd_formats(mpdUrl + '?amznDtid=AOAGZA014O5RE&encoding=segmentBase',
                                                video_id, mpd_id='dash', note='Downloading MPD manifest - %s' % traverse_obj(url, ('urls', 'manifest', 'cdn')), fatal=False)
             if format is None:
