@@ -170,7 +170,7 @@ class TumblrIE(InfoExtractor):
             None, fatal=False)
         if login_errors:
             raise ExtractorError(
-                'Unable to login: %s' % login_errors[0], expected=True)
+                f'Unable to login: {login_errors[0]}', expected=True)
 
         self.report_warning('Login has probably failed')
 
@@ -179,7 +179,7 @@ class TumblrIE(InfoExtractor):
         video_id = m_url.group('id')
         blog = m_url.group('blog_name')
 
-        url = 'http://%s.tumblr.com/post/%s/' % (blog, video_id)
+        url = f'http://{blog}.tumblr.com/post/{video_id}/'
         webpage, urlh = self._download_webpage_handle(url, video_id)
 
         redirect_url = urlh.geturl()
