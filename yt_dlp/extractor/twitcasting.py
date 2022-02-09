@@ -85,7 +85,7 @@ class TwitCastingIE(InfoExtractor):
         if video_password:
             request_data = urlencode_postdata({
                 'password': video_password,
-            })
+            }, encoding='utf-8')
         webpage = self._download_webpage(
             url, video_id, data=request_data,
             headers={'Origin': 'https://twitcasting.tv'})
