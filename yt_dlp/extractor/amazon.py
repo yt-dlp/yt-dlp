@@ -193,8 +193,14 @@ class AmazonTrailerIE(InfoExtractor):
 
         formats = []
         for key, url in video['playbackUrls']['urlSets'].items():
-            formats.extend(self._extract_mpd_formats(traverse_obj(url, ('urls', 'manifest', 'url')) + '?amznDtid=AOAGZA014O5RE&encoding=segmentBase',
-                           video_id, mpd_id='dash', note='Downloading MPD manifest - %s' % traverse_obj(url, ('urls', 'manifest', 'cdn')), fatal=False))
+            mpdUrl = ''.join(re.findall(r'(https?://[^/]+/[^/]+/[^/]+)~(/.+)', traverse_obj(url, ('urls', 'manifest', 'url')))[0])
+            format = self._extract_mpd_formats( mpdUrl + '?amznDtid=AOAGZA014O5RE&encoding=segmentBase',
+                     video_id, mpd_id='dash', note='Downloading MPD manifest - %s' % traverse_obj(url, ('urls', 'manifest', 'cdn')), fatal=False)
+            if format is None:
+                format = self._extract_mpd_formats( traverse_obj(url, ('urls', 'manifest', 'url')) + '?amznDtid=AOAGZA014O5RE&encoding=segmentBase',
+                         video_id, mpd_id='dash', note='Downloading MPD manifest - %s' % traverse_obj(url, ('urls', 'manifest', 'cdn')), fatal=False)
+            formats.extend(format)
+
             duration = duration or int_or_none(traverse_obj(url, ('urls', 'manifest', 'duration')) / 1000)
         self._remove_duplicate_formats(formats)
 
