@@ -2139,10 +2139,19 @@ else:
         import fcntl
 
         def _lock_file(f, exclusive, block):
-            fcntl.flock(f,
-                        fcntl.LOCK_SH if not exclusive
-                        else fcntl.LOCK_EX if block
-                        else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                fcntl.flock(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as e:
+                raise e
+            except OSError:
+                # AOSP does not have flock()
+                fcntl.lockf(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         def _unlock_file(f):
             fcntl.flock(f, fcntl.LOCK_UN)
