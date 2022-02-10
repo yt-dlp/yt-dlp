@@ -1208,13 +1208,13 @@ def create_parser():
         action='store_false', dest='allow_playlist_files',
         help='Do not write playlist metadata when using --write-info-json, --write-description etc.')
     filesystem.add_option(
-        '--clean-infojson',
+        '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
             'Remove some private fields such as filenames from the infojson. '
             'Note that it could still contain some personal information (default)'))
     filesystem.add_option(
-        '--no-clean-infojson',
+        '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
         help='Write all fields to the infojson')
     filesystem.add_option(
