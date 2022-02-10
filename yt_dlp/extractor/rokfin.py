@@ -515,14 +515,12 @@ class RokfinSearchIE(SearchInfoExtractor):
                     yielded_result_counter += 1
 
                     if yielded_result_counter >= min(n_results, results_total or float('inf')) or (n_results == float('inf') and results_total is None):
-                        '''
-                        If Rokfin (unexpectedly) does not report the total # of search results,
-                        and n_results == inf, then the downloading loop has no definitive stopping point
-                        and could, theoritically, execute indefinitely. To prevent this, we proactively
-                        quit the loop.
-
-                        The good news is: this is an unlikely scenario and should not occur routinely.
-                        '''
+                        # If Rokfin (unexpectedly) does not report the total # of search results,
+                        # and n_results == inf, then the downloading loop has no definitive stopping point
+                        # and could, theoritically, execute indefinitely. To prevent this, we proactively
+                        # quit the loop.
+                        #
+                        # The good news is: this is an unlikely scenario and should not occur routinely.
                         if n_results == float('inf') and results_total is None:
                             self.report_warning(msg='please specify a finite number of search results, e.g. 100, and re-run. Stopping the downloading process prematurely to avoid an infinite loop')
 
