@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
+    bool_or_none,
     ExtractorError,
     dict_get,
     float_or_none,
@@ -15,9 +16,16 @@ from ..utils import (
 )
 
 
-class GettrIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?gettr\.com/post/(?P<id>[a-z0-9]+)'
+class GettrBaseIE(InfoExtractor):
+    _BASE_REGEX = r'https?://(www\.)?gettr\.com/'
     _MEDIA_BASE_URL = 'https://media.gettr.com/'
+
+    def _call_api(self, path, video_id, *args, **kwargs):
+        return self._download_json(urljoin('https://api.gettr.com/u/', path), video_id, *args, **kwargs)['result']
+
+
+class GettrIE(GettrBaseIE):
+    _VALID_URL = GettrBaseIE._BASE_REGEX + r'post/(?P<id>[a-z0-9]+)'
 
     _TESTS = [{
         'url': 'https://www.gettr.com/post/pcf6uv838f',
@@ -51,11 +59,10 @@ class GettrIE(InfoExtractor):
         post_id = self._match_id(url)
         webpage = self._download_webpage(url, post_id)
 
-        api_data = self._download_json(
-            'https://api.gettr.com/u/post/%s?incl="poststats|userinfo"' % post_id, post_id)
+        api_data = self._call_api('post/%s?incl="poststats|userinfo"' % post_id, post_id)
 
-        post_data = try_get(api_data, lambda x: x['result']['data'])
-        user_data = try_get(api_data, lambda x: x['result']['aux']['uinf'][post_data['uid']]) or {}
+        post_data = api_data.get('data')
+        user_data = try_get(api_data, lambda x: x['aux']['uinf'][post_data['uid']]) or {}
 
         if post_data.get('nfound'):
             raise ExtractorError(post_data.get('txt'), expected=True)
@@ -107,4 +114,72 @@ class GettrIE(InfoExtractor):
             'formats': formats,
             'duration': float_or_none(post_data.get('vid_dur')),
             'tags': post_data.get('htgs'),
+        }
+
+
+class GettrStreamingIE(GettrBaseIE):
+    _VALID_URL = GettrBaseIE._BASE_REGEX + r'streaming/(?P<id>[a-z0-9]+)'
+
+    _TESTS = [{
+        'url': 'https://gettr.com/streaming/psoiulc122',
+        'info_dict': {
+            'id': 'psoiulc122',
+            'ext': 'mp4',
+            'description': 'md5:56bca4b8f48f1743d9fd03d49c723017',
+            'view_count': int,
+            'uploader': 'Corona Investigative Committee',
+            'uploader_id': 'coronacommittee',
+            'duration': 5180.184,
+            'thumbnail': r're:^https?://.+',
+            'title': 'Day 1: Opening Session of the Grand Jury Proceeding',
+            'timestamp': 1644080997.164,
+            'upload_date': '20220205',
+        }
+    }, {
+        'url': 'https://gettr.com/streaming/psfmeefcc1',
+        'info_dict': {
+            'id': 'psfmeefcc1',
+            'ext': 'mp4',
+            'title': 'Session 90: "The Virus Of Power"',
+            'view_count': int,
+            'uploader_id': 'coronacommittee',
+            'description': 'md5:98986acdf656aa836bf36f9c9704c65b',
+            'uploader': 'Corona Investigative Committee',
+            'thumbnail': r're:^https?://.+',
+            'duration': 21872.507,
+            'timestamp': 1643976662.858,
+            'upload_date': '20220204',
+        }
+    }]
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        video_info = self._call_api('live/join/%s' % video_id, video_id, data={})
+
+        live_info = video_info['broadcast']
+        live_url = url_or_none(live_info.get('url'))
+
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            live_url, video_id, ext='mp4',
+            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if live_url else ([], {})
+
+        thumbnails = [{
+            'url': urljoin(self._MEDIA_BASE_URL, thumbnail),
+        } for thumbnail in try_get(video_info, lambda x: x['postData']['imgs']) or []]
+
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': try_get(video_info, lambda x: x['postData']['ttl']),
+            'description': try_get(video_info, lambda x: x['postData']['dsc']),
+            'formats': formats,
+            'subtitles': subtitles,
+            'thumbnails': thumbnails,
+            'uploader': try_get(video_info, lambda x: x['liveHostInfo']['nickname']),
+            'uploader_id': try_get(video_info, lambda x: x['liveHostInfo']['_id']),
+            'view_count': int_or_none(live_info.get('viewsCount')),
+            'timestamp': float_or_none(live_info.get('startAt'), scale=1000),
+            'duration': float_or_none(live_info.get('duration'), scale=1000),
+            'is_live': bool_or_none(live_info.get('isLive')),
         }

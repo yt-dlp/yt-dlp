@@ -546,7 +546,10 @@ from .gazeta import GazetaIE
 from .gdcvault import GDCVaultIE
 from .gedidigital import GediDigitalIE
 from .generic import GenericIE
-from .gettr import GettrIE
+from .gettr import (
+    GettrIE,
+    GettrStreamingIE,
+)
 from .gfycat import GfycatIE
 from .giantbomb import GiantBombIE
 from .giga import GigaIE
