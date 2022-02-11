@@ -3,27 +3,29 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from .vk import VKIE
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
+from ..compat import compat_b64decode
+
+from ..utils import (
+    int_or_none,
+    js_to_json,
+    unified_timestamp,
 )
-from ..utils import int_or_none
+import re
 
 
 class BIQLEIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?biqle\.(?:com|org|ru)/watch/(?P<id>-?\d+_\d+)'
     _TESTS = [{
-        # Youtube embed
-        'url': 'https://biqle.ru/watch/-115995369_456239081',
-        'md5': '97af5a06ee4c29bbf9c001bdb1cf5c06',
+        'url': 'https://biqle.ru/watch/-2000421746_85421746',
+        'md5': 'ae6ef4f04d19ac84e4658046d02c151c',
         'info_dict': {
-            'id': '8v4f-avW-VI',
+            'id': '-2000421746_85421746',
             'ext': 'mp4',
-            'title': "PASSE-PARTOUT - L'ete c'est fait pour jouer",
-            'description': 'Passe-Partout',
-            'uploader_id': 'mrsimpsonstef3',
-            'uploader': 'Phanolito',
-            'upload_date': '20120822',
+            'title': 'Forsaken By Hope Studio Clip',
+            'description': 'Forsaken By Hope Studio Clip — Смотреть онлайн',
+            'upload_date': '19700101',
+            'timestamp': 0,
+            'thumbnail': 'https://sun9-86.userapi.com/impf/7vN3ACwSTgChP96OdOfzFjUCzFR6ZglDQgWsIw/KPaACiVJJxM.jpg?size=800x450&quality=96&keep_aspect_ratio=1&background=000000&sign=b48ea459c4d33dbcba5e26d63574b1cb&type=video_thumb',
         },
     }, {
         'url': 'http://biqle.org/watch/-44781847_168547604',
@@ -32,54 +34,79 @@ class BIQLEIE(InfoExtractor):
             'id': '-44781847_168547604',
             'ext': 'mp4',
             'title': 'Ребенок в шоке от автоматической мойки',
+            'description': 'Ребенок в шоке от автоматической мойки — Смотреть онлайн',
             'timestamp': 1396633454,
-            'uploader': 'Dmitry Kotov',
             'upload_date': '20140404',
-            'uploader_id': '47850140',
+            'thumbnail': 'https://sun9-36.userapi.com/c535507/u190034692/video/l_b84df002.jpg',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        embed_url = self._proto_relative_url(self._search_regex(
-            r'<iframe.+?src="((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^"]+)".*?></iframe>',
-            webpage, 'embed url'))
+
+        title = self._search_regex(
+            r'<meta.*itemprop ?= ?"name".*content ?= ?"([^"]+)".*/>',
+            webpage, 'Title', default='Empty Title', fatal=False)
+        self.write_debug('title: %s' % title)
+        uploadDate = self._search_regex(
+            r'<meta.*itemprop ?= ?"uploadDate".*content ?= ?"([^"]+)".*/?>',
+            webpage, 'Upload Date', fatal=False)
+        self.write_debug('Upload Date: %s' % uploadDate)
+        timestamp = unified_timestamp(uploadDate)
+        self.write_debug('timestamp: %s' % timestamp)
+        description = self._search_regex(
+            r'<meta.*itemprop ?= ?"description".*content ?= ?"([^"]+)".*/>',
+            webpage, 'Description', fatal=False)
+        self.write_debug('description: %s' % description)
+
+        globalEmbed_url = self._search_regex(
+            r'<script.+?window.globEmbedUrl = \'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'.*?></script>',
+            webpage, 'global Embed url', flags=re.DOTALL)
+        hash = self._search_regex(
+            r'<script id="data-embed-video.+?hash: "([^"]+)"[^<]*</script>',
+            webpage, 'Hash', flags=re.DOTALL)
+
+        embed_url = globalEmbed_url + hash
+        self.write_debug('embed_url: %s' % embed_url)
+
         if VKIE.suitable(embed_url):
             return self.url_result(embed_url, VKIE.ie_key(), video_id)
 
         embed_page = self._download_webpage(
-            embed_url, video_id, headers={'Referer': url})
-        video_ext = self._get_cookies(embed_url).get('video_ext')
-        if video_ext:
-            video_ext = compat_urllib_parse_unquote(video_ext.value)
-        if not video_ext:
-            video_ext = compat_b64decode(self._search_regex(
-                r'video_ext\s*:\s*[\'"]([A-Za-z0-9+/=]+)',
-                embed_page, 'video_ext')).decode()
-        video_id, sig, _, access_token = video_ext.split(':')
+            embed_url, video_id, 'Downloading embed webpage', headers={'Referer': url})
+
+        globParams = self._parse_json(self._search_regex(
+            r'<script id="globParams">.*window.globParams = ([^;]+);[^<]+</script>',
+            embed_page, 'Global Parameters', flags=re.DOTALL), video_id, transform_source=js_to_json)
+        self.write_debug('globParams: %s' % globParams)
+        hostName = compat_b64decode(globParams['server'][::-1]).decode()
+        server = 'https://%s/method/video.get/' % hostName
+        self.write_debug('server: %s' % server)
+
         item = self._download_json(
-            'https://api.vk.com/method/video.get', video_id,
-            headers={'User-Agent': 'okhttp/3.4.1'}, query={
-                'access_token': access_token,
-                'sig': sig,
-                'v': 5.44,
+            server + video_id, video_id,
+            headers={'Referer': url}, query={
+                'token': globParams['video']['access_token'],
                 'videos': video_id,
+                'ckey': globParams['c_key'],
+                'credentials': globParams['video']['credentials'],
             })['response']['items'][0]
-        title = item['title']
 
         formats = []
         for f_id, f_url in item.get('files', {}).items():
             if f_id == 'external':
                 return self.url_result(f_url)
             ext, height = f_id.split('_')
-            formats.append({
-                'format_id': height + 'p',
-                'url': f_url,
-                'height': int_or_none(height),
-                'ext': ext,
-            })
+            if globParams['video']['partial']['quality'].get(height) is not None:
+                formats.append({
+                    'format_id': height + 'p',
+                    'url': f_url.replace('https://', 'https://%s/' % hostName) + '&videos=%s' % video_id + '&extra_key=%s' % globParams['video']['partial']['quality'][height],
+                    'height': int_or_none(height),
+                    'ext': ext,
+                })
         self._sort_formats(formats)
+        self.write_debug('formats: %s' % formats)
 
         thumbnails = []
         for k, v in item.items():
@@ -96,10 +123,9 @@ class BIQLEIE(InfoExtractor):
             'title': title,
             'formats': formats,
             'comment_count': int_or_none(item.get('comments')),
-            'description': item.get('description'),
+            'description': description,
             'duration': int_or_none(item.get('duration')),
             'thumbnails': thumbnails,
-            'timestamp': int_or_none(item.get('date')),
-            'uploader': item.get('owner_id'),
+            'timestamp': timestamp,
             'view_count': int_or_none(item.get('views')),
         }
