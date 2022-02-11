@@ -69,7 +69,7 @@ class ServusIE(InfoExtractor):
         season = video['season']
         episode = video['chapter']
         duration = float_or_none(video['duration'], scale=1000)
-        print(season)
+
         season_number = int_or_none(self._search_regex(
             r'(?:Season|Staffel) (\d+)', season or '', 'season number', default=None))
         episode_number = int_or_none(self._search_regex(
