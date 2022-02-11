@@ -186,6 +186,7 @@ class GloboArticleIE(InfoExtractor):
         r'\bvideosIDs\s*:\s*["\']?(\d{7,})',
         r'\bdata-id=["\'](\d{7,})',
         r'<div[^>]+\bid=["\'](\d{7,})',
+        r'<bs-player[^>]+\bvideoid=["\'](\d{8,})',
     ]
 
     _TESTS = [{
@@ -228,6 +229,6 @@ class GloboArticleIE(InfoExtractor):
         entries = [
             self.url_result('globo:%s' % video_id, GloboIE.ie_key())
             for video_id in orderedSet(video_ids)]
-        title = self._og_search_title(webpage, fatal=False)
+        title = self._og_search_title(webpage)
         description = self._html_search_meta('description', webpage)
         return self.playlist_result(entries, display_id, title, description)
