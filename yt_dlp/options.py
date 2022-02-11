@@ -443,7 +443,8 @@ def create_parser():
         help=(
             'Download only videos uploaded on this date. '
             'The date can be "YYYYMMDD" or in the format '
-            '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
+            '"(now|today|yesterday|date)[+-][0-9]+'
+            '(microsecond|second|minute|hour|day|week|month|year)(s)?"'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
