@@ -139,49 +139,47 @@ class RuvSpilaIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        display_id = mobj.group('id')
-        series_id = mobj.group('series_id')
+        display_id, series_id = self._match_valid_url(url).group('id', 'series_id')
         program = self._download_json(
-            'https://www.ruv.is/gql/', display_id,
-            query={'query': """{
-        Program(id: %s){
-            title image description short_description
-            episodes(id: {value: "%s"}) {
-                rating title duration file image firstrun description
-                clips {
-                    time text
+            'https://www.ruv.is/gql/', display_id, query={'query': '''{
+                Program(id: %s){
+                    title image description short_description
+                    episodes(id: {value: "%s"}) {
+                        rating title duration file image firstrun description
+                        clips {
+                            time text
+                        }
+                        subtitles {
+                            name value
+                        }
+                    }
                 }
-                subtitles {
-                    name value
-                }
-            }
-        }}""" % (series_id, display_id)})['data']['Program']
+            }''' % (series_id, display_id)})['data']['Program']
         episode = program['episodes'][0]
 
-        description = traverse_obj(program, ('episodes', 0, 'description'), 'description', 'short_description')
-        thumbnail = episode.get('image', '').replace('$$IMAGESIZE$$', '1960') or None
-        timestamp = unified_timestamp(episode.get('firstrun'))
-        subs = {}
-        for trk in episode.get('subtitles', []):
-            subs[trk.get('name')] = {'url': trk.get('value')}
+        subs = {
+            trk['name']: trk['value']
+            for trk in episode.get('subtitles') or []
+            if trk.get('name') and trk.get('value')
+        }
 
         media_url = episode['file']
-        if '.m3u8' in media_url:
+        if determine_ext(media_url) == 'm3u8':
             formats = self._extract_m3u8_formats(media_url, display_id)
         else:
             formats = [{'url': media_url}]
 
         clips = [
             {'start_time': parse_duration(c.get('time')), 'title': c.get('text')}
-            for c in episode.get('clips', [])]
+            for c in episode.get('clips') or []]
 
         return {
             'id': display_id,
             'title': traverse_obj(program, ('episodes', 0, 'title'), 'title'),
-            'description': description,
-            'thumbnail': thumbnail,
-            'timestamp': timestamp,
+            'description': traverse_obj(
+                program, ('episodes', 0, 'description'), 'description', 'short_description'),
+            'thumbnail': episode.get('image', '').replace('$$IMAGESIZE$$', '1960') or None,
+            'timestamp': unified_timestamp(episode.get('firstrun')),
             'formats': formats,
             'age_limit': episode.get('rating'),
             'chapters': clips
