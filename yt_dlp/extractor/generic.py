@@ -1456,24 +1456,6 @@ class GenericIE(InfoExtractor):
                 'duration': 45.115,
             },
         },
-        # 5min embed
-        {
-            'url': 'http://techcrunch.com/video/facebook-creates-on-this-day-crunch-report/518726732/',
-            'md5': '4c6f127a30736b59b3e2c19234ee2bf7',
-            'info_dict': {
-                'id': '518726732',
-                'ext': 'mp4',
-                'title': 'Facebook Creates "On This Day" | Crunch Report',
-                'description': 'Amazon updates Fire TV line, Tesla\'s Model X spotted in the wild',
-                'timestamp': 1427237531,
-                'uploader': 'Crunch Report',
-                'upload_date': '20150324',
-            },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
-        },
         # Crooks and Liars embed
         {
             'url': 'http://crooksandliars.com/2015/04/fox-friends-says-protecting-atheists',
@@ -3336,12 +3318,6 @@ class GenericIE(InfoExtractor):
             r'<script[^>]+data-config=(["\'])(?P<url>(?:https?:)?//config\.playwire\.com/.+?)\1', webpage)
         if mobj is not None:
             return self.url_result(mobj.group('url'))
-
-        # Look for 5min embeds
-        mobj = re.search(
-            r'<meta[^>]+property="og:video"[^>]+content="https?://embed\.5min\.com/(?P<id>[0-9]+)/?', webpage)
-        if mobj is not None:
-            return self.url_result('5min:%s' % mobj.group('id'), 'FiveMin')
 
         # Look for Crooks and Liars embeds
         mobj = re.search(
