@@ -481,7 +481,6 @@ from .filmon import (
 )
 from .filmweb import FilmwebIE
 from .firsttv import FirstTVIE
-from .fivemin import FiveMinIE
 from .fivetv import FiveTVIE
 from .flickr import FlickrIE
 from .folketinget import FolketingetIE
@@ -513,7 +512,6 @@ from .francetv import (
 )
 from .freesound import FreesoundIE
 from .freespeech import FreespeechIE
-from .freshlive import FreshLiveIE
 from .frontendmasters import (
     FrontendMastersIE,
     FrontendMastersLessonIE,
@@ -585,7 +583,6 @@ from .hidive import HiDiveIE
 from .historicfilms import HistoricFilmsIE
 from .hitbox import HitboxIE, HitboxLiveIE
 from .hitrecord import HitRecordIE
-from .hornbunny import HornBunnyIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
@@ -655,7 +652,6 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
-from .ir90tv import Ir90TvIE
 from .itv import (
     ITVIE,
     ITVBTCCIE,
@@ -677,7 +673,6 @@ from .joj import JojIE
 from .jwplatform import JWPlatformIE
 from .kakao import KakaoIE
 from .kaltura import KalturaIE
-from .kankan import KankanIE
 from .karaoketv import KaraoketvIE
 from .karrierevideos import KarriereVideosIE
 from .keezmovies import KeezMoviesIE
@@ -1320,11 +1315,9 @@ from .reuters import ReutersIE
 from .reverbnation import ReverbNationIE
 from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
-from .ro220 import Ro220IE
 from .rockstargames import RockstarGamesIE
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
-from .roxwel import RoxwelIE
 from .rozhlas import RozhlasIE
 from .rtbf import RTBFIE
 from .rte import RteIE, RteRadioIE
@@ -1595,7 +1588,6 @@ from .theplatform import (
     ThePlatformIE,
     ThePlatformFeedIE,
 )
-from .thescene import TheSceneIE
 from .thestar import TheStarIE
 from .thesun import TheSunIE
 from .theta import (
@@ -1900,7 +1892,6 @@ from .vrv import (
 from .vshare import VShareIE
 from .vtm import VTMIE
 from .medialaan import MedialaanIE
-from .vube import VubeIE
 from .vuclip import VuClipIE
 from .vupload import VuploadIE
 from .vvvvid import (
