@@ -214,6 +214,14 @@ class GloboArticleIE(InfoExtractor):
     }, {
         'url': 'http://oglobo.globo.com/rio/a-amizade-entre-um-entregador-de-farmacia-um-piano-19946271',
         'only_matching': True,
+    }, {
+        'url': 'https://ge.globo.com/video/ta-na-area-como-foi-assistir-ao-jogo-do-palmeiras-que-a-globo-nao-passou-10287094.ghtml',
+        'info_dict': {
+            'id': 'ta-na-area-como-foi-assistir-ao-jogo-do-palmeiras-que-a-globo-nao-passou-10287094',
+            'title': 'Tá na Área: como foi assistir ao jogo do Palmeiras que a Globo não passou',
+            'description': 'md5:2d089d036c4c9675117d3a56f8c61739',
+        },
+        'playlist_count': 1,
     }]
 
     @classmethod
