@@ -213,7 +213,7 @@ class GenericIE(InfoExtractor):
         {
             'url': 'http://phihag.de/2014/youtube-dl/rss2.xml',
             'info_dict': {
-                'id': 'http://phihag.de/2014/youtube-dl/rss2.xml',
+                'id': 'https://phihag.de/2014/youtube-dl/rss2.xml',
                 'title': 'Zero Punctuation',
                 'description': 're:.*groundbreaking video review series.*'
             },
@@ -258,6 +258,9 @@ class GenericIE(InfoExtractor):
                     'episode_number': 1,
                     'season_number': 1,
                     'age_limit': 0,
+                    'season': 'Season 1',
+                    'direct': True,
+                    'episode': 'Episode 1',
                 },
             }],
             'params': {
@@ -273,6 +276,16 @@ class GenericIE(InfoExtractor):
                 'title': 'Hello Internet',
             },
             'playlist_mincount': 100,
+        },
+        # RSS feed with guid
+        {
+            'url': 'https://www.omnycontent.com/d/playlist/a7b4f8fe-59d9-4afc-a79a-a90101378abf/bf2c1d80-3656-4449-9d00-a903004e8f84/efbff746-e7c1-463a-9d80-a903004e8f8f/podcast.rss',
+            'info_dict': {
+                'id': 'https://www.omnycontent.com/d/playlist/a7b4f8fe-59d9-4afc-a79a-a90101378abf/bf2c1d80-3656-4449-9d00-a903004e8f84/efbff746-e7c1-463a-9d80-a903004e8f8f/podcast.rss',
+                'description': 'md5:be809a44b63b0c56fb485caf68685520',
+                'title': 'The Little Red Podcast',
+            },
+            'playlist_mincount': 76,
         },
         # SMIL from http://videolectures.net/promogram_igor_mekjavic_eng
         {
@@ -2517,6 +2530,9 @@ class GenericIE(InfoExtractor):
 
             if not next_url:
                 continue
+
+            if it.find('guid').text is not None:
+                next_url = smuggle_url(next_url, {'force_videoid': it.find('guid').text})
 
             def itunes(key):
                 return xpath_text(
