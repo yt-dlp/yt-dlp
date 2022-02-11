@@ -3408,6 +3408,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         trans_name += format_field(lang_name, template=' from %s')
                     process_language(
                         automatic_captions, base_url, trans_code, trans_name, {'tlang': trans_code})
+                    if lang_code == f'a-{trans_code}':
+                        process_language(
+                            automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {'tlang': trans_code})
             info['automatic_captions'] = automatic_captions
             info['subtitles'] = subtitles
 
