@@ -1832,7 +1832,7 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
 def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
 
     format: string date format used to return datetime object from
     precision: round the time portion of a datetime object.
@@ -1871,13 +1871,17 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     return datetime_round(datetime.datetime.strptime(date_str, format), precision)
 
 
-def date_from_str(date_str, format='%Y%m%d'):
+def date_from_str(date_str, format='%Y%m%d', strict=False):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+
+    If "strict", only (now|today)[+-][0-9](day|week|month|year)(s)? is allowed
 
     format: string date format used to return datetime object from
     """
+    if strict and not re.fullmatch(r'\d{8}|(now|today)[+-]\d+(day|week|month|year)(s)?', date_str):
+        raise ValueError(f'Invalid date format {date_str}')
     return datetime_from_str(date_str, precision='microsecond', format=format).date()
 
 
@@ -1924,11 +1928,11 @@ class DateRange(object):
     def __init__(self, start=None, end=None):
         """start and end must be strings in the format accepted by date"""
         if start is not None:
-            self.start = date_from_str(start)
+            self.start = date_from_str(start, strict=True)
         else:
             self.start = datetime.datetime.min.date()
         if end is not None:
-            self.end = date_from_str(end)
+            self.end = date_from_str(end, strict=True)
         else:
             self.end = datetime.datetime.max.date()
         if self.start > self.end:
