@@ -80,9 +80,6 @@ class HuffPostIE(InfoExtractor):
                     'vcodec': 'none' if key.startswith('audio/') else None,
                 })
 
-        if not formats and data.get('fivemin_id'):
-            return self.url_result('5min:%s' % data['fivemin_id'])
-
         self._sort_formats(formats)
 
         return {
