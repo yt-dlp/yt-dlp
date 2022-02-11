@@ -131,6 +131,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         request = config.get('request') or {}
 
         formats = []
+        subtitles = {}
+
         config_files = video_data.get('files') or request.get('files') or {}
         for f in (config_files.get('progressive') or []):
             video_url = f.get('url')
@@ -163,21 +165,24 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     sep_manifest_urls = [(format_id, manifest_url)]
                 for f_id, m_url in sep_manifest_urls:
                     if files_type == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
                             m_url, video_id, 'mp4',
                             'm3u8' if is_live else 'm3u8_native', m3u8_id=f_id,
                             note='Downloading %s m3u8 information' % cdn_name,
-                            fatal=False))
+                            fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
                     elif files_type == 'dash':
                         if 'json=1' in m_url:
                             real_m_url = (self._download_json(m_url, video_id, fatal=False) or {}).get('url')
                             if real_m_url:
                                 m_url = real_m_url
-                        mpd_formats = self._extract_mpd_formats(
+                        fmts, subs = self._extract_mpd_formats_and_subtitles(
                             m_url.replace('/master.json', '/master.mpd'), video_id, f_id,
                             'Downloading %s MPD information' % cdn_name,
                             fatal=False)
-                        formats.extend(mpd_formats)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
 
         live_archive = live_event.get('archive') or {}
         live_archive_source_url = live_archive.get('source_url')
@@ -188,12 +193,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'quality': 10,
             })
 
-        subtitles = {}
         for tt in (request.get('text_tracks') or []):
-            subtitles[tt['lang']] = [{
+            subtitles.setdefault(tt['lang'], []).append({
                 'ext': 'vtt',
                 'url': urljoin('https://vimeo.com', tt['url']),
-            }]
+            })
 
         thumbnails = []
         if not is_live:
