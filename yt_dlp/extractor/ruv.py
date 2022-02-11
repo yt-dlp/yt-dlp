@@ -117,6 +117,7 @@ class RuvSpilaIE(InfoExtractor):
             'upload_date': '20220201',
             'thumbnail': 'https://d38kdhuogyllre.cloudfront.net/fit-in/1960x/filters:quality(65)/hd_posters/94boog-iti3jg.jpg',
             'description': 'Íþróttafréttir.',
+            'age_limit': 0,
         },
     }, {
         'url': 'https://www.ruv.is/utvarp/spila/i-ljosi-sogunnar/23795/7hqkre',
@@ -129,6 +130,7 @@ class RuvSpilaIE(InfoExtractor):
             'upload_date': '20220204',
             'timestamp': 1643965500,
             'title': 'Nellie Bly II',
+            'age_limit': 0,
         },
     }, {
         'url': 'https://www.ruv.is/ungruv/spila/ungruv/28046/8beuph',
@@ -177,7 +179,8 @@ class RuvSpilaIE(InfoExtractor):
             'id': display_id,
             'title': traverse_obj(program, ('episodes', 0, 'title'), 'title'),
             'description': traverse_obj(
-                program, ('episodes', 0, 'description'), 'description', 'short_description'),
+                program, ('episodes', 0, 'description'), 'description', 'short_description',
+                expected_type=lambda x: x or None),
             'thumbnail': episode.get('image', '').replace('$$IMAGESIZE$$', '1960') or None,
             'timestamp': unified_timestamp(episode.get('firstrun')),
             'formats': formats,
