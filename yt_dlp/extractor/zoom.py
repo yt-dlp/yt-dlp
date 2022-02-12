@@ -96,7 +96,6 @@ class ZoomIE(InfoExtractor):
         return {
             'id': play_id,
             'title': data.get('topic'),
-            'url': data.get('viewMp4Url'),
             'subtitles': subtitles,
             'formats': formats,
             'http_headers': {
