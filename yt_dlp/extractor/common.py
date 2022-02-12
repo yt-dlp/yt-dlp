@@ -1314,9 +1314,6 @@ class InfoExtractor(object):
             [self._meta_regex(n) for n in name],
             html, display_name, fatal=fatal, group='content', **kwargs)
 
-    def _dc_search_uploader(self, html):
-        return self._html_search_meta('dc.creator', html, 'uploader')
-
     def _rta_search(self, html):
         # See http://www.rtalabel.org/index.php?content=howtofaq#single
         if re.search(r'(?ix)<meta\s+name="rating"\s+'
@@ -1324,22 +1321,6 @@ class InfoExtractor(object):
                      html):
             return 18
         return 0
-
-    def _media_rating_search(self, html):
-        # See http://www.tjg-designs.com/WP/metadata-code-examples-adding-metadata-to-your-web-pages/
-        rating = self._html_search_meta('rating', html)
-
-        if not rating:
-            return None
-
-        RATING_TABLE = {
-            'safe for kids': 0,
-            'general': 8,
-            '14 years': 14,
-            'mature': 17,
-            'restricted': 19,
-        }
-        return RATING_TABLE.get(rating.lower())
 
     def _family_friendly_search(self, html):
         # See http://schema.org/VideoObject
@@ -1356,10 +1337,6 @@ class InfoExtractor(object):
             'false': 18,
         }
         return RATING_TABLE.get(family_friendly.lower())
-
-    def _twitter_search_player(self, html):
-        return self._html_search_meta('twitter:player', html,
-                                      'twitter card player')
 
     def _search_json_ld(self, html, video_id, expected_type=None, **kwargs):
         json_ld_list = list(re.finditer(JSON_LD_RE, html))
@@ -2064,18 +2041,6 @@ class InfoExtractor(object):
                 'quality': quality,
             })
         return formats
-
-    def _m3u8_meta_format(self, m3u8_url, ext=None, preference=None, quality=None, m3u8_id=None):
-        return {
-            'format_id': join_nonempty(m3u8_id, 'meta'),
-            'url': m3u8_url,
-            'ext': ext,
-            'protocol': 'm3u8',
-            'preference': preference - 100 if preference else -100,
-            'quality': quality,
-            'resolution': 'multiple',
-            'format_note': 'Quality selection URL',
-        }
 
     def _report_ignoring_subs(self, name):
         self.report_warning(bug_reports_message(
@@ -3503,10 +3468,6 @@ class InfoExtractor(object):
                         a_format.update(rtmp_params)
                 formats.append(a_format)
         return formats
-
-    def _live_title(self, name):
-        self._downloader.deprecation_warning('yt_dlp.InfoExtractor._live_title is deprecated and does not work as expected')
-        return name
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)

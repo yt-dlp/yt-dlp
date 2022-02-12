@@ -38,7 +38,6 @@ import time
 import traceback
 import xml.etree.ElementTree
 import zlib
-import mimetypes
 
 from .compat import (
     compat_HTMLParseError,
@@ -622,15 +621,6 @@ def extract_attributes(html_element):
     except compat_HTMLParseError:
         pass
     return parser.attrs
-
-
-def parse_list(webpage):
-    """Given a string for an series of HTML <li> elements,
-    return a dictionary of their attributes"""
-    parser = HTMLListAttrsParser()
-    parser.feed(webpage)
-    parser.close()
-    return parser.items
 
 
 def clean_html(html):
@@ -3312,14 +3302,6 @@ def mimetype2ext(mt):
     return subtype.replace('+', '.')
 
 
-def ext2mimetype(ext_or_url):
-    if not ext_or_url:
-        return None
-    if '.' not in ext_or_url:
-        ext_or_url = f'file.{ext_or_url}'
-    return mimetypes.guess_type(ext_or_url)[0]
-
-
 def parse_codecs(codecs_str):
     # http://tools.ietf.org/html/rfc6381
     if not codecs_str:
@@ -4697,113 +4679,6 @@ def urshift(val, n):
     return val >> n if val >= 0 else (val + 0x100000000) >> n
 
 
-# Based on png2str() written by @gdkchan and improved by @yokrysty
-# Originally posted at https://github.com/ytdl-org/youtube-dl/issues/9706
-def decode_png(png_data):
-    # Reference: https://www.w3.org/TR/PNG/
-    header = png_data[8:]
-
-    if png_data[:8] != b'\x89PNG\x0d\x0a\x1a\x0a' or header[4:8] != b'IHDR':
-        raise IOError('Not a valid PNG file.')
-
-    int_map = {1: '>B', 2: '>H', 4: '>I'}
-    unpack_integer = lambda x: compat_struct_unpack(int_map[len(x)], x)[0]
-
-    chunks = []
-
-    while header:
-        length = unpack_integer(header[:4])
-        header = header[4:]
-
-        chunk_type = header[:4]
-        header = header[4:]
-
-        chunk_data = header[:length]
-        header = header[length:]
-
-        header = header[4:]  # Skip CRC
-
-        chunks.append({
-            'type': chunk_type,
-            'length': length,
-            'data': chunk_data
-        })
-
-    ihdr = chunks[0]['data']
-
-    width = unpack_integer(ihdr[:4])
-    height = unpack_integer(ihdr[4:8])
-
-    idat = b''
-
-    for chunk in chunks:
-        if chunk['type'] == b'IDAT':
-            idat += chunk['data']
-
-    if not idat:
-        raise IOError('Unable to read PNG data.')
-
-    decompressed_data = bytearray(zlib.decompress(idat))
-
-    stride = width * 3
-    pixels = []
-
-    def _get_pixel(idx):
-        x = idx % stride
-        y = idx // stride
-        return pixels[y][x]
-
-    for y in range(height):
-        basePos = y * (1 + stride)
-        filter_type = decompressed_data[basePos]
-
-        current_row = []
-
-        pixels.append(current_row)
-
-        for x in range(stride):
-            color = decompressed_data[1 + basePos + x]
-            basex = y * stride + x
-            left = 0
-            up = 0
-
-            if x > 2:
-                left = _get_pixel(basex - 3)
-            if y > 0:
-                up = _get_pixel(basex - stride)
-
-            if filter_type == 1:  # Sub
-                color = (color + left) & 0xff
-            elif filter_type == 2:  # Up
-                color = (color + up) & 0xff
-            elif filter_type == 3:  # Average
-                color = (color + ((left + up) >> 1)) & 0xff
-            elif filter_type == 4:  # Paeth
-                a = left
-                b = up
-                c = 0
-
-                if x > 2 and y > 0:
-                    c = _get_pixel(basex - stride - 3)
-
-                p = a + b - c
-
-                pa = abs(p - a)
-                pb = abs(p - b)
-                pc = abs(p - c)
-
-                if pa <= pb and pa <= pc:
-                    color = (color + a) & 0xff
-                elif pb <= pc:
-                    color = (color + b) & 0xff
-                else:
-                    color = (color + c) & 0xff
-
-            current_row.append(color)
-
-    return width, height, pixels
-
-
 def write_xattr(path, key, value):
     # This mess below finds the best xattr tool for the job
     try:
@@ -5158,12 +5033,6 @@ def traverse_obj(
     return default
 
 
-def traverse_dict(dictn, keys, casesense=True):
-    write_string('DeprecationWarning: yt_dlp.utils.traverse_dict is deprecated '
-                 'and may be removed in a future version. Use yt_dlp.utils.traverse_obj instead')
-    return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
-
-
 def variadic(x, allowed_types=(str, bytes, dict)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
@@ -5185,13 +5054,6 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     signature_b64 = base64.b64encode(h.digest())
     token = header_b64 + b'.' + payload_b64 + b'.' + signature_b64
     return token
-
-
-# can be extended in future to verify the signature and parse header and return the algorithm used if it's not HS256
-def jwt_decode_hs256(jwt):
-    header_b64, payload_b64, signature_b64 = jwt.split('.')
-    payload_data = json.loads(base64.urlsafe_b64decode(payload_b64))
-    return payload_data
 
 
 def supports_terminal_sequences(stream):
