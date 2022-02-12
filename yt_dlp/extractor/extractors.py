@@ -142,6 +142,7 @@ from .bfmtv import (
 )
 from .bibeltv import BibelTVIE
 from .bigflix import BigflixIE
+from .bigo import BigoIE
 from .bild import BildIE
 from .bilibili import (
     BiliBiliIE,
