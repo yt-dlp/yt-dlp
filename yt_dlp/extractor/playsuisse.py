@@ -45,6 +45,36 @@ class PlaySuisseIE(InfoExtractor):
         }
     ]
 
+    _GRAPHQL_QUERY = '''
+        query AssetWatch($assetId: ID!) {
+            asset(assetId: $assetId) {
+                name
+                description
+                duration
+                episodeNumber
+                medias {
+                    type
+                    url
+                }
+                thumbnail16x9 {
+                    ...ImageDetails
+                }
+                thumbnail2x3 {
+                    ...ImageDetails
+                }
+                thumbnail16x9WithTitle {
+                    ...ImageDetails
+                }
+                thumbnail2x3WithTitle {
+                    ...ImageDetails
+                }
+            }
+        }
+        fragment ImageDetails on Image {
+            id
+            url
+        }'''
+
     def _get_media_data(self, media_id):
         locale = std_headers.get('locale', 'de').strip()
         # TODO find out why the locale has no effect in request, eg. passing:
@@ -102,72 +132,3 @@ class PlaySuisseIE(InfoExtractor):
             info.update(episode_info)
 
         return info
-
-    _GRAPHQL_QUERY = '''\
-query AssetWatch($assetId: ID!) {
-  asset(assetId: $assetId) {
-    ...Asset
-  }
-}
-fragment Asset on Asset {
-  ...AssetDetails
-  episodes {
-    ...AssetDetails
-  }
-}
-fragment AssetDetails on Asset {
-  description
-  duration
-  endDate
-  episodeNumber
-  id
-  image16x9 {
-    ...ImageDetails
-  }
-  image2x3 {
-    ...ImageDetails
-  }
-  image16x9WithTitle {
-    ...ImageDetails
-  }
-  image2x3WithTitle {
-    ...ImageDetails
-  }
-  name
-  parentalRating
-  primaryLanguage
-  seasonNumber
-  seriesId
-  seriesName
-  startDate
-  subtitleLanguages
-  thumbnail16x9 {
-    ...ImageDetails
-  }
-  thumbnail2x3 {
-    ...ImageDetails
-  }
-  thumbnail16x9WithTitle {
-    ...ImageDetails
-  }
-  thumbnail2x3WithTitle {
-    ...ImageDetails
-  }
-  type
-  year
-  medias {
-    ...MediaDetails
-  }
-}
-fragment ImageDetails on Image {
-  id
-  url
-  alt
-}
-fragment MediaDetails on Media {
-  id
-  type
-  url
-  duration
-}
-'''
