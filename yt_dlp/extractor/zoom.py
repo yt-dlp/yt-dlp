@@ -68,16 +68,6 @@ class ZoomIE(InfoExtractor):
 
         formats = []
 
-        if data.get('shareMp4Url'):
-            formats.append({
-                'format_note': 'Screen share stream',
-                'url': str_or_none(data.get('shareMp4Url')),
-                'width': int_or_none(data.get('shareResolvtionsWidth')),
-                'height': int_or_none(data.get('shareResolvtionsHeight')),
-                'format_id': str_or_none(data.get('shareVideoId')),
-                'ext': 'mp4',
-            })
-
         if data.get('viewMp4Url'):
             formats.append({
                 'format_note': 'Camera stream',
@@ -87,7 +77,21 @@ class ZoomIE(InfoExtractor):
                 'format_id': str_or_none(data.get('recordingId')),
                 'ext': 'mp4',
                 'filesize_approx': parse_filesize(data.get('fileSize')),
+                'preference': 0
             })
+
+        if data.get('shareMp4Url'):
+            formats.append({
+                'format_note': 'Screen share stream',
+                'url': str_or_none(data.get('shareMp4Url')),
+                'width': int_or_none(data.get('shareResolvtionsWidth')),
+                'height': int_or_none(data.get('shareResolvtionsHeight')),
+                'format_id': str_or_none(data.get('shareVideoId')),
+                'ext': 'mp4',
+                'preference': -1
+            })
+
+        self._sort_formats(formats)
 
         return {
             'id': play_id,
