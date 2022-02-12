@@ -1,9 +1,8 @@
 # coding: utf-8
-from __future__ import unicode_literals
 import json
 
 from .common import InfoExtractor
-from ..utils import std_headers
+from ..utils import int_or_none, traverse_obj
 
 
 class PlaySuisseIE(InfoExtractor):
@@ -76,12 +75,8 @@ class PlaySuisseIE(InfoExtractor):
         }'''
 
     def _get_media_data(self, media_id):
-        locale = std_headers.get('locale', 'de').strip()
-        # TODO find out why the locale has no effect in request, eg. passing:
-        # --add-header 'locale: fr'
-        # In the web app, the "locale" header is used to switch between languages,
-        # because the languages are multiplexed into the same media_id. However
-        # this doesn't seem to take effect using passing the header here.
+        # NOTE In the web app, the "locale" header is used to switch between languages,
+        # However this doesn't seem to take effect when passing the header here.
         response = self._download_json(
             'https://4bbepzm4ef.execute-api.eu-central-1.amazonaws.com/prod/graphql',
             media_id, data=json.dumps({
@@ -89,7 +84,7 @@ class PlaySuisseIE(InfoExtractor):
                 'query': self._GRAPHQL_QUERY,
                 'variables': {'assetId': media_id}
             }).encode('utf-8'),
-            headers={'Content-Type': 'application/json', 'locale': locale})
+            headers={'Content-Type': 'application/json', 'locale': 'de'})
 
         return response['data']['asset']
 
@@ -100,35 +95,27 @@ class PlaySuisseIE(InfoExtractor):
         thumbnails = [{
             'id': thumb['id'],
             'url': thumb['url']
-        } for key, thumb in media_data.items() if key.startswith('thumbnail') and thumb is not None]
+        } for thumb in traverse_obj(media_data, lambda x: x.startswith('thumbnail'))]
 
         formats, subtitles = [], {}
         for media in media_data['medias']:
-            if media.get('type') != 'HLS':
+            if not media.get('url') or media.get('type') != 'HLS':
                 continue
             f, subs = self._extract_m3u8_formats_and_subtitles(
                 media['url'], media_id, 'mp4', 'm3u8_native', m3u8_id='HLS', fatal=False)
             formats.extend(f)
             self._merge_subtitles(subs, target=subtitles)
 
-        info = {
+        return {
             'id': media_id,
             'title': media_data.get('name'),
             'description': media_data.get('description'),
             'thumbnails': thumbnails,
-            'duration': int(media_data.get('duration', '0')),
+            'duration': int_or_none(media_data.get('duration')),
             'formats': formats,
             'subtitles': subtitles,
+            'series': media_data.get('seriesName'),
+            'season_number': int_or_none(media_data.get('seasonNumber')),
+            'episode': media_data.get('name'),
+            'episode_number': int_or_none(media_data.get('episodeNumber')),
         }
-
-        if media_data.get('seriesName'):
-            SERIES_MAP = {
-                'series': 'seriesName',
-                'season_number': 'seasonNumber',
-                'episode': 'name',
-                'episode_number': 'episodeNumber',
-            }
-            episode_info = {key: media_data.get(mapped) for key, mapped in SERIES_MAP.items()}
-            info.update(episode_info)
-
-        return info
