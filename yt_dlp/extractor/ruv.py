@@ -159,11 +159,9 @@ class RuvSpilaIE(InfoExtractor):
             }''' % (series_id, display_id)})['data']['Program']
         episode = program['episodes'][0]
 
-        subs = {
-            trk['name']: trk['value']
-            for trk in episode.get('subtitles') or []
-            if trk.get('name') and trk.get('value')
-        }
+        subs = {}
+        [subs.setdefault(trk['name'], []).append({'url': trk['value'], 'ext': 'vtt'})
+         for trk in episode.get('subtitles') if trk.get('name') and trk.get('value')]
 
         media_url = episode['file']
         if determine_ext(media_url) == 'm3u8':
@@ -181,6 +179,7 @@ class RuvSpilaIE(InfoExtractor):
             'description': traverse_obj(
                 program, ('episodes', 0, 'description'), 'description', 'short_description',
                 expected_type=lambda x: x or None),
+            'subtitles': subs,
             'thumbnail': episode.get('image', '').replace('$$IMAGESIZE$$', '1960') or None,
             'timestamp': unified_timestamp(episode.get('firstrun')),
             'formats': formats,
