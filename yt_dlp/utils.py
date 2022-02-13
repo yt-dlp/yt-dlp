@@ -5329,7 +5329,7 @@ class WebSocketsWrapper():
             self.r_cancel_all_tasks(self.loop)
 
     # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
-    # for contributors: If there's any new library using asyncio requires to be run in non-async, move these function out of this class
+    # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
     @staticmethod
     def run_with_loop(main, loop):
         if not asyncio.coroutines.iscoroutine(main):
