@@ -650,6 +650,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 badges.add(label.lower())
         return badges
 
+    def _ensure_absolute_url(self, relative_url, netloc=None):
+        url_parsed = compat_urlparse.urlparse(relative_url)
+        if not url_parsed.netloc:
+            url_parsed = url_parsed._replace(netloc=netloc or 'www.youtube.com')
+        return self._proto_relative_url(compat_urlparse.urlunparse(url_parsed))
+
     @staticmethod
     def _get_text(data, *path_list, max_runs=None):
         for path in path_list or [None]:
@@ -2245,12 +2251,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_all=False, expected_type=compat_str)
         if not player_url:
             return
-        if player_url.startswith('//'):
-            player_url = 'https:' + player_url
-        elif not re.match(r'https?://', player_url):
-            player_url = compat_urlparse.urljoin(
-                'https://www.youtube.com', player_url)
-        return player_url
+        return self._ensure_absolute_url(player_url)
 
     def _download_player_url(self, video_id, fatal=False):
         res = self._download_webpage(
@@ -2399,11 +2400,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """Turn the encrypted n field into a working signature"""
         if player_url is None:
             raise ExtractorError('Cannot decrypt nsig without player_url')
-        if player_url.startswith('//'):
-            player_url = 'https:' + player_url
-        elif not re.match(r'https?://', player_url):
-            player_url = compat_urlparse.urljoin(
-                'https://www.youtube.com', player_url)
+        player_url = self._ensure_absolute_url(player_url)
 
         sig_id = ('nsig_value', s)
         if sig_id in self._player_cache:
@@ -3383,7 +3380,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     })
                     lang_subs.append({
                         'ext': fmt,
-                        'url': update_url_query(base_url, query),
+                        'url': self._ensure_absolute_url(update_url_query(base_url, query)),
                         'name': sub_name,
                     })
 
