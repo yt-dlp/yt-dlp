@@ -651,10 +651,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return badges
 
     @staticmethod
-    def _ensure_absolute_url(self, url):
-        return urljoin('https://www.youtube.com', url)
-
-    @staticmethod
     def _get_text(data, *path_list, max_runs=None):
         for path in path_list or [None]:
             if path is None:
@@ -2249,7 +2245,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_all=False, expected_type=compat_str)
         if not player_url:
             return
-        return self._ensure_absolute_url(player_url)
+        return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
         res = self._download_webpage(
@@ -2398,7 +2394,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """Turn the encrypted n field into a working signature"""
         if player_url is None:
             raise ExtractorError('Cannot decrypt nsig without player_url')
-        player_url = self._ensure_absolute_url(player_url)
+        player_url = urljoin('https://www.youtube.com', player_url)
 
         sig_id = ('nsig_value', s)
         if sig_id in self._player_cache:
@@ -3378,7 +3374,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     })
                     lang_subs.append({
                         'ext': fmt,
-                        'url': self._ensure_absolute_url(update_url_query(base_url, query)),
+                        'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
                         'name': sub_name,
                     })
 
