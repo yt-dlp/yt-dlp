@@ -55,7 +55,8 @@ class MurrtubeIE(InfoExtractor):
             'variables': {
                 'id': video_id,
             },
-            'query': '''query Medium($id: ID!) {
+            'query': '''\
+query Medium($id: ID!) {
   medium(id: $id) {
     title
     description
@@ -122,11 +123,12 @@ class MurrtubeUserIE(MurrtubeIE):
                 'sort': 'latest',
                 'userId': user_id,
             },
-            'query': '''query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!) {
-media(q: $q, sort: $sort, userId: $userId, offset: $offset, limit: $limit) {
-id
-__typename
-}
+            'query': '''\
+query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!) {
+  media(q: $q, sort: $sort, userId: $userId, offset: $offset, limit: $limit) {
+    id
+    __typename
+  }
 }'''},
             'Downloading page {0}'.format(page + 1))
         if data is None:
@@ -146,7 +148,8 @@ __typename
             'variables': {
                 'id': username,
             },
-            'query': '''query User($id: ID!) {
+            'query': '''\
+query User($id: ID!) {
   user(id: $id) {
     id
     __typename
