@@ -6,7 +6,6 @@ import re
 from .common import InfoExtractor
 from .vk import VKIE
 from ..compat import compat_b64decode
-
 from ..utils import (
     int_or_none,
     js_to_json,
@@ -47,25 +46,20 @@ class BIQLEIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._search_regex(
-            r'<meta.*itemprop ?= ?"name".*content ?= ?"([^"]+)".*/>',
-            webpage, 'Title', default='Empty Title', fatal=False)
-        uploadDate = self._search_regex(
-            r'<meta.*itemprop ?= ?"uploadDate".*content ?= ?"([^"]+)".*/?>',
-            webpage, 'Upload Date', fatal=False)
-        timestamp = unified_timestamp(uploadDate)
-        description = self._search_regex(
-            r'<meta.*itemprop ?= ?"description".*content ?= ?"([^"]+)".*/>',
-            webpage, 'Description', fatal=False)
+        title = self._html_search_meta('name', webpage, 'Title', default=None, fatal=False)
+        upload_date = self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None, fatal=False)
+        if upload_date is not None:
+            timestamp = unified_timestamp(upload_date)
+        description = self._html_search_meta('description', webpage, 'Description', default=None, fatal=False)
 
-        globalEmbed_url = self._search_regex(
-            r'<script.+?window.globEmbedUrl = \'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'.*?></script>',
+        global_embed_url = self._search_regex(
+            r'<script.+?window.globEmbedUrl\s*=\s*\'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'',
             webpage, 'global Embed url', flags=re.DOTALL)
         hash = self._search_regex(
             r'<script id="data-embed-video.+?hash: "([^"]+)"[^<]*</script>',
             webpage, 'Hash', flags=re.DOTALL)
 
-        embed_url = globalEmbed_url + hash
+        embed_url = global_embed_url + hash
 
         if VKIE.suitable(embed_url):
             return self.url_result(embed_url, VKIE.ie_key(), video_id)
@@ -73,19 +67,18 @@ class BIQLEIE(InfoExtractor):
         embed_page = self._download_webpage(
             embed_url, video_id, 'Downloading embed webpage', headers={'Referer': url})
 
-        globParams = self._parse_json(self._search_regex(
+        glob_params = self._parse_json(self._search_regex(
             r'<script id="globParams">.*window.globParams = ([^;]+);[^<]+</script>',
             embed_page, 'Global Parameters', flags=re.DOTALL), video_id, transform_source=js_to_json)
-        hostName = compat_b64decode(globParams['server'][::-1]).decode()
-        server = 'https://%s/method/video.get/' % hostName
+        host_name = compat_b64decode(glob_params['server'][::-1]).decode()
 
         item = self._download_json(
-            server + video_id, video_id,
+            f'https://{host_name}/method/video.get/{video_id}', video_id,
             headers={'Referer': url}, query={
-                'token': globParams['video']['access_token'],
+                'token': glob_params['video']['access_token'],
                 'videos': video_id,
-                'ckey': globParams['c_key'],
-                'credentials': globParams['video']['credentials'],
+                'ckey': glob_params['c_key'],
+                'credentials': glob_params['video']['credentials'],
             })['response']['items'][0]
 
         formats = []
@@ -93,10 +86,11 @@ class BIQLEIE(InfoExtractor):
             if f_id == 'external':
                 return self.url_result(f_url)
             ext, height = f_id.split('_')
-            if traverse_obj(globParams, ('video', 'partial', 'quality', height)) is not None:
+            height_extra_key = traverse_obj(glob_params, ('video', 'partial', 'quality', height))
+            if height_extra_key is not None:
                 formats.append({
                     'format_id': height + 'p',
-                    'url': f'https://{hostName}/{f_url[8:]}&videos={video_id}&extra_key={globParams["video"]["partial"]["quality"][height]}',
+                    'url': f'https://{host_name}/{f_url[8:]}&videos={video_id}&extra_key={height_extra_key}',
                     'height': int_or_none(height),
                     'ext': ext,
                 })
