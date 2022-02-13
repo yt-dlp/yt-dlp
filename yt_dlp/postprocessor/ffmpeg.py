@@ -568,7 +568,7 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
             else f'already is in target format {source_ext}' if source_ext == target_ext
             else None)
         if _skip_msg:
-            self.to_screen(f'Not {self._ACTION} media file {filename!r}; {_skip_msg}')
+            self.to_screen(f'Not {self._ACTION} media file "{filename}"; {_skip_msg}')
             return [], info
 
         outpath = replace_extension(filename, target_ext, source_ext)
@@ -917,7 +917,7 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
         return [], info
 
 
-class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
+class FFmpegCopyStreamPP(FFmpegFixupPostProcessor):
     MESSAGE = 'Copying stream'
 
     @PostProcessor._restrict_to(images=False)
@@ -926,11 +926,11 @@ class FFmpegCopyStreamPostProcessor(FFmpegFixupPostProcessor):
         return [], info
 
 
-class FFmpegFixupDurationPP(FFmpegCopyStreamPostProcessor):
+class FFmpegFixupDurationPP(FFmpegCopyStreamPP):
     MESSAGE = 'Fixing video duration'
 
 
-class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPostProcessor):
+class FFmpegFixupDuplicateMoovPP(FFmpegCopyStreamPP):
     MESSAGE = 'Fixing duplicate MOOV atoms'
 
 
@@ -1132,39 +1132,43 @@ class FFmpegConcatPP(FFmpegPostProcessor):
 
     def concat_files(self, in_files, out_file):
         if len(in_files) == 1:
+            if os.path.realpath(in_files[0]) != os.path.realpath(out_file):
+                self.to_screen(f'Moving "{in_files[0]}" to "{out_file}"')
             os.replace(in_files[0], out_file)
-            return
+            return []
 
         codecs = [traverse_obj(self.get_metadata_object(file), ('streams', ..., 'codec_name')) for file in in_files]
         if len(set(map(tuple, codecs))) > 1:
             raise PostProcessingError(
                 'The files have different streams/codecs and cannot be concatenated. '
                 'Either select different formats or --recode-video them to a common format')
+
+        self.to_screen(f'Concatenating {len(in_files)} files; Destination: {out_file}')
         super().concat_files(in_files, out_file)
+        return in_files
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if not info.get('entries') or self._only_multi_video and info['_type'] != 'multi_video':
+        entries = info.get('entries') or []
+        if (self.get_param('skip_download') or not any(entries)
+                or self._only_multi_video and info['_type'] != 'multi_video'):
             return [], info
-        elif None in info['entries']:
-            raise PostProcessingError('Aborting concatenation because some downloads failed')
-        elif any(len(entry) > 1 for entry in traverse_obj(info, ('entries', ..., 'requested_downloads')) or []):
+        elif any(len(entry) > 1 for entry in traverse_obj(entries, (..., 'requested_downloads')) or []):
             raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
 
-        in_files = traverse_obj(info, ('entries', ..., 'requested_downloads', 0, 'filepath'))
-        if not in_files:
-            self.to_screen('There are no files to concatenate')
-            return [], info
+        in_files = traverse_obj(entries, (..., 'requested_downloads', 0, 'filepath'))
+        if len(in_files) < len(entries):
+            raise PostProcessingError('Aborting concatenation because some downloads failed')
 
         ie_copy = self._downloader._playlist_infodict(info)
-        exts = [traverse_obj(entry, ('requested_downloads', 0, 'ext'), 'ext') for entry in info['entries']]
+        exts = traverse_obj(entries, (..., 'requested_downloads', 0, 'ext'), (..., 'ext'))
         ie_copy['ext'] = exts[0] if len(set(exts)) == 1 else 'mkv'
         out_file = self._downloader.prepare_filename(ie_copy, 'pl_video')
 
-        self.concat_files(in_files, out_file)
+        files_to_delete = self.concat_files(in_files, out_file)
 
         info['requested_downloads'] = [{
             'filepath': out_file,
             'ext': ie_copy['ext'],
         }]
-        return in_files, info
+        return files_to_delete, info

@@ -64,10 +64,7 @@ class ImgGamingBaseIE(InfoExtractor):
         domain, media_type, media_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
-            if self.get_param('noplaylist'):
-                self.to_screen('Downloading just video %s because of --no-playlist' % media_id)
-            else:
-                self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % playlist_id)
+            if self._yes_playlist(playlist_id, media_id):
                 media_type, media_id = 'playlist', playlist_id
 
         if media_type == 'playlist':

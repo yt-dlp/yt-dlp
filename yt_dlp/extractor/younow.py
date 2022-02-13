@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
+    format_field,
     int_or_none,
     try_get,
 )
@@ -93,7 +94,7 @@ def _extract_moment(item, fatal=True):
 
     uploader = try_get(item, lambda x: x['owner']['name'], compat_str)
     uploader_id = try_get(item, lambda x: x['owner']['userId'])
-    uploader_url = 'https://www.younow.com/%s' % uploader if uploader else None
+    uploader_url = format_field(uploader, template='https://www.younow.com/%s')
 
     entry = {
         'extractor_key': 'YouNowMoment',

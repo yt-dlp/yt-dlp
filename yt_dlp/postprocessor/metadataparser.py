@@ -66,7 +66,7 @@ class MetadataParserPP(PostProcessor):
             self.write_debug(f'Searching for {out_re.pattern!r} in {template!r}')
             match = out_re.search(data_to_parse)
             if match is None:
-                self.report_warning(f'Could not interpret {inp!r} as {out!r}')
+                self.to_screen(f'Could not interpret {inp!r} as {out!r}')
                 return
             for attribute, value in match.groupdict().items():
                 info[attribute] = value
@@ -80,7 +80,7 @@ class MetadataParserPP(PostProcessor):
         def f(info):
             val = info.get(field)
             if val is None:
-                self.report_warning(f'Video does not have a {field}')
+                self.to_screen(f'Video does not have a {field}')
                 return
             elif not isinstance(val, str):
                 self.report_warning(f'Cannot replace in field {field} since it is a {type(val).__name__}')

@@ -117,6 +117,19 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     return parser, opts, args
 
 
+class _YoutubeDLOptionParser(optparse.OptionParser):
+    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+
+    def _match_long_opt(self, opt):
+        """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
+        try:
+            return super()._match_long_opt(opt)
+        except optparse.AmbiguousOptionError as e:
+            if len(set(self._long_opt[p] for p in e.possibilities)) == 1:
+                return e.possibilities[0]
+            raise
+
+
 def create_parser():
     def _format_option_string(option):
         ''' ('-o', '--option') -> -o, --format METAVAR'''
@@ -173,11 +186,16 @@ def create_parser():
             process_key=str.lower, append=False):
 
         out_dict = dict(getattr(parser.values, option.dest))
+        multiple_args = not isinstance(value, str)
         if multiple_keys:
             allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
-        mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
+        mobj = re.match(
+            r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter),
+            value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
+            if multiple_args:
+                val = [val, *value[1:]]
         elif default_key is not None:
             keys, val = [default_key], value
         else:
@@ -210,7 +228,7 @@ def create_parser():
         'conflict_handler': 'resolve',
     }
 
-    parser = optparse.OptionParser(**compat_kwargs(kw))
+    parser = _YoutubeDLOptionParser(**compat_kwargs(kw))
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -263,7 +281,7 @@ def create_parser():
         help=(
             'Don\'t load any more configuration files except those given by --config-locations. '
             'For backward compatibility, if this option is found inside the system configuration file, the user configuration is not loaded. '
-            '(Alias: --no-config'))
+            '(Alias: --no-config)'))
     general.add_option(
         '--no-config-locations',
         action='store_const', dest='config_locations', const=[],
@@ -340,7 +358,7 @@ def create_parser():
         help=(
             'Use the specified HTTP/HTTPS/SOCKS proxy. To enable '
             'SOCKS proxy, specify a proper scheme. For example '
-            'socks5://127.0.0.1:1080/. Pass in an empty string (--proxy "") '
+            'socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") '
             'for direct connection'))
     network.add_option(
         '--socket-timeout',
@@ -376,10 +394,10 @@ def create_parser():
     geo.add_option(
         '--geo-bypass',
         action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass', default=True,
+        action='store_false', dest='geo_bypass',
         help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
     geo.add_option(
         '--geo-bypass-country', metavar='CODE',
@@ -924,6 +942,18 @@ def create_parser():
             'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
             'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
     verbosity.add_option(
+        '--print-to-file',
+        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+            'default_key': 'video',
+            'multiple_keys': False,
+            'append': True,
+        }, help=(
+            'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
+            'FILE uses the same syntax as the output template. This option can be used multiple times'))
+    verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
         help=optparse.SUPPRESS_HELP)
@@ -1178,13 +1208,13 @@ def create_parser():
         action='store_false', dest='allow_playlist_files',
         help='Do not write playlist metadata when using --write-info-json, --write-description etc.')
     filesystem.add_option(
-        '--clean-infojson',
+        '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
             'Remove some private fields such as filenames from the infojson. '
             'Note that it could still contain some personal information (default)'))
     filesystem.add_option(
-        '--no-clean-infojson',
+        '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
         help='Write all fields to the infojson')
     filesystem.add_option(
@@ -1406,8 +1436,8 @@ def create_parser():
         metavar='POLICY', dest='concat_playlist', default='multi_video',
         choices=('never', 'always', 'multi_video'),
         help=(
-            'Concatenate videos in a playlist. One of "never" (default), "always", or '
-            '"multi_video" (only when the videos form a single show). '
+            'Concatenate videos in a playlist. One of "never", "always", or '
+            '"multi_video" (default; only when the videos form a single show). '
             'All the video files must have same codecs and number of streams to be concatable. '
             'The "pl_video:" prefix can be used with "--paths" and "--output" to '
             'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))

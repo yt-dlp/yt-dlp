@@ -14,7 +14,7 @@ except ImportError:
 
 from .common import FileDownloader
 from .http import HttpFD
-from ..aes import aes_cbc_decrypt_bytes
+from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import (
     compat_os_name,
     compat_urllib_error,
@@ -366,8 +366,7 @@ class FragmentFD(FileDownloader):
             # not what it decrypts to.
             if self.params.get('test', False):
                 return frag_content
-            decrypted_data = aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv)
-            return decrypted_data[:-decrypted_data[-1]]
+            return unpad_pkcs7(aes_cbc_decrypt_bytes(frag_content, decrypt_info['KEY'], iv))
 
         return decrypt_fragment
 

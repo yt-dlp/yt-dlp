@@ -27,8 +27,8 @@ from ..utils import (
 
 
 class TikTokBaseIE(InfoExtractor):
-    _APP_VERSION = '20.1.0'
-    _MANIFEST_APP_VERSION = '210'
+    _APP_VERSIONS = [('20.9.3', '293'), ('20.4.3', '243'), ('20.2.1', '221'), ('20.1.2', '212'), ('20.0.4', '204')]
+    _WORKING_APP_VERSION = None
     _APP_NAME = 'trill'
     _AID = 1180
     _API_HOSTNAME = 'api-h2.tiktokv.com'
@@ -36,15 +36,27 @@ class TikTokBaseIE(InfoExtractor):
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
 
-    def _call_api(self, ep, query, video_id, fatal=True,
-                  note='Downloading API JSON', errnote='Unable to download API page'):
-        real_query = {
+    def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
+                       note='Downloading API JSON', errnote='Unable to download API page'):
+        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
+        webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
+        if webpage_cookies.get('sid_tt'):
+            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
+        return self._download_json(
+            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
+            fatal=fatal, note=note, errnote=errnote, headers={
+                'User-Agent': f'com.ss.android.ugc.trill/{manifest_app_version} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
+                'Accept': 'application/json',
+            }, query=query)
+
+    def _build_api_query(self, query, app_version, manifest_app_version):
+        return {
             **query,
-            'version_name': self._APP_VERSION,
-            'version_code': self._MANIFEST_APP_VERSION,
-            'build_number': self._APP_VERSION,
-            'manifest_version_code': self._MANIFEST_APP_VERSION,
-            'update_version_code': self._MANIFEST_APP_VERSION,
+            'version_name': app_version,
+            'version_code': manifest_app_version,
+            'build_number': app_version,
+            'manifest_version_code': manifest_app_version,
+            'update_version_code': manifest_app_version,
             'openudid': ''.join(random.choice('0123456789abcdef') for _ in range(16)),
             'uuid': ''.join([random.choice(string.digits) for _ in range(16)]),
             '_rticket': int(time.time() * 1000),
@@ -73,16 +85,40 @@ class TikTokBaseIE(InfoExtractor):
             'as': 'a1qwert123',
             'cp': 'cbfhckdckkde1',
         }
-        self._set_cookie(self._API_HOSTNAME, 'odin_tt', ''.join(random.choice('0123456789abcdef') for _ in range(160)))
-        webpage_cookies = self._get_cookies(self._WEBPAGE_HOST)
-        if webpage_cookies.get('sid_tt'):
-            self._set_cookie(self._API_HOSTNAME, 'sid_tt', webpage_cookies['sid_tt'].value)
-        return self._download_json(
-            'https://%s/aweme/v1/%s/' % (self._API_HOSTNAME, ep), video_id=video_id,
-            fatal=fatal, note=note, errnote=errnote, headers={
-                'User-Agent': f'com.ss.android.ugc.trill/{self._MANIFEST_APP_VERSION} (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/58.0.2991.0)',
-                'Accept': 'application/json',
-            }, query=real_query)
+
+    def _call_api(self, ep, query, video_id, fatal=True,
+                  note='Downloading API JSON', errnote='Unable to download API page'):
+        if not self._WORKING_APP_VERSION:
+            app_version = self._configuration_arg('app_version', [''], ie_key=TikTokIE.ie_key())[0]
+            manifest_app_version = self._configuration_arg('manifest_app_version', [''], ie_key=TikTokIE.ie_key())[0]
+            if app_version and manifest_app_version:
+                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
+                self.write_debug('Imported app version combo from extractor arguments')
+            elif app_version or manifest_app_version:
+                self.report_warning('Only one of the two required version params are passed as extractor arguments', only_once=True)
+
+        if self._WORKING_APP_VERSION:
+            app_version, manifest_app_version = self._WORKING_APP_VERSION
+            real_query = self._build_api_query(query, app_version, manifest_app_version)
+            return self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
+
+        for count, (app_version, manifest_app_version) in enumerate(self._APP_VERSIONS, start=1):
+            real_query = self._build_api_query(query, app_version, manifest_app_version)
+            try:
+                res = self._call_api_impl(ep, real_query, manifest_app_version, video_id, fatal, note, errnote)
+                self._WORKING_APP_VERSION = (app_version, manifest_app_version)
+                return res
+            except ExtractorError as e:
+                if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
+                    if count == len(self._APP_VERSIONS):
+                        if fatal:
+                            raise e
+                        else:
+                            self.report_warning(str(e.cause or e.msg))
+                            return
+                    self.report_warning('%s. Retrying... (attempt %s of %s)' % (str(e.cause or e.msg), count, len(self._APP_VERSIONS)))
+                    continue
+                raise e
 
     def _get_subtitles(self, aweme_detail, aweme_id):
         # TODO: Extract text positioning info
@@ -754,8 +790,7 @@ class DouyinIE(TikTokIE):
             'comment_count': int,
         }
     }]
-    _APP_VERSION = '9.6.0'
-    _MANIFEST_APP_VERSION = '960'
+    _APP_VERSIONS = [('9.6.0', '960')]
     _APP_NAME = 'aweme'
     _AID = 1128
     _API_HOSTNAME = 'aweme.snssdk.com'

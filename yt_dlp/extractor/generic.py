@@ -140,6 +140,7 @@ from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
 from .tvopengr import TVOpenGrEmbedIE
+from .ertgr import ERTWebtvEmbedIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
@@ -212,7 +213,7 @@ class GenericIE(InfoExtractor):
         {
             'url': 'http://phihag.de/2014/youtube-dl/rss2.xml',
             'info_dict': {
-                'id': 'http://phihag.de/2014/youtube-dl/rss2.xml',
+                'id': 'https://phihag.de/2014/youtube-dl/rss2.xml',
                 'title': 'Zero Punctuation',
                 'description': 're:.*groundbreaking video review series.*'
             },
@@ -257,6 +258,9 @@ class GenericIE(InfoExtractor):
                     'episode_number': 1,
                     'season_number': 1,
                     'age_limit': 0,
+                    'season': 'Season 1',
+                    'direct': True,
+                    'episode': 'Episode 1',
                 },
             }],
             'params': {
@@ -272,6 +276,16 @@ class GenericIE(InfoExtractor):
                 'title': 'Hello Internet',
             },
             'playlist_mincount': 100,
+        },
+        # RSS feed with guid
+        {
+            'url': 'https://www.omnycontent.com/d/playlist/a7b4f8fe-59d9-4afc-a79a-a90101378abf/bf2c1d80-3656-4449-9d00-a903004e8f84/efbff746-e7c1-463a-9d80-a903004e8f8f/podcast.rss',
+            'info_dict': {
+                'id': 'https://www.omnycontent.com/d/playlist/a7b4f8fe-59d9-4afc-a79a-a90101378abf/bf2c1d80-3656-4449-9d00-a903004e8f84/efbff746-e7c1-463a-9d80-a903004e8f8f/podcast.rss',
+                'description': 'md5:be809a44b63b0c56fb485caf68685520',
+                'title': 'The Little Red Podcast',
+            },
+            'playlist_mincount': 76,
         },
         # SMIL from http://videolectures.net/promogram_igor_mekjavic_eng
         {
@@ -1455,24 +1469,6 @@ class GenericIE(InfoExtractor):
                 'duration': 45.115,
             },
         },
-        # 5min embed
-        {
-            'url': 'http://techcrunch.com/video/facebook-creates-on-this-day-crunch-report/518726732/',
-            'md5': '4c6f127a30736b59b3e2c19234ee2bf7',
-            'info_dict': {
-                'id': '518726732',
-                'ext': 'mp4',
-                'title': 'Facebook Creates "On This Day" | Crunch Report',
-                'description': 'Amazon updates Fire TV line, Tesla\'s Model X spotted in the wild',
-                'timestamp': 1427237531,
-                'uploader': 'Crunch Report',
-                'upload_date': '20150324',
-            },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
-        },
         # Crooks and Liars embed
         {
             'url': 'http://crooksandliars.com/2015/04/fox-friends-says-protecting-atheists',
@@ -1922,6 +1918,15 @@ class GenericIE(InfoExtractor):
                     'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/tsiodras-mitsotakis-1024x545.jpg',
                 },
             }]
+        },
+        {
+            'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
+            'info_dict': {
+                'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+                'ext': 'mp4',
+                'title': 'md5:df64f5b61c06d0e9556c0cdd5cf14464',
+                'thumbnail': 'https://www.ert.gr/themata/photos/2021/20220114-apotis6-gouales-pita.jpg',
+            },
         },
         {
             # ThePlatform embedded with whitespaces in URLs
@@ -2525,6 +2530,9 @@ class GenericIE(InfoExtractor):
 
             if not next_url:
                 continue
+
+            if it.find('guid').text is not None:
+                next_url = smuggle_url(next_url, {'force_videoid': it.find('guid').text})
 
             def itunes(key):
                 return xpath_text(
@@ -3327,12 +3335,6 @@ class GenericIE(InfoExtractor):
         if mobj is not None:
             return self.url_result(mobj.group('url'))
 
-        # Look for 5min embeds
-        mobj = re.search(
-            r'<meta[^>]+property="og:video"[^>]+content="https?://embed\.5min\.com/(?P<id>[0-9]+)/?', webpage)
-        if mobj is not None:
-            return self.url_result('5min:%s' % mobj.group('id'), 'FiveMin')
-
         # Look for Crooks and Liars embeds
         mobj = re.search(
             r'<(?:iframe[^>]+src|param[^>]+value)=(["\'])(?P<url>(?:https?:)?//embed\.crooksandliars\.com/(?:embed|v)/.+?)\1', webpage)
@@ -3693,6 +3695,13 @@ class GenericIE(InfoExtractor):
         if tvopengr_urls:
             return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
 
+        # Look for ert.gr webtv embeds
+        ertwebtv_urls = list(ERTWebtvEmbedIE._extract_urls(webpage))
+        if len(ertwebtv_urls) == 1:
+            return self.url_result(self._proto_relative_url(ertwebtv_urls[0]), video_title=video_title, url_transparent=True)
+        elif ertwebtv_urls:
+            return self.playlist_from_matches(ertwebtv_urls, video_id, video_title, ie=ERTWebtvEmbedIE.ie_key())
+
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
@@ -3798,12 +3807,16 @@ class GenericIE(InfoExtractor):
 
         # Looking for http://schema.org/VideoObject
         json_ld = self._search_json_ld(webpage, video_id, default={})
-        if json_ld.get('url'):
+        if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
-            if determine_ext(json_ld.get('url')) == 'm3u8':
+            if determine_ext(json_ld['url']) == 'm3u8':
                 json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
                     json_ld['url'], video_id, 'mp4')
                 json_ld.pop('url')
+                self._sort_formats(json_ld['formats'])
+            else:
+                json_ld['_type'] = 'url_transparent'
+                json_ld['url'] = smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True})
             return merge_dicts(json_ld, info_dict)
 
         def check_video(vurl):
@@ -3858,7 +3871,7 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
-                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d+').fullmatch, flashvars.keys()))
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d*').fullmatch, flashvars.keys()))
                 formats = []
                 for key in url_keys:
                     if '/get_file/' not in flashvars[key]:

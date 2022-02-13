@@ -239,6 +239,7 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height}",
                                         deprecated)
                         * "filesize" (optional, int)
+                        * "http_headers" (dict) - HTTP headers for the request
     thumbnail:      Full URL to a video thumbnail image.
     description:    Full video description.
     uploader:       Full name of the video uploader.
@@ -272,6 +273,8 @@ class InfoExtractor(object):
                         * "url": A URL pointing to the subtitles file
                     It can optionally also have:
                         * "name": Name or description of the subtitles
+                        * http_headers: A dictionary of additional HTTP headers
+                                  to add to the request.
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
                     captions instead of normal subtitles
@@ -1291,6 +1294,7 @@ class InfoExtractor(object):
         return self._og_search_property('description', html, fatal=False, **kargs)
 
     def _og_search_title(self, html, **kargs):
+        kargs.setdefault('fatal', False)
         return self._og_search_property('title', html, **kargs)
 
     def _og_search_video_url(self, html, name='video url', secure=True, **kargs):
@@ -1447,7 +1451,7 @@ class InfoExtractor(object):
                 'title': part.get('name'),
                 'start_time': part.get('startOffset'),
                 'end_time': part.get('endOffset'),
-            } for part in e.get('hasPart', []) if part.get('@type') == 'Clip']
+            } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
                     [{'end_time': 0}] + chapters, chapters, chapters[1:])):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
@@ -1528,6 +1532,8 @@ class InfoExtractor(object):
                         'title': unescapeHTML(e.get('headline')),
                         'description': unescapeHTML(e.get('articleBody') or e.get('description')),
                     })
+                    if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
+                        extract_video_object(e['video'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
                     if expected_type is None:
@@ -3105,7 +3111,7 @@ class InfoExtractor(object):
                     })
         return formats, subtitles
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8', mpd_id=None, preference=None, quality=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -3504,8 +3510,6 @@ class InfoExtractor(object):
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
-        if 'get_attr' in kwargs:
-            print(getattr(v, kwargs['get_attr']))
         if res is None:
             msg = 'Failed to extract %s: Could not parse value %r' % (name, v)
             if fatal:
@@ -3711,6 +3715,22 @@ class InfoExtractor(object):
         if val is None:
             return [] if default is NO_DEFAULT else default
         return list(val) if casesense else [x.lower() for x in val]
+
+    def _yes_playlist(self, playlist_id, video_id, smuggled_data=None, *, playlist_label='playlist', video_label='video'):
+        if not playlist_id or not video_id:
+            return not video_id
+
+        no_playlist = (smuggled_data or {}).get('force_noplaylist')
+        if no_playlist is not None:
+            return not no_playlist
+
+        video_id = '' if video_id is True else f' {video_id}'
+        playlist_id = '' if playlist_id is True else f' {playlist_id}'
+        if self.get_param('noplaylist'):
+            self.to_screen(f'Downloading just the {video_label}{video_id} because of --no-playlist')
+            return False
+        self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
+        return True
 
 
 class SearchInfoExtractor(InfoExtractor):
