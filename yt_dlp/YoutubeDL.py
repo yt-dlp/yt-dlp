@@ -1471,8 +1471,12 @@ class YoutubeDL(object):
             self.add_extra_info(ie_result, {
                 'webpage_url': url,
                 'original_url': url,
-                'webpage_url_basename': url_basename(url),
-                'webpage_url_domain': get_domain(url),
+            })
+        webpage_url = ie_result.get('webpage_url')
+        if webpage_url:
+            self.add_extra_info(ie_result, {
+                'webpage_url_basename': url_basename(webpage_url),
+                'webpage_url_domain': get_domain(webpage_url),
             })
         if ie is not None:
             self.add_extra_info(ie_result, {
