@@ -5,7 +5,7 @@ import functools
 import json
 
 from .common import InfoExtractor
-from ..utils import determine_ext, try_get, OnDemandPagedList, ExtractorError
+from ..utils import determine_ext, int_or_none, try_get, OnDemandPagedList, ExtractorError
 
 
 class MurrtubeIE(InfoExtractor):
@@ -38,14 +38,8 @@ class MurrtubeIE(InfoExtractor):
     def _download_gql(self, video_id, op, note=None, fatal=True):
         result = self._download_json(
             'https://murrtube.net/graphql',
-            video_id,
-            note,
-            data=json.dumps(op).encode(),
-            headers={
-                'Content-Type': 'application/json',
-            },
-            fatal=fatal,
-        )
+            video_id, note, data=json.dumps(op).encode(), fatal=fatal,
+            headers={'Content-Type': 'application/json'})
         return result['data']
 
     def _real_extract(self, url):
@@ -137,9 +131,7 @@ query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!)
         media = data['media']
 
         for entry in media:
-            yield self.url_result(
-                'murrtube:{0}'.format(entry['id']),
-                MurrtubeIE.ie_key())
+            yield self.url_result('murrtube:{0}'.format(entry['id']), MurrtubeIE.ie_key())
 
     def _real_extract(self, url):
         username = self._match_id(url)
