@@ -251,7 +251,6 @@ __all__ = [
     'compat_Match',
     'compat_Pattern',
     'compat_Struct',
-    'compat_asyncio_all_tasks',
     'compat_asyncio_run',
     'compat_b64decode',
     'compat_basestring',

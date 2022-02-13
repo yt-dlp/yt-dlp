@@ -42,7 +42,6 @@ import zlib
 import mimetypes
 
 from .compat import (
-    compat_asyncio_all_tasks,
     compat_HTMLParseError,
     compat_HTMLParser,
     compat_HTTPError,
@@ -5322,7 +5321,7 @@ def run_with_loop(main, loop):
 
 
 def _cancel_all_tasks(loop):
-    to_cancel = compat_asyncio_all_tasks(loop)
+    to_cancel = asyncio.tasks.all_tasks(loop)
 
     if not to_cancel:
         return
@@ -5348,7 +5347,6 @@ class WebSocketsWrapper():
     """Wraps websockets module to use in non-async scopes"""
 
     def __init__(self, url, headers=None):
-        # self.loop = asyncio.events.get_event_loop() or asyncio.events.new_event_loop()
         self.loop = asyncio.events.new_event_loop()
         self.conn = compat_websockets.connect(
             url, extra_headers=headers, ping_interval=None,
