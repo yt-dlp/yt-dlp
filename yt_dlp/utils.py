@@ -5316,14 +5316,14 @@ class WebSocketsWrapper():
         return self
 
     def send(self, *args):
-        self.rrun_with_loop(self.pool.send(*args), self.loop)
+        self.run_with_loop(self.pool.send(*args), self.loop)
 
     def recv(self, *args):
-        return self.rrun_with_loop(self.pool.recv(*args), self.loop)
+        return self.run_with_loop(self.pool.recv(*args), self.loop)
 
     def __exit__(self, type, value, traceback):
         try:
-            return self.rrun_with_loop(self.conn.__aexit__(type, value, traceback), self.loop)
+            return self.run_with_loop(self.conn.__aexit__(type, value, traceback), self.loop)
         finally:
             self.loop.close()
             self.r_cancel_all_tasks(self.loop)
