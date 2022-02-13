@@ -160,8 +160,9 @@ class RuvSpilaIE(InfoExtractor):
         episode = program['episodes'][0]
 
         subs = {}
-        [subs.setdefault(trk['name'], []).append({'url': trk['value'], 'ext': 'vtt'})
-         for trk in episode.get('subtitles') if trk.get('name') and trk.get('value')]
+        for trk in episode.get('subtitles'):
+            if trk.get('name') and trk.get('value'):
+                subs.setdefault(trk['name'], []).append({'url': trk['value'], 'ext': 'vtt'})
 
         media_url = episode['file']
         if determine_ext(media_url) == 'm3u8':
