@@ -1613,7 +1613,7 @@ from .tiktok import (
     TikTokSoundIE,
     TikTokEffectIE,
     TikTokTagIE,
-    TiktokVMIE,
+    TikTokVMIE,
     DouyinIE,
 )
 from .tinypic import TinyPicIE
