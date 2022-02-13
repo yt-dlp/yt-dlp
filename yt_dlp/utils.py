@@ -5336,7 +5336,6 @@ class WebSocketsWrapper():
             raise ValueError(f'a coroutine was expected, got {main!r}')
 
         try:
-            # asyncio.events.set_event_loop(loop)
             return loop.run_until_complete(main)
         finally:
             loop.run_until_complete(loop.shutdown_asyncgens())
