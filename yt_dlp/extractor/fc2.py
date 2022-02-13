@@ -17,11 +17,9 @@ from ..utils import (
     std_headers,
     traverse_obj,
     urlencode_postdata,
+    WebSocketsWrapper,
+    has_websockets,
 )
-try:
-    from ..syncws import WebSocketsWrapper
-except ImportError:
-    WebSocketsWrapper = None
 
 
 class FC2IE(InfoExtractor):
@@ -168,7 +166,7 @@ class FC2EmbedIE(InfoExtractor):
 
 
 class FC2LiveIE(InfoExtractor):
-    _VALID_URL = r'^https?://live\.fc2\.com/(?P<id>\d+)'
+    _VALID_URL = r'https?://live\.fc2\.com/(?P<id>\d+)'
     IE_NAME = 'fc2:live'
 
     _TESTS = [{
@@ -184,7 +182,7 @@ class FC2LiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        if not WebSocketsWrapper:
+        if not has_websockets:
             raise ExtractorError('websockets library is not available. Please install it.', expected=True)
         video_id = self._match_id(url)
         webpage = self._download_webpage('https://live.fc2.com/%s/' % video_id, video_id)
@@ -193,16 +191,16 @@ class FC2LiveIE(InfoExtractor):
 
         # https://live.fc2.com/js/playerVersion/version.txt?0.0674203108942784
         member_api = self._download_json(
-            'https://live.fc2.com/api/memberApi.php', video_id, form_params={
+            'https://live.fc2.com/api/memberApi.php', video_id, data=urlencode_postdata({
                 'channel': '1',
                 'profile': '1',
                 'user': '1',
                 'streamid': video_id
-            }, note='Requesting member info')
+            }), note='Requesting member info')
 
         control_server = self._download_json(
             'https://live.fc2.com/api/getControlServer.php', video_id, note='Downloading ControlServer data',
-            form_params={
+            data=urlencode_postdata({
                 'channel_id': video_id,
                 'mode': 'play',
                 'orz': '',
@@ -211,7 +209,7 @@ class FC2LiveIE(InfoExtractor):
                 'client_type': 'pc',
                 'client_app': 'browser_hls',
                 'ipv6': '',
-            }, headers={'X-Requested-With': 'XMLHttpRequest'})
+            }), headers={'X-Requested-With': 'XMLHttpRequest'})
         self._set_cookie('live.fc2.com', 'l_ortkn', control_server['orz_raw'])
 
         ws_url = control_server['url'] + '?control_token=' + control_server['control_token']
@@ -224,6 +222,7 @@ class FC2LiveIE(InfoExtractor):
             'Accept': '*/*',
             'User-Agent': std_headers['User-Agent'],
         })
+        ws.__enter__()
 
         self.write_debug('[debug] Sending HLS server request')
 
