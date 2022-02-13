@@ -79,15 +79,11 @@ class MurrtubeIE(InfoExtractor):
         format_url = storage_url + meta.get('key', '')
         thumbnail = storage_url + meta.get('thumbnailKey', '')
 
-        formats = []
         if determine_ext(format_url) == 'm3u8':
-            formats.extend(self._extract_m3u8_formats(
-                format_url, video_id, 'mp4', entry_protocol='m3u8_native',
-                fatal=False))
+            formats = self._extract_m3u8_formats(
+                format_url, video_id, 'mp4', entry_protocol='m3u8_native', fatal=False)
         else:
-            formats.append({
-                'url': format_url,
-            })
+            formats = [{'url': format_url}]
 
         return {
             'id': video_id,
@@ -95,7 +91,7 @@ class MurrtubeIE(InfoExtractor):
             'description': meta.get('description'),
             'formats': formats,
             'thumbnail': thumbnail,
-            'duration': int(meta.get('duration', 0)),
+            'duration': int_or_none(meta.get('duration')),
             'uploader': meta.get('user', {}).get('name'),
             'view_count': meta.get('viewsCount'),
             'like_count': meta.get('likesCount'),
