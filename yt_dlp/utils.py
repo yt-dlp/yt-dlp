@@ -5333,7 +5333,7 @@ class WebSocketsWrapper():
     @staticmethod
     def run_with_loop(main, loop):
         if not asyncio.coroutines.iscoroutine(main):
-            raise ValueError("a coroutine was expected, got {!r}".format(main))
+            raise ValueError(f'a coroutine was expected, got {main!r}')
 
         try:
             # asyncio.events.set_event_loop(loop)
