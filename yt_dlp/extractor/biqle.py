@@ -1,8 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from .vk import VKIE
 from ..compat import compat_b64decode
@@ -53,11 +51,10 @@ class BIQLEIE(InfoExtractor):
         description = self._html_search_meta('description', webpage, 'Description', default=None, fatal=False)
 
         global_embed_url = self._search_regex(
-            r'<script.+?window.globEmbedUrl\s*=\s*\'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'',
-            webpage, 'global Embed url', flags=re.DOTALL)
+            r'<script[^<]+?window.globEmbedUrl\s*=\s*\'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'',
+            webpage, 'global Embed url')
         hash = self._search_regex(
-            r'<script id="data-embed-video.+?hash: "([^"]+)"[^<]*</script>',
-            webpage, 'Hash', flags=re.DOTALL)
+            r'<script id="data-embed-video[^<]+?hash: "([^"]+)"[^<]*</script>', webpage, 'Hash')
 
         embed_url = global_embed_url + hash
 
@@ -68,8 +65,8 @@ class BIQLEIE(InfoExtractor):
             embed_url, video_id, 'Downloading embed webpage', headers={'Referer': url})
 
         glob_params = self._parse_json(self._search_regex(
-            r'<script id="globParams">.*window.globParams = ([^;]+);[^<]+</script>',
-            embed_page, 'Global Parameters', flags=re.DOTALL), video_id, transform_source=js_to_json)
+            r'<script id="globParams">[^<]*window.globParams = ([^;]+);[^<]+</script>',
+            embed_page, 'Global Parameters'), video_id, transform_source=js_to_json)
         host_name = compat_b64decode(glob_params['server'][::-1]).decode()
 
         item = self._download_json(
