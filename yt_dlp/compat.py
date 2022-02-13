@@ -133,10 +133,10 @@ except AttributeError:
     asyncio.run = compat_asyncio_run
 
 
-try:  # <= 3.6
-    compat_asyncio_all_tasks = asyncio.tasks.Task.all_tasks
-except AttributeError:  # > 3.7
-    compat_asyncio_all_tasks = asyncio.tasks.all_tasks
+try:  # >= 3.7
+    asyncio.tasks.all_tasks
+except AttributeError:
+    asyncio.tasks.all_tasks = asyncio.tasks.Task.all_tasks
 
 try:
     import websockets as compat_websockets

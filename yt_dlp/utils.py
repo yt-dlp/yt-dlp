@@ -5345,7 +5345,7 @@ def _cancel_all_tasks(loop):
 
 
 class WebSocketsWrapper():
-    "Wraps websockets module to use in non-async scopes"
+    """Wraps websockets module to use in non-async scopes"""
 
     def __init__(self, url, headers=None):
         # self.loop = asyncio.events.get_event_loop() or asyncio.events.new_event_loop()
