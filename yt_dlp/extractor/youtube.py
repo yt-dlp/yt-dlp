@@ -650,11 +650,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 badges.add(label.lower())
         return badges
 
-    def _ensure_absolute_url(self, relative_url, netloc=None):
-        url_parsed = compat_urlparse.urlparse(relative_url)
-        if not url_parsed.netloc:
-            url_parsed = url_parsed._replace(netloc=netloc or 'www.youtube.com')
-        return self._proto_relative_url(compat_urlparse.urlunparse(url_parsed))
+    def _ensure_absolute_url(self, url):
+        return urljoin('https://www.youtube.com', url)
 
     @staticmethod
     def _get_text(data, *path_list, max_runs=None):
