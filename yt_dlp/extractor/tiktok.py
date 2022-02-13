@@ -14,6 +14,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    HEADRequest,
     int_or_none,
     join_nonempty,
     LazyList,
@@ -817,3 +818,12 @@ class DouyinIE(TikTokIE):
             render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
         return self._parse_aweme_video_web(
             traverse_obj(render_data, (..., 'aweme', 'detail'), get_all=False), url)
+
+
+class TiktokVMIE(InfoExtractor):
+    _VALID_URL = r'https?://vm.tiktok.com/(?P<id>\w+)'
+    IE_NAME = 'vm.tiktok'
+
+    def _real_extract(self, url):
+        return self.url_result(self._request_webpage(
+            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).geturl(), TikTokIE)
