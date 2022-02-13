@@ -650,6 +650,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 badges.add(label.lower())
         return badges
 
+    @staticmethod
     def _ensure_absolute_url(self, url):
         return urljoin('https://www.youtube.com', url)
 
