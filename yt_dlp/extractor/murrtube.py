@@ -5,7 +5,7 @@ import functools
 import json
 
 from .common import InfoExtractor
-from ..utils import determine_ext, OnDemandPagedList, ExtractorError
+from ..utils import determine_ext, try_get, OnDemandPagedList, ExtractorError
 
 
 class MurrtubeIE(InfoExtractor):
@@ -93,7 +93,7 @@ query Medium($id: ID!) {
             'formats': formats,
             'thumbnail': thumbnail,
             'duration': int_or_none(meta.get('duration')),
-            'uploader': meta.get('user', {}).get('name'),
+            'uploader': try_get(meta, lambda x: x['user']['name']),
             'view_count': meta.get('viewsCount'),
             'like_count': meta.get('likesCount'),
             'comment_count': meta.get('commentsCount'),
@@ -132,7 +132,7 @@ query Media($q: String, $sort: String, $userId: ID, $offset: Int!, $limit: Int!)
 }'''},
             'Downloading page {0}'.format(page + 1))
         if data is None:
-            raise ExtractorError(f'Failed to retrieve video list for page {page + 1}', expected=True)
+            raise ExtractorError(f'Failed to retrieve video list for page {page + 1}')
 
         media = data['media']
 
@@ -157,7 +157,7 @@ query User($id: ID!) {
 }'''},
             'Downloading user info')
         if data is None:
-            raise ExtractorError('Failed to fetch user info', expected=True)
+            raise ExtractorError('Failed to fetch user info')
 
         user = data['user']
 
