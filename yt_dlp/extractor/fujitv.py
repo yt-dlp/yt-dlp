@@ -55,12 +55,8 @@ class FujiTVFODPlus7IE(InfoExtractor):
                 continue
             fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'mp4')
             for f in fmt:
-                wh = self._BITRATE_MAP.get(f.get('tbr'))
-                if wh:
-                    f.update({
-                        'width': wh[0],
-                        'height': wh[1],
-                    })
+                f.update(dict(zip(('height', 'width'),
+                                  self._BITRATE_MAP.get(f.get('tbr'), ()))))
             formats.extend(fmt)
             subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats, ['tbr'])
