@@ -26,7 +26,6 @@ class RokfinIE(InfoExtractor):
 class RokfinSingleVideoIE(RokfinIE):
     _META_DATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
     _BASE_URL = 'https://rokfin.com/'
-    _BASE_URL = 'https://rokfin.com/'
 
 
 class RokfinPostIE(RokfinSingleVideoIE):
@@ -56,17 +55,17 @@ class RokfinPostIE(RokfinSingleVideoIE):
             self.report_warning('site logins are unsupported')
 
         video_id = self._match_id(url_from_user)
-        downloaded_json_meta_data = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
-        video_formats_url = url_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'contentUrl')))
+        metadata = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
+        video_formats_url = url_or_none(traverse_obj(metadata, ('content', 'contentUrl')))
         availability = self._availability(
             is_private=False,
-            needs_premium=True if downloaded_json_meta_data.get('premiumPlan') == 1 else False if downloaded_json_meta_data.get('premiumPlan') == 0 else None,
+            needs_premium=True if metadata.get('premiumPlan') == 1 else False if metadata.get('premiumPlan') == 0 else None,
             # premiumPlan = 0 - no-premium content
             # premiumPlan = 1 - premium-only content
             needs_subscription=False, needs_auth=False, is_unlisted=False)
 
-        if downloaded_json_meta_data.get('premiumPlan') not in (0, 1, None):
-            self.report_warning(f'unknown availability code: {downloaded_json_meta_data.get("premiumPlan")}. Rokfin extractor should be updated')
+        if metadata.get('premiumPlan') not in (0, 1, None):
+            self.report_warning(f'unknown availability code: {metadata.get("premiumPlan")}. Rokfin extractor should be updated')
 
         if video_formats_url:
             if try_get(video_formats_url, lambda x: urllib.parse.urlparse(x).path.endswith('.m3u8')):
@@ -90,23 +89,23 @@ class RokfinPostIE(RokfinSingleVideoIE):
         self._sort_formats(frmts)
         return {
             'id': video_id,
-            'title': str_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'contentTitle'))),
+            'title': str_or_none(traverse_obj(metadata, ('content', 'contentTitle'))),
             'webpage_url': self._BASE_URL + video_id,
             # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             'live_status': 'not_live',
-            'duration': float_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'duration'))),
-            'thumbnail': url_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'thumbnailUrl1'))),
-            'description': str_or_none(traverse_obj(downloaded_json_meta_data, ('content', 'contentDescription'))),
-            'like_count': int_or_none(downloaded_json_meta_data.get('likeCount')),
-            'dislike_count': int_or_none(downloaded_json_meta_data.get('dislikeCount')),
-            # 'comment_count': downloaded_json_meta_data.get('numComments'), # Uncomment when Rf corrects 'numComments' field.
+            'duration': float_or_none(traverse_obj(metadata, ('content', 'duration'))),
+            'thumbnail': url_or_none(traverse_obj(metadata, ('content', 'thumbnailUrl1'))),
+            'description': str_or_none(traverse_obj(metadata, ('content', 'contentDescription'))),
+            'like_count': int_or_none(metadata.get('likeCount')),
+            'dislike_count': int_or_none(metadata.get('dislikeCount')),
+            # 'comment_count': metadata.get('numComments'), # Uncomment when Rf corrects 'numComments' field.
             'availability': availability,
-            'creator': str_or_none(traverse_obj(downloaded_json_meta_data, ('createdBy', 'name'))),
-            'channel_id': traverse_obj(downloaded_json_meta_data, ('createdBy', 'id')),
-            'channel': str_or_none(traverse_obj(downloaded_json_meta_data, ('createdBy', 'name'))),
-            'channel_url': try_get(downloaded_json_meta_data, lambda x: url_or_none(self._BASE_URL + x['createdBy']['username'])),
-            'timestamp': unified_timestamp(downloaded_json_meta_data.get('creationDateTime')),
-            'tags': downloaded_json_meta_data.get('tags') or [],
+            'creator': str_or_none(traverse_obj(metadata, ('createdBy', 'name'))),
+            'channel_id': traverse_obj(metadata, ('createdBy', 'id')),
+            'channel': str_or_none(traverse_obj(metadata, ('createdBy', 'name'))),
+            'channel_url': try_get(metadata, lambda x: url_or_none(self._BASE_URL + x['createdBy']['username'])),
+            'timestamp': unified_timestamp(metadata.get('creationDateTime')),
+            'tags': metadata.get('tags') or [],
             'formats': frmts or [],
             'subtitles': subs or {},
             '__post_extractor': self.extract_comments(video_id=video_id)
@@ -191,15 +190,15 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             self.report_warning('--live-from-start is unsupported')
 
         video_id = self._match_id(url_from_user)
-        downloaded_json_meta_data = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
+        metadata = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
         availability = self._availability(
-            needs_premium=bool(downloaded_json_meta_data.get('premium')) if downloaded_json_meta_data.get('premium') in (True, False, 0, 1) else None,
+            needs_premium=bool(metadata.get('premium')) if metadata.get('premium') in (True, False, 0, 1) else None,
             is_private=False, needs_subscription=False, needs_auth=False, is_unlisted=False)
-        m3u8_url = url_or_none(downloaded_json_meta_data.get('url'))
-        stream_scheduled_for = try_get(downloaded_json_meta_data, lambda x: datetime.datetime.strptime(x.get('scheduledAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
+        m3u8_url = url_or_none(metadata.get('url'))
+        stream_scheduled_for = try_get(metadata, lambda x: datetime.datetime.strptime(x.get('scheduledAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
         # 'scheduledAt' gets set to None after the stream becomes live.
         stream_ended_at = try_get(
-            downloaded_json_meta_data,
+            metadata,
             lambda x: datetime.datetime.strptime(x.get('stoppedAt'), '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc))
         # 'stoppedAt' is null unless the stream is finished. 'stoppedAt' likely contains an incorrect value,
         # so what matters to us is whether or not this field is *present*.
@@ -235,7 +234,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
 
         # 'postedAtMilli' shows when the stream (live or pending) appeared on Rokfin. As soon as the pending stream goes live,
         # the value of 'postedAtMilli' changes to reflect the stream's starting time.
-        stream_started_at_timestamp = try_get(downloaded_json_meta_data, lambda x: x.get('postedAtMilli') / 1000) if stream_scheduled_for is None else None
+        stream_started_at_timestamp = try_get(metadata, lambda x: x.get('postedAtMilli') / 1000) if stream_scheduled_for is None else None
         stream_started_at = try_get(stream_started_at_timestamp, lambda x: datetime.datetime.utcfromtimestamp(x).replace(tzinfo=datetime.timezone.utc))
         # The stream's actual (if live or finished) or announced (if pending) starting time:
         release_timestamp = try_get(stream_scheduled_for, lambda x: unified_timestamp(datetime.datetime.strftime(x, '%Y-%m-%dT%H:%M:%S'))) or stream_started_at_timestamp
@@ -243,21 +242,21 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         self._sort_formats(frmts)
         return {
             'id': video_id,
-            'title': str_or_none(downloaded_json_meta_data.get('title')),
+            'title': str_or_none(metadata.get('title')),
             'webpage_url': self._BASE_URL + video_id,
             # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             'manifest_url': m3u8_url,
-            'thumbnail': url_or_none(downloaded_json_meta_data.get('thumbnail')),
-            'description': str_or_none(downloaded_json_meta_data.get('description')),
-            'like_count': int_or_none(downloaded_json_meta_data.get('likeCount')),
-            'dislike_count': int_or_none(downloaded_json_meta_data.get('dislikeCount')),
-            'creator': str_or_none(traverse_obj(downloaded_json_meta_data, ('creator', 'name'))),
-            'channel': str_or_none(traverse_obj(downloaded_json_meta_data, ('creator', 'name'))),
-            'channel_id': traverse_obj(downloaded_json_meta_data, ('creator', 'id')),
-            'uploader_id': traverse_obj(downloaded_json_meta_data, ('creator', 'id')),
-            'channel_url': try_get(downloaded_json_meta_data, lambda x: url_or_none(self._BASE_URL + traverse_obj(x, ('creator', 'username')))),
+            'thumbnail': url_or_none(metadata.get('thumbnail')),
+            'description': str_or_none(metadata.get('description')),
+            'like_count': int_or_none(metadata.get('likeCount')),
+            'dislike_count': int_or_none(metadata.get('dislikeCount')),
+            'creator': str_or_none(traverse_obj(metadata, ('creator', 'name'))),
+            'channel': str_or_none(traverse_obj(metadata, ('creator', 'name'))),
+            'channel_id': traverse_obj(metadata, ('creator', 'id')),
+            'uploader_id': traverse_obj(metadata, ('creator', 'id')),
+            'channel_url': try_get(metadata, lambda x: url_or_none(self._BASE_URL + traverse_obj(x, ('creator', 'username')))),
             'availability': availability,
-            'tags': downloaded_json_meta_data.get('tags') or [],
+            'tags': metadata.get('tags') or [],
             'live_status': 'was_live' if (stream_scheduled_for is None) and (stream_ended_at is not None) else
                            'is_live' if stream_scheduled_for is None else  # stream_scheduled_for=stream_ended_at=None
                            'is_upcoming' if stream_ended_at is None else   # stream_scheduled_for is not None
@@ -372,12 +371,12 @@ class RokfinChannelIE(RokfinPlaylistIE):
                 else:
                     data_url = f'{_META_DATA_BASE_URL2}{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}&creator={channel_id}'
 
-                downloaded_json_meta_data = self._download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False) or {}
+                metadata = self._download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False) or {}
 
-                yield from self._get_video_data(json_data=downloaded_json_meta_data, video_base_url=_VIDEO_BASE_URL)
+                yield from self._get_video_data(json_data=metadata, video_base_url=_VIDEO_BASE_URL)
 
-                pages_total = downloaded_json_meta_data.get('totalPages')
-                is_last_page = try_get(downloaded_json_meta_data, lambda x: x['last'] is True)
+                pages_total = metadata.get('totalPages')
+                is_last_page = try_get(metadata, lambda x: x['last'] is True)
                 max_page_count_reached = try_get(pages_total, lambda x: page_n + 1 >= x)
 
                 if is_last_page or max_page_count_reached or ((is_last_page is None) and (max_page_count_reached is None)):
