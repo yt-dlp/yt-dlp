@@ -4,6 +4,7 @@ from .common import InfoExtractor
 from ..utils import (
     extract_attributes,
     int_or_none,
+    merge_dicts,
     str_to_int,
     unified_strdate,
     url_or_none,
@@ -159,7 +160,8 @@ class YouPornIE(InfoExtractor):
             r'(?s)Tags:.*?</div>\s*<div[^>]+class=["\']tagBoxContent["\'][^>]*>(.+?)</div>',
             'tags')
 
-        return {
+        data = self._search_json_ld(webpage, video_id, expected_type='VideoObject', fatal=False)
+        return merge_dicts(data, {
             'id': video_id,
             'display_id': display_id,
             'title': title,
@@ -174,4 +176,4 @@ class YouPornIE(InfoExtractor):
             'tags': tags,
             'age_limit': age_limit,
             'formats': formats,
-        }
+        })
