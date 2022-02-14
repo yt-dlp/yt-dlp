@@ -1471,8 +1471,12 @@ class YoutubeDL(object):
             self.add_extra_info(ie_result, {
                 'webpage_url': url,
                 'original_url': url,
-                'webpage_url_basename': url_basename(url),
-                'webpage_url_domain': get_domain(url),
+            })
+        webpage_url = ie_result.get('webpage_url')
+        if webpage_url:
+            self.add_extra_info(ie_result, {
+                'webpage_url_basename': url_basename(webpage_url),
+                'webpage_url_domain': get_domain(webpage_url),
             })
         if ie is not None:
             self.add_extra_info(ie_result, {
@@ -3047,9 +3051,11 @@ class YoutubeDL(object):
                                 'while also allowing unplayable formats to be downloaded. '
                                 'The formats won\'t be merged to prevent data corruption.')
                         elif not merger.available:
-                            self.report_warning(
-                                'You have requested merging of multiple formats but ffmpeg is not installed. '
-                                'The formats won\'t be merged.')
+                            msg = 'You have requested merging of multiple formats but ffmpeg is not installed'
+                            if not self.params.get('ignoreerrors'):
+                                self.report_error(f'{msg}. Aborting due to --abort-on-error')
+                                return
+                            self.report_warning(f'{msg}. The formats won\'t be merged')
 
                         if temp_filename == '-':
                             reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict, self.params)

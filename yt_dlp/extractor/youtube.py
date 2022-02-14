@@ -2245,12 +2245,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_all=False, expected_type=compat_str)
         if not player_url:
             return
-        if player_url.startswith('//'):
-            player_url = 'https:' + player_url
-        elif not re.match(r'https?://', player_url):
-            player_url = compat_urlparse.urljoin(
-                'https://www.youtube.com', player_url)
-        return player_url
+        return urljoin('https://www.youtube.com', player_url)
 
     def _download_player_url(self, video_id, fatal=False):
         res = self._download_webpage(
@@ -2399,11 +2394,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """Turn the encrypted n field into a working signature"""
         if player_url is None:
             raise ExtractorError('Cannot decrypt nsig without player_url')
-        if player_url.startswith('//'):
-            player_url = 'https:' + player_url
-        elif not re.match(r'https?://', player_url):
-            player_url = compat_urlparse.urljoin(
-                'https://www.youtube.com', player_url)
+        player_url = urljoin('https://www.youtube.com', player_url)
 
         sig_id = ('nsig_value', s)
         if sig_id in self._player_cache:
@@ -3388,7 +3379,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     })
                     lang_subs.append({
                         'ext': fmt,
-                        'url': update_url_query(base_url, query),
+                        'url': urljoin('https://www.youtube.com', update_url_query(base_url, query)),
                         'name': sub_name,
                     })
 
