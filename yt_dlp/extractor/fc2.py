@@ -105,6 +105,7 @@ class FC2IE(InfoExtractor):
             'title': title,
             'url': vid_url,
             'ext': 'mp4',
+            'protocol': 'm3u8_native',
             'description': description,
             'thumbnail': thumbnail,
         }
