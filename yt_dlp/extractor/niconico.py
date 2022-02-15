@@ -765,7 +765,7 @@ class NicovideoTagURLIE(NicovideoSearchBaseIE):
     _SEARCH_TYPE = 'tag'
     _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/tag/(?P<id>[^?#&]+)?'
     _TESTS = [{
-        'url': 'https://www.nicovideo.jp/tag/%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%82%BF%E3%83%AA%E3%83%BC%E6%B7%AB%E5%A4%A2',
+        'url': 'https://www.nicovideo.jp/tag/ドキュメンタリー淫夢',
         'info_dict': {
             'id': 'ドキュメンタリー淫夢',
             'title': 'ドキュメンタリー淫夢'
