@@ -1814,6 +1814,10 @@ from .vice import (
 from .vidbit import VidbitIE
 from .viddler import ViddlerIE
 from .videa import VideaIE
+from .videocampus_sachsen import (
+    VideocampusSachsenIE,
+    VideocampusSachsenEmbedIE,
+)
 from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
 from .videomore import (
