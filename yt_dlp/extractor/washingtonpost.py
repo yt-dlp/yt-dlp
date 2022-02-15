@@ -5,6 +5,12 @@ import re
 
 from .common import InfoExtractor
 
+from ..utils import (
+    get_element_by_id,
+    js_to_json,
+    traverse_obj,
+)
+
 
 class WashingtonPostIE(InfoExtractor):
     IE_NAME = 'washingtonpost'
@@ -50,7 +56,7 @@ class WashingtonPostArticleIE(InfoExtractor):
             'title': 'Sinkhole of bureaucracy',
         },
         'playlist': [{
-            'md5': 'b9be794ceb56c7267d410a13f99d801a',
+            'md5': '7ccf53ea8cbb77de5f570242b3b21a59',
             'info_dict': {
                 'id': 'fc433c38-b146-11e3-b8b3-44b1d1cd4c1f',
                 'ext': 'mp4',
@@ -59,9 +65,10 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'description': 'Overly complicated paper pushing is nothing new to government bureaucracy. But the way federal retirement applications are filed may be the most outdated. David Fahrenthold explains.',
                 'timestamp': 1395440416,
                 'upload_date': '20140321',
+                'thumbnail': 'https://d1i4t8bqe7zgj6.cloudfront.net/PAPERMINESplash.jpg',
             },
         }, {
-            'md5': '1fff6a689d8770966df78c8cb6c8c17c',
+            'md5': '7ccf53ea8cbb77de5f570242b3b21a59',
             'info_dict': {
                 'id': '41255e28-b14a-11e3-b8b3-44b1d1cd4c1f',
                 'ext': 'mp4',
@@ -70,6 +77,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'duration': 2220,
                 'timestamp': 1395441819,
                 'upload_date': '20140321',
+                'thumbnail': 'https://d1i4t8bqe7zgj6.cloudfront.net/BoyersSplash.jpeg',
             },
         }],
     }, {
@@ -88,7 +96,11 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'timestamp': 1419972442,
                 'title': 'Why black boxes don’t transmit data in real time',
             }
-        }]
+        }],
+        'skip': 'Doesnt have a video anymore',
+    }, {
+        'url': 'https://www.washingtonpost.com/nation/2021/08/05/dixie-river-fire-california-climate/',
+        'only_matching': True,
     }]
 
     @classmethod
@@ -106,6 +118,14 @@ class WashingtonPostArticleIE(InfoExtractor):
                 <div\s+class="posttv-video-embed[^>]*?data-uuid=|
                 data-video-uuid=
             )"([^"]+)"''', webpage)
+
+        if not uuids:
+            next_data = get_element_by_id('__NEXT_DATA__', webpage)
+            json_data = self._parse_json(next_data, page_id, transform_source=js_to_json)
+            for content_element in traverse_obj(json_data, ('props', 'pageProps', 'globalContent', 'content_elements')):
+                if content_element.get('type') == 'video':
+                    uuids.append(content_element.get('_id'))
+
         entries = [self.url_result('washingtonpost:%s' % uuid, 'WashingtonPost', uuid) for uuid in uuids]
 
         return {
