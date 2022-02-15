@@ -890,6 +890,7 @@ from .mtv import (
     MTVItaliaProgrammaIE,
 )
 from .muenchentv import MuenchenTVIE
+from .murrtube import MurrtubeIE, MurrtubeUserIE
 from .musescore import MuseScoreIE
 from .musicdex import (
     MusicdexSongIE,
