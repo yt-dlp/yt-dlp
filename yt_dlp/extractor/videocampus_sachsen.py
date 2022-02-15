@@ -39,7 +39,7 @@ class VideocampusSachsenIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, tmp_id, display_id = self._match_valid_url(url).group('id', 'tmp_id', 'display_id')
-        webpage = self._download_webpage(url, video_id or tmp_id)
+        webpage = self._download_webpage(url, video_id or tmp_id, fatal=False) or ''
 
         if not tmp_id:
             video_id = self._html_search_regex(
@@ -47,8 +47,8 @@ class VideocampusSachsenIE(InfoExtractor):
                 webpage, 'video_id')
 
         title = self._html_search_regex(
-            (r'<h1>([^<]+)</h1>', r'<meta[^>]+name=(["\'])title\1[^>]+content=\1(?P<a>(?:(?!\1).)+)\1[^>]*/>'),
-            webpage, 'title')
+            (r'<h1>(?P<content>[^<]+)</h1>', *self._meta_regex('title')),
+            webpage, 'title', group='content', fatal=False)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://videocampus.sachsen.de/media/hlsMedium/key/{video_id}/format/auto/ext/mp4/learning/0/path/m3u8',
@@ -82,7 +82,7 @@ class VideocampusSachsenEmbedIE(InfoExtractor):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
-        title = self._html_search_regex(r'<img[^>]*title="([^"<]+)"', webpage, 'title')
+        title = self._html_search_regex(r'<img[^>]*title="([^"<]+)"', webpage, 'title', fatal=False)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             f'https://videocampus.sachsen.de/media/hlsMedium/key/{video_id}/format/auto/ext/mp4/learning/0/path/m3u8',
             video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
