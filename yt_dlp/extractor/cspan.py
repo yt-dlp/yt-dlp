@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
+from ..compat import compat_HTMLParseError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -128,7 +129,10 @@ class CSpanIE(InfoExtractor):
                         ext = 'vtt'
                     subtitle['ext'] = ext
             ld_info = self._search_json_ld(webpage, video_id, default={})
-            title = get_element_by_class('video-page-title', webpage) or self._og_search_title(webpage)
+            try:
+                title = get_element_by_class('video-page-title', webpage) or self._og_search_title(webpage)
+            except compat_HTMLParseError:
+                title = None
             description = get_element_by_attribute('itemprop', 'description', webpage) or \
                 self._html_search_meta(['og:description', 'description'], webpage)
             return merge_dicts(info, ld_info, {
