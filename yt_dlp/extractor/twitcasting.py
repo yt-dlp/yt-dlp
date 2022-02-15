@@ -154,11 +154,12 @@ class TwitCastingIE(InfoExtractor):
                 m3u8_url, video_id, ext='mp4', m3u8_id='hls',
                 live=True, headers=self._M3U8_HEADERS)
 
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', m3u8_id='source',
-                live=True, query={'mode': 'source'},
-                note='Downloading source quality m3u8',
-                headers=self._M3U8_HEADERS, fatal=False))
+            if traverse_obj(stream_server_data, ('hls', 'source')):
+                formats.extend(self._extract_m3u8_formats(
+                    m3u8_url, video_id, ext='mp4', m3u8_id='source',
+                    live=True, query={'mode': 'source'},
+                    note='Downloading source quality m3u8',
+                    headers=self._M3U8_HEADERS, fatal=False))
 
             if has_websockets:
                 qq = qualities(['base', 'mobilesource', 'main'])
