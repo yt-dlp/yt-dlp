@@ -72,7 +72,7 @@ class RTVSLOIE(InfoExtractor):
 
         thumbs = [
             {'id': k, 'url': v, 'http_headers': {'Accept': 'image/jpeg'}}
-            for (k, v) in meta.get('images').items()]
+            for (k, v) in meta.get('images', {}).items()]
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
 
         subs = {}
