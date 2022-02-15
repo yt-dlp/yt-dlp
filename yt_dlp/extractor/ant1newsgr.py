@@ -120,8 +120,8 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
 class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
     IE_NAME = 'ant1newsgr:embed'
     IE_DESC = 'ant1news.gr embedded videos'
-    _BASE_PLAYER_URL_RE = r'//(?:[a-zA-Z0-9\-]+\.)?(?:antenna|ant1news)\.gr/templates/pages/player'
-    _VALID_URL = rf'https?:{_BASE_PLAYER_URL_RE}\?([^#]+&)?cid=(?P<id>[^#&]+)'
+    _BASE_PLAYER_URL_RE = r'(?:https?:)?//(?:[a-zA-Z0-9\-]+\.)?(?:antenna|ant1news)\.gr/templates/pages/player'
+    _VALID_URL = rf'{_BASE_PLAYER_URL_RE}\?([^#]+&)?cid=(?P<id>[^#&]+)'
     _API_PATH = '/news/templates/data/jsonPlayer'
 
     _TESTS = [{
@@ -138,10 +138,9 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
     @classmethod
     def _extract_urls(cls, webpage):
         # in comparison with _VALID_URL:
-        # * make the scheme optional
         # * simplify the query string part; after extracting iframe src, the URL
         #   will be matched again
-        _EMBED_URL_RE = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
+        _EMBED_URL_RE = rf'{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
         _EMBED_RE = rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{_EMBED_URL_RE})(?P=_q1)'
         for mobj in re.finditer(_EMBED_RE, webpage):
             url = unescapeHTML(mobj.group('url'))
