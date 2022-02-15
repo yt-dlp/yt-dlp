@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..utils import remove_end
 
 
 class PeekVidsIE(InfoExtractor):
@@ -13,11 +12,17 @@ class PeekVidsIE(InfoExtractor):
     '''
     _TESTS = [{
         'url': 'https://peekvids.com/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp/BSyLMbN0YCd',
-        'md5': '2ff6a357a9717dc9dc9894b51307e9a2',
+        'md5': 'a00940646c428e232407e3e62f0e8ef5',
         'info_dict': {
             'id': 'BSyLMbN0YCd',
+            'title': ' Dane Jones - Cute redhead with perfect tits with Mini Vamp, SEXYhub',
             'ext': 'mp4',
-            'title': 'Dane Jones - Cute redhead with perfect tits with Mini Vamp',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'Watch  Dane Jones - Cute redhead with perfect tits with Mini Vamp (7 min), uploaded by SEXYhub.com',
+            'timestamp': 1642579329,
+            'upload_date': '20220119',
+            'duration': 416,
+            'view_count': int,
             'age_limit': 18,
         },
     }]
@@ -40,46 +45,37 @@ class PeekVidsIE(InfoExtractor):
             formats = [{'url': url} for url in srcs.values()]
         self._sort_formats(formats)
 
-        title = remove_end(self._html_search_regex(
-            (r'<h1.*?>\s*(.+?)\s*</h1>', r'<title>\s*(.+?)\s*</title>'),
-            webpage, 'video title', default=None), ' - PeekVids')
-
-        return {
+        info = self._search_json_ld(webpage, video_id, expected_type='VideoObject')
+        info.update({
             'id': video_id,
-            'title': title,
             'age_limit': 18,
             'formats': formats,
-        }
+        })
+        return info
 
 
 class PlayVidsIE(PeekVidsIE):
     _VALID_URL = r'https?://(?:www\.)?playvids\.com/(?:embed/|[^/]{2}/)?(?P<id>[^/?#]*)'
     _TESTS = [{
         'url': 'https://www.playvids.com/U3pBrYhsjXM/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp',
-        'md5': '2f12e50213dd65f142175da633c4564c',
+        'md5': 'cd7dfd8a2e815a45402369c76e3c1825',
         'info_dict': {
             'id': 'U3pBrYhsjXM',
+            'title': ' Dane Jones - Cute redhead with perfect tits with Mini Vamp, SEXYhub',
             'ext': 'mp4',
-            'title': 'Dane Jones - Cute redhead with perfect tits with Mini Vamp',
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'Watch  Dane Jones - Cute redhead with perfect tits with Mini Vamp video in HD, uploaded by SEXYhub.com',
+            'timestamp': 1640435839,
+            'upload_date': '20211225',
+            'duration': 416,
+            'view_count': int,
             'age_limit': 18,
         },
     }, {
         'url': 'https://www.playvids.com/es/U3pBrYhsjXM/pc/dane-jones-cute-redhead-with-perfect-tits-with-mini-vamp',
-        'md5': '2f12e50213dd65f142175da633c4564c',
-        'info_dict': {
-            'id': 'U3pBrYhsjXM',
-            'ext': 'mp4',
-            'title': 'Dane Jones - Cute redhead with perfect tits with Mini Vamp',
-            'age_limit': 18,
-        },
+        'only_matching': True,
     }, {
         'url': 'https://www.playvids.com/embed/U3pBrYhsjXM',
-        'md5': '2f12e50213dd65f142175da633c4564c',
-        'info_dict': {
-            'id': 'U3pBrYhsjXM',
-            'ext': 'mp4',
-            'title': 'U3pBrYhsjXM',
-            'age_limit': 18,
-        },
+        'only_matching': True,
     }]
     _DOMAIN = 'www.playvids.com'
