@@ -36,7 +36,7 @@ class VideocampusSachsenIE(InfoExtractor):
         video_id, tmp_id, display_id = self._match_valid_url(url).group(
             'id', 'tmp_id', 'display_id')
 
-        webpage = self._download_webpage(url, tmp_id)
+        webpage = self._download_webpage(url, video_id or tmp_id)
 
         if tmp_id is not None:
             video_id = self._html_search_regex(
