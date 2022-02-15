@@ -9,27 +9,12 @@ from ..utils import (
     HEADRequest,
     ExtractorError,
     determine_ext,
-    merge_dicts,
+    scale_thumbnails_to_max_format_width,
     unescapeHTML,
 )
 
 
 class Ant1NewsGrBaseIE(InfoExtractor):
-    @staticmethod
-    def _scale_thumbnails_to_max_width(formats, thumbnails, url_width_re):
-        _keys = ('width', 'height')
-        max_dimensions = max(
-            [tuple(format.get(k) or 0 for k in _keys) for format in formats],
-            default=(0, 0))
-        if not max_dimensions[0]:
-            return thumbnails
-        return [
-            merge_dicts(
-                {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
-                dict(zip(_keys, max_dimensions)), thumbnail)
-            for thumbnail in thumbnails
-        ]
-
     def _download_and_extract_api_data(self, video_id, netloc, cid=None):
         url = f'{self.http_scheme()}//{netloc}{self._API_PATH}'
         info = self._download_json(url, video_id, query={'cid': cid or video_id})
@@ -40,7 +25,7 @@ class Ant1NewsGrBaseIE(InfoExtractor):
         formats, subs = (self._extract_m3u8_formats_and_subtitles(source, video_id, 'mp4')
                          if determine_ext(source) == 'm3u8' else ([{'url': source}], {}))
         self._sort_formats(formats)
-        thumbnails = self._scale_thumbnails_to_max_width(
+        thumbnails = scale_thumbnails_to_max_format_width(
             formats, [{'url': info['thumb']}], r'(?<=/imgHandler/)\d+')
         return {
             'id': video_id,
