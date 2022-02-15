@@ -1011,6 +1011,7 @@ from .niconico import (
     NicovideoSearchDateIE,
     NicovideoSearchIE,
     NicovideoSearchURLIE,
+    NicovideoTagURLIE,
 )
 from .ninecninemedia import (
     NineCNineMediaIE,
