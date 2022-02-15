@@ -70,7 +70,9 @@ class RTVSLOIE(InfoExtractor):
         v_id = self._match_id(url)
         meta = self._download_json(self._API_BASE.format('getRecordingDrm', v_id), v_id)['response']
 
-        thumbs = [{'id': k, 'url': v} for (k, v) in meta.get('images').items()]
+        thumbs = [
+            {'id': k, 'url': v, 'http_headers': {'Accept': 'image/jpeg'}}
+            for (k, v) in meta.get('images').items()]
         SUB_LANGS_MAP = {'Slovenski': 'sl', }
 
         subs = {}
