@@ -27,29 +27,22 @@ class PeekVidsIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        short_video_id = self._html_search_regex(r'<video [^>]*data-id="(.+?)"',
-                                                 webpage, 'short video ID')
+        short_video_id = self._html_search_regex(r'<video [^>]*data-id="(.+?)"', webpage, 'short video ID')
         srcs = self._download_json(
             f'https://{self._DOMAIN}/v-alt/{short_video_id}', video_id,
             note='Downloading list of source files')
-
         formats = [{
             'url': url,
             'ext': 'mp4',
             'format_id': name[8:],
         } for name, url in srcs.items() if len(name) > 8 and name.startswith('data-src')]
-        self._sort_formats(formats)
         if not formats:
             formats = [{'url': url} for url in srcs.values()]
+        self._sort_formats(formats)
 
-        title = self._html_search_regex(
-            r'<h1.*?>\s*(.+?)\s*</h1>', webpage,
-            'video title', default=None)
-        if title is None:
-            title = self._html_search_regex(r'<title>\s*(.+?)\s*</title>',
-                                            webpage, 'video title',
-                                            default=video_id)
-            title = remove_end(title, ' - PeekVids')
+        title = remove_end(self._html_search_regex(
+            (r'<h1.*?>\s*(.+?)\s*</h1>', r'<title>\s*(.+?)\s*</title>'),
+             webpage, 'video title', default=None), ' - PeekVids')
 
         return {
             'id': video_id,
