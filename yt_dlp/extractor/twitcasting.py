@@ -86,9 +86,14 @@ class TwitCastingIE(InfoExtractor):
             request_data = urlencode_postdata({
                 'password': video_password,
             }, encoding='utf-8')
-        webpage = self._download_webpage(
+        webpage, urlh = self._download_webpage_handle(
             url, video_id, data=request_data,
             headers={'Origin': 'https://twitcasting.tv'})
+        if urlh.geturl() != url and request_data:
+            webpage = self._download_webpage(
+                urlh.geturl(), video_id, data=request_data,
+                headers={'Origin': 'https://twitcasting.tv'},
+                note='Retrying authentication')
 
         title = (clean_html(get_element_by_id('movietitle', webpage))
                  or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
@@ -149,11 +154,12 @@ class TwitCastingIE(InfoExtractor):
                 m3u8_url, video_id, ext='mp4', m3u8_id='hls',
                 live=True, headers=self._M3U8_HEADERS)
 
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', m3u8_id='source',
-                live=True, query={'mode': 'source'},
-                note='Downloading source quality m3u8',
-                headers=self._M3U8_HEADERS, fatal=False))
+            if traverse_obj(stream_server_data, ('hls', 'source')):
+                formats.extend(self._extract_m3u8_formats(
+                    m3u8_url, video_id, ext='mp4', m3u8_id='source',
+                    live=True, query={'mode': 'source'},
+                    note='Downloading source quality m3u8',
+                    headers=self._M3U8_HEADERS, fatal=False))
 
             if has_websockets:
                 qq = qualities(['base', 'mobilesource', 'main'])
@@ -164,11 +170,12 @@ class TwitCastingIE(InfoExtractor):
                         'format_id': 'ws-%s' % mode,
                         'ext': 'mp4',
                         'quality': qq(mode),
+                        'source_preference': -10,
                         # TwitCasting simply sends moof atom directly over WS
                         'protocol': 'websocket_frag',
                     })
 
-            self._sort_formats(formats)
+            self._sort_formats(formats, ('source',))
 
             infodict = {
                 'formats': formats
