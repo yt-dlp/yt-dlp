@@ -42,7 +42,7 @@ class PeekVidsIE(InfoExtractor):
 
         title = remove_end(self._html_search_regex(
             (r'<h1.*?>\s*(.+?)\s*</h1>', r'<title>\s*(.+?)\s*</title>'),
-             webpage, 'video title', default=None), ' - PeekVids')
+            webpage, 'video title', default=None), ' - PeekVids')
 
         return {
             'id': video_id,
