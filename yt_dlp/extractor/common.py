@@ -1135,8 +1135,7 @@ class InfoExtractor(object):
         }
 
     def url_result_or_playlist_from_matches(self, matches, *args, ie=None, video_kwargs=None, **kwargs):
-        if variadic(matches) != matches:
-            matches = variadic(matches)
+        matches = variadic(matches)
         if len(matches) == 1:
             return self.url_result(self._proto_relative_url(matches[0]), ie=ie, **(video_kwargs or {}))
         return self.playlist_from_matches(self, matches, *args, ie=ie, video_kwargs=video_kwargs, **kwargs)
