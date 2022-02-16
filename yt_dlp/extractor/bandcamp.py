@@ -385,7 +385,7 @@ class BandcampWeeklyIE(BandcampIE):
 
 class BandcampUserIE(InfoExtractor):
     IE_NAME = 'Bandcamp:user'
-    _VALID_URL = r'https?://(?:(?P<id>[^.]+)\.)?bandcamp\.com(?:/?$|/music)'
+    _VALID_URL = r'https?://(?!www\.)(?P<id>[^.]+)\.bandcamp\.com(?:/music)?/?(?:[#?]|$)'
 
     _TESTS = [{
         # Type 1 Bandcamp user page.
@@ -435,20 +435,9 @@ class BandcampUserIE(InfoExtractor):
     def _real_extract(self, url):
         uploader = self._match_id(url)
         webpage = self._download_webpage(url, uploader)
-        entries = []
 
-        # Bandcamp User type 1 page
-        discography_data = re.findall(r'<li data-item-id="([^"]+)[^>]+>\s*<a href="(/[^/]+/[^/"]+)">', webpage)
-        if discography_data:
-            entries = [self.url_result(urljoin(url, element_url)) for element_id, element_url in discography_data]
-        else:
-            # Bandcamp user type 2 page
-            discography_data = re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage)
-            entries = [self.url_result(urljoin(url, element_url)) for element_url in discography_data]
+        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\']([^"\']+)', webpage)
+                            or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
 
-        return {
-            '_type': 'playlist',
-            'id': uploader,
-            'title': 'Discography of %s' % uploader,
-            'entries': entries,
-        }
+        return self.playlist_from_matches(
+            discography_data, uploader, f'Discography of {uploader}', getter=lambda x: urljoin(url, x))
