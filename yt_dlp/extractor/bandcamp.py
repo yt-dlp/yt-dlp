@@ -398,7 +398,10 @@ class BandcampUserIE(InfoExtractor):
     }, {
         # Bandcamp user page with only one album
         'url': 'http://dotscale.bandcamp.com',
-        'info_dict': {'id': 'dotscale', 'title': 'Discography of dotscale'},
+        'info_dict': {
+            'id': 'dotscale',
+            'title': 'Discography of dotscale'
+        },
         'playlist_count': 1,
     }, {
         # Type 2 Bandcamp user page.
