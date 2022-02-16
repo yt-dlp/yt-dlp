@@ -383,7 +383,6 @@ class BandcampWeeklyIE(BandcampIE):
         }
 
 
-
 class BandcampUserIE(InfoExtractor):
     IE_NAME = 'Bandcamp:user'
     _VALID_URL = r'https?://(?:(?P<id>[^.]+)\.)?bandcamp\.com(?:/?$|/music)'
@@ -432,7 +431,6 @@ class BandcampUserIE(InfoExtractor):
         },
     },
     ]
-
 
     def _real_extract(self, url):
         uploader = self._match_id(url)
