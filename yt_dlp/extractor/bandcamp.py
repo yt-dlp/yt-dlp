@@ -432,8 +432,7 @@ class BandcampUserIE(InfoExtractor):
             'id': 'nuclearwarnowproductions',
             'title': 'Discography of nuclearwarnowproductions',
         },
-    },
-    ]
+    }]
 
     def _real_extract(self, url):
         uploader = self._match_id(url)
