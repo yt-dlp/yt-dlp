@@ -1162,6 +1162,7 @@ from .periscope import (
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
+from .piapro import PiaproIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
