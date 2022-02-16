@@ -5,11 +5,7 @@ import re
 
 from .common import InfoExtractor
 
-from ..utils import (
-    get_element_by_id,
-    js_to_json,
-    traverse_obj,
-)
+from ..utils import traverse_obj
 
 
 class WashingtonPostIE(InfoExtractor):
@@ -120,8 +116,7 @@ class WashingtonPostArticleIE(InfoExtractor):
             )"([^"]+)"''', webpage)
 
         if not uuids:
-            next_data = get_element_by_id('__NEXT_DATA__', webpage)
-            json_data = self._parse_json(next_data, page_id, transform_source=js_to_json)
+            json_data = self._search_nextjs_data(webpage, page_id)
             for content_element in traverse_obj(json_data, ('props', 'pageProps', 'globalContent', 'content_elements')):
                 if content_element.get('type') == 'video':
                     uuids.append(content_element.get('_id'))
