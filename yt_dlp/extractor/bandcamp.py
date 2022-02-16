@@ -386,7 +386,7 @@ class BandcampWeeklyIE(BandcampIE):
 
 class BandcampUserIE(InfoExtractor):
     IE_NAME = 'Bandcamp:user'
-    _VALID_URL = r'https?://(?:(?P<id>[^.]+)\.)?bandcamp\.com(?:/?$|/music/.*)'
+    _VALID_URL = r'https?://(?:(?P<id>[^.]+)\.)?bandcamp\.com(?:/?$|/music)'
 
     _TESTS = [{
         # Type 1 Bandcamp user page.
