@@ -316,7 +316,7 @@ from .crunchyroll import (
     CrunchyrollBetaIE,
     CrunchyrollBetaShowIE,
 )
-from .cspan import CSpanIE
+from .cspan import CSpanIE, CSpanCongressIE
 from .ctsnews import CtsNewsIE
 from .ctv import CTVIE
 from .ctvnews import CTVNewsIE
