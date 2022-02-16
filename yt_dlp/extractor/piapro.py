@@ -62,6 +62,7 @@ class PiaproIE(InfoExtractor):
 
         title = self._html_search_regex(r'<h1\s+class="cd_works-title">(.+?)</h1>', webpage, 'title')
         description = self._html_search_regex(r'<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description')
+        thumbnail = self._html_search_meta('twitter:image', webpage)
 
         str_duration, str_filesize = self._search_regex(
             r'サイズ：</span>(.+?)/\(([0-9,]+?[KMG]?B)）', webpage, 'duration and size',
@@ -97,6 +98,7 @@ class PiaproIE(InfoExtractor):
             'timestamp': unified_timestamp(create_date, False),
             'duration': duration,
             'view_count': view_count,
+            'thumbnail': thumbnail,
 
             'filesize_approx': fs_approx,
             'url': mp3_url,
