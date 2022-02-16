@@ -117,6 +117,19 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     return parser, opts, args
 
 
+class _YoutubeDLOptionParser(optparse.OptionParser):
+    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+
+    def _match_long_opt(self, opt):
+        """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
+        try:
+            return super()._match_long_opt(opt)
+        except optparse.AmbiguousOptionError as e:
+            if len(set(self._long_opt[p] for p in e.possibilities)) == 1:
+                return e.possibilities[0]
+            raise
+
+
 def create_parser():
     def _format_option_string(option):
         ''' ('-o', '--option') -> -o, --format METAVAR'''
@@ -215,7 +228,7 @@ def create_parser():
         'conflict_handler': 'resolve',
     }
 
-    parser = optparse.OptionParser(**compat_kwargs(kw))
+    parser = _YoutubeDLOptionParser(**compat_kwargs(kw))
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -1195,13 +1208,13 @@ def create_parser():
         action='store_false', dest='allow_playlist_files',
         help='Do not write playlist metadata when using --write-info-json, --write-description etc.')
     filesystem.add_option(
-        '--clean-infojson',
+        '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
             'Remove some private fields such as filenames from the infojson. '
             'Note that it could still contain some personal information (default)'))
     filesystem.add_option(
-        '--no-clean-infojson',
+        '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
         help='Write all fields to the infojson')
     filesystem.add_option(

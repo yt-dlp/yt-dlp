@@ -134,6 +134,16 @@ except AttributeError:
     asyncio.run = compat_asyncio_run
 
 
+try:  # >= 3.7
+    asyncio.tasks.all_tasks
+except AttributeError:
+    asyncio.tasks.all_tasks = asyncio.tasks.Task.all_tasks
+
+try:
+    import websockets as compat_websockets
+except ImportError:
+    compat_websockets = None
+
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
 # See https://github.com/yt-dlp/yt-dlp/issues/792
 # https://docs.python.org/3/library/os.path.html#os.path.expanduser
@@ -303,6 +313,7 @@ __all__ = [
     'compat_urllib_response',
     'compat_urlparse',
     'compat_urlretrieve',
+    'compat_websockets',
     'compat_xml_parse_error',
     'compat_xpath',
     'compat_zip',

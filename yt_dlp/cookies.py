@@ -454,7 +454,10 @@ def _extract_safari_cookies(profile, logger):
     cookies_path = os.path.expanduser('~/Library/Cookies/Cookies.binarycookies')
 
     if not os.path.isfile(cookies_path):
-        raise FileNotFoundError('could not find safari cookies database')
+        logger.debug('Trying secondary cookie location')
+        cookies_path = os.path.expanduser('~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies')
+        if not os.path.isfile(cookies_path):
+            raise FileNotFoundError('could not find safari cookies database')
 
     with open(cookies_path, 'rb') as f:
         cookies_data = f.read()

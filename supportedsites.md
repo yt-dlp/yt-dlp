@@ -3,7 +3,6 @@
  - **17live:clip**
  - **1tv**: Первый канал
  - **20min**
- - **220.ro**
  - **23video**
  - **247sports**
  - **24video**
@@ -11,7 +10,6 @@
  - **3sat**
  - **4tube**
  - **56.com**
- - **5min**
  - **6play**
  - **7plus**
  - **8tracks**
@@ -381,7 +379,6 @@
  - **FranceTVSite**
  - **Freesound**
  - **freespeech.org**
- - **FreshLive**
  - **FrontendMasters**
  - **FrontendMastersCourse**
  - **FrontendMastersLesson**
@@ -454,7 +451,6 @@
  - **hitbox:live**
  - **HitRecord**
  - **hketv**: 香港教育局教育電視 (HKETV) Educational Television, Hong Kong Educational Bureau
- - **HornBunny**
  - **HotNewHipHop**
  - **hotstar**
  - **hotstar:playlist**
@@ -499,7 +495,6 @@
  - **iq.com**: International version of iQiyi
  - **iq.com:album**
  - **iqiyi**: 爱奇艺
- - **Ir90Tv**
  - **ITTF**
  - **ITV**
  - **ITVBTCC**
@@ -516,7 +511,6 @@
  - **JWPlatform**
  - **Kakao**
  - **Kaltura**
- - **Kankan**
  - **Karaoketv**
  - **KarriereVideos**
  - **Katsomo**
@@ -989,7 +983,6 @@
  - **RoosterTeeth**
  - **RoosterTeethSeries**
  - **RottenTomatoes**
- - **Roxwel**
  - **Rozhlas**
  - **RTBF**
  - **RTDocumentry**
@@ -1181,7 +1174,6 @@
  - **TheIntercept**
  - **ThePlatform**
  - **ThePlatformFeed**
- - **TheScene**
  - **TheStar**
  - **TheSun**
  - **ThetaStream**
@@ -1388,7 +1380,6 @@
  - **VShare**
  - **VTM**
  - **VTXTV**
- - **vube**: Vube.com
  - **VuClip**
  - **Vupload**
  - **VVVVID**

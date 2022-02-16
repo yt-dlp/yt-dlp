@@ -139,11 +139,11 @@ class GloboIE(InfoExtractor):
         resource_url = source['scheme'] + '://' + source['domain'] + source['path']
         signed_url = '%s?h=%s&k=html5&a=%s' % (resource_url, signed_hash, 'F' if video.get('subscriber_only') else 'A')
 
-        formats.extend(self._extract_m3u8_formats(
-            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
+            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+        formats.extend(fmts)
         self._sort_formats(formats)
 
-        subtitles = {}
         for resource in video['resources']:
             if resource.get('type') == 'subtitle':
                 subtitles.setdefault(resource.get('language') or 'por', []).append({
@@ -186,6 +186,7 @@ class GloboArticleIE(InfoExtractor):
         r'\bvideosIDs\s*:\s*["\']?(\d{7,})',
         r'\bdata-id=["\'](\d{7,})',
         r'<div[^>]+\bid=["\'](\d{7,})',
+        r'<bs-player[^>]+\bvideoid=["\'](\d{8,})',
     ]
 
     _TESTS = [{
@@ -213,6 +214,14 @@ class GloboArticleIE(InfoExtractor):
     }, {
         'url': 'http://oglobo.globo.com/rio/a-amizade-entre-um-entregador-de-farmacia-um-piano-19946271',
         'only_matching': True,
+    }, {
+        'url': 'https://ge.globo.com/video/ta-na-area-como-foi-assistir-ao-jogo-do-palmeiras-que-a-globo-nao-passou-10287094.ghtml',
+        'info_dict': {
+            'id': 'ta-na-area-como-foi-assistir-ao-jogo-do-palmeiras-que-a-globo-nao-passou-10287094',
+            'title': 'Tá na Área: como foi assistir ao jogo do Palmeiras que a Globo não passou',
+            'description': 'md5:2d089d036c4c9675117d3a56f8c61739',
+        },
+        'playlist_count': 1,
     }]
 
     @classmethod
@@ -228,6 +237,6 @@ class GloboArticleIE(InfoExtractor):
         entries = [
             self.url_result('globo:%s' % video_id, GloboIE.ie_key())
             for video_id in orderedSet(video_ids)]
-        title = self._og_search_title(webpage, fatal=False)
+        title = self._og_search_title(webpage)
         description = self._html_search_meta('description', webpage)
         return self.playlist_result(entries, display_id, title, description)
