@@ -81,10 +81,9 @@ class RokfinPostIE(RokfinSingleVideoIE):
             if availability == 'premium_only':
                 self.raise_login_required('premium content', True, method='cookies')
             elif video_formats_url:
-                self.raise_no_formats(msg='unable to download: missing meta data', video_id=video_id, expected=True)
+                self.raise_no_formats(msg='missing video data', video_id=video_id, expected=True)
             else:
-                # We don't know why there is no (valid) meta data present.
-                self.raise_no_formats(msg='unable to download', video_id=video_id, expected=True)
+                self.raise_no_formats(msg='missing/bad link to video data', video_id=video_id, expected=True)
 
         self._sort_formats(frmts)
         return {
@@ -224,10 +223,9 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             elif availability == 'premium_only':
                 self.raise_login_required('premium content', True, method='cookies')
             elif m3u8_url:
-                self.raise_no_formats(msg='unable to download: missing meta data', video_id=video_id, expected=True)
+                self.raise_no_formats(msg='missing video data', video_id=video_id, expected=True)
             else:
-                # We don't know why there is no (valid) meta data present.
-                self.raise_no_formats(msg='unable to download', video_id=video_id, expected=True)
+                self.raise_no_formats(msg='missing/bad link to video data', video_id=video_id, expected=True)
 
             # --wait-for-video causes raise_no_formats(... expected=True ...) to print a warning message
             # and exit without raising ExtractorError.
@@ -413,9 +411,6 @@ class RokfinSearchIE(SearchInfoExtractor):
 
     def _get_n_results(self, query, n_results):
         def dnl_video_meta_data_incrementally(query, n_results):
-            if n_results <= 0:
-                return
-
             ENTRIES_PER_PAGE = 100
             max_pages_to_download = None if n_results == float('inf') else math.ceil(n_results / ENTRIES_PER_PAGE)
             pages_total = None  # The # of pages containing search results, as reported by Rokfin.
@@ -490,6 +485,8 @@ class RokfinSearchIE(SearchInfoExtractor):
                     return video_data
 
                 pages_total = int_or_none(traverse_obj(srch_res, ('meta', 'page', 'total_pages')))
+                if pages_total <= 0 or not query:
+                    return []
                 if pages_total is None:
                     self.report_warning(msg='unknown total # of pages of search results. This may be a bug', only_once=True)
                 elif (pages_total_printed is False) and max_pages_to_download is not None:
