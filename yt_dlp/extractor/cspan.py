@@ -130,9 +130,11 @@ class CSpanIE(InfoExtractor):
                     subtitle['ext'] = ext
             ld_info = self._search_json_ld(webpage, video_id, default={})
             try:
-                title = get_element_by_class('video-page-title', webpage) or self._og_search_title(webpage)
+                title = get_element_by_class('video-page-title', webpage)
             except compat_HTMLParseError:
                 title = None
+            if title is None:
+                title = self._og_search_title(webpage)
             description = get_element_by_attribute('itemprop', 'description', webpage) or \
                 self._html_search_meta(['og:description', 'description'], webpage)
             return merge_dicts(info, ld_info, {
