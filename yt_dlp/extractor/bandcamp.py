@@ -212,7 +212,7 @@ class BandcampIE(InfoExtractor):
 
 class BandcampAlbumIE(BandcampIE):
     IE_NAME = 'Bandcamp:album'
-    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com(?!/music)(?:/album/(?P<id>[^/?#&]+))?'
+    _VALID_URL = r"https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<album_id>[^/?#&]+)"
 
     _TESTS = [{
         'url': 'http://blazo.bandcamp.com/album/jazz-format-mixtape-vol-1',
@@ -257,14 +257,6 @@ class BandcampAlbumIE(BandcampIE):
             'id': 'hierophany-of-the-open-grave',
         },
         'playlist_mincount': 9,
-    }, {
-        'url': 'http://dotscale.bandcamp.com',
-        'info_dict': {
-            'title': 'Loom',
-            'id': 'dotscale',
-            'uploader_id': 'dotscale',
-        },
-        'playlist_mincount': 7,
     }, {
         # with escaped quote in title
         'url': 'https://jstrecords.bandcamp.com/album/entropy-ep',
@@ -429,3 +421,98 @@ class BandcampMusicIE(InfoExtractor):
                 ie=self._TYPE_IE_DICT[item[1]])
             for item in items]
         return self.playlist_result(entries, id)
+
+
+class BandcampUserIE(InfoExtractor):
+    IE_NAME = "Bandcamp:user"
+    _VALID_URL = r"https?://(?:(?P<id>[^.]+)\.)?bandcamp\.com"
+
+    _TESTS = [{
+        # Type 1 Bandcamp user page.
+        "url": "https://adrianvonziegler.bandcamp.com",
+        "info_dict": {
+            "id": "adrianvonziegler",
+            "title": "Discography of adrianvonziegler",
+        },
+        "playlist_mincount": 23,
+    }, {
+        # Bandcamp user page with only one album
+        "url": "http://dotscale.bandcamp.com",
+        "info_dict": {"id": "dotscale", "title": "Discography of dotscale"},
+        "playlist_count": 1,
+    }, {
+        # Type 2 Bandcamp user page.
+        "url": "https://nightcallofficial.bandcamp.com",
+        "info_dict": {
+            "id": "nightcallofficial",
+            "title": "Discography of nightcallofficial",
+        },
+        "playlist_count": 4,
+    },
+    ]
+
+    @classmethod
+    def suitable(cls, url):
+        return (
+            False
+            if BandcampAlbumIE.suitable(url)
+            or BandcampIE.suitable(url)
+            or BandcampWeeklyIE.suitable(url)
+            else super(BandcampUserIE, cls).suitable(url)
+        )
+
+    def _real_extract(self, url):
+        uploader = self._match_id(url)
+        webpage = self._download_webpage(url, uploader)
+        entries = []
+
+        # Bandcamp User type 1 page
+        discography_data = re.findall(
+            r'<li data-item-id="([^"]+)[^>]+>\s*<a href="(/[^/]+/[^/"]+)">',
+            webpage,
+            re.MULTILINE,
+        )
+
+        if len(discography_data) > 0:
+            for match in discography_data:
+                element_id = match[0]
+                element_url = match[1]
+                if element_url.split("/")[1] == "album":
+                    ie = BandcampAlbumIE.ie_key()
+                else:
+                    ie = BandcampIE.ie_key()
+
+                entries.append(
+                    self.url_result(
+                        urljoin(url, element_url),
+                        ie=ie,
+                        video_id=element_id,
+                        video_title=element_url.split("/")[2],
+                    )
+                )
+        else:
+            # Bandcamp user type 2 page
+            discography_data = re.findall(
+                r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage
+            )
+
+            for element in discography_data:
+                if re.match("/album/+", element):
+                    ie = BandcampAlbumIE.ie_key()
+                else:
+                    ie = BandcampIE.ie_key()
+
+                entries.append(
+                    self.url_result(
+                        urljoin(url, element),
+                        ie=ie,
+                        video_title=element,
+                    )
+                )
+
+        return {
+            "_type": "playlist",
+            "id": uploader,
+            "title": "Discography of %s" % uploader,
+            "entries": entries,
+        }
