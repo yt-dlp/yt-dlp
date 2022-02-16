@@ -453,18 +453,21 @@ class BandcampUserIE(InfoExtractor):
         'playlist_mincount': 47,
         'info_dict': {
             'id': 'steviasphere',
+            'title': 'Discography of steviasphere',
         },
     }, {
         'url': 'https://coldworldofficial.bandcamp.com/music',
         'playlist_mincount': 10,
         'info_dict': {
             'id': 'coldworldofficial',
+            'title': 'Discography of coldworldofficial',
         },
     }, {
         'url': 'https://nuclearwarnowproductions.bandcamp.com/music',
         'playlist_mincount': 399,
         'info_dict': {
             'id': 'nuclearwarnowproductions',
+            'title': 'Discography of nuclearwarnowproductions',
         },
     },
     ]
@@ -489,32 +492,13 @@ class BandcampUserIE(InfoExtractor):
             webpage, re.MULTILINE)
 
         if discography_data:
-            for match in discography_data:
-                element_id = match[0]
-                element_url = match[1]
-                if element_url.split('/')[1] == 'album':
-                    ie = BandcampAlbumIE.ie_key()
-                else:
-                    ie = BandcampIE.ie_key()
-
-                entries.append(
-                    self.url_result(
-                        urljoin(url, element_url), ie=ie, video_id=element_id,
-                        video_title=element_url.split('/')[2]))
+            entries = [self.url_result(urljoin(url, element_url)) for element_id, element_url in discography_data]
         else:
             # Bandcamp user type 2 page
             discography_data = re.findall(
                 r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage)
 
-            for element in discography_data:
-                if re.match('/album/+', element):
-                    ie = BandcampAlbumIE.ie_key()
-                else:
-                    ie = BandcampIE.ie_key()
-
-                entries.append(
-                    self.url_result(urljoin(url, element), ie=ie, video_title=element)
-                )
+            entries = [self.url_result(urljoin(url, element_url)) for element_url in discography_data]
 
         return {
             '_type': 'playlist',
