@@ -212,7 +212,7 @@ class BandcampIE(InfoExtractor):
 
 class BandcampAlbumIE(BandcampIE):
     IE_NAME = 'Bandcamp:album'
-    _VALID_URL = r"https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<album_id>[^/?#&]+)"
+    _VALID_URL = r'https?://(?:(?P<subdomain>[^.]+)\.)?bandcamp\.com/album/(?P<album_id>[^/?#&]+)'
 
     _TESTS = [{
         'url': 'http://blazo.bandcamp.com/album/jazz-format-mixtape-vol-1',
@@ -424,30 +424,30 @@ class BandcampMusicIE(InfoExtractor):
 
 
 class BandcampUserIE(InfoExtractor):
-    IE_NAME = "Bandcamp:user"
-    _VALID_URL = r"https?://(?:(?P<id>[^.]+)\.)?bandcamp\.com"
+    IE_NAME = 'Bandcamp:user'
+    _VALID_URL = r'https?://(?:(?P<id>[^.]+)\.)?bandcamp\.com'
 
     _TESTS = [{
         # Type 1 Bandcamp user page.
-        "url": "https://adrianvonziegler.bandcamp.com",
-        "info_dict": {
-            "id": "adrianvonziegler",
-            "title": "Discography of adrianvonziegler",
+        'url': 'https://adrianvonziegler.bandcamp.com',
+        'info_dict': {
+            'id': 'adrianvonziegler',
+            'title': 'Discography of adrianvonziegler',
         },
-        "playlist_mincount": 23,
+        'playlist_mincount': 23,
     }, {
         # Bandcamp user page with only one album
-        "url": "http://dotscale.bandcamp.com",
-        "info_dict": {"id": "dotscale", "title": "Discography of dotscale"},
-        "playlist_count": 1,
+        'url': 'http://dotscale.bandcamp.com',
+        'info_dict': {'id': 'dotscale', 'title': 'Discography of dotscale'},
+        'playlist_count': 1,
     }, {
         # Type 2 Bandcamp user page.
-        "url": "https://nightcallofficial.bandcamp.com",
-        "info_dict": {
-            "id": "nightcallofficial",
-            "title": "Discography of nightcallofficial",
+        'url': 'https://nightcallofficial.bandcamp.com',
+        'info_dict': {
+            'id': 'nightcallofficial',
+            'title': 'Discography of nightcallofficial',
         },
-        "playlist_count": 4,
+        'playlist_count': 4,
     }, {
         'url': 'https://steviasphere.bandcamp.com/music',
         'playlist_mincount': 47,
@@ -476,8 +476,7 @@ class BandcampUserIE(InfoExtractor):
             if BandcampAlbumIE.suitable(url)
             or BandcampIE.suitable(url)
             or BandcampWeeklyIE.suitable(url)
-            else super(BandcampUserIE, cls).suitable(url)
-        )
+            else super(BandcampUserIE, cls).suitable(url))
 
     def _real_extract(self, url):
         uploader = self._match_id(url)
@@ -487,50 +486,39 @@ class BandcampUserIE(InfoExtractor):
         # Bandcamp User type 1 page
         discography_data = re.findall(
             r'<li data-item-id="([^"]+)[^>]+>\s*<a href="(/[^/]+/[^/"]+)">',
-            webpage,
-            re.MULTILINE,
-        )
+            webpage, re.MULTILINE)
 
         if len(discography_data) > 0:
             for match in discography_data:
                 element_id = match[0]
                 element_url = match[1]
-                if element_url.split("/")[1] == "album":
+                if element_url.split('/')[1] == 'album':
                     ie = BandcampAlbumIE.ie_key()
                 else:
                     ie = BandcampIE.ie_key()
 
                 entries.append(
                     self.url_result(
-                        urljoin(url, element_url),
-                        ie=ie,
-                        video_id=element_id,
-                        video_title=element_url.split("/")[2],
-                    )
-                )
+                        urljoin(url, element_url), ie=ie, video_id=element_id,
+                        video_title=element_url.split('/')[2]))
         else:
             # Bandcamp user type 2 page
             discography_data = re.findall(
-                r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage
-            )
+                r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage)
 
             for element in discography_data:
-                if re.match("/album/+", element):
+                if re.match('/album/+', element):
                     ie = BandcampAlbumIE.ie_key()
                 else:
                     ie = BandcampIE.ie_key()
 
                 entries.append(
-                    self.url_result(
-                        urljoin(url, element),
-                        ie=ie,
-                        video_title=element,
-                    )
+                    self.url_result(urljoin(url, element), ie=ie, video_title=element)
                 )
 
         return {
-            "_type": "playlist",
-            "id": uploader,
-            "title": "Discography of %s" % uploader,
-            "entries": entries,
+            '_type': 'playlist',
+            'id': uploader,
+            'title': 'Discography of %s' % uploader,
+            'entries': entries,
         }
