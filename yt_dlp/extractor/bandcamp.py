@@ -448,6 +448,24 @@ class BandcampUserIE(InfoExtractor):
             "title": "Discography of nightcallofficial",
         },
         "playlist_count": 4,
+    }, {
+        'url': 'https://steviasphere.bandcamp.com/music',
+        'playlist_mincount': 47,
+        'info_dict': {
+            'id': 'steviasphere',
+        },
+    }, {
+        'url': 'https://coldworldofficial.bandcamp.com/music',
+        'playlist_mincount': 10,
+        'info_dict': {
+            'id': 'coldworldofficial',
+        },
+    }, {
+        'url': 'https://nuclearwarnowproductions.bandcamp.com/music',
+        'playlist_mincount': 399,
+        'info_dict': {
+            'id': 'nuclearwarnowproductions',
+        },
     },
     ]
 
