@@ -488,7 +488,7 @@ class BandcampUserIE(InfoExtractor):
             r'<li data-item-id="([^"]+)[^>]+>\s*<a href="(/[^/]+/[^/"]+)">',
             webpage, re.MULTILINE)
 
-        if len(discography_data) > 0:
+        if discography_data:
             for match in discography_data:
                 element_id = match[0]
                 element_url = match[1]
