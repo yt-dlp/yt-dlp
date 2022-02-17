@@ -61,7 +61,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'description': 'Overly complicated paper pushing is nothing new to government bureaucracy. But the way federal retirement applications are filed may be the most outdated. David Fahrenthold explains.',
                 'timestamp': 1395440416,
                 'upload_date': '20140321',
-                'thumbnail': 'https://d1i4t8bqe7zgj6.cloudfront.net/PAPERMINESplash.jpg',
+                'thumbnail': r're:https://[^\.]+.cloudfront\.net/PAPERMINESplash\.jpg',
             },
         }, {
             'md5': '7ccf53ea8cbb77de5f570242b3b21a59',
@@ -73,7 +73,7 @@ class WashingtonPostArticleIE(InfoExtractor):
                 'duration': 2220,
                 'timestamp': 1395441819,
                 'upload_date': '20140321',
-                'thumbnail': 'https://d1i4t8bqe7zgj6.cloudfront.net/BoyersSplash.jpeg',
+                'thumbnail': r're:https://[^\.]+.cloudfront\.net/BoyersSplash\.jpeg',
             },
         }],
     }, {
