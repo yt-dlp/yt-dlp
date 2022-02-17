@@ -1,10 +1,11 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
+
 from .common import InfoExtractor
 
 from ..utils import (
-    int_or_none,
     parse_duration,
     traverse_obj,
     unified_timestamp,
@@ -12,7 +13,7 @@ from ..utils import (
 
 
 class RTVSIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?rtvs\.sk/(?:radio|televizia)/archiv/?.*/(?P<id>\d+)\??.*'
+    _VALID_URL = r'https?://(?:www\.)?rtvs\.sk/(?:radio|televizia)/archiv(?:/\d+)?/(?P<id>\d+)/?(?:[#?]|$)'
     _TESTS = [{
         # radio archive
         'url': 'http://www.rtvs.sk/radio/archiv/11224/414872',
@@ -45,7 +46,7 @@ class RTVSIE(InfoExtractor):
             'id': '18083',
             'ext': 'mp4',
             'title': 'Robin',
-            'description': '\nRichard so svojím psíkom Robinom a deťmi prežívajú dobrodružné príbehy, ktoré pomáhajú malým divákom orientovať sa a nachádzať riešenia v rôznych zložitých životných situáciách.',
+            'description': 'md5:2f70505a7b8364491003d65ff7a0940a',
             'timestamp': 1636652760,
             'display_id': '307655',
             'duration': 831,
@@ -54,45 +55,35 @@ class RTVSIE(InfoExtractor):
         }
     }]
 
-# TODO
-# live video https://www.rtvs.sk/televizia/live-3 , https://www.rtvs.sk/televizia/sport
-# live radio https://slovensko.rtvs.sk/player
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(url, video_id)
         iframe_id = self._search_regex(
-            r'<iframe[^>]+id\s*=\s*"player_[^_]+_([0-9]+)"', webpage,
-            'Iframe ID')
+            r'<iframe[^>]+id\s*=\s*"player_[^_]+_([0-9]+)"', webpage, 'Iframe ID')
         iframe_url = self._search_regex(
-            fr'<iframe[^>]+id\s*=\s*"player_[^_]+_{iframe_id}"[^>]+src\s*=\s*"([^"]+)"', webpage,
-            'Iframe URL')
+            fr'<iframe[^>]+id\s*=\s*"player_[^_]+_{re.escape(iframe_id)}"[^>]+src\s*=\s*"([^"]+)"', webpage, 'Iframe URL')
 
         webpage = self._download_webpage(iframe_url, video_id, 'Downloading iframe')
-        json_url = self._search_regex(
-            r'var\s+url\s*=\s*"([^"]+)"\s*\+\s*ruurl', webpage,
-            'Json URL')
-        full_json_url = f'https:{json_url}b=mozilla&p=win&v=97&f=0&d=1'
-        data = self._download_json(
-            full_json_url, video_id, 'Downloading json')
+        json_url = self._search_regex(r'var\s+url\s*=\s*"([^"]+)"\s*\+\s*ruurl', webpage, 'json URL')
+        data = self._download_json(f'https:{json_url}b=mozilla&p=win&v=97&f=0&d=1', video_id)
 
         if data.get('clip'):
             data['playlist'] = [data['clip']]
 
-        to_return = {
+        if traverse_obj(data, ('playlist', 0, 'sources', 0, 'type')) == 'audio/mp3':
+            formats = [{'url': traverse_obj(data, ('playlist', 0, 'sources', 0, 'src'))}]
+        else:
+            formats = self._extract_m3u8_formats(traverse_obj(data, ('playlist', 0, 'sources', 0, 'src')), video_id)
+            self._sort_formats(formats)
+
+        return {
             'id': video_id,
             'display_id': iframe_id,
             'title': traverse_obj(data, ('playlist', 0, 'title')),
             'description': traverse_obj(data, ('playlist', 0, 'description')),
-            'duration': int_or_none(parse_duration(traverse_obj(data, ('playlist', 0, 'length')))),
+            'duration': parse_duration(traverse_obj(data, ('playlist', 0, 'length'))),
             'thumbnail': traverse_obj(data, ('playlist', 0, 'image')),
             'timestamp': unified_timestamp(traverse_obj(data, ('playlist', 0, 'datetime_create'))),
+            'formats': formats
         }
-
-        if traverse_obj(data, ('playlist', 0, 'sources', 0, 'type')) == 'audio/mp3':
-            to_return['url'] = traverse_obj(data, ('playlist', 0, 'sources', 0, 'src'))
-        else:
-            to_return['formats'] = self._extract_m3u8_formats(traverse_obj(data, ('playlist', 0, 'sources', 0, 'src')), video_id)
-
-        return to_return
