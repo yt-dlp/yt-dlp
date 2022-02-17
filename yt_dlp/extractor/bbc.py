@@ -1172,8 +1172,10 @@ class BBCIE(BBCCoUkIE):
                     entries, playlist_id, playlist_title, playlist_description)
 
         initial_data = self._parse_json(self._search_regex(
-            r'window\.__INITIAL_DATA__\s*=\s*({.+?});', webpage,
+            r'window\.__INITIAL_DATA__\s*=\s*("{.+?}");', webpage,
             'preload state', default='{}'), playlist_id, fatal=False)
+        if isinstance(initial_data, str):
+            initial_data = self._parse_json(initial_data, playlist_id, fatal=False)
         if initial_data:
             def parse_media(media):
                 if not media:
@@ -1214,7 +1216,7 @@ class BBCIE(BBCCoUkIE):
                 if name == 'media-experience':
                     parse_media(try_get(resp, lambda x: x['data']['initialItem']['mediaItem'], dict))
                 elif name == 'article':
-                    for block in (try_get(resp, lambda x: x['data']['blocks'], list) or []):
+                    for block in (try_get(resp, lambda x: x['data']['content']['model']['blocks'], list) or []):
                         if block.get('type') != 'media':
                             continue
                         parse_media(block.get('model'))
