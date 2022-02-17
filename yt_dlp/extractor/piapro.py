@@ -60,48 +60,38 @@ class PiaproIE(InfoExtractor):
         if category_id not in ('1', '2', '21', '22', '23', '24', '25'):
             raise ExtractorError('The URL does not contain audio.', expected=True)
 
-        title = self._html_search_regex(r'<h1\s+class="cd_works-title">(.+?)</h1>', webpage, 'title')
-        description = self._html_search_regex(r'<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description')
-        thumbnail = self._html_search_meta('twitter:image', webpage)
-
         str_duration, str_filesize = self._search_regex(
             r'サイズ：</span>(.+?)/\(([0-9,]+?[KMG]?B)）', webpage, 'duration and size',
-            group=(1, 2))
-        str_viewcount = self._search_regex(r'閲覧数：</span>([0-9,]+)\s+', webpage, 'view count')
+            group=(1, 2), default=(None, None))
+        str_viewcount = self._search_regex(r'閲覧数：</span>([0-9,]+)\s+', webpage, 'view count', fatal=False)
 
         str_filesize = str_filesize.replace(',', '')
         str_viewcount = str_viewcount.replace(',', '')
 
-        duration = parse_duration(str_duration)
-        # this isn't accurate actually
-        fs_approx = parse_filesize(str_filesize)
-        view_count = int_or_none(str_viewcount)
-
         uploader_id, uploader = self._search_regex(
             r'<a\s+class="cd_user-name"\s+href="/(.*)">([^<]+)さん<', webpage, 'uploader',
-            group=(1, 2))
+            group=(1, 2), default=(None, None))
         content_id = self._search_regex(r'contentId\:\'(.+)\'', webpage, 'content ID')
         create_date = self._search_regex(r'createDate\:\'(.+)\'', webpage, 'timestamp')
 
         player_webpage = self._download_webpage(
             f'https://piapro.jp/html5_player_popup/?id={content_id}&cdate={create_date}',
             video_id, note='Downloading player webpage')
-        mp3_url = self._search_regex(
-            r'mp3:\s*\'(.*?)\'\}', player_webpage, 'url')
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
+            'title': self._html_search_regex(r'<h1\s+class="cd_works-title">(.+?)</h1>', webpage, 'title', fatal=False),
+            'description': self._html_search_regex(r'<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description', fatal=False),
             'uploader': uploader,
             'uploader_id': uploader_id,
             'timestamp': unified_timestamp(create_date, False),
-            'duration': duration,
-            'view_count': view_count,
-            'thumbnail': thumbnail,
+            'duration': parse_duration(str_duration),
+            'view_count': int_or_none(str_viewcount),
+            'thumbnail': self._html_search_meta('twitter:image', webpage),
 
-            'filesize_approx': fs_approx,
-            'url': mp3_url,
+            # this isn't accurate actually
+            'filesize_approx': parse_filesize(str_filesize),
+            'url': self._search_regex(r'mp3:\s*\'(.*?)\'\}', player_webpage, 'url'),
             'ext': 'mp3',
             'vcodec': 'none',
         }
