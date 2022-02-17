@@ -75,6 +75,7 @@ from ..utils import (
     str_to_int,
     strip_or_none,
     traverse_obj,
+    try_get,
     unescapeHTML,
     UnsupportedError,
     unified_strdate,
@@ -2878,7 +2879,8 @@ class InfoExtractor(object):
                             segment_duration = None
                             if 'total_number' not in representation_ms_info and 'segment_duration' in representation_ms_info:
                                 segment_duration = float_or_none(representation_ms_info['segment_duration'], representation_ms_info['timescale'])
-                                representation_ms_info['total_number'] = int(math.ceil(float(period_duration) / segment_duration))
+                                representation_ms_info['total_number'] = int(math.ceil(
+                                    float_or_none(period_duration, segment_duration, default=0)))
                             representation_ms_info['fragments'] = [{
                                 media_location_key: media_template % {
                                     'Number': segment_number,
@@ -2969,6 +2971,10 @@ class InfoExtractor(object):
                                 f['url'] = initialization_url
                             f['fragments'].append({location_key(initialization_url): initialization_url})
                         f['fragments'].extend(representation_ms_info['fragments'])
+                        if not period_duration:
+                            period_duration = try_get(
+                                representation_ms_info,
+                                lambda r: sum(frag['duration'] for frag in r['fragments']), float)
                     else:
                         # Assuming direct URL to unfragmented media.
                         f['url'] = base_url
