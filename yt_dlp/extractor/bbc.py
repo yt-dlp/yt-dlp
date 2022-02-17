@@ -1171,11 +1171,9 @@ class BBCIE(BBCCoUkIE):
                 return self.playlist_result(
                     entries, playlist_id, playlist_title, playlist_description)
 
-        initial_data = self._parse_json(self._search_regex(
+        initial_data = self._parse_json(self._parse_json(self._search_regex(
             r'window\.__INITIAL_DATA__\s*=\s*("{.+?}");', webpage,
-            'preload state', default='{}'), playlist_id, fatal=False)
-        if isinstance(initial_data, str):
-            initial_data = self._parse_json(initial_data, playlist_id, fatal=False)
+            'preload state', default='"{}"'), playlist_id, fatal=False), playlist_id, fatal=False)
         if initial_data:
             def parse_media(media):
                 if not media:
