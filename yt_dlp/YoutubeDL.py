@@ -888,7 +888,8 @@ class YoutubeDL(object):
     def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
         if test_encoding:
             original_text = text
-            encoding = self.params.get('encoding') or getattr(handle, 'encoding', 'ascii')
+            # handle.encoding can be None. See https://github.com/yt-dlp/yt-dlp/issues/2711
+            encoding = self.params.get('encoding') or getattr(handle, 'encoding', None) or 'ascii'
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
