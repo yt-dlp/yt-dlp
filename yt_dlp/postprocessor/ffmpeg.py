@@ -384,12 +384,10 @@ class FFmpegPostProcessor(PostProcessor):
 
         out_flags = list(self.stream_copy_opts(ext=determine_ext(out_file)))
 
-        try:
-            self.real_run_ffmpeg(
-                [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
-                [(out_file, out_flags)])
-        finally:
-            os.remove(concat_file)
+        self.real_run_ffmpeg(
+            [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
+            [(out_file, out_flags)])
+        os.remove(concat_file)
 
     @classmethod
     def _concat_spec(cls, in_files, concat_opts=None):
