@@ -1,9 +1,16 @@
 # coding: utf-8
-
 from __future__ import unicode_literals
+
 from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import int_or_none, parse_duration, parse_filesize, unified_timestamp, urlencode_postdata, ExtractorError
+from ..utils import (
+    ExtractorError,
+    parse_duration,
+    parse_filesize,
+    str_to_int,
+    unified_timestamp,
+    urlencode_postdata,
+)
 
 
 class PiaproIE(InfoExtractor):
@@ -48,7 +55,7 @@ class PiaproIE(InfoExtractor):
             if parts.path != '/':
                 login_ok = False
         if not login_ok:
-            self._downloader.report_warning(
+            self.report_warning(
                 'unable to log in: bad username or password')
         return login_ok
 
@@ -64,9 +71,6 @@ class PiaproIE(InfoExtractor):
             r'サイズ：</span>(.+?)/\(([0-9,]+?[KMG]?B)）', webpage, 'duration and size',
             group=(1, 2), default=(None, None))
         str_viewcount = self._search_regex(r'閲覧数：</span>([0-9,]+)\s+', webpage, 'view count', fatal=False)
-
-        str_filesize = str_filesize.replace(',', '')
-        str_viewcount = str_viewcount.replace(',', '')
 
         uploader_id, uploader = self._search_regex(
             r'<a\s+class="cd_user-name"\s+href="/(.*)">([^<]+)さん<', webpage, 'uploader',
@@ -86,11 +90,10 @@ class PiaproIE(InfoExtractor):
             'uploader_id': uploader_id,
             'timestamp': unified_timestamp(create_date, False),
             'duration': parse_duration(str_duration),
-            'view_count': int_or_none(str_viewcount),
+            'view_count': str_to_int(str_viewcount),
             'thumbnail': self._html_search_meta('twitter:image', webpage),
 
-            # this isn't accurate actually
-            'filesize_approx': parse_filesize(str_filesize),
+            'filesize_approx': parse_filesize(str_filesize.replace(',', '')),
             'url': self._search_regex(r'mp3:\s*\'(.*?)\'\}', player_webpage, 'url'),
             'ext': 'mp3',
             'vcodec': 'none',
