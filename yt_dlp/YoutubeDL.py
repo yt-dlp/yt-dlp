@@ -39,13 +39,11 @@ from .compat import (
     compat_shlex_quote,
     compat_str,
     compat_tokenize_tokenize,
-    compat_urllib_request,
     windows_enable_vt_mode,
 )
 from .cookies import load_cookies
 from .networking.common import (
     Request,
-    req_to_ydlreq,
     BackendManager,
     get_std_headers,
     HEADRequest
