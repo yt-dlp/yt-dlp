@@ -97,7 +97,8 @@ class DaftsexIE(InfoExtractor):
 
         except KeyError:
             title = self._html_search_meta('name', webpage, 'Title', fatal=False)
-            upload_date = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
+            upload_date = unified_timestamp(self._html_search_meta(
+                'uploadDate', webpage, 'Upload Date', default=None))
             description = self._html_search_meta('description', webpage, 'Description', default=None)
 
             global_embed_url = self._search_regex(
