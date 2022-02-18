@@ -23,7 +23,7 @@ class Zee5IE(InfoExtractor):
                         zee5:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
-                            (?:tv-shows|kids|zee5originals)(?:/[^#/?]+){3}
+                            (?:tv-shows|kids|web-series|zee5originals)(?:/[^#/?]+){3}
                             |movies/[^#/?]+
                         )/(?P<display_id>[^#/?]+)/
                      )
