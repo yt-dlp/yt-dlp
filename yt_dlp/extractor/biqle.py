@@ -23,8 +23,8 @@ class BIQLEIE(InfoExtractor):
             'title': 'Forsaken By Hope Studio Clip',
             'description': 'Forsaken By Hope Studio Clip — Смотреть онлайн',
             'upload_date': '19700101',
-            'timestamp': 0,
             'thumbnail': r're:https://[^/]+/impf/7vN3ACwSTgChP96OdOfzFjUCzFR6ZglDQgWsIw/KPaACiVJJxM\.jpg\?size=800x450&quality=96&keep_aspect_ratio=1&background=000000&sign=b48ea459c4d33dbcba5e26d63574b1cb&type=video_thumb',
+            'timestamp': 0,
         },
     }, {
         'url': 'http://biqle.org/watch/-44781847_168547604',
@@ -44,11 +44,9 @@ class BIQLEIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_meta('name', webpage, 'Title', default=None, fatal=False)
-        upload_date = self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None, fatal=False)
-        if upload_date is not None:
-            timestamp = unified_timestamp(upload_date)
-        description = self._html_search_meta('description', webpage, 'Description', default=None, fatal=False)
+        title = self._html_search_meta('name', webpage, 'Title', fatal=False)
+        timestamp = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
+        description = self._html_search_meta('description', webpage, 'Description', default=None)
 
         global_embed_url = self._search_regex(
             r'<script[^<]+?window.globEmbedUrl\s*=\s*\'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'',
