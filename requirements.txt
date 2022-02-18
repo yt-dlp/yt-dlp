@@ -1,3 +1,4 @@
 mutagen
 pycryptodomex
 websockets
+urllib3

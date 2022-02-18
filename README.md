@@ -266,6 +266,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**mutagen**](https://github.com/quodlibet/mutagen) - For embedding thumbnail in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodomex**](https://github.com/Legrandin/pycryptodome) - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licensed under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
+* [**urllib3**](https://github.com/urllib3/urllib3) - Modern HTTP library. Supports Persistent connections. Licensed under [MIT](https://github.com/urllib3/urllib3/blob/main/LICENSE.txt)
 * [**secretstorage**](https://github.com/mitya57/secretstorage) - For accessing the Gnome keyring while decrypting cookies of Chromium-based browsers on Linux. Licensed under [BSD](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)

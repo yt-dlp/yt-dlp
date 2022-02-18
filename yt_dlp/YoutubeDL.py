@@ -3670,13 +3670,14 @@ class YoutubeDL(object):
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
         from .cookies import SQLITE_AVAILABLE, SECRETSTORAGE_AVAILABLE
-
+        from .networking import has_urllib3
         lib_str = join_nonempty(
             compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
             SECRETSTORAGE_AVAILABLE and 'secretstorage',
             has_mutagen and 'mutagen',
             SQLITE_AVAILABLE and 'sqlite',
             has_websockets and 'websockets',
+            has_urllib3 and 'urllib3',
             delim=', ') or 'none'
         write_debug('Optional libraries: %s' % lib_str)
 
