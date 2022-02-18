@@ -1,6 +1,5 @@
 from __future__ import division, unicode_literals
 
-import http.client
 import json
 import math
 import os
@@ -17,13 +16,12 @@ from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import (
     compat_os_name,
-    compat_urllib_error,
     compat_struct_pack,
 )
 from ..utils import (
     DownloadError,
     error_to_compat_str,
-    encodeFilename,
+    encodeFilename, HTTPError, IncompleteRead,
 )
 from ..networking.common import Request
 
@@ -449,7 +447,7 @@ class FragmentFD(FileDownloader):
                     if not success:
                         return False, frag_index
                     break
-                except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
+                except (HTTPError, IncompleteRead) as err:
                     # Unavailable (possibly temporary) fragments may be served.
                     # First we try to retry then either skip or abort.
                     # See https://github.com/ytdl-org/youtube-dl/issues/10165,

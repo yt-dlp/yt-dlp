@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 
-import errno
 import os
-import socket
 import time
 import random
 import re
@@ -10,7 +8,6 @@ import re
 from .common import FileDownloader
 from ..compat import (
     compat_str,
-    compat_urllib_error,
 )
 from ..utils import (
     ContentTooShortError,
@@ -20,6 +17,8 @@ from ..utils import (
     write_xattr,
     XAttrMetadataError,
     XAttrUnavailableError,
+    HTTPError,
+    ConnectionReset,
 )
 from ..networking.common import Request
 
@@ -111,12 +110,8 @@ class HttpFD(FileDownloader):
             try:
                 try:
                     ctx.data = self.ydl.urlopen(request)
-                except (compat_urllib_error.URLError, ) as err:
-                    # reason may not be available, e.g. for urllib2.HTTPError on python 2.6
-                    reason = getattr(err, 'reason', None)
-                    if isinstance(reason, socket.timeout):
-                        raise RetryDownload(err)
-                    raise err
+                except TimeoutError as err:
+                    raise RetryDownload(err)
                 # When trying to resume, Content-Range HTTP header of response has to be checked
                 # to match the value of requested Range HTTP header. This is due to a webservers
                 # that don't support resuming and serve a whole file with no Content-Range
@@ -149,7 +144,7 @@ class HttpFD(FileDownloader):
                     ctx.open_mode = 'wb'
                 ctx.data_len = int_or_none(ctx.data.info().get('Content-length', None))
                 return
-            except (compat_urllib_error.HTTPError, ) as err:
+            except (HTTPError, ) as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
                     try:
@@ -157,7 +152,7 @@ class HttpFD(FileDownloader):
                         ctx.data = self.ydl.urlopen(
                             Request(url, request_data, headers))
                         content_length = ctx.data.info()['Content-Length']
-                    except (compat_urllib_error.HTTPError, ) as err:
+                    except (HTTPError, ) as err:
                         if err.code < 500 or err.code >= 600:
                             raise
                     else:
@@ -190,13 +185,8 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except socket.timeout as err:
+            except (TimeoutError, ConnectionReset) as err:
                 raise RetryDownload(err)
-            except socket.error as err:
-                if err.errno in (errno.ECONNRESET, errno.ETIMEDOUT):
-                    # Connection reset is no problem, just retry
-                    raise RetryDownload(err)
-                raise
 
         def download():
             nonlocal throttle_start
@@ -244,14 +234,8 @@ class HttpFD(FileDownloader):
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
                 # socket.timeout is a subclass of socket.error but may not have
                 # errno set
-                except socket.timeout as e:
+                except (TimeoutError, ConnectionReset) as e:
                     retry(e)
-                except socket.error as e:
-                    # SSLError on python 2 (inherits socket.error) may have
-                    # no errno set but this error message
-                    if e.errno in (errno.ECONNRESET, errno.ETIMEDOUT) or getattr(e, 'message', None) == 'The read operation timed out':
-                        retry(e)
-                    raise
 
                 byte_counter += len(data_block)
 
