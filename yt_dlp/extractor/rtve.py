@@ -19,7 +19,7 @@ from ..utils import (
     remove_start,
     try_get,
 )
-from ..networking import std_headers
+from ..networking.common import get_std_headers
 
 _bytes_to_chr = (lambda x: x) if sys.version_info[0] == 2 else (lambda x: map(chr, x))
 
@@ -71,7 +71,7 @@ class RTVEALaCartaIE(InfoExtractor):
     }]
 
     def _real_initialize(self):
-        user_agent_b64 = base64.b64encode(std_headers['User-Agent'].encode('utf-8')).decode('utf-8')
+        user_agent_b64 = base64.b64encode(get_std_headers()['User-Agent'].encode('utf-8')).decode('utf-8')
         self._manager = self._download_json(
             'http://www.rtve.es/odin/loki/' + user_agent_b64,
             None, 'Fetching manager info')['manager']

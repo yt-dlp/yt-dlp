@@ -10,7 +10,7 @@ from ..compat import compat_str
 from ..utils import (
     ExtractorError,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class NownessBaseIE(InfoExtractor):
@@ -43,7 +43,7 @@ class NownessBaseIE(InfoExtractor):
 
     def _api_request(self, url, request_path):
         display_id = self._match_id(url)
-        request = sanitized_Request(
+        request = Request(
             'http://api.nowness.com/api/' + request_path % display_id,
             headers={
                 'X-Nowness-Language': 'zh-cn' if 'cn.nowness.com' in url else 'en-us',

@@ -4,7 +4,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_kwargs,
     compat_str,
     compat_urllib_request,
@@ -20,9 +19,9 @@ from ..utils import (
     try_get,
     unescapeHTML,
     url_or_none,
-    urlencode_postdata,
+    urlencode_postdata, HTTPError,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class UdemyIE(InfoExtractor):
@@ -162,7 +161,7 @@ class UdemyIE(InfoExtractor):
             for header, value in headers.items():
                 url_or_request.add_header(header, value)
         else:
-            url_or_request = sanitized_Request(url_or_request, headers=headers)
+            url_or_request = Request(url_or_request, headers=headers)
 
         response = super(UdemyIE, self)._download_json(url_or_request, *args, **kwargs)
         self._handle_error(response)
@@ -222,7 +221,7 @@ class UdemyIE(InfoExtractor):
             lecture = self._download_lecture(course_id, lecture_id)
         except ExtractorError as e:
             # Error could possibly mean we are not enrolled in the course
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 self._enroll_course(url, webpage, course_id)
                 lecture = self._download_lecture(course_id, lecture_id)
             else:

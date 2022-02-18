@@ -11,7 +11,7 @@ from ..utils import (
     parse_duration,
     unified_strdate,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class LA7IE(InfoExtractor):

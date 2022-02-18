@@ -6,7 +6,7 @@ from ..utils import (
     ExtractorError,
     urlencode_postdata,
 )
-from ..networking._urllib import sanitized_Request, HEADRequest
+from ..networking.common import HEADRequest, Request
 
 
 class HotNewHipHopIE(InfoExtractor):
@@ -37,7 +37,7 @@ class HotNewHipHopIE(InfoExtractor):
             ('mediaType', 's'),
             ('mediaId', video_id),
         ])
-        r = sanitized_Request(
+        r = Request(
             'http://www.hotnewhiphop.com/ajax/media/getActions/', data=reqdata)
         r.add_header('Content-Type', 'application/x-www-form-urlencoded')
         mkd = self._download_json(

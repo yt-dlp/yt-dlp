@@ -7,12 +7,11 @@ import uuid
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str,
 )
 from ..utils import (
     ExtractorError,
-    int_or_none,
+    int_or_none, HTTPError,
 )
 
 
@@ -48,7 +47,7 @@ class MGTVIE(InfoExtractor):
                     'video_id': video_id,
                 }, headers=self.geo_verification_headers())['data']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 401:
                 error = self._parse_json(e.cause.read().decode(), None)
                 if error.get('code') == 40005:
                     self.raise_geo_restricted(countries=self._GEO_COUNTRIES)

@@ -6,7 +6,7 @@ import threading
 from .common import FileDownloader
 from ..downloader import get_suitable_downloader
 from ..extractor.niconico import NiconicoIE
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class NiconicoDmcFD(FileDownloader):
@@ -29,7 +29,7 @@ class NiconicoDmcFD(FileDownloader):
         heartbeat_data = heartbeat_info_dict['data'].encode()
         heartbeat_interval = heartbeat_info_dict.get('interval', 30)
 
-        request = sanitized_Request(heartbeat_url, heartbeat_data)
+        request = Request(heartbeat_url, heartbeat_data)
 
         def heartbeat():
             try:

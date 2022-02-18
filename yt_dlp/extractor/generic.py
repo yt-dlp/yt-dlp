@@ -38,7 +38,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
-from ..networking._urllib import sanitized_Request, HEADRequest
+from ..networking.common import HEADRequest, Request
 from .commonprotocols import RtmpIE
 from .brightcove import (
     BrightcoveLegacyIE,
@@ -2709,7 +2709,7 @@ class GenericIE(InfoExtractor):
 
         full_response = None
         if head_response is False:
-            request = sanitized_Request(url)
+            request = Request(url)
             request.add_header('Accept-Encoding', '*')
             full_response = self._request_webpage(request, video_id)
             head_response = full_response
@@ -2751,7 +2751,7 @@ class GenericIE(InfoExtractor):
                 '%s on generic information extractor.' % ('Forcing' if force else 'Falling back'))
 
         if not full_response:
-            request = sanitized_Request(url)
+            request = Request(url)
             # Some webservers may serve compressed content of rather big size (e.g. gzipped flac)
             # making it impossible to download only chunk of the file (yet we need only 512kB to
             # test whether it's HTML or not). According to yt-dlp default Accept-Encoding

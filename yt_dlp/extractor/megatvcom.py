@@ -15,7 +15,7 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class MegaTVComBaseIE(InfoExtractor):

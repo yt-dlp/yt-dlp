@@ -6,7 +6,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_urllib_parse,
 )
 from ..utils import (
@@ -14,7 +13,7 @@ from ..utils import (
     float_or_none,
     str_or_none,
     traverse_obj,
-    url_or_none,
+    url_or_none, HTTPError,
 )
 
 
@@ -88,7 +87,7 @@ class PelotonIE(InfoExtractor):
                 }).encode(),
                 headers={'Content-Type': 'application/json', 'User-Agent': 'web'})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 401:
                 json_string = self._webpage_read_content(e.cause, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Login failed')
@@ -101,7 +100,7 @@ class PelotonIE(InfoExtractor):
                 'https://api.onepeloton.com/api/subscription/stream', video_id, note='Downloading token',
                 data=json.dumps({}).encode(), headers={'Content-Type': 'application/json'})
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 json_string = self._webpage_read_content(e.cause, None, video_id)
                 res = self._parse_json(json_string, video_id)
                 raise ExtractorError(res['message'], expected=res['message'] == 'Stream limit reached')
@@ -114,7 +113,7 @@ class PelotonIE(InfoExtractor):
         try:
             self._start_session(video_id)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 401:
                 self._login(video_id)
                 self._start_session(video_id)
             else:

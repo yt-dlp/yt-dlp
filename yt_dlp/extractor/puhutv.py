@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str,
 )
 from ..utils import (
@@ -15,7 +14,7 @@ from ..utils import (
     try_get,
     unified_timestamp,
     url_or_none,
-    urljoin,
+    urljoin, HTTPError,
 )
 
 
@@ -75,7 +74,7 @@ class PuhuTVIE(InfoExtractor):
                 display_id, 'Downloading video JSON',
                 headers=self.geo_verification_headers())
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 self.raise_geo_restricted()
             raise
 

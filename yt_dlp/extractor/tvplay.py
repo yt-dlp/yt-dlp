@@ -5,7 +5,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_urlparse,
 )
 from ..utils import (
@@ -18,7 +17,7 @@ from ..utils import (
     try_get,
     update_url_query,
     url_or_none,
-    urljoin,
+    urljoin, HTTPError,
 )
 
 
@@ -246,7 +245,7 @@ class TVPlayIE(InfoExtractor):
                 'http://playapi.mtgx.tv/v3/videos/stream/%s' % video_id,
                 video_id, 'Downloading streams JSON')
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 msg = self._parse_json(e.cause.read().decode('utf-8'), video_id)
                 raise ExtractorError(msg['msg'], expected=True)
             raise
@@ -408,7 +407,7 @@ class ViafreeIE(InfoExtractor):
                 program['_links']['streamLink']['href'], guid,
                 headers=self.geo_verification_headers())['embedded']['prioritizedStreams'][0]['links']['stream']['href']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 self.raise_geo_restricted(countries=[country])
             raise
 

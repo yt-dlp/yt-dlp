@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
     float_or_none,
@@ -12,7 +11,7 @@ from ..utils import (
     smuggle_url,
     try_get,
     unsmuggle_url,
-    ExtractorError,
+    ExtractorError, HTTPError,
 )
 
 
@@ -72,7 +71,7 @@ class LimelightBaseIE(InfoExtractor):
                 item_id, 'Downloading PlaylistService %s JSON' % method,
                 fatal=fatal, headers=headers)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 error = self._parse_json(e.cause.read().decode(), item_id)['detail']['contentAccessPermission']
                 if error == 'CountryDisabled':
                     self.raise_geo_restricted()

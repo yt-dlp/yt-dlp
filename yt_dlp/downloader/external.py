@@ -24,7 +24,7 @@ from ..utils import (
     Popen,
     remove_end,
 )
-from ..networking import handle_youtubedl_headers
+from ..networking.utils import handle_youtubedl_headers
 
 
 class ExternalFD(FragmentFD):

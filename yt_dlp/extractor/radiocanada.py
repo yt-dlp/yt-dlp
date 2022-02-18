@@ -3,12 +3,11 @@ from __future__ import unicode_literals
 
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
     int_or_none,
-    unified_strdate,
+    unified_strdate, HTTPError,
 )
 
 
@@ -78,7 +77,7 @@ class RadioCanadaIE(InfoExtractor):
             return self._download_json(
                 'https://services.radio-canada.ca/media/' + path, video_id, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 422):
+            if isinstance(e.cause, HTTPError) and e.cause.code in (401, 422):
                 data = self._parse_json(e.cause.read().decode(), None)
                 error = data.get('error_description') or data['errorMessage']['text']
                 raise ExtractorError(error, expected=True)

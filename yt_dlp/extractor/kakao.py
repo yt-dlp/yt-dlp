@@ -3,14 +3,13 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
     strip_or_none,
     str_or_none,
     traverse_obj,
-    unified_timestamp,
+    unified_timestamp, HTTPError,
 )
 
 
@@ -105,7 +104,7 @@ class KakaoIE(InfoExtractor):
                     cdn_api_base, video_id, query=query,
                     note='Downloading video URL for profile %s' % profile_name)
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                     resp = self._parse_json(e.cause.read().decode(), video_id)
                     if resp.get('code') == 'GeoBlocked':
                         self.raise_geo_restricted()

@@ -12,7 +12,7 @@ from ..utils import (
     str_to_int,
     url_or_none,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class XTubeIE(InfoExtractor):
@@ -189,7 +189,7 @@ class XTubeUserIE(InfoExtractor):
 
         entries = []
         for pagenum in itertools.count(1):
-            request = sanitized_Request(
+            request = Request(
                 'http://www.xtube.com/profile/%s/videos/%d' % (user_id, pagenum),
                 headers={
                     'Cookie': 'popunder=4',

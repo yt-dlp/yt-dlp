@@ -21,7 +21,7 @@ from ..utils import (
     XAttrMetadataError,
     XAttrUnavailableError,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class HttpFD(FileDownloader):
@@ -104,7 +104,7 @@ class HttpFD(FileDownloader):
                 range_end = ctx.data_len - 1
             has_range = range_start is not None
             ctx.has_range = has_range
-            request = sanitized_Request(url, request_data, headers)
+            request = Request(url, request_data, headers)
             if has_range:
                 set_range(request, range_start, range_end)
             # Establish connection
@@ -155,7 +155,7 @@ class HttpFD(FileDownloader):
                     try:
                         # Open the connection again without the range header
                         ctx.data = self.ydl.urlopen(
-                            sanitized_Request(url, request_data, headers))
+                            Request(url, request_data, headers))
                         content_length = ctx.data.info()['Content-Length']
                     except (compat_urllib_error.HTTPError, ) as err:
                         if err.code < 500 or err.code >= 600:

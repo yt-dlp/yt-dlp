@@ -22,7 +22,7 @@ from ..utils import (
     mimetype2ext,
     find_xpath_attr,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})
@@ -277,7 +277,7 @@ class ThePlatformIE(ThePlatformBaseIE, AdobePassIE):
             source_url = smuggled_data.get('source_url')
             if source_url:
                 headers['Referer'] = source_url
-            request = sanitized_Request(url, headers=headers)
+            request = Request(url, headers=headers)
             webpage = self._download_webpage(request, video_id)
             smil_url = self._search_regex(
                 r'<link[^>]+href=(["\'])(?P<url>.+?)\1[^>]+type=["\']application/smil\+xml',

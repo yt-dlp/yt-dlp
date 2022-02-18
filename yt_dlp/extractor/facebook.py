@@ -32,7 +32,7 @@ from ..utils import (
     urljoin,
     variadic,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class FacebookIE(InfoExtractor):
@@ -333,7 +333,7 @@ class FacebookIE(InfoExtractor):
         if useremail is None:
             return
 
-        login_page_req = sanitized_Request(self._LOGIN_URL)
+        login_page_req = Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
         login_page = self._download_webpage(login_page_req, None,
                                             note='Downloading login page',
@@ -354,7 +354,7 @@ class FacebookIE(InfoExtractor):
             'timezone': '-60',
             'trynum': '1',
         }
-        request = sanitized_Request(self._LOGIN_URL, urlencode_postdata(login_form))
+        request = Request(self._LOGIN_URL, urlencode_postdata(login_form))
         request.add_header('Content-Type', 'application/x-www-form-urlencoded')
         try:
             login_results = self._download_webpage(request, None,
@@ -381,7 +381,7 @@ class FacebookIE(InfoExtractor):
                 'h': h,
                 'name_action_selected': 'dont_save',
             }
-            check_req = sanitized_Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
+            check_req = Request(self._CHECKPOINT_URL, urlencode_postdata(check_form))
             check_req.add_header('Content-Type', 'application/x-www-form-urlencoded')
             check_response = self._download_webpage(check_req, None,
                                                     note='Confirming login')

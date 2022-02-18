@@ -7,9 +7,6 @@ import re
 import time
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-)
 from ..utils import (
     ExtractorError,
     format_field,
@@ -21,9 +18,9 @@ from ..utils import (
     str_to_int,
     traverse_obj,
     url_or_none,
-    urlencode_postdata,
+    urlencode_postdata, HTTPError,
 )
-from ..networking import std_headers
+from ..networking.common import get_std_headers
 
 
 class InstagramBaseIE(InfoExtractor):
@@ -503,7 +500,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                     '%s' % rhx_gis,
                     '',
                     '%s:%s' % (rhx_gis, csrf_token),
-                    '%s:%s:%s' % (rhx_gis, csrf_token, std_headers['User-Agent']),
+                    '%s:%s:%s' % (rhx_gis, csrf_token, get_std_headers()['User-Agent']),
                 ]
 
             # try all of the ways to generate a GIS query, and not only use the
@@ -526,7 +523,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 except ExtractorError as e:
                     # if it's an error caused by a bad query, and there are
                     # more GIS templates to try, ignore it and keep trying
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                    if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                         if gis_tmpl != gis_tmpls[-1]:
                             continue
                     raise

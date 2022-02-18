@@ -24,7 +24,7 @@ from ..utils import (
     url_basename,
     xpath_text,
 )
-from ..networking._urllib import sanitized_Request, HEADRequest
+from ..networking.common import HEADRequest, Request
 
 
 def _media_xml_tag(tag):
@@ -56,7 +56,7 @@ class MTVServicesInfoExtractor(InfoExtractor):
 
     def _extract_mobile_video_formats(self, mtvn_id):
         webpage_url = self._MOBILE_TEMPLATE % mtvn_id
-        req = sanitized_Request(webpage_url)
+        req = Request(webpage_url)
         # Otherwise we get a webpage that would execute some javascript
         req.add_header('User-Agent', 'curl/7')
         webpage = self._download_webpage(req, mtvn_id,

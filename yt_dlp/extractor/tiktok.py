@@ -24,7 +24,7 @@ from ..utils import (
     url_or_none,
     qualities,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class TikTokBaseIE(InfoExtractor):

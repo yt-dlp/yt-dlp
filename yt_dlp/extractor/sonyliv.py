@@ -8,11 +8,10 @@ import time
 import uuid
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     int_or_none,
-    try_get,
+    try_get, HTTPError,
 )
 
 
@@ -107,10 +106,10 @@ class SonyLIVIE(InfoExtractor):
                 'https://apiv2.sonyliv.com/AGL/%s/A/ENG/WEB/%s' % (version, path),
                 video_id, headers=self._HEADERS)['resultObj']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 406 and self._parse_json(
+            if isinstance(e.cause, HTTPError) and e.cause.code == 406 and self._parse_json(
                     e.cause.read().decode(), video_id)['message'] == 'Please subscribe to watch this content':
                 self.raise_login_required(self._LOGIN_HINT, method=None)
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 message = self._parse_json(
                     e.cause.read().decode(), video_id)['message']
                 if message == 'Geoblocked Country':

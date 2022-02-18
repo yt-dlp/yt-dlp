@@ -14,8 +14,8 @@ from ..utils import (
     traverse_obj,
     urlencode_postdata,
 )
-from ..networking._urllib import sanitized_Request
-from ..networking import USER_AGENTS
+from ..networking.common import Request
+from ..networking.utils import USER_AGENTS
 
 
 class CeskaTelevizeIE(InfoExtractor):
@@ -140,7 +140,7 @@ class CeskaTelevizeIE(InfoExtractor):
         entries = []
 
         for user_agent in (None, USER_AGENTS['Safari']):
-            req = sanitized_Request(
+            req = Request(
                 'https://www.ceskatelevize.cz/ivysilani/ajax/get-client-playlist/',
                 data=urlencode_postdata(data))
 
@@ -160,7 +160,7 @@ class CeskaTelevizeIE(InfoExtractor):
             if playlist_url == 'error_region':
                 raise ExtractorError(NOT_AVAILABLE_STRING, expected=True)
 
-            req = sanitized_Request(compat_urllib_parse_unquote(playlist_url))
+            req = Request(compat_urllib_parse_unquote(playlist_url))
             req.add_header('Referer', url)
 
             playlist = self._download_json(req, playlist_id, fatal=False)

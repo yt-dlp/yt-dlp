@@ -8,7 +8,7 @@ from .common import InfoExtractor
 from ..utils import (
     urlencode_postdata,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class TenPlayIE(InfoExtractor):

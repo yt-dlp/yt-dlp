@@ -27,7 +27,7 @@ from ..utils import (
     urljoin,
     xpath_text,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class RaiBaseIE(InfoExtractor):

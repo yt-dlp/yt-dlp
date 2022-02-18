@@ -4,13 +4,12 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..utils import (
     dict_get,
     ExtractorError,
     int_or_none,
     js_to_json,
-    parse_iso8601,
+    parse_iso8601, HTTPError,
 )
 
 
@@ -47,7 +46,7 @@ class ZypeIE(InfoExtractor):
             response = self._download_json(re.sub(
                 r'\.(?:js|html)\?', '.json?', url), video_id)['response']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code in (400, 401, 403):
+            if isinstance(e.cause, HTTPError) and e.cause.code in (400, 401, 403):
                 raise ExtractorError(self._parse_json(
                     e.cause.read().decode(), video_id)['message'], expected=True)
             raise

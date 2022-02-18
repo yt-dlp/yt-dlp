@@ -41,8 +41,8 @@ from .utils import (
     SameFileError,
     setproctitle,
     write_string,
+    std_headers
 )
-from .networking import std_headers
 from .update import run_update
 from .downloader import (
     FileDownloader,
@@ -60,6 +60,8 @@ from .postprocessor import (
     MetadataParserPP,
 )
 from .YoutubeDL import YoutubeDL
+
+from .networking.common import get_std_headers
 
 
 def _real_main(argv=None):
@@ -88,7 +90,7 @@ def _real_main(argv=None):
 
     # Dump user agent
     if opts.dump_user_agent:
-        write_string(std_headers['User-Agent'] + '\n', out=sys.stdout)
+        write_string(get_std_headers()['User-Agent'] + '\n', out=sys.stdout)
         sys.exit(0)
 
     # Batch file verification

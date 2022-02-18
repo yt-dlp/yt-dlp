@@ -14,7 +14,7 @@ from ..utils import (
     strip_or_none,
     try_get,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class IGNBaseIE(InfoExtractor):

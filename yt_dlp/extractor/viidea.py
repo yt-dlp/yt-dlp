@@ -4,7 +4,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str,
     compat_urlparse,
 )
@@ -12,7 +11,7 @@ from ..utils import (
     ExtractorError,
     js_to_json,
     parse_duration,
-    parse_iso8601,
+    parse_iso8601, HTTPError,
 )
 
 
@@ -135,7 +134,7 @@ class ViideaIE(InfoExtractor):
                 '%s/site/api/lecture/%s?format=json' % (base_url, lecture_id),
                 lecture_id)['lecture'][0]
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 msg = self._parse_json(
                     e.cause.read().decode('utf-8'), lecture_id)
                 raise ExtractorError(msg['detail'], expected=True)

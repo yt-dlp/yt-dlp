@@ -9,7 +9,6 @@ from .adobepass import AdobePassIE
 from .common import InfoExtractor
 from ..compat import (
     compat_etree_fromstring,
-    compat_HTTPError,
     compat_parse_qs,
     compat_urlparse,
     compat_xml_parse_error,
@@ -22,6 +21,7 @@ from ..utils import (
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
+    HTTPError,
     int_or_none,
     js_to_json,
     mimetype2ext,
@@ -651,7 +651,7 @@ class BrightcoveNewIE(AdobePassIE):
                 json_data = self._download_json(api_url, video_id, headers=headers)
                 break
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
+                if isinstance(e.cause, HTTPError) and e.cause.code in (401, 403):
                     json_data = self._parse_json(e.cause.read().decode(), video_id)[0]
                     message = json_data.get('message') or json_data['error_code']
                     if json_data.get('error_subcode') == 'CLIENT_GEO':

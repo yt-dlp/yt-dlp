@@ -119,7 +119,7 @@ from yt_dlp.utils import (
     iri_to_uri,
     LazyList,
 )
-from yt_dlp.networking._urllib import sanitized_Request
+from yt_dlp.networking.common import Request
 from yt_dlp.compat import (
     compat_chr,
     compat_etree_fromstring,
@@ -253,7 +253,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_url('foo bar'), 'foo bar')
 
     def test_extract_basic_auth(self):
-        auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
+        auth_header = lambda url: Request(url).get_header('Authorization')
         self.assertFalse(auth_header('http://foo.bar'))
         self.assertFalse(auth_header('http://:foo.bar'))
         self.assertEqual(auth_header('http://@foo.bar'), 'Basic Og==')

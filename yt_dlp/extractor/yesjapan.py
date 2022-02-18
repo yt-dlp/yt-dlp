@@ -6,7 +6,7 @@ from ..utils import (
     get_element_by_attribute,
     parse_iso8601,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class YesJapanIE(InfoExtractor):

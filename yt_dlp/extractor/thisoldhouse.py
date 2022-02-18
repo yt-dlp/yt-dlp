@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class ThisOldHouseIE(InfoExtractor):

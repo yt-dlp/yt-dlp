@@ -10,7 +10,7 @@ from ..utils import (
     int_or_none,
     ExtractorError,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class MioMioIE(InfoExtractor):
@@ -64,7 +64,7 @@ class MioMioIE(InfoExtractor):
             'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/xml.php?id=%s&r=%s' % (id, random.randint(100, 999)),
             video_id)
 
-        vid_config_request = sanitized_Request(
+        vid_config_request = Request(
             'http://www.miomio.tv/mioplayer/mioplayerconfigfiles/sina.php?{0}'.format(xml_config),
             headers=http_headers)
 

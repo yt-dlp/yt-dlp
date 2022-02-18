@@ -10,7 +10,6 @@ import json
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str
 )
 from ..utils import (
@@ -19,7 +18,7 @@ from ..utils import (
     int_or_none,
     str_or_none,
     try_get,
-    url_or_none,
+    url_or_none, HTTPError,
 )
 
 
@@ -227,7 +226,7 @@ class HotStarIE(HotStarBaseIE):
                         'height': int_or_none(playback_set.get('height')),
                     }]
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                     geo_restricted = True
                 continue
             if tags and 'encryption:plain' not in tags:

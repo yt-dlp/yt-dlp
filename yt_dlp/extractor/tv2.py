@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
@@ -14,7 +13,7 @@ from ..utils import (
     parse_iso8601,
     remove_end,
     strip_or_none,
-    try_get,
+    try_get, HTTPError,
 )
 
 
@@ -56,7 +55,7 @@ class TV2IE(InfoExtractor):
                                            headers={'content-type': 'application/json'},
                                            data='{"device":{"id":"1-1-1","name":"Nettleser (HTML)"}}'.encode())['playback']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.code == 401:
                     error = self._parse_json(e.cause.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':
@@ -213,7 +212,7 @@ class KatsomoIE(InfoExtractor):
                     api_base + '/play.json?protocol=%s&videoFormat=SMIL+ISMUSP' % protocol,
                     video_id, 'Downloading play JSON')['playback']
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.code == 401:
                     error = self._parse_json(e.cause.read().decode(), video_id)['error']
                     error_code = error.get('code')
                     if error_code == 'ASSET_PLAYBACK_INVALID_GEO_LOCATION':

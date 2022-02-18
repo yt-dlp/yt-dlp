@@ -10,7 +10,7 @@ from ..utils import (
     js_to_json,
     urlencode_postdata,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class TubiTvIE(InfoExtractor):
@@ -64,7 +64,7 @@ class TubiTvIE(InfoExtractor):
             'password': password,
         }
         payload = urlencode_postdata(form_data)
-        request = sanitized_Request(self._LOGIN_URL, payload)
+        request = Request(self._LOGIN_URL, payload)
         request.add_header('Content-Type', 'application/x-www-form-urlencoded')
         login_page = self._download_webpage(
             request, None, False, 'Wrong login info')

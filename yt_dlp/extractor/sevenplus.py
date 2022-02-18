@@ -6,13 +6,12 @@ import re
 
 from .brightcove import BrightcoveNewIE
 from ..compat import (
-    compat_HTTPError,
     compat_str,
 )
 from ..utils import (
     ExtractorError,
     try_get,
-    update_url_query,
+    update_url_query, HTTPError,
 )
 
 
@@ -100,7 +99,7 @@ class SevenPlusIE(BrightcoveNewIE):
                     'videoType': 'vod',
                 }, headers=headers)['media']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 raise ExtractorError(self._parse_json(
                     e.cause.read().decode(), episode_id)[0]['error_code'], expected=True)
             raise

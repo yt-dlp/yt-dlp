@@ -6,7 +6,7 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class CultureUnpluggedIE(InfoExtractor):

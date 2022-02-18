@@ -9,7 +9,7 @@ from ..utils import (
     int_or_none,
     clean_html,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class TFOIE(InfoExtractor):

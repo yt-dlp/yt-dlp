@@ -22,7 +22,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class ORFTVthekIE(InfoExtractor):

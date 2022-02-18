@@ -11,7 +11,7 @@ from ..utils import (
     get_element_by_attribute,
     clean_html,
 )
-from ..networking._urllib import HEADRequest
+from ..networking.common import HEADRequest
 
 
 class SinaIE(InfoExtractor):

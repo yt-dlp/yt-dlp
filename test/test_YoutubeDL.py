@@ -14,11 +14,11 @@ import json
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name, compat_setenv, compat_str, compat_urllib_error
+from yt_dlp.compat import compat_os_name, compat_setenv, compat_str
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
-from yt_dlp.utils import ExtractorError, int_or_none, match_filter_func, LazyList
+from yt_dlp.utils import ExtractorError, int_or_none, match_filter_func, LazyList, RequestError
 
 TEST_URL = 'http://localhost/sample.mp4'
 
@@ -1047,7 +1047,7 @@ class TestYoutubeDL(unittest.TestCase):
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227
         ydl = YDL()
-        self.assertRaises(compat_urllib_error.URLError, ydl.urlopen, 'file:///etc/passwd')
+        self.assertRaises(RequestError, ydl.urlopen, 'file:///etc/passwd')
 
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()

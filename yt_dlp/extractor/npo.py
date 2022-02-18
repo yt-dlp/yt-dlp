@@ -4,7 +4,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTTPError,
     compat_str,
 )
 from ..utils import (
@@ -21,7 +20,7 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
     url_or_none,
-    urlencode_postdata,
+    urlencode_postdata, HTTPError,
 )
 
 
@@ -382,7 +381,7 @@ class NPOIE(NPOBaseIE):
                     'Downloading %s stream JSON'
                     % item_label or item.get('format') or format_id or num)
             except ExtractorError as ee:
-                if isinstance(ee.cause, compat_HTTPError) and ee.cause.code == 404:
+                if isinstance(ee.cause, HTTPError) and ee.cause.code == 404:
                     error = (self._parse_json(
                         ee.cause.read().decode(), video_id,
                         fatal=False) or {}).get('errorstring')

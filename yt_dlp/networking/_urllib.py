@@ -1,61 +1,50 @@
-from __future__ import unicode_literals
 
+import errno
 import functools
 import gzip
+import http.client
 import io
 import socket
-
 import ssl
-import sys
+import urllib.error
+import urllib.request
+import urllib.response
 import zlib
 
-from . import (
-    std_headers,
-    _ssl_load_windows_store_certs,
-    handle_youtubedl_headers
+from ..compat import (
+    compat_urllib_request_DataHandler,
+    compat_urllib_request,
+    compat_http_client,
+    compat_urlparse, compat_HTTPError
 )
-from ..compat import compat_urllib_request, compat_kwargs, compat_http_client, compat_urlparse, \
-    compat_urllib_parse_unquote_plus, compat_HTTPError
 
-from .socksproxy import ProxyType, sockssocket
-from ..utils import extract_basic_auth, escape_url, sanitize_url, update_url_query
+from .common import HTTPResponse, YDLBackendHandler, Request, get_std_headers
+from .socksproxy import sockssocket
+from .utils import handle_youtubedl_headers, make_ssl_context, socks_create_proxy_args
+from ..utils import (
+    escape_url,
+    update_url_query,
+    IncompleteRead,
+    ConnectionReset,
+    ReadTimeoutError,
+    TransportError,
+    ConnectionTimeoutError,
+    ResolveHostError,
+    SSLError,
+    HTTPError, extract_basic_auth, sanitize_url
+)
 
-
-def sanitized_Request(url, *args, **kwargs):
-    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
-    if auth_header is not None:
-        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
-        headers['Authorization'] = auth_header
-    return compat_urllib_request.Request(url, *args, **kwargs)
+SUPPORTED_ENCODINGS = [
+    'gzip', 'deflate'
+]
 
 
 def make_HTTPS_handler(params, **kwargs):
-    opts_check_certificate = not params.get('nocheckcertificate')
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    context.check_hostname = opts_check_certificate
-    if params.get('legacyserverconnect'):
-        context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
-    context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
-    if opts_check_certificate:
-        try:
-            context.load_default_certs()
-            # Work around the issue in load_default_certs when there are bad certificates. See:
-            # https://github.com/yt-dlp/yt-dlp/issues/1060,
-            # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-        except ssl.SSLError:
-            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                # Create a new context to discard any certificates that were already loaded
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
-                for storename in ('CA', 'ROOT'):
-                    _ssl_load_windows_store_certs(context, storename)
-            context.set_default_verify_paths()
-    return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
+    return YoutubeDLHTTPSHandler(params, context=make_ssl_context(params), **kwargs)
 
 
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
-    hc = http_class(*args, **compat_kwargs(kwargs))
+    hc = http_class(*args, **kwargs)
     source_address = ydl_handler._params.get('source_address')
 
     if source_address is not None:
@@ -116,18 +105,14 @@ def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
 
 class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
     """Handler for HTTP requests and responses.
-
     This class, when installed with an OpenerDirector, automatically adds
     the standard headers to every HTTP request and handles gzipped and
     deflated responses from web servers. If compression is to be avoided in
     a particular request, the original request in the program code only has
     to include the HTTP header "Youtubedl-no-compression", which will be
     removed before making the real request.
-
     Part of this code was copied from:
-
     http://techknack.net/python-urllib2-handlers/
-
     Andrew Rowls, the author of that code, agreed to release it to the
     public domain.
     """
@@ -173,7 +158,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
 
-        for h, v in std_headers.items():
+        for h, v in get_std_headers(supported_encodings=SUPPORTED_ENCODINGS).items():
             # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:
@@ -233,31 +218,12 @@ def make_socks_conn_class(base_class, socks_proxy):
     assert issubclass(base_class, (
         compat_http_client.HTTPConnection, compat_http_client.HTTPSConnection))
 
-    url_components = compat_urlparse.urlparse(socks_proxy)
-    if url_components.scheme.lower() == 'socks5':
-        socks_type = ProxyType.SOCKS5
-    elif url_components.scheme.lower() in ('socks', 'socks4'):
-        socks_type = ProxyType.SOCKS4
-    elif url_components.scheme.lower() == 'socks4a':
-        socks_type = ProxyType.SOCKS4A
-
-    def unquote_if_non_empty(s):
-        if not s:
-            return s
-        return compat_urllib_parse_unquote_plus(s)
-
-    proxy_args = (
-        socks_type,
-        url_components.hostname, url_components.port or 1080,
-        True,  # Remote DNS
-        unquote_if_non_empty(url_components.username),
-        unquote_if_non_empty(url_components.password),
-    )
+    proxy_args = socks_create_proxy_args(socks_proxy)
 
     class SocksConnection(base_class):
         def connect(self):
             self.sock = sockssocket()
-            self.sock.setproxy(*proxy_args)
+            self.sock.setproxy(**proxy_args)
             if type(self.timeout) in (int, float):
                 self.sock.settimeout(self.timeout)
             self.sock.connect((self.host, self.port))
@@ -310,14 +276,11 @@ class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
 
 class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
     """YoutubeDL redirect handler
-
     The code is based on HTTPRedirectHandler implementation from CPython [1].
-
     This redirect handler solves two issues:
      - ensures redirect URL is always unicode under python 2
      - introduces support for experimental HTTP response status code
        308 Permanent Redirect [2] used by some sites [3]
-
     1. https://github.com/python/cpython/blob/master/Lib/urllib/request.py
     2. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/308
     3. https://github.com/ytdl-org/youtube-dl/issues/28768
@@ -327,7 +290,6 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         """Return a Request or None in response to a redirect.
-
         This is called by the http_error_30x methods when a
         redirection response is received.  If a redirection should
         take place, return a new Request to allow http_error_30x to
@@ -359,17 +321,14 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
             unverifiable=True)
 
 
-class HEADRequest(compat_urllib_request.Request):
-    def get_method(self):
-        return 'HEAD'
-
-
-class PUTRequest(compat_urllib_request.Request):
-    def get_method(self):
-        return 'PUT'
-
-
 def update_Request(req, url=None, data=None, headers={}, query={}):
+    class PUTRequest(compat_urllib_request.Request):
+        def get_method(self):
+            return 'PUT'
+
+    class HEADRequest(compat_urllib_request.Request):
+        def get_method(self):
+            return 'HEAD'
     req_headers = req.headers.copy()
     req_headers.update(headers)
     req_data = data or req.data
@@ -412,3 +371,137 @@ class PerRequestProxyHandler(compat_urllib_request.ProxyHandler):
             return None
         return compat_urllib_request.ProxyHandler.proxy_open(
             self, req, proxy, type)
+
+
+"""
+yt-dlp adapters
+"""
+
+
+# Supports both addinfourl and http.client.HTTPResponse
+class UrllibResponseAdapter(HTTPResponse):
+    def __init__(self, res: http.client.HTTPResponse):
+        self._res = res
+        super().__init__(
+            # In Python 3.9+, res.status was introduced and res.getcode() was deprecated [1]
+            # 1. https://github.com/python/cpython/commit/ff2e18286560e981f4e09afb0d2448ea994414d8
+            headers=res.headers, status=res.status if hasattr(res, 'status') else res.getcode() if hasattr(res, 'getcode') else None,
+            version=res.version if hasattr(res, 'version') else None)
+
+    def geturl(self):
+        return self._res.geturl()
+
+    def read(self, amt=None):
+        try:
+            return self._res.read(amt)
+        # TODO: handle exceptions
+        except http.client.IncompleteRead as err:
+            raise IncompleteRead(err.partial, self.geturl(), cause=err, expected=err.expected) from err
+        except ConnectionResetError as err:
+            raise ConnectionReset(self.geturl(), cause=err) from err
+        except TimeoutError as err:
+            raise ReadTimeoutError(self.geturl(), cause=err) from err
+        except (OSError, http.client.HTTPException) as e:
+            if e.errno == errno.ECONNRESET:
+                raise ConnectionReset(self.geturl(), cause=e) from e
+            if e.errno == errno.ETIMEDOUT:
+                raise ReadTimeoutError(self.geturl(), cause=e) from e
+            raise TransportError(self.geturl(), cause=e) from e
+
+    def close(self):
+        super().close()
+        return self._res.close()
+
+    def tell(self) -> int:
+        return self._res.tell()
+
+
+class UrllibHandler(YDLBackendHandler):
+    SUPPORTED_PROTOCOLS = ['http', 'https', 'data']
+
+    def _initialize(self):
+        self._openers = {}
+
+    def _create_opener(self, proxy=None):
+        cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
+        proxies = {'http': proxy, 'https': proxy} if proxy else None
+        proxy_handler = PerRequestProxyHandler(proxies)
+        debuglevel = int(self.print_traffic)
+        https_handler = make_HTTPS_handler(self.ydl.params, debuglevel=debuglevel)
+        ydlh = YoutubeDLHandler(self.ydl.params, debuglevel=debuglevel)
+        redirect_handler = YoutubeDLRedirectHandler()
+        data_handler = compat_urllib_request_DataHandler()
+
+        # TODO: technically the following is not required now, but will keep in for now
+        # When passing our own FileHandler instance, build_opener won't add the
+        # default FileHandler and allows us to disable the file protocol, which
+        # can be used for malicious purposes (see
+        # https://github.com/ytdl-org/youtube-dl/issues/8227)
+        file_handler = urllib.request.FileHandler()
+
+        def file_open(*args, **kwargs):
+            raise urllib.error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
+
+        file_handler.file_open = file_open
+        opener = urllib.request.build_opener(
+            proxy_handler, https_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler)
+        # Delete the default user-agent header, which would otherwise apply in
+        # cases where our custom HTTP handler doesn't come into play
+        # (See https://github.com/ytdl-org/youtube-dl/issues/1309 for details)
+        opener.addheaders = []
+        return opener
+
+    def get_opener(self, proxy=None):
+        """
+        For each proxy (or no proxy) we store an opener.
+        While we could make use of the per-request proxy functionality in PerRequestProxyManager,
+        it is not stable enough for general use. E.g. redirects are not proxied.
+        """
+        return self._openers.setdefault(proxy or '__noproxy__', self._create_opener(proxy))
+
+    def _real_handle(self, request: Request, **kwargs) -> HTTPResponse:
+        urllib_req = urllib.request.Request(
+            url=request.url, data=request.data, headers=dict(request.headers), origin_req_host=request.origin_req_host,
+            unverifiable=request.unverifiable, method=request.method
+        )
+
+        if not request.compression:
+            urllib_req.add_header('Youtubedl-no-compression', '1')
+
+        try:
+            res = self.get_opener(request.proxy or self.proxy).open(urllib_req, timeout=request.timeout or self.timeout)
+        except urllib.error.HTTPError as e:
+            # TODO: we may have an HTTPResponse and an addinfourl
+            if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
+                raise HTTPError(UrllibResponseAdapter(e.fp), url=e.geturl())
+
+        except urllib.error.URLError as e:
+            url = e.filename
+            # TODO: what errors are raised outside URLError?
+            try:
+                raise e.reason from e
+            except TimeoutError as e:
+                raise ConnectionTimeoutError(url=url, cause=e) from e
+            except socket.gaierror as e:
+                raise ResolveHostError(url=url, cause=e) from e
+            except ssl.SSLError as e:
+                if e.errno == errno.ECONNRESET:
+                    raise ConnectionReset(url, cause=e)
+                if e.errno == errno.ETIMEDOUT:
+                    raise ReadTimeoutError(url, cause=e)
+                raise SSLError(url=url, msg=str(e.reason), cause=e) from e
+            except Exception as e:
+                raise TransportError(url=url, cause=e) from e
+
+        except http.client.HTTPException as e:
+            raise TransportError(cause=e) from e
+
+        return UrllibResponseAdapter(res)
+
+
+def sanitized_Request(url, *args, **kwargs):
+    url, auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
+    if auth_header is not None:
+        headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
+        headers['Authorization'] = auth_header
+    return compat_urllib_request.Request(url, *args, **kwargs)

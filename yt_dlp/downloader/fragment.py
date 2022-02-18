@@ -25,7 +25,7 @@ from ..utils import (
     error_to_compat_str,
     encodeFilename,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 
 class HttpQuietDownloader(HttpFD):
@@ -84,7 +84,7 @@ class FragmentFD(FileDownloader):
 
     def _prepare_url(self, info_dict, url):
         headers = info_dict.get('http_headers')
-        return sanitized_Request(url, None, headers) if headers else url
+        return Request(url, None, headers) if headers else url
 
     def _prepare_and_start_frag_download(self, ctx, info_dict):
         self._prepare_frag_download(ctx)

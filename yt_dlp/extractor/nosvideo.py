@@ -10,7 +10,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
-from ..networking._urllib import sanitized_Request
+from ..networking.common import Request
 
 _x = lambda p: xpath_with_ns(p, {'xspf': 'http://xspf.org/ns/0/'})
 
@@ -39,7 +39,7 @@ class NosVideoIE(InfoExtractor):
             'op': 'download1',
             'method_free': 'Continue to Video',
         }
-        req = sanitized_Request(url, urlencode_postdata(fields))
+        req = Request(url, urlencode_postdata(fields))
         req.add_header('Content-type', 'application/x-www-form-urlencoded')
         webpage = self._download_webpage(req, video_id,
                                          'Downloading download page')

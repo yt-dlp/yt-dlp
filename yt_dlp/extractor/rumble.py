@@ -5,13 +5,13 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str, compat_HTTPError
+from ..compat import compat_str
 from ..utils import (
     determine_ext,
     int_or_none,
     parse_iso8601,
     try_get,
-    ExtractorError,
+    ExtractorError, HTTPError,
 )
 
 
@@ -101,7 +101,7 @@ class RumbleChannelIE(InfoExtractor):
             try:
                 webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                if isinstance(e.cause, HTTPError) and e.cause.code == 404:
                     break
                 raise
             for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):

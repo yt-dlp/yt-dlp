@@ -4,13 +4,13 @@ import json
 
 from .common import InfoExtractor
 from .gigya import GigyaBaseIE
-from ..compat import compat_HTTPError
 from ..utils import (
     ExtractorError,
     clean_html,
     extract_attributes,
     float_or_none,
     get_element_by_class,
+    HTTPError,
     int_or_none,
     merge_dicts,
     str_or_none,
@@ -316,7 +316,7 @@ class VrtNUIE(GigyaBaseIE):
                     }, data=urlencode_postdata(post_data))
 
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                if isinstance(e.cause, HTTPError) and e.cause.code == 401:
                     login_attempt += 1
                     self.report_warning('Authentication failed')
                     self._sleep(1, None, msg_template='Waiting for %(timeout)s seconds before trying again')

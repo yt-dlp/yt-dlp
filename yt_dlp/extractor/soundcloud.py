@@ -11,7 +11,6 @@ from .common import (
     SearchInfoExtractor
 )
 from ..compat import (
-    compat_HTTPError,
     compat_kwargs,
     compat_str,
 )
@@ -29,9 +28,9 @@ from ..utils import (
     unified_timestamp,
     update_url_query,
     url_or_none,
-    urlhandle_detect_ext,
+    urlhandle_detect_ext, HTTPError,
 )
-from ..networking._urllib import sanitized_Request, HEADRequest
+from ..networking.common import HEADRequest, Request
 
 
 class SoundcloudEmbedIE(InfoExtractor):
@@ -89,7 +88,7 @@ class SoundcloudBaseIE(InfoExtractor):
             try:
                 return super()._download_json(*args, **compat_kwargs(kwargs))
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
+                if isinstance(e.cause, HTTPError) and e.cause.code in (401, 403):
                     self._store_client_id(None)
                     self._update_client_id()
                     continue
@@ -119,7 +118,7 @@ class SoundcloudBaseIE(InfoExtractor):
             self._access_token = password
             query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
             payload = {'session': {'access_token': self._access_token}}
-            token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
+            token_verification = Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
             response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
             if response is not False:
                 self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
@@ -691,7 +690,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error
                     # See https://github.com/yt-dlp/yt-dlp/issues/872
-                    if attempt >= retries or not isinstance(e.cause, compat_HTTPError) or e.cause.code != 502:
+                    if attempt >= retries or not isinstance(e.cause, HTTPError) or e.cause.code != 502:
                         raise
                     last_error = str(e.cause or e.msg)
 

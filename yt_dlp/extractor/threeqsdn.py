@@ -3,14 +3,13 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_HTTPError
 from ..utils import (
     determine_ext,
     ExtractorError,
     float_or_none,
     int_or_none,
     join_nonempty,
-    parse_iso8601,
+    parse_iso8601, HTTPError,
 )
 
 
@@ -92,7 +91,7 @@ class ThreeQSDNIE(InfoExtractor):
             config = self._download_json(
                 url.replace('://playout.3qsdn.com/', '://playout.3qsdn.com/config/'), video_id)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 401:
                 self.raise_geo_restricted()
             raise
 

@@ -6,7 +6,6 @@ import json
 
 from .naver import NaverBaseIE
 from ..compat import (
-    compat_HTTPError,
     compat_str,
 )
 from ..utils import (
@@ -18,7 +17,7 @@ from ..utils import (
     strip_or_none,
     try_get,
     urlencode_postdata,
-    url_or_none,
+    url_or_none, HTTPError,
 )
 
 
@@ -69,7 +68,7 @@ class VLiveBaseIE(NaverBaseIE):
                 'https://www.vlive.tv/globalv-web/vam-web/' + path_template % video_id, video_id,
                 note, headers={'Referer': 'https://www.vlive.tv/'}, query=query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+            if isinstance(e.cause, HTTPError) and e.cause.code == 403:
                 self.raise_login_required(json.loads(e.cause.read().decode('utf-8'))['message'])
             raise
 

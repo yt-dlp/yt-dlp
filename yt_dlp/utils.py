@@ -35,6 +35,7 @@ import subprocess
 import sys
 import tempfile
 import traceback
+import urllib
 import xml.etree.ElementTree
 import zlib
 import mimetypes
@@ -71,6 +72,7 @@ from .compat import (
     compat_xpath,
 )
 
+std_headers = {}
 # This is not clearly defined otherwise
 
 compiled_regex_type = type(re.compile(''))
@@ -873,12 +875,6 @@ class YoutubeDLError(Exception):
         super().__init__(self.msg)
 
 
-network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
-if hasattr(ssl, 'CertificateError'):
-    network_exceptions.append(ssl.CertificateError)
-network_exceptions = tuple(network_exceptions)
-
-
 class ExtractorError(YoutubeDLError):
     """Error during info extraction."""
 
@@ -1065,6 +1061,90 @@ class XAttrMetadataError(YoutubeDLError):
 
 class XAttrUnavailableError(YoutubeDLError):
     pass
+
+
+# TODO: deal with msg in places where we don't always want to specify it
+class RequestError(YoutubeDLError):
+    def __init__(self, msg=None, url=None):
+        super().__init__(msg)
+        self.url = url
+
+
+# TODO: Add tests for reading, closing, trying to read again etc.
+# Test for making sure connection is released
+# TODO: what parameters do we want? code/reason, response or both?
+# Similar API as urllib.error.HTTPError
+
+class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
+    def __init__(self, response, url):
+        self.response = self.fp = response
+        self.code = response.code
+        msg = f'HTTP Error {self.code}: {response.reason}'
+        if 400 <= self.code < 500:
+            msg = '[Client Error] ' + msg
+        elif 500 <= self.code < 600:
+            msg = '[Server Error] ' + msg
+        super().__init__(msg, url)
+        tempfile._TemporaryFileWrapper.__init__(self, response, '<yt-dlp response>', delete=False)
+
+
+class TransportError(RequestError):
+    def __init__(self, url=None, msg=None, cause=None):
+        if msg and cause:
+            msg = msg + f' (caused by {cause!r})'  # TODO
+        super().__init__(msg, url)
+        self.cause = cause
+
+
+class Timeout(RequestError):
+    """Timeout error"""
+
+
+class ReadTimeoutError(TransportError, Timeout):
+    """timeout error occurred when reading data"""
+
+
+class ConnectionTimeoutError(TransportError, Timeout):
+    """timeout error occurred when trying to connect to server"""
+
+
+class ResolveHostError(TransportError):
+    def __init__(self, url=None, cause=None, host=None):
+        msg = 'Failed to resolve host' + f' {host or urllib.parse.urlparse(url).hostname if url else ""}'
+        super().__init__(msg, url, cause=cause)
+
+
+class ConnectionReset(TransportError):
+    msg = 'The connection was reset'
+
+
+class IncompleteRead(TransportError, compat_http_client.IncompleteRead):
+    def __init__(self, partial, url=None, cause=None, expected=None):
+        self.partial = partial
+        self.expected = expected
+        super().__init__(repr(self), url, cause)  # TODO: since we override with repr() in http.client.IncompleteRead
+
+
+class SSLError(TransportError):
+    pass
+
+
+class ProxyError(TransportError):
+    pass
+
+
+class ContentDecodingError(RequestError):
+    pass
+
+
+class MaxRedirectsError(RequestError):
+    pass
+
+
+network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error, HTTPError, TransportError]
+if hasattr(ssl, 'CertificateError'):
+    network_exceptions.append(ssl.CertificateError)
+network_exceptions = tuple(network_exceptions)
 
 
 def extract_timezone(date_str):

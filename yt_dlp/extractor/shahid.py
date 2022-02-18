@@ -6,7 +6,6 @@ import math
 import re
 
 from .aws import AWSIE
-from ..compat import compat_HTTPError
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -14,7 +13,7 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     str_or_none,
-    urlencode_postdata,
+    urlencode_postdata, HTTPError,
 )
 
 
@@ -43,7 +42,7 @@ class ShahidBaseIE(AWSIE):
                 'secret_key': '4WUUJWuFvtTkXbhaWTDv7MhO+0LqoYDWfEnUXoWn',
             }, video_id, query)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
+            if isinstance(e.cause, HTTPError):
                 self._handle_error(e)
             raise
 
@@ -95,7 +94,7 @@ class ShahidIE(ShahidBaseIE):
                     'Content-Type': 'application/json; charset=UTF-8',
                 })['user']
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError):
+            if isinstance(e.cause, HTTPError):
                 self._handle_error(e)
             raise
 

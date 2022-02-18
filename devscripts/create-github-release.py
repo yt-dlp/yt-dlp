@@ -20,7 +20,7 @@ from yt_dlp.compat import (
     compat_print,
     compat_urllib_request,
 )
-from yt_dlp.networking._urllib import sanitized_Request, make_HTTPS_handler
+from yt_dlp.networking._urllib import make_HTTPS_handler, sanitized_Request
 
 
 class GitHubReleaser(object):

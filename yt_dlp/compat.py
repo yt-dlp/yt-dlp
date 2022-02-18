@@ -5,9 +5,7 @@ import base64
 import collections
 import ctypes
 import getpass
-import html
 import html.parser
-import http
 import http.client
 import http.cookiejar
 import http.cookies

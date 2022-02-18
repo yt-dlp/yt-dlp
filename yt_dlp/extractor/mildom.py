@@ -14,7 +14,7 @@ from ..utils import (
     float_or_none,
     dict_get
 )
-from ..networking import std_headers
+from ..networking.common import get_std_headers
 from ..compat import (
     compat_str,
 )
@@ -70,7 +70,7 @@ class MildomBaseIE(InfoExtractor):
                         'clu': '',
                         'wh': '1919*810',
                         'rtm': self.iso_timestamp(),
-                        'ua': std_headers['User-Agent'],
+                        'ua': get_std_headers()['User-Agent'],
                     }).encode('utf8')).decode('utf8').replace('\n', ''),
                 }).encode('utf8'))
             self._DISPATCHER_CONFIG = self._parse_json(base64.b64decode(tmp['data']), 'initialization')
