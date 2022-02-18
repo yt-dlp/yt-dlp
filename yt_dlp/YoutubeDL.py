@@ -2735,8 +2735,9 @@ class YoutubeDL(object):
             filename = self.evaluate_outtmpl(file_tmpl, info_dict)
             tmpl = format_tmpl(tmpl)
             self.to_screen(f'[info] Writing {tmpl!r} to: {filename}')
-            with io.open(filename, 'a', encoding='utf-8') as f:
-                f.write(self.evaluate_outtmpl(tmpl, info_copy) + '\n')
+            if self._ensure_dir_exists(filename):
+                with io.open(filename, 'a', encoding='utf-8') as f:
+                    f.write(self.evaluate_outtmpl(tmpl, info_copy) + '\n')
 
     def __forced_printings(self, info_dict, filename, incomplete):
         def print_mandatory(field, actual_field=None):
