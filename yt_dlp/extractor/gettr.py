@@ -84,7 +84,7 @@ class GettrIE(GettrBaseIE):
 
         formats = self._extract_m3u8_formats(
             urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls') if vid else []
+            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if vid else []
 
         if ovid:
             formats.append({
