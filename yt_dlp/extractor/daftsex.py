@@ -96,11 +96,9 @@ class DaftsexIE(InfoExtractor):
             }
 
         except KeyError:
-            title = self._html_search_meta('name', webpage, 'Title', default=None, fatal=False)
-            upload_date = self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None, fatal=False)
-            if upload_date:
-                timestamp = unified_timestamp(upload_date)
-            description = self._html_search_meta('description', webpage, 'Description', default=None, fatal=False)
+            title = self._html_search_meta('name', webpage, 'Title', fatal=False)
+            upload_date = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
+            description = self._html_search_meta('description', webpage, 'Description', default=None)
 
             global_embed_url = self._search_regex(
                 r'<script[^<]+?window.globEmbedUrl\s*=\s*\'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'',
