@@ -157,7 +157,7 @@ class Urllib3Handler(YDLBackendHandler):
         if not request.compression:
             del all_headers['accept-encoding']
 
-        proxy = request.proxy or self.proxy
+        proxy = request.proxy
         if proxy:
             # urllib sets proxy scheme to url scheme if it is not set
             proxy_parsed = parse_url(proxy)
@@ -172,7 +172,7 @@ class Urllib3Handler(YDLBackendHandler):
                     headers=dict(all_headers),
                     body=request.data,
                     preload_content=False,
-                    timeout=request.timeout or self.timeout,
+                    timeout=request.timeout,
                     retries=retries,
                     redirect=True
                 )
