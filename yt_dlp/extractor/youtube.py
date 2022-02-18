@@ -225,28 +225,28 @@ INNERTUBE_CLIENTS = {
 
 
 def build_innertube_clients():
-    third_party = {
+    THIRD_PARTY = {
         'embedUrl': 'https://google.com',  # Can be any valid URL
     }
-    base_clients = ('android', 'web', 'ios', 'mweb')
-    priority = qualities(base_clients[::-1])
+    BASE_CLIENTS = ('android', 'web', 'ios', 'mweb')
+    priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
         ytcfg.setdefault('INNERTUBE_API_KEY', 'AIzaSyDCU8hByM-4DrUqRUYnGn-3llEO78bcxq8')
         ytcfg.setdefault('INNERTUBE_HOST', 'www.youtube.com')
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
-        ytcfg['priority'] = 10 * priority(client.split('_', 1)[0])
 
-        if client in base_clients:
-            INNERTUBE_CLIENTS[f'{client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
+        base_client, *variant = client.split('_')
+        ytcfg['priority'] = 10 * priority(base_client)
+
+        if variant == ['embedded']:
+            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
+            INNERTUBE_CLIENTS[f'{base_client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
             agegate_ytcfg['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
-            agegate_ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = third_party
             agegate_ytcfg['priority'] -= 1
-        elif client.endswith('_embedded'):
-            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = third_party
             ytcfg['priority'] -= 2
-        else:
+        elif variant:
             ytcfg['priority'] -= 3
 
 
