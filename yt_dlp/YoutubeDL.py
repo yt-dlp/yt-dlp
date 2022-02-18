@@ -648,11 +648,6 @@ class YoutubeDL(object):
             else self.build_format_selector(self.params['format']))
 
         self.default_session = self._setup_backends()
-        # compat
-        for handler in self.default_session.handlers:
-            if isinstance(handler, UrllibHandler):
-                self._opener = handler.get_opener(self.default_session.get_default_proxy())
-                break
 
         if auto_init:
             if auto_init != 'no_verbose_header':
@@ -3682,6 +3677,16 @@ class YoutubeDL(object):
                     'You are using an outdated version (newest version: %s)! '
                     'See https://yt-dl.org/update if you need help updating.' %
                     latest_version)
+
+    @property
+    def _opener(self):
+        """
+        Create an urllib opener lazily.
+        This is for backwards compatability only.
+        """
+        for handler in self.default_session.handlers:
+            if isinstance(handler, UrllibHandler):
+                return handler.get_opener(self.default_session.get_default_proxy())
 
     def _setup_backends(self):
         params = {

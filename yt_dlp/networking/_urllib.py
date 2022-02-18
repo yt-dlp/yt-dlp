@@ -471,7 +471,6 @@ class UrllibHandler(YDLBackendHandler):
         try:
             res = self.get_opener(request.proxy).open(urllib_req, timeout=request.timeout)
         except urllib.error.HTTPError as e:
-            # TODO: we may have an HTTPResponse and an addinfourl
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 raise HTTPError(UrllibResponseAdapter(e.fp), url=e.geturl())
 
