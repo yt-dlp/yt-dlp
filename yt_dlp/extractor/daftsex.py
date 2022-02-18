@@ -27,8 +27,8 @@ class DaftsexIE(InfoExtractor):
             'title': 'just relaxing',
             'description': 'just relaxing - Watch video Watch video in high quality',
             'upload_date': '20201113',
-            'timestamp': 1605261911,
             'thumbnail': r're:https://[^/]+/impf/-43BuMDIawmBGr3GLcZ93CYwWf2PBv_tVWoS1A/dnu41DnARU4\.jpg\?size=800x450&quality=96&keep_aspect_ratio=1&background=000000&sign=6af2c26ff4a45e55334189301c867384&type=video_thumb',
+            'timestamp': 1605261911,
         },
     }, {
         'url': 'https://daftsex.com/watch/-156601359_456242791',
@@ -97,8 +97,7 @@ class DaftsexIE(InfoExtractor):
 
         except KeyError:
             title = self._html_search_meta('name', webpage, 'Title', fatal=False)
-            upload_date = unified_timestamp(self._html_search_meta(
-                'uploadDate', webpage, 'Upload Date', default=None))
+            timestamp = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
             description = self._html_search_meta('description', webpage, 'Description', default=None)
 
             global_embed_url = self._search_regex(
