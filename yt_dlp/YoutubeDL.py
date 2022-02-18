@@ -648,11 +648,6 @@ class YoutubeDL(object):
             else self.build_format_selector(self.params['format']))
 
         self.default_session = self._setup_backends()
-        # compat
-        for handler in self.default_session.handlers:
-            if isinstance(handler, UrllibHandler):
-                self._opener = handler.get_opener(handler.get_default_proxy())
-                break
 
         if auto_init:
             if auto_init != 'no_verbose_header':
@@ -3568,21 +3563,7 @@ class YoutubeDL(object):
         self.__list_table(video_id, name, self.render_subtitles_table, video_id, subtitles)
 
     def urlopen(self, req):
-        if isinstance(req, str):
-            req = Request(req)
-        if isinstance(req, compat_urllib_request.Request):
-            self.deprecation_warning(
-                'You have passed an urllib.request.Request object to ytdl.urlopen(). '
-                'This is deprecated and may not work in the future. Please use yt_dlp.network.common.YDLRequest instead.')
-            req = req_to_ydlreq(req)
-        if req.headers.get('Youtubedl-no-compression'):
-            req.compression = False
-            del req.headers['Youtubedl-no-compression']
-        proxy = req.headers.get('Ytdl-request-proxy')
-        if proxy:
-            req.proxy = proxy
-            del req.headers['Ytdl-request-proxy']
-        return self.default_session.send_request(req)
+        return self.default_session.urlopen(req)
 
     def print_debug_header(self):
         if not self.params.get('verbose'):
@@ -3698,12 +3679,20 @@ class YoutubeDL(object):
                     'See https://yt-dl.org/update if you need help updating.' %
                     latest_version)
 
+    @property
+    def _opener(self):
+        """
+        Create an urllib opener lazily.
+        This is for backwards compatability only.
+        """
+        for handler in self.default_session.handlers:
+            if isinstance(handler, UrllibHandler):
+                return handler.get_opener(self.default_session.get_default_proxy())
+
     def _setup_backends(self):
         params = {
             'cookiejar': self.cookiejar,
             'verbose': self.params.get('debug_printtraffic'),
-            'socket_timeout': self.params.get('socket_timeout'),
-            'proxy': self.params.get('proxy')
         }
         manager = BackendManager(self)
         for handler_class in network_handlers:
