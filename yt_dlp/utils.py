@@ -35,7 +35,6 @@ import subprocess
 import sys
 import tempfile
 import traceback
-import urllib
 import xml.etree.ElementTree
 import zlib
 import mimetypes
@@ -60,7 +59,6 @@ from .compat import (
     compat_str,
     compat_struct_pack,
     compat_struct_unpack,
-    compat_urllib_error,
     compat_urllib_parse,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
@@ -1096,21 +1094,17 @@ class TransportError(RequestError):
         self.cause = cause
 
 
-class Timeout(RequestError):
-    """Timeout error"""
-
-
-class ReadTimeoutError(TransportError, Timeout):
+class ReadTimeoutError(TransportError, TimeoutError):
     """timeout error occurred when reading data"""
 
 
-class ConnectionTimeoutError(TransportError, Timeout):
+class ConnectionTimeoutError(TransportError, TimeoutError):
     """timeout error occurred when trying to connect to server"""
 
 
 class ResolveHostError(TransportError):
     def __init__(self, url=None, cause=None, host=None):
-        msg = 'Failed to resolve host' + f' {host or urllib.parse.urlparse(url).hostname if url else ""}'
+        msg = 'Failed to resolve host' + f' {host or compat_urllib_parse.urlparse(url).hostname if url else ""}'
         super().__init__(msg, url, cause=cause)
 
 
@@ -1141,7 +1135,7 @@ class MaxRedirectsError(RequestError):
     pass
 
 
-network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error, HTTPError, TransportError]
+network_exceptions = [HTTPError, TransportError]
 if hasattr(ssl, 'CertificateError'):
     network_exceptions.append(ssl.CertificateError)
 network_exceptions = tuple(network_exceptions)

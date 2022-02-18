@@ -7,9 +7,8 @@ import io
 from .fragment import FragmentFD
 from ..compat import (
     compat_Struct,
-    compat_urllib_error,
 )
-
+from ..utils import HTTPError
 
 u8 = compat_Struct('>B')
 u88 = compat_Struct('>Bx')
@@ -273,7 +272,7 @@ class IsmFD(FragmentFD):
                         extra_state['ism_track_written'] = True
                     self._append_fragment(ctx, frag_content)
                     break
-                except compat_urllib_error.HTTPError as err:
+                except HTTPError as err:
                     count += 1
                     if count <= fragment_retries:
                         self.report_retry_fragment(err, frag_index, count, fragment_retries)
