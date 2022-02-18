@@ -651,7 +651,7 @@ class YoutubeDL(object):
         # compat
         for handler in self.default_session.handlers:
             if isinstance(handler, UrllibHandler):
-                self._opener = handler.get_opener(handler.get_default_proxy())
+                self._opener = handler.get_opener(self.default_session.get_default_proxy())
                 break
 
         if auto_init:
@@ -3568,21 +3568,7 @@ class YoutubeDL(object):
         self.__list_table(video_id, name, self.render_subtitles_table, video_id, subtitles)
 
     def urlopen(self, req):
-        if isinstance(req, str):
-            req = Request(req)
-        if isinstance(req, compat_urllib_request.Request):
-            self.deprecation_warning(
-                'You have passed an urllib.request.Request object to ytdl.urlopen(). '
-                'This is deprecated and may not work in the future. Please use yt_dlp.network.common.YDLRequest instead.')
-            req = req_to_ydlreq(req)
-        if req.headers.get('Youtubedl-no-compression'):
-            req.compression = False
-            del req.headers['Youtubedl-no-compression']
-        proxy = req.headers.get('Ytdl-request-proxy')
-        if proxy:
-            req.proxy = proxy
-            del req.headers['Ytdl-request-proxy']
-        return self.default_session.send_request(req)
+        return self.default_session.urlopen(req)
 
     def print_debug_header(self):
         if not self.params.get('verbose'):
@@ -3701,8 +3687,6 @@ class YoutubeDL(object):
         params = {
             'cookiejar': self.cookiejar,
             'verbose': self.params.get('debug_printtraffic'),
-            'socket_timeout': self.params.get('socket_timeout'),
-            'proxy': self.params.get('proxy')
         }
         manager = BackendManager(self)
         for handler_class in network_handlers:

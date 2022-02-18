@@ -13,7 +13,7 @@ from email.message import Message
 import urllib.request
 import urllib.response
 
-from ..compat import compat_cookiejar, compat_str
+from ..compat import compat_cookiejar, compat_str, compat_urllib_request
 
 from ..utils import (
     extract_basic_auth,
@@ -244,14 +244,14 @@ class BackendHandler(ABC):
 class YDLBackendHandler(BackendHandler):
     """Network Backend Handler class
     Responsible for handling requests.
+
     Backend handlers accept a lot of parameters. In order not to saturate
     the object constructor with arguments, it receives a dictionary of
     options instead.
+
     Available options:
     cookiejar:          A YoutubeDLCookieJar to store cookies in
     verbose:            Print traffic for debugging to stdout
-    socket_timeout:     Timeout for socket connections/reads, in seconds
-    proxy:              Default proxy to use for requests
     """
     params = None
 
@@ -259,14 +259,8 @@ class YDLBackendHandler(BackendHandler):
         self.ydl = ydl
         self.params = params or self.params or {}
         self.cookiejar = params.get('cookiejar', http.cookiejar.CookieJar())
-        self.proxy = self.get_default_proxy()
         self.print_traffic = bool(self.params.get('verbose'))
-        self.timeout = float(self.params.get('socket_timeout') or 20)  # do not accept 0
         self._initialize()
-
-    def get_default_proxy(self):
-        proxies = urllib.request.getproxies()
-        return self.params.get('proxy') or proxies.get('http') or proxies.get('https')
 
     def handle(self, request: Request, **req_kwargs):
         return self._real_handle(request, **req_kwargs)
@@ -303,6 +297,12 @@ class BackendManager:
     def __init__(self, ydl):
         self.handlers = []
         self.ydl = ydl
+        self.socket_timeout = float(self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
+        self.proxy = self.get_default_proxy()
+
+    def get_default_proxy(self):
+        proxies = urllib.request.getproxies()
+        return self.ydl.params.get('proxy') or proxies.get('http') or proxies.get('https')
 
     def add_handler(self, handler: BackendHandler):
         if handler not in self.handlers:
@@ -321,11 +321,31 @@ class BackendManager:
             finder = lambda x: x is handler
         self.handlers = [x for x in self.handlers if not finder(handler)]
 
-    def send_request(self, request: Request):
+    def urlopen(self, req):
+        if isinstance(req, str):
+            req = Request(req)
+
+        if isinstance(req, compat_urllib_request.Request):
+            self.ydl.deprecation_warning(
+                'An urllib.request.Request has been passed to urlopen(). '
+                'This is deprecated and may not work in the future. Please use yt_dlp.network.common.Request instead.')
+            req = req_to_ydlreq(req)
+
+        if req.headers.get('Youtubedl-no-compression'):
+            req.compression = False
+            del req.headers['Youtubedl-no-compression']
+
+        proxy = req.headers.get('Ytdl-request-proxy')
+        if proxy:
+            del req.headers['Ytdl-request-proxy']
+
+        req.proxy = proxy or req.proxy or self.proxy
+        req.timeout = req.timeout or self.socket_timeout
+
         for handler in reversed(self.handlers):
-            if not handler.can_handle(request):
+            if not handler.can_handle(req):
                 continue
-            res = handler.handle(request)
+            res = handler.handle(req)
             if not res:
                 self.ydl.report_warning(f'{handler.__class__} handler returned nothing for response' + bug_reports_message())
                 continue
