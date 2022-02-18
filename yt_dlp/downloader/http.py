@@ -16,12 +16,12 @@ from ..utils import (
     ContentTooShortError,
     encodeFilename,
     int_or_none,
-    sanitized_Request,
     ThrottledDownload,
     write_xattr,
     XAttrMetadataError,
     XAttrUnavailableError,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class HttpFD(FileDownloader):

@@ -71,7 +71,6 @@ from .utils import (
     formatSeconds,
     GeoRestrictedError,
     get_domain,
-    HEADRequest,
     InAdvancePagedList,
     int_or_none,
     iri_to_uri,
@@ -81,7 +80,6 @@ from .utils import (
     LINK_TEMPLATES,
     locked_file,
     make_dir,
-    make_HTTPS_handler,
     MaxDownloadsReached,
     network_exceptions,
     number_of_digits,
@@ -89,7 +87,6 @@ from .utils import (
     OUTTMPL_TYPES,
     PagedList,
     parse_filesize,
-    PerRequestProxyHandler,
     platform_name,
     Popen,
     POSTPROCESS_WHEN,
@@ -105,8 +102,6 @@ from .utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
-    sanitized_Request,
-    std_headers,
     STR_FORMAT_RE_TMPL,
     STR_FORMAT_TYPES,
     str_or_none,
@@ -123,10 +118,10 @@ from .utils import (
     version_tuple,
     write_json_file,
     write_string,
-    YoutubeDLCookieProcessor,
-    YoutubeDLHandler,
-    YoutubeDLRedirectHandler,
 )
+from .networking._urllib import sanitized_Request, make_HTTPS_handler, YoutubeDLHandler, YoutubeDLCookieProcessor, \
+    YoutubeDLRedirectHandler, HEADRequest, PerRequestProxyHandler
+from .networking import std_headers
 from .cache import Cache
 from .minicurses import format_text
 from .extractor import (

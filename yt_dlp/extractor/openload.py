@@ -16,9 +16,9 @@ from ..utils import (
     ExtractorError,
     get_exe_version,
     is_outdated_version,
-    std_headers,
     Popen,
 )
+from ..networking import std_headers
 
 
 def cookie_to_dict(cookie):

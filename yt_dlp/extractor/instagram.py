@@ -17,13 +17,13 @@ from ..utils import (
     get_element_by_attribute,
     int_or_none,
     lowercase_escape,
-    std_headers,
     str_or_none,
     str_to_int,
     traverse_obj,
     url_or_none,
     urlencode_postdata,
 )
+from ..networking import std_headers
 
 
 class InstagramBaseIE(InfoExtractor):

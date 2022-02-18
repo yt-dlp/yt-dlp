@@ -6,8 +6,8 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_iso8601,
-    sanitized_Request,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class EitbIE(InfoExtractor):

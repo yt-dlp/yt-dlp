@@ -9,7 +9,6 @@ from ..utils import (
     clean_html,
     determine_ext,
     float_or_none,
-    HEADRequest,
     InAdvancePagedList,
     int_or_none,
     join_nonempty,
@@ -23,6 +22,7 @@ from ..utils import (
     unsmuggle_url,
     url_or_none,
 )
+from ..networking._urllib import HEADRequest
 
 
 class ORFTVthekIE(InfoExtractor):

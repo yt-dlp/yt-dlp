@@ -9,8 +9,8 @@ from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
-    sanitized_Request,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class NownessBaseIE(InfoExtractor):

@@ -14,7 +14,6 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
-    HEADRequest,
     int_or_none,
     join_nonempty,
     LazyList,
@@ -25,6 +24,7 @@ from ..utils import (
     url_or_none,
     qualities,
 )
+from ..networking._urllib import HEADRequest
 
 
 class TikTokBaseIE(InfoExtractor):

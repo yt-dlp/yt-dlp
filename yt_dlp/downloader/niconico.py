@@ -6,7 +6,7 @@ import threading
 from .common import FileDownloader
 from ..downloader import get_suitable_downloader
 from ..extractor.niconico import NiconicoIE
-from ..utils import sanitized_Request
+from ..networking._urllib import sanitized_Request
 
 
 class NiconicoDmcFD(FileDownloader):

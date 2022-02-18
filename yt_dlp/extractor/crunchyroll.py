@@ -32,11 +32,11 @@ from ..utils import (
     merge_dicts,
     qualities,
     remove_end,
-    sanitized_Request,
     traverse_obj,
     try_get,
     xpath_text,
 )
+from ..networking._urllib import sanitized_Request
 from ..aes import (
     aes_cbc_decrypt,
 )

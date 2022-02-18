@@ -8,13 +8,13 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    std_headers,
     update_url_query,
     random_uuidv4,
     try_get,
     float_or_none,
     dict_get
 )
+from ..networking import std_headers
 from ..compat import (
     compat_str,
 )

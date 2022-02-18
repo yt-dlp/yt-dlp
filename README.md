@@ -1735,6 +1735,7 @@ Most likely, you'll want to use various options. For a list of options available
 Here's a more complete example demonstrating various functionality:
 
 ```python
+import yt_dlp.networking
 import json
 import yt_dlp
 
@@ -1787,7 +1788,7 @@ def format_selector(ctx):
     audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
     # vcodec='none' means there is no video
     best_audio = next(f for f in formats if (
-        f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
+            f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
 
     yield {
         # These are the minimum required fields for a merged format
@@ -1813,9 +1814,8 @@ ydl_opts = {
     'progress_hooks': [my_hook],
 }
 
-
 # Add custom headers
-yt_dlp.utils.std_headers.update({'Referer': 'https://www.google.com'})
+yt_dlp.networking.std_headers.update({'Referer': 'https://www.google.com'})
 
 # ℹ️ See the public functions in yt_dlp.YoutubeDL for for other available functions.
 # Eg: "ydl.download", "ydl.download_with_info_file"

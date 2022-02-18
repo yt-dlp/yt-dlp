@@ -24,8 +24,8 @@ from ..utils import (
     DownloadError,
     error_to_compat_str,
     encodeFilename,
-    sanitized_Request,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class HttpQuietDownloader(HttpFD):

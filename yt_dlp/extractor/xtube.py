@@ -9,10 +9,10 @@ from ..utils import (
     js_to_json,
     orderedSet,
     parse_duration,
-    sanitized_Request,
     str_to_int,
     url_or_none,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class XTubeIE(InfoExtractor):

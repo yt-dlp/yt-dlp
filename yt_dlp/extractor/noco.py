@@ -16,9 +16,9 @@ from ..utils import (
     float_or_none,
     parse_iso8601,
     parse_qs,
-    sanitized_Request,
     urlencode_postdata,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class NocoIE(InfoExtractor):

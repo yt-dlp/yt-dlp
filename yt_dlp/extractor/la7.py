@@ -7,11 +7,11 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     float_or_none,
-    HEADRequest,
     int_or_none,
     parse_duration,
     unified_strdate,
 )
+from ..networking._urllib import HEADRequest
 
 
 class LA7IE(InfoExtractor):

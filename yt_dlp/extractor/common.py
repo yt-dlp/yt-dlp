@@ -70,7 +70,6 @@ from ..utils import (
     parse_resolution,
     RegexNotFoundError,
     sanitize_filename,
-    sanitized_Request,
     str_or_none,
     str_to_int,
     strip_or_none,
@@ -80,7 +79,6 @@ from ..utils import (
     UnsupportedError,
     unified_strdate,
     unified_timestamp,
-    update_Request,
     update_url_query,
     url_basename,
     url_or_none,
@@ -90,6 +88,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..networking._urllib import sanitized_Request, update_Request
 
 
 class InfoExtractor(object):

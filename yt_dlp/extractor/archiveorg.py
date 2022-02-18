@@ -17,7 +17,6 @@ from ..utils import (
     extract_attributes,
     ExtractorError,
     get_element_by_id,
-    HEADRequest,
     int_or_none,
     join_nonempty,
     KNOWN_EXTENSIONS,
@@ -35,6 +34,7 @@ from ..utils import (
     urlhandle_detect_ext,
     url_or_none
 )
+from ..networking._urllib import HEADRequest
 
 
 class ArchiveOrgIE(InfoExtractor):

@@ -1,6 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
-from ..utils import HEADRequest
+from ..networking._urllib import HEADRequest
 from .common import InfoExtractor
 
 

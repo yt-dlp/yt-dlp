@@ -4,8 +4,8 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    sanitized_Request,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class EveryonesMixtapeIE(InfoExtractor):

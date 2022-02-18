@@ -13,9 +13,9 @@ from ..compat import (
     compat_itertools_count,
 )
 from ..utils import (
-    sanitized_Request,
     float_or_none,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class NetEaseMusicBaseIE(InfoExtractor):

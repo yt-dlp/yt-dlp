@@ -13,11 +13,9 @@ from ..utils import (
     find_xpath_attr,
     fix_xml_ampersands,
     float_or_none,
-    HEADRequest,
     int_or_none,
     join_nonempty,
     RegexNotFoundError,
-    sanitized_Request,
     strip_or_none,
     timeconvert,
     try_get,
@@ -26,6 +24,7 @@ from ..utils import (
     url_basename,
     xpath_text,
 )
+from ..networking._urllib import sanitized_Request, HEADRequest
 
 
 def _media_xml_tag(tag):

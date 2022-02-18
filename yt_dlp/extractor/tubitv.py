@@ -8,9 +8,9 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     js_to_json,
-    sanitized_Request,
     urlencode_postdata,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class TubiTvIE(InfoExtractor):

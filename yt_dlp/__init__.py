@@ -40,9 +40,9 @@ from .utils import (
     render_table,
     SameFileError,
     setproctitle,
-    std_headers,
     write_string,
 )
+from .networking import std_headers
 from .update import run_update
 from .downloader import (
     FileDownloader,

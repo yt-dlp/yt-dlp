@@ -4,10 +4,9 @@ from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
     ExtractorError,
-    HEADRequest,
-    sanitized_Request,
     urlencode_postdata,
 )
+from ..networking._urllib import sanitized_Request, HEADRequest
 
 
 class HotNewHipHopIE(InfoExtractor):

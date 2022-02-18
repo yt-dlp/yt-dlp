@@ -12,7 +12,7 @@ from __future__ import unicode_literals
 import collections
 import socket
 
-from .compat import (
+from ..compat import (
     compat_ord,
     compat_struct_pack,
     compat_struct_unpack,

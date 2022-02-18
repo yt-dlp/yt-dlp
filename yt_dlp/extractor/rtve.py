@@ -17,9 +17,9 @@ from ..utils import (
     qualities,
     remove_end,
     remove_start,
-    std_headers,
     try_get,
 )
+from ..networking import std_headers
 
 _bytes_to_chr = (lambda x: x) if sys.version_info[0] == 2 else (lambda x: map(chr, x))
 

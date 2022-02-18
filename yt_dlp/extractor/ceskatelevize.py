@@ -11,11 +11,11 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     float_or_none,
-    sanitized_Request,
     traverse_obj,
     urlencode_postdata,
-    USER_AGENTS,
 )
+from ..networking._urllib import sanitized_Request
+from ..networking import USER_AGENTS
 
 
 class CeskaTelevizeIE(InfoExtractor):

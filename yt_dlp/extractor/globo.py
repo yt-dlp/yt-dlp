@@ -12,13 +12,13 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
-    HEADRequest,
     ExtractorError,
     float_or_none,
     orderedSet,
     str_or_none,
     try_get,
 )
+from ..networking._urllib import HEADRequest
 
 
 class GloboIE(InfoExtractor):

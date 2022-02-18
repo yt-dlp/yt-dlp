@@ -10,7 +10,7 @@ import tempfile
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from yt_dlp.utils import YoutubeDLCookieJar
+from yt_dlp.networking.common import YoutubeDLCookieJar
 
 
 class TestYoutubeDLCookieJar(unittest.TestCase):

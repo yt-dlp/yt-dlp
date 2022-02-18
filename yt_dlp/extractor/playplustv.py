@@ -9,8 +9,8 @@ from ..utils import (
     clean_html,
     ExtractorError,
     int_or_none,
-    PUTRequest,
 )
+from ..networking._urllib import PUTRequest
 
 
 class PlayPlusTVIE(InfoExtractor):

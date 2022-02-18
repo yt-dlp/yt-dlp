@@ -23,8 +23,8 @@ from .compat import (
 from .utils import (
     expand_path,
     Popen,
-    YoutubeDLCookieJar,
 )
+from .networking.common import YoutubeDLCookieJar
 
 try:
     import sqlite3

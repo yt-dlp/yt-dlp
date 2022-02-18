@@ -76,7 +76,6 @@ from yt_dlp.utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
-    sanitized_Request,
     expand_path,
     prepend_extension,
     replace_extension,
@@ -120,6 +119,7 @@ from yt_dlp.utils import (
     iri_to_uri,
     LazyList,
 )
+from yt_dlp.networking._urllib import sanitized_Request
 from yt_dlp.compat import (
     compat_chr,
     compat_etree_fromstring,

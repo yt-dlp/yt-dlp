@@ -17,12 +17,12 @@ from ..utils import (
     float_or_none,
     int_or_none,
     js_to_json,
-    sanitized_Request,
     try_get,
     unescapeHTML,
     url_or_none,
     urlencode_postdata,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class UdemyIE(InfoExtractor):

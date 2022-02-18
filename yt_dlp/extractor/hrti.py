@@ -10,9 +10,9 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_age_limit,
-    sanitized_Request,
     try_get,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class HRTiBaseIE(InfoExtractor):

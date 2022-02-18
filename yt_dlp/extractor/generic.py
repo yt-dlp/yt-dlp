@@ -19,7 +19,6 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     float_or_none,
-    HEADRequest,
     int_or_none,
     is_html,
     js_to_json,
@@ -29,7 +28,6 @@ from ..utils import (
     orderedSet,
     parse_duration,
     parse_resolution,
-    sanitized_Request,
     smuggle_url,
     unescapeHTML,
     unified_timestamp,
@@ -40,6 +38,7 @@ from ..utils import (
     xpath_text,
     xpath_with_ns,
 )
+from ..networking._urllib import sanitized_Request, HEADRequest
 from .commonprotocols import RtmpIE
 from .brightcove import (
     BrightcoveLegacyIE,

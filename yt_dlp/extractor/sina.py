@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 from ..utils import (
-    HEADRequest,
     ExtractorError,
     int_or_none,
     update_url_query,
@@ -12,6 +11,7 @@ from ..utils import (
     get_element_by_attribute,
     clean_html,
 )
+from ..networking._urllib import HEADRequest
 
 
 class SinaIE(InfoExtractor):

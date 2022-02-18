@@ -7,11 +7,11 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
-    sanitized_Request,
     traverse_obj,
     urlencode_postdata,
     urljoin,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class FC2IE(InfoExtractor):

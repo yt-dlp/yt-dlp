@@ -16,13 +16,13 @@ from ..utils import (
     float_or_none,
     int_or_none,
     parse_qs,
-    sanitized_Request,
     unsmuggle_url,
     update_url_query,
     xpath_with_ns,
     mimetype2ext,
     find_xpath_attr,
 )
+from ..networking._urllib import sanitized_Request
 
 default_ns = 'http://www.w3.org/2005/SMIL21/Language'
 _x = lambda p: xpath_with_ns(p, {'smil': default_ns})

@@ -18,7 +18,6 @@ from ..utils import (
     determine_ext,
     ExtractorError,
     get_element_by_class,
-    HEADRequest,
     js_to_json,
     int_or_none,
     merge_dicts,
@@ -26,9 +25,7 @@ from ..utils import (
     parse_filesize,
     parse_iso8601,
     parse_qs,
-    sanitized_Request,
     smuggle_url,
-    std_headers,
     str_or_none,
     try_get,
     unified_timestamp,
@@ -38,6 +35,8 @@ from ..utils import (
     unescapeHTML,
     urlhandle_detect_ext,
 )
+from ..networking._urllib import sanitized_Request, HEADRequest
+from ..networking import std_headers
 
 
 class VimeoBaseInfoExtractor(InfoExtractor):

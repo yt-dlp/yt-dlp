@@ -9,8 +9,8 @@ from ..utils import (
     xpath_text,
     int_or_none,
     ExtractorError,
-    sanitized_Request,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class MioMioIE(InfoExtractor):

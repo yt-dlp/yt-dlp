@@ -25,7 +25,6 @@ from ..utils import (
     parse_count,
     parse_qs,
     qualities,
-    sanitized_Request,
     traverse_obj,
     try_get,
     url_or_none,
@@ -33,6 +32,7 @@ from ..utils import (
     urljoin,
     variadic,
 )
+from ..networking._urllib import sanitized_Request
 
 
 class FacebookIE(InfoExtractor):
