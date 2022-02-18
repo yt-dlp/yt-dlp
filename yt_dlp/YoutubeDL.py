@@ -2663,12 +2663,15 @@ class YoutubeDL(object):
             # given in subtitleslangs. See https://github.com/yt-dlp/yt-dlp/issues/1041
             requested_langs = []
             for lang_re in self.params.get('subtitleslangs'):
-                if lang_re == 'all':
-                    requested_langs.extend(all_sub_langs)
-                    continue
                 discard = lang_re[0] == '-'
                 if discard:
                     lang_re = lang_re[1:]
+                if lang_re == 'all':
+                    if discard:
+                        requested_langs = []
+                    else:
+                        requested_langs.extend(all_sub_langs)
+                    continue
                 current_langs = filter(re.compile(lang_re + '$').match, all_sub_langs)
                 if discard:
                     for lang in current_langs:
