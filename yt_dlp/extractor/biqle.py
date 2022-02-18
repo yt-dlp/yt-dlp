@@ -82,9 +82,9 @@ class BIQLEIE(InfoExtractor):
                 return self.url_result(f_url)
             ext, height = f_id.split('_')
             height_extra_key = traverse_obj(glob_params, ('video', 'partial', 'quality', height))
-            if height_extra_key is not None:
+            if height_extra_key:
                 formats.append({
-                    'format_id': height + 'p',
+                    'format_id': f'{height}p',
                     'url': f'https://{host_name}/{f_url[8:]}&videos={video_id}&extra_key={height_extra_key}',
                     'height': int_or_none(height),
                     'ext': ext,
