@@ -2413,7 +2413,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _extract_n_function_name(self, jscode):
         nfunc, idx = self._search_regex(
-            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]{3})(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
+            r'\.get\("n"\)\)&&\(b=(?P<nfunc>[a-zA-Z0-9$]+)(?:\[(?P<idx>\d+)\])?\([a-zA-Z0-9]\)',
             jscode, 'Initial JS player n function name', group=('nfunc', 'idx'))
         if not idx:
             return nfunc
