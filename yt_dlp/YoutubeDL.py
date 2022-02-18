@@ -2316,7 +2316,7 @@ class YoutubeDL(object):
             info_dict['fulltitle'] = info_dict.get('title')
             if 'title' not in info_dict:
                 raise ExtractorError('Missing "title" field in extractor result',
-                                    video_id=info_dict['id'], ie=info_dict['extractor'])
+                                     video_id=info_dict['id'], ie=info_dict['extractor'])
             elif not info_dict.get('title'):
                 self.report_warning('Extractor failed to obtain "title". Creating a generic title instead')
                 info_dict['title'] = f'{info_dict["extractor"]} video #{info_dict["id"]}'
