@@ -1585,7 +1585,7 @@ class YoutubeDL(object):
 
             self._playlist_level += 1
             self._playlist_urls.add(webpage_url)
-            self.fill_common_fields(ie_result, False)
+            self._fill_common_fields(ie_result, False)
             self._sanitize_thumbnails(ie_result)
             try:
                 return self.__process_playlist(ie_result, download)
@@ -2310,7 +2310,7 @@ class YoutubeDL(object):
         else:
             info_dict['thumbnails'] = thumbnails
 
-    def fill_common_fields(self, info_dict, is_video=True):
+    def _fill_common_fields(self, info_dict, is_video=True):
         if is_video:
             # playlists are allowed to lack "title"
             info_dict['fulltitle'] = info_dict.get('title')
@@ -2410,7 +2410,7 @@ class YoutubeDL(object):
         if info_dict.get('display_id') is None and 'id' in info_dict:
             info_dict['display_id'] = info_dict['id']
 
-        self.fill_common_fields(info_dict)
+        self._fill_common_fields(info_dict)
 
         for cc_kind in ('subtitles', 'automatic_captions'):
             cc = info_dict.get(cc_kind)
