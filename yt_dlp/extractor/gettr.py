@@ -93,8 +93,6 @@ class GettrIE(GettrBaseIE):
                 'ext': 'mp4',
                 'width': int_or_none(post_data.get('vid_wid')),
                 'height': int_or_none(post_data.get('vid_hgt')),
-                'source_preference': 1,
-                'quality': 1,
             })
 
         self._sort_formats(formats)
