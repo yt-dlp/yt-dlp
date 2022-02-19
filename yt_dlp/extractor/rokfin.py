@@ -5,9 +5,11 @@ import itertools
 import datetime
 import re
 import urllib.parse
+import random
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     unified_timestamp,
+    variadic,
     try_get,
     traverse_obj,
     int_or_none,
@@ -15,20 +17,198 @@ from ..utils import (
     float_or_none,
     str_or_none,
     url_or_none,
+    unescapeHTML,
+    urlencode_postdata,
     ExtractorError,
 )
 
 
 class RokfinIE(InfoExtractor):
     _NETRC_MACHINE = 'rokfin'
+    _SINGLE_VIDEO_META_DATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
+    _SINGLE_VIDEO_BASE_WEB_URL = 'https://rokfin.com/'
+
+    def _real_initialize(self):
+        self.access_mgmt_tokens = None  # OAuth 2.0: RFC 6749, Sec. 1.4-5
+        self._login()
+
+    def _login(self):
+        LOGIN_PAGE_URL = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Ffeed&response_mode=fragment&response_type=code&scope=openid'
+        AUTHENTICATION_URL_REGEX_STEP_1 = r'\<form\s+[^>]+action\s*=\s*"(?P<authentication_point_url>https://secure\.rokfin\.com/auth/realms/rokfin-web/login-actions/authenticate\?[^"]+)"[^>]*>'
+
+        username, password = self._get_login_info()
+        if username is None or self._logged_in():
+            return
+
+        # In OpenID terms (https://openid.net/specs/), this program acts as the Client (a.k.a. Client Application), the User Agent, and
+        # the Relying Party (RP) simultaneously, with the Identity Provider (IDP) being secure.rokfin.com. Rokfin uses KeyCloak
+        # (https://www.keycloak.org) as the OpenID implementation of choice.
+        #
+        # ---------------------------- CODE FLOW AUTHORIZATION ----------------------------
+        # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1.1)
+        #
+        # Authentication phase:
+        #
+        # Step 1: preparation
+        login_page, urlh = self._download_webpage_handle(LOGIN_PAGE_URL, None, note='loading login page', fatal=False) or (None, None)
+        authentication_point_url = try_get(login_page, lambda html: unescapeHTML(re.search(AUTHENTICATION_URL_REGEX_STEP_1, html).group('authentication_point_url')))
+        if authentication_point_url is None:
+            self.report_warning('login failed unexpectedly: Rokfin extractor must be updated')
+            self._clear_cookies()
+            return
+
+        # Step 2 & 3: authentication
+        resp_body, urlh = self._download_webpage_handle(
+            authentication_point_url, None, note='logging in', fatal=False, expected_status=404, encoding='utf-8',
+            data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''})) or (None, None)
+        # Setting rememberMe=off resets the session after the yt-dlp exits:
+        # https://web.archive.org/web/20220218003425/https://wjw465150.gitbooks.io/keycloak-documentation/content/server_admin/topics/login-settings/remember-me.html
+        if not self._logged_in():
+            self._clear_cookies()
+            self.report_warning('login failed' + (': invalid username or password.' if type(resp_body) is str and re.search(r'invalid\s+username\s+or\s+password', resp_body, re.IGNORECASE) else ''))
+
+            if urlh:
+                self.write_debug(f'HTTP status: {urlh.code}')
+
+            return
+
+        # Authorization phase:
+        #
+        # Steps 4-7:
+        access_mgmt_tokens = self._get_OAuth_tokens()
+        if not access_mgmt_tokens:
+            self._logout()
+            return
+
+        self.access_mgmt_tokens = access_mgmt_tokens
+
+    def _logout(self):
+        LOGOUT_URL = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Frokfin.com%2F'
+        if self._get_login_info()[0] is None:  # username is None
+            return
+        self._download_webpage_handle(LOGOUT_URL, None, note='logging out', fatal=False, encoding='utf-8')
+        if self._logged_in():
+            self.write_debug('logout failed')
+        self._clear_cookies()
+        self.access_mgmt_tokens = None
+        # No token revocation takes place during logout, as KEYCLOAK does not -- and has no plans to -- support individual token
+        # revocation on external party's request. See
+        # https://web.archive.org/web/20220215040021/https://keycloak.discourse.group/t/revoking-or-invalidating-an-authorization-token/1032
+
+    # Are we logged in?
+    def _logged_in(self):
+        current_time_utc = datetime.datetime.utcnow().timestamp()
+        SESSION_COOKIE_NAMES = set(('KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'))
+        return set([cookie.name for cookie in self._downloader.cookiejar if (cookie.name in SESSION_COOKIE_NAMES)
+                    and (cookie.name not in ('KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY')
+                         or cookie.expires > current_time_utc)]) == SESSION_COOKIE_NAMES
+
+    def _download_json_handle(
+            self, url_or_request, video_id, note='Downloading JSON metadata',
+            errnote='Unable to download JSON metadata', transform_source=None,
+            fatal=True, encoding=None, data=None, headers={}, query={},
+            expected_status=None):
+        # Testing only:
+        if False and self.access_mgmt_tokens and 'access_token' in self.access_mgmt_tokens and 'token_type' in self.access_mgmt_tokens and headers and 'authorization' in headers:
+            headers = headers.copy()
+            headers['authorization'] = self.access_mgmt_tokens['token_type'] + ' eyJh'
+            self.write_debug('Invalidated access token')
+        res = super()._download_webpage_handle(
+            url_or_request, video_id, note=note, errnote=errnote, fatal=False,
+            encoding=encoding, data=data, headers=headers, query=query,
+            expected_status=(401,) if expected_status is None else (tuple(variadic(expected_status)) + (401,)))  # 401=Unauthorized
+        if 'authorization' not in headers or try_get(res, lambda x: x[1].code) != 401 or (self.access_mgmt_tokens or {}).get('refresh_token') is None:
+            if res is False:
+                return res
+            json_string, urlh = res
+            return self._parse_json(json_string, video_id, transform_source=transform_source, fatal=fatal), urlh
+        headers = headers.copy()
+        del headers['authorization']
+        self.access_mgmt_tokens = dict([(key, val) for (key, val) in self.access_mgmt_tokens.items() if key not in ('access_token', 'expires_in', 'token_type')])
+        self.access_mgmt_tokens.update(self._refresh_OAuth_tokens(video_id, encoding=encoding) or {})
+        self.write_debug(f'Updated tokens: {self.access_mgmt_tokens.keys()}')
+        if next((key for key in ['access_token', 'expires_in', 'refresh_expires_in', 'refresh_token', 'token_type', 'id_token', 'not-before-policy', 'session_state', 'scope'] if key not in self.access_mgmt_tokens.keys()), None) is not None:
+            self._logout()
+            self._login()
+        authorization_hdr_val = try_get(self.access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
+        if authorization_hdr_val:
+            headers['authorization'] = authorization_hdr_val
+            self.to_screen('authorization restored')
+        else:
+            self.to_screen('unable to restore authorization. Premium features may not be available')
+        return super()._download_json_handle(
+            url_or_request, video_id, note=note, errnote=errnote, transform_source=transform_source, fatal=fatal,
+            encoding=encoding, data=data, headers=headers, query=query, expected_status=expected_status)
+
+    def _authorized_download_json(
+            self, url_or_request, video_id, transform_source=None, fatal=False,
+            encoding=None, data=None, headers={}, query={}, expected_status=None):
+        authorization_hdr_val = try_get(self.access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
+        if 'authorization' not in headers and authorization_hdr_val is not None:
+            headers = headers.copy()
+            headers['authorization'] = authorization_hdr_val
+        return self._download_json(
+            url_or_request, video_id, note='Downloading JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
+            errnote='Unable to download JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
+            transform_source=transform_source, fatal=fatal, encoding=encoding, data=data, headers=headers,
+            query=query, expected_status=expected_status) or {}
+
+    def _get_OAuth_tokens(self):
+        PARTIAL_USER_CONSENT_URL_STEP_4_5 = urllib.parse.urlparse('https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Fsilent-check-sso.html&response_mode=fragment&response_type=code&scope=openid&prompt=none')
+        TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7 = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/token'
+
+        # ---------------------------- CODE FLOW AUTHORIZATION ----------------------------
+        # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1.1)
+
+        # Steps 4 & 5 authorize yt-dlp to act on user's behalf.
+
+        # random_str() came from https://www.rokfin.com/static/js/2.*.chunk.js
+        def random_str():
+            rnd_lst = [random.choice('0123456789abcdef') for _ in range(36)]
+            rnd_lst[14] = '4'
+            rnd_lst[19] = '0123456789abcdef'[3 & ord(rnd_lst[19]) | 8]
+            rnd_lst[8] = rnd_lst[13] = rnd_lst[18] = rnd_lst[23] = '-'
+            return ''.join(rnd_lst)
+
+        user_consent_url_step_4_5 = PARTIAL_USER_CONSENT_URL_STEP_4_5._replace(query=urllib.parse.urlencode((lambda d: d.update(state=random_str(), nonce=random_str()) or d)(dict(urllib.parse.parse_qsl(PARTIAL_USER_CONSENT_URL_STEP_4_5.query))))).geturl()
+
+        # By making this request, the user authorizes yt-dlp to act on the user's behalf:
+        urlh = (self._download_webpage_handle(
+            user_consent_url_step_4_5, None, note='sending user authorization', errnote='user authorization rejected by Rokfin', fatal=False, encoding='utf-8') or (None, None))[1]
+
+        authorization_code = try_get(urlh, lambda http_resp: dict(urllib.parse.parse_qsl(urllib.parse.urldefrag(http_resp.geturl()).fragment))['code'])
+
+        # Steps 6 & 7 request and acquire ID Token & Access Token:
+        access_token = self._download_json(
+            TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, None, note='getting access credentials', fatal=False, encoding='utf-8',
+            data=urlencode_postdata({'code': authorization_code, 'grant_type': 'authorization_code', 'client_id': 'web', 'redirect_uri': 'https://rokfin.com/silent-check-sso.html'})) or {}
+
+        if next((key for key in ['access_token', 'expires_in', 'refresh_expires_in', 'refresh_token', 'token_type', 'id_token', 'not-before-policy', 'session_state', 'scope'] if key not in access_token.keys()), None) is not None:
+            self.report_warning('premium content may not be available: bad access token sent by Rokfin')
+        else:
+            try_get(datetime.datetime.now(), lambda current_time: self.write_debug(f'access token expires {datetime.datetime.strftime(current_time + datetime.timedelta(seconds=int_or_none(access_token["expires_in"])), "%d-%b-%Y %H:%M:%S")} (local time); refresh token expires {datetime.datetime.strftime(current_time + datetime.timedelta(seconds=int_or_none(access_token["refresh_expires_in"])), "%d-%b-%Y %H:%M:%S")} (local time)'))
+
+        # Usage: --extractor-args "rokfin:print-user-info"'  # Mainly intended for testing.
+        if traverse_obj(self._downloader.params, ('extractor_args', 'rokfin', 'print_user_info')):
+            self.to_screen(self._download_json('https://prod-api-v2.production.rokfin.com/api/v2/user/me', None, note='obtaining user info', errnote='could not obtain user info', fatal=False, headers={'authorization': f'{access_token["token_type"]} {access_token["access_token"]}'}))
+
+        return access_token
+
+    def _refresh_OAuth_tokens(
+            self, video_id, note='Restoring lost authorization', errnote='Unable to restore authorization', fatal=False, encoding=None):
+        TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7 = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/token'
+        refresh_token = (self.access_mgmt_tokens or {}).get('refresh_token')
+        if not refresh_token:
+            return False
+        return super()._download_json(
+            TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, video_id, note, errnote, fatal=fatal, encoding=encoding,
+            data=urlencode_postdata({'grant_type': 'refresh_token', 'refresh_token': refresh_token, 'client_id': 'web'}))
+
+    def _clear_cookies(self):
+        try_get(self._downloader.cookiejar.clear, lambda f: f(domain='secure.rokfin.com'))
 
 
-class RokfinSingleVideoIE(RokfinIE):
-    _META_DATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
-    _BASE_URL = 'https://rokfin.com/'
-
-
-class RokfinPostIE(RokfinSingleVideoIE):
+class RokfinPostIE(RokfinIE):
     IE_NAME = 'rokfin:post'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>post/[^/]+)'
     _TESTS = [{
@@ -51,11 +231,8 @@ class RokfinPostIE(RokfinSingleVideoIE):
     }]
 
     def _real_extract(self, url_from_user):
-        if self.get_param('username') or self.get_param('password'):
-            self.report_warning('site logins are unsupported')
-
         video_id = self._match_id(url_from_user)
-        metadata = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
+        metadata = self._authorized_download_json(self._SINGLE_VIDEO_META_DATA_BASE_URL + video_id, video_id)
         video_formats_url = url_or_none(traverse_obj(metadata, ('content', 'contentUrl')))
         availability = self._availability(
             is_private=False,
@@ -89,7 +266,7 @@ class RokfinPostIE(RokfinSingleVideoIE):
         return {
             'id': video_id,
             'title': str_or_none(traverse_obj(metadata, ('content', 'contentTitle'))),
-            'webpage_url': self._BASE_URL + video_id,
+            'webpage_url': self._SINGLE_VIDEO_BASE_WEB_URL + video_id,
             # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             'live_status': 'not_live',
             'duration': float_or_none(traverse_obj(metadata, ('content', 'duration'))),
@@ -102,9 +279,9 @@ class RokfinPostIE(RokfinSingleVideoIE):
             'creator': str_or_none(traverse_obj(metadata, ('createdBy', 'name'))),
             'channel_id': traverse_obj(metadata, ('createdBy', 'id')),
             'channel': str_or_none(traverse_obj(metadata, ('createdBy', 'name'))),
-            'channel_url': try_get(metadata, lambda x: url_or_none(self._BASE_URL + x['createdBy']['username'])),
+            'channel_url': try_get(metadata, lambda x: url_or_none(self._SINGLE_VIDEO_BASE_WEB_URL + x['createdBy']['username'])),
             'timestamp': unified_timestamp(metadata.get('creationDateTime')),
-            'tags': metadata.get('tags') or [],
+            'tags': metadata.get('tags', []),
             'formats': frmts or [],
             'subtitles': subs or {},
             '__post_extractor': self.extract_comments(video_id=video_id)
@@ -113,30 +290,18 @@ class RokfinPostIE(RokfinSingleVideoIE):
     def _get_comments(self, video_id):
         _COMMENTS_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/comment'
         _COMMENTS_PER_REQUEST = 50  # 50 is the maximum Rokfin permits per request.
+        pages_total = None
 
-        def dnl_comments_incrementally(base_url, video_id, comments_per_page):
-            pages_total = None
+        for page_n in itertools.count(0):
+            raw_comments = self._download_json(
+                f'{_COMMENTS_BASE_URL}?postId={video_id[5:]}&page={page_n}&size={_COMMENTS_PER_REQUEST}',
+                video_id, note=f'Downloading viewer comments (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')',
+                fatal=False) or {}
+            pages_total = int_or_none(raw_comments.get('totalPages'))
+            is_last_page = bool_or_none(raw_comments.get('last'))
+            max_page_count_reached = None if pages_total is None else (page_n + 1 >= pages_total)
 
-            for page_n in itertools.count(0):
-                raw_comments = self._download_json(
-                    f'{base_url}?postId={video_id[5:]}&page={page_n}&size={comments_per_page}',
-                    video_id, note=f'Downloading viewer comments (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')',
-                    fatal=False) or {}
-
-                comments = raw_comments.get('content')
-                pages_total = int_or_none(raw_comments.get('totalPages'))
-                is_last_page = bool_or_none(raw_comments.get('last'))
-                max_page_count_reached = None if pages_total is None else (page_n + 1 >= pages_total)
-
-                if comments:
-                    yield comments
-
-                if is_last_page or max_page_count_reached or ((is_last_page is None) and (max_page_count_reached is None)) or not(comments):
-                    return
-                # The last two conditions are safety checks.
-
-        for page_of_comments in dnl_comments_incrementally(_COMMENTS_BASE_URL, video_id, _COMMENTS_PER_REQUEST):
-            for comment in page_of_comments:
+            for comment in raw_comments.get('content', []):
                 comment_text = str_or_none(comment.get('comment'))
 
                 if comment_text is None:
@@ -153,8 +318,11 @@ class RokfinPostIE(RokfinSingleVideoIE):
                     'timestamp': unified_timestamp(comment.get('postedAt'))
                 }
 
+            if is_last_page or max_page_count_reached or ((is_last_page is None) and (max_page_count_reached is None)):
+                return
 
-class RokfinStreamIE(RokfinSingleVideoIE):
+
+class RokfinStreamIE(RokfinIE):
     IE_NAME = 'rokfin:stream'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>stream/[^/]+)'
     _TESTS = [{
@@ -182,14 +350,11 @@ class RokfinStreamIE(RokfinSingleVideoIE):
     }]
 
     def _real_extract(self, url_from_user):
-        if self.get_param('username') or self.get_param('password'):
-            self.report_warning('site logins are unsupported')
-
         if self.get_param('live_from_start'):
             self.report_warning('--live-from-start is unsupported')
 
         video_id = self._match_id(url_from_user)
-        metadata = self._download_json(self._META_DATA_BASE_URL + video_id, video_id, fatal=False) or {}
+        metadata = self._authorized_download_json(self._SINGLE_VIDEO_META_DATA_BASE_URL + video_id, video_id)
         availability = self._availability(
             needs_premium=bool(metadata.get('premium')) if metadata.get('premium') in (True, False, 0, 1) else None,
             is_private=False, needs_subscription=False, needs_auth=False, is_unlisted=False)
@@ -241,7 +406,7 @@ class RokfinStreamIE(RokfinSingleVideoIE):
         return {
             'id': video_id,
             'title': str_or_none(metadata.get('title')),
-            'webpage_url': self._BASE_URL + video_id,
+            'webpage_url': self._SINGLE_VIDEO_BASE_WEB_URL + video_id,
             # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
             'manifest_url': m3u8_url,
             'thumbnail': url_or_none(metadata.get('thumbnail')),
@@ -252,9 +417,9 @@ class RokfinStreamIE(RokfinSingleVideoIE):
             'channel': str_or_none(traverse_obj(metadata, ('creator', 'name'))),
             'channel_id': traverse_obj(metadata, ('creator', 'id')),
             'uploader_id': traverse_obj(metadata, ('creator', 'id')),
-            'channel_url': try_get(metadata, lambda x: url_or_none(self._BASE_URL + traverse_obj(x, ('creator', 'username')))),
+            'channel_url': try_get(metadata, lambda x: url_or_none(self._SINGLE_VIDEO_BASE_WEB_URL + traverse_obj(x, ('creator', 'username')))),
             'availability': availability,
-            'tags': metadata.get('tags') or [],
+            'tags': metadata.get('tags', []),
             'live_status': 'was_live' if (stream_scheduled_for is None) and (stream_ended_at is not None) else
                            'is_live' if stream_scheduled_for is None else  # stream_scheduled_for=stream_ended_at=None
                            'is_upcoming' if stream_ended_at is None else   # stream_scheduled_for is not None
@@ -306,7 +471,7 @@ class RokfinPlaylistIE(RokfinIE):
             video_data['title'] = str_or_none(traverse_obj(content, ('content', 'contentTitle')))
             return video_data
 
-        for content in json_data.get('content') or []:
+        for content in json_data.get('content', []):
             video_data = real_get_video_data(content)
 
             if not video_data:
@@ -336,7 +501,7 @@ class RokfinStackIE(RokfinPlaylistIE):
 
         return self.playlist_result(
             entries=self._get_video_data(
-                json_data=self._download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id, fatal=False) or {}, video_base_url=_VIDEO_BASE_URL),
+                json_data=self._authorized_download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id), video_base_url=_VIDEO_BASE_URL),
             playlist_id=list_id, webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id, original_url=url_from_user)
         # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
 
@@ -359,7 +524,7 @@ class RokfinChannelIE(RokfinPlaylistIE):
 
         def dnl_video_meta_data_incrementally(channel_id, tab, channel_username, channel_base_url):
             _VIDEO_BASE_URL = 'https://rokfin.com/'
-            _META_DATA_BASE_URL2 = 'https://prod-api-v2.production.rokfin.com/api/v2/public/post/search/'
+            _METADATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/post/search/'
             _ENTRIES_PER_REQUEST = 50  # 50 is the maximum Rokfin permits per request.
             pages_total = None
 
@@ -367,9 +532,9 @@ class RokfinChannelIE(RokfinPlaylistIE):
                 if tab in ('posts', 'top'):
                     data_url = f'{channel_base_url}{channel_username}/{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}'
                 else:
-                    data_url = f'{_META_DATA_BASE_URL2}{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}&creator={channel_id}'
+                    data_url = f'{_METADATA_BASE_URL}{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}&creator={channel_id}'
 
-                metadata = self._download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False) or {}
+                metadata = self._download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False, headers=try_get(self.access_mgmt_tokens, lambda tokens: {'authorization': tokens['token_type'] + ' ' + tokens['access_token']}) or {}) or {}
 
                 yield from self._get_video_data(json_data=metadata, video_base_url=_VIDEO_BASE_URL)
 
@@ -388,7 +553,7 @@ class RokfinChannelIE(RokfinPlaylistIE):
             raise ExtractorError(msg='usage: --extractor-args "rokfinchannel:content=[new|top|videos|podcasts|streams|articles|rankings|stacks]"', expected=True)
 
         channel_username = self._match_id(url_from_user)
-        channel_info = self._download_json(_CHANNEL_BASE_URL + channel_username, channel_username, fatal=False) or {}
+        channel_info = self._download_json(_CHANNEL_BASE_URL + channel_username, channel_username, fatal=False, headers=try_get(self.access_mgmt_tokens, lambda tokens: {'authorization': tokens['token_type'] + ' ' + tokens['access_token']}) or {}) or {}
         channel_id = channel_info.get('id')
 
         if channel_id:
@@ -500,7 +665,7 @@ class RokfinSearchIE(SearchInfoExtractor):
                     self.to_screen(msg=f'Search results available: {results_total}')
                     results_total_printed = True
 
-                for content in srch_res.get('results') or []:
+                for content in srch_res.get('results', []):
                     video_data = get_video_data(content)
 
                     if not video_data:
