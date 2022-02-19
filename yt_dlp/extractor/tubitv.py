@@ -141,9 +141,13 @@ class TubiTvShowIE(InfoExtractor):
 
     def _entries(self, show_url, show_name):
         show_webpage = self._download_webpage(show_url, show_name)
-        show_json = self._parse_json(self._search_regex(
-            r"window\.__data\s*=\s*({.+?});\s*</script>",
-            show_webpage, 'data',), show_name, transform_source=js_to_json)['video']
+
+        raw_json =  self._search_regex(
+            r"window\.__data\s*=\s*({[^<]+});\s*</script>",
+            show_webpage, 'data')
+
+        show_json = self._parse_json(raw_json, show_name, transform_source=js_to_json)['video']
+        
         for episode_id in show_json['fullContentById'].keys():
             yield self.url_result(
                 'tubitv:%s' % episode_id,
