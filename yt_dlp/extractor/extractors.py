@@ -37,6 +37,7 @@ from .aenetworks import (
     HistoryPlayerIE,
     BiographyIE,
 )
+from .aflwomens import AFLWomensPlaylistIE
 from .afreecatv import (
     AfreecaTVIE,
     AfreecaTVLiveIE,
