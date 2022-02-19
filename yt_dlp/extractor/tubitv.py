@@ -107,7 +107,10 @@ class TubiTvIE(InfoExtractor):
                 'url': self._proto_relative_url(sub_url),
             })
 
-        infodict = {
+        season_number, episode_number, episode_title = self._search_regex(
+            r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
+
+        return {
             'id': video_id,
             'title': title,
             'formats': formats,
@@ -117,16 +120,10 @@ class TubiTvIE(InfoExtractor):
             'duration': int_or_none(video_data.get('duration')),
             'uploader_id': video_data.get('publisher_id'),
             'release_year': int_or_none(video_data.get('year')),
+            'season_number': int_or_none(season_number),
+            'episode_number': int_or_none(episode_number),
+            'episode_title': episode_title
         }
-
-        episode_match = re.search(r'^S(\d+):E(\d+) - (.+)', title)
-
-        if episode_match:
-            infodict['season_number'] = int(episode_match.group(1))
-            infodict['episode_number'] = int(episode_match.group(2))
-            infodict['episode_title'] = episode_match.group(3)
-
-        return infodict
 
 
 class TubiTvShowIE(InfoExtractor):
@@ -142,11 +139,9 @@ class TubiTvShowIE(InfoExtractor):
     def _entries(self, show_url, show_name):
         show_webpage = self._download_webpage(show_url, show_name)
 
-        raw_json = self._search_regex(
-            r"window\.__data\s*=\s*({[^<]+});\s*</script>",
-            show_webpage, 'data')
-
-        show_json = self._parse_json(raw_json, show_name, transform_source=js_to_json)['video']
+        show_json = self._parse_json(self._search_regex(
+            r'window\.__data\s*=\s*({[^<]+});\s*</script>',
+            show_webpage, 'data'), show_name, transform_source=js_to_json)['video']
 
         for episode_id in show_json['fullContentById'].keys():
             yield self.url_result(
