@@ -107,7 +107,7 @@ class TubiTvIE(InfoExtractor):
                 'url': self._proto_relative_url(sub_url),
             })
 
-        return {
+        infodict = {
             'id': video_id,
             'title': title,
             'formats': formats,
@@ -118,6 +118,15 @@ class TubiTvIE(InfoExtractor):
             'uploader_id': video_data.get('publisher_id'),
             'release_year': int_or_none(video_data.get('year')),
         }
+
+        episode_match = re.search(r'^S(\d+):E(\d+) - (.+)', title)
+
+        if episode_match:
+            infodict['season_number'] = int(episode_match.group(1))
+            infodict['episode_number'] = int(episode_match.group(2))
+            infodict['episode_title'] = episode_match.group(3)
+
+        return infodict
 
 
 class TubiTvShowIE(InfoExtractor):
