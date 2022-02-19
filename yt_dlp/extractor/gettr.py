@@ -39,6 +39,7 @@ class GettrIE(GettrBaseIE):
             'thumbnail': r're:^https?://.+/out\.jpg',
             'timestamp': 1632782451058,
             'duration': 58.5585,
+            'tags': ['hornofafrica', 'explorations'],
         }
     }, {
         'url': 'https://gettr.com/post/p4iahp',
@@ -52,6 +53,7 @@ class GettrIE(GettrBaseIE):
             'thumbnail': r're:^https?://.+/out\.jpg',
             'timestamp': 1626594455017,
             'duration': 23,
+            'tags': 'count:12',
         }
     }]
 
