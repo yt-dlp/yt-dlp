@@ -2418,7 +2418,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if not idx:
             return nfunc
         return json.loads(js_to_json(self._search_regex(
-            rf'var {nfunc}\s*=\s*(\[.+?\]);', jscode,
+            rf'var {re.escape(nfunc)}\s*=\s*(\[.+?\]);', jscode,
             f'Initial JS player n function list ({nfunc}.{idx})')))[int(idx)]
 
     def _extract_n_function(self, video_id, player_url):
