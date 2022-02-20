@@ -40,9 +40,9 @@ class RokfinIE(InfoExtractor):
         if username is None or self._logged_in():
             return
 
-        # In OpenID terms (https://openid.net/specs/), this program acts as the Client (a.k.a. Client Application), the User Agent, and
-        # the Relying Party (RP) simultaneously, with the Identity Provider (IDP) being secure.rokfin.com. Rokfin uses KeyCloak
-        # (https://www.keycloak.org) as the OpenID implementation of choice.
+        # In OpenID terms (https://openid.net/specs/), this program acts as a (public) Client (a.k.a. Client Application),
+        # the User Agent, and the Relying Party (RP) simultaneously, with the Identity Provider (IDP) being secure.rokfin.com.
+        # Rokfin uses KeyCloak (https://www.keycloak.org) as the OpenID implementation of choice.
         #
         # ---------------------------- CODE FLOW AUTHORIZATION ----------------------------
         # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1.1)
