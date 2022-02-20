@@ -27,9 +27,9 @@ class RokfinIE(InfoExtractor):
     _NETRC_MACHINE = 'rokfin'
     _SINGLE_VIDEO_META_DATA_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
     _SINGLE_VIDEO_BASE_WEB_URL = 'https://rokfin.com/'
+    access_mgmt_tokens = None  # OAuth 2.0: RFC 6749, Sec. 1.4-5
 
     def _real_initialize(self):
-        self.access_mgmt_tokens = None  # OAuth 2.0: RFC 6749, Sec. 1.4-5
         self._login()
 
     def _login(self):
@@ -61,7 +61,7 @@ class RokfinIE(InfoExtractor):
         resp_body, urlh = self._download_webpage_handle(
             authentication_point_url, None, note='logging in', fatal=False, expected_status=404, encoding='utf-8',
             data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''})) or (None, None)
-        # Setting rememberMe=off resets the session after the yt-dlp exits:
+        # rememberMe=off resets the session when yt-dlp exits:
         # https://web.archive.org/web/20220218003425/https://wjw465150.gitbooks.io/keycloak-documentation/content/server_admin/topics/login-settings/remember-me.html
         if not self._logged_in():
             self._clear_cookies()
@@ -80,7 +80,12 @@ class RokfinIE(InfoExtractor):
             self._logout()
             return
 
-        self.access_mgmt_tokens = access_mgmt_tokens
+        # No validation phase (step 8):
+        #
+        # (1) the client-side ID-token validation skipped;
+        # (2) Rokfin does not supply Subject Identifier.
+
+        RokfinIE.access_mgmt_tokens = access_mgmt_tokens
 
     def _logout(self):
         LOGOUT_URL = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Frokfin.com%2F'
@@ -90,7 +95,7 @@ class RokfinIE(InfoExtractor):
         if self._logged_in():
             self.write_debug('logout failed')
         self._clear_cookies()
-        self.access_mgmt_tokens = None
+        RokfinIE.access_mgmt_tokens = None
         # No token revocation takes place during logout, as KEYCLOAK does not -- and has no plans to -- support individual token
         # revocation on external party's request. See
         # https://web.archive.org/web/20220215040021/https://keycloak.discourse.group/t/revoking-or-invalidating-an-authorization-token/1032
@@ -109,28 +114,28 @@ class RokfinIE(InfoExtractor):
             fatal=True, encoding=None, data=None, headers={}, query={},
             expected_status=None):
         # Testing only:
-        if False and self.access_mgmt_tokens and 'access_token' in self.access_mgmt_tokens and 'token_type' in self.access_mgmt_tokens and headers and 'authorization' in headers:
+        if False and RokfinIE.access_mgmt_tokens and 'access_token' in RokfinIE.access_mgmt_tokens and 'token_type' in RokfinIE.access_mgmt_tokens and headers and 'authorization' in headers:
             headers = headers.copy()
-            headers['authorization'] = self.access_mgmt_tokens['token_type'] + ' eyJh'
+            headers['authorization'] = RokfinIE.access_mgmt_tokens['token_type'] + ' eyJh'
             self.write_debug('Invalidated access token')
         res = super()._download_webpage_handle(
             url_or_request, video_id, note=note, errnote=errnote, fatal=False,
             encoding=encoding, data=data, headers=headers, query=query,
             expected_status=(401,) if expected_status is None else (tuple(variadic(expected_status)) + (401,)))  # 401=Unauthorized
-        if 'authorization' not in headers or try_get(res, lambda x: x[1].code) != 401 or (self.access_mgmt_tokens or {}).get('refresh_token') is None:
+        if 'authorization' not in headers or try_get(res, lambda x: x[1].code) != 401 or (RokfinIE.access_mgmt_tokens or {}).get('refresh_token') is None:
             if res is False:
                 return res
             json_string, urlh = res
             return self._parse_json(json_string, video_id, transform_source=transform_source, fatal=fatal), urlh
         headers = headers.copy()
         del headers['authorization']
-        self.access_mgmt_tokens = dict([(key, val) for (key, val) in self.access_mgmt_tokens.items() if key not in ('access_token', 'expires_in', 'token_type')])
-        self.access_mgmt_tokens.update(self._refresh_OAuth_tokens(video_id, encoding=encoding) or {})
-        self.write_debug(f'Updated tokens: {self.access_mgmt_tokens.keys()}')
-        if next((key for key in ['access_token', 'expires_in', 'refresh_expires_in', 'refresh_token', 'token_type', 'id_token', 'not-before-policy', 'session_state', 'scope'] if key not in self.access_mgmt_tokens.keys()), None) is not None:
+        RokfinIE.access_mgmt_tokens = dict([(key, val) for (key, val) in RokfinIE.access_mgmt_tokens.items() if key not in ('access_token', 'expires_in', 'token_type')])
+        RokfinIE.access_mgmt_tokens.update(self._refresh_OAuth_tokens(video_id, encoding=encoding) or {})
+        self.write_debug(f'Updated tokens: {RokfinIE.access_mgmt_tokens.keys()}')
+        if next((key for key in ['access_token', 'expires_in', 'refresh_expires_in', 'refresh_token', 'token_type', 'id_token', 'not-before-policy', 'session_state', 'scope'] if key not in RokfinIE.access_mgmt_tokens.keys()), None) is not None:
             self._logout()
             self._login()
-        authorization_hdr_val = try_get(self.access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
+        authorization_hdr_val = try_get(RokfinIE.access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
         if authorization_hdr_val:
             headers['authorization'] = authorization_hdr_val
             self.to_screen('authorization restored')
@@ -143,7 +148,7 @@ class RokfinIE(InfoExtractor):
     def _authorized_download_json(
             self, url_or_request, video_id, transform_source=None, fatal=False,
             encoding=None, data=None, headers={}, query={}, expected_status=None):
-        authorization_hdr_val = try_get(self.access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
+        authorization_hdr_val = try_get(RokfinIE.access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
         if 'authorization' not in headers and authorization_hdr_val is not None:
             headers = headers.copy()
             headers['authorization'] = authorization_hdr_val
@@ -172,9 +177,9 @@ class RokfinIE(InfoExtractor):
 
         user_consent_url_step_4_5 = PARTIAL_USER_CONSENT_URL_STEP_4_5._replace(query=urllib.parse.urlencode((lambda d: d.update(state=random_str(), nonce=random_str()) or d)(dict(urllib.parse.parse_qsl(PARTIAL_USER_CONSENT_URL_STEP_4_5.query))))).geturl()
 
-        # By making this request, the user authorizes yt-dlp to act on the user's behalf:
+        # By making this HTTP request, the user authorizes yt-dlp to act on the user's behalf:
         urlh = (self._download_webpage_handle(
-            user_consent_url_step_4_5, None, note='sending user authorization', errnote='user authorization rejected by Rokfin', fatal=False, encoding='utf-8') or (None, None))[1]
+            user_consent_url_step_4_5, None, note='granting user authorization', errnote='user authorization rejected by Rokfin', fatal=False, encoding='utf-8') or (None, None))[1]
 
         authorization_code = try_get(urlh, lambda http_resp: dict(urllib.parse.parse_qsl(urllib.parse.urldefrag(http_resp.geturl()).fragment))['code'])
 
@@ -197,7 +202,7 @@ class RokfinIE(InfoExtractor):
     def _refresh_OAuth_tokens(
             self, video_id, note='Restoring lost authorization', errnote='Unable to restore authorization', fatal=False, encoding=None):
         TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7 = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/token'
-        refresh_token = (self.access_mgmt_tokens or {}).get('refresh_token')
+        refresh_token = (RokfinIE.access_mgmt_tokens or {}).get('refresh_token')
         if not refresh_token:
             return False
         return super()._download_json(
@@ -534,7 +539,7 @@ class RokfinChannelIE(RokfinPlaylistIE):
                 else:
                     data_url = f'{_METADATA_BASE_URL}{tab}?page={page_n}&size={_ENTRIES_PER_REQUEST}&creator={channel_id}'
 
-                metadata = self._download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False, headers=try_get(self.access_mgmt_tokens, lambda tokens: {'authorization': tokens['token_type'] + ' ' + tokens['access_token']}) or {}) or {}
+                metadata = self._download_json(data_url, channel_username, note=f'Downloading video metadata (page {page_n + 1}' + (f' of {pages_total}' if pages_total else '') + ')', fatal=False, headers=try_get(RokfinIE.access_mgmt_tokens, lambda tokens: {'authorization': tokens['token_type'] + ' ' + tokens['access_token']}) or {}) or {}
 
                 yield from self._get_video_data(json_data=metadata, video_base_url=_VIDEO_BASE_URL)
 
@@ -553,7 +558,7 @@ class RokfinChannelIE(RokfinPlaylistIE):
             raise ExtractorError(msg='usage: --extractor-args "rokfinchannel:content=[new|top|videos|podcasts|streams|articles|rankings|stacks]"', expected=True)
 
         channel_username = self._match_id(url_from_user)
-        channel_info = self._download_json(_CHANNEL_BASE_URL + channel_username, channel_username, fatal=False, headers=try_get(self.access_mgmt_tokens, lambda tokens: {'authorization': tokens['token_type'] + ' ' + tokens['access_token']}) or {}) or {}
+        channel_info = self._download_json(_CHANNEL_BASE_URL + channel_username, channel_username, fatal=False, headers=try_get(RokfinIE.access_mgmt_tokens, lambda tokens: {'authorization': tokens['token_type'] + ' ' + tokens['access_token']}) or {}) or {}
         channel_id = channel_info.get('id')
 
         if channel_id:
@@ -587,28 +592,27 @@ class RokfinSearchIE(SearchInfoExtractor):
             for page_n in itertools.count(1) if n_results == float('inf') else range(1, max_pages_to_download + 1):
                 POST_DATA['page']['current'] = page_n
 
-                if self.service_url and self.service_access_key:
+                if RokfinSearchIE.service_url and RokfinSearchIE.service_access_key:
                     # Access has already been established.
                     srch_res = self._download_json(
-                        self.service_url, self._SEARCH_KEY, headers={'authorization': self.service_access_key},
+                        RokfinSearchIE.service_url, self._SEARCH_KEY, headers={'authorization': RokfinSearchIE.service_access_key},
                         data=json.dumps(POST_DATA).encode('utf-8'), encoding='utf-8',
                         note=f'Downloading search results (page {page_n}' + (f' of {min(pages_total, max_pages_to_download)}' if pages_total is not None and max_pages_to_download is not None else '') + ')',
                         fatal=True)
                 else:
                     self.write_debug(msg='gaining access')
-                    (service_urls, service_access_keys) = self._get_access_credentials()
 
                     # Try all possible combinations between service_urls and service_access_keys and see which one works.
                     # This should succeed on the first attempt, but no one knows for sure.
-                    for service_url, service_access_key in itertools.product(service_urls, service_access_keys):
+                    for service_url, service_access_key in (lambda p: itertools.product(p[0], p[1]))(self._get_access_credentials()):
                         self.write_debug(msg=f'attempting to download 1st batch of search results from "{service_url}" using access key "{service_access_key}"')
                         srch_res = self._download_json(
                             service_url, self._SEARCH_KEY, headers={'authorization': service_access_key}, data=json.dumps(POST_DATA).encode('utf-8'),
                             encoding='utf-8', note='Downloading search results (page 1)', fatal=False) or {}
 
                         if srch_res:
-                            self.service_url = service_url
-                            self.service_access_key = service_access_key
+                            RokfinSearchIE.service_url = service_url
+                            RokfinSearchIE.service_access_key = service_access_key
                             self.write_debug(msg='download succeeded, access gained')
                             break
                         else:
@@ -692,7 +696,7 @@ class RokfinSearchIE(SearchInfoExtractor):
         return self.playlist_result(entries=dnl_video_meta_data_incrementally(query, n_results), playlist_id=query)
 
     def _get_access_credentials(self):
-        if self.service_url and self.service_access_key:
+        if RokfinSearchIE.service_url and RokfinSearchIE.service_access_key:
             return
 
         STARTING_WP_URL = 'https://rokfin.com/discover'
