@@ -244,15 +244,13 @@ class BiliBiliIE(InfoExtractor):
                         'quality': -3,
                     })
 
-            for a_format in formats:
-                a_format.setdefault('http_headers', {}).update({
-                    'Referer': url,
-                })
-
             info.update({
                 'id': video_id,
                 'duration': float_or_none(durl.get('length'), 1000),
                 'formats': formats,
+                'http_headers': {
+                    'Referer': url,
+                },
             })
             break
 
