@@ -15,13 +15,13 @@ class AFLWomensPlaylistIE(InfoExtractor):
             'id': 'match-replays',
             'title': 'Match Replays',
             'entries': [{
+                'url': 'https://www.womens.afl/video/86436/aflw-match-replay-west-coast-v-richmond',
+                '_type': 'url'
+            }, {
                 'url': 'https://www.womens.afl/video/86276/r7-carlton-v-st-kilda',
                 '_type': 'url'
             }, {
                 'url': 'https://www.womens.afl/video/86190/aflw-match-replay-gws-v-adelaide',
-                '_type': 'url'
-            }, {
-                'url': 'https://www.womens.afl/video/85970/aflw-match-replay-western-bulldogs-v-geelong',
                 '_type': 'url'
             }],
         },
@@ -32,13 +32,13 @@ class AFLWomensPlaylistIE(InfoExtractor):
             'id': 'video/all-video',
             'title': 'Latest Videos',
             'entries': [{
-                'url': 'https://www.womens.afl/video/86438/aflw-mini-match-west-coast-v-richmond',
+                'url': 'https://www.womens.afl/video/86562/aflw-match-highlights-north-melbourne-v-collingwood',
                 '_type': 'url'
             }, {
-                'url': 'https://www.womens.afl/video/86434/aflw-full-post-match-eagles',
+                'url': 'https://www.womens.afl/video/86584/aflw-full-post-match-kangaroos',
                 '_type': 'url'
             }, {
-                'url': 'https://www.womens.afl/video/86424/aflw-full-post-match-tigers',
+                'url': 'https://www.womens.afl/video/86582/aflw-full-post-match-magpies',
                 '_type': 'url'
             }],
         },
