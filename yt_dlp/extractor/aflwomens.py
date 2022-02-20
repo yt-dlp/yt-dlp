@@ -50,15 +50,11 @@ class AFLWomensPlaylistIE(InfoExtractor):
 
         title = self._html_search_regex(r'<h1 class="widget-header__title">(.+?)</h1>', webpage, 'title')
 
-        entries = []
-
-        if webpage:
-            for path in re.findall(r'<a\b(?=[^>]* class="[^"]*(?<=[" ])media-thumbnail__link[" ])(?=[^>]* href="([^"]*))', webpage):
-                video_url = urljoin(url, path)
-
-                entries.append({
-                    '_type': 'url',
-                    'url': video_url
-                })
+        entries = [
+            {
+                '_type': 'url',
+                'url': urljoin(url, path)
+            } for path in re.findall(r'<a\b(?=[^>]* class="[^"]*(?<=[" ])media-thumbnail__link[" ])(?=[^>]* href="([^"]*))', webpage)
+        ]
 
         return self.playlist_result(entries, playlist_id, title)
