@@ -1055,6 +1055,10 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '5n+1'}, [1])
         test_selection({'playlist_items': '5n+5'}, [])
 
+        test_selection({'playlist_items': '2n-1'}, [1, 3])
+        test_selection({'playlist_items': '3n-1'}, [2])
+        test_selection({'playlist_items': '5n-5'}, [])
+
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227
         ydl = YDL()
