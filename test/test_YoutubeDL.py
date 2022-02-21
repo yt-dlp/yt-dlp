@@ -1046,6 +1046,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         # Tests for --playlist-items Xn+Y
         # https://discord.com/channels/807245652072857610/926071133051187242
+        test_selection({'playlist_items': '0n'}, [])
         test_selection({'playlist_items': '0n+1'}, [1])
         test_selection({'playlist_items': '2n+1'}, [1, 3])
         test_selection({'playlist_items': '2n'}, [2, 4])
@@ -1055,6 +1056,7 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '5n+1'}, [1])
         test_selection({'playlist_items': '5n+5'}, [])
 
+        test_selection({'playlist_items': '0n-2'}, [])
         test_selection({'playlist_items': '2n-1'}, [1, 3])
         test_selection({'playlist_items': '3n-1'}, [2])
         test_selection({'playlist_items': '5n-5'}, [])
