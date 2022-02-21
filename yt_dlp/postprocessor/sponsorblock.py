@@ -49,6 +49,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         def duration_filter(s):
             start_end = s['segment']
+            # Ignore entire video segments (https://wiki.sponsor.ajay.app/w/Types).
+            if start_end == (0, 0):
+                return False
             # Ignore milliseconds difference at the start.
             if start_end[0] <= 1:
                 start_end[0] = 0
