@@ -7,7 +7,7 @@ from .ffmpeg import (
     FFmpegPostProcessor,
     FFmpegSubtitlesConvertorPP
 )
-from .sponsorblock import SponsorBlockPP
+from .sponsorblock import SponsorBlockHelper
 from ..utils import (
     orderedSet,
     PostProcessingError,
@@ -20,25 +20,32 @@ DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
 
 
 class ModifyChaptersPP(FFmpegPostProcessor):
-    def __init__(self, downloader, remove_chapters_patterns=None, remove_sponsor_segments=None, remove_ranges=None,
-                 *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, force_keyframes=False):
+    def __init__(self, downloader, remove_chapters_patterns=None,
+                 mark_sponsor_segments=None, remove_sponsor_segments=None, remove_ranges=None,
+                 *, sponsorblock_chapter_title=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE,
+                 sponsorblock_api='https://sponsor.ajay.app', force_keyframes=False):
         FFmpegPostProcessor.__init__(self, downloader)
         self._remove_chapters_patterns = set(remove_chapters_patterns or [])
-        self._remove_sponsor_segments = set(remove_sponsor_segments or []) - set(SponsorBlockPP.POI_CATEGORIES.keys())
+        self._remove_sponsor_segments = (
+            set(remove_sponsor_segments or []) - set(SponsorBlockHelper.POI_CATEGORIES.keys()))
         self._ranges_to_remove = set(remove_ranges or [])
         self._sponsorblock_chapter_title = sponsorblock_chapter_title
         self._force_keyframes = force_keyframes
+        self._sponsorblock_helper = SponsorBlockHelper(
+            self, set(mark_sponsor_segments or []) | self._remove_sponsor_segments,
+            sponsorblock_api)
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
+        real_duration = self._get_real_video_duration(info['filepath'])
+
         # Chapters must be preserved intact when downloading multiple formats of the same video.
         chapters, sponsor_chapters = self._mark_chapters_to_remove(
             copy.deepcopy(info.get('chapters')) or [],
-            copy.deepcopy(info.get('sponsorblock_chapters')) or [])
+            self._sponsorblock_helper.get_sponsor_chapters(info, real_duration))
         if not chapters and not sponsor_chapters:
             return [], info
 
-        real_duration = self._get_real_video_duration(info['filepath'])
         if not chapters:
             chapters = [{'start_time': 0, 'end_time': real_duration, 'title': info['title']}]
 
@@ -302,8 +309,8 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 c.update({
                     'category': category,
                     'categories': cats,
-                    'name': SponsorBlockPP.CATEGORIES[category],
-                    'category_names': [SponsorBlockPP.CATEGORIES[c] for c in cats]
+                    'name': SponsorBlockHelper.CATEGORIES[category],
+                    'category_names': [SponsorBlockHelper.CATEGORIES[c] for c in cats]
                 })
                 c['title'] = self._downloader.evaluate_outtmpl(self._sponsorblock_chapter_title, c.copy())
                 # Merge identically named sponsors.

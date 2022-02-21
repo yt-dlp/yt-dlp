@@ -33,7 +33,6 @@ from .metadataparser import (
 from .modify_chapters import ModifyChaptersPP
 from .movefilesafterdownload import MoveFilesAfterDownloadPP
 from .sponskrub import SponSkrubPP
-from .sponsorblock import SponsorBlockPP
 from .xattrpp import XAttrMetadataPP
 
 _PLUGIN_CLASSES = load_plugins('postprocessor', 'PP', globals())

@@ -1,15 +1,19 @@
 from hashlib import sha256
+import copy
 import itertools
 import json
 import re
 import time
 
-from .ffmpeg import FFmpegPostProcessor
 from ..compat import compat_urllib_parse_urlencode, compat_HTTPError
 from ..utils import PostProcessingError, network_exceptions, sanitized_Request
 
+# Cache a SponsorBlock response to avoid re-fetching it
+# when downloading multiple formats of the same video.
+SPONSOR_BLOCK_CACHE = {}
 
-class SponsorBlockPP(FFmpegPostProcessor):
+
+class SponsorBlockHelper:
     # https://wiki.sponsor.ajay.app/w/Types
     EXTRACTORS = {
         'Youtube': 'YouTube',
@@ -29,22 +33,29 @@ class SponsorBlockPP(FFmpegPostProcessor):
         **POI_CATEGORIES,
     }
 
-    def __init__(self, downloader, categories=None, api='https://sponsor.ajay.app'):
-        FFmpegPostProcessor.__init__(self, downloader)
+    def __init__(self, postproc, categories=None, api='https://sponsor.ajay.app'):
+        self._postproc = postproc
         self._categories = tuple(categories or self.CATEGORIES.keys())
         self._API_URL = api if re.match('^https?://', api) else 'https://' + api
 
-    def run(self, info):
+    def get_sponsor_chapters(self, info, duration):
         extractor = info['extractor_key']
         if extractor not in self.EXTRACTORS:
-            self.to_screen(f'SponsorBlock is not supported for {extractor}')
-            return [], info
+            self._postproc.to_screen(f'SponsorBlock is not supported for {extractor}')
+            return []
 
-        self.to_screen('Fetching SponsorBlock segments')
-        info['sponsorblock_chapters'] = self._get_sponsor_chapters(info, info['duration'])
-        return [], info
+        cache_key = extractor, info["id"]
+        if cache_key not in SPONSOR_BLOCK_CACHE:
+            # Assuming that downloads of multiple formats of the same video are not interspersed
+            # with downloads of other videos, a single-entry cache must be sufficient.
+            SPONSOR_BLOCK_CACHE.clear()
+            SPONSOR_BLOCK_CACHE[cache_key] = self._fetch_sponsor_chapters(info, duration)
+        else:
+            self._postproc.to_screen('Using cached SponsorBlock segments')
+        return copy.deepcopy(SPONSOR_BLOCK_CACHE[cache_key])
 
-    def _get_sponsor_chapters(self, info, duration):
+    def _fetch_sponsor_chapters(self, info, duration):
+        self._postproc.to_screen('Fetching SponsorBlock segments')
         segments = self._get_sponsor_segments(info['id'], self.EXTRACTORS[info['extractor_key']])
 
         def duration_filter(s):
@@ -64,7 +75,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         duration_match = [s for s in segments if duration_filter(s)]
         if len(duration_match) != len(segments):
-            self.report_warning('Some SponsorBlock segments are from a video of different duration, maybe from an old version of this video')
+            self._postproc.report_warning(
+                'Some SponsorBlock segments are from a video of different duration,'
+                ' maybe from an old version of this video')
 
         def to_chapter(s):
             (start, end), cat = s['segment'], s['category']
@@ -78,9 +91,10 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         sponsor_chapters = [to_chapter(s) for s in duration_match]
         if not sponsor_chapters:
-            self.to_screen('No segments were found in the SponsorBlock database')
+            self._postproc.to_screen('No segments were found in the SponsorBlock database')
         else:
-            self.to_screen(f'Found {len(sponsor_chapters)} segments in the SponsorBlock database')
+            self._postproc.to_screen(
+                f'Found {len(sponsor_chapters)} segments in the SponsorBlock database')
         return sponsor_chapters
 
     def _get_sponsor_segments(self, video_id, service):
@@ -90,7 +104,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
             'service': service,
             'categories': json.dumps(self._categories),
         })
-        self.write_debug(f'SponsorBlock query: {url}')
+        self._postproc.write_debug(f'SponsorBlock query: {url}')
         for d in self._get_json(url):
             if d['videoID'] == video_id:
                 return d['segments']
@@ -99,19 +113,19 @@ class SponsorBlockPP(FFmpegPostProcessor):
     def _get_json(self, url):
         # While this is not an extractor, it behaves similar to one and
         # so obey extractor_retries and sleep_interval_requests
-        max_retries = self.get_param('extractor_retries', 3)
-        sleep_interval = self.get_param('sleep_interval_requests') or 0
+        max_retries = self._postproc.get_param('extractor_retries', 3)
+        sleep_interval = self._postproc.get_param('sleep_interval_requests') or 0
         for retries in itertools.count():
             try:
-                rsp = self._downloader.urlopen(sanitized_Request(url))
+                rsp = self._postproc._downloader.urlopen(sanitized_Request(url))
                 return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
             except network_exceptions as e:
                 if isinstance(e, compat_HTTPError) and e.code == 404:
                     return []
                 if retries < max_retries:
-                    self.report_warning(f'{e}. Retrying...')
+                    self._postproc.report_warning(f'{e}. Retrying...')
                     if sleep_interval > 0:
-                        self.to_screen(f'Sleeping {sleep_interval} seconds ...')
+                        self._postproc.to_screen(f'Sleeping {sleep_interval} seconds ...')
                         time.sleep(sleep_interval)
                     continue
                 raise PostProcessingError(f'Unable to communicate with SponsorBlock API: {e}')

@@ -419,11 +419,11 @@ def _real_main(argv=None):
     if opts.no_sponsorblock:
         opts.sponsorblock_mark = set()
         opts.sponsorblock_remove = set()
-    sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
 
     opts.remove_chapters = opts.remove_chapters or []
 
-    if (opts.remove_chapters or sponsorblock_query) and opts.sponskrub is not False:
+    if ((opts.remove_chapters or opts.sponsorblock_mark or opts.sponsorblock_remove)
+            and opts.sponskrub is not False):
         if opts.sponskrub:
             if opts.remove_chapters:
                 report_conflict('--remove-chapters', '--sponskrub')
@@ -469,14 +469,6 @@ def _real_main(argv=None):
 
     # PostProcessors
     postprocessors = list(opts.add_postprocessors)
-    if sponsorblock_query:
-        postprocessors.append({
-            'key': 'SponsorBlock',
-            'categories': sponsorblock_query,
-            'api': opts.sponsorblock_api,
-            # Run this immediately after extraction is complete
-            'when': 'pre_process'
-        })
     if opts.parse_metadata:
         postprocessors.append({
             'key': 'MetadataParser',
@@ -542,13 +534,15 @@ def _real_main(argv=None):
             remove_chapters_patterns.append(re.compile(regex))
         except re.error as err:
             parser.error(f'invalid --remove-chapters regex {regex!r} - {err}')
-    if opts.remove_chapters or sponsorblock_query:
+    if opts.remove_chapters or opts.sponsorblock_mark or opts.sponsorblock_remove:
         postprocessors.append({
             'key': 'ModifyChapters',
             'remove_chapters_patterns': remove_chapters_patterns,
+            'mark_sponsor_segments': opts.sponsorblock_mark,
             'remove_sponsor_segments': opts.sponsorblock_remove,
             'remove_ranges': remove_ranges,
             'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
+            'sponsorblock_api': opts.sponsorblock_api,
             'force_keyframes': opts.force_keyframes_at_cuts
         })
     # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
