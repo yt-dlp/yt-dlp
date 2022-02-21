@@ -1664,9 +1664,7 @@ class YoutubeDL(object):
                     if 'n' in string_segment:
                         mobj = re.fullmatch(
                             r'(?P<coef>\d+)[mn](?P<ofs>[+-]\d+)?', playlistitems_str)
-                        if not mobj:
-                            mobj = re.fullmatch(
-                                r'(?P<ofs>[+-]?\d+)?\+(?P<coef>\d+)[mn]', playlistitems_str)
+                        assert mobj
 
                         coef_s, ofs_s = mobj.group('coef', 'ofs')
                         coef, ofs = int(coef_s), int_or_none(ofs_s, default=0)
