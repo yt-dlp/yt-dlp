@@ -1657,7 +1657,7 @@ class YoutubeDL(object):
             playlistend = None
 
         playlistitems_str = self.params.get('playlist_items')
-        playlistitems = None
+        playlistitems, infinite = None, False
         if playlistitems_str is not None:
             def iter_playlistitems(format):
                 for string_segment in format.split(','):
@@ -1667,7 +1667,24 @@ class YoutubeDL(object):
                             yield int(item)
                     else:
                         yield int(string_segment)
-            playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
+
+            def every_item_range(mobj: re.Match):
+                coef_s, ofs_s = mobj.group('coef', 'ofs')
+                coef, ofs = int(coef_s), int_or_none(ofs_s, default=0)
+                if ofs < 0:
+                    ofs += coef
+                yield from itertools.count(ofs, coef)
+                # cnt = ofs
+                # while True:
+                #     yield cnt
+                #     assert cnt < 700
+                #     cnt += coef
+
+            xny_match = re.fullmatch(r'(?P<coef>\d+)[mn](?P<ofs>[+-]\d+)?', playlistitems_str)
+            if xny_match:
+                playlistitems, infinite = LazyList(every_item_range(xny_match)), True
+            else:
+                playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
 
         ie_entries = ie_result['entries']
         if isinstance(ie_entries, list):
@@ -1705,7 +1722,7 @@ class YoutubeDL(object):
             except (IndexError, EntryNotInPlaylist):
                 if incomplete_entries:
                     raise EntryNotInPlaylist(f'Entry {i} cannot be found')
-                elif not playlistitems:
+                elif not playlistitems or infinite:
                     break
             entries.append(entry)
             try:
@@ -1767,7 +1784,7 @@ class YoutubeDL(object):
                 entry['__x_forwarded_for_ip'] = x_forwarded_for
             extra = {
                 'n_entries': n_entries,
-                '_last_playlist_index': max(playlistitems) if playlistitems else (playlistend or n_entries),
+                '_last_playlist_index': max(playlistitems) if playlistitems and not infinite  else (playlistend or n_entries),
                 'playlist_count': ie_result.get('playlist_count'),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i,
