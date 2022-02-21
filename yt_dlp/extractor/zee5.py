@@ -23,7 +23,7 @@ class Zee5IE(InfoExtractor):
                         zee5:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
-                            (?:tv-shows|kids|zee5originals)(?:/[^#/?]+){3}
+                            (?:tv-shows|kids|web-series|zee5originals)(?:/[^#/?]+){3}
                             |movies/[^#/?]+
                         )/(?P<display_id>[^#/?]+)/
                      )
@@ -81,6 +81,9 @@ class Zee5IE(InfoExtractor):
         'only_matching': True
     }, {
         'url': 'https://www.zee5.com/global/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
+        'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/web-series/details/mithya/0-6-4z587408/maine-dekhi-hai-uski-mrityu/0-1-6z587412',
         'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
@@ -179,7 +182,7 @@ class Zee5SeriesIE(InfoExtractor):
                      (?:
                         zee5:series:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
-                        (?:tv-shows|kids|zee5originals)(?:/[^#/?]+){2}/
+                        (?:tv-shows|web-series|kids|zee5originals)(?:/[^#/?]+){2}/
                      )
                      (?P<id>[^#/?]+)(?:/episodes)?/?(?:$|[?#])
                      '''
@@ -215,6 +218,9 @@ class Zee5SeriesIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.zee5.com/tv-shows/details/chala-hawa-yeu-dya-ladies-zindabaad/0-6-2943/episodes',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zee5.com/web-series/details/mithya/0-6-4z587408',
         'only_matching': True,
     }]
 
