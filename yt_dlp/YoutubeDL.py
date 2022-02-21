@@ -1661,28 +1661,27 @@ class YoutubeDL(object):
         if playlistitems_str is not None:
             def iter_playlistitems(format):
                 for string_segment in format.split(','):
-                    if '-' in string_segment:
+                    if 'n' in string_segment:
+                        mobj = re.fullmatch(
+                            r'(?P<coef>\d+)[mn](?P<ofs>[+-]\d+)?', playlistitems_str)
+                        if not mobj:
+                            mobj = re.fullmatch(
+                                r'(?P<ofs>[+-]?\d+)?\+(?P<coef>\d+)[mn]', playlistitems_str)
+
+                        coef_s, ofs_s = mobj.group('coef', 'ofs')
+                        coef, ofs = int(coef_s), int_or_none(ofs_s, default=0)
+                        if ofs < 0:
+                            ofs += coef
+                        yield from itertools.count(ofs, coef)
+                    elif '-' in string_segment:
                         start, end = string_segment.split('-')
                         for item in range(int(start), int(end) + 1):
                             yield int(item)
                     else:
                         yield int(string_segment)
 
-            def every_item_range(mobj: re.Match):
-                coef_s, ofs_s = mobj.group('coef', 'ofs')
-                coef, ofs = int(coef_s), int_or_none(ofs_s, default=0)
-                if ofs < 0:
-                    ofs += coef
-                yield from itertools.count(ofs, coef)
-                # cnt = ofs
-                # while True:
-                #     yield cnt
-                #     assert cnt < 700
-                #     cnt += coef
-
-            xny_match = re.fullmatch(r'(?P<coef>\d+)[mn](?P<ofs>[+-]\d+)?', playlistitems_str)
-            if xny_match:
-                playlistitems, infinite = LazyList(every_item_range(xny_match)), True
+            if 'n' in playlistitems_str:
+                playlistitems, infinite = LazyList(iter_playlistitems(playlistitems_str)), True
             else:
                 playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
 
