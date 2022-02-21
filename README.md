@@ -951,7 +951,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT      Convert the thumbnails to another format
-                                     (currently supported: jpg|png)
+                                     (currently supported: jpg|png|webp)
     --split-chapters                 Split video into multiple files based on
                                      internal chapters. The "chapter:" prefix
                                      can be used with "--paths" and "--output"

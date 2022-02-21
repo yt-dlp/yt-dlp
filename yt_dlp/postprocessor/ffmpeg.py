@@ -1055,7 +1055,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('jpg', 'png')
+    SUPPORTED_EXTS = ('jpg', 'png', 'webp')
 
     def __init__(self, downloader=None, format=None):
         super(FFmpegThumbnailsConvertorPP, self).__init__(downloader)
