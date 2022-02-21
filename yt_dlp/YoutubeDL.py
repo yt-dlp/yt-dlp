@@ -1669,6 +1669,9 @@ class YoutubeDL(object):
                         coef_s, ofs_s = mobj.group('coef', 'ofs')
                         coef, ofs = int(coef_s), int_or_none(ofs_s, default=0)
                         if coef == 0:
+                            if ofs < 0:
+                                # broken range
+                                continue
                             yield ofs
                         else:
                             while ofs <= 0:
