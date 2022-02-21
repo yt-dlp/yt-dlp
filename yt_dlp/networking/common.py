@@ -50,7 +50,6 @@ class Request:
         self.timeout = timeout
 
         # TODO: add support for passing different types of auth into a YDlRequest, and don't add the headers.
-        #  That can be done in the backend
         if basic_auth_header:
             self.unredirected_headers['Authorization'] = basic_auth_header
 
@@ -169,9 +168,6 @@ def update_YDLRequest(req: Request, url=None, data=None, headers=None, query=Non
     return req
 
 
-# TODO: add support for unified debug printing?
-# TODO: This and the subclasses will likely need some work
-# TODO: add original request (or request history?)
 class HTTPResponse(ABC, io.IOBase):
     """
     Adapter interface for responses
@@ -199,7 +195,6 @@ class HTTPResponse(ABC, io.IOBase):
 
     @abstractmethod
     def geturl(self):
-        """return the final url"""
         pass
 
     def get_redirect_url(self):
@@ -328,7 +323,7 @@ class BackendManager:
         if isinstance(req, compat_urllib_request.Request):
             self.ydl.deprecation_warning(
                 'An urllib.request.Request has been passed to urlopen(). '
-                'This is deprecated and may not work in the future. Please use yt_dlp.network.common.Request instead.')
+                'This is deprecated and may not work in the future. Please use yt_dlp.networking.common.Request instead.')
             req = req_to_ydlreq(req)
 
         if req.headers.get('Youtubedl-no-compression'):
