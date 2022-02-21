@@ -1670,9 +1670,12 @@ class YoutubeDL(object):
 
                         coef_s, ofs_s = mobj.group('coef', 'ofs')
                         coef, ofs = int(coef_s), int_or_none(ofs_s, default=0)
-                        if ofs < 0:
+                        while ofs < 0:
                             ofs += coef
-                        yield from itertools.count(ofs, coef)
+                        if coef == 0:
+                            yield ofs
+                        else:
+                            yield from itertools.count(ofs, coef)
                     elif '-' in string_segment:
                         start, end = string_segment.split('-')
                         for item in range(int(start), int(end) + 1):
