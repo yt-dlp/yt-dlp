@@ -1659,35 +1659,55 @@ class YoutubeDL(object):
         playlistitems_str = self.params.get('playlist_items')
         playlistitems, infinite = None, False
         if playlistitems_str is not None:
-            def iter_playlistitems(format):
-                for string_segment in format.split(','):
-                    if 'n' in string_segment:
-                        mobj = re.fullmatch(
-                            r'(?P<coef>\d+)[mn](?P<ofs>[+-]\d+)?', playlistitems_str)
-                        assert mobj
+            iter_playlistitems = []
 
-                        coef_s, ofs_s = mobj.group('coef', 'ofs')
-                        coef, ofs = int(coef_s), int_or_none(ofs_s, default=0)
-                        if coef == 0:
-                            if ofs < 0:
-                                # broken range
-                                continue
-                            yield ofs
-                        else:
-                            while ofs <= 0:
-                                ofs += coef
-                            yield from itertools.count(ofs, coef)
-                    elif '-' in string_segment:
-                        start, end = string_segment.split('-')
-                        for item in range(int(start), int(end) + 1):
-                            yield int(item)
-                    else:
-                        yield int(string_segment)
+            for string_segment in playlistitems_str.split(','):
+                if not string_segment:
+                    raise IndexError('There is two or more consecutive commas.')
+                mobj = re.fullmatch(
+                    r'(?x)(?P<b>[+-]?\d+)?(?P<r>[:-](?P<e>[+-]?\d+|inf)?(?::(?P<s>[+-]?\d+))?)?', string_segment)
+                if not mobj:
+                    raise IndexError(f'{string_segment} has error in syntax.')
+                b, r, e, s = mobj.group('b', 'r', 'e', 's')
+                # there's no possibility that all groups are empty
+                real_begin, real_end = int(b or 1), int_or_none(e)
+                real_step = int(s or 1)
+                if b and not r:
+                    # just number
+                    iter_playlistitems.append((real_begin, ))
+                elif e and e != 'inf':
+                    # range and finite end, with or without start and step
+                    if real_begin == real_end and real_step in (0, 1):
+                        # special case: start and end are the same
+                        iter_playlistitems.append((real_begin, ))
+                        continue
 
-            if 'n' in playlistitems_str:
-                playlistitems, infinite = LazyList(iter_playlistitems(playlistitems_str)), True
+                    if real_step == 0:
+                        raise IndexError(f'Step must not be zero')
+                    iter_playlistitems.append(range(real_begin, real_end + 1, real_step))
+                elif not e or e == 'inf':
+                    # range and infinite end, with or without start and step
+                    if real_step == 0:
+                        if e:
+                            raise IndexError(f'Step must not be zero')
+                        # special case: without end, treat this as single literal
+                        iter_playlistitems.append((real_begin, ))
+                        continue
+
+                    if real_begin < 0:
+                        # special case: range starts from negative, so let it toward -1 instead
+                        iter_playlistitems.append(range(real_begin, 0, real_step))
+                        continue
+
+                    infinite = True
+                    iter_playlistitems.append(itertools.count(real_begin, real_step))
+
+            iter_playlistitems = filter(None, itertools.chain(*iter_playlistitems))
+
+            if infinite:
+                playlistitems = LazyList(iter_playlistitems)
             else:
-                playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
+                playlistitems = orderedSet(iter_playlistitems)
 
         ie_entries = ie_result['entries']
         if isinstance(ie_entries, list):
@@ -1696,7 +1716,7 @@ class YoutubeDL(object):
             ie_result['playlist_count'] = ie_result.get('playlist_count') or playlist_count
 
             def get_entry(i):
-                return ie_entries[i - 1]
+                return ie_entries[i - 1 if i >= 0 else i]
         else:
             msg = 'Downloading %d videos'
             if not isinstance(ie_entries, (PagedList, LazyList)):
@@ -1707,7 +1727,7 @@ class YoutubeDL(object):
 
             def get_entry(i):
                 return YoutubeDL.__handle_extraction_exceptions(
-                    lambda self, i: ie_entries[i - 1]
+                    lambda self, i: ie_entries[i - 1 if i >= 0 else i]
                 )(self, i)
 
         entries, broken = [], False

@@ -1044,22 +1044,29 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '2,4', 'playlistreverse': True}, [4, 2])
         test_selection({'playlist_items': '4,2'}, [4, 2])
 
-        # Tests for --playlist-items Xn+Y
+        # Tests for --playlist-items start:end:step
         # https://discord.com/channels/807245652072857610/926071133051187242
-        test_selection({'playlist_items': '0n'}, [])
-        test_selection({'playlist_items': '0n+1'}, [1])
-        test_selection({'playlist_items': '2n+1'}, [1, 3])
-        test_selection({'playlist_items': '2n'}, [2, 4])
-        test_selection({'playlist_items': '2n+0'}, [2, 4])
-        test_selection({'playlist_items': '3n+1'}, [1, 4])
-        test_selection({'playlist_items': '3n+5'}, [])
-        test_selection({'playlist_items': '5n+1'}, [1])
-        test_selection({'playlist_items': '5n+5'}, [])
+        test_selection({'playlist_items': '0:0:0'}, [])
+        test_selection({'playlist_items': '1::0'}, [1])
+        # test_selection({'playlist_items': '1:inf:0'}, [1])  # error
+        test_selection({'playlist_items': '1:inf:2'}, [1, 3])
+        test_selection({'playlist_items': '::2'}, [1, 3])
+        test_selection({'playlist_items': '0::2'}, [2, 4])
+        test_selection({'playlist_items': '1::3'}, [1, 4])
+        test_selection({'playlist_items': '1-:2'}, [1, 3])
+        test_selection({'playlist_items': '0-2:2'}, [2])
 
-        test_selection({'playlist_items': '0n-2'}, [])
-        test_selection({'playlist_items': '2n-1'}, [1, 3])
-        test_selection({'playlist_items': '3n-1'}, [2])
-        test_selection({'playlist_items': '5n-5'}, [])
+        # test_selection({'playlist_items': '-2:inf'}, [3, 4])
+        # test_selection({'playlist_items': '-2:inf:2'}, [3])
+
+        test_selection({'playlist_items': '5::3'}, [])
+        test_selection({'playlist_items': '1::5'}, [1])
+        test_selection({'playlist_items': '5::5'}, [])
+
+        # test_selection({'playlist_items': '-2::0'}, [3])
+        # test_selection({'playlist_items': '-1::2'}, [4])
+        # test_selection({'playlist_items': '-1::3'}, [4])
+        test_selection({'playlist_items': '-5::5'}, [])
 
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227
