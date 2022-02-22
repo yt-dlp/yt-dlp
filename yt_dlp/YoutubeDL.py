@@ -1037,8 +1037,7 @@ class YoutubeDL(object):
     @staticmethod
     def _copy_infodict(info_dict):
         info_dict = dict(info_dict)
-        for key in ('__original_infodict', '__postprocessors'):
-            info_dict.pop(key, None)
+        info_dict.pop('__postprocessors', None)
         return info_dict
 
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False):
@@ -2512,8 +2511,6 @@ class YoutubeDL(object):
         if '__x_forwarded_for_ip' in info_dict:
             del info_dict['__x_forwarded_for_ip']
 
-        # TODO Central sorting goes here
-
         if self.params.get('check_formats') is True:
             formats = LazyList(self._check_formats(formats[::-1]), reverse=True)
 
@@ -2525,6 +2522,12 @@ class YoutubeDL(object):
             info_dict['formats'] = formats
 
         info_dict, _ = self.pre_process(info_dict)
+
+        if self._match_entry(info_dict) is not None:
+            return info_dict
+
+        self.post_extract(info_dict)
+        info_dict, _ = self.pre_process(info_dict, 'after_filter')
 
         # The pre-processors may have modified the formats
         formats = info_dict.get('formats', [info_dict])
@@ -2610,15 +2613,12 @@ class YoutubeDL(object):
                     + ', '.join([f['format_id'] for f in formats_to_download]))
             max_downloads_reached = False
             for i, fmt in enumerate(formats_to_download):
-                formats_to_download[i] = new_info = dict(info_dict)
-                # Save a reference to the original info_dict so that it can be modified in process_info if needed
+                formats_to_download[i] = new_info = self._copy_infodict(info_dict)
                 new_info.update(fmt)
-                new_info['__original_infodict'] = info_dict
                 try:
                     self.process_info(new_info)
                 except MaxDownloadsReached:
                     max_downloads_reached = True
-                new_info.pop('__original_infodict')
                 # Remove copied info
                 for key, val in tuple(new_info.items()):
                     if info_dict.get(key) == val:
@@ -2826,7 +2826,7 @@ class YoutubeDL(object):
         return None
 
     def process_info(self, info_dict):
-        """Process a single resolved IE result. (Modified it in-place)"""
+        """Process a single resolved IE result. (Modifies it in-place)"""
 
         assert info_dict.get('_type', 'video') == 'video'
         original_infodict = info_dict
@@ -2834,17 +2834,21 @@ class YoutubeDL(object):
         if 'format' not in info_dict and 'ext' in info_dict:
             info_dict['format'] = info_dict['ext']
 
+        # This is mostly just for backward compatibility of process_info
+        # As a side-effect, this allows for format-specific filters
         if self._match_entry(info_dict) is not None:
             info_dict['__write_download_archive'] = 'ignore'
             return
 
+        # Does nothing under normal operation - for backward compatibility of process_info
         self.post_extract(info_dict)
-        self._num_downloads += 1
 
         # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
         temp_filename = self.prepare_filename(info_dict, 'temp')
         files_to_move = {}
+
+        self._num_downloads += 1
 
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
@@ -3259,17 +3263,14 @@ class YoutubeDL(object):
             return info_dict
         info_dict.setdefault('epoch', int(time.time()))
         info_dict.setdefault('_type', 'video')
-        remove_keys = {'__original_infodict'}  # Always remove this since this may contain a copy of the entire dict
-        keep_keys = ['_type']  # Always keep this to facilitate load-info-json
+
         if remove_private_keys:
-            remove_keys |= {
+            reject = lambda k, v: v is None or (k.startswith('_') and k != '_type') or k in {
                 'requested_downloads', 'requested_formats', 'requested_subtitles', 'requested_entries',
                 'entries', 'filepath', 'infojson_filename', 'original_url', 'playlist_autonumber',
             }
-            reject = lambda k, v: k not in keep_keys and (
-                k.startswith('_') or k in remove_keys or v is None)
         else:
-            reject = lambda k, v: k in remove_keys
+            reject = lambda k, v: False
 
         def filter_fn(obj):
             if isinstance(obj, dict):
@@ -3296,14 +3297,8 @@ class YoutubeDL(object):
                     actual_post_extract(video_dict or {})
                 return
 
-            post_extractor = info_dict.get('__post_extractor') or (lambda: {})
-            extra = post_extractor().items()
-            info_dict.update(extra)
-            info_dict.pop('__post_extractor', None)
-
-            original_infodict = info_dict.get('__original_infodict') or {}
-            original_infodict.update(extra)
-            original_infodict.pop('__post_extractor', None)
+            post_extractor = info_dict.pop('__post_extractor', None) or (lambda: {})
+            info_dict.update(post_extractor())
 
         actual_post_extract(info_dict or {})
 

@@ -1550,11 +1550,11 @@ def create_parser():
             'and (optionally) arguments to be passed to it, separated by a colon ":". '
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
-            'It can be one of "pre_process" (after extraction), '
-            '"before_dl" (before video download), "post_process" (after video download; default), '
-            '"after_move" (after moving file to their final locations), '
+            'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
+            '"before_dl" (before each video download), "post_process" (after each video download; default), '
+            '"after_move" (after moving video file to it\'s final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
-            'or "playlist" (end of playlist). '
+            'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
