@@ -262,7 +262,7 @@ class NhkForSchoolSubjectIE(InfoExtractor):
         'eigo', 'tokkatsu',
         'tokushi', 'sonota',
     )
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)(?:$|[#?])' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
 
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/',
@@ -277,15 +277,19 @@ class NhkForSchoolSubjectIE(InfoExtractor):
             'id': 'rika',
             'title': '理科',
         },
-        'playlist_mincount': 15,  # as of 2021/06/25
+        'playlist_mincount': 15,
     }]
+
+    @classmethod
+    def suitable(cls, url):
+        return super(NhkForSchoolSubjectIE, cls).suitable(url) and not NhkForSchoolProgramListIE.suitable(url)
 
     def _real_extract(self, url):
         subject_id = self._match_id(url)
         webpage = self._download_webpage(url, subject_id)
 
         return self.playlist_from_matches(
-            re.finditer(rf'href="((?:https?://www\.nhk\.or\.jp)?/school/{re.escape(subject_id)}/[^/]+/")', webpage),
+            re.finditer(rf'href="((?:https?://www\.nhk\.or\.jp)?/school/{re.escape(subject_id)}/[^/]+/)"', webpage),
             subject_id,
             self._html_search_regex(r'(?s)<span\s+class="subjectName">\s*<img\s*[^<]+>\s*([^<]+?)</span>', webpage, 'title', fatal=False),
             lambda g: urljoin(url, g.group(1)))
