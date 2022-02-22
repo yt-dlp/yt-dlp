@@ -262,9 +262,7 @@ class NhkForSchoolSubjectIE(InfoExtractor):
         'eigo', 'tokkatsu',
         'tokushi', 'sonota',
     )
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)' % (
-        '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
-    )
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
 
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/',
