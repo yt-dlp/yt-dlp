@@ -1307,6 +1307,10 @@ class InfoExtractor(object):
     def _og_search_url(self, html, **kargs):
         return self._og_search_property('url', html, **kargs)
 
+    def _html_extract_title(self, html, name, **kwargs):
+        return self._html_search_regex(
+            r'(?s)<title>(.*?)</title>', html, name, **kwargs)
+
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
         name = variadic(name)
         if display_name is None:
