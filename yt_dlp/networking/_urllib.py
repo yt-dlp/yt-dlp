@@ -18,7 +18,7 @@ from ..compat import (
     compat_urlparse, compat_HTTPError
 )
 
-from .common import HTTPResponse, YDLBackendHandler, Request, get_std_headers
+from .common import HTTPResponse, BackendHandler, Request, get_std_headers
 from .socksproxy import sockssocket
 from .utils import handle_youtubedl_headers, make_ssl_context, socks_create_proxy_args
 from ..utils import (
@@ -386,7 +386,7 @@ class UrllibResponseAdapter(HTTPResponse):
             # In Python 3.9+, res.status was introduced and res.getcode() was deprecated [1]
             # 1. https://github.com/python/cpython/commit/ff2e18286560e981f4e09afb0d2448ea994414d8
             headers=res.headers, status=res.status if hasattr(res, 'status') else res.getcode() if hasattr(res, 'getcode') else None,
-            version=res.version if hasattr(res, 'version') else None)
+            http_version=res.version if hasattr(res, 'version') else None)
 
     def geturl(self):
         return self._res.geturl()
@@ -416,7 +416,7 @@ class UrllibResponseAdapter(HTTPResponse):
         return self._res.tell()
 
 
-class UrllibHandler(YDLBackendHandler):
+class UrllibHandler(BackendHandler):
     SUPPORTED_PROTOCOLS = ['http', 'https', 'data']
 
     def _initialize(self):

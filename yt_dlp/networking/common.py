@@ -43,7 +43,6 @@ class Request:
         For everything else, see urllib.request.Request docs: https://docs.python.org/3/library/urllib.request.html?highlight=request#urllib.request.Request
         """
         url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
-        # Using Request object for url parsing.
         self.__request_store = urllib.request.Request(url, data=data, method=method)
         self._headers = UniqueHTTPHeaderStore(headers)
         self._unredirected_headers = UniqueHTTPHeaderStore(unredirected_headers)
@@ -172,10 +171,9 @@ class HTTPResponse(ABC, io.IOBase):
     """
     Adapter interface for responses
     """
-
     REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308]
 
-    def __init__(self, headers, status, version=None, reason=None):
+    def __init__(self, headers, status, http_version=None, reason=None):
         self.headers = HTTPHeaderStore(headers)
         self.status = self.code = status
         self.reason = reason
@@ -184,7 +182,7 @@ class HTTPResponse(ABC, io.IOBase):
                 self.reason = HTTPStatus(status).name.replace('_', ' ').title()
             except ValueError:
                 pass
-        self.version = version  # HTTP Version, e.g. HTTP 1.1 = 11
+        self.version = self.http_version = http_version  # HTTP Version, e.g. HTTP 1.1 = 11
 
     def getcode(self):
         return self.status
@@ -217,7 +215,7 @@ class HTTPResponse(ABC, io.IOBase):
         raise NotImplementedError
 
 
-class BackendHandler(ABC):
+class BaseBackendHandler:
     """
     Bare-bones backend handler.
     Use this for defining custom protocols for extractors.
@@ -236,13 +234,11 @@ class BackendHandler(ABC):
         """Validate if handler is suitable for given request. Can override in subclasses."""
 
 
-class YDLBackendHandler(BackendHandler):
+class BackendHandler(BaseBackendHandler):
     """Network Backend Handler class
     Responsible for handling requests.
 
-    Backend handlers accept a lot of parameters. In order not to saturate
-    the object constructor with arguments, it receives a dictionary of
-    options instead.
+    YDL Backend Handlers receive a dictionary of options.
 
     Available options:
     cookiejar:          A YoutubeDLCookieJar to store cookies in
@@ -349,6 +345,10 @@ class BackendManager:
 
 
 class HTTPHeaderStore(Message):
+    """
+    An object to store and access headers case-insensitively.
+    Note: This allows multiple headers of the same key.
+    """
     def __init__(self, data=None):
         super().__init__()
         if data is not None:
@@ -389,6 +389,9 @@ class HTTPHeaderStore(Message):
 
 
 class UniqueHTTPHeaderStore(HTTPHeaderStore):
+    """
+    Same as HTTPHeaderStore, but does not allow duplicate/multiple headers.
+    """
     def add_header(self, *args, **kwargs):
         return self.replace_header(*args, **kwargs)
 
@@ -525,6 +528,13 @@ def get_std_headers(supported_encodings=None):
     return headers
 
 
-class UnsupportedBackendHandler(YDLBackendHandler):
+class UnsupportedBackendHandler(BackendHandler):
+    """
+    Fallback backend handler is a request is not supported.
+
+    Add useful messages here of why the request may not be supported, if possible.
+    E.g. a dependency is required.
+
+    """
     def can_handle(self, request, **req_kwargs):
         raise RequestError('This request is not supported')
