@@ -282,16 +282,13 @@ class NhkForSchoolSubjectIE(InfoExtractor):
 
     def _real_extract(self, url):
         subject_id = self._match_id(url)
-        url = f'https://www.nhk.or.jp/school/{subject_id}/'
-
         webpage = self._download_webpage(url, subject_id)
 
-        return self.playlist_result(
-            [self.url_result(urljoin(url, g.group(1)))
-             for g in re.finditer(
-                rf'href="((?:https?://www\.nhk\.or\.jp)?/school/{re.escape(subject_id)}/[^/]+/")', webpage)],
+        return self.playlist_from_matches(
+            re.finditer(rf'href="((?:https?://www\.nhk\.or\.jp)?/school/{re.escape(subject_id)}/[^/]+/")', webpage),
             subject_id,
-            self._html_search_regex(r'(?s)<span\s+class="subjectName">\s*<img\s*[^<]+>\s*([^<]+?)</span>', webpage, 'title', fatal=False))
+            self._html_search_regex(r'(?s)<span\s+class="subjectName">\s*<img\s*[^<]+>\s*([^<]+?)</span>', webpage, 'title', fatal=False),
+            lambda g: urljoin(url, g.group(1)))
 
 
 class NhkForSchoolProgramListIE(InfoExtractor):
