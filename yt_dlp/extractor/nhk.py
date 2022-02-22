@@ -262,7 +262,7 @@ class NhkForSchoolSubjectIE(InfoExtractor):
         'eigo', 'tokkatsu',
         'tokushi', 'sonota',
     )
-    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)(?:$|[#?])' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
 
     _TESTS = [{
         'url': 'https://www.nhk.or.jp/school/sougou/',
@@ -279,10 +279,6 @@ class NhkForSchoolSubjectIE(InfoExtractor):
         },
         'playlist_mincount': 15,  # as of 2021/06/25
     }]
-
-    @classmethod
-    def suitable(cls, url):
-        return super(NhkForSchoolSubjectIE, cls).suitable(url) and not NhkForSchoolProgramListIE.suitable(url)
 
     def _real_extract(self, url):
         subject_id = self._match_id(url)
