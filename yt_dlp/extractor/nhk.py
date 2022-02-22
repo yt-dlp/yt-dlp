@@ -198,55 +198,7 @@ class NhkForSchoolBangumiIE(InfoExtractor):
             'upload_date': '20140402',
             'ext': 'mp4',
 
-            'chapters': [{
-                'start_time': 0,
-                'end_time': 21.521,
-                'title': 'オープニング'
-            }, {
-                'start_time': 21.521,
-                'end_time': 77.11,
-                'title': 'scene 01 『きのこ たべろな』'
-            }, {
-                'start_time': 77.11,
-                'end_time': 133.433,
-                'title': 'scene 02 『このはな さけん』'
-            }, {
-                'start_time': 133.433,
-                'end_time': 170.703,
-                'title': 'scene 03 『さ』ではなく『き』だった'
-            }, {
-                'start_time': 170.703,
-                'end_time': 225.592,
-                'title': 'scene 04 『くよが いる』とは…'
-            }, {
-                'start_time': 225.592,
-                'end_time': 256.055,
-                'title': 'scene 05 “ことばドリル”にちょうせん！'
-            }, {
-                'start_time': 256.055,
-                'end_time': 345.011,
-                'title': 'scene 06 ことばアンケート'
-            }, {
-                'start_time': 345.011,
-                'end_time': 408.474,
-                'title': 'scene 07 ハソバーグ？'
-            }, {
-                'start_time': 408.474,
-                'end_time': 464.263,
-                'title': 'scene 08 『ン』と『ソ』のかきかた'
-            }, {
-                'start_time': 464.263,
-                'end_time': 524.09,
-                'title': 'scene 09 『シ』と『ツ』がちがうと…'
-            }, {
-                'start_time': 524.09,
-                'end_time': 555.054,
-                'title': 'scene 10 “ことばドリル”にちょうせん！(2)'
-            }, {
-                'start_time': 555.054,
-                'end_time': 599.999,
-                'title': 'scene 11 うたっておぼえる漢字ドリル'
-            }]
+            'chapters': 'count:12'
         },
         'params': {
             # m3u8 download
