@@ -1787,7 +1787,7 @@ class YoutubeDL(object):
                 entry['__x_forwarded_for_ip'] = x_forwarded_for
             extra = {
                 'n_entries': n_entries,
-                '_last_playlist_index': max(playlistitems) if playlistitems and not infinite  else (playlistend or n_entries),
+                '_last_playlist_index': max(playlistitems) if playlistitems and not infinite else (playlistend or n_entries),
                 'playlist_count': ie_result.get('playlist_count'),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i,
