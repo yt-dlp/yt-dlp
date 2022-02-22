@@ -1683,13 +1683,13 @@ class YoutubeDL(object):
                         continue
 
                     if real_step == 0:
-                        raise IndexError(f'Step must not be zero')
+                        raise IndexError('Step must not be zero')
                     iter_playlistitems.append(range(real_begin, real_end + 1, real_step))
                 elif not e or e == 'inf':
                     # range and infinite end, with or without start and step
                     if real_step == 0:
                         if e:
-                            raise IndexError(f'Step must not be zero')
+                            raise IndexError('Step must not be zero')
                         # special case: without end, treat this as single literal
                         iter_playlistitems.append((real_begin, ))
                         continue
