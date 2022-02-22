@@ -270,7 +270,7 @@ class NhkForSchoolSubjectIE(InfoExtractor):
             'id': 'sougou',
             'title': '総合的な学習の時間',
         },
-        'playlist_mincount': 16,  # as of 2021/06/20
+        'playlist_mincount': 16,
     }, {
         'url': 'https://www.nhk.or.jp/school/rika/',
         'info_dict': {
