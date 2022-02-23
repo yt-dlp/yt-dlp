@@ -43,14 +43,12 @@ class Request:
         For everything else, see urllib.request.Request docs: https://docs.python.org/3/library/urllib.request.html?highlight=request#urllib.request.Request
         """
         url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
-        # Using Request object for url parsing.
         self.__request_store = urllib.request.Request(url, data=data, method=method)
         self._headers = UniqueHTTPHeaderStore(headers)
         self._unredirected_headers = UniqueHTTPHeaderStore(unredirected_headers)
         self.timeout = timeout
 
         # TODO: add support for passing different types of auth into a YDlRequest, and don't add the headers.
-        #  That can be done in the backend
         if basic_auth_header:
             self.unredirected_headers['Authorization'] = basic_auth_header
 
@@ -169,17 +167,13 @@ def update_YDLRequest(req: Request, url=None, data=None, headers=None, query=Non
     return req
 
 
-# TODO: add support for unified debug printing?
-# TODO: This and the subclasses will likely need some work
-# TODO: add original request (or request history?)
 class HTTPResponse(ABC, io.IOBase):
     """
     Adapter interface for responses
     """
-
     REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308]
 
-    def __init__(self, headers, status, version=None, reason=None):
+    def __init__(self, headers, status, http_version=None, reason=None):
         self.headers = HTTPHeaderStore(headers)
         self.status = self.code = status
         self.reason = reason
@@ -188,7 +182,7 @@ class HTTPResponse(ABC, io.IOBase):
                 self.reason = HTTPStatus(status).name.replace('_', ' ').title()
             except ValueError:
                 pass
-        self.version = version  # HTTP Version, e.g. HTTP 1.1 = 11
+        self.version = self.http_version = http_version  # HTTP Version, e.g. HTTP 1.1 = 11
 
     def getcode(self):
         return self.status
@@ -199,7 +193,6 @@ class HTTPResponse(ABC, io.IOBase):
 
     @abstractmethod
     def geturl(self):
-        """return the final url"""
         pass
 
     def get_redirect_url(self):
@@ -222,9 +215,9 @@ class HTTPResponse(ABC, io.IOBase):
         raise NotImplementedError
 
 
-class BackendHandler(ABC):
+class RequestHandler:
     """
-    Bare-bones backend handler.
+    Bare-bones request handler.
     Use this for defining custom protocols for extractors.
     """
     SUPPORTED_PROTOCOLS: list = None
@@ -241,13 +234,11 @@ class BackendHandler(ABC):
         """Validate if handler is suitable for given request. Can override in subclasses."""
 
 
-class YDLBackendHandler(BackendHandler):
-    """Network Backend Handler class
+class BackendAdapter(RequestHandler):
+    """Network Backend adapter class
     Responsible for handling requests.
 
-    Backend handlers accept a lot of parameters. In order not to saturate
-    the object constructor with arguments, it receives a dictionary of
-    options instead.
+    It receives a dictionary of options.
 
     Available options:
     cookiejar:          A YoutubeDLCookieJar to store cookies in
@@ -281,7 +272,7 @@ class YDLBackendHandler(BackendHandler):
         self.ydl.write_debug(*args, **kwargs)
 
     def can_handle(self, request: Request, **req_kwargs) -> bool:
-        """Validate if handler is suitable for given request. Can override in subclasses."""
+        """Validate if adapter is suitable for given request. Can override in subclasses."""
         return self._is_supported_protocol(request)
 
     def _initialize(self):
@@ -304,13 +295,13 @@ class BackendManager:
         proxies = urllib.request.getproxies()
         return self.ydl.params.get('proxy') or proxies.get('http') or proxies.get('https')
 
-    def add_handler(self, handler: BackendHandler):
+    def add_handler(self, handler: RequestHandler):
         if handler not in self.handlers:
             self.handlers.append(handler)
 
     def remove_handler(self, handler):
         """
-        Remove backend handler(s)
+        Remove request handler(s)
         @param handler: Handler object or handler type.
         Specifying handler type will remove all handlers of that type.
         idea from yt-dlp#1687
@@ -328,7 +319,7 @@ class BackendManager:
         if isinstance(req, compat_urllib_request.Request):
             self.ydl.deprecation_warning(
                 'An urllib.request.Request has been passed to urlopen(). '
-                'This is deprecated and may not work in the future. Please use yt_dlp.network.common.Request instead.')
+                'This is deprecated and may not work in the future. Please use yt_dlp.networking.common.Request instead.')
             req = req_to_ydlreq(req)
 
         if req.headers.get('Youtubedl-no-compression'):
@@ -354,6 +345,10 @@ class BackendManager:
 
 
 class HTTPHeaderStore(Message):
+    """
+    An object to store and access headers case-insensitively.
+    Note: This allows multiple headers of the same key.
+    """
     def __init__(self, data=None):
         super().__init__()
         if data is not None:
@@ -394,6 +389,9 @@ class HTTPHeaderStore(Message):
 
 
 class UniqueHTTPHeaderStore(HTTPHeaderStore):
+    """
+    Same as HTTPHeaderStore, but does not allow duplicate/multiple headers.
+    """
     def add_header(self, *args, **kwargs):
         return self.replace_header(*args, **kwargs)
 
@@ -530,6 +528,13 @@ def get_std_headers(supported_encodings=None):
     return headers
 
 
-class UnsupportedBackendHandler(YDLBackendHandler):
+class UnsupportedBackend(BackendAdapter):
+    """
+    Fallback backend adapter if a request is not supported.
+
+    Add useful messages here of why the request may not be supported, if possible.
+    E.g. a dependency is required.
+
+    """
     def can_handle(self, request, **req_kwargs):
         raise RequestError('This request is not supported')

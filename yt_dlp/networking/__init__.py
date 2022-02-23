@@ -1,5 +1,5 @@
-from ._urllib import UrllibHandler
-from .common import UnsupportedBackendHandler
+from ._urllib import UrllibBackendAdapter
+from .common import UnsupportedBackend
 
 try:
     from ._urllib3 import Urllib3Handler
@@ -7,7 +7,5 @@ try:
 except ImportError:
     has_urllib3 = False
     Urllib3Handler = None
-
-network_handlers = [UnsupportedBackendHandler, UrllibHandler, Urllib3Handler]
-
-__all__ = ['UrllibHandler', 'UnsupportedBackendHandler', 'network_handlers', 'has_urllib3']
+network_handlers = [UnsupportedBackend, UrllibBackendAdapter, Urllib3Handler]
+__all__ = ['UrllibBackendAdapter', 'UnsupportedBackend', 'network_handlers', 'has_urllib3']
