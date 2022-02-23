@@ -194,7 +194,7 @@ class RokfinIE(InfoExtractor):
             try_get(datetime.datetime.now(), lambda current_time: self.write_debug(f'access token expires {datetime.datetime.strftime(current_time + datetime.timedelta(seconds=int_or_none(access_token["expires_in"])), "%d-%b-%Y %H:%M:%S")} (local time); refresh token expires {datetime.datetime.strftime(current_time + datetime.timedelta(seconds=int_or_none(access_token["refresh_expires_in"])), "%d-%b-%Y %H:%M:%S")} (local time)'))
 
         # Usage: --extractor-args "rokfin:print-user-info"'  # Mainly intended for testing.
-        if traverse_obj(self._downloader.params, ('extractor_args', 'rokfin', 'print_user_info')):
+        if self._configuration_arg('print_user_info', ie_key='rokfin'):
             self.to_screen(self._download_json('https://prod-api-v2.production.rokfin.com/api/v2/user/me', None, note='obtaining user info', errnote='could not obtain user info', fatal=False, headers={'authorization': f'{access_token["token_type"]} {access_token["access_token"]}'}))
 
         return access_token
@@ -230,6 +230,22 @@ class RokfinPostIE(RokfinIE):
             'channel_id': 65429,
             'channel_url': 'https://rokfin.com/TheJimmyDoreShow',
             'duration': 213.0,
+            'availability': 'public',
+            'live_status': 'not_live'
+        }
+    }, {
+        'url': 'https://rokfin.com/post/223/Julian-Assange-Arrested-Streaming-In-Real-Time',
+        'info_dict': {
+            'id': 'post/223',
+            'ext': 'mp4',
+            'title': 'Julian Assange Arrested: Streaming In Real Time',
+            'thumbnail': 're:https://img.production.rokfin.com/.+',
+            'upload_date': '20190412',
+            'timestamp': 1555052644,
+            'creator': 'Ron Placone',
+            'channel': 'Ron Placone',
+            'channel_id': 10,
+            'channel_url': 'https://rokfin.com/RonPlacone',
             'availability': 'public',
             'live_status': 'not_live'
         }
