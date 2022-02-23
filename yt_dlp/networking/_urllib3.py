@@ -9,7 +9,7 @@ from ..compat import (
 from .common import (
     get_std_headers,
     HTTPResponse,
-    YDLBackendHandler,
+    BackendAdapter,
     Request
 )
 from .socksproxy import (
@@ -60,7 +60,7 @@ class Urllib3ResponseAdapter(HTTPResponse):
 
         super().__init__(
             headers=res.headers, status=res.status,
-            version=res.version)
+            http_version=res.version)
 
     def geturl(self):
         return self._url
@@ -102,7 +102,7 @@ class Urllib3ResponseAdapter(HTTPResponse):
         return self._res.tell()
 
 
-class Urllib3Handler(YDLBackendHandler):
+class Urllib3BackendAdapter(BackendAdapter):
     SUPPORTED_PROTOCOLS = ['http', 'https']
 
     def _initialize(self):
