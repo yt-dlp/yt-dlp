@@ -1,4 +1,4 @@
-name: Feature request request
+name: Feature request
 description: Request a new functionality unrelated to any particular site or extractor
 labels: [triage, enhancement]
 body:
@@ -11,7 +11,9 @@ body:
       options:
         - label: I'm reporting a feature request
           required: true
-        - label: I've verified that I'm running yt-dlp version **2021.11.10.1**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
+        - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
+          required: true
+        - label: I've verified that I'm running yt-dlp version **2022.02.04**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
           required: true
         - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues including closed ones. DO NOT post duplicates
           required: true

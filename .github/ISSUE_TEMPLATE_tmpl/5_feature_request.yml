@@ -1,4 +1,4 @@
-name: Feature request request
+name: Feature request
 description: Request a new functionality unrelated to any particular site or extractor
 labels: [triage, enhancement]
 body:
@@ -10,6 +10,8 @@ body:
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
         - label: I'm reporting a feature request
+          required: true
+        - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
           required: true
         - label: I've verified that I'm running yt-dlp version **%(version)s**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
           required: true

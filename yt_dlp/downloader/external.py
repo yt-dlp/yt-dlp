@@ -17,12 +17,13 @@ from ..utils import (
     cli_valueless_option,
     cli_bool_option,
     _configuration_args,
+    determine_ext,
     encodeFilename,
     encodeArgument,
     handle_youtubedl_headers,
     check_executable,
     Popen,
-    sanitize_open,
+    remove_end,
 )
 
 
@@ -144,11 +145,11 @@ class ExternalFD(FragmentFD):
                 return -1
 
         decrypt_fragment = self.decrypter(info_dict)
-        dest, _ = sanitize_open(tmpfilename, 'wb')
+        dest, _ = self.sanitize_open(tmpfilename, 'wb')
         for frag_index, fragment in enumerate(info_dict['fragments']):
             fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
             try:
-                src, _ = sanitize_open(fragment_filename, 'rb')
+                src, _ = self.sanitize_open(fragment_filename, 'rb')
             except IOError as err:
                 if skip_unavailable_fragments and frag_index > 1:
                     self.report_skip_fragment(frag_index, err)
@@ -252,7 +253,7 @@ class Aria2cFD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
-               '--file-allocation=none', '-x16', '-j16', '-s16']
+               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
             cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
         else:
@@ -266,6 +267,7 @@ class Aria2cFD(ExternalFD):
         cmd += self._option('--all-proxy', 'proxy')
         cmd += self._bool_option('--check-certificate', 'nocheckcertificate', 'false', 'true', '=')
         cmd += self._bool_option('--remote-time', 'updatetime', 'true', 'false', '=')
+        cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
 
         # aria2c strips out spaces from the beginning/end of filenames and paths.
@@ -290,7 +292,7 @@ class Aria2cFD(ExternalFD):
             for frag_index, fragment in enumerate(info_dict['fragments']):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
-            stream, _ = sanitize_open(url_list_file, 'wb')
+            stream, _ = self.sanitize_open(url_list_file, 'wb')
             stream.write('\n'.join(url_list).encode('utf-8'))
             stream.close()
             cmd += ['-i', url_list_file]
@@ -304,7 +306,7 @@ class HttpieFD(ExternalFD):
 
     @classmethod
     def available(cls, path=None):
-        return ExternalFD.available(cls, path or 'http')
+        return super().available(path or 'http')
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -443,8 +445,7 @@ class FFmpegFD(ExternalFD):
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
             for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
                 stream_number = fmt.get('manifest_stream_number', 0)
-                a_or_v = 'a' if fmt.get('acodec') != 'none' else 'v'
-                args.extend(['-map', f'{i}:{a_or_v}:{stream_number}'])
+                args.extend(['-map', f'{i}:{stream_number}'])
 
         if self.params.get('test', False):
             args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
@@ -464,6 +465,15 @@ class FFmpegFD(ExternalFD):
             args += ['-f', 'flv']
         elif ext == 'mp4' and tmpfilename == '-':
             args += ['-f', 'mpegts']
+        elif ext == 'unknown_video':
+            ext = determine_ext(remove_end(tmpfilename, '.part'))
+            if ext == 'unknown_video':
+                self.report_warning(
+                    'The video format is unknown and cannot be downloaded by ffmpeg. '
+                    'Explicitly set the extension in the filename to attempt download in that format')
+            else:
+                self.report_warning(f'The video format is unknown. Trying to download as {ext} according to the filename')
+                args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
         else:
             args += ['-f', EXT_TO_OUT_FORMATS.get(ext, ext)]
 

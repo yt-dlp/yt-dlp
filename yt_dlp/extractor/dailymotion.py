@@ -207,12 +207,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         video_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
-            if not self.get_param('noplaylist'):
-                self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % playlist_id)
+            if self._yes_playlist(playlist_id, video_id):
                 return self.url_result(
                     'http://www.dailymotion.com/playlist/' + playlist_id,
                     'DailymotionPlaylist', playlist_id)
-            self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
         password = self.get_param('videopassword')
         media = self._call_api(
@@ -305,7 +303,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': clean_html(media.get('description')),
             'thumbnails': thumbnails,
             'duration': int_or_none(metadata.get('duration')) or None,

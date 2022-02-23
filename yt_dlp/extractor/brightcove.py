@@ -16,6 +16,7 @@ from ..compat import (
 )
 from ..utils import (
     clean_html,
+    dict_get,
     extract_attributes,
     ExtractorError,
     find_xpath_attr,
@@ -471,32 +472,22 @@ class BrightcoveNewIE(AdobePassIE):
     def _parse_brightcove_metadata(self, json_data, video_id, headers={}):
         title = json_data['name'].strip()
 
-        num_drm_sources = 0
         formats, subtitles = [], {}
         sources = json_data.get('sources') or []
         for source in sources:
             container = source.get('container')
             ext = mimetype2ext(source.get('type'))
             src = source.get('src')
-            skip_unplayable = not self.get_param('allow_unplayable_formats')
-            # https://support.brightcove.com/playback-api-video-fields-reference#key_systems_object
-            if skip_unplayable and (container == 'WVM' or source.get('key_systems')):
-                num_drm_sources += 1
-                continue
-            elif ext == 'ism' and skip_unplayable:
-                continue
-            elif ext == 'm3u8' or container == 'M2TS':
+            if ext == 'm3u8' or container == 'M2TS':
                 if not src:
                     continue
-                f, subs = self._extract_m3u8_formats_and_subtitles(
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
                     src, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=False)
-                formats.extend(f)
                 subtitles = self._merge_subtitles(subtitles, subs)
             elif ext == 'mpd':
                 if not src:
                     continue
-                f, subs = self._extract_mpd_formats_and_subtitles(src, video_id, 'dash', fatal=False)
-                formats.extend(f)
+                fmts, subs = self._extract_mpd_formats_and_subtitles(src, video_id, 'dash', fatal=False)
                 subtitles = self._merge_subtitles(subtitles, subs)
             else:
                 streaming_src = source.get('streaming_src')
@@ -543,7 +534,13 @@ class BrightcoveNewIE(AdobePassIE):
                         'play_path': stream_name,
                         'format_id': build_format_id('rtmp'),
                     })
-                formats.append(f)
+                fmts = [f]
+
+            # https://support.brightcove.com/playback-api-video-fields-reference#key_systems_object
+            if container == 'WVM' or source.get('key_systems') or ext == 'ism':
+                for f in fmts:
+                    f['has_drm'] = True
+            formats.extend(fmts)
 
         if not formats:
             errors = json_data.get('errors')
@@ -551,9 +548,6 @@ class BrightcoveNewIE(AdobePassIE):
                 error = errors[0]
                 self.raise_no_formats(
                     error.get('message') or error.get('error_subcode') or error['error_code'], expected=True)
-            elif (not self.get_param('allow_unplayable_formats')
-                    and sources and num_drm_sources == len(sources)):
-                self.report_drm(video_id)
 
         self._sort_formats(formats)
 
@@ -577,11 +571,19 @@ class BrightcoveNewIE(AdobePassIE):
         if duration is not None and duration <= 0:
             is_live = True
 
+        common_res = [(160, 90), (320, 180), (480, 720), (640, 360), (768, 432), (1024, 576), (1280, 720), (1366, 768), (1920, 1080)]
+        thumb_base_url = dict_get(json_data, ('poster', 'thumbnail'))
+        thumbnails = [{
+            'url': re.sub(r'\d+x\d+', f'{w}x{h}', thumb_base_url),
+            'width': w,
+            'height': h,
+        } for w, h in common_res] if thumb_base_url else None
+
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': clean_html(json_data.get('description')),
-            'thumbnail': json_data.get('thumbnail') or json_data.get('poster'),
+            'thumbnails': thumbnails,
             'duration': duration,
             'timestamp': parse_iso8601(json_data.get('published_at')),
             'uploader_id': json_data.get('account_id'),

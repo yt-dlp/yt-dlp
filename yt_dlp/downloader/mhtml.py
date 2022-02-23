@@ -114,8 +114,8 @@ body > figure > img {
         fragment_base_url = info_dict.get('fragment_base_url')
         fragments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']
-        title = info_dict['title']
-        origin = info_dict['webpage_url']
+        title = info_dict.get('title', info_dict['format_id'])
+        origin = info_dict.get('webpage_url', info_dict['url'])
 
         ctx = {
             'filename': filename,

@@ -78,6 +78,7 @@ class MultilinePrinterBase:
     def __init__(self, stream=None, lines=1):
         self.stream = stream
         self.maximum = lines - 1
+        self._HAVE_FULLCAP = supports_terminal_sequences(stream)
 
     def __enter__(self):
         return self
@@ -124,7 +125,6 @@ class MultilinePrinter(MultilinePrinterBase):
         self.preserve_output = preserve_output
         self._lastline = self._lastlength = 0
         self._movelock = Lock()
-        self._HAVE_FULLCAP = supports_terminal_sequences(self.stream)
 
     def lock(func):
         @functools.wraps(func)
@@ -147,6 +147,7 @@ class MultilinePrinter(MultilinePrinterBase):
     def print_at_line(self, text, pos):
         if self._HAVE_FULLCAP:
             self.write(*self._move_cursor(pos), CONTROL_SEQUENCES['ERASE_LINE'], text)
+            return
 
         text = self._add_line_number(text, pos)
         textlen = len(text)

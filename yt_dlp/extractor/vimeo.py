@@ -119,10 +119,9 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         self._set_cookie('vimeo.com', name, value)
 
     def _vimeo_sort_formats(self, formats):
-        # Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
-        # at the same time without actual units specified. This lead to wrong sorting.
-        # But since yt-dlp prefers 'res,fps' anyway, 'field_preference' is not needed
-        self._sort_formats(formats)
+        # Note: Bitrates are completely broken. Single m3u8 may contain entries in kbps and bps
+        # at the same time without actual units specified.
+        self._sort_formats(formats, ('quality', 'res', 'fps', 'hdr:12', 'source'))
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
@@ -132,6 +131,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         request = config.get('request') or {}
 
         formats = []
+        subtitles = {}
+
         config_files = video_data.get('files') or request.get('files') or {}
         for f in (config_files.get('progressive') or []):
             video_url = f.get('url')
@@ -140,6 +141,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
             formats.append({
                 'url': video_url,
                 'format_id': 'http-%s' % f.get('quality'),
+                'source_preference': 10,
                 'width': int_or_none(f.get('width')),
                 'height': int_or_none(f.get('height')),
                 'fps': int_or_none(f.get('fps')),
@@ -163,21 +165,24 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     sep_manifest_urls = [(format_id, manifest_url)]
                 for f_id, m_url in sep_manifest_urls:
                     if files_type == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
                             m_url, video_id, 'mp4',
                             'm3u8' if is_live else 'm3u8_native', m3u8_id=f_id,
                             note='Downloading %s m3u8 information' % cdn_name,
-                            fatal=False))
+                            fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
                     elif files_type == 'dash':
                         if 'json=1' in m_url:
                             real_m_url = (self._download_json(m_url, video_id, fatal=False) or {}).get('url')
                             if real_m_url:
                                 m_url = real_m_url
-                        mpd_formats = self._extract_mpd_formats(
+                        fmts, subs = self._extract_mpd_formats_and_subtitles(
                             m_url.replace('/master.json', '/master.mpd'), video_id, f_id,
                             'Downloading %s MPD information' % cdn_name,
                             fatal=False)
-                        formats.extend(mpd_formats)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
 
         live_archive = live_event.get('archive') or {}
         live_archive_source_url = live_archive.get('source_url')
@@ -188,12 +193,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'quality': 10,
             })
 
-        subtitles = {}
         for tt in (request.get('text_tracks') or []):
-            subtitles[tt['lang']] = [{
+            subtitles.setdefault(tt['lang'], []).append({
                 'ext': 'vtt',
                 'url': urljoin('https://vimeo.com', tt['url']),
-            }]
+            })
 
         thumbnails = []
         if not is_live:
@@ -212,14 +216,25 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
 
+        duration = int_or_none(video_data.get('duration'))
+        chapter_data = try_get(config, lambda x: x['embed']['chapters']) or []
+        chapters = [{
+            'title': current_chapter.get('title'),
+            'start_time': current_chapter.get('timecode'),
+            'end_time': next_chapter.get('timecode'),
+        } for current_chapter, next_chapter in zip(chapter_data, chapter_data[1:] + [{'timecode': duration}])]
+        if chapters and chapters[0]['start_time']:  # Chapters may not start from 0
+            chapters[:0] = [{'title': '<Untitled>', 'start_time': 0, 'end_time': chapters[0]['start_time']}]
+
         return {
             'id': str_or_none(video_data.get('id')) or video_id,
-            'title': self._live_title(video_title) if is_live else video_title,
+            'title': video_title,
             'uploader': owner.get('name'),
             'uploader_id': video_uploader_url.split('/')[-1] if video_uploader_url else None,
             'uploader_url': video_uploader_url,
             'thumbnails': thumbnails,
-            'duration': int_or_none(video_data.get('duration')),
+            'duration': duration,
+            'chapters': chapters or None,
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
@@ -605,6 +620,20 @@ class VimeoIE(VimeoBaseInfoExtractor):
             },
         },
         {
+            'url': 'https://vimeo.com/channels/staffpicks/143603739',
+            'info_dict': {
+                'id': '143603739',
+                'ext': 'mp4',
+                'uploader': 'Karim Huu Do',
+                'timestamp': 1445846953,
+                'upload_date': '20151026',
+                'title': 'The Shoes - Submarine Feat. Blaine Harrison',
+                'uploader_id': 'karimhd',
+                'description': 'md5:8e2eea76de4504c2e8020a9bcfa1e843',
+            },
+            'params': {'skip_download': 'm3u8'},
+        },
+        {
             # requires passing unlisted_hash(a52724358e) to load_download_config request
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
@@ -798,18 +827,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
         timestamp = None
         video_description = None
         info_dict = {}
+        config_url = None
 
         channel_id = self._search_regex(
             r'vimeo\.com/channels/([^/]+)', url, 'channel id', default=None)
         if channel_id:
             config_url = self._html_search_regex(
-                r'\bdata-config-url="([^"]+)"', webpage, 'config URL')
+                r'\bdata-config-url="([^"]+)"', webpage, 'config URL', default=None)
             video_description = clean_html(get_element_by_class('description', webpage))
             info_dict.update({
                 'channel_id': channel_id,
                 'channel_url': 'https://vimeo.com/channels/' + channel_id,
             })
-        else:
+        if not config_url:
             page_config = self._parse_json(self._search_regex(
                 r'vimeo\.(?:clip|vod_title)_page_config\s*=\s*({.+?});',
                 webpage, 'page config', default='{}'), video_id, fatal=False)

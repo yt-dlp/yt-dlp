@@ -22,12 +22,17 @@ class SponSkrubPP(PostProcessor):
     _temp_ext = 'spons'
     _exe_name = 'sponskrub'
 
-    def __init__(self, downloader, path='', args=None, ignoreerror=False, cut=False, force=False):
+    def __init__(self, downloader, path='', args=None, ignoreerror=False, cut=False, force=False, _from_cli=False):
         PostProcessor.__init__(self, downloader)
         self.force = force
         self.cutout = cut
         self.args = str_or_none(args) or ''  # For backward compatibility
         self.path = self.get_exe(path)
+
+        if not _from_cli:
+            self.deprecation_warning(
+                'yt_dlp.postprocessor.SponSkrubPP support is deprecated and may be removed in a future version. '
+                'Use yt_dlp.postprocessor.SponsorBlock and yt_dlp.postprocessor.ModifyChaptersPP instead')
 
         if not ignoreerror and self.path is None:
             if path:

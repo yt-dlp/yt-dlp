@@ -662,11 +662,34 @@ class NiconicoPlaylistIE(InfoExtractor):
         }
 
 
-NicovideoSearchIE_NAME = 'nicovideo:search'
+class NicovideoSearchBaseIE(InfoExtractor):
+    _SEARCH_TYPE = 'search'
+
+    def _entries(self, url, item_id, query=None, note='Downloading page %(page)s'):
+        query = query or {}
+        pages = [query['page']] if 'page' in query else itertools.count(1)
+        for page_num in pages:
+            query['page'] = str(page_num)
+            webpage = self._download_webpage(url, item_id, query=query, note=note % {'page': page_num})
+            results = re.findall(r'(?<=data-video-id=)["\']?(?P<videoid>.*?)(?=["\'])', webpage)
+            for item in results:
+                yield self.url_result(f'http://www.nicovideo.jp/watch/{item}', 'Niconico', item)
+            if not results:
+                break
+
+    def _search_results(self, query):
+        return self._entries(
+            self._proto_relative_url(f'//www.nicovideo.jp/{self._SEARCH_TYPE}/{query}'), query)
 
 
-class NicovideoSearchURLIE(InfoExtractor):
-    IE_NAME = f'{NicovideoSearchIE_NAME}_url'
+class NicovideoSearchIE(NicovideoSearchBaseIE, SearchInfoExtractor):
+    IE_DESC = 'Nico video search'
+    IE_NAME = 'nicovideo:search'
+    _SEARCH_KEY = 'nicosearch'
+
+
+class NicovideoSearchURLIE(NicovideoSearchBaseIE):
+    IE_NAME = f'{NicovideoSearchIE.IE_NAME}_url'
     IE_DESC = 'Nico video search URLs'
     _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/search/(?P<id>[^?#&]+)?'
     _TESTS = [{
@@ -685,37 +708,14 @@ class NicovideoSearchURLIE(InfoExtractor):
         'playlist_count': 31,
     }]
 
-    def _entries(self, url, item_id, query=None, note='Downloading page %(page)s'):
-        query = query or {}
-        pages = [query['page']] if 'page' in query else itertools.count(1)
-        for page_num in pages:
-            query['page'] = str(page_num)
-            webpage = self._download_webpage(url, item_id, query=query, note=note % {'page': page_num})
-            results = re.findall(r'(?<=data-video-id=)["\']?(?P<videoid>.*?)(?=["\'])', webpage)
-            for item in results:
-                yield self.url_result(f'http://www.nicovideo.jp/watch/{item}', 'Niconico', item)
-            if not results:
-                break
-
     def _real_extract(self, url):
         query = self._match_id(url)
         return self.playlist_result(self._entries(url, query), query, query)
 
 
-class NicovideoSearchIE(SearchInfoExtractor, NicovideoSearchURLIE):
-    IE_DESC = 'Nico video searches'
-    IE_NAME = NicovideoSearchIE_NAME
-    _SEARCH_KEY = 'nicosearch'
-    _TESTS = []
-
-    def _search_results(self, query):
-        return self._entries(
-            self._proto_relative_url(f'//www.nicovideo.jp/search/{query}'), query)
-
-
-class NicovideoSearchDateIE(NicovideoSearchIE):
-    IE_DESC = 'Nico video searches, newest first'
-    IE_NAME = f'{NicovideoSearchIE_NAME}:date'
+class NicovideoSearchDateIE(NicovideoSearchBaseIE, SearchInfoExtractor):
+    IE_DESC = 'Nico video search, newest first'
+    IE_NAME = f'{NicovideoSearchIE.IE_NAME}:date'
     _SEARCH_KEY = 'nicosearchdate'
     _TESTS = [{
         'url': 'nicosearchdateall:a',
@@ -756,7 +756,26 @@ class NicovideoSearchDateIE(NicovideoSearchIE):
         if page_num:
             query['page'] = str(page_num)
 
-        yield from NicovideoSearchURLIE._entries(self, url, item_id, query=query, note=note)
+        yield from super()._entries(url, item_id, query=query, note=note)
+
+
+class NicovideoTagURLIE(NicovideoSearchBaseIE):
+    IE_NAME = 'niconico:tag'
+    IE_DESC = 'NicoNico video tag URLs'
+    _SEARCH_TYPE = 'tag'
+    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/tag/(?P<id>[^?#&]+)?'
+    _TESTS = [{
+        'url': 'https://www.nicovideo.jp/tag/ドキュメンタリー淫夢',
+        'info_dict': {
+            'id': 'ドキュメンタリー淫夢',
+            'title': 'ドキュメンタリー淫夢'
+        },
+        'playlist_mincount': 400,
+    }]
+
+    def _real_extract(self, url):
+        query = self._match_id(url)
+        return self.playlist_result(self._entries(url, query), query, query)
 
 
 class NiconicoUserIE(InfoExtractor):

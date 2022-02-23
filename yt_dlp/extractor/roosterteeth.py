@@ -99,7 +99,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'series': 'Million Dollars, But...',
             'episode': 'Million Dollars, But... The Game Announcement',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': True},
     }, {
         'url': 'https://roosterteeth.com/watch/rwby-bonus-25',
         'info_dict': {
@@ -112,7 +112,7 @@ class RoosterTeethIE(RoosterTeethBaseIE):
             'thumbnail': r're:^https?://.*\.(png|jpe?g)$',
             'ext': 'mp4',
         },
-        'skip_download': 'm3u8',
+        'params': {'skip_download': True},
     }, {
         'url': 'http://achievementhunter.roosterteeth.com/episode/off-topic-the-achievement-hunter-podcast-2016-i-didn-t-think-it-would-pass-31',
         'only_matching': True,

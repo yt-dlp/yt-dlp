@@ -16,7 +16,7 @@ class MetadataParserPP(PostProcessor):
         for f in actions:
             action = f[0]
             assert isinstance(action, self.Actions)
-            self._actions.append(getattr(self, action._value_)(*f[1:]))
+            self._actions.append(getattr(self, action.value)(*f[1:]))
 
     @classmethod
     def validate_action(cls, action, *data):
@@ -26,7 +26,7 @@ class MetadataParserPP(PostProcessor):
         '''
         if not isinstance(action, cls.Actions):
             raise ValueError(f'{action!r} is not a valid action')
-        getattr(cls, action._value_)(cls, *data)
+        getattr(cls, action.value)(cls, *data)
 
     @staticmethod
     def field_to_template(tmpl):
@@ -66,7 +66,7 @@ class MetadataParserPP(PostProcessor):
             self.write_debug(f'Searching for {out_re.pattern!r} in {template!r}')
             match = out_re.search(data_to_parse)
             if match is None:
-                self.report_warning(f'Could not interpret {inp!r} as {out!r}')
+                self.to_screen(f'Could not interpret {inp!r} as {out!r}')
                 return
             for attribute, value in match.groupdict().items():
                 info[attribute] = value
@@ -80,7 +80,7 @@ class MetadataParserPP(PostProcessor):
         def f(info):
             val = info.get(field)
             if val is None:
-                self.report_warning(f'Video does not have a {field}')
+                self.to_screen(f'Video does not have a {field}')
                 return
             elif not isinstance(val, str):
                 self.report_warning(f'Cannot replace in field {field} since it is a {type(val).__name__}')
@@ -99,18 +99,23 @@ class MetadataParserPP(PostProcessor):
 class MetadataFromFieldPP(MetadataParserPP):
     @classmethod
     def to_action(cls, f):
-        match = re.match(r'(?P<in>.*?)(?<!\\):(?P<out>.+)$', f)
+        match = re.match(r'(?s)(?P<in>.*?)(?<!\\):(?P<out>.+)$', f)
         if match is None:
             raise ValueError(f'it should be FROM:TO, not {f!r}')
         return (
             cls.Actions.INTERPRET,
             match.group('in').replace('\\:', ':'),
-            match.group('out'))
+            match.group('out'),
+        )
 
     def __init__(self, downloader, formats):
-        MetadataParserPP.__init__(self, downloader, [self.to_action(f) for f in formats])
+        super().__init__(downloader, [self.to_action(f) for f in formats])
 
 
-class MetadataFromTitlePP(MetadataParserPP):  # for backward compatibility
+# Deprecated
+class MetadataFromTitlePP(MetadataParserPP):
     def __init__(self, downloader, titleformat):
-        MetadataParserPP.__init__(self, downloader, [(self.Actions.INTERPRET, 'title', titleformat)])
+        super().__init__(downloader, [(self.Actions.INTERPRET, 'title', titleformat)])
+        self.deprecation_warning(
+            'yt_dlp.postprocessor.MetadataFromTitlePP is deprecated '
+            'and may be removed in a future version. Use yt_dlp.postprocessor.MetadataFromFieldPP instead')
