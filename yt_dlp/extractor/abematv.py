@@ -117,21 +117,11 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
 
     def _get_videokey_from_ticket(self, ticket):
         to_show = self.ie._downloader.params.get('verbose', False)
-        media_token_response = self.ie._download_json(
-            'https://api.abema.io/v1/media/token', None, note='Fetching media token' if to_show else False,
-            query={
-                'osName': 'android',
-                'osVersion': '6.0.1',
-                'osLang': 'ja_JP',
-                'osTimezone': 'Asia/Tokyo',
-                'appId': 'tv.abema',
-                'appVersion': '3.27.1'
-            },
-            headers={'Authorization': 'Bearer ' + self.ie._USERTOKEN})
+        media_token = self.ie._get_media_token(to_show=to_show)
 
         license_response = self.ie._download_json(
             'https://license.abema.io/abematv-hls', None, note='Requesting playback license' if to_show else False,
-            query={'t': media_token_response['token']},
+            query={'t': media_token},
             data=json.dumps({
                 'kv': 'a',
                 'lt': ticket
@@ -225,6 +215,7 @@ class AbemaTVIE(AbemaTVBaseIE):
     _USERTOKEN = None
     _DEVICE_ID = None
     _TIMETABLE = None
+    _MEDIATOKEN = None
 
     _SECRETKEY = b'v+Gjs=25Aw5erR!J8ZuvRrCx*rGswhB&qdHd_SYerEWdU&a?3DzN9BRbp5KwY4hEmcj5#fykMjJ=AuWz5GSMY-d@H7DMEh3M@9n2G552Us$$k9cD=3TxwWe86!x#Zyhe'
 
@@ -283,6 +274,54 @@ class AbemaTVIE(AbemaTVBaseIE):
         add_opener(self._downloader, AbemaLicenseHandler(self))
 
         return self._USERTOKEN
+
+    def _get_media_token(self, invalidate=False, to_show=True):
+        if not invalidate and self._MEDIATOKEN:
+            return self._MEDIATOKEN
+
+        self._MEDIATOKEN = self._download_json(
+            'https://api.abema.io/v1/media/token', None, note='Fetching media token' if to_show else False,
+            query={
+                'osName': 'android',
+                'osVersion': '6.0.1',
+                'osLang': 'ja_JP',
+                'osTimezone': 'Asia/Tokyo',
+                'appId': 'tv.abema',
+                'appVersion': '3.27.1'
+            }, headers={
+                'Authorization': 'bearer ' + self._get_device_token()
+            })['token']
+
+        return self._MEDIATOKEN
+
+    def _real_initialize(self):
+        self._login()
+
+    def _login(self):
+        username, password = self._get_login_info()
+        # No authentication to be performed
+        if not username:
+            return True
+
+        if '@' in username:  # don't strictly check if it's email address or not
+            ep, method = 'user/email', 'email'
+        else:
+            ep, method = 'oneTimePassword', 'userId'
+
+        login_response = self._download_json(
+            f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
+            data=json.dumps({
+                method: username,
+                "password": password
+            }).encode('utf-8'), headers={
+                'Authorization': 'bearer ' + self._get_device_token(),
+                'Origin': 'https://abema.tv',
+                'Referer': 'https://abema.tv/',
+                'Content-Type': 'application/json',
+            })
+
+        self._USERTOKEN = login_response['token']
+        self._get_media_token(True)
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
