@@ -186,7 +186,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             'series_number': 2,
             'episode': '第1話 「チーズケーキ」　「モーニング再び」',
             'episode_number': 1,
-        }
+        },
         'skip': 'expired',
     }, {
         'url': 'https://abema.tv/channels/anime-live2/slots/E8tvAnMJ7a9a5d',
@@ -198,7 +198,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             'series_number': 2,
             'episode_number': 1,
             'description': 'md5:9c5a3172ae763278f9303922f0ea5b17',
-        }
+        },
         'skip': 'expired',
     }, {
         'url': 'https://abema.tv/video/episode/87-877_s1282_p31047',
