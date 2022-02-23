@@ -103,7 +103,7 @@ class Urllib3ResponseAdapter(HTTPResponse):
 
 
 class Urllib3BackendAdapter(BackendAdapter):
-    SUPPORTED_PROTOCOLS = ['http', 'https']
+    SUPPORTED_SCHEMES = ['http', 'https']
 
     def _initialize(self):
         self.pools = {}
