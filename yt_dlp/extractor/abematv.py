@@ -214,7 +214,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             'id': 'abema-anime',
             # this varies
             # 'title': '女子高生の無駄づかい 全話一挙【無料ビデオ72時間】',
-            'description': '24時間アニメを放送中！ABEMA アニメチャンネルでは、今期のアニメ最新作から懐かしの名作、ABEMAオリジナルの声優番組まで充実なラインナップを無料で視聴できます。その他にもABEMAでは、ニュースやオリジナルドラマ、恋愛番組、アニメ、スポーツなど、多彩な番組をいつでもお楽しみいただけます。',
+            'description': 'md5:55f2e61f46a17e9230802d7bcc913d5f',
             'is_live': True,
         }
     }]
