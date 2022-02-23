@@ -187,6 +187,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             'episode': '第1話 「チーズケーキ」　「モーニング再び」',
             'episode_number': 1,
         }
+        'skip': 'expired',
     }, {
         'url': 'https://abema.tv/channels/anime-live2/slots/E8tvAnMJ7a9a5d',
         'info_dict': {
@@ -198,6 +199,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             'episode_number': 1,
             'description': 'md5:9c5a3172ae763278f9303922f0ea5b17',
         }
+        'skip': 'expired',
     }, {
         'url': 'https://abema.tv/video/episode/87-877_s1282_p31047',
         'info_dict': {
@@ -207,7 +209,8 @@ class AbemaTVIE(AbemaTVBaseIE):
             'thumbnail': r're:https://hayabusa\.io/.+',
             'series': '相棒',
             'episode': '第5話『光射す』',
-        }
+        },
+        'skip': 'expired',
     }, {
         'url': 'https://abema.tv/now-on-air/abema-anime',
         'info_dict': {
@@ -216,7 +219,8 @@ class AbemaTVIE(AbemaTVBaseIE):
             # 'title': '女子高生の無駄づかい 全話一挙【無料ビデオ72時間】',
             'description': 'md5:55f2e61f46a17e9230802d7bcc913d5f',
             'is_live': True,
-        }
+        },
+        'skip': 'Not supported until yt-dlp implements native live downloader OR AbemaTV can start a local HTTP server',
     }]
     _USERTOKEN = None
     _DEVICE_ID = None
