@@ -6,7 +6,7 @@ try:
     has_urllib3 = True
 except ImportError:
     has_urllib3 = False
-    Urllib3Handler = None
+    Urllib3BackendAdapter = None
 
 network_handlers = [UnsupportedBackend, UrllibBackendAdapter, Urllib3BackendAdapter]
 __all__ = ['UrllibBackendAdapter', 'UnsupportedBackend', 'network_handlers', 'has_urllib3']
