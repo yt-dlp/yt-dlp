@@ -215,9 +215,9 @@ class HTTPResponse(ABC, io.IOBase):
         raise NotImplementedError
 
 
-class BaseBackendHandler:
+class RequestHandler:
     """
-    Bare-bones backend handler.
+    Bare-bones request handler.
     Use this for defining custom protocols for extractors.
     """
     SUPPORTED_PROTOCOLS: list = None
@@ -234,11 +234,11 @@ class BaseBackendHandler:
         """Validate if handler is suitable for given request. Can override in subclasses."""
 
 
-class BackendHandler(BaseBackendHandler):
-    """Network Backend Handler class
+class BackendAdapter(RequestHandler):
+    """Network Backend adapter class
     Responsible for handling requests.
 
-    YDL Backend Handlers receive a dictionary of options.
+    It receives a dictionary of options.
 
     Available options:
     cookiejar:          A YoutubeDLCookieJar to store cookies in
@@ -272,7 +272,7 @@ class BackendHandler(BaseBackendHandler):
         self.ydl.write_debug(*args, **kwargs)
 
     def can_handle(self, request: Request, **req_kwargs) -> bool:
-        """Validate if handler is suitable for given request. Can override in subclasses."""
+        """Validate if adapter is suitable for given request. Can override in subclasses."""
         return self._is_supported_protocol(request)
 
     def _initialize(self):
@@ -295,13 +295,13 @@ class BackendManager:
         proxies = urllib.request.getproxies()
         return self.ydl.params.get('proxy') or proxies.get('http') or proxies.get('https')
 
-    def add_handler(self, handler: BackendHandler):
+    def add_handler(self, handler: RequestHandler):
         if handler not in self.handlers:
             self.handlers.append(handler)
 
     def remove_handler(self, handler):
         """
-        Remove backend handler(s)
+        Remove request handler(s)
         @param handler: Handler object or handler type.
         Specifying handler type will remove all handlers of that type.
         idea from yt-dlp#1687
@@ -528,9 +528,9 @@ def get_std_headers(supported_encodings=None):
     return headers
 
 
-class UnsupportedBackendHandler(BackendHandler):
+class UnsupportedBackend(BackendAdapter):
     """
-    Fallback backend handler is a request is not supported.
+    Fallback backend adapter if a request is not supported.
 
     Add useful messages here of why the request may not be supported, if possible.
     E.g. a dependency is required.

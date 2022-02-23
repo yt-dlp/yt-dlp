@@ -18,7 +18,7 @@ from ..compat import (
     compat_urlparse, compat_HTTPError
 )
 
-from .common import HTTPResponse, BackendHandler, Request, get_std_headers
+from .common import HTTPResponse, BackendAdapter, Request, get_std_headers
 from .socksproxy import sockssocket
 from .utils import handle_youtubedl_headers, make_ssl_context, socks_create_proxy_args
 from ..utils import (
@@ -416,7 +416,7 @@ class UrllibResponseAdapter(HTTPResponse):
         return self._res.tell()
 
 
-class UrllibHandler(BackendHandler):
+class UrllibBackendAdapter(BackendAdapter):
     SUPPORTED_PROTOCOLS = ['http', 'https', 'data']
 
     def _initialize(self):

@@ -49,7 +49,7 @@ from .networking.common import (
     HEADRequest
 )
 
-from .networking import network_handlers, UrllibHandler
+from .networking import network_handlers, UrllibBackendAdapter
 
 from .utils import (
     age_restricted,
@@ -3683,7 +3683,7 @@ class YoutubeDL(object):
         This is for backwards compatability only.
         """
         for handler in self.default_session.handlers:
-            if isinstance(handler, UrllibHandler):
+            if isinstance(handler, UrllibBackendAdapter):
                 return handler.get_opener(self.default_session.get_default_proxy())
 
     def _setup_backends(self):
