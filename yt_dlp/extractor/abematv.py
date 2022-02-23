@@ -8,9 +8,17 @@ import struct
 from base64 import urlsafe_b64encode
 from binascii import unhexlify
 
+import typing
+if typing.TYPE_CHECKING:
+    from ..YoutubeDL import YoutubeDL
+
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
-from ..compat import compat_urllib_response, compat_urllib_parse_urlparse
+from ..compat import (
+    compat_urllib_response,
+    compat_urllib_parse_urlparse,
+    compat_urllib_request,
+)
 from ..utils import (
     ExtractorError,
     decode_base,
@@ -20,14 +28,83 @@ from ..utils import (
     time_seconds,
     update_url_query,
     traverse_obj,
-    YoutubeDLExtractorHandler,
     intlist_to_bytes,
     bytes_to_intlist,
     urljoin,
 )
 
 
-class AbemaLicenseHandler(YoutubeDLExtractorHandler):
+# NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
+
+def add_opener(self: 'YoutubeDL', handler):
+    ''' Add a handler for opening URLs, like _download_webpage '''
+    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
+    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
+    assert isinstance(self._opener, compat_urllib_request.OpenerDirector)
+    self._opener.add_handler(handler)
+
+
+def remove_opener(self: 'YoutubeDL', handler):
+    '''
+    Remove handler(s) for opening URLs
+    @param handler Either handler object itself or handler type.
+    Specifying handler type will remove all handler which isinstance returns True.
+    '''
+    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
+    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
+    opener = self._opener
+    assert isinstance(self._opener, compat_urllib_request.OpenerDirector)
+    if isinstance(handler, (type, tuple)):
+        find_cp = lambda x: isinstance(x, handler)
+    else:
+        find_cp = lambda x: x is handler
+
+    removed = []
+    for meth in dir(handler):
+        if meth in ["redirect_request", "do_open", "proxy_open"]:
+            # oops, coincidental match
+            continue
+
+        i = meth.find("_")
+        protocol = meth[:i]
+        condition = meth[i + 1:]
+
+        if condition.startswith("error"):
+            j = condition.find("_") + i + 1
+            kind = meth[j + 1:]
+            try:
+                kind = int(kind)
+            except ValueError:
+                pass
+            lookup = opener.handle_error.get(protocol, {})
+            opener.handle_error[protocol] = lookup
+        elif condition == "open":
+            kind = protocol
+            lookup = opener.handle_open
+        elif condition == "response":
+            kind = protocol
+            lookup = opener.process_response
+        elif condition == "request":
+            kind = protocol
+            lookup = opener.process_request
+        else:
+            continue
+
+        handlers = lookup.setdefault(kind, [])
+        if handlers:
+            handlers[:] = [x for x in handlers if not find_cp(x)]
+
+        removed.append(x for x in handlers if find_cp(x))
+
+    if removed:
+        for x in opener.handlers:
+            if find_cp(x):
+                x.add_parent(None)
+        opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
+
+
+class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
+    handler_order = 499
     STRTABLE = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     HKEY = b'3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E'
 
@@ -198,8 +275,8 @@ class AbemaTVIE(AbemaTVBaseIE):
         self._USERTOKEN = user_data['token']
 
         # don't allow adding it 2 times or more, though it's guarded
-        self._downloader.remove_opener(AbemaLicenseHandler)
-        self._downloader.add_opener(AbemaLicenseHandler(self))
+        remove_opener(self._downloader, AbemaLicenseHandler)
+        add_opener(self._downloader, AbemaLicenseHandler(self))
 
         return self._USERTOKEN
 
