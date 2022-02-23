@@ -348,11 +348,8 @@ class AbemaTVIE(AbemaTVBaseIE):
                 description = re.sub(r'''(?sx)
                     ^(.+?)(?:
                         アニメの動画を無料で見るならABEMA！| # anime
-                        等、ABEMAでは韓流・華流番組| # korean drama
-                        等、女子高生の3人に1人が|  # romance
-                        等、今期の最新ドラマ # drama
-                        # TODO: add more
-                    )
+                        等、.+ # applies for most of categories
+                    )?
                 ''', r'\1', og_desc)
 
         # canonical URL may contain series and episode number
