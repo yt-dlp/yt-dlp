@@ -167,6 +167,7 @@ class AbemaTVBaseIE(InfoExtractor):
 
 class AbemaTVIE(AbemaTVBaseIE):
     _VALID_URL = r'https?://abema\.tv/(?P<type>now-on-air|video/episode|channels/.+?/slots)/(?P<id>[^?/]+)'
+    _NETRC_MACHINE = 'abematv'
     _TESTS = [{
         'url': 'https://abema.tv/video/episode/194-25_s2_p1',
         'info_dict': {
