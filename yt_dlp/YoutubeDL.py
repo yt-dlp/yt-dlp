@@ -1800,6 +1800,8 @@ class YoutubeDL(object):
             playlist_index, entry = entry_tuple
             if 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
+            if playlist_index < 0 and 'playlist_count' in locals():
+                playlist_index += playlist_count + 1
             self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes

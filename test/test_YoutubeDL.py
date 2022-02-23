@@ -1056,16 +1056,16 @@ class TestYoutubeDL(unittest.TestCase):
         test_selection({'playlist_items': '1-:2'}, [1, 3])
         test_selection({'playlist_items': '0-2:2'}, [2])
 
-        # test_selection({'playlist_items': '-2:inf'}, [3, 4])
-        # test_selection({'playlist_items': '-2:inf:2'}, [3])
+        test_selection({'playlist_items': '-2:inf'}, [3, 4])
+        test_selection({'playlist_items': '-2:inf:2'}, [3])
 
         test_selection({'playlist_items': '5::3'}, [])
         test_selection({'playlist_items': '1::5'}, [1])
         test_selection({'playlist_items': '5::5'}, [])
 
-        # test_selection({'playlist_items': '-2::0'}, [3])
-        # test_selection({'playlist_items': '-1::2'}, [4])
-        # test_selection({'playlist_items': '-1::3'}, [4])
+        test_selection({'playlist_items': '-2::0'}, [3])
+        test_selection({'playlist_items': '-1::2'}, [4])
+        test_selection({'playlist_items': '-1::3'}, [4])
         test_selection({'playlist_items': '-5::5'}, [])
 
     def test_urlopen_no_file_protocol(self):
