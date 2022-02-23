@@ -220,11 +220,11 @@ class RequestHandler:
     Bare-bones request handler.
     Use this for defining custom protocols for extractors.
     """
-    SUPPORTED_PROTOCOLS: list = None
+    SUPPORTED_SCHEMES: list = None
 
     @classmethod
-    def _is_supported_protocol(cls, request: Request):
-        return urllib.parse.urlparse(request.url).scheme.lower() in cls.SUPPORTED_PROTOCOLS or []
+    def _is_supported_scheme(cls, request: Request):
+        return urllib.parse.urlparse(request.url).scheme.lower() in cls.SUPPORTED_SCHEMES or []
 
     def handle(self, request: Request, **req_kwargs):
         """Method to handle given request. Redefine in subclasses"""
@@ -273,7 +273,7 @@ class BackendAdapter(RequestHandler):
 
     def can_handle(self, request: Request, **req_kwargs) -> bool:
         """Validate if adapter is suitable for given request. Can override in subclasses."""
-        return self._is_supported_protocol(request)
+        return self._is_supported_scheme(request)
 
     def _initialize(self):
         """Initialization process. Redefine in subclasses."""

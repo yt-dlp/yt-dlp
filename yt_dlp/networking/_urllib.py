@@ -417,7 +417,7 @@ class UrllibResponseAdapter(HTTPResponse):
 
 
 class UrllibBackendAdapter(BackendAdapter):
-    SUPPORTED_PROTOCOLS = ['http', 'https', 'data']
+    SUPPORTED_SCHEMES = ['http', 'https', 'data']
 
     def _initialize(self):
         self._openers = {}
