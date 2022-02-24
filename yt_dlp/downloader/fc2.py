@@ -7,11 +7,14 @@ from .external import FFmpegFD
 
 
 class FC2LiveFD(FileDownloader):
-    """ Downloads FC2 live without being stopped """
+    """
+    Downloads FC2 live without being stopped. <br>
+    Note, this is not a part of public API, and will be removed without notice.
+    DO NOT USE
+    """
 
     def real_download(self, filename, info_dict):
         ws = info_dict['ws']
-        dl = FFmpegFD(self.ydl, self.params or {})
 
         heartbeat_lock = threading.Lock()
         heartbeat_state = [None, 1]
@@ -35,4 +38,4 @@ class FC2LiveFD(FileDownloader):
             'ws': None,
             'protocol': 'live_ffmpeg',
         })
-        return dl.download(filename, new_info_dict)
+        return FFmpegFD(self.ydl, self.params or {}).download(filename, new_info_dict)
