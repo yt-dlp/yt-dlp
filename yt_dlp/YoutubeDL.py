@@ -1584,6 +1584,7 @@ class YoutubeDL(object):
 
             self._playlist_level += 1
             self._playlist_urls.add(webpage_url)
+            self._fill_common_fields(ie_result, False)
             self._sanitize_thumbnails(ie_result)
             try:
                 return self.__process_playlist(ie_result, download)
@@ -2308,6 +2309,58 @@ class YoutubeDL(object):
         else:
             info_dict['thumbnails'] = thumbnails
 
+    def _fill_common_fields(self, info_dict, is_video=True):
+        # TODO: move sanitization here
+        if is_video:
+            # playlists are allowed to lack "title"
+            info_dict['fulltitle'] = info_dict.get('title')
+            if 'title' not in info_dict:
+                raise ExtractorError('Missing "title" field in extractor result',
+                                     video_id=info_dict['id'], ie=info_dict['extractor'])
+            elif not info_dict.get('title'):
+                self.report_warning('Extractor failed to obtain "title". Creating a generic title instead')
+                info_dict['title'] = f'{info_dict["extractor"]} video #{info_dict["id"]}'
+
+        if info_dict.get('duration') is not None:
+            info_dict['duration_string'] = formatSeconds(info_dict['duration'])
+
+        for ts_key, date_key in (
+                ('timestamp', 'upload_date'),
+                ('release_timestamp', 'release_date'),
+                ('modified_timestamp', 'modified_date'),
+        ):
+            if info_dict.get(date_key) is None and info_dict.get(ts_key) is not None:
+                # Working around out-of-range timestamp values (e.g. negative ones on Windows,
+                # see http://bugs.python.org/issue1646728)
+                try:
+                    upload_date = datetime.datetime.utcfromtimestamp(info_dict[ts_key])
+                    info_dict[date_key] = upload_date.strftime('%Y%m%d')
+                except (ValueError, OverflowError, OSError):
+                    pass
+
+        live_keys = ('is_live', 'was_live')
+        live_status = info_dict.get('live_status')
+        if live_status is None:
+            for key in live_keys:
+                if info_dict.get(key) is False:
+                    continue
+                if info_dict.get(key):
+                    live_status = key
+                break
+            if all(info_dict.get(key) is False for key in live_keys):
+                live_status = 'not_live'
+        if live_status:
+            info_dict['live_status'] = live_status
+            for key in live_keys:
+                if info_dict.get(key) is None:
+                    info_dict[key] = (live_status == key)
+
+        # Auto generate title fields corresponding to the *_number fields when missing
+        # in order to always have clean titles. This is very common for TV series.
+        for field in ('chapter', 'season', 'episode'):
+            if info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
+                info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
+
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
         self._num_videos += 1
@@ -2316,14 +2369,6 @@ class YoutubeDL(object):
             raise ExtractorError('Missing "id" field in extractor result', ie=info_dict['extractor'])
         elif not info_dict.get('id'):
             raise ExtractorError('Extractor failed to obtain "id"', ie=info_dict['extractor'])
-
-        info_dict['fulltitle'] = info_dict.get('title')
-        if 'title' not in info_dict:
-            raise ExtractorError('Missing "title" field in extractor result',
-                                 video_id=info_dict['id'], ie=info_dict['extractor'])
-        elif not info_dict.get('title'):
-            self.report_warning('Extractor failed to obtain "title". Creating a generic title instead')
-            info_dict['title'] = f'{info_dict["extractor"]} video #{info_dict["id"]}'
 
         def report_force_conversion(field, field_not, conversion):
             self.report_warning(
@@ -2365,45 +2410,7 @@ class YoutubeDL(object):
         if info_dict.get('display_id') is None and 'id' in info_dict:
             info_dict['display_id'] = info_dict['id']
 
-        if info_dict.get('duration') is not None:
-            info_dict['duration_string'] = formatSeconds(info_dict['duration'])
-
-        for ts_key, date_key in (
-                ('timestamp', 'upload_date'),
-                ('release_timestamp', 'release_date'),
-                ('modified_timestamp', 'modified_date'),
-        ):
-            if info_dict.get(date_key) is None and info_dict.get(ts_key) is not None:
-                # Working around out-of-range timestamp values (e.g. negative ones on Windows,
-                # see http://bugs.python.org/issue1646728)
-                try:
-                    upload_date = datetime.datetime.utcfromtimestamp(info_dict[ts_key])
-                    info_dict[date_key] = upload_date.strftime('%Y%m%d')
-                except (ValueError, OverflowError, OSError):
-                    pass
-
-        live_keys = ('is_live', 'was_live')
-        live_status = info_dict.get('live_status')
-        if live_status is None:
-            for key in live_keys:
-                if info_dict.get(key) is False:
-                    continue
-                if info_dict.get(key):
-                    live_status = key
-                break
-            if all(info_dict.get(key) is False for key in live_keys):
-                live_status = 'not_live'
-        if live_status:
-            info_dict['live_status'] = live_status
-            for key in live_keys:
-                if info_dict.get(key) is None:
-                    info_dict[key] = (live_status == key)
-
-        # Auto generate title fields corresponding to the *_number fields when missing
-        # in order to always have clean titles. This is very common for TV series.
-        for field in ('chapter', 'season', 'episode'):
-            if info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
-                info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
+        self._fill_common_fields(info_dict)
 
         for cc_kind in ('subtitles', 'automatic_captions'):
             cc = info_dict.get(cc_kind)
