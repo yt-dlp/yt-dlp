@@ -11,7 +11,11 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
-from .aes import aes_cbc_decrypt_bytes, aes_gcm_decrypt_and_verify_bytes
+from .aes import (
+    aes_cbc_decrypt_bytes,
+    aes_gcm_decrypt_and_verify_bytes,
+    unpad_pkcs7,
+)
 from .compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
@@ -450,7 +454,10 @@ def _extract_safari_cookies(profile, logger):
     cookies_path = os.path.expanduser('~/Library/Cookies/Cookies.binarycookies')
 
     if not os.path.isfile(cookies_path):
-        raise FileNotFoundError('could not find safari cookies database')
+        logger.debug('Trying secondary cookie location')
+        cookies_path = os.path.expanduser('~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies')
+        if not os.path.isfile(cookies_path):
+            raise FileNotFoundError('could not find safari cookies database')
 
     with open(cookies_path, 'rb') as f:
         cookies_data = f.read()
@@ -846,10 +853,9 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 
 
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
-    plaintext = aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector)
-    padding_length = plaintext[-1]
+    plaintext = unpad_pkcs7(aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector))
     try:
-        return plaintext[:-padding_length].decode('utf-8')
+        return plaintext.decode('utf-8')
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None

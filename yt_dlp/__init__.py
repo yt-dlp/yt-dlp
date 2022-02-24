@@ -335,6 +335,9 @@ def _real_main(argv=None):
     if _video_multistreams_set is False and _audio_multistreams_set is False:
         _unused_compat_opt('multistreams')
     outtmpl_default = opts.outtmpl.get('default')
+    if outtmpl_default == '':
+        outtmpl_default, opts.skip_download = None, True
+        del opts.outtmpl['default']
     if opts.useid:
         if outtmpl_default is None:
             outtmpl_default = opts.outtmpl['default'] = '%(id)s.%(ext)s'
@@ -471,8 +474,8 @@ def _real_main(argv=None):
             'key': 'SponsorBlock',
             'categories': sponsorblock_query,
             'api': opts.sponsorblock_api,
-            # Run this immediately after extraction is complete
-            'when': 'pre_process'
+            # Run this after filtering videos
+            'when': 'after_filter'
         })
     if opts.parse_metadata:
         postprocessors.append({

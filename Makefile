@@ -14,7 +14,7 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites com
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
 clean-test:
-	rm -rf test/testdata/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
+	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
 	*.frag.aria2 *.frag.urls *.info.json *.live_chat.json *.meta *.part* *.tmp *.temp *.unknown_video *.ytdl \
 	*.3gp *.ape *.avi *.desktop *.flac *.flv *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 \
 	*.mp4 *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp

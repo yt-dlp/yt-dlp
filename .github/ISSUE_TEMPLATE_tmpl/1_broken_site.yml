@@ -1,4 +1,4 @@
-name: Broken site support
+name: Broken site
 description: Report broken or misfunctioning site
 labels: [triage, site-bug]
 body:

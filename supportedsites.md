@@ -3,7 +3,6 @@
  - **17live:clip**
  - **1tv**: Первый канал
  - **20min**
- - **220.ro**
  - **23video**
  - **247sports**
  - **24video**
@@ -11,7 +10,6 @@
  - **3sat**
  - **4tube**
  - **56.com**
- - **5min**
  - **6play**
  - **7plus**
  - **8tracks**
@@ -54,6 +52,7 @@
  - **AMCNetworks**
  - **AmericasTestKitchen**
  - **AmericasTestKitchenSeason**
+ - **AmHistoryChannel**
  - **anderetijden**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **AnimalPlanet**
  - **AnimeLab**
@@ -227,6 +226,7 @@
  - **ComedyCentralTV**
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
  - **CONtv**
+ - **CookingChannel**
  - **Corus**
  - **Coub**
  - **CozyTV**
@@ -268,21 +268,20 @@
  - **DeezerPlaylist**
  - **defense.gouv.fr**
  - **democracynow**
+ - **DestinationAmerica**
  - **DHM**: Filmarchiv - Deutsches Historisches Museum
  - **Digg**
  - **DigitalConcertHall**: DigitalConcertHall extractor
  - **DigitallySpeaking**
  - **Digiteka**
  - **Discovery**
- - **DiscoveryGo**
- - **DiscoveryGoPlaylist**
+ - **DiscoveryLife**
  - **DiscoveryNetworksDe**
  - **DiscoveryPlus**
  - **DiscoveryPlusIndia**
  - **DiscoveryPlusIndiaShow**
  - **DiscoveryPlusItaly**
  - **DiscoveryPlusItalyShow**
- - **DiscoveryVR**
  - **Disney**
  - **DIYNetwork**
  - **dlive:stream**
@@ -331,6 +330,9 @@
  - **Eporner**
  - **EroProfile**
  - **EroProfile:album**
+ - **ertflix**: ERTFLIX videos
+ - **ertflix:codename**: ERTFLIX videos by codename
+ - **ertwebtv:embed**: ert.gr webtv embedded videos
  - **Escapist**
  - **ESPN**
  - **ESPNArticle**
@@ -360,6 +362,7 @@
  - **FiveTV**
  - **Flickr**
  - **Folketinget**: Folketinget (ft.dk; Danish parliament)
+ - **FoodNetwork**
  - **FootyRoom**
  - **Formula1**
  - **FOX**
@@ -376,7 +379,6 @@
  - **FranceTVSite**
  - **Freesound**
  - **freespeech.org**
- - **FreshLive**
  - **FrontendMasters**
  - **FrontendMastersCourse**
  - **FrontendMastersLesson**
@@ -418,6 +420,7 @@
  - **glomex**: Glomex videos
  - **glomex:embed**: Glomex embedded videos
  - **Go**
+ - **GoDiscovery**
  - **GodTube**
  - **Gofile**
  - **Golem**
@@ -439,6 +442,7 @@
  - **hetklokhuis**
  - **hgtv.com:show**
  - **HGTVDe**
+ - **HGTVUsa**
  - **HiDive**
  - **HistoricFilms**
  - **history:player**
@@ -447,7 +451,6 @@
  - **hitbox:live**
  - **HitRecord**
  - **hketv**: 香港教育局教育電視 (HKETV) Educational Television, Hong Kong Educational Bureau
- - **HornBunny**
  - **HotNewHipHop**
  - **hotstar**
  - **hotstar:playlist**
@@ -486,12 +489,12 @@
  - **InstagramIOS**: IOS instagram:// URL
  - **Internazionale**
  - **InternetVideoArchive**
+ - **InvestigationDiscovery**
  - **IPrima**
  - **IPrimaCNN**
  - **iq.com**: International version of iQiyi
  - **iq.com:album**
  - **iqiyi**: 爱奇艺
- - **Ir90Tv**
  - **ITTF**
  - **ITV**
  - **ITVBTCC**
@@ -508,7 +511,6 @@
  - **JWPlatform**
  - **Kakao**
  - **Kaltura**
- - **Kankan**
  - **Karaoketv**
  - **KarriereVideos**
  - **Katsomo**
@@ -665,6 +667,10 @@
  - **MTVUutisetArticle**
  - **MuenchenTV**: münchen.tv
  - **MuseScore**
+ - **MusicdexAlbum**
+ - **MusicdexArtist**
+ - **MusicdexPlaylist**
+ - **MusicdexSong**
  - **mva**: Microsoft Virtual Academy videos
  - **mva:course**: Microsoft Virtual Academy courses
  - **Mwave**
@@ -977,7 +983,6 @@
  - **RoosterTeeth**
  - **RoosterTeethSeries**
  - **RottenTomatoes**
- - **Roxwel**
  - **Rozhlas**
  - **RTBF**
  - **RTDocumentry**
@@ -1169,7 +1174,6 @@
  - **TheIntercept**
  - **ThePlatform**
  - **ThePlatformFeed**
- - **TheScene**
  - **TheStar**
  - **TheSun**
  - **ThetaStream**
@@ -1186,6 +1190,7 @@
  - **tiktok:tag**
  - **tiktok:user**
  - **tinypic**: tinypic.com videos
+ - **TLC**
  - **TMZ**
  - **TNAFlix**
  - **TNAFlixNetworkEmbed**
@@ -1198,6 +1203,7 @@
  - **Toypics**: Toypics video
  - **ToypicsUser**: Toypics user profile
  - **TrailerAddict** (Currently broken)
+ - **TravelChannel**
  - **Trilulilu**
  - **Trovo**
  - **TrovoChannelClip**: All Clips of a trovo.live channel; "trovoclip:" prefix
@@ -1310,7 +1316,7 @@
  - **Viddler**
  - **Videa**
  - **video.arnes.si**: Arnes Video
- - **video.google:search**: Google Video search; "gvsearch:" prefix (Currently broken)
+ - **video.google:search**: Google Video search; "gvsearch:" prefix
  - **video.sky.it**
  - **video.sky.it:live**
  - **VideoDetective**
@@ -1339,7 +1345,8 @@
  - **vimeo:review**: Review pages on vimeo
  - **vimeo:user**
  - **vimeo:watchlater**: Vimeo watch later list, "vimeowatchlater" keyword (requires authentication)
- - **Vimm**
+ - **Vimm:recording**
+ - **Vimm:stream**
  - **Vimple**: Vimple - one-click video hosting
  - **Vine**
  - **vine:user**
@@ -1373,7 +1380,6 @@
  - **VShare**
  - **VTM**
  - **VTXTV**
- - **vube**: Vube.com
  - **VuClip**
  - **Vupload**
  - **VVVVID**
@@ -1392,7 +1398,7 @@
  - **wdr:mobile**
  - **WDRElefant**
  - **WDRPage**
- - **web.archive:youtube**: web.archive.org saved youtube videos
+ - **web.archive:youtube**: web.archive.org saved youtube videos, "ytarchive:" prefix
  - **Webcaster**
  - **WebcasterFeed**
  - **WebOfStories**
@@ -1443,6 +1449,7 @@
  - **yandexmusic:playlist**: Яндекс.Музыка - Плейлист
  - **yandexmusic:track**: Яндекс.Музыка - Трек
  - **YandexVideo**
+ - **YandexVideoPreview**
  - **YapFiles**
  - **YesJapan**
  - **yinyuetai:video**: 音悦Tai
@@ -1459,6 +1466,7 @@
  - **youtube**: YouTube
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
+ - **youtube:music:search_url**: YouTube music search URLs with selectable sections (Eg: #songs)
  - **youtube:playlist**: YouTube playlists
  - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword
  - **youtube:search**: YouTube search; "ytsearch:" prefix

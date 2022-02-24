@@ -117,6 +117,19 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     return parser, opts, args
 
 
+class _YoutubeDLOptionParser(optparse.OptionParser):
+    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+
+    def _match_long_opt(self, opt):
+        """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
+        try:
+            return super()._match_long_opt(opt)
+        except optparse.AmbiguousOptionError as e:
+            if len(set(self._long_opt[p] for p in e.possibilities)) == 1:
+                return e.possibilities[0]
+            raise
+
+
 def create_parser():
     def _format_option_string(option):
         ''' ('-o', '--option') -> -o, --format METAVAR'''
@@ -215,7 +228,7 @@ def create_parser():
         'conflict_handler': 'resolve',
     }
 
-    parser = optparse.OptionParser(**compat_kwargs(kw))
+    parser = _YoutubeDLOptionParser(**compat_kwargs(kw))
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -381,10 +394,10 @@ def create_parser():
     geo.add_option(
         '--geo-bypass',
         action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass', default=True,
+        action='store_false', dest='geo_bypass',
         help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
     geo.add_option(
         '--geo-bypass-country', metavar='CODE',
@@ -1195,13 +1208,13 @@ def create_parser():
         action='store_false', dest='allow_playlist_files',
         help='Do not write playlist metadata when using --write-info-json, --write-description etc.')
     filesystem.add_option(
-        '--clean-infojson',
+        '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
             'Remove some private fields such as filenames from the infojson. '
             'Note that it could still contain some personal information (default)'))
     filesystem.add_option(
-        '--no-clean-infojson',
+        '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
         help='Write all fields to the infojson')
     filesystem.add_option(
@@ -1537,11 +1550,11 @@ def create_parser():
             'and (optionally) arguments to be passed to it, separated by a colon ":". '
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
-            'It can be one of "pre_process" (after extraction), '
-            '"before_dl" (before video download), "post_process" (after video download; default), '
-            '"after_move" (after moving file to their final locations), '
+            'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
+            '"before_dl" (before each video download), "post_process" (after each video download; default), '
+            '"after_move" (after moving video file to it\'s final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
-            'or "playlist" (end of playlist). '
+            'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
