@@ -25,6 +25,7 @@ from ..utils import (
     error_to_compat_str,
     encodeFilename,
     sanitized_Request,
+    traverse_obj,
 )
 
 
@@ -382,6 +383,7 @@ class FragmentFD(FileDownloader):
         max_workers = self.params.get('concurrent_fragment_downloads', 1)
         if max_progress > 1:
             self._prepare_multiline_status(max_progress)
+        is_live = any(traverse_obj(args, (..., 2, 'is_live'), default=[]))
 
         def thread_func(idx, ctx, fragments, info_dict, tpe):
             ctx['max_progress'] = max_progress
@@ -429,11 +431,10 @@ class FragmentFD(FileDownloader):
                 interrupt_trigger[0] = False
             finally:
                 tpe.shutdown(wait=True)
+        if not interrupt_trigger[0] and not is_live:
+            raise KeyboardInterrupt()
         # we expect the user wants to stop and DO WANT the preceding postprocessors to run;
-        # so returning a intermediate result here instead of KeyboardInterrupt
-
-        # if not interrupt_trigger[0]:
-        #     raise KeyboardInterrupt()
+        # so returning a intermediate result here instead of KeyboardInterrupt on live
         return result
 
     def download_and_append_fragments(
