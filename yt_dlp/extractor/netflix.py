@@ -2,6 +2,7 @@ from .common import InfoExtractor
 import json
 import re
 from random import randint
+import html
 from ..utils import (
     ExtractorError,
     try_get,
@@ -13,7 +14,7 @@ from ..utils import (
 
 
 def unicode_escape(string):
-    return bytes(string, 'ascii').decode('unicode_escape')
+    return (html.unescape(string))
 
 
 def getVideoManifest(self, videoID, codecs, note, allTracks=False):
@@ -391,17 +392,6 @@ class NetflixIE(InfoExtractor):
              'release_timestamp': 1620649800000,
              'categories': 'TRAILER',
              'thumbnail': 'https://occ-0-3969-784.1.nflxso.net/dnm/api/v6/9pS1daC2n6UGc3dUogvWIPMR_OU/AAAABSBLgG2m4nT8ZaPYOs9UNpTyG_q6wPN37d2_yRw7Zu8OhlCB_JkJ4vDWv9PA0cti2LsFwejSj5j3NHxQONKQoLk1SOCPe-sJjVTx7r3qcJiesKXm.jpg?r=a95',
-         }},
-        {'url': 'https://www.netflix.com/title/81252357',
-         'md5': '3b79a20c14613a189062f105d0f9cbb5',
-         'info_dict': {
-             'id': '81510852',
-             'ext': 'mp4',
-             'title': 'Trailer: Don\'t Look Up',
-             'duration': 148,
-             'release_timestamp': 1637078400000,
-             'categories': 'TRAILER',
-             'thumbnail': 'https://occ-0-3969-784.1.nflxso.net/dnm/api/v6/9pS1daC2n6UGc3dUogvWIPMR_OU/AAAABSUcq8WMNKizYx0yr9-TDRjjG5Y4QDqqn71gMfho52Qqnd0bRafaF-BAMoY4CS7O62XYRrTU-BqjPyL4hO_Tz3ph-7gnE3vNHeI7bTJ1V-RbvKa6.jpg?r=fd1',
          }}
     ]
 
