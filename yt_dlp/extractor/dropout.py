@@ -11,6 +11,7 @@ from ..utils import (
     join_nonempty,
     unified_strdate,
     urlencode_postdata,
+    std_headers
 )
 
 
@@ -30,7 +31,7 @@ class DropoutIE(InfoExtractor):
                 'ext': 'mp4',
                 'title': 'Yes or No',
                 'description': 'Ally, Brennan, and Zac are asked a simple question, but is there a correct answer?',
-                'release_date': '20200508',
+                # 'release_date': '20200508',  # Release dates seem to have been removed from the website
                 'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/351e3f24-c4a3-459a-8b79-dc80f1e5b7fd.jpg',
                 'series': 'Game Changer',
                 'season_number': 2,
@@ -70,14 +71,14 @@ class DropoutIE(InfoExtractor):
         {
             'url': 'https://www.dropout.tv/videos/misfits-magic-holiday-special',
             'note': 'Episode not in a series',
-            'md5': 'c30fa18999c5880d156339f13c953a26',
+            'md5': '1cedb55910c0367c02d9d0aae524398e',
             'info_dict': {
                 'id': '1915774',
                 'display_id': 'misfits-magic-holiday-special',
                 'ext': 'mp4',
                 'title': 'Misfits & Magic Holiday Special',
                 'description': 'The magical misfits spend Christmas break at Gowpenny, with an unwelcome visitor.',
-                'release_date': '20211215',
+                # 'release_date': '20211215',
                 'thumbnail': 'https://vhx.imgix.net/chuncensoredstaging/assets/d91ea8a6-b250-42ed-907e-b30fb1c65176-8e24b8e5.jpg',
                 'duration': 11698,
                 'uploader_id': 'user80538407',
@@ -118,6 +119,8 @@ class DropoutIE(InfoExtractor):
             raise ExtractorError('Incorrect username/password')
 
     def _real_extract(self, url):
+        std_headers['Referer'] = 'https://www.dropout.tv'  # See issue 2858
+
         display_id = self._match_id(url)
         try:
             self._login(display_id)
