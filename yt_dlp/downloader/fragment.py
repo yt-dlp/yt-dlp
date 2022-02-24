@@ -401,7 +401,14 @@ class FragmentFD(FileDownloader):
                                 'This is a known issue and patches are welcome')
         for idx, (ctx, fragments, info_dict) in enumerate(args):
             tpe = FTPE(math.ceil(max_workers / max_progress))
-            job = tpe.submit(thread_func, idx, ctx, fragments, info_dict, tpe)
+
+            def interrupt_trigger_iter():
+                for f in fragments:
+                    if not interrupt_trigger[0]:
+                        break
+                    yield f
+
+            job = tpe.submit(thread_func, idx, ctx, interrupt_trigger_iter(), info_dict, tpe)
             spins.append((tpe, job))
 
         result = True
@@ -431,10 +438,10 @@ class FragmentFD(FileDownloader):
             pack_func = lambda frag_content, _: frag_content
 
         def download_fragment(fragment, ctx):
-            frag_index = ctx['fragment_index'] = fragment['frag_index']
-            ctx['last_error'] = None
             if not interrupt_trigger[0]:
                 return False, frag_index
+            frag_index = ctx['fragment_index'] = fragment['frag_index']
+            ctx['last_error'] = None
             headers = info_dict.get('http_headers', {}).copy()
             byte_range = fragment.get('byte_range')
             if byte_range:
@@ -500,8 +507,6 @@ class FragmentFD(FileDownloader):
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
                 for fragment, frag_content, frag_index, frag_filename in pool.map(_download_fragment, fragments):
-                    if not interrupt_trigger[0]:
-                        break
                     ctx['fragment_filename_sanitized'] = frag_filename
                     ctx['fragment_index'] = frag_index
                     result = append_fragment(decrypt_fragment(fragment, frag_content), frag_index, ctx)
