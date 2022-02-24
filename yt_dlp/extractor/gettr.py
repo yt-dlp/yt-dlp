@@ -39,6 +39,7 @@ class GettrIE(GettrBaseIE):
             'thumbnail': r're:^https?://.+/out\.jpg',
             'timestamp': 1632782451058,
             'duration': 58.5585,
+            'tags': ['hornofafrica', 'explorations'],
         }
     }, {
         'url': 'https://gettr.com/post/p4iahp',
@@ -52,6 +53,7 @@ class GettrIE(GettrBaseIE):
             'thumbnail': r're:^https?://.+/out\.jpg',
             'timestamp': 1626594455017,
             'duration': 23,
+            'tags': 'count:12',
         }
     }]
 
@@ -84,7 +86,7 @@ class GettrIE(GettrBaseIE):
 
         formats = self._extract_m3u8_formats(
             urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls') if vid else []
+            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if vid else []
 
         if ovid:
             formats.append({
@@ -93,8 +95,6 @@ class GettrIE(GettrBaseIE):
                 'ext': 'mp4',
                 'width': int_or_none(post_data.get('vid_wid')),
                 'height': int_or_none(post_data.get('vid_hgt')),
-                'source_preference': 1,
-                'quality': 1,
             })
 
         self._sort_formats(formats)

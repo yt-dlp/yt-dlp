@@ -118,7 +118,7 @@ from .bandcamp import (
     BandcampIE,
     BandcampAlbumIE,
     BandcampWeeklyIE,
-    BandcampMusicIE,
+    BandcampUserIE,
 )
 from .bannedvideo import BannedVideoIE
 from .bbc import (
@@ -195,6 +195,7 @@ from .byutv import BYUtvIE
 from .c56 import C56IE
 from .cableav import CableAVIE
 from .callin import CallinIE
+from .caltrans import CaltransIE
 from .cam4 import CAM4IE
 from .camdemy import (
     CamdemyIE,
@@ -315,7 +316,7 @@ from .crunchyroll import (
     CrunchyrollBetaIE,
     CrunchyrollBetaShowIE,
 )
-from .cspan import CSpanIE
+from .cspan import CSpanIE, CSpanCongressIE
 from .ctsnews import CtsNewsIE
 from .ctv import CTVIE
 from .ctvnews import CTVNewsIE
@@ -890,6 +891,7 @@ from .mtv import (
     MTVItaliaProgrammaIE,
 )
 from .muenchentv import MuenchenTVIE
+from .murrtube import MurrtubeIE, MurrtubeUserIE
 from .musescore import MuseScoreIE
 from .musicdex import (
     MusicdexSongIE,
@@ -993,6 +995,9 @@ from .nfl import (
 from .nhk import (
     NhkVodIE,
     NhkVodProgramIE,
+    NhkForSchoolBangumiIE,
+    NhkForSchoolSubjectIE,
+    NhkForSchoolProgramListIE,
 )
 from .nhl import NHLIE
 from .nick import (
@@ -1010,6 +1015,7 @@ from .niconico import (
     NicovideoSearchDateIE,
     NicovideoSearchIE,
     NicovideoSearchURLIE,
+    NicovideoTagURLIE,
 )
 from .ninecninemedia import (
     NineCNineMediaIE,
@@ -1141,6 +1147,7 @@ from .patreon import (
 )
 from .pbs import PBSIE
 from .pearvideo import PearVideoIE
+from .peekvids import PeekVidsIE, PlayVidsIE
 from .peertube import (
     PeerTubeIE,
     PeerTubePlaylistIE,
@@ -1159,6 +1166,7 @@ from .periscope import (
 from .philharmoniedeparis import PhilharmonieDeParisIE
 from .phoenix import PhoenixIE
 from .photobucket import PhotobucketIE
+from .piapro import PiaproIE
 from .picarto import (
     PicartoIE,
     PicartoVodIE,
