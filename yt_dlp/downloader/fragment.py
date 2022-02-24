@@ -395,10 +395,19 @@ class FragmentFD(FileDownloader):
             def __exit__(self, exc_type, exc_val, exc_tb):
                 pass
 
-        spins = []
         if compat_os_name == 'nt':
-            self.report_warning('Ctrl+C does not work on Windows when used with parallel threads. '
-                                'This is a known issue and patches are welcome')
+            def bindoj_result(future):
+                while True:
+                    try:
+                        return future.result(0.1)
+                    except KeyboardInterrupt:
+                        raise
+                    except concurrent.futures.TimeoutError:
+                        continue
+        else:
+            def bindoj_result(future): return future.result()
+
+        spins = []
         for idx, (ctx, fragments, info_dict) in enumerate(args):
             tpe = FTPE(math.ceil(max_workers / max_progress))
 
@@ -414,7 +423,7 @@ class FragmentFD(FileDownloader):
         result = True
         for tpe, job in spins:
             try:
-                result = result and job.result()
+                result = result and bindoj_result(job)
             except KeyboardInterrupt:
                 interrupt_trigger[0] = False
             finally:
