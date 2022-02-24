@@ -2311,6 +2311,7 @@ class YoutubeDL(object):
             info_dict['thumbnails'] = thumbnails
 
     def _fill_common_fields(self, info_dict, is_video=True):
+        # TODO: move sanitization here
         if is_video:
             # playlists are allowed to lack "title"
             info_dict['fulltitle'] = info_dict.get('title')
