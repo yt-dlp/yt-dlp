@@ -2135,6 +2135,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             return f['manifest_url'], f['manifest_stream_number'], is_live
 
         for f in formats:
+            f['is_live'] = True
             f['protocol'] = 'http_dash_segments_generator'
             f['fragments'] = functools.partial(
                 self._live_dash_fragments, f['format_id'], live_start_time, mpd_feed)
@@ -2157,12 +2158,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         known_idx, no_fragment_score, last_segment_url = begin_index, 0, None
         fragments, fragment_base_url = None, None
 
-        def _extract_sequence_from_mpd(refresh_sequence):
+        def _extract_sequence_from_mpd(refresh_sequence, immediate):
             nonlocal mpd_url, stream_number, is_live, no_fragment_score, fragments, fragment_base_url
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
-            expire_fast = last_error and isinstance(last_error, compat_HTTPError) and last_error.code == 403
+            expire_fast = immediate or last_error and isinstance(last_error, compat_HTTPError) and last_error.code == 403
             mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
@@ -2176,7 +2177,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             except ExtractorError:
                 fmts = None
             if not fmts:
-                no_fragment_score += 1
+                no_fragment_score += 2
                 return False, last_seq
             fmt_info = next(x for x in fmts if x['manifest_stream_number'] == stream_number)
             fragments = fmt_info['fragments']
@@ -2199,11 +2200,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     urlh = None
                 last_seq = try_get(urlh, lambda x: int_or_none(x.headers['X-Head-Seqnum']))
                 if last_seq is None:
-                    no_fragment_score += 1
+                    no_fragment_score += 2
                     last_segment_url = None
                     continue
             else:
-                should_continue, last_seq = _extract_sequence_from_mpd(True)
+                should_continue, last_seq = _extract_sequence_from_mpd(True, no_fragment_score > 15)
+                no_fragment_score += 2
                 if not should_continue:
                     continue
 
@@ -2221,7 +2223,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             try:
                 for idx in range(known_idx, last_seq):
                     # do not update sequence here or you'll get skipped some part of it
-                    should_continue, _ = _extract_sequence_from_mpd(False)
+                    should_continue, _ = _extract_sequence_from_mpd(False, False)
                     if not should_continue:
                         known_idx = idx - 1
                         raise ExtractorError('breaking out of outer loop')
