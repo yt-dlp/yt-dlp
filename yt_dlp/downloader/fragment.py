@@ -405,7 +405,8 @@ class FragmentFD(FileDownloader):
                     except concurrent.futures.TimeoutError:
                         continue
         else:
-            def bindoj_result(future): return future.result()
+            def bindoj_result(future):
+                return future.result()
 
         spins = []
         for idx, (ctx, fragments, info_dict) in enumerate(args):
@@ -451,7 +452,8 @@ class FragmentFD(FileDownloader):
 
         def download_fragment(fragment, ctx):
             if not interrupt_trigger[0]:
-                return False, frag_index
+                return False, fragment['frag_index']
+
             frag_index = ctx['fragment_index'] = fragment['frag_index']
             ctx['last_error'] = None
             headers = info_dict.get('http_headers', {}).copy()
