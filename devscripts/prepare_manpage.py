@@ -75,21 +75,17 @@ def filter_options(readme):
     section = re.search(r'(?sm)^# USAGE AND OPTIONS\n.+?(?=^# )', readme).group(0)
     options = '# OPTIONS\n'
     for line in section.split('\n')[1:]:
-        if line.lstrip().startswith('-'):
-            split = re.split(r'\s{2,}', line.lstrip())
-            # Description string may start with `-` as well. If there is
-            # only one piece then it's a description bit not an option.
-            if len(split) > 1:
-                option, description = split
-                split_option = option.split(' ')
+        mobj = re.fullmatch(r'\s{4}(?P<opt>-(?:,\s|[^\s])+)(?:\s(?P<meta>([^\s]|\s(?!\s))+))?(\s{2,}(?P<desc>.+))?', line)
+        if not mobj:
+            options += f'{line.lstrip()}\n'
+            continue
+        option, metavar, description = mobj.group('opt', 'meta', 'desc')
 
-                if not split_option[-1].startswith('-'):  # metavar
-                    option = ' '.join(split_option[:-1] + [f'*{split_option[-1]}*'])
-
-                # Pandoc's definition_lists. See http://pandoc.org/README.html
-                options += f'\n{option}\n:   {description}\n'
-                continue
-        options += line.lstrip() + '\n'
+        # Pandoc's definition_lists. See http://pandoc.org/README.html
+        option = f'{option} *{metavar}*' if metavar else option
+        description = f'{description}\n' if description else ''
+        options += f'\n{option}\n:   {description}'
+        continue
 
     return readme.replace(section, options, 1)
 

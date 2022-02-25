@@ -2547,6 +2547,8 @@ def js_to_json(code, vars={}):
 
         return '"%s"' % v
 
+    code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
+
     return re.sub(r'''(?sx)
         "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
         '(?:[^'\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^'\\]*'|
@@ -2568,7 +2570,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = {'pre_process', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist'}
+POSTPROCESS_WHEN = {'pre_process', 'after_filter', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist'}
 
 
 DEFAULT_OUTTMPL = {

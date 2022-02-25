@@ -253,7 +253,7 @@ class Aria2cFD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
-               '--file-allocation=none', '-x16', '-j16', '-s16']
+               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
             cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
         else:
