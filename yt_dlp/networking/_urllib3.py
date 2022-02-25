@@ -192,7 +192,8 @@ class Urllib3BackendAdapter(BackendAdapter):
         except urllib3.exceptions.ConnectTimeoutError as e:
             raise ConnectionTimeoutError(msg=str(e), cause=e) from e
         except urllib3.exceptions.SSLError as e:
-            raise SSLError(cause=e, msg=str(e)) from e
+            original_cause = e.__cause__
+            raise SSLError(cause=e, msg=str(original_cause.args if original_cause else str(e))) from e
 
         except urllib3.exceptions.IncompleteRead as e:
             raise IncompleteRead(partial=e.partial, expected=e.expected, cause=e) from e
