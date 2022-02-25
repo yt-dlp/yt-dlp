@@ -1309,8 +1309,15 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
         return unescapeHTML(mobj.group(1)) if mobj else None
 
     def _real_extract(self, url):
+        url, data = unsmuggle_url(url, {})
+        headers = std_headers.copy()
+        if 'http_headers' in data:
+            headers.update(data['http_headers'])
+        if 'Referer' not in headers:
+            headers['Referer'] = url
+        
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, headers=headers)
         config_url = self._parse_json(self._search_regex(
             r'window\.OTTData\s*=\s*({.+})', webpage,
             'ott data'), video_id, js_to_json)['config_url']
