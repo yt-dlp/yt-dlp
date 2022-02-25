@@ -410,17 +410,16 @@ class FragmentFD(FileDownloader):
             def bindoj_result(future):
                 return future.result()
 
+        def interrupt_trigger_iter(fg):
+            for f in fg:
+                if not interrupt_trigger[0]:
+                    break
+                yield f
+
         spins = []
         for idx, (ctx, fragments, info_dict) in enumerate(args):
             tpe = FTPE(math.ceil(max_workers / max_progress))
-
-            def interrupt_trigger_iter():
-                for f in fragments:
-                    if not interrupt_trigger[0]:
-                        break
-                    yield f
-
-            job = tpe.submit(thread_func, idx, ctx, interrupt_trigger_iter(), info_dict, tpe)
+            job = tpe.submit(thread_func, idx, ctx, interrupt_trigger_iter(fragments), info_dict, tpe)
             spins.append((tpe, job))
 
         result = True
