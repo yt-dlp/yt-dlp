@@ -10,8 +10,7 @@ from ..utils import (
     int_or_none,
     join_nonempty,
     unified_strdate,
-    urlencode_postdata,
-    std_headers
+    urlencode_postdata
 )
 
 
