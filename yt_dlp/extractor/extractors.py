@@ -14,6 +14,10 @@ from .abcotvs import (
     ABCOTVSIE,
     ABCOTVSClipsIE,
 )
+from .abematv import (
+    AbemaTVIE,
+    AbemaTVTitleIE,
+)
 from .academicearth import AcademicEarthCourseIE
 from .acast import (
     ACastIE,
