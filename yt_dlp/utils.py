@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 
 import asyncio
+import atexit
 import base64
 import binascii
 import calendar
@@ -5348,6 +5349,7 @@ class WebSocketsWrapper():
         self.conn = compat_websockets.connect(
             url, extra_headers=headers, ping_interval=None,
             close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
+        atexit.register(self.__exit__, None, None, None)
 
     def __enter__(self):
         self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
@@ -5364,7 +5366,7 @@ class WebSocketsWrapper():
             return self.run_with_loop(self.conn.__aexit__(type, value, traceback), self.loop)
         finally:
             self.loop.close()
-            self.r_cancel_all_tasks(self.loop)
+            self._cancel_all_tasks(self.loop)
 
     # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
