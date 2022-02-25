@@ -1067,11 +1067,15 @@ class RequestError(YoutubeDLError):
         super().__init__(msg)
         self.url = url
 
+    def __str__(self):
+        return f'<yt-dlp {self.__class__.__name__} {self.msg}>'
+
 
 # TODO: Add tests for reading, closing, trying to read again etc.
 # Test for making sure connection is released
 # TODO: what parameters do we want? code/reason, response or both?
 # Similar API as urllib.error.HTTPError
+
 
 class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
     def __init__(self, response, url):
@@ -1085,6 +1089,9 @@ class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
         super().__init__(msg, url)
         tempfile._TemporaryFileWrapper.__init__(self, response, '<yt-dlp response>', delete=False)
 
+    def __str__(self):
+        return self.msg
+
 
 class TransportError(RequestError):
     def __init__(self, url=None, msg=None, cause=None):
@@ -1095,11 +1102,11 @@ class TransportError(RequestError):
 
 
 class ReadTimeoutError(TransportError, TimeoutError):
-    """timeout error occurred when reading data"""
+    msg = 'Timed out while attempting to read data'
 
 
 class ConnectionTimeoutError(TransportError, TimeoutError):
-    """timeout error occurred when trying to connect to server"""
+    msg = 'Timed out while trying to connect to the server'
 
 
 class ResolveHostError(TransportError):
@@ -1132,7 +1139,7 @@ class ContentDecodingError(RequestError):
 
 
 class MaxRedirectsError(RequestError):
-    pass
+    msg = 'Maximum redirects reached'
 
 
 network_exceptions = [HTTPError, TransportError]
