@@ -277,7 +277,7 @@ class RokfinPostIE(RokfinIE):
 
         if not frmts:
             if availability == 'premium_only':
-                self.raise_login_required('premium content', True, method='cookies')
+                self.raise_login_required('premium content', True, method='password')
             elif video_formats_url:
                 self.raise_no_formats(msg='missing video data', video_id=video_id, expected=True)
             else:
@@ -407,7 +407,7 @@ class RokfinStreamIE(RokfinIE):
                         return 'not live; ' + main_part + ' behind schedule' + (' (premium-only)' if availability == 'premium_only' else '') + '. Try --wait-for-video'
                 self.raise_no_formats(error_message(stream_scheduled_for, availability), video_id=video_id, expected=True)
             elif availability == 'premium_only':
-                self.raise_login_required('premium content', True, method='cookies')
+                self.raise_login_required('premium content', True, method='password')
             elif m3u8_url:
                 self.raise_no_formats(msg='missing video data', video_id=video_id, expected=True)
             else:
