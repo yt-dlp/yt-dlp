@@ -952,7 +952,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT      Convert the thumbnails to another format
-                                     (currently supported: jpg|png)
+                                     (currently supported: jpg|png|webp)
     --split-chapters                 Split video into multiple files based on
                                      internal chapters. The "chapter:" prefix
                                      can be used with "--paths" and "--output"
@@ -983,15 +983,17 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      semicolon ";" delimited list of NAME=VALUE.
                                      The "when" argument determines when the
                                      postprocessor is invoked. It can be one of
-                                     "pre_process" (after extraction),
-                                     "before_dl" (before video download),
-                                     "post_process" (after video download;
-                                     default), "after_move" (after moving file
-                                     to their final locations), "after_video"
-                                     (after downloading and processing all
-                                     formats of a video), or "playlist" (end of
-                                     playlist). This option can be used multiple
-                                     times to add different postprocessors
+                                     "pre_process" (after video extraction),
+                                     "after_filter" (after video passes filter),
+                                     "before_dl" (before each video download),
+                                     "post_process" (after each video download;
+                                     default), "after_move" (after moving video
+                                     file to it's final locations),
+                                     "after_video" (after downloading and
+                                     processing all formats of a video), or
+                                     "playlist" (at end of playlist). This
+                                     option can be used multiple times to add
+                                     different postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1664,6 +1666,7 @@ The following extractors use this feature:
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
+* `approximate_date`: Extract approximate `upload_date` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### funimation
 * `language`: Languages to extract. Eg: `funimation:language=english,japanese`

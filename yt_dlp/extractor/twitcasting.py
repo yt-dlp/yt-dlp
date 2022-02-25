@@ -94,6 +94,9 @@ class TwitCastingIE(InfoExtractor):
                 urlh.geturl(), video_id, data=request_data,
                 headers={'Origin': 'https://twitcasting.tv'},
                 note='Retrying authentication')
+        # has to check here as the first request can contain password input form even if the password is correct
+        if re.search(r'<form\s+method="POST">\s*<input\s+[^>]+?name="password"', webpage):
+            raise ExtractorError('This video is protected by a password, use the --video-password option', expected=True)
 
         title = (clean_html(get_element_by_id('movietitle', webpage))
                  or self._html_search_meta(['og:title', 'twitter:title'], webpage, fatal=True))
