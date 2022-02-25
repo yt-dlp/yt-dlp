@@ -22,21 +22,34 @@ class TumblrIE(InfoExtractor):
         'info_dict': {
             'id': '54196191430',
             'ext': 'mp4',
-            'title': 'tatiana maslany news, Orphan Black || DVD extra - behind the scenes ↳...',
+            'title': 'md5:dfac39636969fe6bf1caa2d50405f069',
             'description': 'md5:390ab77358960235b6937ab3b8528956',
+            'uploader_id': 'tatianamaslanydaily',
+            'uploader_url': 'https://tatianamaslanydaily.tumblr.com/',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 127,
+            'like_count': int,
+            'repost_count': int,
+            'age_limit': 0,
+            'tags': ['Orphan Black', 'Tatiana Maslany', 'Interview', 'Video', 'OB S1 DVD Extras'],
         }
     }, {
+        'note': 'multiple formats',
         'url': 'https://maskofthedragon.tumblr.com/post/626907179849564160/mona-talking-in-english',
         'md5': 'f43ff8a8861712b6cf0e0c2bd84cfc68',
         'info_dict': {
             'id': '626907179849564160',
             'ext': 'mp4',
-            'title': 'Me roast is buggered!, Mona “talking” in “english”',
+            'title': 'Mona\xa0“talking” in\xa0“english”',
             'description': 'md5:082a3a621530cb786ad2b7592a6d9e2c',
+            'uploader_id': 'maskofthedragon',
+            'uploader_url': 'https://maskofthedragon.tumblr.com/',
             'thumbnail': r're:^https?://.*\.jpg',
             'duration': 7,
+            'like_count': int,
+            'repost_count': int,
+            'age_limit': 0,
+            'tags': 'count:19',
         },
         'params': {
             'format': 'hd',
@@ -49,7 +62,13 @@ class TumblrIE(InfoExtractor):
             'id': '675519763813908480',
             'ext': 'mp4',
             'title': 'Shieldfoss',
+            'uploader_id': 'nerviovago',
+            'uploader_url': 'https://nerviovago.tumblr.com/',
             'thumbnail': r're:^https?://.*\.jpg',
+            'like_count': int,
+            'repost_count': int,
+            'age_limit': 0,
+            'tags': [],
         }
     }, {
         'note': 'dashboard only (original post)',
@@ -164,15 +183,18 @@ class TumblrIE(InfoExtractor):
         'add_ie': ['Youtube'],
     }, {
         'url': 'https://dominustempori.tumblr.com/post/673572712813297664/youtubes-all-right-for-some-pretty-cool',
-        'md5': '5e45724c70b748f64f5a1731ac72c84a',
+        'md5': '203e9eb8077e3f45bfaeb4c86c1467b8',
         'info_dict': {
             'id': '87816359',
-            'ext': 'mp4',
+            'ext': 'mov',
             'title': 'Harold Ramis',
+            'description': 'md5:be8e68cbf56ce0785c77f0c6c6dfaf2c',
             'uploader': 'Resolution Productions Group',
             'uploader_id': 'resolutionproductions',
             'uploader_url': 'https://vimeo.com/resolutionproductions',
+            'upload_date': '20140227',
             'thumbnail': r're:^https?://i.vimeocdn.com/video/.*',
+            'timestamp': 1393523719,
             'duration': 291,
         },
         'add_ie': ['Vimeo'],
@@ -215,24 +237,36 @@ class TumblrIE(InfoExtractor):
         'add_ie': ['Instagram'],
     }]
 
+    _providers = {
+        'instagram': 'Instagram',
+        'vimeo': 'Vimeo',
+        'vine': 'Vine',
+        'youtube': 'Youtube',
+    }
+
     def _real_initialize(self):
         self._ACCESS_TOKEN = None
+        self.get_access_token()
         self._login()
 
     def get_access_token(self):
-        if self._ACCESS_TOKEN:
-            return
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-        self._ACCESS_TOKEN = self._search_regex(
-            r'"API_TOKEN":\s*"(\w+)"', login_page, 'API access token')
+        try:
+            login_page = self._download_webpage(
+                self._LOGIN_URL, None, 'Downloading login page')
+            self._ACCESS_TOKEN = self._search_regex(
+                r'"API_TOKEN":\s*"(\w+)"', login_page, 'API access token')
+        except ExtractorError:
+            self.report_warning('Failed to get access token; metadata will be missing and some videos may not work')
 
     def _login(self):
         username, password = self._get_login_info()
         if not username:
             return
 
-        self.get_access_token()
+        if not self._ACCESS_TOKEN:
+            self.report_warning('Cannot log in without access token')
+            return
+
         try:
             self._download_json(
                 self._OAUTH_URL, None, 'Logging in',
@@ -257,91 +291,49 @@ class TumblrIE(InfoExtractor):
 
         redirect_url = urlh.geturl()
 
-        if self._search_regex(
+        api_only = bool(self._search_regex(
             r'(tumblr.com|^)/(safe-mode|login_required|blog/view)',
-            redirect_url, 'redirect', default=None):
+            redirect_url, 'redirect', default=None))
 
-            # dashboard view only; use the api
-            self.get_access_token()
-            post_json = traverse_obj(
-                self._download_json(
-                    f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
-                    video_id,
-                    headers={
-                        'Authorization': f'Bearer {self._ACCESS_TOKEN}',
-                    }),
-                ('response', 'timeline', 'elements', 0), default={})
-            content_json = traverse_obj(
-                post_json, ('trail', 0, 'content'), ('content'), default=[])
-            video_json = next(
-                (item for item in content_json if item.get('type') == 'video'),
-                {})
-            media_json = video_json.get('media', {})
-            if 'url' not in media_json and 'url' not in video_json:
-                raise ExtractorError('Failed to find video data for dashboard-only post')
+        if api_only and not self._ACCESS_TOKEN:
+            raise ExtractorError('Cannot get data for dashboard-only post without access token')
 
-            if 'url' not in media_json:
-                # external video host
-                return self.url_result(video_json['url'], 'Generic')
+        post_json = traverse_obj(
+            self._download_json(
+                f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
+                video_id,
+                headers={
+                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+                },
+                fatal=False) if self._ACCESS_TOKEN else None,
+            ('response', 'timeline', 'elements', 0), default={})
+        content_json = traverse_obj(
+            post_json, ('trail', 0, 'content'), ('content'), default=[])
+        video_json = next(
+            (item for item in content_json if item.get('type') == 'video'),
+            {})
+        media_json = video_json.get('media', {})
+        if api_only and 'url' not in media_json and 'url' not in video_json:
+            raise ExtractorError('Failed to find video data for dashboard-only post')
 
-            uploader_id = traverse_obj(post_json, ('reblogged_root_name'), ('blog_name'))
-
-            return {
-                'id': video_id,
-                'title': post_json.get('summary') or blog,
-                'description': ('\n\n'.join(
-                    (item.get('text') for item in content_json if item.get('type') == 'text'))
-                    or None),
-                'thumbnail': traverse_obj(video_json, ('poster', 0, 'url')),
-                'uploader_id': uploader_id,
-                'uploader_url': f'https://{uploader_id}.tumblr.com/',
-                'like_count': post_json.get('like_count'),
-                'repost_count': post_json.get('reblog_count'),
-                'age_limit': 18 if post_json.get('is_nsfw') else 0,
-                'tags': post_json.get('tags'),
-                'formats': [{
-                    'url': media_json['url'],
-                    'format_id': '0',
-                    'width': media_json.get('width'),
-                    'height': media_json.get('height'),
-                }]
-            }
+        if 'url' not in media_json and 'url' in video_json:
+            # external video host
+            return self.url_result(
+                video_json['url'],
+                self._providers.get(video_json.get('provider'), 'Generic'))
 
         video_url = self._og_search_video_url(webpage, default=None)
+        duration = None
+        formats = None
 
-        # some videos are just <video> elements. others are embedded in iframes.
-        # iframes have better metadata and sometimes additional formats, so check for one
+        # iframes can supply duration and sometimes additional formats, so check for one
         iframe_url = self._search_regex(
             fr'src=\'(https?://www\.tumblr\.com/video/{blog}/{video_id}/[^\']+)\'',
             webpage, 'iframe url', default=None)
-
-        if not video_url and not iframe_url:
-            # external video host
-            iframe_url = self._search_regex(
-                r'src=["\'](https?://safe\.txmblr\.com/svc/embed/inline/[^"\']+)["\']',
-                webpage, 'embed iframe url', default=None)
-            return self.url_result(iframe_url or redirect_url, 'Generic')
-
-        sources = []
-        duration = None
-
-        if not iframe_url:
-            sources.append((
-                video_url,
-                self._og_search_property('video:width', webpage, default=None),
-                self._og_search_property('video:height', webpage, default=None),
-                '0'
-            ))
-        else:
+        if iframe_url:
             iframe = self._download_webpage(
                 iframe_url, video_id, 'Downloading iframe page',
                 headers={'Referer': redirect_url})
-
-            sd_url = self._search_regex(
-                r'<source[^>]+src=(["\'])(?P<url>.+?)\1', iframe,
-                'sd video url', default=None, group='url')
-            if sd_url:
-                sources.append((sd_url, None, None, 'sd'))
 
             options = self._parse_json(
                 self._search_regex(
@@ -350,32 +342,71 @@ class TumblrIE(InfoExtractor):
                 video_id, fatal=False)
             if options:
                 duration = int_or_none(options.get('duration'))
+
                 hd_url = options.get('hdUrl')
                 if hd_url:
-                    sources.append((hd_url, None, None, 'hd'))
+                    # there are multiple formats; extract them
+                    # (and ignore other sources of width/height data as they may be wrong)
+                    sources = []
+                    sd_url = self._search_regex(
+                        r'<source[^>]+src=(["\'])(?P<url>.+?)\1', iframe,
+                        'sd video url', default=None, group='url')
+                    if sd_url:
+                        sources.append((sd_url, 'sd'))
+                    sources.append((hd_url, 'hd'))
 
-        formats = [{
-            'url': video_url,
-            'format_id': format_id,
-            'width': int_or_none(video_width),
-            'height': int_or_none(video_height or self._search_regex(
-                r'_(\d+)\.\w+$', video_url, 'height', default=None)),
-            'quality': quality,
-        } for quality, (video_url, video_width, video_height, format_id) in enumerate(sources)]
+                    formats = [{
+                        'url': video_url,
+                        'format_id': format_id,
+                        'height': int_or_none(self._search_regex(
+                            r'_(\d+)\.\w+$', video_url, 'height', default=None)),
+                        'quality': quality,
+                    } for quality, (video_url, format_id) in enumerate(sources)]
+                    self._sort_formats(formats)
 
-        self._sort_formats(formats)
+        if 'url' not in media_json and not video_url and not iframe_url:
+            # external video host (but we weren't able to figure it out from the api)
+            iframe_url = self._search_regex(
+                r'src=["\'](https?://safe\.txmblr\.com/svc/embed/inline/[^"\']+)["\']',
+                webpage, 'embed iframe url', default=None)
+            return self.url_result(iframe_url or redirect_url, 'Generic')
 
-        # The only place where you can get a title, it's not complete,
-        # but searching in other places doesn't work for all videos
-        video_title = self._html_search_regex(
-            r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>',
-            webpage, 'title')
+        formats = formats or [{
+            'url': media_json.get('url') or video_url,
+            'format_id': '0',
+            'width': media_json.get('width') or int_or_none(
+                self._og_search_property('video:width', webpage, default=None)),
+            'height': media_json.get('height') or int_or_none(
+                self._og_search_property('video:height', webpage, default=None)),
+        }]
+
+        uploader_id = traverse_obj(post_json, ('reblogged_root_name'), ('blog_name'))
 
         return {
             'id': video_id,
-            'title': video_title,
-            'description': self._og_search_description(webpage, default=None),
-            'thumbnail': self._og_search_thumbnail(webpage, default=None),
+            'title': (post_json.get('summary')
+                      or (blog if api_only else self._html_search_regex(
+                          r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>',
+                          webpage, 'title'))),
+            # the url we're extracting from might be an original post or it might be a reblog.
+            # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.
+            # content_json is the op's post, so if it exists but has no text, there's no description
+            'description': ('\n\n'.join(
+                            (
+                                item.get('text') for item in content_json
+                                if item.get('type') == 'text'
+                            ))
+                            or (None if content_json
+                                else self._og_search_description(webpage, default=None))),
+            'thumbnail': (traverse_obj(video_json, ('poster', 0, 'url'))
+                          or self._og_search_thumbnail(webpage, default=None)),
+            'uploader_id': uploader_id,
+            'uploader_url': f'https://{uploader_id}.tumblr.com/' if uploader_id else None,
             'duration': duration,
+            'like_count': post_json.get('like_count'),
+            'repost_count': post_json.get('reblog_count'),
+            'age_limit': ((18 if post_json.get('is_nsfw') else 0)
+                          if 'is_nsfw' in post_json else None),
+            'tags': post_json.get('tags'),
             'formats': formats,
         }
