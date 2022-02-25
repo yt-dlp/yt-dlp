@@ -4981,6 +4981,10 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'skip_download': True,
             'extractor_args': {'youtubetab': {'skip': ['webpage']}}
         },
+    }, {
+        'note': 'non-standard redirect to regional channel',
+        'url': 'https://www.youtube.com/channel/UCwVVpHQ2Cs9iGJfpdFngePQ',
+        'only_matching': True
     }]
 
     @classmethod
@@ -5052,6 +5056,15 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')
 
         data, ytcfg = self._extract_data(url, item_id)
+
+        # YouTube may provide a non-standard redirect to the regional channel
+        # See: https://github.com/yt-dlp/yt-dlp/issues/2694
+        redirect_url = traverse_obj(
+            data, ('onResponseReceivedActions', ..., 'navigateAction', 'endpoint', 'commandMetadata', 'webCommandMetadata', 'url'), get_all=False)
+        if redirect_url and 'no-youtube-channel-redirect' not in compat_opts:
+            redirect_url = urljoin('https://www.youtube.com', redirect_url)
+            self.to_screen(f'This playlist is likely not available in your region. Following redirect to regional playlist {redirect_url}')
+            return self.url_result(redirect_url, ie=YoutubeTabIE.ie_key())
 
         tabs = traverse_obj(data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list)
         if tabs:
