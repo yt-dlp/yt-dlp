@@ -313,7 +313,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             f'https://api.abema.io/v1/auth/{ep}', None, note='Logging in',
             data=json.dumps({
                 method: username,
-                "password": password
+                'password': password
             }).encode('utf-8'), headers={
                 'Authorization': 'bearer ' + self._get_device_token(),
                 'Origin': 'https://abema.tv',
@@ -423,7 +423,7 @@ class AbemaTVIE(AbemaTVBaseIE):
             ondemand_types = traverse_obj(api_response, ('terms', ..., 'onDemandType'), default=[])
             if 3 not in ondemand_types:
                 # cannot acquire decryption key for these streams
-                raise ExtractorError("Premium stream is not supported", expected=True)
+                self.report_warning('This is a premium-only stream')
 
             m3u8_url = f'https://vod-abematv.akamaized.net/program/{video_id}/playlist.m3u8'
         elif video_type == 'slots':
@@ -432,7 +432,7 @@ class AbemaTVIE(AbemaTVBaseIE):
                 note='Checking playability',
                 headers=headers)
             if not traverse_obj(api_response, ('slot', 'flags', 'timeshiftFree'), default=False):
-                raise ExtractorError("Premium stream is not supported", expected=True)
+                self.report_warning('This is a premium-only stream')
 
             m3u8_url = f'https://vod-abematv.akamaized.net/slot/{video_id}/playlist.m3u8'
         else:
@@ -481,8 +481,8 @@ class AbemaTVTitleIE(AbemaTVBaseIE):
         if breadcrumb:
             playlist_title = breadcrumb[-1]
 
-        playlist = []
-        for mobj in re.finditer(r'<li\s*class=".+?EpisodeList.+?"><a\s*href="(/[^"]+?)"', webpage):
-            playlist.append(self.url_result(urljoin('https://abema.tv/', mobj.group(1))))
+        playlist = [
+            self.url_result(urljoin('https://abema.tv/', mobj.group(1)))
+            for mobj in re.finditer(r'<li\s*class=".+?EpisodeList.+?"><a\s*href="(/[^"]+?)"', webpage)]
 
         return self.playlist_result(playlist, playlist_title=playlist_title, playlist_id=video_id)
