@@ -1315,7 +1315,7 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
             headers.update(data['http_headers'])
         if 'Referer' not in headers:
             headers['Referer'] = url
-        
+
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id, headers=headers)
         config_url = self._parse_json(self._search_regex(
