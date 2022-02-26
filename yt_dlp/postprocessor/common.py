@@ -103,12 +103,14 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         return getattr(self._downloader, '_copy_infodict', dict)(info_dict)
 
     @staticmethod
-    def _restrict_to(*, video=True, audio=True, images=True):
+    def _restrict_to(*, video=True, audio=True, images=True, simulated=True):
         allowed = {'video': video, 'audio': audio, 'images': images}
 
         def decorator(func):
             @functools.wraps(func)
             def wrapper(self, info):
+                if not simulated and (self.get_param('simulate') or self.get_param('skip_download')):
+                    return [], info
                 format_type = (
                     'video' if info.get('vcodec') != 'none'
                     else 'audio' if info.get('acodec') != 'none'

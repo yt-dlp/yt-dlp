@@ -161,11 +161,10 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     # In order to create a universal2 application, the version of python3 in /usr/bin has to be used
-    # Pyinstaller is pinned to 4.5.1 because the builds are failing in 4.6, 4.7
     - name: Install Requirements
       run: |
           brew install coreutils
-          /usr/bin/python3 -m pip install -U --user pip Pyinstaller==4.5.1 -r requirements.txt
+          /usr/bin/python3 -m pip install -U --user pip Pyinstaller==4.9 -r requirements.txt
     - name: Bump version
       id: bump_version
       run: /usr/bin/python3 devscripts/update-version.py
@@ -234,7 +233,7 @@ jobs:
       # Custom pyinstaller built with https://github.com/yt-dlp/pyinstaller-builds
       run: |
           python -m pip install --upgrade pip setuptools wheel py2exe
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.5.1-py3-none-any.whl" -r requirements.txt
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/x86_64/pyinstaller-4.9-py3-none-any.whl" -r requirements.txt
     - name: Bump version
       id: bump_version
       env:
@@ -321,7 +320,7 @@ jobs:
     - name: Install Requirements
       run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.5.1-py3-none-any.whl" -r requirements.txt
+          pip install "https://yt-dlp.github.io/Pyinstaller-Builds/i686/pyinstaller-4.9-py3-none-any.whl" -r requirements.txt
     - name: Bump version
       id: bump_version
       env:

@@ -951,7 +951,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      (currently supported: srt|vtt|ass|lrc)
                                      (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT      Convert the thumbnails to another format
-                                     (currently supported: jpg|png)
+                                     (currently supported: jpg|png|webp)
     --split-chapters                 Split video into multiple files based on
                                      internal chapters. The "chapter:" prefix
                                      can be used with "--paths" and "--output"
@@ -982,15 +982,17 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      semicolon ";" delimited list of NAME=VALUE.
                                      The "when" argument determines when the
                                      postprocessor is invoked. It can be one of
-                                     "pre_process" (after extraction),
-                                     "before_dl" (before video download),
-                                     "post_process" (after video download;
-                                     default), "after_move" (after moving file
-                                     to their final locations), "after_video"
-                                     (after downloading and processing all
-                                     formats of a video), or "playlist" (end of
-                                     playlist). This option can be used multiple
-                                     times to add different postprocessors
+                                     "pre_process" (after video extraction),
+                                     "after_filter" (after video passes filter),
+                                     "before_dl" (before each video download),
+                                     "post_process" (after each video download;
+                                     default), "after_move" (after moving video
+                                     file to it's final locations),
+                                     "after_video" (after downloading and
+                                     processing all formats of a video), or
+                                     "playlist" (at end of playlist). This
+                                     option can be used multiple times to add
+                                     different postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1399,7 +1401,7 @@ The following numeric meta fields can be used with comparisons `<`, `<=`, `>`, `
  - `asr`: Audio sampling rate in Hertz
  - `fps`: Frame rate
 
-Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains) and following string meta fields:
+Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends with), `*=` (contains), `~=` (matches regex) and following string meta fields:
 
  - `ext`: File extension
  - `acodec`: Name of the audio codec in use
@@ -1409,7 +1411,7 @@ Also filtering work for comparisons `=` (equals), `^=` (starts with), `$=` (ends
  - `format_id`: A short description of the format
  - `language`: Language code
 
-Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain).
+Any string comparison may be prefixed with negation `!` in order to produce an opposite comparison, e.g. `!*=` (does not contain). The comparand of a string comparison needs to be quoted with either double or single quotes if it contains spaces or special characters other than `._-`.
 
 Note that none of the aforementioned meta fields are guaranteed to be present since this solely depends on the metadata obtained by particular extractor, i.e. the metadata offered by the website. Any other field made available by the extractor can also be used for filtering.
 
@@ -1552,8 +1554,9 @@ $ yt-dlp -S "proto"
 
 
 
-# Download the best video with h264 codec, or the best video if there is no such video
-$ yt-dlp -f "(bv*[vcodec^=avc1]+ba) / (bv*+ba/b)"
+# Download the best video with either h264 or h265 codec,
+# or the best video if there is no such video
+$ yt-dlp -f "(bv*[vcodec~='^((he|a)vc|h26[45])']+ba) / (bv*+ba/b)"
 
 # Download the best video with best codec no better than h264,
 # or the best video with worst codec if there is no such video
@@ -1662,6 +1665,7 @@ The following extractors use this feature:
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
+* `approximate_date`: Extract approximate `upload_date` in flat-playlist. This may cause date-based filters to be slightly off
 
 #### funimation
 * `language`: Languages to extract. Eg: `funimation:language=english,japanese`
@@ -1898,11 +1902,13 @@ These options are not intended to be used by the end-user
 These are aliases that are no longer documented for various reasons
 
     --avconv-location                --ffmpeg-location
+    --clean-infojson                 --clean-info-json
     --cn-verification-proxy URL      --geo-verification-proxy URL
     --dump-headers                   --print-traffic
     --dump-intermediate-pages        --dump-pages
     --force-write-download-archive   --force-write-archive
     --load-info                      --load-info-json
+    --no-clean-infojson              --no-clean-info-json
     --no-split-tracks                --no-split-chapters
     --no-write-srt                   --no-write-subs
     --prefer-unsecure                --prefer-insecure

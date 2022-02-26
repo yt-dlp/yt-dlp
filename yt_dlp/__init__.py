@@ -474,8 +474,8 @@ def _real_main(argv=None):
             'key': 'SponsorBlock',
             'categories': sponsorblock_query,
             'api': opts.sponsorblock_api,
-            # Run this immediately after extraction is complete
-            'when': 'pre_process'
+            # Run this after filtering videos
+            'when': 'after_filter'
         })
     if opts.parse_metadata:
         postprocessors.append({
