@@ -5,7 +5,6 @@ import os
 import socket
 import time
 import random
-import re
 
 from .common import FileDownloader
 from ..compat import (
@@ -60,7 +59,7 @@ class HttpFD(FileDownloader):
         ctx.chunk_size = None
         throttle_start = None
 
-        # parse given Range 
+        # parse given Range
         req_start, req_end, _ = parse_http_range(headers.get('Range'))
 
         if self.params.get('continuedl', True):
