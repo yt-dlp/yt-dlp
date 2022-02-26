@@ -5259,7 +5259,7 @@ def parse_http_range(range):
     crg = re.search(r'bytes[ =](\d+)-(\d+)?(?:/(\d+))?', range)
     if not crg:
         return None, None, None
-    return int(crg.group(1)), int(crg.group(2)), int_or_none(crg.group(3))
+    return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
 
 
 class Config:
