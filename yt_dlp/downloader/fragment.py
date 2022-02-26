@@ -178,7 +178,7 @@ class FragmentFD(FileDownloader):
         dl = HttpQuietDownloader(
             self.ydl,
             {
-                'continuedl': True,
+                'continuedl': self.params.get('continuedl', True),
                 'quiet': self.params.get('quiet'),
                 'noprogress': True,
                 'ratelimit': self.params.get('ratelimit'),
