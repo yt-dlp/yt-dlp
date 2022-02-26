@@ -519,11 +519,10 @@ class RokfinStackIE(RokfinPlaylistIE):
         _VIDEO_BASE_URL = 'https://rokfin.com/'
         _RECOMMENDED_STACK_BASE_URL = 'https://rokfin.com/stack/'
         list_id = self._match_id(url_from_user)
-
         return self.playlist_result(
             entries=self._get_video_data(
                 json_data=self._authorized_download_json(_META_VIDEO_DATA_BASE_URL + list_id, list_id), video_base_url=_VIDEO_BASE_URL),
-            playlist_id=list_id, webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id, original_url=url_from_user)
+            playlist_id=list_id, webpage_url=_RECOMMENDED_STACK_BASE_URL + list_id, original_url=url_from_user, multi_video=True)
         # webpage_url = url_from_user minus the final part. The final part exists solely for human consumption and is otherwise irrelevant.
 
 
