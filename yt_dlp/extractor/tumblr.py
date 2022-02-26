@@ -282,9 +282,7 @@ class TumblrIE(InfoExtractor):
             self.report_warning('Login failed')
 
     def _real_extract(self, url):
-        m_url = self._match_valid_url(url)
-        video_id = m_url.group('id')
-        blog = m_url.group('blog_name')
+        blog, video_id = self._match_valid_url(url).groups()
 
         url = f'http://{blog}.tumblr.com/post/{video_id}/'
         webpage, urlh = self._download_webpage_handle(url, video_id)
@@ -298,21 +296,23 @@ class TumblrIE(InfoExtractor):
         if api_only and not self._ACCESS_TOKEN:
             raise ExtractorError('Cannot get data for dashboard-only post without access token')
 
-        post_json = traverse_obj(
-            self._download_json(
-                f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
-                video_id,
-                headers={
-                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
-                },
-                fatal=False) if self._ACCESS_TOKEN else None,
-            ('response', 'timeline', 'elements', 0), default={})
+        post_json = {}
+        if self._ACCESS_TOKEN:
+            post_json = traverse_obj(
+                self._download_json(
+                    f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
+                    video_id,
+                    headers={
+                        'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+                    },
+                    fatal=False),
+                ('response', 'timeline', 'elements', 0), default={})
         content_json = traverse_obj(
             post_json, ('trail', 0, 'content'), ('content'), default=[])
         video_json = next(
             (item for item in content_json if item.get('type') == 'video'),
             {})
-        media_json = video_json.get('media', {})
+        media_json = video_json.get('media') or {}
         if api_only and 'url' not in media_json and 'url' not in video_json:
             raise ExtractorError('Failed to find video data for dashboard-only post')
 
@@ -324,7 +324,7 @@ class TumblrIE(InfoExtractor):
 
         video_url = self._og_search_video_url(webpage, default=None)
         duration = None
-        formats = None
+        formats = []
 
         # iframes can supply duration and sometimes additional formats, so check for one
         iframe_url = self._search_regex(
@@ -362,7 +362,6 @@ class TumblrIE(InfoExtractor):
                             r'_(\d+)\.\w+$', video_url, 'height', default=None)),
                         'quality': quality,
                     } for quality, (video_url, format_id) in enumerate(sources)]
-                    self._sort_formats(formats)
 
         if 'url' not in media_json and not video_url and not iframe_url:
             # external video host (but we weren't able to figure it out from the api)
@@ -372,14 +371,21 @@ class TumblrIE(InfoExtractor):
             return self.url_result(iframe_url or redirect_url, 'Generic')
 
         formats = formats or [{
-            'url': media_json.get('url') or video_url,
+            'url': media_json.get('url', video_url),
             'format_id': '0',
-            'width': media_json.get('width') or int_or_none(
-                self._og_search_property('video:width', webpage, default=None)),
-            'height': media_json.get('height') or int_or_none(
-                self._og_search_property('video:height', webpage, default=None)),
+            'width': media_json.get('width', int_or_none(
+                self._og_search_property('video:width', webpage, default=None))),
+            'height': media_json.get('height', int_or_none(
+                self._og_search_property('video:height', webpage, default=None))),
         }]
+        self._sort_formats(formats)
 
+        # the url we're extracting from might be an original post or it might be a reblog.
+        # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.
+        # content_json is the op's post, so if it exists but has no text, there's no description
+        description = ('\n\n'.join(
+            (item.get('text') for item in content_json if item.get('type') == 'text'))
+            or (None if content_json else self._og_search_description(webpage, default=None)))
         uploader_id = traverse_obj(post_json, ('reblogged_root_name'), ('blog_name'))
 
         return {
@@ -388,16 +394,7 @@ class TumblrIE(InfoExtractor):
                       or (blog if api_only else self._html_search_regex(
                           r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>',
                           webpage, 'title'))),
-            # the url we're extracting from might be an original post or it might be a reblog.
-            # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.
-            # content_json is the op's post, so if it exists but has no text, there's no description
-            'description': ('\n\n'.join(
-                            (
-                                item.get('text') for item in content_json
-                                if item.get('type') == 'text'
-                            ))
-                            or (None if content_json
-                                else self._og_search_description(webpage, default=None))),
+            'description': description,
             'thumbnail': (traverse_obj(video_json, ('poster', 0, 'url'))
                           or self._og_search_thumbnail(webpage, default=None)),
             'uploader_id': uploader_id,
