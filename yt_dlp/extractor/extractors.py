@@ -1139,6 +1139,10 @@ from .palcomp3 import (
     PalcoMP3VideoIE,
 )
 from .pandoratv import PandoraTVIE
+from .panopto import (
+    PanoptoIE,
+    PanoptoFolderIE
+)
 from .paramountplus import (
     ParamountPlusIE,
     ParamountPlusSeriesIE,
