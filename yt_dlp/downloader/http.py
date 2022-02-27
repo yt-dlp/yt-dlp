@@ -105,13 +105,12 @@ class HttpFD(FileDownloader):
             else:
                 range_start = None
             ctx.is_resume = False
-            if req_end is not None:
+            range_end = range_start + ctx.chunk_size - 1 if ctx.chunk_size else None
+            if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
+                range_end = ctx.data_len - 1
+            if None not in (req_end, range_end):
                 # we're not allowed to download outside Range
-                range_end = req_end
-            else:
-                range_end = range_start + ctx.chunk_size - 1 if ctx.chunk_size else None
-                if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
-                    range_end = ctx.data_len - 1
+                range_end = min(req_end, range_end)
             has_range = range_start is not None
             ctx.has_range = has_range
             request = sanitized_Request(url, request_data, headers)
