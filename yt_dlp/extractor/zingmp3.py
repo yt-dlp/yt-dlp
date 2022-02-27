@@ -1,7 +1,6 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import datetime
 import hashlib
 import hmac
 from urllib.parse import urlencode
@@ -29,7 +28,7 @@ class ZingMp3BaseIE(InfoExtractor):
         'song_streaming': '/api/v2/song/get/streaming',
     }
 
-    _TIMESTAMP = str(int(datetime.datetime.now().timestamp()))
+    _TEMP_TIMESTAMP = '123456'
     _API_KEY = '88265e23d4284f25963e6eedac8fbfa3'
     _SECRET_KEY = b'2aa2d1c561e809b267f3638c4a307aab'
 
@@ -41,7 +40,7 @@ class ZingMp3BaseIE(InfoExtractor):
             source = item.get('streaming')
         else:
             api = self.get_api_with_signature(name_api=self._SLUG_API.get('song_streaming'), param={
-                'ctime': self._TIMESTAMP,
+                'ctime': self._TEMP_TIMESTAMP,
                 'id': item_id})
             source = self.download_json(api, item_id).get('data')
 
@@ -85,7 +84,7 @@ class ZingMp3BaseIE(InfoExtractor):
         lyric = item.get('lyric')
         if not lyric:
             api = self.get_api_with_signature(name_api=self._SLUG_API.get("lyric"), param={
-                'ctime': self._TIMESTAMP,
+                'ctime': self._TEMP_TIMESTAMP,
                 'id': item_id})
             info_lyric = self.download_json(api, item_id)
             lyric = traverse_obj(info_lyric, ('data', 'file'))
@@ -101,20 +100,20 @@ class ZingMp3BaseIE(InfoExtractor):
             'id': item_id,
             'title': title,
             'formats': formats,
-            'thumbnail': item.get('thumbnail') or item.get('thumbnailM'),
+            'thumbnail': try_get(item, lambda x: x['thumbnail']) or try_get(item, lambda x: x['thumbnailM']),
             'subtitles': subtitles,
-            'duration': int_or_none(item.get('duration')),
+            'duration': int_or_none(try_get(item, lambda x: x['duration'])),
             'track': title,
-            'artist': item.get('artistsNames') or item.get('artists_names'),
-            'album': album.get('name') or album.get('title'),
-            'album_artist': album.get('artistsNames') or album.get('artists_names'),
+            'artist': try_get(item, lambda x: x['artistsNames']) or try_get(item, lambda x: x['artists_names']),
+            'album': try_get(album, lambda x: x['name']) or try_get(album, lambda x: x['title']),
+            'album_artist': try_get(album, lambda x: x['artistsNames']) or try_get(album, lambda x: x['artists_names']),
         }
 
     def _real_extract(self, url):
         song_id, type_url = self._match_valid_url(url).group('id', 'type')
 
         api = self.get_api_with_signature(name_api=self._SLUG_API[type_url], param={
-            'ctime': self._TIMESTAMP,
+            'ctime': self._TEMP_TIMESTAMP,
             'id': song_id})
         info = self.download_json(api, song_id)
         return self._process_data(info.get('data'), song_id, type_url)
@@ -133,11 +132,8 @@ class ZingMp3BaseIE(InfoExtractor):
         return self._download_json(api, video_id=video_id)
 
     def get_api_with_signature(self, name_api, param):
-        text = ''
-        for k, v in param.items():
-            text += f'{k}={v}'
+        sha256 = self.get_hash256(''.join(f'{k}={v}' for k, v in param.items()))
 
-        sha256 = self.get_hash256(text)
         data = {
             'ctime': param.get('ctime'),
             'apiKey': self._API_KEY,
