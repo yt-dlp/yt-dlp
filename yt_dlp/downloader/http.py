@@ -105,13 +105,19 @@ class HttpFD(FileDownloader):
             else:
                 range_start = None
             ctx.is_resume = False
-            if req_end is not None:
+
+            if ctx.chunk_size:
+                chunk_aware_end = range_start + ctx.chunk_size - 1
                 # we're not allowed to download outside Range
+                range_end = chunk_aware_end if req_end is None else min(chunk_aware_end, req_end)
+            elif req_end is not None:
+                # there's no need for chunked downloads, so download until the end of Range
                 range_end = req_end
             else:
-                range_end = range_start + ctx.chunk_size - 1 if ctx.chunk_size else None
-                if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
-                    range_end = ctx.data_len - 1
+                range_end = None
+
+            if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
+                range_end = ctx.data_len - 1
             has_range = range_start is not None
             ctx.has_range = has_range
             request = sanitized_Request(url, request_data, headers)
