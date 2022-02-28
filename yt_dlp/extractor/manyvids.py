@@ -50,6 +50,10 @@ class ManyVidsIE(InfoExtractor):
              r'<h2[^>]+class=["\']h2 m-0["\'][^>]*>([^<]+)'),
             webpage, 'title', default=None) or self._html_search_meta(
             'twitter:title', webpage, 'title', fatal=True)
+        
+            r'<span[^>]+class=(["\'])title\1[^>]*>(?P<title>[^<]+)',
+
+        uploader = self._html_search_regex(r'<meta[^>]+name="author"[^>]*>([^<]+)', webpage, 'uploader')
 
         if any(p in webpage for p in ('preview_videos', '_preview.mp4')):
             title += ' (Preview)'
@@ -89,4 +93,5 @@ class ManyVidsIE(InfoExtractor):
             'view_count': view_count,
             'like_count': like_count,
             'formats': formats,
+            'uploader': uploader,
         }
