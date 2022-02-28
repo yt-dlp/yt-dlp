@@ -49,17 +49,8 @@ class PanoptoIE(PanoptoBaseIE):
                 'timestamp': 1459184200,
                 'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb&mode=Delivery&random=[\d.]+',
                 'upload_date': '20160328',
+                'ext': 'mp4',
             },
-            'playlist': [
-                {
-                    'info_dict': {
-                        'id': '0d28b224-bd94-40d4-a7a0-502f15715fd5',
-                        'ext': 'mp4',
-                        'title': 'DV',
-                        'chapters': 'count:0'
-                    },
-                },
-            ],
         },
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59',
@@ -70,26 +61,9 @@ class PanoptoIE(PanoptoBaseIE):
                 'timestamp': 1449409251,
                 'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59&mode=Delivery&random=[\d.]+',
                 'upload_date': '20151206',
+                'ext': 'mp4',
+                'chapters': 'count:21'
             },
-            'playlist': [
-                {
-                    'info_dict': {
-                        'id': '15ad06ef-3f7d-4074-aa4a-87c41dd18f9c',
-                        'ext': 'mp4',
-                        'title': 'OBJECT',
-                        'chapters': 'count:21'
-                    },
-                },
-                {
-                    'info_dict': {
-                        'id': '7668d6b2-dc81-421d-9853-20653689e2e8',
-                        'ext': 'mp4',
-                        'title': 'DV',
-                        'chapters': 'count:21'
-                    },
-                },
-            ],
-            'playlist_count': 2,
         },
         {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
@@ -110,6 +84,30 @@ class PanoptoIE(PanoptoBaseIE):
                 'title': timestamp.get('Caption')
             })
         return chapters
+
+    def _extract_stream(self, video_id, stream, chapters):
+        formats = []
+        subtitles = {}
+        http_stream_url = stream.get('StreamHttpUrl')
+        if http_stream_url:
+            formats.append({'url': http_stream_url})
+
+        media_type = stream.get('ViewerMediaFileTypeName')
+        if media_type in ('hls', ):
+            m3u8_formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream.get('StreamUrl'), video_id, 'mp4')
+            formats.extend(m3u8_formats)
+        else:
+            formats.append({
+                'url': stream.get('StreamUrl')
+            })
+
+        return {
+            'id': stream['PublicID'],
+            'title': stream.get('Tag') or stream['PublicID'],
+            'formats': formats,
+            'subtitles': subtitles,
+            'chapters': chapters
+        }
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -132,42 +130,43 @@ class PanoptoIE(PanoptoBaseIE):
         delivery = delivery_info['Delivery']
 
         streams = []
-        chapters = self._extract_chapters(delivery)
-        for stream in delivery.get('Streams'):
-            if not isinstance(stream, dict):
-                continue
-            formats = []
-            http_stream_url = stream.get('StreamHttpUrl')
-            if http_stream_url:
-                formats.append({'url': http_stream_url})
+        chapters = self._extract_chapters(delivery) or None
 
-            m3u8_formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream.get('StreamUrl'), video_id, 'mp4')
-            formats.extend(m3u8_formats)
+        # TODO: If PodcastStreams are available, prefer them
+        # Usually contains the 'combined' stream, as well as higher quality.
+        # TODO: way to enable to get normal Streams even if PodcastStreams if present
+        for stream in delivery.get('PodcastStreams', []):
+            streams.append(self._extract_stream(video_id, stream, chapters))
 
-            streams.append({
-                'id': stream['PublicID'],
-                'title': stream.get('Tag'),
-                'formats': formats,
-                'subtitles': subtitles,
-                'chapters': chapters
-            })
+        if not streams:
+            for stream in delivery.get('Streams', []):
+                streams.append(self._extract_stream(video_id, stream, chapters))
 
         session_start_time = int_or_none(delivery.get('SessionStartTime'))
 
-        # TODO: should we return as single video if only one stream?
-        # What do we do with the changing id to match the stream?
-        info = {
-            '_type': 'multi_video',
+        base_info = {
             'id': video_id,
             'title': delivery.get('SessionName'),
-            'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
-            'entries': streams,
-            'uploader': ', '.join(filter(None, traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[]))) or None,
+            'uploader': ', '.join(
+                filter(None, traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[]))) or None,
             'timestamp': session_start_time - 11640000000 if session_start_time else None,
             'duration': delivery.get('duration'),
+            'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
         }
+        if not streams:
+            self.raise_no_formats('Did not find any streams')
 
-        return info
+        if len(streams) == 1:
+            return {
+                **streams[0],
+                **base_info,
+            }
+        else:
+            return {
+                **base_info,
+                '_type': 'multi_video',
+                'entries': streams,
+            }
 
 
 class PanoptoListIE(PanoptoBaseIE):
@@ -187,6 +186,7 @@ class PanoptoListIE(PanoptoBaseIE):
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#view=2&maxResults=250',
             'info_dict': {
                 'id': 'list',
+                'title': 'list'
             },
             'playlist_mincount': 300
         }
@@ -229,7 +229,7 @@ class PanoptoListIE(PanoptoBaseIE):
             base_url, '/Services/Data.svc/GetFolderInfo', folder_id,
             data={'folderID': folder_id}, fatal=False)
         return {
-            'playlist_title': get_first(response, 'Name')
+            'title': get_first(response, 'Name')
         }
 
     def _real_extract(self, url):
