@@ -3,48 +3,59 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 
-from ..compat import compat_str
-
 from ..utils import (
     ExtractorError,
     smuggle_url,
     unsmuggle_url,
+    int_or_none,
+    traverse_obj
 )
 
-import re
 from random import random
 import json
 
 
 class PanoptoBaseIE(InfoExtractor):
-    """The base class with common methods for Panopto extractors."""
+    BASE_URL_RE = r'(?P<base_url>https?://[\w.]+\.panopto.(?:com|eu)/Panopto)'
 
-    @classmethod
-    def _match_organization(cls, url):
-        """Match and return the organization part of a Panopto hosted URL."""
-        if '_VALID_URL_RE' not in cls.__dict__:
-            cls._VALID_URL_RE = re.compile(cls._VALID_URL)
-        m = cls._VALID_URL_RE.match(url)
-        assert m
-        return compat_str(m.group('org'))
+    def _call_api(self, base_url, path, video_id, query, fatal=True):
+        response = self._download_json(base_url + path, video_id, query=query, fatal=fatal)
+        if not response:
+            return
+        error_code = response.get('ErrorCode')
+        if error_code == 2:
+            self.raise_login_required(method='cookies')
+        elif error_code is not None:
+            msg = f'Panopto said: {response.get("ErrorMessage")}'
+            if fatal:
+                raise ExtractorError(msg, video_id)
+            else:
+                self.report_warning(msg, video_id=video_id)
+        return response
 
 
 class PanoptoIE(PanoptoBaseIE):
-    """Extracts a single Panopto video including all available streams."""
-
-    _VALID_URL = r'^https?://(?P<org>[a-z0-9]+)\.hosted\.panopto.com/Panopto/Pages/Viewer\.aspx\?id=(?P<id>[a-f0-9-]+)'
+    _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/Viewer\.aspx\?id=(?P<id>[a-f0-9-]+)'
     _TESTS = [
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
-            'md5': 'e8e6ef6b0572dd5985f5f8c3e096f717',
             'info_dict': {
                 'id': '26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
-                'ext': 'mp4',
                 'title': 'Panopto for Business - Use Cases',
-                'uploader': 'Ari Bixhorn',
+                'timestamp': 1459184200,
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb&mode=Delivery&random=[\d.]+',
                 'upload_date': '20160328',
-                'timestamp': 1459184200.3759995,
             },
+            'playlist': [
+                {
+                    'info_dict': {
+                        'id': '0d28b224-bd94-40d4-a7a0-502f15715fd5',
+                        'ext': 'mp4',
+                        'title': 'DV',
+                        'chapters': 'count:0'
+                    },
+                },
+            ],
         },
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59',
@@ -52,48 +63,55 @@ class PanoptoIE(PanoptoBaseIE):
                 'id': 'ed01b077-c9e5-4c7b-b8ff-15fa306d7a59',
                 'title': 'Overcoming Top 4 Challenges of Enterprise Video',
                 'uploader': 'Panopto Support',
-                'timestamp': 1449409251.8579998,
+                'timestamp': 1449409251,
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59&mode=Delivery&random=[\d.]+',
+                'upload_date': '20151206',
             },
             'playlist': [
                 {
-                    'md5': 'e22b5a284789ba2681e4fe215352d816',
                     'info_dict': {
                         'id': '15ad06ef-3f7d-4074-aa4a-87c41dd18f9c',
                         'ext': 'mp4',
                         'title': 'OBJECT',
+                        'chapters': 'count:21'
                     },
                 },
                 {
-                    'md5': 'a483b8116abbb04a7112a9a3ccc835ce',
                     'info_dict': {
                         'id': '7668d6b2-dc81-421d-9853-20653689e2e8',
                         'ext': 'mp4',
                         'title': 'DV',
+                        'chapters': 'count:21'
                     },
                 },
             ],
             'playlist_count': 2,
         },
+        {
+            'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
+            'only_matching': True
+        }
     ]
 
     @staticmethod
-    def _get_contribs_str(contribs):
-        """Returns a comma-delimited string of contributors."""
-        s = ''
-        for c in contribs:
-            display_name = c.get('DisplayName')
-            if display_name is not None:
-                s += '{0}, '.format(display_name)
-        return s[:-2] if len(contribs) else ''
+    def _extract_chapters(delivery):
+        chapters = []
+        for timestamp in delivery.get('Timestamps', []):
+            start, duration = int_or_none(timestamp.get('Time')), int_or_none(timestamp.get('Duration'))
+            if start is None or duration is None:
+                continue
+            chapters.append({
+                'start_time': start,
+                'end_time': start + duration,
+                'title': timestamp.get('Caption')
+            })
+        return chapters
 
     def _real_extract(self, url):
-        """Extracts the video and stream information for the given Panopto hosted URL."""
-        video_id = self._match_id(url)
-        org = self._match_organization(url)
-
-        delivery_info = self._download_json(
-            'https://{0}.hosted.panopto.com/Panopto/Pages/Viewer/DeliveryInfo.aspx'.format(org),
-            video_id,
+        mobj = self._match_valid_url(url)
+        base_url, video_id = mobj.group('base_url', 'id')
+        delivery_info = self._call_api(
+            base_url, '/Pages/Viewer/DeliveryInfo.aspx', video_id,
             query={
                 'deliveryId': video_id,
                 'invocationId': '',
@@ -107,90 +125,45 @@ class PanoptoIE(PanoptoBaseIE):
             }
         )
 
-        if 'ErrorCode' in delivery_info:
-            self._downloader.report_warning("If the video you are trying to download requires you to sign-in, you will "
-                                            "need to provide a cookies file that allows the downloader to authenticate "
-                                            "with Panopto. If the error below is about unauthorized access, this is "
-                                            "most likely the issue.")
-            raise ExtractorError(
-                'API error: ({0}) {1}'.format(delivery_info.get('ErrorCode', '?'), delivery_info.get('ErrorMessage', '?'))
-            )
+        delivery = delivery_info['Delivery']
 
         streams = []
-        for this_stream in delivery_info['Delivery']['Streams']:
-            new_stream = {
-                'id': this_stream['PublicID'],
-                'title': this_stream['Tag'],
-                'formats': [],
-            }
-            if 'StreamHttpUrl' in this_stream:
-                new_stream['formats'].append({
-                    'url': this_stream['StreamHttpUrl'],
-                })
-            if 'StreamUrl' in this_stream:
-                m3u8_formats = self._extract_m3u8_formats(this_stream['StreamUrl'], video_id, 'mp4')
-                self._sort_formats(m3u8_formats)
-                new_stream['formats'].extend(m3u8_formats)
-            if len(new_stream['formats']):
-                streams.append(new_stream)
+        chapters = self._extract_chapters(delivery)
+        for stream in delivery.get('Streams'):
+            if not isinstance(stream, dict):
+                continue
+            formats = []
+            http_stream_url = stream.get('StreamHttpUrl')
+            if http_stream_url:
+                formats.append({'url': http_stream_url})
 
-        if not streams:
-            raise ExtractorError('No streams found.')
+            m3u8_formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream.get('StreamUrl'), video_id, 'mp4')
+            formats.extend(m3u8_formats)
 
-        result = {
+            streams.append({
+                'id': stream['PublicID'],
+                'title': stream.get('Tag'),
+                'formats': formats,
+                'subtitles': subtitles,
+                'chapters': chapters
+            })
+
+        session_start_time = int_or_none(delivery.get('SessionStartTime'))
+
+        # TODO: should we return as single video if only one stream?
+        # What do we do with the changing id to match the stream?
+        info = {
+            '_type': 'multi_video',
             'id': video_id,
-            'title': delivery_info['Delivery']['SessionName'],
-            'thumbnail': 'https://{0}.hosted.panopto.com/Panopto/Services/FrameGrabber.svc/FrameRedirect?objectId={1}&mode=Delivery&random={2}'.format(
-                         org, video_id, random()),
+            'title': delivery.get('SessionName'),
+            'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
+            'entries': streams,
+            'uploader': ', '.join(filter(None, traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[]))) or None,
+            'timestamp': session_start_time - 11640000000 if session_start_time else None,
+            'duration': delivery.get('duration'),
         }
 
-        if len(streams) == 1:
-            result['formats'] = streams[0]['formats']
-        else:
-            result['_type'] = 'multi_video'
-            result['entries'] = streams
-
-        # We already know Delivery exists since we need it for stream extraction
-        contributors = delivery_info['Delivery'].get('Contributors')
-        if contributors is not None:
-            result['uploader'] = self._get_contribs_str(contributors)
-
-        session_start_time = delivery_info['Delivery'].get('SessionStartTime')
-        if session_start_time is not None:
-            result['timestamp'] = session_start_time - 11640000000
-
-        duration = delivery_info['Delivery'].get('Duration')
-        if duration is not None:
-            result['duration'] = duration
-
-        thumbnails = []
-        if 'Timestamps' in delivery_info['Delivery']:
-            for timestamp in delivery_info['Delivery']['Timestamps']:
-                object_id = timestamp.get('ObjectIdentifier')
-                object_sequence_num = timestamp.get('ObjectSequenceNumber')
-                if object_id is not None and object_sequence_num is not None:
-                    thumbnails.append({
-                        'url': 'https://{0}.hosted.panopto.com/Panopto/Pages/Viewer/Image.aspx?id={1}&number={2}&x=undefined'.format(
-                               org, object_id, object_sequence_num)
-                    })
-
-                # This provides actual thumbnails instead of the above which allows for downloading of real slides
-                # object_public_id = timestamp.get('ObjectPublicIdentifier')
-                # session_id = timestamp.get('SessionID')
-                # absolute_time = timestamp.get('AbsoluteTime')
-                # if object_public_id is not None and session_id is not None and object_sequence_num is not None and absolute_time is not None:
-                #     thumbnails.append({
-                #         'url': 'https://{0}.hosted.panopto.com/Panopto/Pages/Viewer/Thumb.aspx?eventTargetPID={1}&sessionPID={2}&number={3}&isPrimary=false&absoluteTime={4}'.format(
-                #             org, object_public_id, session_id, object_sequence_num, absolute_time),
-                #     })
-
-        if len(thumbnails):
-            if result.get('entries') is not None:
-                result['entries'][1]['thumbnails'] = thumbnails
-            else:
-                result['thumbnails'] = thumbnails
-
-        return result
+        return info
 
 
 class PanoptoFolderIE(PanoptoBaseIE):
