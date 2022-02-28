@@ -1,14 +1,18 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import functools
+
 from .common import InfoExtractor
+from .youtube import get_first
+from ..compat import compat_urllib_parse_urlparse, compat_parse_qs, compat_urlparse
 
 from ..utils import (
     ExtractorError,
     smuggle_url,
     unsmuggle_url,
     int_or_none,
-    traverse_obj
+    traverse_obj, parse_qs, OnDemandPagedList, InAdvancePagedList, js_to_json
 )
 
 from random import random
@@ -18,8 +22,8 @@ import json
 class PanoptoBaseIE(InfoExtractor):
     BASE_URL_RE = r'(?P<base_url>https?://[\w.]+\.panopto.(?:com|eu)/Panopto)'
 
-    def _call_api(self, base_url, path, video_id, query, fatal=True):
-        response = self._download_json(base_url + path, video_id, query=query, fatal=fatal)
+    def _call_api(self, base_url, path, video_id, query=None, data=None, fatal=True):
+        response = self._download_json(base_url + path, video_id, query=query, data=json.dumps(data).encode('utf8'), fatal=fatal, headers={'content-type': 'application/json'})
         if not response:
             return
         error_code = response.get('ErrorCode')
@@ -28,7 +32,7 @@ class PanoptoBaseIE(InfoExtractor):
         elif error_code is not None:
             msg = f'Panopto said: {response.get("ErrorMessage")}'
             if fatal:
-                raise ExtractorError(msg, video_id)
+                raise ExtractorError(msg, video_id=video_id)
             else:
                 self.report_warning(msg, video_id=video_id)
         return response
@@ -166,85 +170,98 @@ class PanoptoIE(PanoptoBaseIE):
         return info
 
 
-class PanoptoFolderIE(PanoptoBaseIE):
-    """Recursively extracts a folder of Panopto videos, digging as far as possible into subfolders."""
-
-    _VALID_URL = r'^https?://(?P<org>[a-z0-9]+)\.hosted\.panopto.com/Panopto/Pages/Sessions/List\.aspx(?:\?.*)?#(?:.*&)?folderID=(?:"|%22)(?P<id>[a-f0-9-]+)'
+class PanoptoListIE(PanoptoBaseIE):
+    _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/Sessions/List\.aspx'
+    _PAGE_SIZE = 250
     _TESTS = [
         {
-            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID=%224540f269-8bb1-4352-b5dc-64e5919d1c40%22',
+            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID=%22e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a%22',
             'info_dict': {
-                'id': '4540f269-8bb1-4352-b5dc-64e5919d1c40',
-                'title': 'Demo',
+                'id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
+                'title': 'Showcase Videos'
             },
-            'playlist_count': 4,
+            'playlist_mincount': 140
+
+        },
+        {
+            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#view=2&maxResults=250',
+            'info_dict': {
+                'id': 'list',
+            },
+            'playlist_mincount': 300
         }
+
     ]
 
-    def _real_extract(self, url):
-        """Recursively extracts the video and stream information for the given Panopto hosted URL."""
-        url, smuggled = unsmuggle_url(url)
-        if smuggled is None:
-            smuggled = {}
-        folder_id = self._match_id(url)
-        org = self._match_organization(url)
+    def _fetch_page(self, base_url, query_params, display_id, page):
 
-        folder_data = self._download_json(
-            'https://{0}.hosted.panopto.com/Panopto/Services/Data.svc/GetSessions'.format(org),
-            folder_id,
-            'Downloading folder listing',
-            'Failed to download folder listing',
-            data=json.dumps({
-                'queryParameters': {
-                    'query': None,
-                    'sortColumn': 1,
-                    'sortAscending': False,
-                    'maxResults': 10000,
-                    'page': 0,
-                    'startDate': None,
-                    'endDate': None,
-                    'folderID': folder_id,
-                    'bookmarked': False,
-                    'getFolderData': True,
-                    'isSharedWithMe': False,
-                },
-            }, ensure_ascii=False).encode('utf-8'),
-            headers={'Content-Type': 'application/json'})['d']
-
-        entries = []
-        if 'Results' in folder_data and folder_data['Results'] is not None:
-            for video in folder_data['Results']:
-                new_video = {
-                    'id': video['DeliveryID'],
-                    'title': video['SessionName'],
-                    'url': video['ViewerUrl'],
-                    '_type': 'url_transparent',
-                    'ie_key': 'Panopto',
-                }
-                if 'prev_folders' in smuggled:
-                    new_video['title'] = smuggled['prev_folders'] + ' -- ' + new_video['title']
-                entries.append(new_video)
-
-        if 'Subfolders' in folder_data and folder_data['Subfolders'] is not None:
-            for subfolder in folder_data['Subfolders']:
-                new_folder = {
-                    'id': subfolder['ID'],
-                    'title': subfolder['Name'],
-                    '_type': 'url_transparent',
-                    'ie_key': 'PanoptoFolder',
-                }
-                if 'prev_folders' in smuggled:
-                    new_folder['title'] = smuggled['prev_folders'] + ' -- ' + new_folder['title']
-                new_folder['url'] = smuggle_url('https://{0}.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#folderID="{1}"'
-                                                .format(org, subfolder['ID']), {'prev_folders': new_folder['title']})
-                entries.append(new_folder)
-
-        if not entries:
-            raise ExtractorError('Folder is empty or authentication failed')
-
-        return {
-            'id': folder_id,
-            'title': folder_data['Results'][0]['FolderName'] if len(folder_data['Results']) else folder_data['Subfolders'][0]['ParentFolderName'],
-            '_type': 'playlist',
-            'entries': entries,
+        params = {
+            'sortColumn': 1,
+            **query_params,
+            'page': page,
+            'maxResults': self._PAGE_SIZE,
         }
+
+        response = self._call_api(
+            base_url, '/Services/Data.svc/GetSessions', display_id + f' page {page+1}',
+            data={'queryParameters': params}, fatal=False)
+        if not response:
+            return  # TODO this should be fatal but being fatal makes us infinitely hit the site
+        for result in traverse_obj(response, (..., 'Results'), get_all=False, default=[]):
+            video_id = result.get('DeliveryID')
+            yield {
+                '_type': 'url',
+                'ie_key': PanoptoIE.ie_key(),
+                'id': video_id,
+                'title': result.get('SessionName'),
+                'url': base_url + f'/Pages/Viewer.aspx?id={video_id}',
+                'duration': result.get('Duration'),
+            }
+
+        for folder in traverse_obj(response, (..., 'Subfolders'), get_all=False, default=[]):
+            folder_id = folder.get('ID')
+            yield self.url_result(
+                base_url + f'/Pages/Sessions/List.aspx#folderID={folder_id}',
+                ie_key=PanoptoIE.ie_key(), video_id=folder_id, title=folder.get('Name'))
+
+    def _extract_folder_metadata(self, base_url, folder_id):
+        response = self._call_api(
+            base_url, '/Services/Data.svc/GetFolderInfo', folder_id,
+            data={'folderID': folder_id}, fatal=False)
+        return {
+            'playlist_title': get_first(response, 'Name')
+        }
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        base_url = mobj.group('base_url')
+
+        query_params = {k: json.loads(v[0]) for k, v in compat_urlparse.parse_qs(compat_urllib_parse_urlparse(url).fragment).items()}
+
+        folder_id, display_id = query_params.get('folderID'), 'list'
+
+        if query_params.get('isSubscriptionsPage'):
+            display_id = 'subscriptions'
+            if not query_params.get('subscribableTypes'):
+                query_params['subscribableTypes'] = [0, 1, 2]
+        elif query_params.get('isSharedWithMe'):
+            display_id = 'sharedwithme'
+        elif folder_id:
+            display_id = folder_id
+
+        query = query_params.get('query')
+        if query:
+            display_id += f': query {query}'
+
+        info = {
+            '_type': 'playlist',
+            'id': display_id,
+            'title': display_id,
+        }
+        if folder_id:
+            info.update(self._extract_folder_metadata(base_url, folder_id))
+
+        info['entries'] = OnDemandPagedList(
+            functools.partial(self._fetch_page, base_url, query_params, display_id), self._PAGE_SIZE)
+
+        return info
