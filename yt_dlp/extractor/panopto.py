@@ -209,7 +209,7 @@ class PanoptoListIE(PanoptoBaseIE):
             data={'queryParameters': params}, fatal=False)
         if not response:
             return  # TODO this should be fatal but being fatal makes us infinitely hit the site
-        for result in traverse_obj(response, (..., 'Results'), get_all=False, default=[]):
+        for result in get_first(response, 'Results', default=[]):
             video_id = result.get('DeliveryID')
             yield {
                 '_type': 'url',
@@ -220,7 +220,7 @@ class PanoptoListIE(PanoptoBaseIE):
                 'duration': result.get('Duration'),
             }
 
-        for folder in traverse_obj(response, (..., 'Subfolders'), get_all=False, default=[]):
+        for folder in get_first(response, 'Subfolders', default=[]):
             folder_id = folder.get('ID')
             yield self.url_result(
                 base_url + f'/Pages/Sessions/List.aspx#folderID={folder_id}',
