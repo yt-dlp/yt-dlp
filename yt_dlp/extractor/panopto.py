@@ -41,7 +41,7 @@ class PanoptoBaseIE(InfoExtractor):
 
 
 class PanoptoIE(PanoptoBaseIE):
-    _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/Viewer\.aspx\?id=(?P<id>[a-f0-9-]+)'
+    _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx\?id=(?P<id>[a-f0-9-]+)'
     _TESTS = [
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
@@ -69,6 +69,10 @@ class PanoptoIE(PanoptoBaseIE):
         },
         {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
+            'only_matching': True
+        },
+        {
+            'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
             'only_matching': True
         }
     ]
