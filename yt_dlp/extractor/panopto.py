@@ -106,7 +106,7 @@ class PanoptoIE(PanoptoBaseIE):
             formats.append({
                 'url': stream.get('StreamUrl')
             })
-
+        self._sort_formats(formats)
         return {
             'id': stream['PublicID'],
             'title': stream.get('Tag') or stream['PublicID'],
