@@ -132,20 +132,20 @@ class ZingMp3BaseIE(InfoExtractor):
         return self._download_json(api, video_id=video_id)
 
     def get_api_with_signature(self, name_api, param):
-        sha256 = self.get_hash256(''.join(f'{k}={v}' for k, v in param.items()))
+        sha256 = self.sha256_params(''.join(f'{k}={v}' for k, v in param.items()))
 
         data = {
             'ctime': param.get('ctime'),
             'apiKey': self._API_KEY,
-            'sig': self.get_hmac512(f'{name_api}{sha256}')
+            'sig': self.hmac512_string(f'{name_api}{sha256}')
         }
         data.update(param)
         return f'{self._DOMAIN}{name_api}?{urlencode(data)}'
 
-    def get_hash256(self, string):
+    def sha256_params(self, string):
         return hashlib.sha256(string.encode('utf-8')).hexdigest()
 
-    def get_hmac512(self, string):
+    def hmac512_string(self, string):
         return hmac.new(self._SECRET_KEY, string.encode('utf-8'), hashlib.sha512).hexdigest()
 
 
