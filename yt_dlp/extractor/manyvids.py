@@ -50,8 +50,6 @@ class ManyVidsIE(InfoExtractor):
              r'<h2[^>]+class=["\']h2 m-0["\'][^>]*>([^<]+)'),
             webpage, 'title', default=None) or self._html_search_meta(
             'twitter:title', webpage, 'title', fatal=True)
-        
-            r'<span[^>]+class=(["\'])title\1[^>]*>(?P<title>[^<]+)',
 
         uploader = self._html_search_regex(r'<meta[^>]+name="author"[^>]*>([^<]+)', webpage, 'uploader')
 
