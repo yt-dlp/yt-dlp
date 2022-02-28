@@ -4,15 +4,17 @@ from __future__ import unicode_literals
 import functools
 
 from .common import InfoExtractor
-from .youtube import get_first
-from ..compat import compat_urllib_parse_urlparse, compat_parse_qs, compat_urlparse
+from .youtube import get_first  # TODO
+from ..compat import (
+    compat_urllib_parse_urlparse,
+    compat_urlparse
+)
 
 from ..utils import (
     ExtractorError,
-    smuggle_url,
-    unsmuggle_url,
     int_or_none,
-    traverse_obj, parse_qs, OnDemandPagedList, InAdvancePagedList, js_to_json
+    OnDemandPagedList,
+    traverse_obj,
 )
 
 from random import random
