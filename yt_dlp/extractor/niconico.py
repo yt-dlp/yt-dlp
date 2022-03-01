@@ -635,15 +635,15 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
 
     def _fetch_page(self, list_id, page):
         page += 1
-        items = self._call_api(list_id, 'page %d' % page, {
+        resp = self._call_api(list_id, 'page %d' % page, {
             'page': page,
             'pageSize': self._PAGE_SIZE,
-        })['items']
-        for video in items:
-            # this is needed to support both mylist and user
-            video = traverse_obj(video, ('video',), (), expected_type=dict)
+        })
+        # this is needed to support both mylist and user
+        for video in traverse_obj(resp, ('items', ..., ('video', None))) or []:
             video_id = video.get('id')
             if not video_id:
+                # skip {"video": {"id": "blablabla", ...}}
                 continue
             count = video.get('count') or {}
             get_count = lambda x: int_or_none(count.get(x))
@@ -656,6 +656,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
                 'duration': int_or_none(video.get('duration')),
                 'view_count': get_count('view'),
                 'comment_count': get_count('comment'),
+                'thumbnail': traverse_obj(video, ('thumbnail', ('nHdUrl', 'largeUrl', 'listingUrl', 'url'))),
                 'ie_key': NiconicoIE.ie_key(),
                 **self._parse_owner(video),
             }
@@ -677,7 +678,7 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
             'uploader': 'のっく',
             'uploader_id': '805442',
         },
-        'playlist_mincount': 225,
+        'playlist_mincount': 291,
     }, {
         'url': 'https://www.nicovideo.jp/user/805442/mylist/27411728',
         'only_matching': True,
