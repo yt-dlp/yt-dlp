@@ -73,13 +73,13 @@ class GettrIE(GettrBaseIE):
         api_data = self._call_api('post/%s?incl="poststats|userinfo"' % post_id, post_id)
 
         post_data = api_data.get('data')
-        user_data = try_get(api_data, lambda x: x['aux']['uinf'][post_data['uid']]) or {}
+        user_data = try_get(api_data, lambda x: x['aux']['uinf'][post_data['uid']], dict) or {}
 
         if post_data.get('nfound'):
             raise ExtractorError(post_data.get('txt'), expected=True)
 
         player_type = post_data.get('p_type')
-        shared_post_id = try_get(api_data, lambda x: x['aux']['shrdpst']['_id'])
+        shared_post_id = try_get(api_data, lambda x: x['aux']['shrdpst']['_id'], str)
 
         if player_type and player_type == 'stream':
             return self.url_result(
@@ -188,19 +188,19 @@ class GettrStreamingIE(GettrBaseIE):
 
         thumbnails = [{
             'url': urljoin(self._MEDIA_BASE_URL, thumbnail),
-        } for thumbnail in try_get(video_info, lambda x: x['postData']['imgs']) or []]
+        } for thumbnail in try_get(video_info, lambda x: x['postData']['imgs'], list) or []]
 
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': try_get(video_info, lambda x: x['postData']['ttl']),
-            'description': try_get(video_info, lambda x: x['postData']['dsc']),
+            'title': try_get(video_info, lambda x: x['postData']['ttl'], str),
+            'description': try_get(video_info, lambda x: x['postData']['dsc'], str),
             'formats': formats,
             'subtitles': subtitles,
             'thumbnails': thumbnails,
-            'uploader': try_get(video_info, lambda x: x['liveHostInfo']['nickname']),
-            'uploader_id': try_get(video_info, lambda x: x['liveHostInfo']['_id']),
+            'uploader': try_get(video_info, lambda x: x['liveHostInfo']['nickname'], str),
+            'uploader_id': try_get(video_info, lambda x: x['liveHostInfo']['_id'], str),
             'view_count': int_or_none(live_info.get('viewsCount')),
             'timestamp': float_or_none(live_info.get('startAt'), scale=1000),
             'duration': float_or_none(live_info.get('duration'), scale=1000),
