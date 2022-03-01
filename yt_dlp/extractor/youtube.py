@@ -3950,13 +3950,14 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             break
 
     @staticmethod
-    def _extract_selected_tab(tabs):
+    def _extract_selected_tab(tabs, fatal=True):
         for tab in tabs:
             renderer = dict_get(tab, ('tabRenderer', 'expandableTabRenderer')) or {}
             if renderer.get('selected') is True:
                 return renderer
         else:
-            raise ExtractorError('Unable to find selected tab')
+            if fatal:
+                raise ExtractorError('Unable to find selected tab')
 
     @classmethod
     def _extract_uploader(cls, data):
@@ -4229,7 +4230,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     self.report_warning(error_to_compat_str(e))
                     break
 
-                if dict_get(data, ('contents', 'currentVideoEndpoint')):
+                if dict_get(data, ('contents', 'currentVideoEndpoint', 'onResponseReceivedActions')):
                     break
 
                 last_error = 'Incomplete yt initial data received'
@@ -4248,7 +4249,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             ytcfg = ytcfg or self.extract_ytcfg(item_id, webpage)
             # Reject webpage data if redirected to home page without explicitly requesting
             selected_tab = self._extract_selected_tab(traverse_obj(
-                data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list, default=[])) or {}
+                data, ('contents', 'twoColumnBrowseResultsRenderer', 'tabs'), expected_type=list, default=[]), fatal=False) or {}
             if (url != 'https://www.youtube.com/feed/recommended'
                     and selected_tab.get('tabIdentifier') == 'FEwhat_to_watch'  # Home page
                     and 'no-youtube-channel-redirect' not in self.get_param('compat_opts', [])):
@@ -4280,7 +4281,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 return self._extract_response(
                     item_id=item_id, query=params, ep=ep, headers=headers,
                     ytcfg=ytcfg, fatal=fatal, default_client=default_client,
-                    check_get_keys=('contents', 'currentVideoEndpoint'))
+                    check_get_keys=('contents', 'currentVideoEndpoint', 'onResponseReceivedActions'))
         err_note = 'Failed to resolve url (does the playlist exist?)'
         if fatal:
             raise ExtractorError(err_note, expected=True)
