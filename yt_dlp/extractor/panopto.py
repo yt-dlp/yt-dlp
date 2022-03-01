@@ -15,7 +15,8 @@ from ..utils import (
     int_or_none,
     OnDemandPagedList,
     traverse_obj,
-    bug_reports_message
+    bug_reports_message,
+    parse_qs
 )
 
 from random import random
@@ -42,6 +43,9 @@ class PanoptoBaseIE(InfoExtractor):
                 self.report_warning(msg, video_id=video_id)
         return response
 
+    @staticmethod
+    def _parse_fragment(url):
+        return {k: json.loads(v[0]) for k, v in compat_urlparse.parse_qs(compat_urllib_parse_urlparse(url).fragment).items()}
 
 class PanoptoIE(PanoptoBaseIE):
     _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)id=(?P<id>[a-f0-9-]+)'
@@ -199,8 +203,6 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
             },
             'playlist_mincount': 36
         }
-
-
     ]
 
     def _entries(self, base_url, playlist_id, session_list_id):
@@ -225,6 +227,15 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
         base_url, playlist_id = mobj.group('base_url', 'id')
+
+        video_id = get_first(parse_qs(url), 'id')
+        if video_id:
+            if self.get_param('noplaylist'):
+                self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
+                return self.url_result(base_url + f'/Pages/Viewer.aspx?id={video_id}', ie_key=PanoptoIE.ie_key(), video_id=video_id)
+            else:
+                self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')
+
         playlist_info = self._call_api(base_url, f'/Api/Playlists/{playlist_id}', playlist_id)
 
         session_list_id = playlist_info['SessionListId']
@@ -310,7 +321,7 @@ class PanoptoListIE(PanoptoBaseIE):
         mobj = self._match_valid_url(url)
         base_url = mobj.group('base_url')
 
-        query_params = {k: json.loads(v[0]) for k, v in compat_urlparse.parse_qs(compat_urllib_parse_urlparse(url).fragment).items()}
+        query_params = self._parse_fragment(url)
 
         folder_id, display_id = query_params.get('folderID'), 'list'
 
