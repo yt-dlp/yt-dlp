@@ -651,7 +651,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
                 '_type': 'url',
                 'id': video_id,
                 'title': video.get('title'),
-                'url': 'https://www.nicovideo.jp/watch/' + video_id,
+                'url': f'https://www.nicovideo.jp/watch/{video_id}',
                 'description': video.get('shortDescription'),
                 'duration': int_or_none(video.get('duration')),
                 'view_count': get_count('view'),
@@ -689,7 +689,7 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
 
     def _call_api(self, list_id, resource, query):
         return self._download_json(
-            'https://nvapi.nicovideo.jp/v2/mylists/' + list_id, list_id,
+            f'https://nvapi.nicovideo.jp/v2/mylists/{list_id}', list_id,
             'Downloading %s' % resource, query=query,
             headers=self._API_HEADERS)['data']['mylist']
 
@@ -730,7 +730,7 @@ class NiconicoSeriesIE(InfoExtractor):
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
-        webpage = self._download_webpage('https://www.nicovideo.jp/series/%s' % list_id, list_id)
+        webpage = self._download_webpage(f'https://www.nicovideo.jp/series/{list_id}', list_id)
 
         title = self._search_regex(
             (r'<title>「(.+)（全',
@@ -774,7 +774,7 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
     def _call_api(self, list_id, resource, query):
         return self._download_json(
             'https://nvapi.nicovideo.jp/v1/users/me/watch/history', 'history',
-            'Downloading %s' % resource, query=query,
+            f'Downloading {resource}', query=query,
             headers=self._API_HEADERS)['data']
 
     def _real_extract(self, url):
