@@ -60,6 +60,12 @@ class PanoptoIE(PanoptoBaseIE):
                 'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb&mode=Delivery&random=[\d.]+',
                 'upload_date': '20160328',
                 'ext': 'mp4',
+                'cast': [],
+                'duration': 88.17099999999999,
+                'average_rating': 0,
+                'uploader_id': '2db6b718-47a0-4b0b-9e17-ab0b00f42b1e',
+                'channel_id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
+                'channel': 'Showcase Videos'
             },
         },
         {
@@ -72,8 +78,36 @@ class PanoptoIE(PanoptoBaseIE):
                 'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59&mode=Delivery&random=[\d.]+',
                 'upload_date': '20151206',
                 'ext': 'mp4',
-                'chapters': 'count:21'
+                'chapters': 'count:21',
+                'cast': ['Panopto Support'],
+                'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
+                'average_rating': 0,
+                'description': 'md5:4391837802b3fc856dadf630c4b375d1',
+                'duration': 1088.2659999999998,
+                'channel_id': '9f3c1921-43bb-4bda-8b3a-b8d2f05a8546',
+                'channel': 'Webcasts',
             },
+        },
+        {
+            # Extra params in URL
+            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?randomparam=thisisnotreal&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
+            'info_dict': {
+                'id': '5fa74e93-3d87-4694-b60e-aaa4012214ed',
+                'ext': 'mp4',
+                'duration': 129.513,
+                'cast': ['Kathryn Kelly'],
+                'uploader_id': '316a0a58-7fa2-4cd9-be1c-64270d284a56',
+                'timestamp': 1569845768,
+                'tags': ['Viewer', 'Enterprise'],
+                'upload_date': '20190930',
+                'thumbnail': r're:https://howtovideos\.hosted\.panopto\.com/Panopto/Services/FrameGrabber.svc/FrameRedirect\?objectId=5fa74e93-3d87-4694-b60e-aaa4012214ed&mode=Delivery&random=[\d.]+',
+                'description': 'md5:2d844aaa1b1a14ad0e2601a0993b431f',
+                'title': 'Getting Started: View a Video',
+                'average_rating': 0,
+                'uploader': 'Kathryn Kelly',
+                'channel_id': 'fb93bc3c-6750-4b80-a05b-a921013735d3',
+                'channel': 'Getting Started',
+            }
         },
         {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
@@ -83,11 +117,6 @@ class PanoptoIE(PanoptoBaseIE):
             'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
             'only_matching': True
         },
-        {
-            # Extra params in URL
-            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?randomparam=thisisnotreal&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
-            'only_matching': True
-        }
     ]
 
     @classmethod
@@ -108,7 +137,7 @@ class PanoptoIE(PanoptoBaseIE):
             })
         return chapters
 
-    def _extract_stream(self, video_id, stream, chapters):
+    def _extract_stream(self, video_id, stream, base_info):
         formats = []
         subtitles = {}
         http_stream_url = stream.get('StreamHttpUrl')
@@ -124,12 +153,14 @@ class PanoptoIE(PanoptoBaseIE):
                 'url': stream.get('StreamUrl')
             })
         self._sort_formats(formats)
+        tag, title = stream.get('Tag'), base_info.get('title')
+
         return {
+            **base_info,
             'id': stream['PublicID'],
-            'title': stream.get('Tag') or stream['PublicID'],
+            'title': '{} - {}'.format(title, tag) if tag else title,
             'formats': formats,
             'subtitles': subtitles,
-            'chapters': chapters
         }
 
     def _real_extract(self, url):
@@ -151,31 +182,33 @@ class PanoptoIE(PanoptoBaseIE):
         )
 
         delivery = delivery_info['Delivery']
-
         streams = []
-        chapters = self._extract_chapters(delivery) or None
-
-        # TODO: If PodcastStreams are available, prefer them
-        # Usually contains the 'combined' stream, as well as higher quality.
-        # TODO: way to enable to get normal Streams even if PodcastStreams if present
-        for stream in delivery.get('PodcastStreams', []):
-            streams.append(self._extract_stream(video_id, stream, chapters))
-
-        if not streams or self._configuration_arg('get_multistreams'):
-            for stream in delivery.get('Streams', []):
-                streams.append(self._extract_stream(video_id, stream, chapters))
-
         session_start_time = int_or_none(delivery.get('SessionStartTime'))
-
         base_info = {
             'id': video_id,
             'title': delivery.get('SessionName'),
-            'uploader': ', '.join(
-                filter(None, traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[]))) or None,
+            'cast': list(filter(None, traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[]))),
             'timestamp': session_start_time - 11640000000 if session_start_time else None,
-            'duration': delivery.get('duration'),
+            'duration': delivery.get('Duration'),
             'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
+            'average_rating': delivery.get('AverageRating'),
+            'chapters': self._extract_chapters(delivery) or None,
+            'uploader': delivery.get('OwnerDisplayName') or None,
+            'uploader_id': delivery.get('OwnerId'),
+            'description': delivery.get('SessionAbstract') or None,
+            'tags': traverse_obj(delivery, ('Tags', ..., 'Content')),
+            'channel_id': delivery.get('SessionGroupPublicID'),
+            'channel': traverse_obj(delivery, 'SessionGroupLongName', 'SessionGroupShortName', get_all=False)
         }
+
+        # Podcast stream is usually the combined streams. We will prefer that by default.
+        for stream in delivery.get('PodcastStreams', []):
+            streams.append(self._extract_stream(video_id, stream, base_info))
+
+        if not streams or self._configuration_arg('get_multistreams'):
+            for stream in delivery.get('Streams', []):
+                streams.append(self._extract_stream(video_id, stream, base_info))
+
         if not streams:
             self.raise_no_formats('Did not find any streams')
 
