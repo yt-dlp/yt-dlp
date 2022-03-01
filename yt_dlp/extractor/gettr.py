@@ -70,7 +70,6 @@ class GettrIE(GettrBaseIE):
     def _real_extract(self, url):
         post_id = self._match_id(url)
         webpage = self._download_webpage(url, post_id)
-
         api_data = self._call_api('post/%s?incl="poststats|userinfo"' % post_id, post_id)
 
         post_data = api_data.get('data')
@@ -91,11 +90,13 @@ class GettrIE(GettrBaseIE):
                 f'https://gettr.com/post/{shared_post_id}', ie='Gettr', video_id=shared_post_id)
 
         title = description = str_or_none(
-            post_data.get('txt') or self._og_search_description(webpage))
+            post_data.get('txt')
+            or self._og_search_description(webpage))
 
         uploader = str_or_none(
             user_data.get('nickname')
             or remove_end(self._og_search_title(webpage), ' on GETTR'))
+
         if uploader:
             title = '%s - %s' % (uploader, title)
 
@@ -124,15 +125,15 @@ class GettrIE(GettrBaseIE):
             'id': post_id,
             'title': title,
             'description': description,
+            'formats': formats,
+            'uploader': uploader,
+            'uploader_id': str_or_none(
+                dict_get(user_data, ['_id', 'username'])
+                or post_data.get('uid')),
             'thumbnail': url_or_none(
                 urljoin(self._MEDIA_BASE_URL, post_data.get('main'))
                 or self._og_search_thumbnail(webpage)),
             'timestamp': float_or_none(dict_get(post_data, ['cdate', 'udate']), scale=1000),
-            'uploader_id': str_or_none(
-                dict_get(user_data, ['_id', 'username'])
-                or post_data.get('uid')),
-            'uploader': uploader,
-            'formats': formats,
             'duration': float_or_none(post_data.get('vid_dur')),
             'tags': post_data.get('htgs'),
         }
