@@ -690,7 +690,7 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
     def _call_api(self, list_id, resource, query):
         return self._download_json(
             f'https://nvapi.nicovideo.jp/v2/mylists/{list_id}', list_id,
-            'Downloading %s' % resource, query=query,
+            f'Downloading {resource}', query=query,
             headers=self._API_HEADERS)['data']['mylist']
 
     def _real_extract(self, url):
