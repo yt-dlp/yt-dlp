@@ -106,9 +106,9 @@ class GettrIE(GettrBaseIE):
         vid = post_data.get('vid')
         ovid = post_data.get('ovid')
 
-        formats = self._extract_m3u8_formats(
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if vid else []
+            entry_protocol='m3u8_native', m3u8_id='hls', fatal=False) if vid else ([], {})
 
         if ovid:
             formats.append({
@@ -126,6 +126,7 @@ class GettrIE(GettrBaseIE):
             'title': title,
             'description': description,
             'formats': formats,
+            'subtitles': subtitles,
             'uploader': uploader,
             'uploader_id': str_or_none(
                 dict_get(user_data, ['_id', 'username'])
