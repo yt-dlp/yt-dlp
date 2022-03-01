@@ -41,7 +41,7 @@ class PanoptoBaseIE(InfoExtractor):
 
 
 class PanoptoIE(PanoptoBaseIE):
-    _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx\?id=(?P<id>[a-f0-9-]+)'
+    _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)id=(?P<id>[a-f0-9-]+)'
     _TESTS = [
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
@@ -73,6 +73,11 @@ class PanoptoIE(PanoptoBaseIE):
         },
         {
             'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
+            'only_matching': True
+        },
+        {
+            # Extra params in URL for a playlist
+            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=f3b39fcf-882f-4849-93d6-a9f401236d36&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
             'only_matching': True
         }
     ]
