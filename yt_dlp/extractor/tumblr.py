@@ -250,12 +250,12 @@ class TumblrIE(InfoExtractor):
         self._login()
 
     def get_access_token(self):
-        try:
-            login_page = self._download_webpage(
-                self._LOGIN_URL, None, 'Downloading login page')
+        login_page = self._download_webpage(
+            self._LOGIN_URL, None, 'Downloading login page', fatal=False)
+        if login_page:
             self._ACCESS_TOKEN = self._search_regex(
-                r'"API_TOKEN":\s*"(\w+)"', login_page, 'API access token')
-        except ExtractorError:
+                r'"API_TOKEN":\s*"(\w+)"', login_page, 'API access token', fatal=False)
+        if not self._ACCESS_TOKEN:
             self.report_warning('Failed to get access token; metadata will be missing and some videos may not work')
 
     def _login(self):
@@ -264,22 +264,19 @@ class TumblrIE(InfoExtractor):
             return
 
         if not self._ACCESS_TOKEN:
-            self.report_warning('Cannot log in without access token')
             return
 
-        try:
-            self._download_json(
-                self._OAUTH_URL, None, 'Logging in',
-                data=urlencode_postdata({
-                    'password': password,
-                    'grant_type': 'password',
-                    'username': username,
-                }), headers={
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Authorization': f'Bearer {self._ACCESS_TOKEN}',
-                })
-        except ExtractorError:
-            self.report_warning('Login failed')
+        self._download_json(
+            self._OAUTH_URL, None, 'Logging in',
+            data=urlencode_postdata({
+                'password': password,
+                'grant_type': 'password',
+                'username': username,
+            }), headers={
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': f'Bearer {self._ACCESS_TOKEN}',
+            },
+            errnote='Login failed', fatal=False)
 
     def _real_extract(self, url):
         blog, video_id = self._match_valid_url(url).groups()
