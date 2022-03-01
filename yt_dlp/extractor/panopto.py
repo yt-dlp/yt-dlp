@@ -26,7 +26,9 @@ class PanoptoBaseIE(InfoExtractor):
     BASE_URL_RE = r'(?P<base_url>https?://[\w.]+\.panopto.(?:com|eu)/Panopto)'
 
     def _call_api(self, base_url, path, video_id, query=None, data=None, fatal=True):
-        response = self._download_json(base_url + path, video_id, query=query, data=json.dumps(data).encode('utf8') if data else None, fatal=fatal, headers={'accept': 'application/json'})
+        response = self._download_json(
+            base_url + path, video_id, query=query, data=json.dumps(data).encode('utf8') if data else None,
+            fatal=fatal, headers={'accept': 'application/json', 'content-type': 'application/json'})
         if not response:
             return
         error_code = response.get('ErrorCode')
@@ -250,6 +252,15 @@ class PanoptoListIE(PanoptoBaseIE):
                 'title': 'list'
             },
             'playlist_mincount': 300
+        },
+        {
+            # Folder that contains 8 folders and a playlist
+            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx?noredirect=true#folderID=%224b9de7ae-0080-4158-8496-a9ba01692c2e%22',
+            'info_dict': {
+                'id': '4b9de7ae-0080-4158-8496-a9ba01692c2e',
+                'title': 'Video Tutorials'
+            },
+            'playlist_mincount': 9
         }
 
     ]
@@ -259,6 +270,7 @@ class PanoptoListIE(PanoptoBaseIE):
         params = {
             'sortColumn': 1,
             'getFolderData': True,
+            'includePlaylists': True,
             **query_params,
             'page': page,
             'maxResults': self._PAGE_SIZE,
@@ -270,13 +282,13 @@ class PanoptoListIE(PanoptoBaseIE):
         if not response:
             return  # TODO this should be fatal but being fatal makes us infinitely hit the site
         for result in get_first(response, 'Results', default=[]):
-            video_id = result.get('DeliveryID')
+            # This could be a video, playlist (or maybe something else)
+            item_id = result.get('DeliveryID')
             yield {
                 '_type': 'url',
-                'ie_key': PanoptoIE.ie_key(),
-                'id': video_id,
+                'id': item_id,
                 'title': result.get('SessionName'),
-                'url': base_url + f'/Pages/Viewer.aspx?id={video_id}',
+                'url': traverse_obj(result, 'ViewerUrl', 'EmbedUrl', get_all=False) or (base_url + f'/Pages/Viewer.aspx?id={item_id}'),
                 'duration': result.get('Duration'),
             }
 
@@ -313,7 +325,7 @@ class PanoptoListIE(PanoptoBaseIE):
 
         query = query_params.get('query')
         if query:
-            display_id += f': query {query}'
+            display_id += f': query "{query}"'
 
         info = {
             '_type': 'playlist',
