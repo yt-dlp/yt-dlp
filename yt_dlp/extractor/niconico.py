@@ -13,6 +13,7 @@ from ..compat import (
     compat_str,
     compat_parse_qs,
     compat_urllib_parse_urlparse,
+    compat_HTTPError,
 )
 from ..utils import (
     ExtractorError,
@@ -774,9 +775,14 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
 
     def _real_extract(self, url):
         list_id = 'history'
-        mylist = self._call_api(list_id, 'list', {
-            'pageSize': 1,
-        })
+        try:
+            mylist = self._call_api(list_id, 'list', {
+                'pageSize': 1,
+            })
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                self.raise_login_required('You have to be logged in to get your watch history')
+            raise
         entries = self._entries(functools.partial(self._fetch_page, list_id))
         result = self.playlist_result(entries, list_id)
         result.update(self._parse_owner(mylist))
