@@ -626,7 +626,7 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
     @staticmethod
     def _parse_owner(item):
         owner = item.get('owner') or {}
-        if owner:
+        if owner and (owner.get('id') or owner.get('name')):
             return {
                 'uploader': owner.get('name'),
                 'uploader_id': owner.get('id'),
@@ -740,7 +740,10 @@ class NiconicoSeriesIE(InfoExtractor):
             title = unescapeHTML(title)
         playlist = []
         for match in re.finditer(r'href="/watch/([a-z0-9]+)" data-href="/watch/\1', webpage):
-            playlist.append(self.url_result('https://www.nicovideo.jp/watch/%s' % match.group(1), video_id=match.group(1)))
+            v_id = match.group(1)
+            if not v_id:
+                continue
+            playlist.append(self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id))
         return self.playlist_result(playlist, list_id, title)
 
 
