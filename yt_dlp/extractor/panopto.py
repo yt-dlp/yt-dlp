@@ -15,6 +15,7 @@ from ..utils import (
     int_or_none,
     OnDemandPagedList,
     traverse_obj,
+    bug_reports_message
 )
 
 from random import random
@@ -25,7 +26,7 @@ class PanoptoBaseIE(InfoExtractor):
     BASE_URL_RE = r'(?P<base_url>https?://[\w.]+\.panopto.(?:com|eu)/Panopto)'
 
     def _call_api(self, base_url, path, video_id, query=None, data=None, fatal=True):
-        response = self._download_json(base_url + path, video_id, query=query, data=json.dumps(data).encode('utf8'), fatal=fatal, headers={'content-type': 'application/json'})
+        response = self._download_json(base_url + path, video_id, query=query, data=json.dumps(data).encode('utf8') if data else None, fatal=fatal, headers={'accept': 'application/json'})
         if not response:
             return
         error_code = response.get('ErrorCode')
@@ -76,11 +77,15 @@ class PanoptoIE(PanoptoBaseIE):
             'only_matching': True
         },
         {
-            # Extra params in URL for a playlist
-            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=f3b39fcf-882f-4849-93d6-a9f401236d36&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
+            # Extra params in URL
+            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?randomparam=thisisnotreal&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
             'only_matching': True
         }
     ]
+
+    @classmethod
+    def suitable(cls, url):
+        return False if PanoptoPlaylistIE.suitable(url) else super().suitable(url)
 
     @staticmethod
     def _extract_chapters(delivery):
@@ -178,6 +183,51 @@ class PanoptoIE(PanoptoBaseIE):
                 '_type': 'multi_video',
                 'entries': streams,
             }
+
+
+class PanoptoPlaylistIE(PanoptoBaseIE):
+    _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)pid=(?P<id>[a-f0-9-]+)'
+    _TESTS = [
+        {
+            'url': 'https://howtovideos.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=f3b39fcf-882f-4849-93d6-a9f401236d36&id=5fa74e93-3d87-4694-b60e-aaa4012214ed&advance=true',
+            'info_dict': {
+                'title': 'Featured Video Tutorials',
+                'id': 'f3b39fcf-882f-4849-93d6-a9f401236d36',
+                'description': '',
+            },
+            'playlist_mincount': 36
+        }
+
+
+    ]
+
+    def _entries(self, base_url, playlist_id, session_list_id):
+        session_list_info = self._call_api(
+            base_url, f'/Api/SessionLists/{session_list_id}?collections[0].maxCount=500&collections[0].name=ViewableItemsOnly', playlist_id)
+        items = session_list_info['Items']
+        if len(items) == 500:
+            self.report_warning(
+                'There are 500 items in this playlist. There may be more but we are unable to get them' + bug_reports_message(), only_once=True)
+
+        for item in items:
+            if item.get('TypeName') != 'Session':
+                self.report_warning('Got an item in the playlist that is not a Session' + bug_reports_message(), only_once=True)
+                continue
+            yield {
+                '_type': 'url',
+                'id': item.get('Id'),
+                'url': item.get('ViewerUri'),
+                'title': item.get('Name')
+            }
+
+    def _real_extract(self, url):
+        mobj = self._match_valid_url(url)
+        base_url, playlist_id = mobj.group('base_url', 'id')
+        playlist_info = self._call_api(base_url, f'/Api/Playlists/{playlist_id}', playlist_id)
+
+        session_list_id = playlist_info['SessionListId']
+        return self.playlist_result(
+            self._entries(base_url, playlist_id, session_list_id), playlist_id, playlist_info.get('Name'), playlist_info.get('Description'))
 
 
 class PanoptoListIE(PanoptoBaseIE):

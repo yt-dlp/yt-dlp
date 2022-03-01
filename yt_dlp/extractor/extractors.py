@@ -1141,7 +1141,8 @@ from .palcomp3 import (
 from .pandoratv import PandoraTVIE
 from .panopto import (
     PanoptoIE,
-    PanoptoListIE
+    PanoptoListIE,
+    PanoptoPlaylistIE
 )
 from .paramountplus import (
     ParamountPlusIE,
