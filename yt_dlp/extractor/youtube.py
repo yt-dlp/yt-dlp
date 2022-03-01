@@ -5063,7 +5063,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         redirect_url = traverse_obj(
             data, ('onResponseReceivedActions', ..., 'navigateAction', 'endpoint', 'commandMetadata', 'webCommandMetadata', 'url'), get_all=False)
         if redirect_url and 'no-youtube-channel-redirect' not in compat_opts:
-            redirect_url = urljoin('https://www.youtube.com', redirect_url)
+            redirect_url = ''.join((
+                urljoin('https://www.youtube.com', redirect_url), mobj['tab'], mobj['post']))
             self.to_screen(f'This playlist is likely not available in your region. Following redirect to regional playlist {redirect_url}')
             return self.url_result(redirect_url, ie=YoutubeTabIE.ie_key())
 
