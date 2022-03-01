@@ -55,6 +55,14 @@ class GettrIE(GettrBaseIE):
             'duration': 23,
             'tags': 'count:12',
         }
+    }, {
+        # quote post
+        'url': 'https://gettr.com/post/pxn5b743a9',
+        'only_matching': True,
+    }, {
+        # streaming embed
+        'url': 'https://gettr.com/post/pxlu8p3b13',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -68,6 +76,17 @@ class GettrIE(GettrBaseIE):
 
         if post_data.get('nfound'):
             raise ExtractorError(post_data.get('txt'), expected=True)
+
+        player_type = post_data.get('p_type')
+        shared_post_id = try_get(api_data, lambda x: x['aux']['shrdpst']['_id'])
+
+        if player_type and player_type == 'stream':
+            return self.url_result(
+                f'https://gettr.com/streaming/{post_id}', ie='GettrStreaming', video_id=post_id)
+
+        if shared_post_id:
+            return self.url_result(
+                f'https://gettr.com/post/{shared_post_id}', ie='Gettr', video_id=shared_post_id)
 
         title = description = str_or_none(
             post_data.get('txt') or self._og_search_description(webpage))
