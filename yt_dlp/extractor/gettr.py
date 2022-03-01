@@ -36,8 +36,9 @@ class GettrIE(GettrBaseIE):
             'ext': 'mp4',
             'uploader': 'EpochTV',
             'uploader_id': 'epochtv',
+            'upload_date': '20210927',
             'thumbnail': r're:^https?://.+/out\.jpg',
-            'timestamp': 1632782451058,
+            'timestamp': 1632782451.058,
             'duration': 58.5585,
             'tags': ['hornofafrica', 'explorations'],
         }
@@ -50,8 +51,9 @@ class GettrIE(GettrBaseIE):
             'ext': 'mp4',
             'uploader': 'Neues Forum Freiheit',
             'uploader_id': 'nf_freiheit',
+            'upload_date': '20210718',
             'thumbnail': r're:^https?://.+/out\.jpg',
-            'timestamp': 1626594455017,
+            'timestamp': 1626594455.017,
             'duration': 23,
             'tags': 'count:12',
         }
@@ -125,7 +127,7 @@ class GettrIE(GettrBaseIE):
             'thumbnail': url_or_none(
                 urljoin(self._MEDIA_BASE_URL, post_data.get('main'))
                 or self._og_search_thumbnail(webpage)),
-            'timestamp': int_or_none(post_data.get('cdate')),
+            'timestamp': float_or_none(dict_get(post_data, ['cdate', 'udate']), scale=1000),
             'uploader_id': str_or_none(
                 dict_get(user_data, ['_id', 'username'])
                 or post_data.get('uid')),
