@@ -1011,11 +1011,12 @@ from .nick import (
     NickNightIE,
     NickRuIE,
 )
-
 from .niconico import (
     NiconicoIE,
     NiconicoPlaylistIE,
     NiconicoUserIE,
+    NiconicoSeriesIE,
+    NiconicoHistoryIE,
     NicovideoSearchDateIE,
     NicovideoSearchIE,
     NicovideoSearchURLIE,
