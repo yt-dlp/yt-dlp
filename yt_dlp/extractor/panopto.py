@@ -161,7 +161,7 @@ class PanoptoIE(PanoptoBaseIE):
         for stream in delivery.get('PodcastStreams', []):
             streams.append(self._extract_stream(video_id, stream, chapters))
 
-        if not streams:
+        if not streams or self._configuration_arg('get_multistreams'):
             for stream in delivery.get('Streams', []):
                 streams.append(self._extract_stream(video_id, stream, chapters))
 
