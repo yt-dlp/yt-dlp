@@ -203,6 +203,7 @@ class PanoptoListIE(PanoptoBaseIE):
 
         params = {
             'sortColumn': 1,
+            'getFolderData': True,
             **query_params,
             'page': page,
             'maxResults': self._PAGE_SIZE,
@@ -227,7 +228,7 @@ class PanoptoListIE(PanoptoBaseIE):
         for folder in get_first(response, 'Subfolders', default=[]):
             folder_id = folder.get('ID')
             yield self.url_result(
-                base_url + f'/Pages/Sessions/List.aspx#folderID={folder_id}',
+                base_url + f'/Pages/Sessions/List.aspx#folderID="{folder_id}"',
                 ie_key=PanoptoListIE.ie_key(), video_id=folder_id, title=folder.get('Name'))
 
     def _extract_folder_metadata(self, base_url, folder_id):
