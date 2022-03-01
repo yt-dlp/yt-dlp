@@ -1699,7 +1699,7 @@ The following extractors use this feature:
 * `manifest_app_version`: Numeric app version to call mobile APIs with. (e.g. `221`)
 
 #### panopto
-* `get_multistreams`: Get the separate video streams (if applicable) in addition to the podcast stream
+* `get_multistreams`: Get the separate video streams (if applicable) in addition to the podcast stream. Make sure to set `--concat-playlist never` when using this.
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
