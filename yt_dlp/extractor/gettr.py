@@ -63,6 +63,10 @@ class GettrIE(GettrBaseIE):
         'url': 'https://gettr.com/post/pxn5b743a9',
         'only_matching': True,
     }, {
+        # quote with video
+        'url': 'https://gettr.com/post/pxtiiz5ca2',
+        'only_matching': True,
+    }, {
         # streaming embed
         'url': 'https://gettr.com/post/pxlu8p3b13',
         'only_matching': True,
@@ -79,16 +83,19 @@ class GettrIE(GettrBaseIE):
         if post_data.get('nfound'):
             raise ExtractorError(post_data.get('txt'), expected=True)
 
-        player_type = post_data.get('p_type')
-        shared_post_id = traverse_obj(api_data, ('aux', 'shrdpst', '_id'), ('data', 'rpstIds', 0), expected_type=str)
+        vid = post_data.get('vid')
+        ovid = post_data.get('ovid')
 
-        if player_type == 'stream':
-            return self.url_result(
-                f'https://gettr.com/streaming/{post_id}', ie='GettrStreaming', video_id=post_id)
+        if post_data.get('p_type') == 'stream':
+            return self.url_result(f'https://gettr.com/streaming/{post_id}', ie='GettrStreaming', video_id=post_id)
 
-        if shared_post_id:
-            return self.url_result(
-                f'https://gettr.com/post/{shared_post_id}', ie='Gettr', video_id=shared_post_id)
+        if not (ovid or vid):
+            shared_post_id = traverse_obj(api_data, ('aux', 'shrdpst', '_id'), ('data', 'rpstIds', 0), expected_type=str)
+
+            if shared_post_id:
+                return self.url_result(f'https://gettr.com/post/{shared_post_id}', ie='Gettr', video_id=shared_post_id)
+            else:
+                raise ExtractorError('There\'s no video in this post.')
 
         title = description = str_or_none(
             post_data.get('txt')
@@ -100,12 +107,6 @@ class GettrIE(GettrBaseIE):
 
         if uploader:
             title = '%s - %s' % (uploader, title)
-
-        if not dict_get(post_data, ['vid', 'ovid']):
-            raise ExtractorError('There\'s no video in this post.')
-
-        vid = post_data.get('vid')
-        ovid = post_data.get('ovid')
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
             urljoin(self._MEDIA_BASE_URL, vid), post_id, 'mp4',
