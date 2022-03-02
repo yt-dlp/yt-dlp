@@ -100,7 +100,7 @@ class GettrIE(GettrBaseIE):
 
         uploader = str_or_none(
             user_data.get('nickname')
-            or remove_end(self._og_search_title(webpage), ' on GETTR'))
+            or self._search_regex(r'^(.+?) on GETTR', self._og_search_title(webpage, default=''), 'uploader', fatal=False))
 
         if uploader:
             title = '%s - %s' % (uploader, title)
@@ -132,7 +132,7 @@ class GettrIE(GettrBaseIE):
                 or post_data.get('uid')),
             'thumbnail': url_or_none(
                 urljoin(self._MEDIA_BASE_URL, post_data.get('main'))
-                or self._og_search_thumbnail(webpage)),
+                or self._html_search_meta(['og:image', 'image'], webpage, 'thumbnail', fatal=False)),
             'timestamp': float_or_none(dict_get(post_data, ['cdate', 'udate']), scale=1000),
             'duration': float_or_none(post_data.get('vid_dur')),
             'tags': post_data.get('htgs'),
