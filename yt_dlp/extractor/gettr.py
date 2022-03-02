@@ -10,6 +10,7 @@ from ..utils import (
     int_or_none,
     remove_end,
     str_or_none,
+    traverse_obj,
     try_get,
     url_or_none,
     urljoin,
@@ -79,7 +80,7 @@ class GettrIE(GettrBaseIE):
             raise ExtractorError(post_data.get('txt'), expected=True)
 
         player_type = post_data.get('p_type')
-        shared_post_id = try_get(api_data, lambda x: x['aux']['shrdpst']['_id'], str)
+        shared_post_id = traverse_obj(api_data, ('aux', 'shrdpst', '_id'), ('data', 'rpstIds', 0), expected_type=str)
 
         if player_type and player_type == 'stream':
             return self.url_result(
