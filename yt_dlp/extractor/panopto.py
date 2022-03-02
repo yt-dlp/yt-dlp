@@ -183,7 +183,7 @@ class PanoptoIE(PanoptoBaseIE):
         return {
             **base_info,
             'id': stream['PublicID'],
-            'title': '{} - {}'.format(title, tag) if tag else title,
+            'title': join_nonempty(title, tag, delim=' - '),
             'formats': formats,
             'subtitles': subtitles,
         }
