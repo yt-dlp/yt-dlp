@@ -625,13 +625,10 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
 
     @staticmethod
     def _parse_owner(item):
-        owner = item.get('owner') or {}
-        if owner and (owner.get('id') or owner.get('name')):
-            return {
-                'uploader': owner.get('name'),
-                'uploader_id': owner.get('id'),
-            }
-        return {}
+        return {
+            'uploader': traverse_obj(item, ('owner', 'name')),
+            'uploader_id': traverse_obj(item, ('owner', 'id')),
+        }
 
     def _fetch_page(self, list_id, page):
         page += 1
@@ -661,8 +658,8 @@ class NiconicoPlaylistBaseIE(InfoExtractor):
                 **self._parse_owner(video),
             }
 
-    def _entries(self, pagefunc):
-        return OnDemandPagedList(pagefunc, self._PAGE_SIZE)
+    def _entries(self, list_id):
+        return OnDemandPagedList(functools.partial(self._fetch_page, list_id), self._PAGE_SIZE)
 
 
 class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
@@ -699,10 +696,8 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
             'pageSize': 1,
         })
         entries = self._entries(functools.partial(self._fetch_page, list_id))
-        result = self.playlist_result(
-            entries, list_id, mylist.get('name'), mylist.get('description'))
-        result.update(self._parse_owner(mylist))
-        return result
+        return self.playlist_result(
+            entries, list_id, mylist.get('name'), mylist.get('description'), **self._parse_owner(mylist))
 
 
 class NiconicoSeriesIE(InfoExtractor):
@@ -738,12 +733,9 @@ class NiconicoSeriesIE(InfoExtractor):
             webpage, 'title', fatal=False)
         if title:
             title = unescapeHTML(title)
-        playlist = []
-        for match in re.finditer(r'href="/watch/([a-z0-9]+)" data-href="/watch/\1', webpage):
-            v_id = match.group(1)
-            if not v_id:
-                continue
-            playlist.append(self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id))
+        playlist = [
+            self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
+            for v_id in re.findall(r'href="/watch/([a-z0-9]+)" data-href="/watch/\1', webpage)]
         return self.playlist_result(playlist, list_id, title)
 
 
