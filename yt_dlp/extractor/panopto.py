@@ -298,8 +298,7 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
             }
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        base_url, playlist_id = mobj.group('base_url', 'id')
+        base_url, playlist_id = self._match_valid_url(url).group('base_url', 'id')
 
         video_id = get_first(parse_qs(url), 'id')
         if video_id:
