@@ -2243,7 +2243,7 @@ def unsmuggle_url(smug_url, default=None):
 def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     """ Formats numbers with decimal sufixes like K, M, etc """
     num, factor = float_or_none(num), float(factor)
-    if num is None:
+    if num is None or num < 0:
         return None
     exponent = 0 if num == 0 else int(math.log(num, factor))
     suffix = ['', *'kMGTPEZY'][exponent]
