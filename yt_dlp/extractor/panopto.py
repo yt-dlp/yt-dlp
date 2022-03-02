@@ -195,7 +195,7 @@ class PanoptoIE(PanoptoBaseIE):
             'chapters': self._extract_chapters(delivery) or None,
             'uploader': delivery.get('OwnerDisplayName') or None,
             'uploader_id': delivery.get('OwnerId'),
-            'description': delivery.get('SessionAbstract') or None,
+            'description': delivery.get('SessionAbstract'),
             'tags': traverse_obj(delivery, ('Tags', ..., 'Content')),
             'channel_id': delivery.get('SessionGroupPublicID'),
             'channel': traverse_obj(delivery, 'SessionGroupLongName', 'SessionGroupShortName', get_all=False)
@@ -251,11 +251,15 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
             if item.get('TypeName') != 'Session':
                 self.report_warning('Got an item in the playlist that is not a Session' + bug_reports_message(), only_once=True)
                 continue
-            yield {
+            return {
                 '_type': 'url',
                 'id': item.get('Id'),
                 'url': item.get('ViewerUri'),
-                'title': item.get('Name')
+                'title': item.get('Name'),
+                'description': item.get('Description'),
+                'duration': item.get('Duration'),
+                'channel': traverse_obj(item, ('Parent', 'Name')),
+                'channel_id': traverse_obj(item, ('Parent', 'Id'))
             }
 
     def _real_extract(self, url):
@@ -271,10 +275,10 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
                 self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')
 
         playlist_info = self._call_api(base_url, f'/Api/Playlists/{playlist_id}', playlist_id)
-
-        session_list_id = playlist_info['SessionListId']
         return self.playlist_result(
-            self._entries(base_url, playlist_id, session_list_id), playlist_id, playlist_info.get('Name'), playlist_info.get('Description'))
+            self._entries(base_url, playlist_id, playlist_info['SessionListId']),
+            playlist_id=playlist_id, playlist_title=playlist_info.get('Name'),
+            playlist_description=playlist_info.get('Description'))
 
 
 class PanoptoListIE(PanoptoBaseIE):
@@ -335,6 +339,8 @@ class PanoptoListIE(PanoptoBaseIE):
                 'title': result.get('SessionName'),
                 'url': traverse_obj(result, 'ViewerUrl', 'EmbedUrl', get_all=False) or (base_url + f'/Pages/Viewer.aspx?id={item_id}'),
                 'duration': result.get('Duration'),
+                'channel': result.get('FolderName'),
+                'channel_id': result.get('FolderID'),
             }
 
         for folder in get_first(response, 'Subfolders', default=[]):
@@ -356,7 +362,6 @@ class PanoptoListIE(PanoptoBaseIE):
         base_url = mobj.group('base_url')
 
         query_params = self._parse_fragment(url)
-
         folder_id, display_id = query_params.get('folderID'), 'list'
 
         if query_params.get('isSubscriptionsPage'):
