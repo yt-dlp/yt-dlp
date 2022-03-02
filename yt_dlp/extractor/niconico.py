@@ -695,9 +695,9 @@ class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
         mylist = self._call_api(list_id, 'list', {
             'pageSize': 1,
         })
-        entries = self._entries(functools.partial(self._fetch_page, list_id))
         return self.playlist_result(
-            entries, list_id, mylist.get('name'), mylist.get('description'), **self._parse_owner(mylist))
+            self._entries(list_id), list_id,
+            mylist.get('name'), mylist.get('description'), **self._parse_owner(mylist))
 
 
 class NiconicoSeriesIE(InfoExtractor):
@@ -778,8 +778,7 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                 self.raise_login_required('You have to be logged in to get your watch history')
             raise
-        entries = self._entries(functools.partial(self._fetch_page, list_id))
-        return self.playlist_result(entries, list_id, **self._parse_owner(mylist))
+        return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))
 
 
 class NicovideoSearchBaseIE(InfoExtractor):
