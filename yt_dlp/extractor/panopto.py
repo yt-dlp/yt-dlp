@@ -262,7 +262,17 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
                 'description': '',
             },
             'playlist_mincount': 36
-        }
+        },
+        {
+            'url': 'https://utsa.hosted.panopto.com/Panopto/Pages/Viewer.aspx?pid=e2900555-3ad4-4bdb-854d-ad2401686190',
+            'info_dict': {
+                'title': 'Library Website Introduction Playlist',
+                'id': 'e2900555-3ad4-4bdb-854d-ad2401686190',
+                'description': 'md5:f958bca50a1cbda15fdc1e20d32b3ecb',
+            },
+            'playlist_mincount': 4
+        },
+
     ]
 
     def _entries(self, base_url, playlist_id, session_list_id):
@@ -277,7 +287,7 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
             if item.get('TypeName') != 'Session':
                 self.report_warning('Got an item in the playlist that is not a Session' + bug_reports_message(), only_once=True)
                 continue
-            return {
+            yield {
                 '_type': 'url',
                 'id': item.get('Id'),
                 'url': item.get('ViewerUri'),
