@@ -13,7 +13,6 @@ from ..utils import (
     ExtractorError,
     get_first,
     int_or_none,
-    join_nonempty,
     OnDemandPagedList,
     parse_qs,
     traverse_obj,
@@ -159,35 +158,35 @@ class PanoptoIE(PanoptoBaseIE):
             })
         return chapters
 
-    def _extract_stream(self, video_id, stream, base_info):
+    def _extract_streams_formats_and_subtitles(self, video_id, streams, format_note=None, preference=None):
         formats = []
         subtitles = {}
-        http_stream_url = stream.get('StreamHttpUrl')  # TODO: find test
-        stream_url = stream.get('StreamUrl')
-        if http_stream_url:
-            formats.append({'url': http_stream_url})
+        for stream in streams or []:
+            stream_formats = []
+            http_stream_url = stream.get('StreamHttpUrl')  # TODO: find test
+            stream_url = stream.get('StreamUrl')
 
-        if not stream_url and not http_stream_url:
-            return
+            if http_stream_url:
+                stream_formats.append({'url': http_stream_url})
 
-        media_type = stream.get('ViewerMediaFileTypeName')
-        if media_type in ('hls', ):
-            m3u8_formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, 'mp4')
-            formats.extend(m3u8_formats)
-        else:
-            formats.append({
-                'url': stream_url
-            })
-        self._sort_formats(formats)
-        tag, title = stream.get('Tag'), base_info.get('title')
+            if stream_url:
+                media_type = stream.get('ViewerMediaFileTypeName')
+                if media_type in ('hls', ):
+                    m3u8_formats, stream_subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, video_id)
+                    stream_formats.extend(m3u8_formats)
+                    subtitles = self._merge_subtitles(subtitles, stream_subtitles)
+                else:
+                    stream_formats.append({
+                        'url': stream_url
+                    })
+            for fmt in stream_formats:
+                fmt.update({
+                    'preference': preference,
+                    'format_note': format_note or stream.get('Tag')
+                })
+            formats.extend(stream_formats)
 
-        return {
-            **base_info,
-            'id': stream['PublicID'],
-            'title': join_nonempty(title, tag, delim=' - '),
-            'formats': formats,
-            'subtitles': subtitles,
-        }
+        return formats, subtitles
 
     def _real_extract(self, url):
         base_url, video_id = self._match_valid_url(url).group('base_url', 'id')
@@ -207,9 +206,20 @@ class PanoptoIE(PanoptoBaseIE):
         )
 
         delivery = delivery_info['Delivery']
-        streams = []
         session_start_time = int_or_none(delivery.get('SessionStartTime'))
-        base_info = {
+
+        # Podcast stream is usually the combined streams. We will prefer that by default.
+        podcast_formats, podcast_subtitles = self._extract_streams_formats_and_subtitles(
+            video_id, delivery.get('PodcastStreams'), format_note='PODCAST')
+
+        streams_formats, streams_subtitles = self._extract_streams_formats_and_subtitles(
+            video_id, delivery.get('Streams'), preference=-10)
+
+        formats = podcast_formats + streams_formats
+        subtitles = self._merge_subtitles(podcast_subtitles, streams_subtitles)
+        self._sort_formats(formats)
+
+        return {
             'id': video_id,
             'title': delivery.get('SessionName'),
             'cast': list(filter(None, traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[]))),
@@ -223,32 +233,10 @@ class PanoptoIE(PanoptoBaseIE):
             'description': delivery.get('SessionAbstract'),
             'tags': traverse_obj(delivery, ('Tags', ..., 'Content')),
             'channel_id': delivery.get('SessionGroupPublicID'),
-            'channel': traverse_obj(delivery, 'SessionGroupLongName', 'SessionGroupShortName', get_all=False)
+            'channel': traverse_obj(delivery, 'SessionGroupLongName', 'SessionGroupShortName', get_all=False),
+            'formats': formats,
+            'subtitles': subtitles
         }
-
-        # Podcast stream is usually the combined streams. We will prefer that by default.
-        for stream in delivery.get('PodcastStreams', []):
-            streams.append(self._extract_stream(video_id, stream, base_info))
-
-        if not streams or self._configuration_arg('get_multistreams'):
-            for stream in delivery.get('Streams', []):
-                streams.append(self._extract_stream(video_id, stream, base_info))
-        streams = list(filter(None, streams))
-
-        if not streams:
-            self.raise_no_formats('Did not find any streams')
-
-        if len(streams) == 1:
-            return {
-                **streams[0],
-                **base_info,
-            }
-        else:
-            return {
-                **base_info,
-                '_type': 'multi_video',
-                'entries': streams,
-            }
 
 
 class PanoptoPlaylistIE(PanoptoBaseIE):
