@@ -39,6 +39,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     format_field,
+    get_first,
     int_or_none,
     is_html,
     join_nonempty,
@@ -68,13 +69,8 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urljoin,
-    variadic,
+    variadic
 )
-
-
-def get_first(obj, keys, **kwargs):
-    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
-
 
 # any clients starting with _ cannot be explicity requested by the user
 INNERTUBE_CLIENTS = {

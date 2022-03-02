@@ -1,26 +1,22 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
+import json
 import functools
+from random import random
 
 from .common import InfoExtractor
-from .youtube import get_first  # TODO
 from ..compat import (
     compat_urllib_parse_urlparse,
     compat_urlparse
 )
 
 from ..utils import (
+    bug_reports_message,
     ExtractorError,
+    get_first,
     int_or_none,
     OnDemandPagedList,
+    parse_qs,
     traverse_obj,
-    bug_reports_message,
-    parse_qs
 )
-
-from random import random
-import json
 
 
 class PanoptoBaseIE(InfoExtractor):
