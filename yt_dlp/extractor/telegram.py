@@ -10,6 +10,10 @@ class TelegramEmbedIE(InfoExtractor):
             'id': '613',
             'ext': 'mp4',
             'title': 'Europa Press',
+            'description': 'Así de rápido fluye la lava en La Palma. Las autoridades destacan el "importante" avance '
+                           'de la colada sur (un kilómetro y medio en solo 24 horas), que va hacia la costa quemando '
+                           'invernaderos y viviendas bit.ly/3pRQv9J ',
+            'thumbnail': r're:^https?:\/\/cdn.*?telesco\.pe\/file\/\w+',
         },
     }
 
@@ -29,17 +33,18 @@ class TelegramEmbedIE(InfoExtractor):
 
         source = self._search_regex('<video.*?src=\"(.*?)\"', webpage_embed, 'source')
 
+        formats = [{
+            'ext': 'mp4',
+            'format_id': video_id,
+            'url': self._proto_relative_url(source),
+            'vcodec': 'none'}]
+
+        self._sort_formats(formats)
+
         return {
             'id': video_id,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
-            'formats': [
-                {
-                    'ext': 'mp4',
-                    'format_id': video_id,
-                    'url': self._proto_relative_url(source),
-                    'vcodec': 'none',
-                }
-            ],
+            'formats': formats,
         }
