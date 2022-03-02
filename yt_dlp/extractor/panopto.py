@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     get_first,
     int_or_none,
+    join_nonempty,
     OnDemandPagedList,
     parse_qs,
     traverse_obj,
@@ -276,12 +277,9 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
 
     def _entries(self, base_url, playlist_id, session_list_id):
         session_list_info = self._call_api(
-            base_url, f'/Api/SessionLists/{session_list_id}?collections[0].maxCount=500&collections[0].name=ViewableItemsOnly', playlist_id)
-        items = session_list_info['Items']
-        if len(items) == 500:
-            self.report_warning(
-                'There are 500 items in this playlist. There may be more but we are unable to get them' + bug_reports_message(), only_once=True)
+            base_url, f'/Api/SessionLists/{session_list_id}?collections[0].maxCount=500&collections[0].name=items', playlist_id)
 
+        items = session_list_info['Items']
         for item in items:
             if item.get('TypeName') != 'Session':
                 self.report_warning('Got an item in the playlist that is not a Session' + bug_reports_message(), only_once=True)
