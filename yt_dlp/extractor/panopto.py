@@ -106,6 +106,31 @@ class PanoptoIE(PanoptoBaseIE):
             }
         },
         {
+             # Does not allow normal Viewer.aspx. AUDIO livestream has no url, so should be skipped and only give one stream.
+            'url': 'https://unisa.au.panopto.com/Panopto/Pages/Embed.aspx?id=9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
+            'info_dict': {
+                'id': '9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
+                'ext': 'mp4',
+                'cast': ['LTS CLI Script'],
+                'duration': 2178.45,
+                'description': 'md5:ee5cf653919f55b72bce2dbcf829c9fa',
+                'channel_id': 'b23e673f-c287-4cb1-8344-aae9005a69f8',
+                'average_rating': 0,
+                'uploader_id': '38377323-6a23-41e2-9ff6-a8e8004bf6f7',
+                'uploader': 'LTS CLI Script',
+                'timestamp': 1572458134,
+                'title': 'WW2 Vets Interview 3 Ronald Stanley George',
+                'thumbnail': r're:https://unisa\.au\.panopto\.com/Panopto/Services/FrameGrabber.svc/FrameRedirect\?objectId=9d9a0fa3-e99a-4ebd-a281-aac2017f4da4&mode=Delivery&random=[\d.]+',
+                'channel': 'World War II Veteran Interviews',
+                'upload_date': '20191030',
+            },
+            'params': {
+                'extractor_args': {
+                    'panopto': {'get_multistreams': ['']}
+                }
+            }
+        },
+        {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
             'only_matching': True
         },
@@ -136,17 +161,21 @@ class PanoptoIE(PanoptoBaseIE):
     def _extract_stream(self, video_id, stream, base_info):
         formats = []
         subtitles = {}
-        http_stream_url = stream.get('StreamHttpUrl')
+        http_stream_url = stream.get('StreamHttpUrl')  # TODO: find test
+        stream_url = stream.get('StreamUrl')
         if http_stream_url:
             formats.append({'url': http_stream_url})
 
+        if not stream_url and not http_stream_url:
+            return
+
         media_type = stream.get('ViewerMediaFileTypeName')
         if media_type in ('hls', ):
-            m3u8_formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream.get('StreamUrl'), video_id, 'mp4')
+            m3u8_formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, 'mp4')
             formats.extend(m3u8_formats)
         else:
             formats.append({
-                'url': stream.get('StreamUrl')
+                'url': stream_url
             })
         self._sort_formats(formats)
         tag, title = stream.get('Tag'), base_info.get('title')
@@ -204,6 +233,7 @@ class PanoptoIE(PanoptoBaseIE):
         if not streams or self._configuration_arg('get_multistreams'):
             for stream in delivery.get('Streams', []):
                 streams.append(self._extract_stream(video_id, stream, base_info))
+        streams = list(filter(None, streams))
 
         if not streams:
             self.raise_no_formats('Did not find any streams')
