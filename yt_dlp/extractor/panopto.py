@@ -189,8 +189,7 @@ class PanoptoIE(PanoptoBaseIE):
         }
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        base_url, video_id = mobj.group('base_url', 'id')
+        base_url, video_id = self._match_valid_url(url).group('base_url', 'id')
         delivery_info = self._call_api(
             base_url, '/Pages/Viewer/DeliveryInfo.aspx', video_id,
             query={
