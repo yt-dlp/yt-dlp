@@ -69,7 +69,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urljoin,
-    variadic
+    variadic,
 )
 
 # any clients starting with _ cannot be explicity requested by the user
