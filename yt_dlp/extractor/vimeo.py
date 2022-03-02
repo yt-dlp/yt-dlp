@@ -166,8 +166,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 for f_id, m_url in sep_manifest_urls:
                     if files_type == 'hls':
                         fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                            m_url, video_id, 'mp4',
-                            'm3u8' if is_live else 'm3u8_native', m3u8_id=f_id,
+                            m_url, video_id, 'mp4', live=is_live, m3u8_id=f_id,
                             note='Downloading %s m3u8 information' % cdn_name,
                             fatal=False)
                         formats.extend(fmts)

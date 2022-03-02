@@ -259,9 +259,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     continue
                 if media_type == 'application/x-mpegURL':
                     formats.extend(self._extract_m3u8_formats(
-                        media_url, video_id, 'mp4',
-                        'm3u8' if is_live else 'm3u8_native',
-                        m3u8_id='hls', fatal=False))
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
                 else:
                     f = {
                         'url': media_url,
