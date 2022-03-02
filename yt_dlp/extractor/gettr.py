@@ -82,7 +82,7 @@ class GettrIE(GettrBaseIE):
         player_type = post_data.get('p_type')
         shared_post_id = traverse_obj(api_data, ('aux', 'shrdpst', '_id'), ('data', 'rpstIds', 0), expected_type=str)
 
-        if player_type and player_type == 'stream':
+        if player_type == 'stream':
             return self.url_result(
                 f'https://gettr.com/streaming/{post_id}', ie='GettrStreaming', video_id=post_id)
 
