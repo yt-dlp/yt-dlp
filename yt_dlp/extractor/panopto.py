@@ -360,7 +360,7 @@ class PanoptoListIE(PanoptoBaseIE):
         }
 
         response = self._call_api(
-            base_url, '/Services/Data.svc/GetSessions', display_id + f' page {page+1}',
+            base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page+1}',
             data={'queryParameters': params}, fatal=False)
         if not response:
             return  # TODO this should be fatal but being fatal makes us infinitely hit the site
