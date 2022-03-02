@@ -163,7 +163,7 @@ class PanoptoIE(PanoptoBaseIE):
         subtitles = {}
         for stream in streams or []:
             stream_formats = []
-            http_stream_url = stream.get('StreamHttpUrl')  # TODO: find test
+            http_stream_url = stream.get('StreamHttpUrl')
             stream_url = stream.get('StreamUrl')
 
             if http_stream_url:
@@ -348,8 +348,7 @@ class PanoptoListIE(PanoptoBaseIE):
         response = self._call_api(
             base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page+1}',
             data={'queryParameters': params}, fatal=False)
-        if not response:
-            return  # TODO this should be fatal but being fatal makes us infinitely hit the site
+
         for result in get_first(response, 'Results', default=[]):
             # This could be a video, playlist (or maybe something else)
             item_id = result.get('DeliveryID')
