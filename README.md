@@ -1698,6 +1698,10 @@ The following extractors use this feature:
 * `app_version`: App version to call mobile APIs with - should be set along with `manifest_app_version`. (e.g. `20.2.1`)
 * `manifest_app_version`: Numeric app version to call mobile APIs with. (e.g. `221`)
 
+#### rokfinchannel
+* `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
+
+
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->

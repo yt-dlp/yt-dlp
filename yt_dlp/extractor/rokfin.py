@@ -1,11 +1,11 @@
 # coding: utf-8
-
 import itertools
 from datetime import datetime
 
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    ExtractorError,
     float_or_none,
     format_field,
     int_or_none,
@@ -14,6 +14,9 @@ from ..utils import (
     unified_timestamp,
     url_or_none,
 )
+
+
+_API_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
 
 
 class RokfinIE(InfoExtractor):
@@ -82,8 +85,7 @@ class RokfinIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
 
-        metadata = self._download_json(f'https://prod-api-v2.production.rokfin.com/api/v2/public/{video_id}',
-                                       video_id, fatal=False) or {}
+        metadata = self._download_json(f'{_API_BASE_URL}{video_id}', video_id)
 
         scheduled = unified_timestamp(metadata.get('scheduledAt'))
         live_status = ('was_live' if metadata.get('stoppedAt')
@@ -137,7 +139,7 @@ class RokfinIE(InfoExtractor):
         pages_total = None
         for page_n in itertools.count():
             raw_comments = self._download_json(
-                f'https://prod-api-v2.production.rokfin.com/api/v2/public/comment?postId={video_id[5:]}&page={page_n}&size=50',
+                f'{_API_BASE_URL}comment?postId={video_id[5:]}&page={page_n}&size=50',
                 video_id, note=f'Downloading viewer comments page {page_n + 1}{format_field(pages_total, template=" of %s")}',
                 fatal=False) or {}
 
@@ -153,6 +155,102 @@ class RokfinIE(InfoExtractor):
                     'timestamp': unified_timestamp(comment.get('postedAt'))
                 }
 
-            pages_total = int_or_none(raw_comments.get('totalPages'))
-            if not raw_comments.get('content') or raw_comments.get('last') is not False or page_n > (pages_total or 0):
+            pages_total = int_or_none(raw_comments.get('totalPages')) or None
+            is_last = raw_comments.get('last')
+            if not raw_comments.get('content') or is_last or (page_n > pages_total if pages_total else is_last is not False):
                 return
+
+
+class RokfinPlaylistBaseIE(InfoExtractor):
+    _TYPES = {
+        'video': 'post',
+        'audio': 'post',
+        'stream': 'stream',
+        'dead_stream': 'stream',
+        'stack': 'stack',
+    }
+
+    def _get_video_data(self, metadata):
+        for content in metadata.get('content') or []:
+            media_type = self._TYPES.get(content.get('mediaType'))
+            video_id = content.get('id') if media_type == 'post' else content.get('mediaId')
+            if not media_type or not video_id:
+                continue
+
+            yield self.url_result(f'https://rokfin.com/{media_type}/{video_id}', video_id=f'{media_type}/{video_id}',
+                                  video_title=str_or_none(traverse_obj(content, ('content', 'contentTitle'))))
+
+
+class RokfinStackIE(RokfinPlaylistBaseIE):
+    IE_NAME = 'rokfin:stack'
+    _VALID_URL = r'https?://(?:www\.)?rokfin\.com/stack/(?P<id>[^/]+)'
+    _TESTS = [{
+        'url': 'https://www.rokfin.com/stack/271/Tulsi-Gabbard-Portsmouth-Townhall-FULL--Feb-9-2020',
+        'playlist_count': 8,
+        'info_dict': {
+            'id': '271',
+        },
+    }]
+
+    def _real_extract(self, url):
+        list_id = self._match_id(url)
+        return self.playlist_result(self._get_video_data(
+            self._download_json(f'{_API_BASE_URL}stack/{list_id}', list_id)), list_id)
+
+
+class RokfinChannelIE(RokfinPlaylistBaseIE):
+    IE_NAME = 'rokfin:channel'
+    _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?!((feed/?)|(discover/?)|(channels/?))$)(?P<id>[^/]+)/?$'
+    _TESTS = [{
+        'url': 'https://rokfin.com/TheConvoCouch',
+        'playlist_mincount': 100,
+        'info_dict': {
+            'id': '12071-new',
+            'title': 'TheConvoCouch - New',
+            'description': 'md5:bb622b1bca100209b91cd685f7847f06',
+        },
+    }]
+
+    _TABS = {
+        'new': 'posts',
+        'top': 'top',
+        'videos': 'video',
+        'podcasts': 'audio',
+        'streams': 'stream',
+        'stacks': 'stack',
+    }
+
+    def _real_initialize(self):
+        self._validate_extractor_args()
+
+    def _validate_extractor_args(self):
+        requested_tabs = self._configuration_arg('tab', None)
+        if requested_tabs is not None and (len(requested_tabs) > 1 or requested_tabs[0] not in self._TABS):
+            raise ExtractorError(f'Invalid extractor-arg "tab". Must be one of {", ".join(self._TABS)}', expected=True)
+
+    def _entries(self, channel_id, channel_name, tab):
+        pages_total = None
+        for page_n in itertools.count(0):
+            if tab in ('posts', 'top'):
+                data_url = f'{_API_BASE_URL}user/{channel_name}/{tab}?page={page_n}&size=50'
+            else:
+                data_url = f'{_API_BASE_URL}post/search/{tab}?page={page_n}&size=50&creator={channel_id}'
+            metadata = self._download_json(
+                data_url, channel_name,
+                note=f'Downloading video metadata page {page_n + 1}{format_field(pages_total, template=" of %s")}')
+
+            yield from self._get_video_data(metadata)
+            pages_total = int_or_none(metadata.get('totalPages')) or None
+            is_last = metadata.get('last')
+            if is_last or (page_n > pages_total if pages_total else is_last is not False):
+                return
+
+    def _real_extract(self, url):
+        channel_name = self._match_id(url)
+        channel_info = self._download_json(f'{_API_BASE_URL}user/{channel_name}', channel_name)
+        channel_id = channel_info['id']
+        tab = self._configuration_arg('tab', default=['new'])[0]
+
+        return self.playlist_result(
+            self._entries(channel_id, channel_name, self._TABS[tab]),
+            f'{channel_id}-{tab}', f'{channel_name} - {tab.title()}', str_or_none(channel_info.get('description')))
