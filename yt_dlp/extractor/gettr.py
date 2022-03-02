@@ -80,9 +80,6 @@ class GettrIE(GettrBaseIE):
         post_data = api_data.get('data')
         user_data = try_get(api_data, lambda x: x['aux']['uinf'][post_data['uid']], dict) or {}
 
-        if post_data.get('nfound'):
-            raise ExtractorError(post_data.get('txt'), expected=True)
-
         vid = post_data.get('vid')
         ovid = post_data.get('ovid')
 
