@@ -2321,7 +2321,7 @@ class YoutubeDL(object):
                 self.report_warning('Extractor failed to obtain "title". Creating a generic title instead')
                 info_dict['title'] = f'{info_dict["extractor"]} video #{info_dict["id"]}'
 
-        if info_dict.get('duration') is not None:
+        if info_dict.get('duration', 0) >= 0:
             info_dict['duration_string'] = formatSeconds(info_dict['duration'])
 
         for ts_key, date_key in (
@@ -2505,9 +2505,8 @@ class YoutubeDL(object):
                 format['resolution'] = self.format_resolution(format, default=None)
             if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
                 format['dynamic_range'] = 'SDR'
-            if (info_dict.get('duration') and format.get('tbr')
-                    and not format.get('filesize') and not format.get('filesize_approx')
-                    and info_dict['duration'] >= 0):
+            if (info_dict.get('duration', 0) >= 0 and format.get('tbr')
+                    and not format.get('filesize') and not format.get('filesize_approx')):
                 format['filesize_approx'] = info_dict['duration'] * format['tbr'] * (1024 / 8)
 
             # Add HTTP headers, so that external programs can use them from the
@@ -2781,7 +2780,7 @@ class YoutubeDL(object):
         print_optional('thumbnail')
         print_optional('description')
         print_optional('filename')
-        if self.params.get('forceduration') and info_dict.get('duration') is not None:
+        if self.params.get('forceduration') and info_dict.get('duration', 0) >= 0:
             self.to_stdout(formatSeconds(info_dict['duration']))
         print_mandatory('format')
 
