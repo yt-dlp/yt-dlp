@@ -742,7 +742,6 @@ class NiconicoSeriesIE(InfoExtractor):
 class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
     IE_NAME = 'niconico:history'
     IE_DESC = 'NicoNico user history. Requires cookies.'
-    # actual url of history page is "https://www.nicovideo.jp/my/history/video", but /video is omitted to widen matches
     _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/history'
 
     _TESTS = [{
@@ -780,9 +779,7 @@ class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
                 self.raise_login_required('You have to be logged in to get your watch history')
             raise
         entries = self._entries(functools.partial(self._fetch_page, list_id))
-        result = self.playlist_result(entries, list_id)
-        result.update(self._parse_owner(mylist))
-        return result
+        return self.playlist_result(entries, list_id, **self._parse_owner(mylist))
 
 
 class NicovideoSearchBaseIE(InfoExtractor):
