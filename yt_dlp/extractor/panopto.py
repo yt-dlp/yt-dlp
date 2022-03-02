@@ -106,7 +106,7 @@ class PanoptoIE(PanoptoBaseIE):
             }
         },
         {
-             # Does not allow normal Viewer.aspx. AUDIO livestream has no url, so should be skipped and only give one stream.
+            # Does not allow normal Viewer.aspx. AUDIO livestream has no url, so should be skipped and only give one stream.
             'url': 'https://unisa.au.panopto.com/Panopto/Pages/Embed.aspx?id=9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
             'info_dict': {
                 'id': '9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
