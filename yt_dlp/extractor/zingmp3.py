@@ -16,7 +16,6 @@ from ..utils import (
 class ZingMp3BaseIE(InfoExtractor):
     _VALID_URL_TMPL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>(?:%s))/[^/]+/(?P<id>\w+)(?:\.html|\?)'
     _GEO_COUNTRIES = ['VN']
-    _IS_UPDATE_COOKIES = False
     _DOMAIN = 'https://zingmp3.vn'
     _SLUG_API = {
         'bai-hat': '/api/v2/page/get/song',
@@ -28,7 +27,6 @@ class ZingMp3BaseIE(InfoExtractor):
         'song_streaming': '/api/v2/song/get/streaming',
     }
 
-    _TEMP_TIMESTAMP = '123456'
     _API_KEY = '88265e23d4284f25963e6eedac8fbfa3'
     _SECRET_KEY = b'2aa2d1c561e809b267f3638c4a307aab'
 
@@ -39,10 +37,8 @@ class ZingMp3BaseIE(InfoExtractor):
         if type_url == 'video-clip':
             source = item.get('streaming')
         else:
-            api = self.get_api_with_signature(name_api=self._SLUG_API.get('song_streaming'), param={
-                'ctime': self._TEMP_TIMESTAMP,
-                'id': item_id})
-            source = self.download_json(api, item_id).get('data')
+            api = self.get_api_with_signature(name_api=self._SLUG_API.get('song_streaming'), param={'id': item_id})
+            source = self._download_json(api, video_id=item_id).get('data')
 
         formats = []
         for k, v in (source or {}).items():
@@ -83,10 +79,8 @@ class ZingMp3BaseIE(InfoExtractor):
 
         lyric = item.get('lyric')
         if not lyric:
-            api = self.get_api_with_signature(name_api=self._SLUG_API.get("lyric"), param={
-                'ctime': self._TEMP_TIMESTAMP,
-                'id': item_id})
-            info_lyric = self.download_json(api, item_id)
+            api = self.get_api_with_signature(name_api=self._SLUG_API.get("lyric"), param={'id': item_id})
+            info_lyric = self._download_json(api, video_id=item_id)
             lyric = traverse_obj(info_lyric, ('data', 'file'))
         subtitles = {
             'origin': [{
@@ -112,30 +106,19 @@ class ZingMp3BaseIE(InfoExtractor):
     def _real_extract(self, url):
         song_id, type_url = self._match_valid_url(url).group('id', 'type')
 
-        api = self.get_api_with_signature(name_api=self._SLUG_API[type_url], param={
-            'ctime': self._TEMP_TIMESTAMP,
-            'id': song_id})
-        info = self.download_json(api, song_id)
+        api = self.get_api_with_signature(name_api=self._SLUG_API[type_url], param={'id': song_id})
+
+        # Check the cookie file, if cookie file doesn't exist, create a dummy request to update the cookie
+        if not self._downloader.params.get('cookiefile'):
+            self._download_json(api, video_id=song_id, note='Dummy request to update cookie')
+
+        info = self._download_json(api, video_id=song_id)
         return self._process_data(info.get('data'), song_id, type_url)
-
-    def download_json(self, api, video_id):
-        # For the first time making the request, we need to make one more temp request to update the cookie
-        # and the next time we don't need to do it.
-        # But if download with cookieFile, so we don't need to make one more temp request
-        if self._downloader.params.get('cookiefile'):
-            self._IS_UPDATE_COOKIES = True
-
-        if not self._IS_UPDATE_COOKIES:
-            self._download_json(api, video_id=video_id, note='Update cookies for request')
-            self._IS_UPDATE_COOKIES = True
-
-        return self._download_json(api, video_id=video_id)
 
     def get_api_with_signature(self, name_api, param):
         sha256 = self.sha256_params(''.join(f'{k}={v}' for k, v in param.items()))
 
         data = {
-            'ctime': param.get('ctime'),
             'apiKey': self._API_KEY,
             'sig': self.hmac512_string(f'{name_api}{sha256}')
         }
