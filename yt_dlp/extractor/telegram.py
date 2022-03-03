@@ -17,19 +17,15 @@ class TelegramEmbedIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
-        webpage = self._download_webpage(url, video_id=video_id)
-
-        webpage_embed = self._download_webpage(f'{url}?embed=1', video_id=video_id)
-
-        source = self._search_regex('<video[^>]+src=\"([^"]+)\"', webpage_embed, 'source')
+        webpage = self._download_webpage(url, video_id)
+        webpage_embed = self._download_webpage(f'{url}?embed=1', video_id)
 
         formats = [{
+            'url': self._proto_relative_url(self._search_regex(
+                '<video[^>]+src="([^"]+)"', webpage_embed, 'source')),
             'ext': 'mp4',
-            'url': self._proto_relative_url(source),
             'vcodec': 'none'
         }]
-
         self._sort_formats(formats)
 
         return {
