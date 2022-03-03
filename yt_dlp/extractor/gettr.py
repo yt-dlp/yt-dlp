@@ -69,6 +69,11 @@ class GettrIE(GettrBaseIE):
         # streaming embed
         'url': 'https://gettr.com/post/pxlu8p3b13',
         'only_matching': True,
+    }, {
+        # youtube embed
+        'url': 'https://gettr.com/post/pv6wp9e24c',
+        'only_matching': True,
+        'add_ie': ['Youtube'],
     }]
 
     def _real_extract(self, url):
@@ -86,9 +91,12 @@ class GettrIE(GettrBaseIE):
             return self.url_result(f'https://gettr.com/streaming/{post_id}', ie='GettrStreaming', video_id=post_id)
 
         if not (ovid or vid):
+            embed_url = url_or_none(embed_url)
             shared_post_id = traverse_obj(api_data, ('aux', 'shrdpst', '_id'), ('data', 'rpstIds', 0), expected_type=str)
 
-            if shared_post_id:
+            if embed_url:
+                return self.url_result(embed_url)
+            elif shared_post_id:
                 return self.url_result(f'https://gettr.com/post/{shared_post_id}', ie='Gettr', video_id=shared_post_id)
             else:
                 raise ExtractorError('There\'s no video in this post.')
