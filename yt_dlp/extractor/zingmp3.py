@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 import hashlib
 import hmac
-from urllib.parse import urlencode
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -59,15 +59,16 @@ class ZingMp3BaseIE(InfoExtractor):
                             'height': int_or_none(self._search_regex(
                                 r'^(\d+)p', res, 'resolution', default=None)),
                         })
-            else:
-                if v != 'VIP':
-                    formats.append({
-                        'ext': 'mp3',
-                        'format_id': k,
-                        'tbr': int_or_none(k),
-                        'url': self._proto_relative_url(v),
-                        'vcodec': 'none',
-                    })
+                continue
+            elif v == 'VIP':
+                continue
+            formats.append({
+                'ext': 'mp3',
+                'format_id': k,
+                'tbr': int_or_none(k),
+                'url': self._proto_relative_url(v),
+                'vcodec': 'none',
+            })
         if not formats:
             if not fatal:
                 return
@@ -94,48 +95,41 @@ class ZingMp3BaseIE(InfoExtractor):
             'id': item_id,
             'title': title,
             'formats': formats,
-            'thumbnail': try_get(item, lambda x: x['thumbnail']) or try_get(item, lambda x: x['thumbnailM']),
+            'thumbnail': traverse_obj(item, 'thumbnail', 'thumbnailM'),
             'subtitles': subtitles,
             'duration': int_or_none(try_get(item, lambda x: x['duration'])),
             'track': title,
-            'artist': try_get(item, lambda x: x['artistsNames']) or try_get(item, lambda x: x['artists_names']),
-            'album': try_get(album, lambda x: x['name']) or try_get(album, lambda x: x['title']),
-            'album_artist': try_get(album, lambda x: x['artistsNames']) or try_get(album, lambda x: x['artists_names']),
+            'artist': traverse_obj(item, 'artistsNames', 'artists_names'),
+            'album': traverse_obj(album, 'name', 'title'),
+            'album_artist': traverse_obj(album, 'artistsNames', 'artists_names'),
         }
+
+    def _real_initialize(self):
+        # Check the cookie file, if cookie file doesn't exist, create a dummy request to update the cookie
+        if not self.get_param('cookiefile') and not self.get_param('cookiesfrombrowser'):
+            self._download_webpage(self._DOMAIN, None, note='Dummy request to update cookie')
 
     def _real_extract(self, url):
         song_id, type_url = self._match_valid_url(url).group('id', 'type')
 
         api = self.get_api_with_signature(name_api=self._SLUG_API[type_url], param={'id': song_id})
 
-        # Check the cookie file, if cookie file doesn't exist, create a dummy request to update the cookie
-        if not self._downloader.params.get('cookiefile'):
-            self._download_json(api, video_id=song_id, note='Dummy request to update cookie')
-
-        info = self._download_json(api, video_id=song_id)
-        return self._process_data(info.get('data'), song_id, type_url)
+        return self._process_data(self._download_json(api, song_id)['data'], song_id, type_url)
 
     def get_api_with_signature(self, name_api, param):
-        sha256 = self.sha256_params(''.join(f'{k}={v}' for k, v in param.items()))
+        sha256 = hashlib.sha256(''.join(f'{k}={v}' for k, v in param.items()).encode('utf-8')).hexdigest()
 
         data = {
             'apiKey': self._API_KEY,
-            'sig': self.hmac512_string(f'{name_api}{sha256}')
+            'sig': hmac.new(self._SECRET_KEY, f'{name_api}{sha256}'.encode('utf-8'), hashlib.sha512).hexdigest(),
+            **param,
         }
-        data.update(param)
-        return f'{self._DOMAIN}{name_api}?{urlencode(data)}'
-
-    def sha256_params(self, string):
-        return hashlib.sha256(string.encode('utf-8')).hexdigest()
-
-    def hmac512_string(self, string):
-        return hmac.new(self._SECRET_KEY, string.encode('utf-8'), hashlib.sha512).hexdigest()
-
+        return f'{self._DOMAIN}{name_api}?{urllib.parse.urlencode(data)}'
 
 class ZingMp3IE(ZingMp3BaseIE):
     _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'bai-hat|video-clip|embed'
     _TESTS = [{
-        'url': 'https://zingmp3.vn/bai-hat/Xa-Mai-Xa-Bao-Thy/ZWZB9WAB.html',
+        'url': 'https://mp3.zing.vn/bai-hat/Xa-Mai-Xa-Bao-Thy/ZWZB9WAB.html',
         'md5': 'ead7ae13693b3205cbc89536a077daed',
         'info_dict': {
             'id': 'ZWZB9WAB',
