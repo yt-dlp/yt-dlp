@@ -1,5 +1,7 @@
+import calendar
 import json
 import functools
+from datetime import datetime
 from random import random
 
 from .common import InfoExtractor
@@ -22,10 +24,10 @@ from ..utils import (
 class PanoptoBaseIE(InfoExtractor):
     BASE_URL_RE = r'(?P<base_url>https?://[\w.]+\.panopto.(?:com|eu)/Panopto)'
 
-    def _call_api(self, base_url, path, video_id, query=None, data=None, fatal=True):
+    def _call_api(self, base_url, path, video_id, data=None, fatal=True, **kwargs):
         response = self._download_json(
-            base_url + path, video_id, query=query, data=json.dumps(data).encode('utf8') if data else None,
-            fatal=fatal, headers={'accept': 'application/json', 'content-type': 'application/json'})
+            base_url + path, video_id, data=json.dumps(data).encode('utf8') if data else None,
+            fatal=fatal, headers={'accept': 'application/json', 'content-type': 'application/json'}, **kwargs)
         if not response:
             return
         error_code = response.get('ErrorCode')
@@ -46,6 +48,7 @@ class PanoptoBaseIE(InfoExtractor):
 
 class PanoptoIE(PanoptoBaseIE):
     _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)id=(?P<id>[a-f0-9-]+)'
+    _NETRC_MACHINE = 'panopto'  # TODO: fix bug with this
     _TESTS = [
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
@@ -144,6 +147,35 @@ class PanoptoIE(PanoptoBaseIE):
     def suitable(cls, url):
         return False if PanoptoPlaylistIE.suitable(url) else super().suitable(url)
 
+    def _mark_watched(self, base_url, video_id, delivery_info):
+        duration = traverse_obj(delivery_info, ('Delivery', 'Duration'), expected_type=float)
+        invocation_id = delivery_info.get('InvocationId')
+        stream_id = traverse_obj(delivery_info, ('Delivery', 'Streams', ..., 'PublicID'), get_all=False, expected_type=str)
+        if invocation_id and stream_id and duration:
+            timestamp_str = f'/Date({calendar.timegm(datetime.utcnow().timetuple())}000)/'
+            start = {
+                'streamRequests': [
+                    {
+                        'ClientTimeStamp': timestamp_str,
+                        'ID': 0,
+                        'InvocationID': invocation_id,
+                        'PlaybackSpeed': 1,
+                        'SecondsListened': duration - 1,
+                        'SecondsRejected': 0,
+                        'StartPosition': 0.01,
+                        'StartReason': 2,
+                        'StopReason': None,
+                        'StreamID': stream_id,
+                        'TimeStamp': timestamp_str,
+                        'UpdatesRejected': 0
+                    },
+                ]}
+
+            self._download_webpage(
+                base_url + '/Services/Analytics.svc/AddStreamRequests', video_id,
+                fatal=False, data=json.dumps(start).encode('utf8'), headers={'content-type': 'application/json'},
+                note='Marking watched', errnote='Unable to mark watched')
+
     @staticmethod
     def _extract_chapters(delivery):
         chapters = []
@@ -218,6 +250,8 @@ class PanoptoIE(PanoptoBaseIE):
         formats = podcast_formats + streams_formats
         subtitles = self._merge_subtitles(podcast_subtitles, streams_subtitles)
         self._sort_formats(formats)
+
+        self.mark_watched(base_url, video_id, delivery_info)
 
         return {
             'id': video_id,
