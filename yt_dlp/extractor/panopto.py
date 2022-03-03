@@ -153,7 +153,7 @@ class PanoptoIE(PanoptoBaseIE):
         stream_id = traverse_obj(delivery_info, ('Delivery', 'Streams', ..., 'PublicID'), get_all=False, expected_type=str)
         if invocation_id and stream_id and duration:
             timestamp_str = f'/Date({calendar.timegm(datetime.utcnow().timetuple())}000)/'
-            start = {
+            data = {
                 'streamRequests': [
                     {
                         'ClientTimeStamp': timestamp_str,
@@ -162,7 +162,7 @@ class PanoptoIE(PanoptoBaseIE):
                         'PlaybackSpeed': 1,
                         'SecondsListened': duration - 1,
                         'SecondsRejected': 0,
-                        'StartPosition': 0.01,
+                        'StartPosition': 0,
                         'StartReason': 2,
                         'StopReason': None,
                         'StreamID': stream_id,
@@ -173,7 +173,7 @@ class PanoptoIE(PanoptoBaseIE):
 
             self._download_webpage(
                 base_url + '/Services/Analytics.svc/AddStreamRequests', video_id,
-                fatal=False, data=json.dumps(start).encode('utf8'), headers={'content-type': 'application/json'},
+                fatal=False, data=json.dumps(data).encode('utf8'), headers={'content-type': 'application/json'},
                 note='Marking watched', errnote='Unable to mark watched')
 
     @staticmethod
