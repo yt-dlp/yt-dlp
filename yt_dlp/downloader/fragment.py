@@ -159,7 +159,7 @@ class FragmentFD(FileDownloader):
             if self.__do_ytdl_file(ctx):
                 self._write_ytdl_file(ctx)
             if not self.params.get('keep_fragments', False):
-                os.remove(encodeFilename(ctx['fragment_filename_sanitized']))
+                self.try_remove(encodeFilename(ctx['fragment_filename_sanitized']))
             del ctx['fragment_filename_sanitized']
 
     def _prepare_frag_download(self, ctx):
@@ -305,7 +305,7 @@ class FragmentFD(FileDownloader):
         if self.__do_ytdl_file(ctx):
             ytdl_filename = encodeFilename(self.ytdl_filename(ctx['filename']))
             if os.path.isfile(ytdl_filename):
-                os.remove(ytdl_filename)
+                self.try_remove(ytdl_filename)
         elapsed = time.time() - ctx['started']
 
         if ctx['tmpfilename'] == '-':
