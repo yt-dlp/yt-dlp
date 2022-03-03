@@ -2141,18 +2141,28 @@ if sys.platform == 'win32':
             raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
 
 else:
-    # Some platforms, such as Jython, is missing fcntl
     try:
         import fcntl
 
         def _lock_file(f, exclusive, block):
-            fcntl.flock(f,
-                        fcntl.LOCK_SH if not exclusive
-                        else fcntl.LOCK_EX if block
-                        else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                fcntl.flock(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise
+            except OSError:  # AOSP does not have flock()
+                fcntl.lockf(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         def _unlock_file(f):
-            fcntl.flock(f, fcntl.LOCK_UN)
+            try:
+                fcntl.flock(f, fcntl.LOCK_UN)
+            except OSError:
+                fcntl.lockf(f, fcntl.LOCK_UN)
 
     except ImportError:
         UNSUPPORTED_MSG = 'file locking is not supported on this platform'
