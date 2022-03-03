@@ -317,8 +317,8 @@ class PanoptoListIE(PanoptoBaseIE):
         {
             'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Sessions/List.aspx#view=2&maxResults=250',
             'info_dict': {
-                'id': 'list',
-                'title': 'list'
+                'id': 'panopto_list',
+                'title': 'panopto_list'
             },
             'playlist_mincount': 300
         },
@@ -381,7 +381,7 @@ class PanoptoListIE(PanoptoBaseIE):
         base_url = mobj.group('base_url')
 
         query_params = self._parse_fragment(url)
-        folder_id, display_id = query_params.get('folderID'), 'list'
+        folder_id, display_id = query_params.get('folderID'), 'panopto_list'
 
         if query_params.get('isSubscriptionsPage'):
             display_id = 'subscriptions'
