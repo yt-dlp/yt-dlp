@@ -91,7 +91,7 @@ class GettrIE(GettrBaseIE):
             return self.url_result(f'https://gettr.com/streaming/{post_id}', ie='GettrStreaming', video_id=post_id)
 
         if not (ovid or vid):
-            embed_url = url_or_none(embed_url)
+            embed_url = url_or_none(post_data.get('prevsrc'))
             shared_post_id = traverse_obj(api_data, ('aux', 'shrdpst', '_id'), ('data', 'rpstIds', 0), expected_type=str)
 
             if embed_url:
