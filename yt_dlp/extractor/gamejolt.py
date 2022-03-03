@@ -7,6 +7,7 @@ from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
+    format_field,
     int_or_none,
     str_or_none,
     traverse_obj,
@@ -86,7 +87,7 @@ class GameJoltBaseIE(InfoExtractor):
             'display_id': post_data.get('slug'),
             'uploader': user_data.get('display_name') or user_data.get('name'),
             'uploader_id': user_data.get('username'),
-            'uploader_url': 'https://gamejolt.com' + user_data['url'] if user_data.get('url') else None,
+            'uploader_url': format_field(user_data, 'url', 'https://gamejolt.com%s'),
             'categories': [try_get(category, lambda x: '%s - %s' % (x['community']['name'], x['channel'].get('display_title') or x['channel']['title']))
                            for category in post_data.get('communities' or [])],
             'tags': traverse_obj(

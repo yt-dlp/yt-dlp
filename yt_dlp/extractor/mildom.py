@@ -12,6 +12,8 @@ from ..utils import (
     update_url_query,
     random_uuidv4,
     try_get,
+    float_or_none,
+    dict_get
 )
 from ..compat import (
     compat_str,
@@ -22,9 +24,18 @@ class MildomBaseIE(InfoExtractor):
     _GUEST_ID = None
     _DISPATCHER_CONFIG = None
 
-    def _call_api(self, url, video_id, query={}, note='Downloading JSON metadata', init=False):
+    def _call_api(self, url, video_id, query=None, note='Downloading JSON metadata', init=False):
+        query = query or {}
+        if query:
+            query['__platform'] = 'web'
         url = update_url_query(url, self._common_queries(query, init=init))
-        return self._download_json(url, video_id, note=note)['body']
+        content = self._download_json(url, video_id, note=note)
+        if content['code'] == 0:
+            return content['body']
+        else:
+            self.raise_no_formats(
+                f'Video not found or premium content. {content["code"]} - {content["message"]}',
+                expected=True)
 
     def _common_queries(self, query={}, init=False):
         dc = self._fetch_dispatcher_config()
@@ -148,6 +159,7 @@ class MildomIE(MildomBaseIE):
             'id': result_video_id,
             'title': title,
             'description': description,
+            'timestamp': float_or_none(enterstudio.get('live_start_ms'), scale=1000),
             'uploader': uploader,
             'uploader_id': video_id,
             'formats': formats,
@@ -158,7 +170,50 @@ class MildomIE(MildomBaseIE):
 class MildomVodIE(MildomBaseIE):
     IE_NAME = 'mildom:vod'
     IE_DESC = 'Download a VOD in Mildom'
-    _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9]+)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)mildom\.com/playback/(?P<user_id>\d+)/(?P<id>(?P=user_id)-[a-zA-Z0-9]+-?[0-9]*)'
+    _TESTS = [{
+        'url': 'https://www.mildom.com/playback/10882672/10882672-1597662269',
+        'info_dict': {
+            'id': '10882672-1597662269',
+            'ext': 'mp4',
+            'title': '始めてのミルダム配信じゃぃ！',
+            'thumbnail': r're:^https?://.*\.(png|jpg)$',
+            'upload_date': '20200817',
+            'duration': 4138.37,
+            'description': 'ゲームをしたくて！',
+            'timestamp': 1597662269.0,
+            'uploader_id': '10882672',
+            'uploader': 'kson組長(けいそん)',
+        },
+    }, {
+        'url': 'https://www.mildom.com/playback/10882672/10882672-1597758589870-477',
+        'info_dict': {
+            'id': '10882672-1597758589870-477',
+            'ext': 'mp4',
+            'title': '【kson】感染メイズ！麻酔銃で無双する',
+            'thumbnail': r're:^https?://.*\.(png|jpg)$',
+            'timestamp': 1597759093.0,
+            'uploader': 'kson組長(けいそん)',
+            'duration': 4302.58,
+            'uploader_id': '10882672',
+            'description': 'このステージ絶対乗り越えたい',
+            'upload_date': '20200818',
+        },
+    }, {
+        'url': 'https://www.mildom.com/playback/10882672/10882672-buha9td2lrn97fk2jme0',
+        'info_dict': {
+            'id': '10882672-buha9td2lrn97fk2jme0',
+            'ext': 'mp4',
+            'title': '【kson組長】CART RACER!!!',
+            'thumbnail': r're:^https?://.*\.(png|jpg)$',
+            'uploader_id': '10882672',
+            'uploader': 'kson組長(けいそん)',
+            'upload_date': '20201104',
+            'timestamp': 1604494797.0,
+            'duration': 4657.25,
+            'description': 'WTF',
+        },
+    }]
 
     def _real_extract(self, url):
         m = self._match_valid_url(url)
@@ -213,6 +268,9 @@ class MildomVodIE(MildomBaseIE):
             'id': video_id,
             'title': title,
             'description': description,
+            'timestamp': float_or_none(autoplay['publish_time'], scale=1000),
+            'duration': float_or_none(autoplay['video_length'], scale=1000),
+            'thumbnail': dict_get(autoplay, ('upload_pic', 'video_pic')),
             'uploader': uploader,
             'uploader_id': user_id,
             'formats': formats,
@@ -230,6 +288,13 @@ class MildomUserVodIE(MildomBaseIE):
             'title': 'Uploads from ねこばたけ',
         },
         'playlist_mincount': 351,
+    }, {
+        'url': 'https://www.mildom.com/profile/10882672',
+        'info_dict': {
+            'id': '10882672',
+            'title': 'Uploads from kson組長(けいそん)',
+        },
+        'playlist_mincount': 191,
     }]
 
     def _entries(self, user_id):

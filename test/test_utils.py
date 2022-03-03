@@ -1133,7 +1133,7 @@ class TestUtil(unittest.TestCase):
 
     def test_clean_html(self):
         self.assertEqual(clean_html('a:\nb'), 'a: b')
-        self.assertEqual(clean_html('a:\n   "b"'), 'a:    "b"')
+        self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
 
     def test_intlist_to_bytes(self):

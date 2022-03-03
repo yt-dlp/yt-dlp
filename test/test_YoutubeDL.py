@@ -30,9 +30,7 @@ class YDL(FakeYDL):
         self.msgs = []
 
     def process_info(self, info_dict):
-        info_dict = info_dict.copy()
-        info_dict.pop('__original_infodict', None)
-        self.downloaded_info_dicts.append(info_dict)
+        self.downloaded_info_dicts.append(info_dict.copy())
 
     def to_screen(self, msg):
         self.msgs.append(msg)
@@ -898,20 +896,6 @@ class TestYoutubeDL(unittest.TestCase):
         os.unlink(filename)
 
     def test_match_filter(self):
-        class FilterYDL(YDL):
-            def __init__(self, *args, **kwargs):
-                super(FilterYDL, self).__init__(*args, **kwargs)
-                self.params['simulate'] = True
-
-            def process_info(self, info_dict):
-                super(YDL, self).process_info(info_dict)
-
-            def _match_entry(self, info_dict, incomplete=False):
-                res = super(FilterYDL, self)._match_entry(info_dict, incomplete)
-                if res is None:
-                    self.downloaded_info_dicts.append(info_dict.copy())
-                return res
-
         first = {
             'id': '1',
             'url': TEST_URL,
@@ -939,7 +923,7 @@ class TestYoutubeDL(unittest.TestCase):
         videos = [first, second]
 
         def get_videos(filter_=None):
-            ydl = FilterYDL({'match_filter': filter_})
+            ydl = YDL({'match_filter': filter_, 'simulate': True})
             for v in videos:
                 ydl.process_ie_result(v, download=True)
             return [v['id'] for v in ydl.downloaded_info_dicts]

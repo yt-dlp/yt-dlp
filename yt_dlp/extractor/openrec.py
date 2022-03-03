@@ -42,8 +42,7 @@ class OpenRecBaseIE(InfoExtractor):
             if not m3u8_url:
                 continue
             formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', entry_protocol='m3u8',
-                m3u8_id='hls-%s' % name, live=True))
+                m3u8_url, video_id, ext='mp4', live=is_live, m3u8_id='hls-%s' % name))
 
         self._sort_formats(formats)
 

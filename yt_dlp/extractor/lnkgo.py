@@ -73,14 +73,12 @@ class LnkGoIE(InfoExtractor):
             video_id, 'mp4', 'm3u8_native')
         self._sort_formats(formats)
 
-        poster_image = video_info.get('posterImage')
-
         return {
             'id': video_id,
             'display_id': display_id,
             'title': title,
             'formats': formats,
-            'thumbnail': 'https://lnk.lt/all-images/' + poster_image if poster_image else None,
+            'thumbnail': format_field(video_info, 'posterImage', 'https://lnk.lt/all-images/%s'),
             'duration': int_or_none(video_info.get('duration')),
             'description': clean_html(video_info.get('htmlDescription')),
             'age_limit': self._AGE_LIMITS.get(video_info.get('pgRating'), 0),
