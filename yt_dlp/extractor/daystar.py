@@ -37,6 +37,7 @@ class DaystarClipIE(InfoExtractor):
                 formats.extend(fmts)
                 subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats)
+
         return {
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
