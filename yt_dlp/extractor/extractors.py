@@ -1011,11 +1011,12 @@ from .nick import (
     NickNightIE,
     NickRuIE,
 )
-
 from .niconico import (
     NiconicoIE,
     NiconicoPlaylistIE,
     NiconicoUserIE,
+    NiconicoSeriesIE,
+    NiconicoHistoryIE,
     NicovideoSearchDateIE,
     NicovideoSearchIE,
     NicovideoSearchURLIE,
@@ -1334,11 +1335,9 @@ from .rice import RICEIE
 from .rmcdecouverte import RMCDecouverteIE
 from .rockstargames import RockstarGamesIE
 from .rokfin import (
-    RokfinPostIE,
-    RokfinStreamIE,
+    RokfinIE,
     RokfinStackIE,
     RokfinChannelIE,
-    RokfinSearchIE,
 )
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
