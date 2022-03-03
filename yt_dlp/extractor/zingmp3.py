@@ -126,6 +126,7 @@ class ZingMp3BaseIE(InfoExtractor):
         }
         return f'{self._DOMAIN}{name_api}?{urllib.parse.urlencode(data)}'
 
+
 class ZingMp3IE(ZingMp3BaseIE):
     _VALID_URL = ZingMp3BaseIE._VALID_URL_TMPL % 'bai-hat|video-clip|embed'
     _TESTS = [{
