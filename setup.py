@@ -23,7 +23,11 @@ LONG_DESCRIPTION = '\n\n'.join((
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
     open('README.md', 'r', encoding='utf-8').read()))
 
-REQUIREMENTS = ['mutagen', 'pycryptodomex', 'websockets']
+REQUIREMENTS = [
+    'mutagen', 'pycryptodomex', 'websockets',
+    'brotli; platform_python_implementation=="CPython"',
+    'brotlicffi; platform_python_implementation!="CPython"'
+]
 
 
 if sys.argv[1:2] == ['py2exe']:
