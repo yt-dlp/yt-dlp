@@ -2140,7 +2140,6 @@ if sys.platform == 'win32':
             raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
 
 else:
-    # Some platforms, such as Jython, is missing fcntl
     try:
         import fcntl
 
@@ -2150,10 +2149,9 @@ else:
                             fcntl.LOCK_SH if not exclusive
                             else fcntl.LOCK_EX if block
                             else fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError as e:
-                raise e
-            except OSError:
-                # AOSP does not have flock()
+            except BlockingIOError:
+                raise
+            except OSError:  # AOSP does not have flock()
                 fcntl.lockf(f,
                             fcntl.LOCK_SH if not exclusive
                             else fcntl.LOCK_EX if block
