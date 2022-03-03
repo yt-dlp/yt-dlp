@@ -18,9 +18,9 @@ class DaystarClipIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        src_iframe = self._search_regex(
-            r'\<iframe[^>]+src="([^"]+)"', self._download_webpage(url, video_id), 'src iframe')
+        webpage = self._download_webpage(url, video_id)
 
+        src_iframe = self._search_regex(r'\<iframe[^>]+src="([^"]+)"', webpage, 'src iframe')
         webpage_iframe = self._download_webpage(
             src_iframe.replace('player.php', 'config2.php'), video_id, headers={'Referer': src_iframe})
 
@@ -37,7 +37,6 @@ class DaystarClipIE(InfoExtractor):
                 formats.extend(fmts)
                 subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats)
-        
         return {
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
