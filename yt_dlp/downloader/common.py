@@ -210,34 +210,37 @@ class FileDownloader(object):
     def ytdl_filename(self, filename):
         return filename + '.ytdl'
 
-    def wrap_file_access(func):
-        def inner(self, *argv, **kwargs):
-            file_access_retries = self.params.get('file_access_retries', 10)
-            retry = 0
-            while True:
-                try:
-                    return func(self, *argv, **kwargs)
-                except (IOError, OSError) as err:
-                    retry = retry + 1
-                    if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
-                        if func.__name__ == 'try_rename':
-                            return self.report_error(f'unable to rename file: {err}')
-                        raise
-                    self.to_screen(
-                        '[download] Got file access error. Retrying (attempt %d of %s) ...'
-                        % (retry, self.format_retries(file_access_retries)))
-                    time.sleep(0.01)
-        return inner
+    def wrap_file_access(action, *, fatal=False):
+        def outer(func):
+            def inner(self, *args, **kwargs):
+                file_access_retries = self.params.get('file_access_retries', 0)
+                retry = 0
+                while True:
+                    try:
+                        return func(self, *args, **kwargs)
+                    except (IOError, OSError) as err:
+                        retry = retry + 1
+                        if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
+                            if not fatal:
+                                self.report_error(f'unable to {action} file: {err}')
+                                return
+                            raise
+                        self.to_screen(
+                            f'[download] Unable to {action} file due to file access error. '
+                            f'Retrying (attempt {retry} of {self.format_retries(file_access_retries)}) ...')
+                        time.sleep(0.01)
+            return inner
+        return outer
 
-    @wrap_file_access
+    @wrap_file_access('open', fatal=True)
     def sanitize_open(self, filename, open_mode):
         return sanitize_open(filename, open_mode)
 
-    @wrap_file_access
+    @wrap_file_access('remove')
     def try_remove(self, filename):
         os.remove(filename)
 
-    @wrap_file_access
+    @wrap_file_access('rename')
     def try_rename(self, old_filename, new_filename):
         if old_filename == new_filename:
             return

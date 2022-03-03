@@ -727,7 +727,7 @@ def create_parser():
         help='Number of retries (default is %default), or "infinite"')
     downloader.add_option(
         '--file-access-retries',
-        dest='file_access_retries', metavar='RETRIES', default=10,
+        dest='file_access_retries', metavar='RETRIES', default=3,
         help='Number of times to retry on file access error (default is %default), or "infinite"')
     downloader.add_option(
         '--fragment-retries',
