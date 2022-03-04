@@ -7,7 +7,8 @@ from ..utils import (
     int_or_none,
     traverse_obj,
     unified_strdate,
-    unified_timestamp
+    unified_timestamp,
+    variadic,
 )
 from ..compat import compat_str
 
@@ -19,42 +20,37 @@ class OpenRecBaseIE(InfoExtractor):
 
     def _extract_movie(self, webpage, video_id, name, is_live):
         window_stores = self._extract_pagestore(webpage, video_id)
-        movie_store = traverse_obj(
-            window_stores,
-            ('v8', 'state', 'movie'),
-            ('v8', 'movie'),
-            expected_type=dict)
-        if not movie_store:
+        movie_stores = [
+            # extract all three important data (most of data are duplicated each other, but slightly different!)
+            traverse_obj(window_stores, ('v8', 'state', 'movie'), expected_type=dict),
+            traverse_obj(window_stores, ('v8', 'movie'), expected_type=dict),
+            traverse_obj(window_stores, 'movieStore', expected_type=dict),
+        ]
+        if not any(movie_stores):
             raise ExtractorError(f'Failed to extract {name} info')
 
-        title = movie_store.get('title')
-        description = movie_store.get('introduction')
-        thumbnail = movie_store.get('thumbnailUrl')
+        def get_first(path):
+            return traverse_obj(movie_stores, (..., *variadic(path)), get_all=False)
 
-        uploader = traverse_obj(movie_store, ('channel', 'user', 'name'), expected_type=compat_str)
-        uploader_id = traverse_obj(movie_store, ('channel', 'user', 'id'), expected_type=compat_str)
-
-        timestamp = int_or_none(traverse_obj(movie_store, ('publishedAt', 'time')), scale=1000)
-
-        m3u8_playlists = movie_store.get('media') or {}
+        m3u8_playlists = get_first('media') or {}
         formats = []
         for name, m3u8_url in m3u8_playlists.items():
             if not m3u8_url:
                 continue
             formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', live=is_live, m3u8_id='hls-%s' % name))
+                m3u8_url, video_id, ext='mp4', live=is_live, m3u8_id=name))
 
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
+            'title': get_first('title'),
+            'description': get_first('introduction'),
+            'thumbnail': get_first('thumbnailUrl'),
             'formats': formats,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'timestamp': timestamp,
+            'uploader': get_first(('channel', 'user', 'name')),
+            'uploader_id': get_first(('channel', 'user', 'id')),
+            'timestamp': int_or_none(get_first(['publishedAt', 'time']), scale=1000) or unified_timestamp(get_first('publishedAt')),
             'is_live': is_live,
         }
 
@@ -72,7 +68,7 @@ class OpenRecIE(OpenRecBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://www.openrec.tv/live/%s' % video_id, video_id)
+        webpage = self._download_webpage(f'https://www.openrec.tv/live/{video_id}', video_id)
 
         return self._extract_movie(webpage, video_id, 'live', True)
 
@@ -96,7 +92,7 @@ class OpenRecCaptureIE(OpenRecBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://www.openrec.tv/capture/%s' % video_id, video_id)
+        webpage = self._download_webpage(url, video_id)
 
         window_stores = self._extract_pagestore(webpage, video_id)
         movie_store = window_stores.get('movie')
@@ -104,15 +100,6 @@ class OpenRecCaptureIE(OpenRecBaseIE):
         capture_data = window_stores.get('capture')
         if not capture_data:
             raise ExtractorError('Cannot extract title')
-        title = capture_data.get('title')
-        thumbnail = capture_data.get('thumbnailUrl')
-        upload_date = unified_strdate(capture_data.get('createdAt'))
-
-        uploader = traverse_obj(movie_store, ('channel', 'name'), expected_type=compat_str)
-        uploader_id = traverse_obj(movie_store, ('channel', 'id'), expected_type=compat_str)
-
-        timestamp = traverse_obj(movie_store, 'createdAt', expected_type=compat_str)
-        timestamp = unified_timestamp(timestamp)
 
         formats = self._extract_m3u8_formats(
             capture_data.get('source'), video_id, ext='mp4')
@@ -120,13 +107,13 @@ class OpenRecCaptureIE(OpenRecBaseIE):
 
         return {
             'id': video_id,
-            'title': title,
-            'thumbnail': thumbnail,
+            'title': capture_data.get('title'),
+            'thumbnail': capture_data.get('thumbnailUrl'),
             'formats': formats,
-            'timestamp': timestamp,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'upload_date': upload_date,
+            'timestamp': unified_timestamp(traverse_obj(movie_store, 'createdAt', expected_type=compat_str)),
+            'uploader': traverse_obj(movie_store, ('channel', 'name'), expected_type=compat_str),
+            'uploader_id': traverse_obj(movie_store, ('channel', 'id'), expected_type=compat_str),
+            'upload_date': unified_strdate(capture_data.get('createdAt')),
         }
 
 
@@ -148,6 +135,6 @@ class OpenRecMovieIE(OpenRecBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage('https://www.openrec.tv/movie/%s' % video_id, video_id)
+        webpage = self._download_webpage(f'https://www.openrec.tv/movie/{video_id}', video_id)
 
         return self._extract_movie(webpage, video_id, 'movie', False)
