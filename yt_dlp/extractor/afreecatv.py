@@ -181,7 +181,6 @@ class AfreecaTVIE(InfoExtractor):
             video_key['part'] = int(m.group('part'))
         return video_key
 
-
     def _login(self, username, password):
         login_form = {
             'szWork': 'login',

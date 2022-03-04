@@ -58,7 +58,6 @@ class EroProfileIE(InfoExtractor):
             r'<script[^>]+?src="([^"]+)"', login_page, 'login redirect url')
         self._download_webpage(redirect_url, None, False)
 
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
 

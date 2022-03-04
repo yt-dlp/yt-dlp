@@ -69,7 +69,6 @@ class TubiTvIE(InfoExtractor):
             raise ExtractorError(
                 'Login failed (invalid username/password)', expected=True)
 
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_data = self._download_json(

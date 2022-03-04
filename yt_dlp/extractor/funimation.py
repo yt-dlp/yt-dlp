@@ -89,6 +89,7 @@ class FunimationPageIE(FunimationBaseIE):
     def _real_initialize(self):
         if not self._REGION:
             FunimationBaseIE._REGION = self._get_region()
+
     def _real_extract(self, url):
         locale, show, episode = self._match_valid_url(url).group('lang', 'show', 'episode')
 

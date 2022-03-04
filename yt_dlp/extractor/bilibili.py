@@ -853,7 +853,6 @@ class BiliIntlBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to log in')
 
 
-
 class BiliIntlIE(BiliIntlBaseIE):
     _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
     _TESTS = [{

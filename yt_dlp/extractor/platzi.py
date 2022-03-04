@@ -22,7 +22,6 @@ class PlatziBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://platzi.com/login/'
     _NETRC_MACHINE = 'platzi'
 
-
     def _login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')

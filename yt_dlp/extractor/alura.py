@@ -74,7 +74,6 @@ class AluraIE(InfoExtractor):
                 "formats": formats
             }
 
-
     def _login(self, username, password):
 
         login_page = self._download_webpage(

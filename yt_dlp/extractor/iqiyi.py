@@ -241,7 +241,6 @@ class IqiyiIE(InfoExtractor):
         '18': 7,    # 1080p
     }
 
-
     @staticmethod
     def _rsa_fun(data):
         # public key extracted from http://static.iqiyi.com/js/qiyiV2/20160129180840/jobs/i18n/i18nIndex.js

@@ -70,7 +70,6 @@ class FancodeVodIE(InfoExtractor):
         else:
             self.headers.update({'Authorization': 'Bearer %s' % self._ACCESS_TOKEN})
 
-
     def _check_login_required(self, is_available, is_premium):
         msg = None
         if is_premium and self._ACCESS_TOKEN is None:

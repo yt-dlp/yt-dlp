@@ -387,7 +387,6 @@ class FacebookIE(InfoExtractor):
             self.report_warning('unable to log in: %s' % error_to_compat_str(err))
             return
 
-
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)

@@ -37,7 +37,6 @@ class AtresPlayerIE(InfoExtractor):
     ]
     _API_BASE = 'https://api.atresplayer.com/'
 
-
     def _handle_error(self, e, code):
         if isinstance(e.cause, compat_HTTPError) and e.cause.code == code:
             error = self._parse_json(e.cause.read(), None)

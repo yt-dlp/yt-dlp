@@ -99,7 +99,6 @@ class VikiBaseIE(InfoExtractor):
                     self.raise_login_required(message)
                 self._raise_error(message)
 
-
     def _login(self, username, password):
         self._token = self._call_api(
             'sessions.json', None, 'Logging in', fatal=False,

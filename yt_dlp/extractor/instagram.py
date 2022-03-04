@@ -72,7 +72,6 @@ class InstagramBaseIE(InfoExtractor):
             raise ExtractorError('Unable to login')
         InstagramBaseIE._IS_LOGGED_IN = True
 
-
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
             media, (kind, 'count'), *((f'edge_media_{key}', 'count') for key in keys),

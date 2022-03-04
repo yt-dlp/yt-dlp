@@ -174,7 +174,6 @@ class NiconicoIE(InfoExtractor):
         'X-Frontend-Version': '0'
     }
 
-
     def _login(self, username, password):
         login_ok = True
         login_form_strs = {

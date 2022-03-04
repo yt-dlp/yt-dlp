@@ -683,7 +683,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
-
     def _extract_from_api(self, video_id, unlisted_hash=None):
         token = self._download_json(
             'https://vimeo.com/_rv/jwt', video_id, headers={
@@ -1211,7 +1210,6 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         'skip': 'video gone',
     }]
 
-
     def _real_extract(self, url):
         page_url, video_id = self._match_valid_url(url).groups()
         data = self._download_json(
@@ -1252,7 +1250,6 @@ class VimeoWatchLaterIE(VimeoChannelIE):
         'url': 'https://vimeo.com/watchlater',
         'only_matching': True,
     }]
-
 
     def _page_url(self, base_url, pagenum):
         url = '%s/page:%d/' % (base_url, pagenum)

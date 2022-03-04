@@ -89,7 +89,6 @@ class AnimeOnDemandIE(InfoExtractor):
                 raise ExtractorError('Unable to login: %s' % error, expected=True)
             raise ExtractorError('Unable to log in')
 
-
     def _real_extract(self, url):
         anime_id = self._match_id(url)
 

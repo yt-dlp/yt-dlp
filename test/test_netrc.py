@@ -12,6 +12,7 @@ from yt_dlp.extractor.common import InfoExtractor
 
 NO_LOGIN = InfoExtractor._login
 
+
 class TestNetRc(unittest.TestCase):
     def test_netrc_present(self):
         for ie in gen_extractor_classes():

@@ -21,7 +21,6 @@ class LyndaBaseIE(InfoExtractor):
     _ACCOUNT_CREDENTIALS_HINT = 'Use --username and --password options to provide lynda.com account credentials.'
     _NETRC_MACHINE = 'lynda'
 
-
     @staticmethod
     def _check_error(json_string, key_or_keys):
         keys = [key_or_keys] if isinstance(key_or_keys, compat_str) else key_or_keys

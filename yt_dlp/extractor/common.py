@@ -686,9 +686,11 @@ class InfoExtractor(object):
     def _initialize_pre_login(self):
         """ Intialization before login. Redefine in subclasses."""
         pass
+
     def _login(self, username, password):
         """ Login with username and password. Redefine in subclasses."""
         pass
+
     def _real_initialize(self):
         """Real initialization process. Redefine in subclasses."""
         pass

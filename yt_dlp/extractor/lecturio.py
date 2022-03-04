@@ -22,7 +22,6 @@ class LecturioBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://app.lecturio.com/en/login'
     _NETRC_MACHINE = 'lecturio'
 
-
     def _login(self, username, password):
         # Sets some cookies
         _, urlh = self._download_webpage_handle(

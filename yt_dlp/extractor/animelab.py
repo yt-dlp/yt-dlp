@@ -52,6 +52,7 @@ class AnimeLabBaseIE(InfoExtractor):
         if not self._is_logged_in():
             self.raise_login_required('Login is required to access any AnimeLab content')
 
+
 class AnimeLabIE(AnimeLabBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animelab\.com/player/(?P<id>[^/]+)'
 

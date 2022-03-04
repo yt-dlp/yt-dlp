@@ -295,7 +295,6 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         return self._MEDIATOKEN
 
-
     def _login(self, username, password):
         if '@' in username:  # don't strictly check if it's email address or not
             ep, method = 'user/email', 'email'

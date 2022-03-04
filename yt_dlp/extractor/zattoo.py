@@ -70,7 +70,6 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 'format': 'json',
             }))
 
-
     def _extract_cid(self, video_id, channel_name):
         channel_groups = self._download_json(
             '%s/zapi/v2/cached/channels/%s' % (self._host_url(),

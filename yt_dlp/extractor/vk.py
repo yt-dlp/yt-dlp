@@ -53,7 +53,6 @@ class VKBaseIE(InfoExtractor):
             raise ExtractorError(
                 'Unable to login, incorrect username and/or password', expected=True)
 
-
     def _download_payload(self, path, video_id, data, fatal=True):
         data['al'] = 1
         code, payload = self._download_json(

@@ -44,7 +44,6 @@ class RoosterTeethBaseIE(InfoExtractor):
                         msg += ': ' + error
             self.report_warning(msg)
 
-
     def _extract_video_info(self, data):
         thumbnails = []
         for image in traverse_obj(data, ('included', 'images')):

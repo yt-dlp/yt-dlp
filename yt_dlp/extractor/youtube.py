@@ -3813,6 +3813,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 if entry:
                     yield entry
     '''
+
     def _extract_entries(self, parent_renderer, continuation_list):
         # continuation_list is modified in-place with continuation_list = [continuation_token]
         continuation_list[:] = [None]

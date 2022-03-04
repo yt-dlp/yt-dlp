@@ -86,7 +86,6 @@ class CrunchyrollBaseIE(InfoExtractor):
         if not self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 
-
     @staticmethod
     def _add_skip_wall(url):
         parsed_url = compat_urlparse.urlparse(url)
