@@ -5,7 +5,6 @@ import os
 import socket
 import time
 import random
-import re
 
 from .common import FileDownloader
 from ..compat import (
@@ -16,6 +15,7 @@ from ..utils import (
     ContentTooShortError,
     encodeFilename,
     int_or_none,
+    parse_http_range,
     sanitized_Request,
     ThrottledDownload,
     write_xattr,
@@ -59,6 +59,9 @@ class HttpFD(FileDownloader):
         ctx.chunk_size = None
         throttle_start = None
 
+        # parse given Range
+        req_start, req_end, _ = parse_http_range(headers.get('Range'))
+
         if self.params.get('continuedl', True):
             # Establish possible resume length
             if os.path.isfile(encodeFilename(ctx.tmpfilename)):
@@ -91,6 +94,9 @@ class HttpFD(FileDownloader):
                               if not is_test and chunk_size else chunk_size)
             if ctx.resume_len > 0:
                 range_start = ctx.resume_len
+                if req_start is not None:
+                    # offset the beginning of Range to be within request
+                    range_start += req_start
                 if ctx.is_resume:
                     self.report_resuming_byte(ctx.resume_len)
                 ctx.open_mode = 'ab'
@@ -99,7 +105,17 @@ class HttpFD(FileDownloader):
             else:
                 range_start = None
             ctx.is_resume = False
-            range_end = range_start + ctx.chunk_size - 1 if ctx.chunk_size else None
+
+            if ctx.chunk_size:
+                chunk_aware_end = range_start + ctx.chunk_size - 1
+                # we're not allowed to download outside Range
+                range_end = chunk_aware_end if req_end is None else min(chunk_aware_end, req_end)
+            elif req_end is not None:
+                # there's no need for chunked downloads, so download until the end of Range
+                range_end = req_end
+            else:
+                range_end = None
+
             if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
                 range_end = ctx.data_len - 1
             has_range = range_start is not None
@@ -124,23 +140,19 @@ class HttpFD(FileDownloader):
                 # https://github.com/ytdl-org/youtube-dl/issues/6057#issuecomment-126129799)
                 if has_range:
                     content_range = ctx.data.headers.get('Content-Range')
-                    if content_range:
-                        content_range_m = re.search(r'bytes (\d+)-(\d+)?(?:/(\d+))?', content_range)
+                    content_range_start, content_range_end, content_len = parse_http_range(content_range)
+                    if content_range_start is not None and range_start == content_range_start:
                         # Content-Range is present and matches requested Range, resume is possible
-                        if content_range_m:
-                            if range_start == int(content_range_m.group(1)):
-                                content_range_end = int_or_none(content_range_m.group(2))
-                                content_len = int_or_none(content_range_m.group(3))
-                                accept_content_len = (
-                                    # Non-chunked download
-                                    not ctx.chunk_size
-                                    # Chunked download and requested piece or
-                                    # its part is promised to be served
-                                    or content_range_end == range_end
-                                    or content_len < range_end)
-                                if accept_content_len:
-                                    ctx.data_len = content_len
-                                    return
+                        accept_content_len = (
+                            # Non-chunked download
+                            not ctx.chunk_size
+                            # Chunked download and requested piece or
+                            # its part is promised to be served
+                            or content_range_end == range_end
+                            or content_len < range_end)
+                        if accept_content_len:
+                            ctx.data_len = content_len
+                            return
                     # Content-Range is either not present or invalid. Assuming remote webserver is
                     # trying to send the whole file, resume is not possible, so wiping the local file
                     # and performing entire redownload

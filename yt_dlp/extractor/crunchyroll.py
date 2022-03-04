@@ -85,7 +85,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 'session_id': session_id
             }).encode('ascii'))
         if login_response['code'] != 'ok':
-            raise ExtractorError('Login failed. Bad username or password?', expected=True)
+            raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
         if not self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
 

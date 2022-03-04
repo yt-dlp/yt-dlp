@@ -49,6 +49,9 @@ class SponsorBlockPP(FFmpegPostProcessor):
 
         def duration_filter(s):
             start_end = s['segment']
+            # Ignore entire video segments (https://wiki.sponsor.ajay.app/w/Types).
+            if start_end == (0, 0):
+                return False
             # Ignore milliseconds difference at the start.
             if start_end[0] <= 1:
                 start_end[0] = 0
@@ -89,6 +92,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         url = f'{self._API_URL}/api/skipSegments/{hash[:4]}?' + compat_urllib_parse_urlencode({
             'service': service,
             'categories': json.dumps(self._categories),
+            'actionTypes': json.dumps(['skip', 'poi'])
         })
         self.write_debug(f'SponsorBlock query: {url}')
         for d in self._get_json(url):

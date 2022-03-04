@@ -17,7 +17,6 @@ from ..utils import (
     get_element_by_attribute,
     int_or_none,
     lowercase_escape,
-    std_headers,
     str_or_none,
     str_to_int,
     traverse_obj,
@@ -503,7 +502,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                     '%s' % rhx_gis,
                     '',
                     '%s:%s' % (rhx_gis, csrf_token),
-                    '%s:%s:%s' % (rhx_gis, csrf_token, std_headers['User-Agent']),
+                    '%s:%s:%s' % (rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
                 ]
 
             # try all of the ways to generate a GIS query, and not only use the
