@@ -3678,7 +3678,7 @@ class InfoExtractor(object):
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if ((self._get_login_info()[0] if hasattr(self, '_NETRC_MACHINE') else None) is not None
+        if (hasattr(self, '_NETRC_MACHINE') and self._get_login_info()[0] is not None
                 or self.get_param('cookiefile')
                 or self.get_param('cookiesfrombrowser')):
             self._mark_watched(*args, **kwargs)
