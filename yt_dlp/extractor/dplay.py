@@ -369,6 +369,222 @@ class DiscoveryPlusBaseIE(DPlayBaseIE):
         return self._get_disco_api_info(url, self._match_id(url), **self._DISCO_API_PARAMS)
 
 
+class GoDiscoveryIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:go\.)?discovery\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://go.discovery.com/video/dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
+        'info_dict': {
+            'id': '4164906',
+            'display_id': 'dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
+            'ext': 'mp4',
+            'title': 'Rodbuster / Galvanizer',
+            'description': 'Mike installs rebar with a team of rodbusters, then he galvanizes steel.',
+            'season_number': 9,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://discovery.com/video/dirty-jobs-discovery-atve-us/rodbuster-galvanizer',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'dsc'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.go.discovery.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class TravelChannelIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?travelchannel\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.travelchannel.com/video/ghost-adventures-travel-channel/ghost-train-of-ely',
+        'info_dict': {
+            'id': '2220256',
+            'display_id': 'ghost-adventures-travel-channel/ghost-train-of-ely',
+            'ext': 'mp4',
+            'title': 'Ghost Train of Ely',
+            'description': 'The crew investigates the dark history of the Nevada Northern Railway.',
+            'season_number': 24,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.travelchannel.com/video/ghost-adventures-travel-channel/ghost-train-of-ely',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'trav'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.travelchannel.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class CookingChannelIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?cookingchanneltv\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.cookingchanneltv.com/video/carnival-eats-cooking-channel/the-postman-always-brings-rice-2348634',
+        'info_dict': {
+            'id': '2348634',
+            'display_id': 'carnival-eats-cooking-channel/the-postman-always-brings-rice-2348634',
+            'ext': 'mp4',
+            'title': 'The Postman Always Brings Rice',
+            'description': 'Noah visits the Maui Fair and the Aurora Winter Festival in Vancouver.',
+            'season_number': 9,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.cookingchanneltv.com/video/carnival-eats-cooking-channel/the-postman-always-brings-rice-2348634',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'cook'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.cookingchanneltv.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class HGTVUsaIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?hgtv\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.hgtv.com/video/home-inspector-joe-hgtv-atve-us/this-mold-house',
+        'info_dict': {
+            'id': '4289736',
+            'display_id': 'home-inspector-joe-hgtv-atve-us/this-mold-house',
+            'ext': 'mp4',
+            'title': 'This Mold House',
+            'description': 'Joe and Noel help take a familys dream home from hazardous to fabulous.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.hgtv.com/video/home-inspector-joe-hgtv-atve-us/this-mold-house',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'hgtv'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.hgtv.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class FoodNetworkIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:watch\.)?foodnetwork\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://watch.foodnetwork.com/video/kids-baking-championship-food-network/float-like-a-butterfly',
+        'info_dict': {
+            'id': '4116449',
+            'display_id': 'kids-baking-championship-food-network/float-like-a-butterfly',
+            'ext': 'mp4',
+            'title': 'Float Like a Butterfly',
+            'description': 'The 12 kid bakers create colorful carved butterfly cakes.',
+            'season_number': 10,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.foodnetwork.com/video/kids-baking-championship-food-network/float-like-a-butterfly',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'food'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.watch.foodnetwork.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class DestinationAmericaIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?destinationamerica\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.destinationamerica.com/video/alaska-monsters-destination-america-atve-us/central-alaskas-bigfoot',
+        'info_dict': {
+            'id': '4210904',
+            'display_id': 'alaska-monsters-destination-america-atve-us/central-alaskas-bigfoot',
+            'ext': 'mp4',
+            'title': 'Central Alaskas Bigfoot',
+            'description': 'A team heads to central Alaska to investigate an aggressive Bigfoot.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.destinationamerica.com/video/alaska-monsters-destination-america-atve-us/central-alaskas-bigfoot',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'dam'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.destinationamerica.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class InvestigationDiscoveryIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?investigationdiscovery\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.investigationdiscovery.com/video/unmasked-investigation-discovery/the-killer-clown',
+        'info_dict': {
+            'id': '2139409',
+            'display_id': 'unmasked-investigation-discovery/the-killer-clown',
+            'ext': 'mp4',
+            'title': 'The Killer Clown',
+            'description': 'A wealthy Florida woman is fatally shot in the face by a clown at her door.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.investigationdiscovery.com/video/unmasked-investigation-discovery/the-killer-clown',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'ids'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.investigationdiscovery.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class AmHistoryChannelIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?ahctv\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.ahctv.com/video/modern-sniper-ahc/army',
+        'info_dict': {
+            'id': '2309730',
+            'display_id': 'modern-sniper-ahc/army',
+            'ext': 'mp4',
+            'title': 'Army',
+            'description': 'Snipers today face challenges their predecessors couldve only dreamed of.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.ahctv.com/video/modern-sniper-ahc/army',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'ahc'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.ahctv.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
 class ScienceChannelIE(DiscoveryPlusBaseIE):
     _VALID_URL = r'https?://(?:www\.)?sciencechannel\.com/video' + DPlayBaseIE._PATH_REGEX
     _TESTS = [{
@@ -383,6 +599,9 @@ class ScienceChannelIE(DiscoveryPlusBaseIE):
             'episode_number': 1,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.sciencechannel.com/video/strangest-things-science-atve-us/nazi-mystery-machine',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'sci'
@@ -407,11 +626,41 @@ class DIYNetworkIE(DiscoveryPlusBaseIE):
             'episode_number': 2,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://watch.diynetwork.com/video/pool-kings-diy-network/bringing-beach-life-to-texas',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'diy'
     _DISCO_API_PARAMS = {
         'disco_host': 'us1-prod-direct.watch.diynetwork.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class DiscoveryLifeIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?discoverylife\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://www.discoverylife.com/video/surviving-death-discovery-life-atve-us/bodily-trauma',
+        'info_dict': {
+            'id': '2218238',
+            'display_id': 'surviving-death-discovery-life-atve-us/bodily-trauma',
+            'ext': 'mp4',
+            'title': 'Bodily Trauma',
+            'description': 'Meet three people who tested the limits of the human body.',
+            'season_number': 1,
+            'episode_number': 2,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.discoverylife.com/video/surviving-death-discovery-life-atve-us/bodily-trauma',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'dlf'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.discoverylife.com',
         'realm': 'go',
         'country': 'us',
     }
@@ -431,11 +680,41 @@ class AnimalPlanetIE(DiscoveryPlusBaseIE):
             'episode_number': 11,
         },
         'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://www.animalplanet.com/video/north-woods-law-animal-planet/squirrel-showdown',
+        'only_matching': True,
     }]
 
     _PRODUCT = 'apl'
     _DISCO_API_PARAMS = {
         'disco_host': 'us1-prod-direct.animalplanet.com',
+        'realm': 'go',
+        'country': 'us',
+    }
+
+
+class TLCIE(DiscoveryPlusBaseIE):
+    _VALID_URL = r'https?://(?:go\.)?tlc\.com/video' + DPlayBaseIE._PATH_REGEX
+    _TESTS = [{
+        'url': 'https://go.tlc.com/video/my-600-lb-life-tlc/melissas-story-part-1',
+        'info_dict': {
+            'id': '2206540',
+            'display_id': 'my-600-lb-life-tlc/melissas-story-part-1',
+            'ext': 'mp4',
+            'title': 'Melissas Story (Part 1)',
+            'description': 'At 650 lbs, Melissa is ready to begin her seven-year weight loss journey.',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'Available for Premium users',
+    }, {
+        'url': 'https://go.tlc.com/video/my-600-lb-life-tlc/melissas-story-part-1',
+        'only_matching': True,
+    }]
+
+    _PRODUCT = 'tlc'
+    _DISCO_API_PARAMS = {
+        'disco_host': 'us1-prod-direct.tlc.com',
         'realm': 'go',
         'country': 'us',
     }

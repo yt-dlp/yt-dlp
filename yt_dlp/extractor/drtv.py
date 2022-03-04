@@ -7,13 +7,11 @@ import re
 
 
 from .common import InfoExtractor
-from ..aes import aes_cbc_decrypt
+from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
-    bytes_to_intlist,
     ExtractorError,
     int_or_none,
-    intlist_to_bytes,
     float_or_none,
     mimetype2ext,
     str_or_none,
@@ -191,13 +189,11 @@ class DRTVIE(InfoExtractor):
         def decrypt_uri(e):
             n = int(e[2:10], 16)
             a = e[10 + n:]
-            data = bytes_to_intlist(hex_to_bytes(e[10:10 + n]))
-            key = bytes_to_intlist(hashlib.sha256(
-                ('%s:sRBzYNXBzkKgnjj8pGtkACch' % a).encode('utf-8')).digest())
-            iv = bytes_to_intlist(hex_to_bytes(a))
-            decrypted = aes_cbc_decrypt(data, key, iv)
-            return intlist_to_bytes(
-                decrypted[:-decrypted[-1]]).decode('utf-8').split('?')[0]
+            data = hex_to_bytes(e[10:10 + n])
+            key = hashlib.sha256(('%s:sRBzYNXBzkKgnjj8pGtkACch' % a).encode('utf-8')).digest()
+            iv = hex_to_bytes(a)
+            decrypted = unpad_pkcs7(aes_cbc_decrypt_bytes(data, key, iv))
+            return decrypted.decode('utf-8').split('?')[0]
 
         for asset in assets:
             kind = asset.get('Kind')

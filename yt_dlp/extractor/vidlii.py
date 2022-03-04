@@ -6,6 +6,7 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     HEADRequest,
+    format_field,
     float_or_none,
     get_element_by_id,
     int_or_none,
@@ -102,7 +103,7 @@ class VidLiiIE(InfoExtractor):
         uploader = self._search_regex(
             r'<div[^>]+class=["\']wt_person[^>]+>\s*<a[^>]+\bhref=["\']/user/[^>]+>([^<]+)',
             webpage, 'uploader', fatal=False)
-        uploader_url = 'https://www.vidlii.com/user/%s' % uploader if uploader else None
+        uploader_url = format_field(uploader, template='https://www.vidlii.com/user/%s')
 
         upload_date = unified_strdate(self._html_search_meta(
             'datePublished', webpage, default=None) or self._search_regex(

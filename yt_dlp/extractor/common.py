@@ -75,6 +75,7 @@ from ..utils import (
     str_to_int,
     strip_or_none,
     traverse_obj,
+    try_get,
     unescapeHTML,
     UnsupportedError,
     unified_strdate,
@@ -239,6 +240,7 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height}",
                                         deprecated)
                         * "filesize" (optional, int)
+                        * "http_headers" (dict) - HTTP headers for the request
     thumbnail:      Full URL to a video thumbnail image.
     description:    Full video description.
     uploader:       Full name of the video uploader.
@@ -261,6 +263,7 @@ class InfoExtractor(object):
                     fields. This depends on a particular extractor.
     channel_id:     Id of the channel.
     channel_url:    Full URL to a channel webpage.
+    channel_follower_count: Number of followers of the channel.
     location:       Physical location where the video was filmed.
     subtitles:      The available subtitles as a dictionary in the format
                     {tag: subformats}. "tag" is usually a language code, and
@@ -271,6 +274,8 @@ class InfoExtractor(object):
                         * "url": A URL pointing to the subtitles file
                     It can optionally also have:
                         * "name": Name or description of the subtitles
+                        * http_headers: A dictionary of additional HTTP headers
+                                  to add to the request.
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
                     captions instead of normal subtitles
@@ -634,7 +639,7 @@ class InfoExtractor(object):
             }
             if hasattr(e, 'countries'):
                 kwargs['countries'] = e.countries
-            raise type(e)(e.msg, **kwargs)
+            raise type(e)(e.orig_msg, **kwargs)
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
@@ -1096,6 +1101,7 @@ class InfoExtractor(object):
         if metadata_available and (
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
+            return
         if method is not None:
             msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
         raise ExtractorError(msg, expected=True)
@@ -1290,6 +1296,7 @@ class InfoExtractor(object):
         return self._og_search_property('description', html, fatal=False, **kargs)
 
     def _og_search_title(self, html, **kargs):
+        kargs.setdefault('fatal', False)
         return self._og_search_property('title', html, **kargs)
 
     def _og_search_video_url(self, html, name='video url', secure=True, **kargs):
@@ -1300,6 +1307,10 @@ class InfoExtractor(object):
 
     def _og_search_url(self, html, **kargs):
         return self._og_search_property('url', html, **kargs)
+
+    def _html_extract_title(self, html, name, **kwargs):
+        return self._html_search_regex(
+            r'(?s)<title>(.*?)</title>', html, name, **kwargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
         name = variadic(name)
@@ -1446,7 +1457,7 @@ class InfoExtractor(object):
                 'title': part.get('name'),
                 'start_time': part.get('startOffset'),
                 'end_time': part.get('endOffset'),
-            } for part in e.get('hasPart', []) if part.get('@type') == 'Clip']
+            } for part in variadic(e.get('hasPart') or []) if part.get('@type') == 'Clip']
             for idx, (last_c, current_c, next_c) in enumerate(zip(
                     [{'end_time': 0}] + chapters, chapters, chapters[1:])):
                 current_c['end_time'] = current_c['end_time'] or next_c['start_time']
@@ -1527,6 +1538,8 @@ class InfoExtractor(object):
                         'title': unescapeHTML(e.get('headline')),
                         'description': unescapeHTML(e.get('articleBody') or e.get('description')),
                     })
+                    if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
+                        extract_video_object(e['video'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
                     if expected_type is None:
@@ -1605,7 +1618,7 @@ class InfoExtractor(object):
             'vcodec': {'type': 'ordered', 'regex': True,
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -2871,7 +2884,8 @@ class InfoExtractor(object):
                             segment_duration = None
                             if 'total_number' not in representation_ms_info and 'segment_duration' in representation_ms_info:
                                 segment_duration = float_or_none(representation_ms_info['segment_duration'], representation_ms_info['timescale'])
-                                representation_ms_info['total_number'] = int(math.ceil(float(period_duration) / segment_duration))
+                                representation_ms_info['total_number'] = int(math.ceil(
+                                    float_or_none(period_duration, segment_duration, default=0)))
                             representation_ms_info['fragments'] = [{
                                 media_location_key: media_template % {
                                     'Number': segment_number,
@@ -2962,6 +2976,10 @@ class InfoExtractor(object):
                                 f['url'] = initialization_url
                             f['fragments'].append({location_key(initialization_url): initialization_url})
                         f['fragments'].extend(representation_ms_info['fragments'])
+                        if not period_duration:
+                            period_duration = try_get(
+                                representation_ms_info,
+                                lambda r: sum(frag['duration'] for frag in r['fragments']), float)
                     else:
                         # Assuming direct URL to unfragmented media.
                         f['url'] = base_url
@@ -3104,7 +3122,7 @@ class InfoExtractor(object):
                     })
         return formats, subtitles
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8', mpd_id=None, preference=None, quality=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -3503,8 +3521,6 @@ class InfoExtractor(object):
 
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
-        if 'get_attr' in kwargs:
-            print(getattr(v, kwargs['get_attr']))
         if res is None:
             msg = 'Failed to extract %s: Could not parse value %r' % (name, v)
             if fatal:
@@ -3663,7 +3679,7 @@ class InfoExtractor(object):
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if (self._get_login_info()[0] is not None
+        if (hasattr(self, '_NETRC_MACHINE') and self._get_login_info()[0] is not None
                 or self.get_param('cookiefile')
                 or self.get_param('cookiesfrombrowser')):
             self._mark_watched(*args, **kwargs)
@@ -3710,6 +3726,22 @@ class InfoExtractor(object):
         if val is None:
             return [] if default is NO_DEFAULT else default
         return list(val) if casesense else [x.lower() for x in val]
+
+    def _yes_playlist(self, playlist_id, video_id, smuggled_data=None, *, playlist_label='playlist', video_label='video'):
+        if not playlist_id or not video_id:
+            return not video_id
+
+        no_playlist = (smuggled_data or {}).get('force_noplaylist')
+        if no_playlist is not None:
+            return not no_playlist
+
+        video_id = '' if video_id is True else f' {video_id}'
+        playlist_id = '' if playlist_id is True else f' {playlist_id}'
+        if self.get_param('noplaylist'):
+            self.to_screen(f'Downloading just the {video_label}{video_id} because of --no-playlist')
+            return False
+        self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
+        return True
 
 
 class SearchInfoExtractor(InfoExtractor):

@@ -16,7 +16,6 @@ from ..utils import (
     ExtractorError,
     get_exe_version,
     is_outdated_version,
-    std_headers,
     Popen,
 )
 
@@ -208,7 +207,7 @@ class PhantomJSwrapper(object):
 
         replaces = self.options
         replaces['url'] = url
-        user_agent = headers.get('User-Agent') or std_headers['User-Agent']
+        user_agent = headers.get('User-Agent') or self.get_param('http_headers')['User-Agent']
         replaces['ua'] = user_agent.replace('"', '\\"')
         replaces['jscode'] = jscode
 
