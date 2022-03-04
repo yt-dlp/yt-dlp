@@ -3094,6 +3094,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
             # Eg: 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
             is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) < approx_duration - 10000)
+            if is_damaged:
+                self.report_warning(f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),

@@ -149,7 +149,7 @@ class ZingMp3IE(ZingMp3BaseIE):
         },
     }, {
         'url': 'https://zingmp3.vn/video-clip/Suong-Hoa-Dua-Loi-K-ICM-RYO/ZO8ZF7C7.html',
-        'md5': 'e9c972b693aa88301ef981c8151c4343',
+        'md5': 'c7f23d971ac1a4f675456ed13c9b9612',
         'info_dict': {
             'id': 'ZO8ZF7C7',
             'title': 'Sương Hoa Đưa Lối',
@@ -158,6 +158,8 @@ class ZingMp3IE(ZingMp3BaseIE):
             'duration': 207,
             'track': 'Sương Hoa Đưa Lối',
             'artist': 'K-ICM, RYO',
+            'album': 'Sương Hoa Đưa Lối (Single)',
+            'album_artist': 'K-ICM, RYO',
         },
     }, {
         'url': 'https://zingmp3.vn/embed/song/ZWZEI76B?start=false',
