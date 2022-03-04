@@ -147,9 +147,7 @@ class MildomVodIE(MildomBaseIE):
 
     def _real_extract(self, url):
         user_id, video_id = self._match_valid_url(url).group('user_id', 'id')
-        url = f'https://www.mildom.com/playback/{user_id}/{video_id}'
-
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(f'https://www.mildom.com/playback/{user_id}/{video_id}', video_id)
 
         autoplay = self._call_api(
             'https://cloudac.mildom.com/nonolive/videocontent/playback/getPlaybackDetail', video_id,
@@ -241,12 +239,6 @@ class MildomClipIE(MildomBaseIE):
                 'clip_id': video_id,
             })
 
-        formats = [{
-            'url': clip_detail.get('url'),
-            'ext': determine_ext(clip_detail.get('url'), 'mp4'),
-        }]
-        self._sort_formats(formats)
-
         return {
             'id': video_id,
             'title': self._html_search_meta(
@@ -256,7 +248,9 @@ class MildomClipIE(MildomBaseIE):
             'thumbnail': clip_detail.get('cover'),
             'uploader': traverse_obj(clip_detail, ('user_info', 'loginname')),
             'uploader_id': user_id,
-            'formats': formats,
+
+            'url': clip_detail['url'],
+            'ext': determine_ext(clip_detail.get('url'), 'mp4'),
         }
 
 
