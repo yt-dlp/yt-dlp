@@ -105,7 +105,6 @@ class ZingMp3BaseIE(InfoExtractor):
         }
 
     def _real_initialize(self):
-        # Check the cookie file, if cookie file doesn't exist, create a dummy request to update the cookie
         if not self.get_param('cookiefile') and not self.get_param('cookiesfrombrowser'):
             self._request_webpage(HEADRequest(self._DOMAIN), None, note='Updating cookies')
 
