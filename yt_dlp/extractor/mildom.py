@@ -6,11 +6,11 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
-    OnDemandPagedList,
     determine_ext,
     dict_get,
+    ExtractorError,
     float_or_none,
+    OnDemandPagedList,
     random_uuidv4,
     traverse_obj,
     update_url_query,
