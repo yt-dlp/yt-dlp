@@ -639,7 +639,7 @@ class InfoExtractor(object):
             }
             if hasattr(e, 'countries'):
                 kwargs['countries'] = e.countries
-            raise type(e)(e.msg, **kwargs)
+            raise type(e)(e.orig_msg, **kwargs)
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
@@ -1101,6 +1101,7 @@ class InfoExtractor(object):
         if metadata_available and (
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
+            return
         if method is not None:
             msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
         raise ExtractorError(msg, expected=True)
