@@ -244,8 +244,9 @@ class TumblrIE(InfoExtractor):
         'youtube': 'Youtube',
     }
 
+    _ACCESS_TOKEN = None
+
     def _real_initialize(self):
-        self._ACCESS_TOKEN = None
         self.get_access_token()
         self._login()
 
@@ -298,17 +299,11 @@ class TumblrIE(InfoExtractor):
             post_json = traverse_obj(
                 self._download_json(
                     f'https://www.tumblr.com/api/v2/blog/{blog}/posts/{video_id}/permalink',
-                    video_id,
-                    headers={
-                        'Authorization': f'Bearer {self._ACCESS_TOKEN}',
-                    },
-                    fatal=False),
+                    video_id, headers={'Authorization': f'Bearer {self._ACCESS_TOKEN}'}, fatal=False),
                 ('response', 'timeline', 'elements', 0)) or {}
-        content_json = traverse_obj(
-            post_json, ('trail', 0, 'content'), ('content')) or []
+        content_json = traverse_obj(post_json, ('trail', 0, 'content'), ('content')) or []
         video_json = next(
-            (item for item in content_json if item.get('type') == 'video'),
-            {})
+            (item for item in content_json if item.get('type') == 'video'), {})
         media_json = video_json.get('media') or {}
         if api_only and not media_json.get('url') and not video_json.get('url'):
             raise ExtractorError('Failed to find video data for dashboard-only post')
@@ -343,7 +338,7 @@ class TumblrIE(InfoExtractor):
                 hd_url = options.get('hdUrl')
                 if hd_url:
                     # there are multiple formats; extract them
-                    # (and ignore other sources of width/height data as they may be wrong)
+                    # ignore other sources of width/height data as they may be wrong
                     sources = []
                     sd_url = self._search_regex(
                         r'<source[^>]+src=(["\'])(?P<url>.+?)\1', iframe,
@@ -369,28 +364,26 @@ class TumblrIE(InfoExtractor):
 
         formats = formats or [{
             'url': media_json.get('url') or video_url,
-            'format_id': '0',
-            'width': media_json.get('width') or int_or_none(
-                self._og_search_property('video:width', webpage, default=None)),
-            'height': media_json.get('height') or int_or_none(
-                self._og_search_property('video:height', webpage, default=None)),
+            'width': int_or_none(media_json.get('width') or self._og_search_property('video:width', webpage, default=None)),
+            'height': int_or_none(media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
         }]
         self._sort_formats(formats)
 
         # the url we're extracting from might be an original post or it might be a reblog.
         # if it's a reblog, og:description will be the reblogger's comment, not the uploader's.
-        # content_json is the op's post, so if it exists but has no text, there's no description
-        description = ('\n\n'.join(
-            (item.get('text') for item in content_json if item.get('type') == 'text'))
-            or (None if content_json else self._og_search_description(webpage, default=None)))
-        uploader_id = traverse_obj(post_json, ('reblogged_root_name'), ('blog_name'))
+        # content_json is always the op, so if it exists but has no text, there's no description
+        if content_json:
+            description = ('\n\n'.join(
+                (item.get('text') for item in content_json if item.get('type') == 'text'))
+                or None)
+        else:
+            description = self._og_search_description(webpage, default=None)
+        uploader_id = traverse_obj(post_json, 'reblogged_root_name', 'blog_name')
 
         return {
             'id': video_id,
-            'title': (post_json.get('summary')
-                      or (blog if api_only else self._html_search_regex(
-                          r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>',
-                          webpage, 'title'))),
+            'title': post_json.get('summary') or (blog if api_only else self._html_search_regex(
+                r'(?s)<title>(?P<title>.*?)(?: \| Tumblr)?</title>', webpage, 'title')),
             'description': description,
             'thumbnail': (traverse_obj(video_json, ('poster', 0, 'url'))
                           or self._og_search_thumbnail(webpage, default=None)),
@@ -399,8 +392,7 @@ class TumblrIE(InfoExtractor):
             'duration': duration,
             'like_count': post_json.get('like_count'),
             'repost_count': post_json.get('reblog_count'),
-            'age_limit': ((18 if post_json.get('is_nsfw') else 0)
-                          if 'is_nsfw' in post_json else None),
+            'age_limit': {True: 18, False: 0}.get(post_json.get('is_nsfw')),
             'tags': post_json.get('tags'),
             'formats': formats,
         }
