@@ -47,7 +47,7 @@ class TouTvIE(RadioCanadaIE):
                 None, 'Logging in', data=json.dumps({
                     'ClientId': self._CLIENT_KEY,
                     'ClientSecret': '34026772-244b-49b6-8b06-317b30ac9a20',
-                    'Email': email,
+                    'Email': username,
                     'Password': password,
                     'Scope': 'id.write media-validation.read',
                 }).encode(), headers={

@@ -84,7 +84,7 @@ class ShahidIE(ShahidBaseIE):
             user_data = self._download_json(
                 'https://shahid.mbc.net/wd/service/users/login',
                 None, 'Logging in', data=json.dumps({
-                    'email': email,
+                    'email': username,
                     'password': password,
                     'basic': 'false',
                 }).encode('utf-8'), headers={

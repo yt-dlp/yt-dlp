@@ -33,7 +33,7 @@ class ImgGamingBaseIE(InfoExtractor):
         self._HEADERS['Authorization'] = 'Bearer ' + self._download_json(
             self._API_BASE + 'login',
             None, 'Logging in', data=json.dumps({
-                'id': email,
+                'id': username,
                 'secret': password,
             }).encode(), headers=p_headers)['authorisationToken']
 
