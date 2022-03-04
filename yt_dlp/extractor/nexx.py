@@ -12,6 +12,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_duration,
+    srt_subtitles_timecode,
     traverse_obj,
     try_get,
     urlencode_postdata,
@@ -21,7 +22,7 @@ from ..utils import (
 class NexxIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                         (?:
-                            https?://api\.nexx(?:\.cloud|cdn\.com)/v3/(?P<domain_id>\d+)/videos/byid/|
+                            https?://api\.nexx(?:\.cloud|cdn\.com)/v3(?:\.\d)?/(?P<domain_id>\d+)/videos/byid/|
                             nexx:(?:(?P<domain_id_s>\d+):)?|
                             https?://arc\.nexx\.cloud/api/video/
                         )
@@ -43,35 +44,37 @@ class NexxIE(InfoExtractor):
             'timestamp': 1384264416,
             'upload_date': '20131112',
         },
+        'skip': 'Spiegel nexx CDNs are now disabled'
     }, {
-        # episode
-        'url': 'https://api.nexx.cloud/v3/741/videos/byid/247858',
+        # episode with captions
+        'url': 'https://api.nexx.cloud/v3.1/741/videos/byid/1701834',
         'info_dict': {
-            'id': '247858',
+            'id': '1701834',
             'ext': 'mp4',
-            'title': 'Return of the Golden Child (OV)',
-            'description': 'md5:5d969537509a92b733de21bae249dc63',
-            'release_year': 2017,
+            'title': 'Mein Leben mit \'nem TikTok E-Boy 😤',
+            'alt_title': 'Mein Leben mit \'nem TikTok E-Boy 😤',
+            'description': 'md5:f84f395a881fd143f952c892deab528d',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 1397,
-            'timestamp': 1495033267,
-            'upload_date': '20170517',
+            'duration': 770,
+            'timestamp': 1595600027,
+            'upload_date': '20200724',
             'episode_number': 2,
             'season_number': 2,
+            'episode': 'Episode 2',
+            'season': 'Season 2',
         },
         'params': {
             'skip_download': True,
         },
-        'skip': 'HTTP Error 404: Not Found',
     }, {
-        # does not work via arc
         'url': 'nexx:741:1269984',
-        'md5': 'c714b5b238b2958dc8d5642addba6886',
+        'md5': 'd5f14e14b592501e51addd5abef95a7f',
         'info_dict': {
             'id': '1269984',
             'ext': 'mp4',
-            'title': '1 TAG ohne KLO... wortwörtlich! 😑',
-            'alt_title': '1 TAG ohne KLO... wortwörtlich! 😑',
+            'title': '1 TAG ohne KLO... wortwörtlich! ?',
+            'alt_title': '1 TAG ohne KLO... wortwörtlich! ?',
+            'description': 'md5:2016393a31991a900946432ccdd09a6f',
             'thumbnail': r're:^https?://.*\.jpg$',
             'duration': 607,
             'timestamp': 1518614955,
@@ -92,6 +95,7 @@ class NexxIE(InfoExtractor):
             'timestamp': 1527874460,
             'upload_date': '20180601',
         },
+        'skip': 'Spiegel nexx CDNs are now disabled'
     }, {
         'url': 'https://api.nexxcdn.com/v3/748/videos/byid/128907',
         'only_matching': True,
@@ -139,6 +143,8 @@ class NexxIE(InfoExtractor):
         return NexxIE._extract_urls(webpage)[0]
 
     def _handle_error(self, response):
+        if traverse_obj(response, ('metadata', 'notice'), expected_type=str):
+            self.report_warning('%s said: %s' % (self.IE_NAME, response['metadata']['notice']))
         status = int_or_none(try_get(
             response, lambda x: x['metadata']['status']) or 200)
         if 200 <= status < 300:
@@ -405,10 +411,11 @@ class NexxIE(InfoExtractor):
             #   md5( operation + domain_id + domain_secret )
             # where domain_secret is a static value that will be given by nexx.tv
             # as per [1]. Here is how this "secret" is generated (reversed
-            # from _play.api.init function, search for clienttoken). So it's
-            # actually not static and not that much of a secret.
+            # from _play._factory.data.getDomainData function, search for
+            # domaintoken or enableAPIAccess). So it's actually not static
+            # and not that much of a secret.
             # 1. https://nexxtvstorage.blob.core.windows.net/files/201610/27.pdf
-            secret = result['device']['clienttoken'][int(device_id[0]):]
+            secret = result['device']['domaintoken'][int(device_id[0]):]
             secret = secret[0:len(secret) - int(device_id[-1])]
 
             op = 'byid'
@@ -420,15 +427,18 @@ class NexxIE(InfoExtractor):
 
             result = self._call_api(
                 domain_id, 'videos/%s/%s' % (op, video_id), video_id, data={
-                    'additionalfields': 'language,channel,actors,studio,licenseby,slug,subtitle,teaser,description',
+                    'additionalfields': 'language,channel,format,licenseby,slug,fileversion,episode,season',
                     'addInteractionOptions': '1',
                     'addStatusDetails': '1',
                     'addStreamDetails': '1',
-                    'addCaptions': '1',
+                    'addFeatures': '1',
+                    # Caption format selection doesn't seem to be enforced?
+                    'addCaptions': 'vtt',
                     'addScenes': '1',
+                    'addChapters': '1',
                     'addHotSpots': '1',
+                    'addConnectedMedia': 'persons',
                     'addBumpers': '1',
-                    'captionFormat': 'data',
                 }, headers={
                     'X-Request-CID': cid,
                     'X-Request-Token': request_token,
@@ -451,22 +461,41 @@ class NexxIE(InfoExtractor):
 
         self._sort_formats(formats)
 
+        subtitles = {}
+        for sub in video.get('captiondata') or []:
+            if sub.get('data'):
+                subtitles.setdefault(sub.get('language', 'en'), []).append({
+                    'ext': 'srt',
+                    'data': '\n\n'.join(
+                        f'{i + 1}\n{srt_subtitles_timecode(line["fromms"] / 1000)} --> {srt_subtitles_timecode(line["toms"] / 1000)}\n{line["caption"]}'
+                        for i, line in enumerate(sub['data'])),
+                    'name': sub.get('language_long') or sub.get('title')
+                })
+            elif sub.get('url'):
+                subtitles.setdefault(sub.get('language', 'en'), []).append({
+                    'url': sub['url'],
+                    'ext': sub.get('format'),
+                    'name': sub.get('language_long') or sub.get('title')
+                })
+
         return {
             'id': video_id,
             'title': title,
             'alt_title': general.get('subtitle'),
             'description': general.get('description'),
             'release_year': int_or_none(general.get('year')),
-            'creator': general.get('studio') or general.get('studio_adref'),
+            'creator': general.get('studio') or general.get('studio_adref') or None,
             'thumbnail': try_get(
                 video, lambda x: x['imagedata']['thumb'], compat_str),
             'duration': parse_duration(general.get('runtime')),
             'timestamp': int_or_none(general.get('uploaded')),
-            'episode_number': int_or_none(try_get(
-                video, lambda x: x['episodedata']['episode'])),
-            'season_number': int_or_none(try_get(
-                video, lambda x: x['episodedata']['season'])),
+            'episode_number': traverse_obj(
+                video, (('episodedata', 'general'), 'episode'), expected_type=int, get_all=False),
+            'season_number': traverse_obj(
+                video, (('episodedata', 'general'), 'season'), expected_type=int, get_all=False),
+            'cast': traverse_obj(video, ('connectedmedia', ..., 'title'), expected_type=str),
             'formats': formats,
+            'subtitles': subtitles,
         }
 
 

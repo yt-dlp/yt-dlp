@@ -57,6 +57,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 self.write_debug('Expected and actual durations mismatch')
 
         concat_opts = self._make_concat_opts(cuts, real_duration)
+        self.write_debug('Concat spec = %s' % ', '.join(f'{c.get("inpoint", 0.0)}-{c.get("outpoint", "inf")}' for c in concat_opts))
 
         def remove_chapters(file, is_sub):
             return file, self.remove_chapters(file, cuts, concat_opts, self._force_keyframes and not is_sub)
@@ -67,9 +68,11 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         # Renaming should only happen after all files are processed
         files_to_remove = []
         for in_file, out_file in in_out_files:
+            mtime = os.stat(in_file).st_mtime
             uncut_file = prepend_extension(in_file, 'uncut')
             os.replace(in_file, uncut_file)
             os.replace(out_file, in_file)
+            self.try_utime(in_file, mtime, mtime)
             files_to_remove.append(uncut_file)
 
         return files_to_remove, info
@@ -332,6 +335,6 @@ class ModifyChaptersPP(FFmpegPostProcessor):
                 continue
             opts[-1]['outpoint'] = f'{s["start_time"]:.6f}'
             # Do not create 0 duration chunk at the end.
-            if s['end_time'] != duration:
+            if s['end_time'] < duration:
                 opts.append({'inpoint': f'{s["end_time"]:.6f}'})
         return opts

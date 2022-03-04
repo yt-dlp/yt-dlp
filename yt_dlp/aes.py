@@ -2,8 +2,15 @@ from __future__ import unicode_literals
 
 from math import ceil
 
-from .compat import compat_b64decode, compat_pycrypto_AES
-from .utils import bytes_to_intlist, intlist_to_bytes
+from .compat import (
+    compat_b64decode,
+    compat_ord,
+    compat_pycrypto_AES,
+)
+from .utils import (
+    bytes_to_intlist,
+    intlist_to_bytes,
+)
 
 
 if compat_pycrypto_AES:
@@ -23,6 +30,10 @@ else:
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
         return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
+
+
+def unpad_pkcs7(data):
+    return data[:-compat_ord(data[-1])]
 
 
 BLOCK_SIZE_BYTES = 16
@@ -506,5 +517,6 @@ __all__ = [
     'aes_encrypt',
     'aes_gcm_decrypt_and_verify',
     'aes_gcm_decrypt_and_verify_bytes',
-    'key_expansion'
+    'key_expansion',
+    'unpad_pkcs7',
 ]

@@ -35,6 +35,38 @@ class OdnoklassnikiIE(InfoExtractor):
                     (?P<id>[\d-]+)
                 '''
     _TESTS = [{
+        'note': 'Coub embedded',
+        'url': 'http://ok.ru/video/1484130554189',
+        'info_dict': {
+            'id': '1keok9',
+            'ext': 'mp4',
+            'timestamp': 1545580896,
+            'view_count': int,
+            'thumbnail': 'https://coub-anubis-a.akamaized.net/coub_storage/coub/simple/cw_image/c5ac87553bd/608e806a1239c210ab692/1545580913_00026.jpg',
+            'title': 'Народная забава',
+            'uploader': 'Nevata',
+            'upload_date': '20181223',
+            'age_limit': 0,
+            'uploader_id': 'nevata.s',
+            'like_count': int,
+            'duration': 8.08,
+            'repost_count': int,
+        },
+    }, {
+        'note': 'vk.com embedded',
+        'url': 'https://ok.ru/video/3568183087575',
+        'info_dict': {
+            'id': '-165101755_456243749',
+            'ext': 'mp4',
+            'uploader_id': '-165101755',
+            'duration': 132,
+            'timestamp': 1642869935,
+            'upload_date': '20220122',
+            'thumbnail': str,
+            'title': str,
+            'uploader': str,
+        },
+    }, {
         # metadata in JSON
         'url': 'http://ok.ru/video/20079905452',
         'md5': '0b62089b479e06681abaaca9d204f152',
@@ -171,6 +203,10 @@ class OdnoklassnikiIE(InfoExtractor):
                 webpage, 'player', group='player')),
             video_id)
 
+        # embedded external player
+        if player.get('isExternalPlayer') and player.get('url'):
+            return self.url_result(player['url'])
+
         flashvars = player['flashvars']
 
         metadata = flashvars.get('metadata')
@@ -225,6 +261,14 @@ class OdnoklassnikiIE(InfoExtractor):
             'age_limit': age_limit,
             'start_time': start_time,
         }
+
+        # pladform
+        if provider == 'OPEN_GRAPH':
+            info.update({
+                '_type': 'url_transparent',
+                'url': movie['contentId'],
+            })
+            return info
 
         if provider == 'USER_YOUTUBE':
             info.update({

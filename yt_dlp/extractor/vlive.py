@@ -146,30 +146,24 @@ class VLiveIE(VLiveBaseIE):
             'post/v1.0/officialVideoPost-%s', video_id,
             'author{nickname},channel{channelCode,channelName},officialVideo{commentCount,exposeStatus,likeCount,playCount,playTime,status,title,type,vodId},playlist{playlistSeq,totalCount,name}')
 
-        playlist = post.get('playlist')
-        if not playlist or self.get_param('noplaylist'):
-            if playlist:
-                self.to_screen(
-                    'Downloading just video %s because of --no-playlist'
-                    % video_id)
-
+        playlist_id = str_or_none(try_get(post, lambda x: x['playlist']['playlistSeq']))
+        if not self._yes_playlist(playlist_id, video_id):
             video = post['officialVideo']
             return self._get_vlive_info(post, video, video_id)
-        else:
-            playlist_name = playlist.get('name')
-            playlist_id = str_or_none(playlist.get('playlistSeq'))
-            playlist_count = str_or_none(playlist.get('totalCount'))
 
-            playlist = self._call_api(
-                'playlist/v1.0/playlist-%s/posts', playlist_id, 'data', {'limit': playlist_count})
+        playlist_name = str_or_none(try_get(post, lambda x: x['playlist']['name']))
+        playlist_count = str_or_none(try_get(post, lambda x: x['playlist']['totalCount']))
 
-            entries = []
-            for video_data in playlist['data']:
-                video = video_data.get('officialVideo')
-                video_id = str_or_none(video.get('videoSeq'))
-                entries.append(self._get_vlive_info(video_data, video, video_id))
+        playlist = self._call_api(
+            'playlist/v1.0/playlist-%s/posts', playlist_id, 'data', {'limit': playlist_count})
 
-            return self.playlist_result(entries, playlist_id, playlist_name)
+        entries = []
+        for video_data in playlist['data']:
+            video = video_data.get('officialVideo')
+            video_id = str_or_none(video.get('videoSeq'))
+            entries.append(self._get_vlive_info(video_data, video, video_id))
+
+        return self.playlist_result(entries, playlist_id, playlist_name)
 
     def _get_vlive_info(self, post, video, video_id):
         def get_common_fields():

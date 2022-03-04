@@ -20,17 +20,18 @@ from ..utils import (
     get_element_by_id,
     int_or_none,
     js_to_json,
-    limit_length,
     merge_dicts,
     network_exceptions,
     parse_count,
     parse_qs,
     qualities,
     sanitized_Request,
+    traverse_obj,
     try_get,
     url_or_none,
     urlencode_postdata,
     urljoin,
+    variadic,
 )
 
 
@@ -164,7 +165,7 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1417995061575415',
             'ext': 'mp4',
-            'title': 'Yaroslav Korpan - Довгоочікуване відео',
+            'title': 'Ukrainian Scientists Worldwide | Довгоочікуване відео',
             'description': 'Довгоочікуване відео',
             'timestamp': 1486648771,
             'upload_date': '20170209',
@@ -195,8 +196,8 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '202882990186699',
             'ext': 'mp4',
-            'title': 'Elisabeth Ahtn - Hello? Yes your uber ride is here\n* Jukin...',
-            'description': 'Hello? Yes your uber ride is here\n* Jukin Media Verified *\nFind this video and others like it by visiting...',
+            'title': 'birb (O v O") | Hello? Yes your uber ride is here',
+            'description': 'Hello? Yes your uber ride is here * Jukin Media Verified * Find this video and others like it by visiting...',
             'timestamp': 1486035513,
             'upload_date': '20170202',
             'uploader': 'Elisabeth Ahtn',
@@ -398,28 +399,31 @@ class FacebookIE(InfoExtractor):
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
         def extract_metadata(webpage):
-            video_title = self._html_search_regex(
-                r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>([^<]*)</h2>', webpage,
-                'title', default=None)
-            if not video_title:
-                video_title = self._html_search_regex(
-                    r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(.*?)</span>',
-                    webpage, 'alternative title', default=None)
-            if not video_title:
-                video_title = self._html_search_meta(
-                    ['og:title', 'twitter:title', 'description'],
-                    webpage, 'title', default=None)
-            if video_title:
-                video_title = limit_length(video_title, 80)
-            else:
-                video_title = 'Facebook video #%s' % video_id
-            description = self._html_search_meta(
+            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+                r'handleWithCustomApplyEach\(\s*ScheduledApplyEach\s*,\s*(\{.+?\})\s*\);', webpage)]
+            post = traverse_obj(post_data, (
+                ..., 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+            media = [m for m in traverse_obj(post, (..., 'attachments', ..., 'media'), expected_type=dict) or []
+                     if str(m.get('id')) == video_id and m.get('__typename') == 'Video']
+            title = traverse_obj(media, (..., 'title', 'text'), get_all=False)
+            description = traverse_obj(media, (
+                ..., 'creation_story', 'comet_sections', 'message', 'story', 'message', 'text'), get_all=False)
+            uploader_data = (traverse_obj(media, (..., 'owner'), get_all=False)
+                             or traverse_obj(post, (..., 'node', 'actors', ...), get_all=False) or {})
+
+            page_title = title or self._html_search_regex((
+                r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
+                r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
+                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>'
+            ), webpage, 'title', default=None, group='content')
+            description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
                 webpage, 'description', default=None)
-            uploader = clean_html(get_element_by_id(
-                'fbPhotoPageAuthorName', webpage)) or self._search_regex(
-                r'ownerName\s*:\s*"([^"]+)"', webpage, 'uploader',
-                default=None) or self._og_search_title(webpage, fatal=False)
+            uploader = uploader_data.get('name') or (
+                clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
+                or self._search_regex(
+                    (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
+
             timestamp = int_or_none(self._search_regex(
                 r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
                 'timestamp', default=None))
@@ -434,17 +438,17 @@ class FacebookIE(InfoExtractor):
                 r'\bviewCount\s*:\s*["\']([\d,.]+)', webpage, 'view count',
                 default=None))
             info_dict = {
-                'title': video_title,
                 'description': description,
                 'uploader': uploader,
+                'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
                 'view_count': view_count,
             }
+
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
-            if info_json_ld.get('title'):
-                info_json_ld['title'] = limit_length(
-                    re.sub(r'\s*\|\s*Facebook$', '', info_json_ld['title']), 80)
+            info_json_ld['title'] = (re.sub(r'\s*\|\s*Facebook$', '', title or info_json_ld.get('title') or page_title or '')
+                                     or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
             return merge_dicts(info_json_ld, info_dict)
 
         video_data = None
@@ -551,22 +555,15 @@ class FacebookIE(InfoExtractor):
                     if media.get('__typename') == 'Video':
                         return parse_graphql_video(media)
 
-                nodes = data.get('nodes') or []
-                node = data.get('node') or {}
-                if not nodes and node:
-                    nodes.append(node)
-                for node in nodes:
-                    story = try_get(node, lambda x: x['comet_sections']['content']['story'], dict) or {}
-                    attachments = try_get(story, [
-                        lambda x: x['attached_story']['attachments'],
-                        lambda x: x['attachments']
-                    ], list) or []
-                    for attachment in attachments:
-                        attachment = try_get(attachment, lambda x: x['style_type_renderer']['attachment'], dict)
-                        ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
-                        for n in ns:
-                            parse_attachment(n)
-                        parse_attachment(attachment)
+                nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
+                attachments = traverse_obj(nodes, (
+                    ..., 'comet_sections', 'content', 'story', (None, 'attached_story'), 'attachments',
+                    ..., ('styles', 'style_type_renderer'), 'attachment'), expected_type=dict) or []
+                for attachment in attachments:
+                    ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
+                    for n in ns:
+                        parse_attachment(n)
+                    parse_attachment(attachment)
 
                 edges = try_get(data, lambda x: x['mediaset']['currMedia']['edges'], list) or []
                 for edge in edges:
@@ -735,6 +732,7 @@ class FacebookPluginsVideoIE(InfoExtractor):
         'info_dict': {
             'id': '10154383743583686',
             'ext': 'mp4',
+            # TODO: Fix title, uploader
             'title': 'What to do during the haze?',
             'uploader': 'Gov.sg',
             'upload_date': '20160826',
