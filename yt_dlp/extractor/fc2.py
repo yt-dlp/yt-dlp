@@ -49,7 +49,7 @@ class FC2IE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _login(self):
+    def _perform_login(self):
         username, password = self._get_login_info()
         if username is None or password is None:
             return False
@@ -80,12 +80,12 @@ class FC2IE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        self._login()
+        self._perform_login()
         webpage = None
         if not url.startswith('fc2:'):
             webpage = self._download_webpage(url, video_id)
             self._downloader.cookiejar.clear_session_cookies()  # must clear
-            self._login()
+            self._perform_login()
 
         title, thumbnail, description = None, None, None
         if webpage is not None:

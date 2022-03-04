@@ -95,7 +95,7 @@ class DropoutIE(InfoExtractor):
             r'name=["\']authenticity_token["\'] value=["\'](.+?)["\']',
             signin_page, 'authenticity_token')
 
-    def _login(self, display_id):
+    def _perform_login(self, display_id):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required(method='password')
@@ -120,7 +120,7 @@ class DropoutIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         try:
-            self._login(display_id)
+            self._perform_login(display_id)
             webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
         finally:
             self._download_webpage('https://www.dropout.tv/logout', display_id, note='Logging out')

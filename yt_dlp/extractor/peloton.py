@@ -74,7 +74,7 @@ class PelotonIE(InfoExtractor):
     def _start_session(self, video_id):
         self._download_webpage('https://api.onepeloton.com/api/started_client_session', video_id, note='Starting session')
 
-    def _login(self, video_id):
+    def _perform_login(self, video_id):
         username, password = self._get_login_info()
         if not (username and password):
             self.raise_login_required()
@@ -115,7 +115,7 @@ class PelotonIE(InfoExtractor):
             self._start_session(video_id)
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                self._login(video_id)
+                self._perform_login(video_id)
                 self._start_session(video_id)
             else:
                 raise
