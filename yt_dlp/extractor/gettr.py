@@ -102,8 +102,7 @@ class GettrIE(GettrBaseIE):
                 raise ExtractorError('There\'s no video in this post.')
 
         title = description = str_or_none(
-            post_data.get('txt')
-            or self._og_search_description(webpage))
+            post_data.get('txt') or self._og_search_description(webpage))
 
         uploader = str_or_none(
             user_data.get('nickname')
