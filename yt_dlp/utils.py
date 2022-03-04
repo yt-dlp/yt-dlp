@@ -5408,6 +5408,3 @@ class WebSocketsWrapper():
 
 has_websockets = bool(compat_websockets)
 
-
-def get_first(obj, keys, **kwargs):
-    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)

@@ -13,7 +13,6 @@ from ..compat import (
 from ..utils import (
     bug_reports_message,
     ExtractorError,
-    get_first,
     int_or_none,
     OnDemandPagedList,
     parse_qs,
@@ -320,7 +319,7 @@ class PanoptoPlaylistIE(PanoptoBaseIE):
     def _real_extract(self, url):
         base_url, playlist_id = self._match_valid_url(url).group('base_url', 'id')
 
-        video_id = get_first(parse_qs(url), 'id')
+        video_id = traverse_obj(parse_qs(url), (..., 'id'), get_all=False)
         if video_id:
             if self.get_param('noplaylist'):
                 self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
@@ -383,7 +382,7 @@ class PanoptoListIE(PanoptoBaseIE):
             base_url, '/Services/Data.svc/GetSessions', f'{display_id} page {page+1}',
             data={'queryParameters': params}, fatal=False)
 
-        for result in get_first(response, 'Results', default=[]):
+        for result in traverse_obj(response, (..., 'Results'), default=[], get_all=False):
             # This could be a video, playlist (or maybe something else)
             item_id = result.get('DeliveryID')
             yield {
@@ -396,7 +395,7 @@ class PanoptoListIE(PanoptoBaseIE):
                 'channel_id': result.get('FolderID'),
             }
 
-        for folder in get_first(response, 'Subfolders', default=[]):
+        for folder in traverse_obj(response, (..., 'Subfolders'), default=[], get_all=False):
             folder_id = folder.get('ID')
             yield self.url_result(
                 base_url + f'/Pages/Sessions/List.aspx#folderID="{folder_id}"',
@@ -407,7 +406,7 @@ class PanoptoListIE(PanoptoBaseIE):
             base_url, '/Services/Data.svc/GetFolderInfo', folder_id,
             data={'folderID': folder_id}, fatal=False)
         return {
-            'title': get_first(response, 'Name')
+            'title': traverse_obj(response, (..., 'Name'), default=[], get_all=False)
         }
 
     def _real_extract(self, url):
