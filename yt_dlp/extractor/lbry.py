@@ -17,6 +17,7 @@ from ..utils import (
     parse_qs,
     OnDemandPagedList,
     try_get,
+    UnsupportedError,
     urljoin,
 )
 
@@ -196,11 +197,11 @@ class LBRYIE(LBRYBaseIE):
             live_data = self._download_json(
                 f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id,
                 note='Downloading livestream JSON metadata')['data']
-            if not live_data['live']:
-                raise ExtractorError('This stream is not live', expected=True)
-            streaming_url = final_url = live_data['url']
+            streaming_url = final_url = live_data.get('url')
+            if not final_url and not live_data.get('live'):
+                self.raise_no_formats('This stream is not live', True, claim_id)
         else:
-            raise ExtractorError('Unsupported URL', expected=True)
+            raise UnsupportedError(url)
 
         info = self._parse_stream(result, url)
         if determine_ext(final_url) == 'm3u8':
