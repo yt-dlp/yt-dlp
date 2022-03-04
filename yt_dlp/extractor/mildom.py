@@ -286,7 +286,10 @@ class MildomUserVodIE(MildomBaseIE):
         if not reply:
             return
         for x in reply:
-            yield self.url_result(f'https://www.mildom.com/playback/{user_id}/{x["v_id"]}')
+            v_id = x.get('v_id')
+            if not v_id:
+                continue
+            yield self.url_result(f'https://www.mildom.com/playback/{user_id}/{v_id}')
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
