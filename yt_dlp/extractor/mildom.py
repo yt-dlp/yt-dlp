@@ -15,7 +15,6 @@ from ..utils import (
     traverse_obj,
     update_url_query,
 )
-from ..compat import compat_str
 
 
 class MildomBaseIE(InfoExtractor):
@@ -88,10 +87,10 @@ class MildomIE(MildomBaseIE):
 
         return {
             'id': result_video_id,
-            'title': self._html_search_meta('twitter:description', webpage, fatal=False) or traverse_obj(enterstudio, 'anchor_intro'),
+            'title': self._html_search_meta('twitter:description', webpage, default=None) or traverse_obj(enterstudio, 'anchor_intro'),
             'description': traverse_obj(enterstudio, 'intro', 'live_intro', expected_type=str),
             'timestamp': float_or_none(enterstudio.get('live_start_ms'), scale=1000),
-            'uploader': self._html_search_meta('twitter:title', webpage, fatal=False) or traverse_obj(enterstudio, 'loginname'),
+            'uploader': self._html_search_meta('twitter:title', webpage, default=None) or traverse_obj(enterstudio, 'loginname'),
             'uploader_id': video_id,
             'formats': formats,
             'is_live': True,
@@ -249,7 +248,7 @@ class MildomClipIE(MildomBaseIE):
         return {
             'id': video_id,
             'title': self._html_search_meta(
-                ('og:description', 'description'), webpage, fatal=False) or clip_detail.get('title'),
+                ('og:description', 'description'), webpage, default=None) or clip_detail.get('title'),
             'timestamp': float_or_none(clip_detail.get('create_time')),
             'duration': float_or_none(clip_detail.get('length')),
             'thumbnail': clip_detail.get('cover'),
