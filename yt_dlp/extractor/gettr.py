@@ -106,7 +106,7 @@ class GettrIE(GettrBaseIE):
 
         uploader = str_or_none(
             user_data.get('nickname')
-            or self._search_regex(r'^(.+?) on GETTR', self._og_search_title(webpage, default=''), 'uploader', fatal=False))
+            or self._search_regex(r'^(.+?) on GETTR : ', self._og_search_title(webpage, default=''), 'uploader', fatal=False))
 
         if uploader:
             title = '%s - %s' % (uploader, title)
