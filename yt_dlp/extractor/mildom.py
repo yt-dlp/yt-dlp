@@ -245,6 +245,12 @@ class MildomClipIE(MildomBaseIE):
                 'clip_id': video_id,
             })
 
+        formats = [{
+            'url': clip_detail.get('url'),
+            'ext': determine_ext(clip_detail.get('url'), 'mp4'),
+        }]
+        self._sort_formats(formats)
+
         return {
             'id': video_id,
             'title': self._html_search_meta(
@@ -254,10 +260,7 @@ class MildomClipIE(MildomBaseIE):
             'thumbnail': clip_detail.get('cover'),
             'uploader': traverse_obj(clip_detail, ('user_info', 'loginname')),
             'uploader_id': user_id,
-            'formats': [{
-                'url': clip_detail.get('url'),
-                'ext': determine_ext(clip_detail.get('url'), 'mp4'),
-            }],
+            'formats': formats,
         }
 
 
