@@ -1,3 +1,4 @@
+import re
 import calendar
 import json
 import functools
@@ -140,6 +141,12 @@ class PanoptoIE(PanoptoBaseIE):
             'only_matching': True
         },
     ]
+
+    @staticmethod
+    def _extract_urls(webpage):
+        return [m.group('url') for m in re.finditer(
+            r'<iframe[^>]+src=["\'](?P<url>%s/Pages/(Viewer|Embed|Sessions/List)\.aspx[^"\']+)' % PanoptoIE.BASE_URL_RE,
+            webpage)]
 
     @classmethod
     def suitable(cls, url):
