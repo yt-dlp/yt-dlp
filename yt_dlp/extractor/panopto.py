@@ -45,6 +45,12 @@ class PanoptoBaseIE(InfoExtractor):
     def _parse_fragment(url):
         return {k: json.loads(v[0]) for k, v in compat_urlparse.parse_qs(compat_urllib_parse_urlparse(url).fragment).items()}
 
+    @staticmethod
+    def _extract_urls(webpage):
+        return [m.group('url') for m in re.finditer(
+            r'<iframe[^>]+src=["\'](?P<url>%s/Pages/(Viewer|Embed|Sessions/List)\.aspx[^"\']+)' % PanoptoIE.BASE_URL_RE,
+            webpage)]
+
 
 class PanoptoIE(PanoptoBaseIE):
     _VALID_URL = PanoptoBaseIE.BASE_URL_RE + r'/Pages/(Viewer|Embed)\.aspx.*(?:\?|&)id=(?P<id>[a-f0-9-]+)'
@@ -136,12 +142,6 @@ class PanoptoIE(PanoptoBaseIE):
             'only_matching': True
         },
     ]
-
-    @staticmethod
-    def _extract_urls(webpage):
-        return [m.group('url') for m in re.finditer(
-            r'<iframe[^>]+src=["\'](?P<url>%s/Pages/(Viewer|Embed|Sessions/List)\.aspx[^"\']+)' % PanoptoIE.BASE_URL_RE,
-            webpage)]
 
     @classmethod
     def suitable(cls, url):

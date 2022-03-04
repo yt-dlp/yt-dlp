@@ -145,7 +145,7 @@ from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 from .gfycat import GfycatIE
-from .panopto import PanoptoIE
+from .panopto import PanoptoBaseIE
 
 
 class GenericIE(InfoExtractor):
@@ -3726,7 +3726,7 @@ class GenericIE(InfoExtractor):
         if gfycat_urls:
             return self.playlist_from_matches(gfycat_urls, video_id, video_title, ie=GfycatIE.ie_key())
 
-        panopto_urls = PanoptoIE._extract_urls(webpage)
+        panopto_urls = PanoptoBaseIE._extract_urls(webpage)
         if panopto_urls:
             return self.playlist_from_matches(panopto_urls, video_id, video_title)
         # Look for HTML5 media
