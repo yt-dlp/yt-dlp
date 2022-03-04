@@ -72,19 +72,20 @@ class TumblrIE(InfoExtractor):
         }
     }, {
         'note': 'dashboard only (original post)',
-        'url': 'https://nerviovago.tumblr.com/post/674979046803800064',
-        'md5': '12bdb75661ef443bffe5a4dac1dbf118',
+        'url': 'https://jujanon.tumblr.com/post/159704441298/my-baby-eating',
+        'md5': '029f7c91ab386701b211e3d494d2d95e',
         'info_dict': {
-            'id': '674979046803800064',
+            'id': '159704441298',
             'ext': 'mp4',
-            'title': 'nerviovago',
-            'uploader_id': 'nerviovago',
-            'uploader_url': 'https://nerviovago.tumblr.com/',
+            'title': 'md5:ba79365861101f4911452728d2950561',
+            'description': 'md5:773738196cea76b6996ec71e285bdabc',
+            'uploader_id': 'jujanon',
+            'uploader_url': 'https://jujanon.tumblr.com/',
             'thumbnail': r're:^https?://.*\.jpg',
             'like_count': int,
             'repost_count': int,
             'age_limit': 0,
-            'tags': ['pig', 'cuddly', 'cute animals', 'animals', 'sound', 'pigs'],
+            'tags': ['crabs', 'my video', 'my pets'],
         }
     }, {
         'note': 'dashboard only (reblog)',
