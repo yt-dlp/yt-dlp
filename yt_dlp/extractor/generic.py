@@ -3546,7 +3546,7 @@ class GenericIE(InfoExtractor):
         # Look for ant1news.gr embeds
         ant1newsgr_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
         if ant1newsgr_urls:
-            return self.url_result_or_playlist_from_matches(
+            return self.playlist_from_matches(
                 ant1newsgr_urls, video_id, video_title, ie=Ant1NewsGrEmbedIE.ie_key())
 
         # Look for WashingtonPost embeds

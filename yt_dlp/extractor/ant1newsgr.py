@@ -96,10 +96,10 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
         info = self._search_json_ld(webpage, video_id, expected_type='NewsArticle')
         embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
         if not embed_urls:
-            raise ExtractorError('no videos found for %s' % video_id)
+            raise ExtractorError('no videos found for %s' % video_id, expected=True)
         return self.url_result_or_playlist_from_matches(
             embed_urls, video_id, info['title'], ie=Ant1NewsGrEmbedIE.ie_key(),
-            video_kwargs=dict(url_transparent=True, timestamp=info.get('timestamp')))
+            video_kwargs={'url_transparent': True, 'timestamp': info.get('timestamp')})
 
 
 class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
@@ -122,9 +122,6 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage):
-        # in comparison with _VALID_URL:
-        # * simplify the query string part; after extracting iframe src, the URL
-        #   will be matched again
         _EMBED_URL_RE = rf'{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
         _EMBED_RE = rf'<iframe[^>]+?src=(?P<_q1>["\'])(?P<url>{_EMBED_URL_RE})(?P=_q1)'
         for mobj in re.finditer(_EMBED_RE, webpage):
@@ -136,7 +133,6 @@ class Ant1NewsGrEmbedIE(Ant1NewsGrBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        # resolve any redirects, to derive the proper base URL for the API query
         canonical_url = self._request_webpage(
             HEADRequest(url), video_id,
             note='Resolve canonical player URL',
