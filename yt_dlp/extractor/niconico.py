@@ -174,16 +174,8 @@ class NiconicoIE(InfoExtractor):
         'X-Frontend-Version': '0'
     }
 
-    def _real_initialize(self):
-        self._login()
 
-    def _login(self):
-        username, password = self._get_login_info()
-        # No authentication to be performed
-        if not username:
-            return True
-
-        # Log in
+    def _login(self, username, password):
         login_ok = True
         login_form_strs = {
             'mail_tel': username,

@@ -21,8 +21,6 @@ class LyndaBaseIE(InfoExtractor):
     _ACCOUNT_CREDENTIALS_HINT = 'Use --username and --password options to provide lynda.com account credentials.'
     _NETRC_MACHINE = 'lynda'
 
-    def _real_initialize(self):
-        self._login()
 
     @staticmethod
     def _check_error(json_string, key_or_keys):
@@ -55,11 +53,7 @@ class LyndaBaseIE(InfoExtractor):
 
         return response, action_url
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _login(self, username, password):
         # Step 1: download signin page
         signin_page = self._download_webpage(
             self._SIGNIN_URL, None, 'Downloading signin page')

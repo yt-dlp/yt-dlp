@@ -241,8 +241,6 @@ class IqiyiIE(InfoExtractor):
         '18': 7,    # 1080p
     }
 
-    def _real_initialize(self):
-        self._login()
 
     @staticmethod
     def _rsa_fun(data):
@@ -252,12 +250,7 @@ class IqiyiIE(InfoExtractor):
 
         return ohdave_rsa_encrypt(data, e, N)
 
-    def _login(self):
-        username, password = self._get_login_info()
-
-        # No authentication to be performed
-        if not username:
-            return True
+    def _login(self, username, password):
 
         data = self._download_json(
             'http://kylin.iqiyi.com/get_token', None,

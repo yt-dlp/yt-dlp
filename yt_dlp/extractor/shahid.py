@@ -79,11 +79,7 @@ class ShahidIE(ShahidBaseIE):
         'only_matching': True
     }]
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
-
+    def _login(self, username, password):
         try:
             user_data = self._download_json(
                 'https://shahid.mbc.net/wd/service/users/login',

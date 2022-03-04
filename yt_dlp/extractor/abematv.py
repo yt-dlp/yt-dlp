@@ -295,15 +295,8 @@ class AbemaTVIE(AbemaTVBaseIE):
 
         return self._MEDIATOKEN
 
-    def _real_initialize(self):
-        self._login()
 
-    def _login(self):
-        username, password = self._get_login_info()
-        # No authentication to be performed
-        if not username:
-            return True
-
+    def _login(self, username, password):
         if '@' in username:  # don't strictly check if it's email address or not
             ep, method = 'user/email', 'email'
         else:
