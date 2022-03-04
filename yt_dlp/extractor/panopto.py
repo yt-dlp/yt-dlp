@@ -126,11 +126,6 @@ class PanoptoIE(PanoptoBaseIE):
                 'channel': 'World War II Veteran Interviews',
                 'upload_date': '20191030',
             },
-            'params': {
-                'extractor_args': {
-                    'panopto': {'get_multistreams': ['']}
-                }
-            }
         },
         {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
