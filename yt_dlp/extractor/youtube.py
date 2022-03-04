@@ -75,6 +75,7 @@ from ..utils import (
 def get_first(obj, keys, **kwargs):
     return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
 
+
 # any clients starting with _ cannot be explicity requested by the user
 INNERTUBE_CLIENTS = {
     'web': {

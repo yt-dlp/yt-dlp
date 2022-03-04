@@ -5407,4 +5407,3 @@ class WebSocketsWrapper():
 
 
 has_websockets = bool(compat_websockets)
-
