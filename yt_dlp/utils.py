@@ -2122,37 +2122,47 @@ if sys.platform == 'win32':
     whole_low = 0xffffffff
     whole_high = 0x7fffffff
 
-    def _lock_file(f, exclusive, block):  # todo: block unused on win32
+    def _lock_file(f, exclusive, block):
         overlapped = OVERLAPPED()
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
         overlapped.hEvent = 0
         f._lock_file_overlapped_p = ctypes.pointer(overlapped)
-        handle = msvcrt.get_osfhandle(f.fileno())
-        if not LockFileEx(handle, 0x2 if exclusive else 0x0, 0,
-                          whole_low, whole_high, f._lock_file_overlapped_p):
-            raise OSError('Locking file failed: %r' % ctypes.FormatError())
+
+        if not LockFileEx(msvcrt.get_osfhandle(f.fileno()),
+                          (0x2 if exclusive else 0x0) | (0x0 if block else 0x1),
+                          0, whole_low, whole_high, f._lock_file_overlapped_p):
+            raise BlockingIOError('Locking file failed: %r' % ctypes.FormatError())
 
     def _unlock_file(f):
         assert f._lock_file_overlapped_p
         handle = msvcrt.get_osfhandle(f.fileno())
-        if not UnlockFileEx(handle, 0,
-                            whole_low, whole_high, f._lock_file_overlapped_p):
+        if not UnlockFileEx(handle, 0, whole_low, whole_high, f._lock_file_overlapped_p):
             raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
 
 else:
-    # Some platforms, such as Jython, is missing fcntl
     try:
         import fcntl
 
         def _lock_file(f, exclusive, block):
-            fcntl.flock(f,
-                        fcntl.LOCK_SH if not exclusive
-                        else fcntl.LOCK_EX if block
-                        else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                fcntl.flock(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise
+            except OSError:  # AOSP does not have flock()
+                fcntl.lockf(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         def _unlock_file(f):
-            fcntl.flock(f, fcntl.LOCK_UN)
+            try:
+                fcntl.flock(f, fcntl.LOCK_UN)
+            except OSError:
+                fcntl.lockf(f, fcntl.LOCK_UN)
 
     except ImportError:
         UNSUPPORTED_MSG = 'file locking is not supported on this platform'
@@ -2165,6 +2175,8 @@ else:
 
 
 class locked_file(object):
+    _closed = False
+
     def __init__(self, filename, mode, block=True, encoding=None):
         assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
         self.f = io.open(filename, mode, encoding=encoding)
@@ -2182,9 +2194,11 @@ class locked_file(object):
 
     def __exit__(self, etype, value, traceback):
         try:
-            _unlock_file(self.f)
+            if not self._closed:
+                _unlock_file(self.f)
         finally:
             self.f.close()
+            self._closed = True
 
     def __iter__(self):
         return iter(self.f)
@@ -2799,13 +2813,14 @@ class PagedList:
     def __init__(self, pagefunc, pagesize, use_cache=True):
         self._pagefunc = pagefunc
         self._pagesize = pagesize
+        self._pagecount = float('inf')
         self._use_cache = use_cache
         self._cache = {}
 
     def getpage(self, pagenum):
         page_results = self._cache.get(pagenum)
         if page_results is None:
-            page_results = list(self._pagefunc(pagenum))
+            page_results = [] if pagenum > self._pagecount else list(self._pagefunc(pagenum))
         if self._use_cache:
             self._cache[pagenum] = page_results
         return page_results
@@ -2817,7 +2832,7 @@ class PagedList:
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def __getitem__(self, idx):
-        # NOTE: cache must be enabled if this is used
+        assert self._use_cache, 'Indexing PagedList requires cache'
         if not isinstance(idx, int) or idx < 0:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
@@ -2843,7 +2858,11 @@ class OnDemandPagedList(PagedList):
                 if (end is not None and firstid <= end <= nextfirstid)
                 else None)
 
-            page_results = self.getpage(pagenum)
+            try:
+                page_results = self.getpage(pagenum)
+            except Exception:
+                self._pagecount = pagenum - 1
+                raise
             if startv != 0 or endv is not None:
                 page_results = page_results[startv:endv]
             yield from page_results
@@ -2863,8 +2882,8 @@ class OnDemandPagedList(PagedList):
 
 class InAdvancePagedList(PagedList):
     def __init__(self, pagefunc, pagecount, pagesize):
-        self._pagecount = pagecount
         PagedList.__init__(self, pagefunc, pagesize, True)
+        self._pagecount = pagecount
 
     def _getslice(self, start, end):
         start_page = start // self._pagesize
@@ -5250,6 +5269,16 @@ def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))
+
+
+def parse_http_range(range):
+    """ Parse value of "Range" or "Content-Range" HTTP header into tuple. """
+    if not range:
+        return None, None, None
+    crg = re.search(r'bytes[ =](\d+)-(\d+)?(?:/(\d+))?', range)
+    if not crg:
+        return None, None, None
+    return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
 
 
 class Config:

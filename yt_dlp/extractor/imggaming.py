@@ -96,7 +96,7 @@ class ImgGamingBaseIE(InfoExtractor):
                 continue
             if proto == 'hls':
                 m3u8_formats = self._extract_m3u8_formats(
-                    media_url, media_id, 'mp4', 'm3u8' if is_live else 'm3u8_native',
+                    media_url, media_id, 'mp4', live=is_live,
                     m3u8_id='hls', fatal=False, headers=self._MANIFEST_HEADERS)
                 for f in m3u8_formats:
                     f.setdefault('http_headers', {}).update(self._MANIFEST_HEADERS)

@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import datetime
 import itertools
+import functools
 import json
 import re
 
@@ -12,6 +13,7 @@ from ..compat import (
     compat_str,
     compat_parse_qs,
     compat_urllib_parse_urlparse,
+    compat_HTTPError,
 )
 from ..utils import (
     ExtractorError,
@@ -24,7 +26,9 @@ from ..utils import (
     PostProcessingError,
     remove_start,
     str_or_none,
+    traverse_obj,
     try_get,
+    unescapeHTML,
     unified_timestamp,
     urlencode_postdata,
     xpath_text,
@@ -606,8 +610,61 @@ class NiconicoIE(InfoExtractor):
         }
 
 
-class NiconicoPlaylistIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?nicovideo\.jp/(?:user/\d+/|my/)?mylist/(?P<id>\d+)'
+class NiconicoPlaylistBaseIE(InfoExtractor):
+    _PAGE_SIZE = 100
+
+    _API_HEADERS = {
+        'X-Frontend-ID': '6',
+        'X-Frontend-Version': '0',
+        'X-Niconico-Language': 'en-us'
+    }
+
+    def _call_api(self, list_id, resource, query):
+        "Implement this in child class"
+        pass
+
+    @staticmethod
+    def _parse_owner(item):
+        return {
+            'uploader': traverse_obj(item, ('owner', 'name')),
+            'uploader_id': traverse_obj(item, ('owner', 'id')),
+        }
+
+    def _fetch_page(self, list_id, page):
+        page += 1
+        resp = self._call_api(list_id, 'page %d' % page, {
+            'page': page,
+            'pageSize': self._PAGE_SIZE,
+        })
+        # this is needed to support both mylist and user
+        for video in traverse_obj(resp, ('items', ..., ('video', None))) or []:
+            video_id = video.get('id')
+            if not video_id:
+                # skip {"video": {"id": "blablabla", ...}}
+                continue
+            count = video.get('count') or {}
+            get_count = lambda x: int_or_none(count.get(x))
+            yield {
+                '_type': 'url',
+                'id': video_id,
+                'title': video.get('title'),
+                'url': f'https://www.nicovideo.jp/watch/{video_id}',
+                'description': video.get('shortDescription'),
+                'duration': int_or_none(video.get('duration')),
+                'view_count': get_count('view'),
+                'comment_count': get_count('comment'),
+                'thumbnail': traverse_obj(video, ('thumbnail', ('nHdUrl', 'largeUrl', 'listingUrl', 'url'))),
+                'ie_key': NiconicoIE.ie_key(),
+                **self._parse_owner(video),
+            }
+
+    def _entries(self, list_id):
+        return OnDemandPagedList(functools.partial(self._fetch_page, list_id), self._PAGE_SIZE)
+
+
+class NiconicoPlaylistIE(NiconicoPlaylistBaseIE):
+    IE_NAME = 'niconico:playlist'
+    _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp|nico\.ms)/(?:user/\d+/)?(?:my/)?mylist/(?:#/)?(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'http://www.nicovideo.jp/mylist/27411728',
@@ -618,48 +675,110 @@ class NiconicoPlaylistIE(InfoExtractor):
             'uploader': 'のっく',
             'uploader_id': '805442',
         },
-        'playlist_mincount': 225,
+        'playlist_mincount': 291,
     }, {
         'url': 'https://www.nicovideo.jp/user/805442/mylist/27411728',
         'only_matching': True,
+    }, {
+        'url': 'https://www.nicovideo.jp/my/mylist/#/68048635',
+        'only_matching': True,
     }]
 
-    _API_HEADERS = {
-        'X-Frontend-ID': '6',
-        'X-Frontend-Version': '0'
-    }
+    def _call_api(self, list_id, resource, query):
+        return self._download_json(
+            f'https://nvapi.nicovideo.jp/v2/mylists/{list_id}', list_id,
+            f'Downloading {resource}', query=query,
+            headers=self._API_HEADERS)['data']['mylist']
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
+        mylist = self._call_api(list_id, 'list', {
+            'pageSize': 1,
+        })
+        return self.playlist_result(
+            self._entries(list_id), list_id,
+            mylist.get('name'), mylist.get('description'), **self._parse_owner(mylist))
 
-        def get_page_data(pagenum, pagesize):
-            return self._download_json(
-                'http://nvapi.nicovideo.jp/v2/mylists/' + list_id, list_id,
-                query={'page': 1 + pagenum, 'pageSize': pagesize},
-                headers=self._API_HEADERS).get('data').get('mylist')
 
-        data = get_page_data(0, 1)
-        title = data.get('name')
-        description = data.get('description')
-        uploader = data.get('owner').get('name')
-        uploader_id = data.get('owner').get('id')
+class NiconicoSeriesIE(InfoExtractor):
+    IE_NAME = 'niconico:series'
+    _VALID_URL = r'https?://(?:(?:www\.|sp\.)?nicovideo\.jp|nico\.ms)/series/(?P<id>\d+)'
 
-        def pagefunc(pagenum):
-            data = get_page_data(pagenum, 25)
-            return ({
-                '_type': 'url',
-                'url': 'http://www.nicovideo.jp/watch/' + item.get('watchId'),
-            } for item in data.get('items'))
+    _TESTS = [{
+        'url': 'https://www.nicovideo.jp/series/110226',
+        'info_dict': {
+            'id': '110226',
+            'title': 'ご立派ァ！のシリーズ',
+        },
+        'playlist_mincount': 10,  # as of 2021/03/17
+    }, {
+        'url': 'https://www.nicovideo.jp/series/12312/',
+        'info_dict': {
+            'id': '12312',
+            'title': 'バトルスピリッツ　お勧めカード紹介(調整中)',
+        },
+        'playlist_mincount': 97,  # as of 2021/03/17
+    }, {
+        'url': 'https://nico.ms/series/203559',
+        'only_matching': True,
+    }]
 
-        return {
-            '_type': 'playlist',
-            'id': list_id,
-            'title': title,
-            'description': description,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'entries': OnDemandPagedList(pagefunc, 25),
-        }
+    def _real_extract(self, url):
+        list_id = self._match_id(url)
+        webpage = self._download_webpage(f'https://www.nicovideo.jp/series/{list_id}', list_id)
+
+        title = self._search_regex(
+            (r'<title>「(.+)（全',
+             r'<div class="TwitterShareButton"\s+data-text="(.+)\s+https:'),
+            webpage, 'title', fatal=False)
+        if title:
+            title = unescapeHTML(title)
+        playlist = [
+            self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
+            for v_id in re.findall(r'href="/watch/([a-z0-9]+)" data-href="/watch/\1', webpage)]
+        return self.playlist_result(playlist, list_id, title)
+
+
+class NiconicoHistoryIE(NiconicoPlaylistBaseIE):
+    IE_NAME = 'niconico:history'
+    IE_DESC = 'NicoNico user history. Requires cookies.'
+    _VALID_URL = r'https?://(?:www\.|sp\.)?nicovideo\.jp/my/history'
+
+    _TESTS = [{
+        'note': 'PC page, with /video',
+        'url': 'https://www.nicovideo.jp/my/history/video',
+        'only_matching': True,
+    }, {
+        'note': 'PC page, without /video',
+        'url': 'https://www.nicovideo.jp/my/history',
+        'only_matching': True,
+    }, {
+        'note': 'mobile page, with /video',
+        'url': 'https://sp.nicovideo.jp/my/history/video',
+        'only_matching': True,
+    }, {
+        'note': 'mobile page, without /video',
+        'url': 'https://sp.nicovideo.jp/my/history',
+        'only_matching': True,
+    }]
+
+    def _call_api(self, list_id, resource, query):
+        return self._download_json(
+            'https://nvapi.nicovideo.jp/v1/users/me/watch/history', 'history',
+            f'Downloading {resource}', query=query,
+            headers=self._API_HEADERS)['data']
+
+    def _real_extract(self, url):
+        list_id = 'history'
+        try:
+            mylist = self._call_api(list_id, 'list', {
+                'pageSize': 1,
+            })
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
+                self.raise_login_required('You have to be logged in to get your watch history')
+            raise
+        return self.playlist_result(self._entries(list_id), list_id, **self._parse_owner(mylist))
 
 
 class NicovideoSearchBaseIE(InfoExtractor):

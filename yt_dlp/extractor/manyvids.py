@@ -89,4 +89,5 @@ class ManyVidsIE(InfoExtractor):
             'view_count': view_count,
             'like_count': like_count,
             'formats': formats,
+            'uploader': self._html_search_regex(r'<meta[^>]+name="author"[^>]*>([^<]+)', webpage, 'uploader'),
         }
