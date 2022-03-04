@@ -8,8 +8,8 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    try_get,
     traverse_obj,
+    HEADRequest,
 )
 
 
@@ -97,7 +97,7 @@ class ZingMp3BaseIE(InfoExtractor):
             'formats': formats,
             'thumbnail': traverse_obj(item, 'thumbnail', 'thumbnailM'),
             'subtitles': subtitles,
-            'duration': int_or_none(try_get(item, lambda x: x['duration'])),
+            'duration': int_or_none(item.get('duration')),
             'track': title,
             'artist': traverse_obj(item, 'artistsNames', 'artists_names'),
             'album': traverse_obj(album, 'name', 'title'),
@@ -107,7 +107,7 @@ class ZingMp3BaseIE(InfoExtractor):
     def _real_initialize(self):
         # Check the cookie file, if cookie file doesn't exist, create a dummy request to update the cookie
         if not self.get_param('cookiefile') and not self.get_param('cookiesfrombrowser'):
-            self._download_webpage(self._DOMAIN, None, note='Dummy request to update cookie')
+            self._request_webpage(HEADRequest(self._DOMAIN), None, note='Updating cookies')
 
     def _real_extract(self, url):
         song_id, type_url = self._match_valid_url(url).group('id', 'type')
@@ -195,10 +195,10 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
 
     def _process_data(self, data, song_id, type_url):
         def entries():
-            for item in (try_get(data, lambda x: x['song']['items']) or []):
+            for item in traverse_obj(data, ('song', 'items')) or []:
                 entry = self._extract_item(item, song_id, type_url, False)
                 if entry:
                     yield entry
 
-        album_id = data.get('id') or data.get('encodeId')
-        return self.playlist_result(entries(), album_id, data.get('name') or data.get('title'))
+        return self.playlist_result(entries(), traverse_obj(data, 'id', 'encodeId'),
+                                    traverse_obj(data, 'name', 'title'))
