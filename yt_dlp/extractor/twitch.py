@@ -1048,7 +1048,7 @@ class TwitchClipsIE(TwitchBaseIE):
             'title': clip.get('title') or video_id,
             'formats': formats,
             'duration': int_or_none(clip.get('durationSeconds')),
-            'views': int_or_none(clip.get('viewCount')),
+            'view_count': int_or_none(clip.get('viewCount')),
             'timestamp': unified_timestamp(clip.get('createdAt')),
             'thumbnails': thumbnails,
             'creator': try_get(clip, lambda x: x['broadcaster']['displayName'], compat_str),
