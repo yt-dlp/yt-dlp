@@ -636,6 +636,24 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
         },
+        {
+            # similar, but all numeric: ID must be 581039021, not 9603038895
+            # issue #29690
+            'url': 'https://vimeo.com/581039021/9603038895',
+            'info_dict': {
+                'id': '581039021',
+                # these have to be provided but we don't care
+                'ext': 'mp4',
+                'timestamp': 1627621014,
+                'title': 're:.+',
+                'uploader_id': 're:.+',
+                'uploader': 're:.+',
+                'upload_date': r're:\d+',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
