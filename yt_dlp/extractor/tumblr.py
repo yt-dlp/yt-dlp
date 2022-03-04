@@ -303,17 +303,17 @@ class TumblrIE(InfoExtractor):
                         'Authorization': f'Bearer {self._ACCESS_TOKEN}',
                     },
                     fatal=False),
-                ('response', 'timeline', 'elements', 0), default={})
+                ('response', 'timeline', 'elements', 0)) or {}
         content_json = traverse_obj(
-            post_json, ('trail', 0, 'content'), ('content'), default=[])
+            post_json, ('trail', 0, 'content'), ('content')) or []
         video_json = next(
             (item for item in content_json if item.get('type') == 'video'),
             {})
         media_json = video_json.get('media') or {}
-        if api_only and 'url' not in media_json and 'url' not in video_json:
+        if api_only and not media_json.get('url') and not video_json.get('url'):
             raise ExtractorError('Failed to find video data for dashboard-only post')
 
-        if 'url' not in media_json and 'url' in video_json:
+        if not media_json.get('url') and video_json.get('url'):
             # external video host
             return self.url_result(
                 video_json['url'],
@@ -360,7 +360,7 @@ class TumblrIE(InfoExtractor):
                         'quality': quality,
                     } for quality, (video_url, format_id) in enumerate(sources)]
 
-        if 'url' not in media_json and not video_url and not iframe_url:
+        if not media_json.get('url') and not video_url and not iframe_url:
             # external video host (but we weren't able to figure it out from the api)
             iframe_url = self._search_regex(
                 r'src=["\'](https?://safe\.txmblr\.com/svc/embed/inline/[^"\']+)["\']',
@@ -368,12 +368,12 @@ class TumblrIE(InfoExtractor):
             return self.url_result(iframe_url or redirect_url, 'Generic')
 
         formats = formats or [{
-            'url': media_json.get('url', video_url),
+            'url': media_json.get('url') or video_url,
             'format_id': '0',
-            'width': media_json.get('width', int_or_none(
-                self._og_search_property('video:width', webpage, default=None))),
-            'height': media_json.get('height', int_or_none(
-                self._og_search_property('video:height', webpage, default=None))),
+            'width': media_json.get('width') or int_or_none(
+                self._og_search_property('video:width', webpage, default=None)),
+            'height': media_json.get('height') or int_or_none(
+                self._og_search_property('video:height', webpage, default=None)),
         }]
         self._sort_formats(formats)
 
