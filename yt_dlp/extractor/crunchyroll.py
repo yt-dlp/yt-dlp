@@ -698,40 +698,17 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
         }
 
 
-class CrunchyrollBetaIE(CrunchyrollBaseIE):
-    IE_NAME = 'crunchyroll:beta'
-    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)watch/(?P<internal_id>\w+)/(?P<id>[\w\-]+)/?(?:\?|$)'
-    _TESTS = [{
-        'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
-        'info_dict': {
-            'id': '696363',
-            'ext': 'mp4',
-            'timestamp': 1459610100,
-            'description': 'md5:a022fbec4fbb023d43631032c91ed64b',
-            'uploader': 'Toei Animation',
-            'title': 'World Trigger Episode 73 – To the Future',
-            'upload_date': '20160402',
-        },
-        'params': {'skip_download': 'm3u8'},
-        'expected_warnings': ['Unable to download XML']
-    }]
-
-    def _real_extract(self, url):
-        lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'internal_id', 'id')
-        webpage = self._download_webpage(url, display_id)
+class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
+    def _get_embedded_json(self, webpage, display_id):
         initial_state = self._parse_json(
             self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
             display_id)
-        episode_data = initial_state['content']['byId'][internal_id]
-        if not self._get_cookies(url).get('etp_rt'):
-            video_id = episode_data['external_id'].split('.')[1]
-            series_id = episode_data['episode_metadata']['series_slug_title']
-            return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
-                                   CrunchyrollIE.ie_key(), video_id)
-
         app_config = self._parse_json(
             self._search_regex(r'__APP_CONFIG__\s*=\s*({.+?})\s*;', webpage, 'app config'),
             display_id)
+        return initial_state, app_config
+
+    def _get_params(self, initial_state, app_config, display_id):
         client_id = app_config['cxApiParams']['accountAuthClientId']
         api_domain = app_config['cxApiParams']['apiDomain']
         basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
@@ -756,6 +733,43 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         locale = traverse_obj(initial_state, ('localization', 'locale'))
         if locale:
             params['locale'] = locale
+        return api_domain, bucket, params
+
+
+class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
+    IE_NAME = 'crunchyroll:beta'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)watch/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
+    _TESTS = [{
+        'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/to-the-future',
+        'info_dict': {
+            'id': '696363',
+            'ext': 'mp4',
+            'timestamp': 1459610100,
+            'description': 'md5:a022fbec4fbb023d43631032c91ed64b',
+            'uploader': 'Toei Animation',
+            'title': 'World Trigger Episode 73 – To the Future',
+            'upload_date': '20160402',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Unable to download XML']
+    }, {
+        'url': 'https://beta.crunchyroll.com/watch/GY2P1Q98Y/',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
+        initial_state, app_config = self._get_embedded_json(self._download_webpage(url, display_id), display_id)
+
+        if not self._get_cookies(url).get('etp_rt'):
+            episode_data = initial_state['content']['byId'][internal_id]
+            video_id = episode_data['external_id'].split('.')[1]
+            series_id = episode_data['episode_metadata']['series_slug_title']
+            return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
+                                   CrunchyrollIE.ie_key(), video_id)
+
+        api_domain, bucket, params = self._get_params(initial_state, app_config, display_id)
+
         episode_response = self._download_json(
             f'{api_domain}/cms/v2{bucket}/episodes/{internal_id}', display_id,
             note='Retrieving episode metadata',
@@ -833,9 +847,9 @@ class CrunchyrollBetaIE(CrunchyrollBaseIE):
         }
 
 
-class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
+class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
     IE_NAME = 'crunchyroll:playlist:beta'
-    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)series/\w+/(?P<id>[\w\-]+)/?(?:\?|$)'
+    _VALID_URL = r'https?://beta\.crunchyroll\.com/(?P<lang>(?:\w{1,2}/)?)series/(?P<id>\w+)/(?P<display_id>[\w\-]*)/?(?:\?|$)'
     _TESTS = [{
         'url': 'https://beta.crunchyroll.com/series/GY19NQ2QR/Girl-Friend-BETA',
         'info_dict': {
@@ -849,6 +863,35 @@ class CrunchyrollBetaShowIE(CrunchyrollBaseIE):
     }]
 
     def _real_extract(self, url):
-        lang, series_id = self._match_valid_url(url).group('lang', 'id')
-        return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id.lower()}',
-                               CrunchyrollShowPlaylistIE.ie_key(), series_id)
+        lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
+        initial_state, app_config = self._get_embedded_json(self._download_webpage(url, display_id), display_id)
+
+        if not self._get_cookies(url).get('etp_rt'):
+            return self.url_result(f'https://www.crunchyroll.com/{lang}{display_id.lower()}',
+                                   CrunchyrollShowPlaylistIE.ie_key(), display_id)
+
+        api_domain, bucket, params = self._get_params(initial_state, app_config, display_id)
+
+        seasons_response = self._download_json(
+            f'{api_domain}/cms/v2{bucket}/seasons?series_id={internal_id}', display_id,
+            note='Retrieving season list',
+            query=params)
+        entries = []
+        for season in seasons_response['items']:
+            season_id = season['id']
+            episodes_response = self._download_json(
+                f'{api_domain}/cms/v2{bucket}/episodes?season_id={season_id}', display_id,
+                note='Retrieving episode list for %s' % season.get('slug_title'),
+                query=params)
+            for episode in episodes_response['items']:
+                episode_id = episode['id']
+                episode_display_id = episode['slug_title']
+                entries.append(self.url_result(
+                    f'https://beta.crunchyroll.com/{lang}watch/{episode_id}/{episode_display_id}', CrunchyrollBetaIE.ie_key(), episode_id, episode['title']))
+
+        return {
+            '_type': 'playlist',
+            'id': internal_id,
+            'title': initial_state['content']['byId'][internal_id]['title'],
+            'entries': entries,
+        }
