@@ -70,9 +70,7 @@ class MildomIE(MildomBaseIE):
         playback_token = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/live/token', result_video_id,
             note='Obtaining live playback token', query=self._common_queries(),
-            body={
-                'host_id': video_id, 'type': 'hls',
-            })
+            body={'host_id': video_id, 'type': 'hls'})
         playback_token = traverse_obj(playback_token, ('data', ..., 'token'), get_all=False)
         if not playback_token:
             raise ExtractorError('Failed to obtain live playback token')
@@ -91,7 +89,7 @@ class MildomIE(MildomBaseIE):
         return {
             'id': result_video_id,
             'title': self._html_search_meta('twitter:description', webpage, fatal=False) or traverse_obj(enterstudio, 'anchor_intro'),
-            'description': traverse_obj(enterstudio, 'intro', 'live_intro', expected_type=compat_str),
+            'description': traverse_obj(enterstudio, 'intro', 'live_intro', expected_type=str),
             'timestamp': float_or_none(enterstudio.get('live_start_ms'), scale=1000),
             'uploader': self._html_search_meta('twitter:title', webpage, fatal=False) or traverse_obj(enterstudio, 'loginname'),
             'uploader_id': video_id,
@@ -160,7 +158,7 @@ class MildomVodIE(MildomBaseIE):
                 'v_id': video_id,
             })['playback']
 
-        title = self._html_search_meta(('og:description', 'description'), webpage, fatal=False) or autoplay.get('title')
+        title = self._html_search_meta(('og:description', 'description'), webpage, default=None) or autoplay.get('title')
         description = traverse_obj(autoplay, 'video_intro')
         uploader = traverse_obj(autoplay, ('author_info', 'login_name'))
 
@@ -295,7 +293,8 @@ class MildomUserVodIE(MildomBaseIE):
             })
         if not reply:
             return
-        yield from (self.url_result(f'https://www.mildom.com/playback/{user_id}/{x["v_id"]}') for x in reply)
+        for x in reply:
+            yield self.url_result(f'https://www.mildom.com/playback/{user_id}/{x["v_id"]}')
 
     def _real_extract(self, url):
         user_id = self._match_id(url)
