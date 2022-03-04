@@ -2105,7 +2105,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'availability': 'public',
                 'channel': 'Leon Nguyen',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp'
+                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
+                'channel_follower_count': int
             }
         }, {
             # date text is premiered video, ensure upload date in UTC (published 1641172509)
@@ -2133,9 +2134,40 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'like_count': int,
                 'availability': 'public',
                 'channel': 'Quackity',
-                'thumbnail': 'https://i.ytimg.com/vi/mzZzzBU6lrM/maxresdefault.jpg'
+                'thumbnail': 'https://i.ytimg.com/vi/mzZzzBU6lrM/maxresdefault.jpg',
+                'channel_follower_count': int
             }
-        }
+        },
+        {   # continuous livestream. Microformat upload date should be preferred.
+            # Upload date was 2021-06-19 (not UTC), while stream start is 2021-11-27
+            'url': 'https://www.youtube.com/watch?v=kgx4WGK0oNU',
+            'info_dict': {
+                'id': 'kgx4WGK0oNU',
+                'title': r're:jazz\/lofi hip hop radio🌱chill beats to relax\/study to \[LIVE 24\/7\] \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+                'ext': 'mp4',
+                'channel_id': 'UC84whx2xxsiA1gXHXXqKGOA',
+                'availability': 'public',
+                'age_limit': 0,
+                'release_timestamp': 1637975704,
+                'upload_date': '20210619',
+                'channel_url': 'https://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
+                'live_status': 'is_live',
+                'thumbnail': 'https://i.ytimg.com/vi/kgx4WGK0oNU/maxresdefault.jpg',
+                'uploader': '阿鲍Abao',
+                'uploader_url': 'http://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
+                'channel': 'Abao in Tokyo',
+                'channel_follower_count': int,
+                'release_date': '20211127',
+                'tags': 'count:39',
+                'categories': ['People & Blogs'],
+                'like_count': int,
+                'uploader_id': 'UC84whx2xxsiA1gXHXXqKGOA',
+                'view_count': int,
+                'playable_in_embed': True,
+                'description': 'md5:2ef1d002cad520f65825346e2084e49d',
+            },
+            'params': {'skip_download': True}
+        },
     ]
 
     @classmethod
@@ -3615,11 +3647,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'channel_url': 'uploader_url',
         }
 
-        if not info.get('upload_date'):
-            self.report_warning('Falling back to non-UTC upload date from the player response' + bug_reports_message())
+        # The upload date for scheduled and current live streams / premieres in microformats
+        # is generally the true upload date. Although not in UTC, we will prefer that in this case.
+        # Note this changes to the published date when the stream/premiere has finished.
+        # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
+        if not info.get('upload_date') or info.get('is_live') or info.get('live_status') == 'is_upcoming':
             info['upload_date'] = (
                 unified_strdate(get_first(microformats, 'uploadDate'))
-                or unified_strdate(search_meta('uploadDate')))
+                or unified_strdate(search_meta('uploadDate'))
+                or info.get('upload_date'))
 
         for to, frm in fallbacks.items():
             if not info.get(to):
