@@ -323,7 +323,7 @@ def create_parser():
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (even with --simulate). Currently only supported for YouTube and Panopto')
+        help='Mark videos watched (even with --simulate)')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
