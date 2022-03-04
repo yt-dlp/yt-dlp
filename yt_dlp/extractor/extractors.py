@@ -348,6 +348,7 @@ from .daum import (
     DaumPlaylistIE,
     DaumUserIE,
 )
+from .daystar import DaystarClipIE
 from .dbtv import DBTVIE
 from .dctp import DctpTvIE
 from .deezer import (
