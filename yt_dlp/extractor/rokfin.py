@@ -183,10 +183,10 @@ class RokfinPlaylistBaseIE(InfoExtractor):
                                   video_title=str_or_none(traverse_obj(content, ('content', 'contentTitle'))))
 
     def _validate_videos_only(self):
-        videos_only_list = self._configuration_arg('videos_only', ['true'])
-        if videos_only_list is not None and (len(videos_only_list) > 1):
-            raise ExtractorError('Invalid extractor-arg "videos-only". Must be true or false', expected=True)
-        return videos_only_list[0] == 'true'
+        playable_only_list = self._configuration_arg('playable_only', ['true'])
+        if playable_only_list is not None and (len(playable_only_list) > 1):
+            raise ExtractorError('Invalid extractor-arg "playable-only". Must be true or false', expected=True)
+        return playable_only_list[0] == 'true'
 
 
 class RokfinStackIE(RokfinPlaylistBaseIE):
