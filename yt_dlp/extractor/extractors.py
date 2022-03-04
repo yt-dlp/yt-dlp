@@ -838,6 +838,7 @@ from .microsoftvirtualacademy import (
 from .mildom import (
     MildomIE,
     MildomVodIE,
+    MildomClipIE,
     MildomUserVodIE,
 )
 from .minds import (
