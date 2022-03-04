@@ -36,7 +36,7 @@ class PanoptoBaseIE(InfoExtractor):
         elif error_code is not None:
             msg = f'Panopto said: {response.get("ErrorMessage")}'
             if fatal:
-                raise ExtractorError(msg, video_id=video_id)
+                raise ExtractorError(msg, video_id=video_id, expected=True)
             else:
                 self.report_warning(msg, video_id=video_id)
         return response
