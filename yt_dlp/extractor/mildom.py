@@ -157,10 +157,6 @@ class MildomVodIE(MildomBaseIE):
                 'v_id': video_id,
             })['playback']
 
-        title = self._html_search_meta(('og:description', 'description'), webpage, default=None) or autoplay.get('title')
-        description = traverse_obj(autoplay, 'video_intro')
-        uploader = traverse_obj(autoplay, ('author_info', 'login_name'))
-
         formats = [{
             'url': autoplay['audio_url'],
             'format_id': 'audio',
@@ -185,12 +181,12 @@ class MildomVodIE(MildomBaseIE):
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
+            'title': self._html_search_meta(('og:description', 'description'), webpage, default=None) or autoplay.get('title'),
+            'description': traverse_obj(autoplay, 'video_intro'),
             'timestamp': float_or_none(autoplay.get('publish_time'), scale=1000),
             'duration': float_or_none(autoplay.get('video_length'), scale=1000),
             'thumbnail': dict_get(autoplay, ('upload_pic', 'video_pic')),
-            'uploader': uploader,
+            'uploader': traverse_obj(autoplay, ('author_info', 'login_name')),
             'uploader_id': user_id,
             'formats': formats,
         }
