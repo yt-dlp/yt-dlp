@@ -63,10 +63,6 @@ class MildomIE(MildomBaseIE):
             note='Downloading live metadata', query={'user_id': video_id})
         result_video_id = enterstudio.get('log_id', video_id)
 
-        title = self._html_search_meta('twitter:description', webpage, fatal=False) or traverse_obj(enterstudio, 'anchor_intro')
-        description = traverse_obj(enterstudio, 'intro', 'live_intro', expected_type=compat_str)
-        uploader = self._html_search_meta('twitter:title', webpage, fatal=False) or traverse_obj(enterstudio, 'loginname')
-
         servers = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/live/liveserver', result_video_id,
             note='Downloading live server list', query={
@@ -97,10 +93,10 @@ class MildomIE(MildomBaseIE):
 
         return {
             'id': result_video_id,
-            'title': title,
-            'description': description,
+            'title': self._html_search_meta('twitter:description', webpage, fatal=False) or traverse_obj(enterstudio, 'anchor_intro'),
+            'description': traverse_obj(enterstudio, 'intro', 'live_intro', expected_type=compat_str),
             'timestamp': float_or_none(enterstudio.get('live_start_ms'), scale=1000),
-            'uploader': uploader,
+            'uploader': self._html_search_meta('twitter:title', webpage, fatal=False) or traverse_obj(enterstudio, 'loginname'),
             'uploader_id': video_id,
             'formats': formats,
             'is_live': True,
