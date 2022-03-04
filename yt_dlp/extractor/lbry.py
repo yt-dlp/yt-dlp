@@ -196,9 +196,9 @@ class LBRYIE(LBRYBaseIE):
             live_data = self._download_json(
                 f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id,
                 note='Downloading livestream JSON metadata')['data']
-            if not live_data['live']:
+            if not (live_data['live'] or self.get_param('wait_for_video')):
                 raise ExtractorError('This stream is not live', expected=True)
-            streaming_url = final_url = live_data['url']
+            streaming_url = final_url = live_data.get('url')
         else:
             raise ExtractorError('Unsupported URL', expected=True)
 
