@@ -25,7 +25,7 @@ class DaystarClipIE(InfoExtractor):
             src_iframe.replace('player.php', 'config2.php'), video_id, headers={'Referer': src_iframe})
 
         sources = self._parse_json(self._search_regex(
-            r'sources\:[^>](\[.*?\])', webpage_iframe, 'm3u8 source'), video_id, transform_source=js_to_json)
+            r'sources\:\s*(\[.*?\])', webpage_iframe, 'm3u8 source'), video_id, transform_source=js_to_json)
 
         formats, subtitles = [], {}
         for source in sources:
@@ -42,7 +42,7 @@ class DaystarClipIE(InfoExtractor):
             'id': video_id,
             'title': self._html_search_meta(['og:title', 'twitter:title'], webpage),
             'description': self._html_search_meta(['og:description', 'twitter:description'], webpage),
-            'thumbnail': self._search_regex(r'image\:[^>]\"([^"]+)\"', webpage_iframe, 'thumbnail'),
+            'thumbnail': self._search_regex(r'image:\s*"([^"]+)', webpage_iframe, 'thumbnail'),
             'formats': formats,
             'subtitles': subtitles,
         }
