@@ -240,13 +240,15 @@ def build_innertube_clients():
         base_client, *variant = client.split('_')
         ytcfg['priority'] = 10 * priority(base_client)
 
-        if variant == ['embedded']:
-            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            INNERTUBE_CLIENTS[f'{base_client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
+        if not variant:
+            INNERTUBE_CLIENTS[f'{client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
             agegate_ytcfg['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
+            agegate_ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
             agegate_ytcfg['priority'] -= 1
+        elif variant == ['embedded']:
+            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
             ytcfg['priority'] -= 2
-        elif variant:
+        else:
             ytcfg['priority'] -= 3
 
 

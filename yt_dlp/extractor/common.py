@@ -639,7 +639,7 @@ class InfoExtractor(object):
             }
             if hasattr(e, 'countries'):
                 kwargs['countries'] = e.countries
-            raise type(e)(e.msg, **kwargs)
+            raise type(e)(e.orig_msg, **kwargs)
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
@@ -1101,6 +1101,7 @@ class InfoExtractor(object):
         if metadata_available and (
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
+            return
         if method is not None:
             msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
         raise ExtractorError(msg, expected=True)
@@ -1617,7 +1618,7 @@ class InfoExtractor(object):
             'vcodec': {'type': 'ordered', 'regex': True,
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -3678,7 +3679,7 @@ class InfoExtractor(object):
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if (self._get_login_info()[0] is not None
+        if (hasattr(self, '_NETRC_MACHINE') and self._get_login_info()[0] is not None
                 or self.get_param('cookiefile')
                 or self.get_param('cookiesfrombrowser')):
             self._mark_watched(*args, **kwargs)

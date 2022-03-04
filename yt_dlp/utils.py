@@ -1060,7 +1060,7 @@ class ExtractorError(YoutubeDLError):
         if sys.exc_info()[0] in network_exceptions:
             expected = True
 
-        self.msg = str(msg)
+        self.orig_msg = str(msg)
         self.traceback = tb
         self.expected = expected
         self.cause = cause
@@ -1071,7 +1071,7 @@ class ExtractorError(YoutubeDLError):
         super(ExtractorError, self).__init__(''.join((
             format_field(ie, template='[%s] '),
             format_field(video_id, template='%s: '),
-            self.msg,
+            msg,
             format_field(cause, template=' (caused by %r)'),
             '' if expected else bug_reports_message())))
 
@@ -2257,7 +2257,7 @@ def unsmuggle_url(smug_url, default=None):
 def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     """ Formats numbers with decimal sufixes like K, M, etc """
     num, factor = float_or_none(num), float(factor)
-    if num is None:
+    if num is None or num < 0:
         return None
     exponent = 0 if num == 0 else int(math.log(num, factor))
     suffix = ['', *'kMGTPEZY'][exponent]
