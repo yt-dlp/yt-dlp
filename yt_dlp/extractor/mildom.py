@@ -41,11 +41,8 @@ class MildomBaseIE(InfoExtractor):
         }
 
     def guest_id(self):
-        'getGuestId'
-        if self._GUEST_ID:
-            return self._GUEST_ID
-        # we're allowed to forge guest_id (!!)
-        self._GUEST_ID = f'pc-gp-{random_uuidv4()}'
+        if not self._GUEST_ID:
+            self._GUEST_ID = f'pc-gp-{random_uuidv4()}'
         return self._GUEST_ID
 
 
