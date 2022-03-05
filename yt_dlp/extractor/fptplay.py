@@ -34,7 +34,7 @@ class FptplayIE(InfoExtractor):
 
     def _real_extract(self, url):
         type_url, video_id, episode = self._match_valid_url(url).group('type', 'id', 'episode')
-        webpage = self._download_webpage(url, video_id=video_id)
+        webpage = self._download_webpage(url, video_id=video_id, fatal=False)
         info = self._download_json(self.get_api_with_st_token(video_id, episode or 0), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(info['data']['url'], video_id, 'mp4')
         self._sort_formats(formats)
