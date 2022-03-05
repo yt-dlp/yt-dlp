@@ -240,13 +240,15 @@ def build_innertube_clients():
         base_client, *variant = client.split('_')
         ytcfg['priority'] = 10 * priority(base_client)
 
-        if variant == ['embedded']:
-            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            INNERTUBE_CLIENTS[f'{base_client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
+        if not variant:
+            INNERTUBE_CLIENTS[f'{client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
             agegate_ytcfg['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
+            agegate_ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
             agegate_ytcfg['priority'] -= 1
+        elif variant == ['embedded']:
+            ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
             ytcfg['priority'] -= 2
-        elif variant:
+        else:
             ytcfg['priority'] -= 3
 
 
@@ -3408,11 +3410,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if caption_track.get('kind') != 'asr':
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, template=' from %s')
-                    process_language(
-                        automatic_captions, base_url, trans_code, trans_name, {'tlang': trans_code})
+                    # Add an "-orig" label to the original language so that it can be distinguished.
+                    # The subs are returned without "-orig" as well for compatibility
                     if lang_code == f'a-{trans_code}':
                         process_language(
-                            automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {'tlang': trans_code})
+                            automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {})
+                    # Setting tlang=lang returns damaged subtitles.
+                    # Not using lang_code == f'a-{trans_code}' here for future-proofing
+                    orig_lang = parse_qs(base_url).get('lang', [None])[-1]
+                    process_language(automatic_captions, base_url, trans_code, trans_name,
+                                     {} if orig_lang == trans_code else {'tlang': trans_code})
             info['automatic_captions'] = automatic_captions
             info['subtitles'] = subtitles
 

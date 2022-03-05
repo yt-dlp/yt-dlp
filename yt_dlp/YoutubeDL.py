@@ -83,6 +83,7 @@ from .utils import (
     make_dir,
     make_HTTPS_handler,
     MaxDownloadsReached,
+    merge_headers,
     network_exceptions,
     number_of_digits,
     orderedSet,
@@ -332,6 +333,7 @@ class YoutubeDL(object):
     nocheckcertificate:  Do not verify SSL certificates
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
+    http_headers:      A dictionary of custom headers to be used for all requests
     proxy:             URL of the proxy server to use
     geo_verification_proxy:  URL of the proxy to use for IP address verification
                        on geo-restricted sites.
@@ -647,6 +649,9 @@ class YoutubeDL(object):
             else self.params['format'] if callable(self.params['format'])
             else self.build_format_selector(self.params['format']))
 
+        # Set http_headers defaults according to std_headers
+        self.params['http_headers'] = merge_headers(std_headers, self.params.get('http_headers', {}))
+
         self._setup_opener()
 
         if auto_init:
@@ -954,13 +959,13 @@ class YoutubeDL(object):
         except UnicodeEncodeError:
             self.to_screen('Deleting existing file')
 
-    def raise_no_formats(self, info, forced=False):
+    def raise_no_formats(self, info, forced=False, *, msg=None):
         has_drm = info.get('__has_drm')
-        msg = 'This video is DRM protected' if has_drm else 'No video formats found!'
-        expected = self.params.get('ignore_no_formats_error')
-        if forced or not expected:
+        ignored, expected = self.params.get('ignore_no_formats_error'), bool(msg)
+        msg = msg or has_drm and 'This video is DRM protected' or 'No video formats found!'
+        if forced or not ignored:
             raise ExtractorError(msg, video_id=info['id'], ie=info['extractor'],
-                                 expected=has_drm or expected)
+                                 expected=has_drm or ignored or expected)
         else:
             self.report_warning(msg)
 
@@ -2250,8 +2255,7 @@ class YoutubeDL(object):
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = std_headers.copy()
-        res.update(info_dict.get('http_headers') or {})
+        res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
 
         cookies = self._calc_cookies(info_dict)
         if cookies:
@@ -2392,6 +2396,8 @@ class YoutubeDL(object):
 
         sanitize_string_field(info_dict, 'id')
         sanitize_numeric_fields(info_dict)
+        if (info_dict.get('duration') or 0) <= 0 and info_dict.pop('duration', None):
+            self.report_warning('"duration" field is negative, there is an error in extractor')
 
         if 'playlist' not in info_dict:
             # It isn't part of a playlist
@@ -2438,11 +2444,14 @@ class YoutubeDL(object):
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
 
-        if info_dict.get('is_live'):
-            get_from_start = bool(self.params.get('live_from_start'))
+        get_from_start = not info_dict.get('is_live') or bool(self.params.get('live_from_start'))
+        if not get_from_start:
+            info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+        if info_dict.get('is_live') and formats:
             formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
-            if not get_from_start:
-                info_dict['title'] += ' ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            if get_from_start and not formats:
+                self.raise_no_formats(info_dict, msg='--live-from-start is passed, but there are no formats that can be downloaded from the start. '
+                                                     'If you want to download from the current time, pass --no-live-from-start')
 
         if not formats:
             self.raise_no_formats(info_dict)
@@ -3583,7 +3592,7 @@ class YoutubeDL(object):
             return
 
         def get_encoding(stream):
-            ret = getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__)
+            ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
             if not supports_terminal_sequences(stream):
                 from .compat import WINDOWS_VT_MODE
                 ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
