@@ -809,6 +809,7 @@ from .manoto import (
     ManotoTVShowIE,
     ManotoTVLiveIE,
 )
+from .mangotv import MangotvIE
 from .manyvids import ManyVidsIE
 from .maoritv import MaoriTVIE
 from .markiza import (
