@@ -895,6 +895,7 @@ from .mtv import (
     MTVItaliaIE,
     MTVItaliaProgrammaIE,
 )
+from .muchohentai import MuchoHentaiIE
 from .muenchentv import MuenchenTVIE
 from .murrtube import MurrtubeIE, MurrtubeUserIE
 from .musescore import MuseScoreIE
