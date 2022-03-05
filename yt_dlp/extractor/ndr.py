@@ -16,7 +16,8 @@ from ..utils import (
 class NDRBaseIE(InfoExtractor):
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
-        display_id = next(group for group in mobj.groups() if group)
+        self.BASE_URL = mobj.group('base_url')
+        display_id = next(group for group in mobj.groups()[1:] if group)
         id = mobj.group('id')
         webpage = self._download_webpage(url, display_id)
         return self._extract_embed(webpage, display_id, id)
@@ -25,20 +26,10 @@ class NDRBaseIE(InfoExtractor):
 class NDRIE(NDRBaseIE):
     IE_NAME = 'ndr'
     IE_DESC = 'NDR.de - Norddeutscher Rundfunk'
-    _VALID_URL = r'https?://(?:www\.)?(?:daserste\.)?ndr\.de/(?:[^/]+/)*(?P<display_id>[^/?#]+),(?P<id>[\da-z]+)\.html'
-    _TESTS = [{
+    _VALID_URL = r'(?P<base_url>https?://(?:www\.)?(?:daserste\.)?ndr\.de)/(?:[^/]+/)*(?P<display_id>[^/?#]+),(?P<id>[\da-z]+)\.html'
+    _TESTS = [{  # Content removed
         'url': 'http://www.ndr.de/fernsehen/Party-Poette-und-Parade,hafengeburtstag988.html',
-        'info_dict': {
-            'id': 'hafengeburtstag988',
-            'ext': 'mp4',
-            'title': 'Party, Pötte und Parade',
-            'thumbnail': 'https://www.ndr.de/fernsehen/hafengeburtstag990_v-contentxl.jpg',
-            'description': 'md5:ad14f9d2f91d3040b6930c697e5f6b4c',
-            'series': None,
-            'channel': 'NDR Fernsehen',
-            'upload_date': '20150508',
-            'duration': 3498,
-        },
+        'only_matching': True
     }, {
         'url': 'https://www.ndr.de/sport/fussball/Rostocks-Matchwinner-Froede-Ein-Hansa-Debuet-wie-im-Maerchen,hansa10312.html',
         'only_matching': True
@@ -80,15 +71,28 @@ class NDRIE(NDRBaseIE):
             'duration': 884.0,
         },
         'expected_warnings': ['unable to extract json url'],
+    }, {
+        'url': 'https://daserste.ndr.de/panorama/archiv/2022/Das-Ende-des-Schnitzels,schnitzel236.html',
+        'info_dict': {
+            'id': 'schnitzel236',
+            'ext': 'mp4',
+            'title': 'Das Ende des Schnitzels?',
+            'description': 'md5:e99ca7451260f172fc6a60cd59ac3d77',
+            'thumbnail': 'https://daserste.ndr.de/panorama/schweineschnitzel112_v-contentxl.jpg',
+            'series': 'Panorama',
+            'channel': 'Das Erste',
+            'upload_date': '20220113',
+            'duration': 1768
+        },
+        'params': {'skip_download': True}
     }]
 
     def _extract_embed(self, webpage, display_id, id):
         formats = []
-        base_url = 'https://www.ndr.de'
-        json_url = self._search_regex(r'<iframe[^>]+src=\"([^\"]+)_theme-ndrde[^\.]*\.html\"', webpage,
+        json_url = self._search_regex(r'<iframe[^>]+src=\"([^\"]+)_theme-[^\.]*\.html\"', webpage,
                                       'json url', fatal=False)
         if json_url:
-            data_json = self._download_json(base_url + json_url.replace('ardplayer_image', 'ardjson_image') + '.json',
+            data_json = self._download_json(self.BASE_URL + json_url.replace('ardplayer_image', 'ardjson_image') + '.json',
                                             id, fatal=False)
             info_json = data_json.get('_info', {})
             media_json = try_get(data_json, lambda x: x['_mediaArray'][0]['_mediaStreamArray'])
@@ -99,13 +103,13 @@ class NDRIE(NDRBaseIE):
             sub_url = data_json.get('_subtitleUrl')
             if sub_url:
                 subtitles.setdefault('de', []).append({
-                    'url': base_url + sub_url,
+                    'url': self.BASE_URL + sub_url,
                 })
             self._sort_formats(formats)
             return {
                 'id': id,
                 'title': info_json.get('clipTitle'),
-                'thumbnail': base_url + data_json.get('_previewImage'),
+                'thumbnail': self.BASE_URL + data_json.get('_previewImage'),
                 'description': info_json.get('clipDescription'),
                 'series': info_json.get('seriesTitle') or None,
                 'channel': info_json.get('channelTitle'),
@@ -115,13 +119,13 @@ class NDRIE(NDRBaseIE):
                 'subtitles': subtitles,
             }
         else:
-            json_url = base_url + self._search_regex(r'apiUrl\s?=\s?\'([^\']+)\'', webpage, 'json url').replace(
+            json_url = self.BASE_URL + self._search_regex(r'apiUrl\s?=\s?\'([^\']+)\'', webpage, 'json url').replace(
                 '_belongsToPodcast-', '')
             data_json = self._download_json(json_url, id, fatal=False)
             return {
                 'id': id,
                 'title': data_json.get('title'),
-                'thumbnail': base_url + data_json.get('poster'),
+                'thumbnail': self.BASE_URL + data_json.get('poster'),
                 'description': data_json.get('summary'),
                 'upload_date': unified_strdate(data_json.get('publicationDate')),
                 'duration': parse_duration(data_json.get('duration')),
@@ -136,41 +140,29 @@ class NDRIE(NDRBaseIE):
 class NJoyIE(NDRBaseIE):
     IE_NAME = 'njoy'
     IE_DESC = 'N-JOY'
-    _VALID_URL = r'https?://(?:www\.)?n-joy\.de/(?:[^/]+/)*(?:(?P<display_id>[^/?#]+),)?(?P<id>[\da-z]+)\.html'
+    _VALID_URL = r'(?P<base_url>https?://(?:www\.)?n-joy\.de)/(?:[^/]+/)*(?:(?P<display_id>[^/?#]+),)?(?P<id>[\da-z]+)\.html'
     _TESTS = [{
-        # httpVideo, same content id
-        'url': 'http://www.n-joy.de/entertainment/comedy/comedy_contest/Benaissa-beim-NDR-Comedy-Contest,comedycontest2480.html',
-        'md5': 'cb63be60cd6f9dd75218803146d8dc67',
+        'url': 'https://www.n-joy.de/leben/Der-N-JOY-Heartbeat-Der-Song-mit-dem-ihr-Leben-rettet,heartbeat108.html',
         'info_dict': {
-            'id': 'comedycontest2480',
-            'display_id': 'Benaissa-beim-NDR-Comedy-Contest',
+            'id': 'herzdruckmassage106',
             'ext': 'mp4',
-            'title': 'Benaissa beim NDR Comedy Contest',
-            'description': 'md5:f057a6c4e1c728b10d33b5ffd36ddc39',
-            'uploader': 'ndrtv',
-            'upload_date': '20141129',
-            'duration': 654,
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        # httpVideo, different content id
-        'url': 'http://www.n-joy.de/musik/Das-frueheste-DJ-Set-des-Nordens-live-mit-Felix-Jaehn-,felixjaehn168.html',
-        'md5': '417660fffa90e6df2fda19f1b40a64d8',
-        'info_dict': {
-            'id': 'dockville882',
-            'display_id': 'Das-frueheste-DJ-Set-des-Nordens-live-mit-Felix-Jaehn-',
-            'ext': 'mp4',
-            'title': '"Ich hab noch nie" mit Felix Jaehn',
-            'description': 'md5:85dd312d53be1b99e1f998a16452a2f3',
+            'title': 'Lasst uns Leben retten: So funktioniert die Herzdruckmassage',
+            'description': None,
             'uploader': 'njoy',
-            'upload_date': '20150822',
-            'duration': 211,
-        },
-        'params': {
-            'skip_download': True,
-        },
+            'upload_date': '20220302',
+            'duration': 167,
+            'display_id': 'Der-N-JOY-Heartbeat-Der-Song-mit-dem-ihr-Leben-rettet',
+            'thumbnail': 'https://www.n-joy.de/leben/erstehilfe370_v-contentxl.jpg'},
+        'params': {'skip_download': True},
+        'expected_warnings': ['unable to extract description'],
+    }, {
+        # Removed
+        'url': 'http://www.n-joy.de/entertainment/comedy/comedy_contest/Benaissa-beim-NDR-Comedy-Contest,comedycontest2480.html',
+        'only_matching': True
+    }, {
+        # Removed
+        'url': 'http://www.n-joy.de/musik/Das-frueheste-DJ-Set-des-Nordens-live-mit-Felix-Jaehn-,felixjaehn168.html',
+        'only_matching': True
     }, {
         'url': 'http://www.n-joy.de/radio/webradio/morningshow209.html',
         'only_matching': True,
@@ -219,11 +211,7 @@ class NDREmbedBaseIE(InfoExtractor):
             if not src:
                 continue
             ext = determine_ext(src, None)
-            if ext == 'f4m':
-                formats.extend(self._extract_f4m_formats(
-                    src + '?hdcore=3.7.0&plugin=aasp-3.7.0.39.44', video_id,
-                    f4m_id='hds', fatal=False))
-            elif ext == 'm3u8':
+            if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
                     src, video_id, 'mp4', m3u8_id='hls',
                     entry_protocol='m3u8_native', fatal=False))
@@ -291,33 +279,12 @@ class NDREmbedBaseIE(InfoExtractor):
 class NDREmbedIE(NDREmbedBaseIE):
     IE_NAME = 'ndr:embed'
     _VALID_URL = r'https?://(?:www\.)?(?:daserste\.)?ndr\.de/(?:[^/]+/)*(?P<id>[\da-z]+)-(?:player|externalPlayer)\.html'
-    _TESTS = [{
+    _TESTS = [{  # Removed
         'url': 'http://www.ndr.de/fernsehen/sendungen/ndr_aktuell/ndraktuell28488-player.html',
-        'md5': '8b9306142fe65bbdefb5ce24edb6b0a9',
-        'info_dict': {
-            'id': 'ndraktuell28488',
-            'ext': 'mp4',
-            'title': 'Norddeutschland begrüßt Flüchtlinge',
-            'is_live': False,
-            'uploader': 'ndrtv',
-            'upload_date': '20150907',
-            'duration': 132,
-        },
+        'only_matching': True
     }, {
         'url': 'http://www.ndr.de/ndr2/events/soundcheck/soundcheck3366-player.html',
-        'md5': '002085c44bae38802d94ae5802a36e78',
-        'info_dict': {
-            'id': 'soundcheck3366',
-            'ext': 'mp4',
-            'title': 'Ella Henderson braucht Vergleiche nicht zu scheuen',
-            'is_live': False,
-            'uploader': 'ndr2',
-            'upload_date': '20150912',
-            'duration': 3554,
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True
     }, {
         'url': 'http://www.ndr.de/info/audio51535-player.html',
         'md5': 'bb3cd38e24fbcc866d13b50ca59307b8',
@@ -327,40 +294,34 @@ class NDREmbedIE(NDREmbedBaseIE):
             'title': 'La Valette entgeht der Hinrichtung',
             'is_live': False,
             'uploader': 'ndrinfo',
-            'upload_date': '20140729',
+            'upload_date': '20210915',
             'duration': 884,
+            'thumbnail': 'http://www.ndr.de/common/resources/images/mediathek/default-audio-image.png',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'http://www.ndr.de/fernsehen/sendungen/visite/visite11010-externalPlayer.html',
+        'url': 'https://www.ndr.de/fernsehen/sendungen/visite/Gallensteine-Ursachen-Symptome-und-Behandlung,visite21048.html',
         'md5': 'ae57f80511c1e1f2fd0d0d3d31aeae7c',
         'info_dict': {
-            'id': 'visite11010',
+            'id': 'visite21048',
             'ext': 'mp4',
-            'title': 'Visite - die ganze Sendung',
-            'is_live': False,
-            'uploader': 'ndrtv',
-            'upload_date': '20150902',
-            'duration': 3525,
+            'title': 'Gallensteine: Ursachen, Symptome und Behandlung',
+            'upload_date': '20220301',
+            'duration': 359,
+            'thumbnail': 'https://www.ndr.de/gallensteine116_v-contentxl.jpg',
+            'series': 'Visite',
+            'channel': 'NDR Fernsehen',
+            'description': 'md5:026ca736d4506de0e3e6f561336174ee',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        # httpVideoLive
+        # Removed
         'url': 'http://www.ndr.de/fernsehen/livestream/livestream217-externalPlayer.html',
-        'info_dict': {
-            'id': 'livestream217',
-            'ext': 'flv',
-            'title': r're:^NDR Fernsehen Niedersachsen \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
-            'is_live': True,
-            'upload_date': '20150910',
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True
     }, {
         'url': 'http://www.ndr.de/ndrkultur/audio255020-player.html',
         'only_matching': True,
@@ -394,25 +355,14 @@ class NJoyEmbedIE(NDREmbedBaseIE):
             'ext': 'mp4',
             'title': 'Zehn Jahre Reeperbahn Festival - die Doku',
             'is_live': False,
-            'upload_date': '20150807',
+            'upload_date': '20200826',
             'duration': 1011,
+            'thumbnail': 'https://www.n-joy.de/events/reeperbahnfestival/reeperbahnfestival1151_v-contentxl.jpg',
         },
     }, {
-        # httpAudio
+        # Removed
         'url': 'http://www.n-joy.de/news_wissen/stefanrichter100-player_image-d5e938b1-f21a-4b9a-86b8-aaba8bca3a13_theme-n-joy.html',
-        'md5': 'd989f80f28ac954430f7b8a48197188a',
-        'info_dict': {
-            'id': 'stefanrichter100',
-            'ext': 'mp3',
-            'title': 'Interview mit einem Augenzeugen',
-            'is_live': False,
-            'uploader': 'njoy',
-            'upload_date': '20150909',
-            'duration': 140,
-        },
-        'params': {
-            'skip_download': True,
-        },
+        'only_matching': True
     }, {
         # httpAudioLive, no explicit ext
         'url': 'http://www.n-joy.de/news_wissen/webradioweltweit100-player_image-3fec0484-2244-4565-8fb8-ed25fd28b173_theme-n-joy.html',
@@ -422,7 +372,9 @@ class NJoyEmbedIE(NDREmbedBaseIE):
             'title': r're:^N-JOY Weltweit \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
             'is_live': True,
             'uploader': 'njoy',
-            'upload_date': '20150810',
+            'upload_date': '20210830',
+            'live_status': 'is_live',
+            'thumbnail': 'https://www.n-joy.de/entertainment/globus112_v-contentxl.jpg',
         },
         'params': {
             'skip_download': True,
