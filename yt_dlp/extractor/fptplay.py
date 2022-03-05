@@ -50,10 +50,8 @@ class FptplayIE(InfoExtractor):
     def get_api_with_st_token(self, video_id, episode):
         path = f'/api/v6.2_w/stream/vod/{video_id}/{episode}/auto_vip'
         timestamp = int(time.time()) + 10800
-        m = hashlib.md5()
-        m.update(f'WEBv6Dkdsad90dasdjlALDDDS{timestamp}{path}'.encode())
 
-        t = m.hexdigest().upper()
+        t = hashlib.md5(f'WEBv6Dkdsad90dasdjlALDDDS{timestamp}{path}'.encode()).hexdigest().upper()
         r = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
         n = [int(f'0x{t[2 * o: 2 * o + 2]}', 16) for o in range(len(t) // 2)]
 
