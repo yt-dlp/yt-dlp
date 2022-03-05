@@ -365,8 +365,10 @@ class TumblrIE(InfoExtractor):
 
         formats = formats or [{
             'url': media_json.get('url') or video_url,
-            'width': int_or_none(media_json.get('width') or self._og_search_property('video:width', webpage, default=None)),
-            'height': int_or_none(media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
+            'width': int_or_none(
+                media_json.get('width') or self._og_search_property('video:width', webpage, default=None)),
+            'height': int_or_none(
+                media_json.get('height') or self._og_search_property('video:height', webpage, default=None)),
         }]
         self._sort_formats(formats)
 
