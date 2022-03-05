@@ -41,8 +41,16 @@ class TV2DKIE(InfoExtractor):
             'duration': 1347,
             'view_count': int,
         },
-        'params': {
-            'skip_download': True,
+        'add_ie': ['Kaltura'],
+    }, {
+        'url': 'https://www.tv2lorry.dk/gadekamp/gadekamp-6-hoejhuse-i-koebenhavn',
+        'info_dict': {
+            'id': '1_7iwll9n0',
+            'ext': 'mp4',
+            'upload_date': '20211027',
+            'title': 'Gadekamp #6 - Højhuse i København',
+            'uploader_id': 'tv2lorry',
+            'timestamp': 1635345229,
         },
         'add_ie': ['Kaltura'],
     }, {
@@ -91,11 +99,14 @@ class TV2DKIE(InfoExtractor):
             add_entry(partner_id, kaltura_id)
         if not entries:
             kaltura_id = self._search_regex(
-                r'entry_id\s*:\s*["\']([0-9a-z_]+)', webpage, 'kaltura id')
+                (r'entry_id\s*:\s*["\']([0-9a-z_]+)',
+                 r'\\u002FentryId\\u002F(\w+)\\u002F'), webpage, 'kaltura id')
             partner_id = self._search_regex(
                 (r'\\u002Fp\\u002F(\d+)\\u002F', r'/p/(\d+)/'), webpage,
                 'partner id')
             add_entry(partner_id, kaltura_id)
+        if len(entries) == 1:
+            return entries[0]
         return self.playlist_result(entries)
 
 

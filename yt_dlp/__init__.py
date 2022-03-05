@@ -41,6 +41,7 @@ from .utils import (
     SameFileError,
     setproctitle,
     std_headers,
+    traverse_obj,
     write_string,
 )
 from .update import run_update
@@ -75,20 +76,15 @@ def _real_main(argv=None):
     parser, opts, args = parseOpts(argv)
     warnings, deprecation_warnings = [], []
 
-    # Set user agent
     if opts.user_agent is not None:
-        std_headers['User-Agent'] = opts.user_agent
-
-    # Set referer
+        opts.headers.setdefault('User-Agent', opts.user_agent)
     if opts.referer is not None:
-        std_headers['Referer'] = opts.referer
-
-    # Custom HTTP headers
-    std_headers.update(opts.headers)
+        opts.headers.setdefault('Referer', opts.referer)
 
     # Dump user agent
     if opts.dump_user_agent:
-        write_string(std_headers['User-Agent'] + '\n', out=sys.stdout)
+        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
+        write_string(f'{ua}\n', out=sys.stdout)
         sys.exit(0)
 
     # Batch file verification
@@ -767,6 +763,7 @@ def _real_main(argv=None):
         'legacyserverconnect': opts.legacy_server_connect,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,
+        'http_headers': opts.headers,
         'proxy': opts.proxy,
         'socket_timeout': opts.socket_timeout,
         'bidi_workaround': opts.bidi_workaround,

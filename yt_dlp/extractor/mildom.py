@@ -8,7 +8,6 @@ import json
 
 from .common import InfoExtractor
 from ..utils import (
-    std_headers,
     update_url_query,
     random_uuidv4,
     try_get,
@@ -70,7 +69,7 @@ class MildomBaseIE(InfoExtractor):
                         'clu': '',
                         'wh': '1919*810',
                         'rtm': self.iso_timestamp(),
-                        'ua': std_headers['User-Agent'],
+                        'ua': self.get_param('http_headers')['User-Agent'],
                     }).encode('utf8')).decode('utf8').replace('\n', ''),
                 }).encode('utf8'))
             self._DISPATCHER_CONFIG = self._parse_json(base64.b64decode(tmp['data']), 'initialization')
