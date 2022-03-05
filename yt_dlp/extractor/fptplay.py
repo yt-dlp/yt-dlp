@@ -7,7 +7,6 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
     traverse_obj,
 )
 
