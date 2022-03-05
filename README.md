@@ -1700,10 +1700,7 @@ The following extractors use this feature:
 
 #### rokfinchannel
 * `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
-* `playable_only`: Exclude articles, rankings, and other non-playable entries, from the results; `true` (default) or `false`.
 
-#### rokfinstack
-* `playable_only`: Exclude articles, rankings, and other non-playable entries, from the results; `true` (default) or `false`.
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 

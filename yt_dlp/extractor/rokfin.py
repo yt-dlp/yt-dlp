@@ -101,7 +101,7 @@ class RokfinIE(InfoExtractor):
 
         if not formats:
             if metadata.get('premiumPlan') or metadata.get('premium'):
-                self.raise_login_required('This video is only available to premium users', True, method='password')
+                self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
                     f'Stream is offline; sheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
@@ -129,7 +129,7 @@ class RokfinIE(InfoExtractor):
             'tags': traverse_obj(metadata, ('tags', ..., 'title'), expected_type=str_or_none),
             'live_status': live_status,
             'availability': self._availability(
-                needs_premium=bool(metadata.get('premiumPlan')),
+                needs_premium=bool(metadata.get('premiumPlan')) or bool(metadata.get('premium')),
                 is_private=False, needs_subscription=False, needs_auth=False, is_unlisted=False),
             # 'comment_count': metadata.get('numComments'), # Data provided by website is wrong
             '__post_extractor': self.extract_comments(video_id) if video_type == 'post' else None,
@@ -170,9 +170,7 @@ class RokfinPlaylistBaseIE(InfoExtractor):
         'stack': 'stack',
     }
 
-    def _get_video_data(self, metadata, videos_only):
-        if not videos_only:
-            RokfinPlaylistBaseIE._TYPES.update({'article': 'article', 'ranking': 'ranking'})
+    def _get_video_data(self, metadata):
         for content in metadata.get('content') or []:
             media_type = self._TYPES.get(content.get('mediaType'))
             video_id = content.get('id') if media_type == 'post' else content.get('mediaId')
@@ -181,12 +179,6 @@ class RokfinPlaylistBaseIE(InfoExtractor):
 
             yield self.url_result(f'https://rokfin.com/{media_type}/{video_id}', video_id=f'{media_type}/{video_id}',
                                   video_title=str_or_none(traverse_obj(content, ('content', 'contentTitle'))))
-
-    def _validate_videos_only(self):
-        playable_only_list = self._configuration_arg('playable_only', ['true'])
-        if playable_only_list is not None and (len(playable_only_list) > 1):
-            raise ExtractorError('Invalid extractor-arg "playable-only". Must be true or false', expected=True)
-        return playable_only_list[0] == 'true'
 
 
 class RokfinStackIE(RokfinPlaylistBaseIE):
@@ -203,7 +195,7 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
     def _real_extract(self, url):
         list_id = self._match_id(url)
         return self.playlist_result(self._get_video_data(
-            self._download_json(f'{_API_BASE_URL}stack/{list_id}', list_id), self._validate_videos_only()), list_id)
+            self._download_json(f'{_API_BASE_URL}stack/{list_id}', list_id)), list_id, multi_video=True)
 
 
 class RokfinChannelIE(RokfinPlaylistBaseIE):
@@ -238,7 +230,6 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
 
     def _entries(self, channel_id, channel_name, tab):
         pages_total = None
-        videos_only = self._validate_videos_only()
         for page_n in itertools.count(0):
             if tab in ('posts', 'top'):
                 data_url = f'{_API_BASE_URL}user/{channel_name}/{tab}?page={page_n}&size=50'
@@ -248,7 +239,7 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
                 data_url, channel_name,
                 note=f'Downloading video metadata page {page_n + 1}{format_field(pages_total, template=" of %s")}')
 
-            yield from self._get_video_data(metadata, videos_only)
+            yield from self._get_video_data(metadata)
             pages_total = int_or_none(metadata.get('totalPages')) or None
             is_last = metadata.get('last')
             if is_last or (page_n > pages_total if pages_total else is_last is not False):
