@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class FptplayIE(InfoExtractor):
-    _VALID_URL = r'https?://fptplay\.vn/(?P<type>xem-video)/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>[^/]+)?/?(?:[?#]|$)'
+    _VALID_URL = r'https?://fptplay\.vn/(?P<type>xem-video)/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>[^/]+)?/?(?:[?#]|$)|)'
     _GEO_COUNTRIES = ['VN']
     IE_NAME = 'fptplay'
     IE_DESC = 'fptplay.vn'
@@ -52,15 +52,10 @@ class FptplayIE(InfoExtractor):
         timestamp = int(time.time()) + 10800
         m = hashlib.md5()
         m.update(f'WEBv6Dkdsad90dasdjlALDDDS{timestamp}{path}'.encode())
-        st_token = self.encrypt(m.hexdigest())
-        return f'https://api.fptplay.net{path}?{urllib.parse.urlencode({"st": st_token, "e": timestamp})}'
 
-    def encrypt(self, string):
-        n = []
-        t = string.upper()
+        t = m.hexdigest().upper()
         r = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-        for o in range(len(t) // 2):
-            n.append(int(f'0x{t[2 * o: 2 * o + 2]}', 16))
+        n = [int(f'0x{t[2 * o: 2 * o + 2]}', 16) for o in range(len(t) // 2)]
 
         def convert(e):
             t = ''
@@ -83,7 +78,7 @@ class FptplayIE(InfoExtractor):
                         t += r[a[v]]
                     n = 0
             if n:
-                for o in range(n, 3, 1):
+                for o in range(n, 3):
                     i[o] = 0
 
                 for o in range(n + 1):
@@ -98,4 +93,5 @@ class FptplayIE(InfoExtractor):
                     n += 1
             return t
 
-        return convert(n).replace('+', '-').replace('/', '_').replace('=', '')
+        st_token = convert(n).replace('+', '-').replace('/', '_').replace('=', '')
+        return f'https://api.fptplay.net{path}?{urllib.parse.urlencode({"st": st_token, "e": timestamp})}'
