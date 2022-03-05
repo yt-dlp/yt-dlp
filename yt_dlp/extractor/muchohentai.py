@@ -21,7 +21,7 @@ class MuchoHentaiIE(InfoExtractor):
             'title': 'Nanatsu no Bitoku Uncensored Opening',
             'description': 're:Watch Nanatsu no Bitoku Uncensored Opening.*',
             'duration': 32,
-            'thumbnail': 're:^https?://.*.tmncdn.io/wp-content/uploads/Nanatsu_no_Bitoku/thumbs.vtt',
+            'thumbnail': 're:^https?://.*.tmncdn.io/wp-content/uploads/Nanatsu_no_Bitoku/thumbs.vtt'
         }
     }
 
@@ -55,24 +55,42 @@ class MuchoHentaiIE(InfoExtractor):
         m3u8_path = md.get('file').replace('\\', '')
         vtt_path = md.get('thumbs').replace('\\', '')
         m3u8_url = urljoin(server_url, m3u8_path)
-        try:
-            ext = m3u8_url.split('.')[-2]
-        except IndexError:
-            self.to_screen('Could not determine the real filext from {0}'.format(m3u8_url))
-            ext = None
         vtt_url = urljoin(server_url, vtt_path)
         fragment_base_url = base_url(m3u8_url)
         m3u8_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.REFERER_HEADER)
         if len(m3u8_formats) == 0:
             raise ExtractorError('Not Implemented! - Playlist has size 0.')
-        elif len(m3u8_formats) > 1:
-            self.to_screen('Playlist {0}'.format(m3u8_formats))
-            raise ExtractorError('Not Implemented! - Playlist has more then one format.')
+        else:
+            # More then one format to be merged. Formats are compliated.
+            for m3u8_format in m3u8_formats:
+                m3u8_format.update({'http_headers': self.REFERER_HEADER})  # mandatory
+                if m3u8_format.get('fragment_base_url') is None:
+                    # only if not found by _extract_m3u8_formats
+                    m3u8_format.update({'fragment_base_url': fragment_base_url})
+
+                if m3u8_format.get('ext') is None:
+                    ext_from_parent_m3u = None
+                    # Check if the format can be found in parent M3U file
+                    possible_length_for_two_exts = (len('.m3u8') + len('.mp4') + 2)
+                    if m3u8_url[-possible_length_for_two_exts:].count('.') == 2:
+                        ext_from_parent_m3u = m3u8_url[-possible_length_for_two_exts:].split('.')[-2]
+
+                    # Check if the format can be found by format_id
+                    ext_from_format_id = None
+                    format_id = m3u8_format.get('format_id')
+                    if format_id is not None \
+                            and not format_id.isnumeric() \
+                            and m3u8_format.get('vcodec') in [None, 'none']:
+                        # it can only be an audio format
+                        if format_id.startswith('audio_aac'):
+                            ext_from_format_id = 'aac'
+                        else:
+                            ext_from_format_id = 'unknown_audio'
+                    ext = ext_from_parent_m3u or ext_from_format_id
+                    m3u8_format.update({'ext': ext})
 
         duration = self._extract_m3u8_vod_duration(m3u8_url, video_id, headers=self.REFERER_HEADER)
-        m3u8_formats[0].update({'http_headers': self.REFERER_HEADER,
-                                'fragment_base_url': fragment_base_url,
-                                'ext': ext})
+
         return {'id': video_id,
                 'title': title,
                 'description': description,
