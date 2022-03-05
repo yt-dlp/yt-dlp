@@ -7,12 +7,12 @@ import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
+    join_nonempty,
 )
 
 
 class FptplayIE(InfoExtractor):
-    _VALID_URL = r'https?://fptplay\.vn/(?P<type>(?:xem-video))/([^/]+\-(?P<id>\w+))(?:\/|$)(?:tap-(?P<episode>[^/]+)|$)'
+    _VALID_URL = r'https?://fptplay\.vn/(?P<type>xem-video)/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>[^/]+)?/?(?:[?#]|$)'
     _GEO_COUNTRIES = ['VN']
     IE_NAME = 'fptplay'
     IE_DESC = 'fptplay.vn'
@@ -34,16 +34,14 @@ class FptplayIE(InfoExtractor):
 
     def _real_extract(self, url):
         type_url, video_id, episode = self._match_valid_url(url).group('type', 'id', 'episode')
-        if not episode:
-            episode = 0
         webpage = self._download_webpage(url, video_id=video_id)
-        info = self._download_json(self.get_api_with_st_token(video_id, episode), video_id=video_id)
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(info, ('data', 'url')), video_id,
-                                                                      'mp4')
+        info = self._download_json(self.get_api_with_st_token(video_id, episode or 0), video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(info['data']['url'], video_id, 'mp4')
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': f'{self._html_search_meta(["og:title", "twitter:title"], webpage)}{f" - {episode}" if episode else ""}',
+            'title': join_nonempty(
+                self._html_search_meta(('og:title', 'twitter:title'), webpage), episode, delim=' - '),
             'description': self._html_search_meta(['og:description', 'twitter:description'], webpage),
             'formats': formats,
             'subtitles': subtitles,
