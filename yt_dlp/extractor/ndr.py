@@ -85,6 +85,23 @@ class NDRIE(NDRBaseIE):
             'duration': 1768
         },
         'params': {'skip_download': True}
+    }, {
+        'url': 'https://www.ndr.de/fernsehen/sendungen/visite/Gallensteine-Ursachen-Symptome-und-Behandlung,visite21048.html',
+        'md5': 'ae57f80511c1e1f2fd0d0d3d31aeae7c',
+        'info_dict': {
+            'id': 'visite21048',
+            'ext': 'mp4',
+            'title': 'Gallensteine: Ursachen, Symptome und Behandlung',
+            'upload_date': '20220301',
+            'duration': 359,
+            'thumbnail': 'https://www.ndr.de/gallensteine116_v-contentxl.jpg',
+            'series': 'Visite',
+            'channel': 'NDR Fernsehen',
+            'description': 'md5:026ca736d4506de0e3e6f561336174ee',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _extract_embed(self, webpage, display_id, id):
@@ -297,23 +314,6 @@ class NDREmbedIE(NDREmbedBaseIE):
             'upload_date': '20210915',
             'duration': 884,
             'thumbnail': 'http://www.ndr.de/common/resources/images/mediathek/default-audio-image.png',
-        },
-        'params': {
-            'skip_download': True,
-        },
-    }, {
-        'url': 'https://www.ndr.de/fernsehen/sendungen/visite/Gallensteine-Ursachen-Symptome-und-Behandlung,visite21048.html',
-        'md5': 'ae57f80511c1e1f2fd0d0d3d31aeae7c',
-        'info_dict': {
-            'id': 'visite21048',
-            'ext': 'mp4',
-            'title': 'Gallensteine: Ursachen, Symptome und Behandlung',
-            'upload_date': '20220301',
-            'duration': 359,
-            'thumbnail': 'https://www.ndr.de/gallensteine116_v-contentxl.jpg',
-            'series': 'Visite',
-            'channel': 'NDR Fernsehen',
-            'description': 'md5:026ca736d4506de0e3e6f561336174ee',
         },
         'params': {
             'skip_download': True,
