@@ -159,9 +159,9 @@ class ExternalFD(FragmentFD):
             dest.write(decrypt_fragment(fragment, src.read()))
             src.close()
             if not self.params.get('keep_fragments', False):
-                os.remove(encodeFilename(fragment_filename))
+                self.try_remove(encodeFilename(fragment_filename))
         dest.close()
-        os.remove(encodeFilename('%s.frag.urls' % tmpfilename))
+        self.try_remove(encodeFilename('%s.frag.urls' % tmpfilename))
         return 0
 
 
@@ -253,7 +253,7 @@ class Aria2cFD(ExternalFD):
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = [self.exe, '-c',
                '--console-log-level=warn', '--summary-interval=0', '--download-result=hide',
-               '--file-allocation=none', '-x16', '-j16', '-s16']
+               '--http-accept-gzip=true', '--file-allocation=none', '-x16', '-j16', '-s16']
         if 'fragments' in info_dict:
             cmd += ['--allow-overwrite=true', '--allow-piece-length-change=true']
         else:

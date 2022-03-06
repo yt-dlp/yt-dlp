@@ -384,12 +384,10 @@ class FFmpegPostProcessor(PostProcessor):
 
         out_flags = list(self.stream_copy_opts(ext=determine_ext(out_file)))
 
-        try:
-            self.real_run_ffmpeg(
-                [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
-                [(out_file, out_flags)])
-        finally:
-            os.remove(concat_file)
+        self.real_run_ffmpeg(
+            [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
+            [(out_file, out_flags)])
+        os.remove(concat_file)
 
     @classmethod
     def _concat_spec(cls, in_files, concat_opts=None):
@@ -1057,7 +1055,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('jpg', 'png')
+    SUPPORTED_EXTS = ('jpg', 'png', 'webp')
 
     def __init__(self, downloader=None, format=None):
         super(FFmpegThumbnailsConvertorPP, self).__init__(downloader)
@@ -1147,16 +1145,15 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         super().concat_files(in_files, out_file)
         return in_files
 
-    @PostProcessor._restrict_to(images=False)
+    @PostProcessor._restrict_to(images=False, simulated=False)
     def run(self, info):
         entries = info.get('entries') or []
-        if (self.get_param('skip_download') or not any(entries)
-                or self._only_multi_video and info['_type'] != 'multi_video'):
+        if not any(entries) or (self._only_multi_video and info['_type'] != 'multi_video'):
             return [], info
         elif any(len(entry) > 1 for entry in traverse_obj(entries, (..., 'requested_downloads')) or []):
             raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
 
-        in_files = traverse_obj(entries, (..., 'requested_downloads', 0, 'filepath'))
+        in_files = traverse_obj(entries, (..., 'requested_downloads', 0, 'filepath')) or []
         if len(in_files) < len(entries):
             raise PostProcessingError('Aborting concatenation because some downloads failed')
 

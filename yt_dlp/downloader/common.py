@@ -210,28 +210,41 @@ class FileDownloader(object):
     def ytdl_filename(self, filename):
         return filename + '.ytdl'
 
-    def sanitize_open(self, filename, open_mode):
-        file_access_retries = self.params.get('file_access_retries', 10)
-        retry = 0
-        while True:
-            try:
-                return sanitize_open(filename, open_mode)
-            except (IOError, OSError) as err:
-                retry = retry + 1
-                if retry > file_access_retries or err.errno not in (errno.EACCES,):
-                    raise
-                self.to_screen(
-                    '[download] Got file access error. Retrying (attempt %d of %s) ...'
-                    % (retry, self.format_retries(file_access_retries)))
-                time.sleep(0.01)
+    def wrap_file_access(action, *, fatal=False):
+        def outer(func):
+            def inner(self, *args, **kwargs):
+                file_access_retries = self.params.get('file_access_retries', 0)
+                retry = 0
+                while True:
+                    try:
+                        return func(self, *args, **kwargs)
+                    except (IOError, OSError) as err:
+                        retry = retry + 1
+                        if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
+                            if not fatal:
+                                self.report_error(f'unable to {action} file: {err}')
+                                return
+                            raise
+                        self.to_screen(
+                            f'[download] Unable to {action} file due to file access error. '
+                            f'Retrying (attempt {retry} of {self.format_retries(file_access_retries)}) ...')
+                        time.sleep(0.01)
+            return inner
+        return outer
 
+    @wrap_file_access('open', fatal=True)
+    def sanitize_open(self, filename, open_mode):
+        return sanitize_open(filename, open_mode)
+
+    @wrap_file_access('remove')
+    def try_remove(self, filename):
+        os.remove(filename)
+
+    @wrap_file_access('rename')
     def try_rename(self, old_filename, new_filename):
         if old_filename == new_filename:
             return
-        try:
-            os.replace(old_filename, new_filename)
-        except (IOError, OSError) as err:
-            self.report_error(f'unable to rename file: {err}')
+        os.replace(old_filename, new_filename)
 
     def try_utime(self, filename, last_modified_hdr):
         """Try to set the last-modified time of the given file."""

@@ -75,6 +75,7 @@ from ..utils import (
     str_to_int,
     strip_or_none,
     traverse_obj,
+    try_get,
     unescapeHTML,
     UnsupportedError,
     unified_strdate,
@@ -239,6 +240,7 @@ class InfoExtractor(object):
                         * "resolution" (optional, string "{width}x{height}",
                                         deprecated)
                         * "filesize" (optional, int)
+                        * "http_headers" (dict) - HTTP headers for the request
     thumbnail:      Full URL to a video thumbnail image.
     description:    Full video description.
     uploader:       Full name of the video uploader.
@@ -272,6 +274,8 @@ class InfoExtractor(object):
                         * "url": A URL pointing to the subtitles file
                     It can optionally also have:
                         * "name": Name or description of the subtitles
+                        * http_headers: A dictionary of additional HTTP headers
+                                  to add to the request.
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
                     captions instead of normal subtitles
@@ -635,7 +639,7 @@ class InfoExtractor(object):
             }
             if hasattr(e, 'countries'):
                 kwargs['countries'] = e.countries
-            raise type(e)(e.msg, **kwargs)
+            raise type(e)(e.orig_msg, **kwargs)
         except compat_http_client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
@@ -1097,6 +1101,7 @@ class InfoExtractor(object):
         if metadata_available and (
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
+            return
         if method is not None:
             msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
         raise ExtractorError(msg, expected=True)
@@ -1135,8 +1140,8 @@ class InfoExtractor(object):
             'url': url,
         }
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, **kwargs):
-        urls = (self.url_result(self._proto_relative_url(m), ie)
+    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, video_kwargs=None, **kwargs):
+        urls = (self.url_result(self._proto_relative_url(m), ie, **(video_kwargs or {}))
                 for m in orderedSet(map(getter, matches) if getter else matches))
         return self.playlist_result(urls, playlist_id, playlist_title, **kwargs)
 
@@ -1302,6 +1307,10 @@ class InfoExtractor(object):
 
     def _og_search_url(self, html, **kargs):
         return self._og_search_property('url', html, **kargs)
+
+    def _html_extract_title(self, html, name, **kwargs):
+        return self._html_search_regex(
+            r'(?s)<title>(.*?)</title>', html, name, **kwargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
         name = variadic(name)
@@ -1609,7 +1618,7 @@ class InfoExtractor(object):
             'vcodec': {'type': 'ordered', 'regex': True,
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -2875,7 +2884,8 @@ class InfoExtractor(object):
                             segment_duration = None
                             if 'total_number' not in representation_ms_info and 'segment_duration' in representation_ms_info:
                                 segment_duration = float_or_none(representation_ms_info['segment_duration'], representation_ms_info['timescale'])
-                                representation_ms_info['total_number'] = int(math.ceil(float(period_duration) / segment_duration))
+                                representation_ms_info['total_number'] = int(math.ceil(
+                                    float_or_none(period_duration, segment_duration, default=0)))
                             representation_ms_info['fragments'] = [{
                                 media_location_key: media_template % {
                                     'Number': segment_number,
@@ -2966,6 +2976,10 @@ class InfoExtractor(object):
                                 f['url'] = initialization_url
                             f['fragments'].append({location_key(initialization_url): initialization_url})
                         f['fragments'].extend(representation_ms_info['fragments'])
+                        if not period_duration:
+                            period_duration = try_get(
+                                representation_ms_info,
+                                lambda r: sum(frag['duration'] for frag in r['fragments']), float)
                     else:
                         # Assuming direct URL to unfragmented media.
                         f['url'] = base_url
@@ -3108,7 +3122,7 @@ class InfoExtractor(object):
                     })
         return formats, subtitles
 
-    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8', mpd_id=None, preference=None, quality=None):
+    def _parse_html5_media_entries(self, base_url, webpage, video_id, m3u8_id=None, m3u8_entry_protocol='m3u8_native', mpd_id=None, preference=None, quality=None):
         def absolute_url(item_url):
             return urljoin(base_url, item_url)
 
@@ -3665,7 +3679,7 @@ class InfoExtractor(object):
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if (self._get_login_info()[0] is not None
+        if (hasattr(self, '_NETRC_MACHINE') and self._get_login_info()[0] is not None
                 or self.get_param('cookiefile')
                 or self.get_param('cookiesfrombrowser')):
             self._mark_watched(*args, **kwargs)

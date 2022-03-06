@@ -688,7 +688,7 @@ class VKWallPostIE(VKBaseIE):
                 'artist': performer,
                 'track': title,
                 'ext': 'mp4',
-                'protocol': 'm3u8',
+                'protocol': 'm3u8_native',
             })
 
         for video in re.finditer(

@@ -28,7 +28,6 @@ from ..utils import (
     parse_qs,
     sanitized_Request,
     smuggle_url,
-    std_headers,
     str_or_none,
     try_get,
     unified_timestamp,
@@ -131,6 +130,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         request = config.get('request') or {}
 
         formats = []
+        subtitles = {}
+
         config_files = video_data.get('files') or request.get('files') or {}
         for f in (config_files.get('progressive') or []):
             video_url = f.get('url')
@@ -163,21 +164,23 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     sep_manifest_urls = [(format_id, manifest_url)]
                 for f_id, m_url in sep_manifest_urls:
                     if files_type == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
-                            m_url, video_id, 'mp4',
-                            'm3u8' if is_live else 'm3u8_native', m3u8_id=f_id,
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                            m_url, video_id, 'mp4', live=is_live, m3u8_id=f_id,
                             note='Downloading %s m3u8 information' % cdn_name,
-                            fatal=False))
+                            fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
                     elif files_type == 'dash':
                         if 'json=1' in m_url:
                             real_m_url = (self._download_json(m_url, video_id, fatal=False) or {}).get('url')
                             if real_m_url:
                                 m_url = real_m_url
-                        mpd_formats = self._extract_mpd_formats(
+                        fmts, subs = self._extract_mpd_formats_and_subtitles(
                             m_url.replace('/master.json', '/master.mpd'), video_id, f_id,
                             'Downloading %s MPD information' % cdn_name,
                             fatal=False)
-                        formats.extend(mpd_formats)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
 
         live_archive = live_event.get('archive') or {}
         live_archive_source_url = live_archive.get('source_url')
@@ -188,12 +191,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'quality': 10,
             })
 
-        subtitles = {}
         for tt in (request.get('text_tracks') or []):
-            subtitles[tt['lang']] = [{
+            subtitles.setdefault(tt['lang'], []).append({
                 'ext': 'vtt',
                 'url': urljoin('https://vimeo.com', tt['url']),
-            }]
+            })
 
         thumbnails = []
         if not is_live:
@@ -634,6 +636,24 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
         },
+        {
+            # similar, but all numeric: ID must be 581039021, not 9603038895
+            # issue #29690
+            'url': 'https://vimeo.com/581039021/9603038895',
+            'info_dict': {
+                'id': '581039021',
+                # these have to be provided but we don't care
+                'ext': 'mp4',
+                'timestamp': 1627621014,
+                'title': 're:.+',
+                'uploader_id': 're:.+',
+                'uploader': 're:.+',
+                'upload_date': r're:\d+',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
@@ -755,7 +775,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
     def _real_extract(self, url):
         url, data = unsmuggle_url(url, {})
-        headers = std_headers.copy()
+        headers = self.get_param('http_headers').copy()
         if 'http_headers' in data:
             headers.update(data['http_headers'])
         if 'Referer' not in headers:
