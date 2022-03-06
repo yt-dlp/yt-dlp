@@ -6,8 +6,8 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
-    str_or_none,
     try_get,
+    url_or_none,
 )
 
 
@@ -50,25 +50,29 @@ class XinpianchangIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id=video_id, fatal=False)
-        api = f'''{self.find_value_with_regex(var='requireNewDomain', webpage=webpage)}/mod/api/v2/media/{
-        self.find_value_with_regex(var='vid', webpage=webpage)}?{urllib.parse.urlencode(
-            {'appKey': self.find_value_with_regex(var='modeServerAppKey', webpage=webpage)})}'''
-        data = try_get(self._download_json(api, video_id=video_id), lambda x: x['data'])
+        webpage = self._download_webpage(url, video_id=video_id)
+        domain = self.find_value_with_regex(var='requireNewDomain', webpage=webpage)
+        vid = self.find_value_with_regex(var='vid', webpage=webpage)
+        app_key = self.find_value_with_regex(var='modeServerAppKey', webpage=webpage)
+        api = f'''{domain}/mod/api/v2/media/{vid}?{urllib.parse.urlencode({'appKey': app_key})}'''
+        data = self._download_json(api, video_id=video_id)['data']
         formats = []
         for k, v in data.get('resource').items():
-            if k == 'dash':
-                formats.extend(self._extract_mpd_formats(v.get('url'), video_id=video_id))
-            elif k == 'hls':
-                formats.extend(self._extract_m3u8_formats(v.get('url'), video_id=video_id))
+            if k in ('dash', 'hls'):
+                v_url = v.get('url')
+                if not v_url:
+                    continue
+                if k == 'dash':
+                    formats.extend(self._extract_mpd_formats(v_url, video_id=video_id))
+                elif k == 'hls':
+                    formats.extend(self._extract_m3u8_formats(v_url, video_id=video_id))
             elif k == 'progressive':
                 formats.extend([{
-                    'format_id': str_or_none(prog.get('resourceId')),
-                    'url': str_or_none(prog.get('url')),
+                    'url': url_or_none(prog.get('url')),
                     'width': int_or_none(prog.get('width')),
                     'height': int_or_none(prog.get('height')),
                     'ext': 'mp4',
-                } for prog in v])
+                } for prog in v if prog.get('url')])
 
         self._sort_formats(formats)
 
