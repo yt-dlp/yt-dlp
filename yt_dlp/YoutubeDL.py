@@ -3613,9 +3613,12 @@ class YoutubeDL(object):
             'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', delim, '\tFILESIZE', '\tTBR', 'PROTO',
             delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO', *debug_info_title)
 
-        return render_table(
+        tbl = render_table(
             header_line, table, hide_empty=True,
             delim=self._format_screen('\u2500', self.Styles.DELIM, '-', test_encoding=True))
+        if verbose and unknown_formats:
+            tbl += f'\n[debugger] Specs not matched: {", ".join(unknown_formats)}'
+        return tbl
 
     def render_thumbnails_table(self, info_dict):
         thumbnails = list(info_dict.get('thumbnails') or [])
