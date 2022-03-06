@@ -56,16 +56,19 @@ class XinpianchangIE(InfoExtractor):
         app_key = self.find_value_with_regex(var='modeServerAppKey', webpage=webpage)
         api = f'''{domain}/mod/api/v2/media/{vid}?{urllib.parse.urlencode({'appKey': app_key})}'''
         data = self._download_json(api, video_id=video_id)['data']
-        formats = []
+        formats, subtitles = [], {}
         for k, v in data.get('resource').items():
             if k in ('dash', 'hls'):
                 v_url = v.get('url')
                 if not v_url:
                     continue
+                fmts, subs = [], {}
                 if k == 'dash':
-                    formats.extend(self._extract_mpd_formats(v_url, video_id=video_id))
+                    fmts, subs = self._extract_mpd_formats_and_subtitles(v_url, video_id=video_id)
                 elif k == 'hls':
-                    formats.extend(self._extract_m3u8_formats(v_url, video_id=video_id))
+                    fmts, subs = self._extract_m3u8_formats_and_subtitles(v_url, video_id=video_id)
+                formats.extend(fmts)
+                subtitles = self._merge_subtitles(subtitles, subs)
             elif k == 'progressive':
                 formats.extend([{
                     'url': url_or_none(prog.get('url')),
@@ -87,6 +90,7 @@ class XinpianchangIE(InfoExtractor):
             'uploader': try_get(data, lambda x: x['owner']['username']),
             'uploader_id': try_get(data, lambda x: x['owner']['id']),
             'formats': formats,
+            'subtitles': subtitles,
         }
 
     def find_value_with_regex(self, var, webpage):
