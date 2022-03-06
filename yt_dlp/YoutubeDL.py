@@ -1945,6 +1945,7 @@ class YoutubeDL(object):
         allow_multiple_streams = {'audio': self.params.get('allow_multiple_audio_streams', False),
                                   'video': self.params.get('allow_multiple_video_streams', False)}
 
+        verbose = self.params.get('verbose')
         check_formats = self.params.get('check_formats') == 'selected'
 
         def _parse_filter(tokens):
@@ -2225,6 +2226,29 @@ class YoutubeDL(object):
                 return selector_function(ctx_copy)
             return final_selector
 
+        def _visit_selectors(selector):
+            """
+            Selector tree visitor. Only used when -Fv is set
+            This yields selectors including non-SINGLE ones, but then it won't be visitor anymore
+            """
+            if isinstance(selector, list):  # ,
+                for n in selector:
+                    yield from _visit_selectors(n)
+
+            elif selector.type == GROUP:  # ()
+                yield selector
+                yield from _visit_selectors(selector.selector)
+            elif selector.type == PICKFIRST:  # /
+                yield selector
+                for n in selector.selector:
+                    yield from _visit_selectors(n)
+            elif selector.type == MERGE:  # +
+                yield selector
+                for n in selector.selector:
+                    yield from _visit_selectors(n)
+            elif selector.type == SINGLE:  # atom
+                yield selector
+
         stream = io.BytesIO(format_spec.encode('utf-8'))
         try:
             tokens = list(_remove_unused_ops(compat_tokenize_tokenize(stream.readline)))
@@ -2252,7 +2276,12 @@ class YoutubeDL(object):
                 self.counter -= 1
 
         parsed_selector = _parse_format_selection(iter(TokenIterator(tokens)))
-        return _build_selector_function(parsed_selector)
+        final_selector_func = _build_selector_function(parsed_selector)
+        if verbose:
+            # perform format debugging when -Fv
+            all_single_selectors = list(filter(lambda x: x.type == SINGLE, _visit_selectors(parsed_selector)))
+            final_selector_func.selectors = list(zip(all_single_selectors, map(_build_selector_function, all_single_selectors)))
+        return final_selector_func
 
     def _calc_headers(self, info_dict):
         res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
@@ -2545,6 +2574,13 @@ class YoutubeDL(object):
         self.post_extract(info_dict)
         info_dict, _ = self.pre_process(info_dict, 'after_filter')
 
+        # NOTE: be careful at list_formats
+        format_selector = self.format_selector
+        if format_selector is None:
+            req_format = self._default_format_spec(info_dict, download=download)
+            self.write_debug('Default format spec: %s' % req_format)
+            format_selector = self.build_format_selector(req_format)
+
         # The pre-processors may have modified the formats
         formats = info_dict.get('formats', [info_dict])
 
@@ -2559,17 +2595,11 @@ class YoutubeDL(object):
                     info_dict['id'], automatic_captions, 'automatic captions')
             self.list_subtitles(info_dict['id'], subtitles, 'subtitles')
         if self.params.get('listformats') or interactive_format_selection:
-            self.list_formats(info_dict)
+            self.list_formats(info_dict, format_selector)
         if list_only:
             # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
             return
-
-        format_selector = self.format_selector
-        if format_selector is None:
-            req_format = self._default_format_spec(info_dict, download=download)
-            self.write_debug('Default format spec: %s' % req_format)
-            format_selector = self.build_format_selector(req_format)
 
         while True:
             if interactive_format_selection:
@@ -3489,22 +3519,66 @@ class YoutubeDL(object):
             res += '~' + format_bytes(fdict['filesize_approx'])
         return res
 
-    def render_formats_table(self, info_dict):
+    def render_formats_table(self, info_dict, format_selector=None):
         if not info_dict.get('formats') and not info_dict.get('url'):
             return None
 
         formats = info_dict.get('formats', [info_dict])
-        if not self.params.get('listformats_table', True) is not False:
+        verbose = format_selector and self.params.get('verbose') and len(formats) > 1
+
+        new_format = self.params.get('listformats_table', True) is not False
+
+        if verbose:
+            # taken from process_video_result
+            incomplete_formats = (
+                # All formats are video-only or
+                all(f.get('vcodec') != 'none' and f.get('acodec') == 'none' for f in formats)
+                # all formats are audio-only
+                or all(f.get('vcodec') == 'none' and f.get('acodec') != 'none' for f in formats))
+            unknown_formats = []
+
+            ctx = {
+                'formats': formats,
+                'incomplete_formats': incomplete_formats,
+            }
+
+            # search this file for "perform format debugging when -Fv" for contents of format_selector.selectors
+            found = {}
+            for sel, func in format_selector.selectors:
+                found_fmt = next(func(ctx), None)
+                selector_text = sel.selector
+                if sel.filters:
+                    selector_text += ''.join(f'[{x}]' for x in sel.filters)
+                if found_fmt:
+                    found.setdefault(found_fmt['format_id'], []).append(selector_text)
+                else:
+                    unknown_formats.append(selector_text)
+
+            def debug_info(f):
+                if new_format:
+                    yield delim
+                yield ', '.join(found.get(f['format_id']) or [])
+        else:
+            def debug_info(f):
+                return []
+        debug_info_title = []
+
+        if not new_format:
+            if verbose:
+                debug_info_title = ['debug']
             table = [
                 [
                     format_field(f, 'format_id'),
                     format_field(f, 'ext'),
                     self.format_resolution(f),
-                    self._format_note(f)
+                    self._format_note(f),
+                    *debug_info(f),
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
-            return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
+            return render_table(['format code', 'extension', 'resolution', 'note', *debug_info_title], table, extra_gap=1)
 
         delim = self._format_screen('\u2502', self.Styles.DELIM, '|', test_encoding=True)
+        if verbose:
+            debug_info_title = [delim, 'DEBUG']
         table = [
             [
                 self._format_screen(format_field(f, 'format_id'), self.Styles.ID),
@@ -3533,10 +3607,11 @@ class YoutubeDL(object):
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),
                                   delim=', '),
                     delim=' '),
+                *debug_info(f),
             ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
         header_line = self._list_format_headers(
             'ID', 'EXT', 'RESOLUTION', '\tFPS', 'HDR', delim, '\tFILESIZE', '\tTBR', 'PROTO',
-            delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO')
+            delim, 'VCODEC', '\tVBR', 'ACODEC', '\tABR', '\tASR', 'MORE INFO', *debug_info_title)
 
         return render_table(
             header_line, table, hide_empty=True,
@@ -3572,8 +3647,8 @@ class YoutubeDL(object):
         self.to_screen(f'[info] Available {name} for {video_id}:')
         self.to_stdout(table)
 
-    def list_formats(self, info_dict):
-        self.__list_table(info_dict['id'], 'formats', self.render_formats_table, info_dict)
+    def list_formats(self, info_dict, format_selector=None):
+        self.__list_table(info_dict['id'], 'formats', self.render_formats_table, info_dict, format_selector)
 
     def list_thumbnails(self, info_dict):
         self.__list_table(info_dict['id'], 'thumbnails', self.render_thumbnails_table, info_dict)
