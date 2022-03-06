@@ -1,12 +1,11 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import urllib.parse
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     try_get,
+    update_url_query,
     url_or_none,
 )
 
@@ -54,7 +53,7 @@ class XinpianchangIE(InfoExtractor):
         domain = self.find_value_with_regex(var='requireNewDomain', webpage=webpage)
         vid = self.find_value_with_regex(var='vid', webpage=webpage)
         app_key = self.find_value_with_regex(var='modeServerAppKey', webpage=webpage)
-        api = f'''{domain}/mod/api/v2/media/{vid}?{urllib.parse.urlencode({'appKey': app_key})}'''
+        api = update_url_query(f'{domain}/mod/api/v2/media/{vid}', {'appKey': app_key})
         data = self._download_json(api, video_id=video_id)['data']
         formats, subtitles = [], {}
         for k, v in data.get('resource').items():
