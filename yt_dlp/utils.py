@@ -2178,8 +2178,18 @@ class locked_file(object):
     _closed = False
 
     def __init__(self, filename, mode, block=True, encoding=None):
-        assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
-        self.f = io.open(filename, mode, encoding=encoding)
+        if mode not in ['r', 'rb', 'a', 'ab', 'w', 'wb']:
+            raise NotImplementedError(mode)
+        # it is not yet known if this process can write to `filename`
+        # this process has not obtained an advisory lock yet
+        # using io.open() may result in the O_TRUNC flag being used, like:
+        # openat(AT_FDCWD</delme/_yt_dlp_test_1646631804>, "youtube__Gwo3pEH7hUE.f160.mp4.part", O_WRONLY|O_CREAT|O_TRUNC|O_CLOEXEC, 0666) = 4</delme/_yt_dlp_test_1646631804/youtube__Gwo3pEH7hUE.f160.mp4.part>
+        # $ man 2 open
+        # O_WRONLY: write only
+        # O_CREAT: If pathname does not exist, create it as a regular file.
+        # O_TRUNC: If the file already exists and is a regular file and the access mode allows writing (i.e., is O_RDWR or O_WRONLY) it will be truncated to length 0.
+        fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_CLOEXEC)  # do not pass O_TRUNC
+        self.f = os.fdopen(fd, mode)
         self.mode = mode
         self.block = block
 
