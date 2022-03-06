@@ -1140,8 +1140,8 @@ class InfoExtractor(object):
             'url': url,
         }
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, **kwargs):
-        urls = (self.url_result(self._proto_relative_url(m), ie)
+    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, video_kwargs=None, **kwargs):
+        urls = (self.url_result(self._proto_relative_url(m), ie, **(video_kwargs or {}))
                 for m in orderedSet(map(getter, matches) if getter else matches))
         return self.playlist_result(urls, playlist_id, playlist_title, **kwargs)
 
