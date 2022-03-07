@@ -780,6 +780,7 @@ from .livestream import (
     LivestreamOriginalIE,
     LivestreamShortenerIE,
 )
+from .livestreamfails import LivestreamFailsIE
 from .lnkgo import (
     LnkGoIE,
     LnkIE,
