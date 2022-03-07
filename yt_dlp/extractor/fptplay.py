@@ -18,15 +18,22 @@ class FptplayIE(InfoExtractor):
     IE_DESC = 'fptplay.vn'
     _TESTS = [{
         'url': 'https://fptplay.vn/xem-video/nhan-duyen-dai-nhan-xin-dung-buoc-621a123016f369ebbde55945',
+        'md5': 'ca0ee9bc63446c0c3e9a90186f7d6b33',
         'info_dict': {
             'id': '621a123016f369ebbde55945',
             'ext': 'mp4',
-            'title': 'Nhân Duyên Đại Nhân Xin Dừng Bước - Ms. Cupid In Love - 1',
-            'description': '23cf7d1ce0ade8e21e76ae482e6a8c6c',
+            'title': 'Nhân Duyên Đại Nhân Xin Dừng Bước - Ms. Cupid In Love',
+            'description': 'md5:23cf7d1ce0ade8e21e76ae482e6a8c6c',
         },
     }, {
         'url': 'https://fptplay.vn/xem-video/ma-toi-la-dai-gia-61f3aa8a6b3b1d2e73c60eb5/tap-3',
-        'only_matching': True,
+        'md5': 'b35be968c909b3e4e1e20ca45dd261b1',
+        'info_dict': {
+            'id': '61f3aa8a6b3b1d2e73c60eb5',
+            'ext': 'mp4',
+            'title': 'Má Tôi Là Đại Gia - 3',
+            'description': 'md5:ff8ba62fb6e98ef8875c42edff641d1c',
+        },
     }, {
         'url': 'https://fptplay.vn/xem-video/nha-co-chuyen-hi-alls-well-ends-well-1997-6218995f6af792ee370459f0',
         'only_matching': True,
