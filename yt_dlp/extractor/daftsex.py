@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
-    get_elements_by_class,
     int_or_none,
     js_to_json,
     parse_count,
@@ -41,14 +40,9 @@ class DaftsexIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        #title = get_elements_by_class('heading', webpage)[-1]
-
         title = self._html_search_meta('name', webpage, 'Title', fatal=False)
         timestamp = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
         description = self._html_search_meta('description', webpage, 'Description', default=None)
-        self.write_debug(f'title: {title}')
-        self.write_debug(f'timestamp: {timestamp}')
-        self.write_debug(f'description: {description}')
 
         duration = parse_duration(self._search_regex(
             r'Duration: ((?:[0-9]{2}:){0,2}[0-9]{2})',
@@ -56,8 +50,6 @@ class DaftsexIE(InfoExtractor):
         views = parse_count(self._search_regex(
             r'Views: ([0-9 ]+)',
             webpage, 'views', fatal=False))
-
-        self.write_debug(f'views: {views}')
 
         player_hash = self._search_regex(
             r'DaxabPlayer\.Init\({[\s\S]*hash:\s*"([0-9a-zA-Z_\-]+)"[\s\S]*}',
@@ -98,8 +90,10 @@ class DaftsexIE(InfoExtractor):
                 'id': video_id,
                 'title': title,
                 'formats': formats,
+                'description': description,
                 'duration': duration,
                 'thumbnail': thumbnail,
+                'timestamp': timestamp,
                 'view_count': views,
                 'age_limit': 18,
             }
@@ -145,8 +139,8 @@ class DaftsexIE(InfoExtractor):
                 'formats': formats,
                 'comment_count': int_or_none(item.get('comments')),
                 'description': description,
-                'duration': int_or_none(item.get('duration')),
+                'duration': duration,
                 'thumbnails': thumbnails,
                 'timestamp': timestamp,
-                'view_count': int_or_none(item.get('views')),
+                'view_count': views,
             }
