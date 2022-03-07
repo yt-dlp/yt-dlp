@@ -699,6 +699,10 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
 
 
 class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
+    api_domain = None
+    bucket = None
+    params = None
+
     def _get_embedded_json(self, webpage, display_id):
         initial_state = self._parse_json(
             self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
@@ -709,31 +713,35 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
         return initial_state, app_config
 
     def _get_params(self, initial_state, app_config, display_id):
-        client_id = app_config['cxApiParams']['accountAuthClientId']
-        api_domain = app_config['cxApiParams']['apiDomain']
-        basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
-        auth_response = self._download_json(
-            f'{api_domain}/auth/v1/token', display_id,
-            note='Authenticating with cookie',
-            headers={
-                'Authorization': 'Basic ' + basic_token
-            }, data='grant_type=etp_rt_cookie'.encode('ascii'))
-        policy_response = self._download_json(
-            f'{api_domain}/index/v2', display_id,
-            note='Retrieving signed policy',
-            headers={
-                'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
-            })
-        bucket = policy_response['cms']['bucket']
-        params = {
-            'Policy': policy_response['cms']['policy'],
-            'Signature': policy_response['cms']['signature'],
-            'Key-Pair-Id': policy_response['cms']['key_pair_id']
-        }
-        locale = traverse_obj(initial_state, ('localization', 'locale'))
-        if locale:
-            params['locale'] = locale
-        return api_domain, bucket, params
+        if not CrunchyrollBetaBaseIE.api_domain:
+            client_id = app_config['cxApiParams']['accountAuthClientId']
+            api_domain = app_config['cxApiParams']['apiDomain']
+            basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
+            auth_response = self._download_json(
+                f'{api_domain}/auth/v1/token', display_id,
+                note='Authenticating with cookie',
+                headers={
+                    'Authorization': 'Basic ' + basic_token
+                }, data='grant_type=etp_rt_cookie'.encode('ascii'))
+            policy_response = self._download_json(
+                f'{api_domain}/index/v2', display_id,
+                note='Retrieving signed policy',
+                headers={
+                    'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
+                })
+            bucket = policy_response['cms']['bucket']
+            params = {
+                'Policy': policy_response['cms']['policy'],
+                'Signature': policy_response['cms']['signature'],
+                'Key-Pair-Id': policy_response['cms']['key_pair_id']
+            }
+            locale = traverse_obj(initial_state, ('localization', 'locale'))
+            if locale:
+                params['locale'] = locale
+            CrunchyrollBetaBaseIE.api_domain = api_domain
+            CrunchyrollBetaBaseIE.bucket = bucket
+            CrunchyrollBetaBaseIE.params = params
+        return CrunchyrollBetaBaseIE.api_domain, CrunchyrollBetaBaseIE.bucket, CrunchyrollBetaBaseIE.params
 
 
 class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
