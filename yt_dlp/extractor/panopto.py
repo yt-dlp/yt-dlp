@@ -190,7 +190,7 @@ class PanoptoIE(PanoptoBaseIE):
             })
         return chapters
 
-    def _extract_streams_formats_and_subtitles(self, video_id, streams, format_note=None, preference=None):
+    def _extract_streams_formats_and_subtitles(self, video_id, streams, **fmt_kwargs):
         formats = []
         subtitles = {}
         for stream in streams or []:
@@ -213,8 +213,8 @@ class PanoptoIE(PanoptoBaseIE):
                     })
             for fmt in stream_formats:
                 fmt.update({
-                    'preference': preference,
-                    'format_note': format_note or stream.get('Tag')
+                    'format_note': stream.get('Tag'),
+                    **fmt_kwargs
                 })
             formats.extend(stream_formats)
 
