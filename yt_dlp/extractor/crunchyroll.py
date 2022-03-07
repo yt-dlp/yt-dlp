@@ -876,22 +876,24 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
             f'{api_domain}/cms/v2{bucket}/seasons?series_id={internal_id}', display_id,
             note='Retrieving season list',
             query=params)
-        entries = []
-        for season in seasons_response['items']:
-            season_id = season['id']
-            episodes_response = self._download_json(
-                f'{api_domain}/cms/v2{bucket}/episodes?season_id={season_id}', display_id,
-                note='Retrieving episode list for %s' % season.get('slug_title'),
-                query=params)
-            for episode in episodes_response['items']:
-                episode_id = episode['id']
-                episode_display_id = episode['slug_title']
-                entries.append(self.url_result(
-                    f'https://beta.crunchyroll.com/{lang}watch/{episode_id}/{episode_display_id}', CrunchyrollBetaIE.ie_key(), episode_id, episode['title']))
+
+        def entries():
+            for season in seasons_response['items']:
+                season_id = season['id']
+                episodes_response = self._download_json(
+                    f'{api_domain}/cms/v2{bucket}/episodes?season_id={season_id}', display_id,
+                    note='Retrieving episode list for %s' % season.get('slug_title'),
+                    query=params)
+                for episode in episodes_response['items']:
+                    episode_id = episode['id']
+                    episode_display_id = episode['slug_title']
+                    yield self.url_result(
+                        f'https://beta.crunchyroll.com/{lang}watch/{episode_id}/{episode_display_id}',
+                        CrunchyrollBetaIE.ie_key(), episode_id, episode['title'])
 
         return {
             '_type': 'playlist',
             'id': internal_id,
             'title': initial_state['content']['byId'][internal_id]['title'],
-            'entries': entries,
+            'entries': entries(),
         }
