@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
-from .vk import VKIE
 from ..compat import compat_b64decode
 from ..utils import (
     get_elements_by_class,
@@ -42,33 +41,43 @@ class DaftsexIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        #title = get_elements_by_class('heading', webpage)[-1]
 
-        try:
-            title = get_elements_by_class('heading', webpage)[-1]
-            duration = parse_duration(self._search_regex(
-                r'Duration: ((?:[0-9]{2}:){0,2}[0-9]{2})',
-                webpage, 'duration', fatal=False))
-            views = parse_count(self._search_regex(
-                r'Views: ([0-9 ]+)',
-                webpage, 'views', fatal=False))
+        title = self._html_search_meta('name', webpage, 'Title', fatal=False)
+        timestamp = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
+        description = self._html_search_meta('description', webpage, 'Description', default=None)
+        self.write_debug(f'title: {title}')
+        self.write_debug(f'timestamp: {timestamp}')
+        self.write_debug(f'description: {description}')
 
-            player_hash = self._search_regex(
-                r'DaxabPlayer\.Init\({[\s\S]*hash:\s*"([0-9a-zA-Z_\-]+)"[\s\S]*}',
-                webpage, 'player hash')
-            player_color = self._search_regex(
-                r'DaxabPlayer\.Init\({[\s\S]*color:\s*"([0-9a-z]+)"[\s\S]*}',
-                webpage, 'player color', fatal=False) or ''
+        duration = parse_duration(self._search_regex(
+            r'Duration: ((?:[0-9]{2}:){0,2}[0-9]{2})',
+            webpage, 'duration', fatal=False))
+        views = parse_count(self._search_regex(
+            r'Views: ([0-9 ]+)',
+            webpage, 'views', fatal=False))
 
-            embed_page = self._download_webpage(
-                'https://daxab.com/player/%s?color=%s' % (player_hash, player_color),
-                video_id, headers={'Referer': url})
-            video_params = self._parse_json(
-                self._search_regex(
-                    r'window\.globParams\s*=\s*({[\S\s]+})\s*;\s*<\/script>',
-                    embed_page, 'video parameters'),
-                video_id, transform_source=js_to_json)
+        self.write_debug(f'views: {views}')
 
-            server_domain = 'https://%s' % compat_b64decode(video_params['server'][::-1]).decode('utf-8')
+        player_hash = self._search_regex(
+            r'DaxabPlayer\.Init\({[\s\S]*hash:\s*"([0-9a-zA-Z_\-]+)"[\s\S]*}',
+            webpage, 'player hash')
+        player_color = self._search_regex(
+            r'DaxabPlayer\.Init\({[\s\S]*color:\s*"([0-9a-z]+)"[\s\S]*}',
+            webpage, 'player color', fatal=False) or ''
+
+        embed_page = self._download_webpage(
+            'https://daxab.com/player/%s?color=%s' % (player_hash, player_color),
+            video_id, headers={'Referer': url})
+        video_params = self._parse_json(
+            self._search_regex(
+                r'window\.globParams\s*=\s*({[\S\s]+})\s*;\s*<\/script>',
+                embed_page, 'video parameters'),
+            video_id, transform_source=js_to_json)
+
+        server_domain = 'https://%s' % compat_b64decode(video_params['server'][::-1]).decode('utf-8')
+
+        if video_params['video'].get('cdn_files') is not None:
             formats = []
             for format_id, format_data in video_params['video']['cdn_files'].items():
                 ext, height = format_id.split('_')
@@ -95,37 +104,14 @@ class DaftsexIE(InfoExtractor):
                 'age_limit': 18,
             }
 
-        except KeyError:
-            title = self._html_search_meta('name', webpage, 'Title', fatal=False)
-            timestamp = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
-            description = self._html_search_meta('description', webpage, 'Description', default=None)
-
-            global_embed_url = self._search_regex(
-                r'<script[^<]+?window.globEmbedUrl\s*=\s*\'((?:https?:)?//(?:daxab\.com|dxb\.to|[^/]+/player)/[^\']+)\'',
-                webpage, 'global Embed url')
-            hash = self._search_regex(
-                r'<script id="data-embed-video[^<]+?hash: "([^"]+)"[^<]*</script>', webpage, 'Hash')
-
-            embed_url = global_embed_url + hash
-
-            if VKIE.suitable(embed_url):
-                return self.url_result(embed_url, VKIE.ie_key(), video_id)
-
-            embed_page = self._download_webpage(
-                embed_url, video_id, 'Downloading embed webpage', headers={'Referer': url})
-
-            glob_params = self._parse_json(self._search_regex(
-                r'<script id="globParams">[^<]*window.globParams = ([^;]+);[^<]+</script>',
-                embed_page, 'Global Parameters'), video_id, transform_source=js_to_json)
-            host_name = compat_b64decode(glob_params['server'][::-1]).decode()
-
+        else:
             item = self._download_json(
-                f'https://{host_name}/method/video.get/{video_id}', video_id,
+                f'{server_domain}/method/video.get/{video_id}', video_id,
                 headers={'Referer': url}, query={
-                    'token': glob_params['video']['access_token'],
+                    'token': video_params['video']['access_token'],
                     'videos': video_id,
-                    'ckey': glob_params['c_key'],
-                    'credentials': glob_params['video']['credentials'],
+                    'ckey': video_params['c_key'],
+                    'credentials': video_params['video']['credentials'],
                 })['response']['items'][0]
 
             formats = []
@@ -133,11 +119,11 @@ class DaftsexIE(InfoExtractor):
                 if f_id == 'external':
                     return self.url_result(f_url)
                 ext, height = f_id.split('_')
-                height_extra_key = traverse_obj(glob_params, ('video', 'partial', 'quality', height))
+                height_extra_key = traverse_obj(video_params, ('video', 'partial', 'quality', height))
                 if height_extra_key:
                     formats.append({
                         'format_id': f'{height}p',
-                        'url': f'https://{host_name}/{f_url[8:]}&videos={video_id}&extra_key={height_extra_key}',
+                        'url': f'{server_domain}/{f_url[8:]}&videos={video_id}&extra_key={height_extra_key}',
                         'height': int_or_none(height),
                         'ext': ext,
                     })
