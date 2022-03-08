@@ -36,7 +36,7 @@
 * [downloader] Obey `--file-access-retries` when deleting/renaming by [ehoogeveen-medweb](https://github.com/ehoogeveen-medweb)
 * [extractor] Allow `http_headers` to be specified for `thumbnails`
 * [extractor] Extract subtitles from manifests for vimeo, globo, kaltura, svt by [fstirlitz](https://github.com/fstirlitz)
-* [extractor] Fix for manifests without period duration by [dirkf,](https://github.com/dirkf,) [pukkandan](https://github.com/pukkandan)
+* [extractor] Fix for manifests without period duration by [dirkf](https://github.com/dirkf), [pukkandan](https://github.com/pukkandan)
 * [extractor] Support `--mark-watched` without `_NETRC_MACHINE` by [coletdjnz](https://github.com/coletdjnz)
 * [FFmpegConcat] Abort on `--simulate`
 * [FormatSort] Consider `acodec`=`ogg` as `vorbis`
@@ -71,9 +71,9 @@
 * [nfb] Add extractor by [ofkz](https://github.com/ofkz)
 * [niconico] Add playlist extractors and refactor by [Lesmiscore](https://github.com/Lesmiscore)
 * [peekvids] Add extractor by [schn0sch](https://github.com/schn0sch)
-* [piapro] Add extractor by [pycabbage,](https://github.com/pycabbage,) [Lesmiscore](https://github.com/Lesmiscore)
-* [rokfin] Add extractor by [P-reducible,](https://github.com/P-reducible,) [pukkandan](https://github.com/pukkandan)
-* [rokfin] Add stack and channel extractors by [P-reducible,](https://github.com/P-reducible,) [pukkandan](https://github.com/pukkandan)
+* [piapro] Add extractor by [pycabbage](https://github.com/pycabbage), [Lesmiscore](https://github.com/Lesmiscore)
+* [rokfin] Add extractor by [P-reducible](https://github.com/P-reducible), [pukkandan](https://github.com/pukkandan)
+* [rokfin] Add stack and channel extractors by [P-reducible](https://github.com/P-reducible), [pukkandan](https://github.com/pukkandan)
 * [ruv.is] Add extractor by [iw0nderhow](https://github.com/iw0nderhow)
 * [telegram] Add extractor by [hatienl0i261299](https://github.com/hatienl0i261299)
 * [VideocampusSachsen] Add extractors by [FestplattenSchnitzel](https://github.com/FestplattenSchnitzel)
