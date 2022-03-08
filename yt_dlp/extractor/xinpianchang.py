@@ -61,7 +61,6 @@ class XinpianchangIE(InfoExtractor):
                 v_url = v.get('url')
                 if not v_url:
                     continue
-                fmts, subs = [], {}
                 if k == 'dash':
                     fmts, subs = self._extract_mpd_formats_and_subtitles(v_url, video_id=video_id)
                 elif k == 'hls':
@@ -74,7 +73,7 @@ class XinpianchangIE(InfoExtractor):
                     'width': int_or_none(prog.get('width')),
                     'height': int_or_none(prog.get('height')),
                     'ext': 'mp4',
-                } for prog in v if prog.get('url')])
+                } for prog in v if prog.get('url') or []])
 
         self._sort_formats(formats)
 
