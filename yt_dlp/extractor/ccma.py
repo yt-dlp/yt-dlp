@@ -100,7 +100,7 @@ class CCMAIE(InfoExtractor):
         try:
             timezone, data_utc = extract_timezone(data_utc)
             timestamp = calendar.timegm((datetime.datetime.strptime(
-                data_utc, '%Y-%d-%mT%H:%M:%S') - timezone).timetuple())
+                data_utc, '%Y-%m-%dT%H:%M:%S') - timezone).timetuple())
         except TypeError:
             pass
 
