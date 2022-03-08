@@ -2081,7 +2081,93 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'age_limit': 0,
                 'channel_follower_count': int
             }, 'params': {'format': 'mhtml', 'skip_download': True}
-        }
+        }, {
+            # Ensure video upload_date is in UTC timezone (video was uploaded 1641170939)
+            'url': 'https://www.youtube.com/watch?v=2NUZ8W2llS4',
+            'info_dict': {
+                'id': '2NUZ8W2llS4',
+                'ext': 'mp4',
+                'title': 'The NP that test your phone performance 🙂',
+                'description': 'md5:144494b24d4f9dfacb97c1bbef5de84d',
+                'uploader': 'Leon Nguyen',
+                'uploader_id': 'VNSXIII',
+                'uploader_url': 'http://www.youtube.com/user/VNSXIII',
+                'channel_id': 'UCRqNBSOHgilHfAczlUmlWHA',
+                'channel_url': 'https://www.youtube.com/channel/UCRqNBSOHgilHfAczlUmlWHA',
+                'duration': 21,
+                'view_count': int,
+                'age_limit': 0,
+                'categories': ['Gaming'],
+                'tags': 'count:23',
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+                'upload_date': '20220103',
+                'like_count': int,
+                'availability': 'public',
+                'channel': 'Leon Nguyen',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/2NUZ8W2llS4/maxresdefault.webp',
+                'channel_follower_count': int
+            }
+        }, {
+            # date text is premiered video, ensure upload date in UTC (published 1641172509)
+            'url': 'https://www.youtube.com/watch?v=mzZzzBU6lrM',
+            'info_dict': {
+                'id': 'mzZzzBU6lrM',
+                'ext': 'mp4',
+                'title': 'I Met GeorgeNotFound In Real Life...',
+                'description': 'md5:cca98a355c7184e750f711f3a1b22c84',
+                'uploader': 'Quackity',
+                'uploader_id': 'QuackityHQ',
+                'uploader_url': 'http://www.youtube.com/user/QuackityHQ',
+                'channel_id': 'UC_8NknAFiyhOUaZqHR3lq3Q',
+                'channel_url': 'https://www.youtube.com/channel/UC_8NknAFiyhOUaZqHR3lq3Q',
+                'duration': 955,
+                'view_count': int,
+                'age_limit': 0,
+                'categories': ['Entertainment'],
+                'tags': 'count:26',
+                'playable_in_embed': True,
+                'live_status': 'not_live',
+                'release_timestamp': 1641172509,
+                'release_date': '20220103',
+                'upload_date': '20220103',
+                'like_count': int,
+                'availability': 'public',
+                'channel': 'Quackity',
+                'thumbnail': 'https://i.ytimg.com/vi/mzZzzBU6lrM/maxresdefault.jpg',
+                'channel_follower_count': int
+            }
+        },
+        {   # continuous livestream. Microformat upload date should be preferred.
+            # Upload date was 2021-06-19 (not UTC), while stream start is 2021-11-27
+            'url': 'https://www.youtube.com/watch?v=kgx4WGK0oNU',
+            'info_dict': {
+                'id': 'kgx4WGK0oNU',
+                'title': r're:jazz\/lofi hip hop radio🌱chill beats to relax\/study to \[LIVE 24\/7\] \d{4}-\d{2}-\d{2} \d{2}:\d{2}',
+                'ext': 'mp4',
+                'channel_id': 'UC84whx2xxsiA1gXHXXqKGOA',
+                'availability': 'public',
+                'age_limit': 0,
+                'release_timestamp': 1637975704,
+                'upload_date': '20210619',
+                'channel_url': 'https://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
+                'live_status': 'is_live',
+                'thumbnail': 'https://i.ytimg.com/vi/kgx4WGK0oNU/maxresdefault.jpg',
+                'uploader': '阿鲍Abao',
+                'uploader_url': 'http://www.youtube.com/channel/UC84whx2xxsiA1gXHXXqKGOA',
+                'channel': 'Abao in Tokyo',
+                'channel_follower_count': int,
+                'release_date': '20211127',
+                'tags': 'count:39',
+                'categories': ['People & Blogs'],
+                'like_count': int,
+                'uploader_id': 'UC84whx2xxsiA1gXHXXqKGOA',
+                'view_count': int,
+                'playable_in_embed': True,
+                'description': 'md5:2ef1d002cad520f65825346e2084e49d',
+            },
+            'params': {'skip_download': True}
+        },
     ]
 
     @classmethod
@@ -3336,9 +3422,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # URL checking if user don't care about getting the best possible thumbnail
             'thumbnail': traverse_obj(original_thumbnails, (-1, 'url')),
             'description': video_description,
-            'upload_date': unified_strdate(
-                get_first(microformats, 'uploadDate')
-                or search_meta('uploadDate')),
             'uploader': get_first(video_details, 'author'),
             'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
             'uploader_url': owner_profile_url,
@@ -3489,6 +3572,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             for content in contents:
                 vpir = content.get('videoPrimaryInfoRenderer')
                 if vpir:
+                    info['upload_date'] = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
                     stl = vpir.get('superTitleLink')
                     if stl:
                         stl = self._get_text(stl)
@@ -3567,6 +3651,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'channel_id': 'uploader_id',
             'channel_url': 'uploader_url',
         }
+
+        # The upload date for scheduled and current live streams / premieres in microformats
+        # is generally the true upload date. Although not in UTC, we will prefer that in this case.
+        # Note this changes to the published date when the stream/premiere has finished.
+        # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
+        if not info.get('upload_date') or info.get('is_live') or info.get('live_status') == 'is_upcoming':
+            info['upload_date'] = (
+                unified_strdate(get_first(microformats, 'uploadDate'))
+                or unified_strdate(search_meta('uploadDate'))
+                or info.get('upload_date'))
+
         for to, frm in fallbacks.items():
             if not info.get(to):
                 info[to] = info.get(frm)
