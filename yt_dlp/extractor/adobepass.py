@@ -1644,10 +1644,8 @@ class AdobePassIE(InfoExtractor):
                 elif mso_id == 'Suddenlink':
                     # Suddenlink is similar to SlingTV in using a tab history count and a meta refresh,
                     # but they also do a dynmaic redirect using javascript that has to be followed as well
-                    provider_auth_redirect_res = post_form(
+                    first_bookend_page, urlh = post_form(
                         provider_redirect_page_res, 'Pressing Continue...')
-
-                    first_bookend_page, urlh = provider_auth_redirect_res
 
                     hidden_data = self._hidden_inputs(first_bookend_page)
                     hidden_data['history_val'] = 1
