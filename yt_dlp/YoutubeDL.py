@@ -32,6 +32,7 @@ from string import ascii_letters
 
 from .compat import (
     compat_basestring,
+    compat_brotli,
     compat_get_terminal_size,
     compat_kwargs,
     compat_numeric_types,
@@ -3675,6 +3676,7 @@ class YoutubeDL(object):
         from .cookies import SQLITE_AVAILABLE, SECRETSTORAGE_AVAILABLE
 
         lib_str = join_nonempty(
+            compat_brotli and compat_brotli.__name__,
             compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
             SECRETSTORAGE_AVAILABLE and 'secretstorage',
             has_mutagen and 'mutagen',
