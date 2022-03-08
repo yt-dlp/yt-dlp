@@ -1076,9 +1076,10 @@ class ExtractorError(YoutubeDLError):
             '' if expected else bug_reports_message())))
 
     def format_traceback(self):
-        if self.traceback is None:
-            return None
-        return ''.join(traceback.format_tb(self.traceback))
+        return join_nonempty(
+            self.traceback and ''.join(traceback.format_tb(self.traceback)),
+            self.cause and ''.join(traceback.format_exception(self.cause)[1:]),
+            delim='\n') or None
 
 
 class UnsupportedError(ExtractorError):

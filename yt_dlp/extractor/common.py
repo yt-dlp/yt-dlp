@@ -749,7 +749,7 @@ class InfoExtractor(object):
 
             errmsg = '%s: %s' % (errnote, error_to_compat_str(err))
             if fatal:
-                raise ExtractorError(errmsg, sys.exc_info()[2], cause=err)
+                raise ExtractorError(errmsg, cause=err)
             else:
                 self.report_warning(errmsg)
                 return False
