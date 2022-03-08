@@ -1655,23 +1655,23 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history_val'] = 1
 
                     provider_login_redirect_page, urlh = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending First Bookend.',
+                        urlh.geturl(), video_id, 'Sending First Bookend',
                         query=hidden_data)
 
                     provider_tryauth_url = self._html_search_regex(
                         r'url:\s*[\'"]([^\'"]+)', provider_login_redirect_page, 'ajaxurl')
 
                     provider_tryauth_page, urlh = self._download_webpage_handle(
-                        provider_tryauth_url, video_id, "Submitting TryAuth.",
+                        provider_tryauth_url, video_id, 'Submitting TryAuth',
                         query=hidden_data)
 
-                    provider_login_url = "https://authorize.suddenlink.net/saml/module.php/authSynacor/login.php" + "?AuthState=" + provider_tryauth_page
+                    provider_login_url = f'https://authorize.suddenlink.net/saml/module.php/authSynacor/login.php?AuthState={provider_tryauth_page}'
                     provider_login_page_res = self._download_webpage_handle(
                         provider_login_url, video_id, 'Getting Login Page.',
                         query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
-                        provider_login_page_res, "Logging in.", {
+                        provider_login_page_res, 'Logging in', {
                             mso_info['username_field']: username,
                             mso_info['password_field']: password
                         })
@@ -1687,7 +1687,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data['history_val'] = 3
 
                     mvpd_confirm_page_res = self._download_webpage_handle(
-                        urlh.geturl(), video_id, 'Sending Final Bookend.',
+                        urlh.geturl(), video_id, 'Sending Final Bookend',
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
