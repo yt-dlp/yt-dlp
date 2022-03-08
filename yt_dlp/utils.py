@@ -2192,6 +2192,8 @@ class locked_file(object):
         except IOError:
             self.f.close()
             raise
+        if self.mode in ['w', 'wb']:
+            self.f.truncate()
         return self
 
     def __exit__(self, etype, value, traceback):
