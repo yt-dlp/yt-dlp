@@ -256,7 +256,7 @@ class PanoptoIE(PanoptoBaseIE):
         return {
             'id': video_id,
             'title': delivery.get('SessionName'),
-            'cast': list(filter(None, traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[]))),
+            'cast': traverse_obj(delivery, ('Contributors', ..., 'DisplayName'), default=[], expected_type=lambda x: x or None),
             'timestamp': session_start_time - 11640000000 if session_start_time else None,
             'duration': delivery.get('Duration'),
             'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
