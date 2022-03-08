@@ -15,6 +15,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     HEADRequest,
+    get_first,
     int_or_none,
     join_nonempty,
     LazyList,
@@ -816,8 +817,7 @@ class DouyinIE(TikTokIE):
 
         render_data = self._parse_json(
             render_data_json, video_id, transform_source=compat_urllib_parse_unquote)
-        return self._parse_aweme_video_web(
-            traverse_obj(render_data, (..., 'aweme', 'detail'), get_all=False), url)
+        return self._parse_aweme_video_web(get_first(render_data, ('aweme', 'detail')), url)
 
 
 class TikTokVMIE(InfoExtractor):
