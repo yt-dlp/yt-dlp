@@ -11,6 +11,11 @@
 -->
 
 
+### 2022.03.08.1
+
+* [cleanup] Refactor `__init__.py`
+* [build] Fix bug
+
 ### 2022.03.08
 
 * Merge youtube-dl: Upto [commit/6508688](https://github.com/ytdl-org/youtube-dl/commit/6508688e88c83bb811653083db9351702cd39a6a) (except NDR)
