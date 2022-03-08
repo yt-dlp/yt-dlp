@@ -1665,9 +1665,9 @@ class AdobePassIE(InfoExtractor):
                         provider_tryauth_url, video_id, 'Submitting TryAuth',
                         query=hidden_data)
 
-                    provider_login_url = f'https://authorize.suddenlink.net/saml/module.php/authSynacor/login.php?AuthState={provider_tryauth_page}'
                     provider_login_page_res = self._download_webpage_handle(
-                        provider_login_url, video_id, 'Getting Login Page.',
+                        f'https://authorize.suddenlink.net/saml/module.php/authSynacor/login.php?AuthState={provider_tryauth_page}',
+                        video_id, 'Getting Login Page',
                         query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
