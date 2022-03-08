@@ -13,9 +13,7 @@ import random
 import re
 import sys
 
-from .options import (
-    parseOpts,
-)
+from .options import parseOpts
 from .compat import (
     compat_getpass,
     compat_os_name,
@@ -28,12 +26,12 @@ from .utils import (
     decodeOption,
     DownloadCancelled,
     DownloadError,
-    error_to_compat_str,
     expand_path,
-    GeoUtils,
     float_or_none,
+    GeoUtils,
     int_or_none,
     match_filter_func,
+    NO_DEFAULT,
     parse_duration,
     preferredencoding,
     read_batch_urls,
@@ -45,9 +43,7 @@ from .utils import (
     write_string,
 )
 from .update import run_update
-from .downloader import (
-    FileDownloader,
-)
+from .downloader import FileDownloader
 from .extractor import gen_extractors, list_extractors
 from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
@@ -63,59 +59,38 @@ from .postprocessor import (
 from .YoutubeDL import YoutubeDL
 
 
-def _real_main(argv=None):
-    # Compatibility fixes for Windows
-    if sys.platform == 'win32':
-        # https://github.com/ytdl-org/youtube-dl/issues/820
-        codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
-
-    workaround_optparse_bug9161()
-
-    setproctitle('yt-dlp')
-
-    parser, opts, args = parseOpts(argv)
-    warnings, deprecation_warnings = [], []
-
-    if opts.user_agent is not None:
-        opts.headers.setdefault('User-Agent', opts.user_agent)
-    if opts.referer is not None:
-        opts.headers.setdefault('Referer', opts.referer)
-
-    # Dump user agent
-    if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
-        write_string(f'{ua}\n', out=sys.stdout)
-        sys.exit(0)
-
+def get_urls(urls, batchfile, verbose):
     # Batch file verification
     batch_urls = []
-    if opts.batchfile is not None:
+    if batchfile is not None:
         try:
-            if opts.batchfile == '-':
+            if batchfile == '-':
                 write_string('Reading URLs from stdin - EOF (%s) to end:\n' % (
                     'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
                 batchfd = sys.stdin
             else:
                 batchfd = io.open(
-                    expand_path(opts.batchfile),
+                    expand_path(batchfile),
                     'r', encoding='utf-8', errors='ignore')
             batch_urls = read_batch_urls(batchfd)
-            if opts.verbose:
+            if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
         except IOError:
-            sys.exit('ERROR: batch file %s could not be read' % opts.batchfile)
-    all_urls = batch_urls + [url.strip() for url in args]  # batch_urls are already striped in read_batch_urls
+            sys.exit('ERROR: batch file %s could not be read' % batchfile)
     _enc = preferredencoding()
-    all_urls = [url.decode(_enc, 'ignore') if isinstance(url, bytes) else url for url in all_urls]
+    return [
+        url.strip().decode(_enc, 'ignore') if isinstance(url, bytes) else url.strip()
+        for url in batch_urls + urls]
 
+
+def print_extractor_information(opts, urls):
     if opts.list_extractors:
         for ie in list_extractors(opts.age_limit):
             write_string(ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n', out=sys.stdout)
-            matchedUrls = [url for url in all_urls if ie.suitable(url)]
+            matchedUrls = [url for url in urls if ie.suitable(url)]
             for mu in matchedUrls:
                 write_string('  ' + mu + '\n', out=sys.stdout)
-        sys.exit(0)
-    if opts.list_extractor_descriptions:
+    elif opts.list_extractor_descriptions:
         for ie in list_extractors(opts.age_limit):
             if not ie.working():
                 continue
@@ -127,184 +102,25 @@ def _real_main(argv=None):
                 _COUNTS = ('', '5', '10', 'all')
                 desc += f'; "{ie.SEARCH_KEY}:" prefix (Example: "{ie.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(_SEARCHES)}")'
             write_string(desc + '\n', out=sys.stdout)
-        sys.exit(0)
-    if opts.ap_list_mso:
+    elif opts.ap_list_mso:
         table = [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()]
         write_string('Supported TV Providers:\n' + render_table(['mso', 'mso name'], table) + '\n', out=sys.stdout)
-        sys.exit(0)
-
-    # Conflicting, missing and erroneous options
-    if opts.format == 'best':
-        warnings.append('.\n         '.join((
-            '"-f best" selects the best pre-merged format which is often not the best option',
-            'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
-            'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
-    if opts.exec_cmd.get('before_dl') and opts.exec_before_dl_cmd:
-        parser.error('using "--exec-before-download" conflicts with "--exec before_dl:"')
-    if opts.usenetrc and (opts.username is not None or opts.password is not None):
-        parser.error('using .netrc conflicts with giving username/password')
-    if opts.password is not None and opts.username is None:
-        parser.error('account username missing\n')
-    if opts.ap_password is not None and opts.ap_username is None:
-        parser.error('TV Provider account username missing\n')
-    if opts.autonumber_size is not None:
-        if opts.autonumber_size <= 0:
-            parser.error('auto number size must be positive')
-    if opts.autonumber_start is not None:
-        if opts.autonumber_start < 0:
-            parser.error('auto number start must be positive or 0')
-    if opts.username is not None and opts.password is None:
-        opts.password = compat_getpass('Type account password and press [Return]: ')
-    if opts.ap_username is not None and opts.ap_password is None:
-        opts.ap_password = compat_getpass('Type TV provider account password and press [Return]: ')
-    if opts.ratelimit is not None:
-        numeric_limit = FileDownloader.parse_bytes(opts.ratelimit)
-        if numeric_limit is None:
-            parser.error('invalid rate limit specified')
-        opts.ratelimit = numeric_limit
-    if opts.throttledratelimit is not None:
-        numeric_limit = FileDownloader.parse_bytes(opts.throttledratelimit)
-        if numeric_limit is None:
-            parser.error('invalid rate limit specified')
-        opts.throttledratelimit = numeric_limit
-    if opts.min_filesize is not None:
-        numeric_limit = FileDownloader.parse_bytes(opts.min_filesize)
-        if numeric_limit is None:
-            parser.error('invalid min_filesize specified')
-        opts.min_filesize = numeric_limit
-    if opts.max_filesize is not None:
-        numeric_limit = FileDownloader.parse_bytes(opts.max_filesize)
-        if numeric_limit is None:
-            parser.error('invalid max_filesize specified')
-        opts.max_filesize = numeric_limit
-    if opts.sleep_interval is not None:
-        if opts.sleep_interval < 0:
-            parser.error('sleep interval must be positive or 0')
-    if opts.max_sleep_interval is not None:
-        if opts.max_sleep_interval < 0:
-            parser.error('max sleep interval must be positive or 0')
-        if opts.sleep_interval is None:
-            parser.error('min sleep interval must be specified, use --min-sleep-interval')
-        if opts.max_sleep_interval < opts.sleep_interval:
-            parser.error('max sleep interval must be greater than or equal to min sleep interval')
     else:
-        opts.max_sleep_interval = opts.sleep_interval
-    if opts.sleep_interval_subtitles is not None:
-        if opts.sleep_interval_subtitles < 0:
-            parser.error('subtitles sleep interval must be positive or 0')
-    if opts.sleep_interval_requests is not None:
-        if opts.sleep_interval_requests < 0:
-            parser.error('requests sleep interval must be positive or 0')
-    if opts.ap_mso and opts.ap_mso not in MSO_INFO:
-        parser.error('Unsupported TV Provider, use --ap-list-mso to get a list of supported TV Providers')
-    if opts.overwrites:  # --yes-overwrites implies --no-continue
-        opts.continue_dl = False
-    if opts.concurrent_fragment_downloads <= 0:
-        parser.error('Concurrent fragments must be positive')
-    if opts.wait_for_video is not None:
-        min_wait, max_wait, *_ = map(parse_duration, opts.wait_for_video.split('-', 1) + [None])
-        if min_wait is None or (max_wait is None and '-' in opts.wait_for_video):
-            parser.error('Invalid time range to wait')
-        elif max_wait is not None and max_wait < min_wait:
-            parser.error('Minimum time range to wait must not be longer than the maximum')
-        opts.wait_for_video = (min_wait, max_wait)
+        return False
+    return True
 
-    def parse_retries(retries, name=''):
-        if retries in ('inf', 'infinite'):
-            parsed_retries = float('inf')
-        else:
-            try:
-                parsed_retries = int(retries)
-            except (TypeError, ValueError):
-                parser.error('invalid %sretry count specified' % name)
-        return parsed_retries
-    if opts.retries is not None:
-        opts.retries = parse_retries(opts.retries)
-    if opts.file_access_retries is not None:
-        opts.file_access_retries = parse_retries(opts.file_access_retries, 'file access ')
-    if opts.fragment_retries is not None:
-        opts.fragment_retries = parse_retries(opts.fragment_retries, 'fragment ')
-    if opts.extractor_retries is not None:
-        opts.extractor_retries = parse_retries(opts.extractor_retries, 'extractor ')
-    if opts.buffersize is not None:
-        numeric_buffersize = FileDownloader.parse_bytes(opts.buffersize)
-        if numeric_buffersize is None:
-            parser.error('invalid buffer size specified')
-        opts.buffersize = numeric_buffersize
-    if opts.http_chunk_size is not None:
-        numeric_chunksize = FileDownloader.parse_bytes(opts.http_chunk_size)
-        if not numeric_chunksize:
-            parser.error('invalid http chunk size specified')
-        opts.http_chunk_size = numeric_chunksize
-    if opts.playliststart <= 0:
-        raise parser.error('Playlist start must be positive')
-    if opts.playlistend not in (-1, None) and opts.playlistend < opts.playliststart:
-        raise parser.error('Playlist end must be greater than playlist start')
-    if opts.extractaudio:
-        opts.audioformat = opts.audioformat.lower()
-        if opts.audioformat not in ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS):
-            parser.error('invalid audio format specified')
-    if opts.audioquality:
-        opts.audioquality = opts.audioquality.strip('k').strip('K')
-        audioquality = int_or_none(float_or_none(opts.audioquality))  # int_or_none prevents inf, nan
-        if audioquality is None or audioquality < 0:
-            parser.error('invalid audio quality specified')
-    if opts.recodevideo is not None:
-        opts.recodevideo = opts.recodevideo.replace(' ', '')
-        if not re.match(FFmpegVideoConvertorPP.FORMAT_RE, opts.recodevideo):
-            parser.error('invalid video remux format specified')
-    if opts.remuxvideo is not None:
-        opts.remuxvideo = opts.remuxvideo.replace(' ', '')
-        if not re.match(FFmpegVideoRemuxerPP.FORMAT_RE, opts.remuxvideo):
-            parser.error('invalid video remux format specified')
-    if opts.convertsubtitles is not None:
-        if opts.convertsubtitles not in FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS:
-            parser.error('invalid subtitle format specified')
-    if opts.convertthumbnails is not None:
-        if opts.convertthumbnails not in FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS:
-            parser.error('invalid thumbnail format specified')
-    if opts.cookiesfrombrowser is not None:
-        mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
-        if mobj is None:
-            parser.error(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
-        browser_name, keyring, profile = mobj.group('name', 'keyring', 'profile')
-        browser_name = browser_name.lower()
-        if browser_name not in SUPPORTED_BROWSERS:
-            parser.error(f'unsupported browser specified for cookies: "{browser_name}". '
-                         f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
-        if keyring is not None:
-            keyring = keyring.upper()
-            if keyring not in SUPPORTED_KEYRINGS:
-                parser.error(f'unsupported keyring specified for cookies: "{keyring}". '
-                             f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
-        opts.cookiesfrombrowser = (browser_name, profile, keyring)
-    geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
-    if geo_bypass_code is not None:
-        try:
-            GeoUtils.random_ipv4(geo_bypass_code)
-        except Exception:
-            parser.error('unsupported geo-bypass country or ip-block')
 
-    if opts.date is not None:
-        date = DateRange.day(opts.date)
-    else:
-        date = DateRange(opts.dateafter, opts.datebefore)
-
-    compat_opts = opts.compat_opts
-
-    def report_conflict(arg1, arg2):
-        warnings.append(f'{arg2} is ignored since {arg1} was given')
-
+def set_compat_opts(opts):
     def _unused_compat_opt(name):
-        if name not in compat_opts:
+        if name not in opts.compat_opts:
             return False
-        compat_opts.discard(name)
-        compat_opts.update(['*%s' % name])
+        opts.compat_opts.discard(name)
+        opts.compat_opts.update(['*%s' % name])
         return True
 
     def set_default_compat(compat_name, opt_name, default=True, remove_compat=True):
         attr = getattr(opts, opt_name)
-        if compat_name in compat_opts:
+        if compat_name in opts.compat_opts:
             if attr is None:
                 setattr(opts, opt_name, not default)
                 return True
@@ -319,36 +135,137 @@ def _real_main(argv=None):
     set_default_compat('abort-on-error', 'ignoreerrors', 'only_download')
     set_default_compat('no-playlist-metafiles', 'allow_playlist_files')
     set_default_compat('no-clean-infojson', 'clean_infojson')
-    if 'no-attach-info-json' in compat_opts:
+    if 'no-attach-info-json' in opts.compat_opts:
         if opts.embed_infojson:
             _unused_compat_opt('no-attach-info-json')
         else:
             opts.embed_infojson = False
-    if 'format-sort' in compat_opts:
+    if 'format-sort' in opts.compat_opts:
         opts.format_sort.extend(InfoExtractor.FormatSort.ytdl_default)
     _video_multistreams_set = set_default_compat('multistreams', 'allow_multiple_video_streams', False, remove_compat=False)
     _audio_multistreams_set = set_default_compat('multistreams', 'allow_multiple_audio_streams', False, remove_compat=False)
     if _video_multistreams_set is False and _audio_multistreams_set is False:
         _unused_compat_opt('multistreams')
-    outtmpl_default = opts.outtmpl.get('default')
-    if outtmpl_default == '':
-        outtmpl_default, opts.skip_download = None, True
-        del opts.outtmpl['default']
-    if opts.useid:
-        if outtmpl_default is None:
-            outtmpl_default = opts.outtmpl['default'] = '%(id)s.%(ext)s'
-        else:
-            report_conflict('--output', '--id')
-    if 'filename' in compat_opts:
-        if outtmpl_default is None:
-            outtmpl_default = opts.outtmpl['default'] = '%(title)s-%(id)s.%(ext)s'
+    if 'filename' in opts.compat_opts:
+        if opts.outtmpl.get('default') is None:
+            opts.outtmpl.update({'default': '%(title)s-%(id)s.%(ext)s'})
         else:
             _unused_compat_opt('filename')
 
+
+def validate_options(opts):
+    def validate(cndn, name, value=None, msg=None):
+        if cndn:
+            return True
+        raise ValueError((msg or 'invalid {name} "{value}" given').format(name=name, value=value))
+
+    def validate_in(name, value, items, msg=None):
+        return validate(value is None or value in items, name, value, msg)
+
+    def validate_regex(name, value, regex):
+        return validate(value is None or re.match(regex, value), name, value)
+
+    def validate_positive(name, value, strict=False):
+        return validate(value is None or value > 0 or (not strict and value == 0),
+                        name, value, '{name} "{value}" must be positive' + ('' if strict else ' or 0'))
+
+    def validate_minmax(min_val, max_val, min_name, max_name=None):
+        if max_val is None or min_val is None or max_val >= min_val:
+            return
+        if not max_name:
+            min_name, max_name = f'min {min_name}', f'max {min_name}'
+        raise ValueError(f'{max_name} "{max_val}" must be must be greater than or equal to {min_name} "{min_val}"')
+
+    # Usernames and passwords
+    validate(not opts.usenetrc or (opts.username is None and opts.password is None),
+             '.netrc', msg='using {name} conflicts with giving username/password')
+    validate(opts.password is None or opts.username is not None, 'account username', msg='{name} missing')
+    validate(opts.ap_password is None or opts.ap_username is not None,
+             'TV Provider account username', msg='{name} missing')
+    validate_in('TV Provider', opts.ap_mso, MSO_INFO,
+                'Unsupported {name} "{value}", use --ap-list-mso to get a list of supported TV Providers')
+
+    # Numbers
+    validate_positive('autonumber start', opts.autonumber_start)
+    validate_positive('autonumber size', opts.autonumber_size, True)
+    validate_positive('concurrent fragments', opts.concurrent_fragment_downloads, True)
+    validate_positive('playlist start', opts.playliststart, True)
+    if opts.playlistend != -1:
+        validate_minmax(opts.playliststart, opts.playlistend, 'playlist start', 'playlist end')
+
+    # Time ranges
+    validate_positive('subtitles sleep interval', opts.sleep_interval_subtitles)
+    validate_positive('requests sleep interval', opts.sleep_interval_requests)
+    validate_positive('sleep interval', opts.sleep_interval)
+    validate_positive('max sleep interval', opts.max_sleep_interval)
+    if opts.max_sleep_interval is not None:
+        validate(
+            opts.sleep_interval is not None, 'min sleep interval',
+            msg='{name} must be specified; use --min-sleep-interval')
+        validate_minmax(opts.sleep_interval, opts.max_sleep_interval, 'sleep interval')
+
+    if opts.wait_for_video is not None:
+        min_wait, max_wait, *_ = map(parse_duration, opts.wait_for_video.split('-', 1) + [None])
+        validate(min_wait is not None and not (max_wait is None and '-' in opts.wait_for_video),
+                 'time range to wait for video', opts.wait_for_video)
+        validate_minmax(min_wait, max_wait, 'time range to wait for video')
+        opts.wait_for_video = (min_wait, max_wait)
+
+    # Format sort
+    for f in opts.format_sort:
+        validate_regex('format sorting', f, InfoExtractor.FormatSort.regex)
+
+    # Postprocessor formats
+    validate_in('audio format', opts.audioformat, ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS))
+    validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
+    validate_in('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)
+    if opts.recodevideo is not None:
+        opts.recodevideo = opts.recodevideo.replace(' ', '')
+        validate_regex('video recode format', opts.recodevideo, FFmpegVideoConvertorPP.FORMAT_RE)
+    if opts.remuxvideo is not None:
+        opts.remuxvideo = opts.remuxvideo.replace(' ', '')
+        validate_regex('video remux format', opts.remuxvideo, FFmpegVideoRemuxerPP.FORMAT_RE)
+    if opts.audioquality:
+        opts.audioquality = opts.audioquality.strip('k').strip('K')
+        # int_or_none prevents inf, nan
+        validate_positive('audio quality', int_or_none(float_or_none(opts.audioquality), default=0))
+
+    # Retries
+    def parse_retries(name, value):
+        if value is None:
+            return None
+        elif value in ('inf', 'infinite'):
+            return float('inf')
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            validate(False, f'{name} retry count', value)
+
+    opts.retries = parse_retries('download', opts.retries)
+    opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
+    opts.extractor_retries = parse_retries('extractor', opts.extractor_retries)
+    opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
+
+    # Bytes
+    def parse_bytes(name, value):
+        if value is None:
+            return None
+        numeric_limit = FileDownloader.parse_bytes(value)
+        validate(numeric_limit is not None, 'rate limit', value)
+        return numeric_limit
+
+    opts.ratelimit = parse_bytes('rate limit', opts.ratelimit)
+    opts.ratelimit = parse_bytes('throttled rate limit', opts.throttledratelimit)
+    opts.min_filesize = parse_bytes('min filesize', opts.min_filesize)
+    opts.max_filesize = parse_bytes('max filesize', opts.max_filesize)
+    opts.buffersize = parse_bytes('buffer size', opts.buffersize)
+    opts.http_chunk_size = parse_bytes('http chunk size', opts.http_chunk_size)
+
+    # Output templates
     def validate_outtmpl(tmpl, msg):
         err = YoutubeDL.validate_outtmpl(tmpl)
         if err:
-            parser.error('invalid %s %r: %s' % (msg, tmpl, error_to_compat_str(err)))
+            raise ValueError(f'invalid {msg} "{tmpl}": {err}')
 
     for k, tmpl in opts.outtmpl.items():
         validate_outtmpl(tmpl, f'{k} output template')
@@ -357,32 +274,62 @@ def _real_main(argv=None):
             validate_outtmpl(tmpl, f'{type_} print template')
     for type_, tmpl_list in opts.print_to_file.items():
         for tmpl, file in tmpl_list:
-            validate_outtmpl(tmpl, f'{type_} print-to-file template')
-            validate_outtmpl(file, f'{type_} print-to-file filename')
+            validate_outtmpl(tmpl, f'{type_} print to file template')
+            validate_outtmpl(file, f'{type_} print to file filename')
     validate_outtmpl(opts.sponsorblock_chapter_title, 'SponsorBlock chapter title')
     for k, tmpl in opts.progress_template.items():
         k = f'{k[:-6]} console title' if '-title' in k else f'{k} progress'
         validate_outtmpl(tmpl, f'{k} template')
 
-    if opts.extractaudio and not opts.keepvideo and opts.format is None:
-        opts.format = 'bestaudio/best'
+    outtmpl_default = opts.outtmpl.get('default')
+    if outtmpl_default == '':
+        opts.skip_download = None
+        del opts.outtmpl['default']
+    if outtmpl_default and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
+        raise ValueError(
+            'Cannot download a video and extract audio into the same file! '
+            f'Use "{outtmpl_default}.%(ext)s" instead of "{outtmpl_default}" as the output template')
 
-    if outtmpl_default is not None and not os.path.splitext(outtmpl_default)[1] and opts.extractaudio:
-        parser.error('Cannot download a video and extract audio into the same'
-                     ' file! Use "{0}.%(ext)s" instead of "{0}" as the output'
-                     ' template'.format(outtmpl_default))
+    # Remove chapters
+    remove_chapters_patterns, opts.remove_ranges = [], []
+    for regex in opts.remove_chapters or []:
+        if regex.startswith('*'):
+            dur = list(map(parse_duration, regex[1:].split('-')))
+            if len(dur) == 2 and all(t is not None for t in dur):
+                opts.remove_ranges.append(tuple(dur))
+                continue
+            raise ValueError(f'invalid --remove-chapters time range "{regex}". Must be of the form *start-end')
+        try:
+            remove_chapters_patterns.append(re.compile(regex))
+        except re.error as err:
+            raise ValueError(f'invalid --remove-chapters regex "{regex}" - {err}')
+    opts.remove_chapters = remove_chapters_patterns
 
-    for f in opts.format_sort:
-        if re.match(InfoExtractor.FormatSort.regex, f) is None:
-            parser.error('invalid format sort string "%s" specified' % f)
+    # Cookies from browser
+    if opts.cookiesfrombrowser:
+        mobj = re.match(r'(?P<name>[^+:]+)(\s*\+\s*(?P<keyring>[^:]+))?(\s*:(?P<profile>.+))?', opts.cookiesfrombrowser)
+        if mobj is None:
+            raise ValueError(f'invalid cookies from browser arguments: {opts.cookiesfrombrowser}')
+        browser_name, keyring, profile = mobj.group('name', 'keyring', 'profile')
+        browser_name = browser_name.lower()
+        if browser_name not in SUPPORTED_BROWSERS:
+            raise ValueError(f'unsupported browser specified for cookies: "{browser_name}". '
+                             f'Supported browsers are: {", ".join(sorted(SUPPORTED_BROWSERS))}')
+        if keyring is not None:
+            keyring = keyring.upper()
+            if keyring not in SUPPORTED_KEYRINGS:
+                raise ValueError(f'unsupported keyring specified for cookies: "{keyring}". '
+                                 f'Supported keyrings are: {", ".join(sorted(SUPPORTED_KEYRINGS))}')
+        opts.cookiesfrombrowser = (browser_name, profile, keyring)
 
+    # MetadataParser
     def metadataparser_actions(f):
         if isinstance(f, str):
             cmd = '--parse-metadata %s' % compat_shlex_quote(f)
             try:
                 actions = [MetadataFromFieldPP.to_action(f)]
             except Exception as err:
-                parser.error(f'{cmd} is invalid; {err}')
+                raise ValueError(f'{cmd} is invalid; {err}')
         else:
             cmd = '--replace-in-metadata %s' % ' '.join(map(compat_shlex_quote, f))
             actions = ((MetadataParserPP.Actions.REPLACE, x, *f[1:]) for x in f[0].split(','))
@@ -391,237 +338,97 @@ def _real_main(argv=None):
             try:
                 MetadataParserPP.validate_action(*action)
             except Exception as err:
-                parser.error(f'{cmd} is invalid; {err}')
+                raise ValueError(f'{cmd} is invalid; {err}')
             yield action
 
-    if opts.parse_metadata is None:
-        opts.parse_metadata = []
+    parse_metadata = opts.parse_metadata or []
     if opts.metafromtitle is not None:
-        opts.parse_metadata.append('title:%s' % opts.metafromtitle)
-    opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, opts.parse_metadata)))
+        parse_metadata.append('title:%s' % opts.metafromtitle)
+    opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
 
-    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
-                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
-                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
+    # Other options
+    geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
+    if geo_bypass_code is not None:
+        try:
+            GeoUtils.random_ipv4(geo_bypass_code)
+        except Exception:
+            raise ValueError('unsupported geo-bypass country or ip-block')
 
-    any_printing = opts.print_json
-    download_archive_fn = expand_path(opts.download_archive) if opts.download_archive is not None else opts.download_archive
+    opts.match_filter = match_filter_func(opts.match_filter)
+    opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
 
-    # If JSON is not printed anywhere, but comments are requested, save it to file
-    printing_json = opts.dumpjson or opts.print_json or opts.dump_single_json
-    if opts.getcomments and not printing_json:
-        opts.writeinfojson = True
+    if opts.download_archive is not None:
+        opts.download_archive = expand_path(opts.download_archive)
+
+    if opts.user_agent is not None:
+        opts.headers.setdefault('User-Agent', opts.user_agent)
+    if opts.referer is not None:
+        opts.headers.setdefault('Referer', opts.referer)
 
     if opts.no_sponsorblock:
-        opts.sponsorblock_mark = set()
-        opts.sponsorblock_remove = set()
-    sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
+        opts.sponsorblock_mark = opts.sponsorblock_remove = set()
 
-    opts.remove_chapters = opts.remove_chapters or []
+    warnings, deprecation_warnings = [], []
 
-    if (opts.remove_chapters or sponsorblock_query) and opts.sponskrub is not False:
-        if opts.sponskrub:
-            if opts.remove_chapters:
-                report_conflict('--remove-chapters', '--sponskrub')
-            if opts.sponsorblock_mark:
-                report_conflict('--sponsorblock-mark', '--sponskrub')
-            if opts.sponsorblock_remove:
-                report_conflict('--sponsorblock-remove', '--sponskrub')
-        opts.sponskrub = False
-    if opts.sponskrub_cut and opts.split_chapters and opts.sponskrub is not False:
-        report_conflict('--split-chapter', '--sponskrub-cut')
-        opts.sponskrub_cut = False
+    # Common mistake: -f best
+    if opts.format == 'best':
+        warnings.append('.\n         '.join((
+            '"-f best" selects the best pre-merged format which is often not the best option',
+            'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
+            'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
 
-    if opts.remuxvideo and opts.recodevideo:
-        report_conflict('--recode-video', '--remux-video')
-        opts.remuxvideo = False
+    # --(post-processor/downloader)-args without name
+    def report_args_compat(name, value, key1, key2=None):
+        if key1 in value and key2 not in value:
+            warnings.append(f'{name} arguments given without specifying name. The arguments will be given to all {name}s')
+            return True
+        return False
 
-    if opts.allow_unplayable_formats:
-        def report_unplayable_conflict(opt_name, arg, default=False, allowed=None):
-            val = getattr(opts, opt_name)
-            if (not allowed and val) or (allowed and not allowed(val)):
-                report_conflict('--allow-unplayable-formats', arg)
-                setattr(opts, opt_name, default)
-
-        report_unplayable_conflict('extractaudio', '--extract-audio')
-        report_unplayable_conflict('remuxvideo', '--remux-video')
-        report_unplayable_conflict('recodevideo', '--recode-video')
-        report_unplayable_conflict('addmetadata', '--embed-metadata')
-        report_unplayable_conflict('addchapters', '--embed-chapters')
-        report_unplayable_conflict('embed_infojson', '--embed-info-json')
-        opts.embed_infojson = False
-        report_unplayable_conflict('embedsubtitles', '--embed-subs')
-        report_unplayable_conflict('embedthumbnail', '--embed-thumbnail')
-        report_unplayable_conflict('xattrs', '--xattrs')
-        report_unplayable_conflict('fixup', '--fixup', default='never', allowed=lambda x: x in (None, 'never', 'ignore'))
-        opts.fixup = 'never'
-        report_unplayable_conflict('remove_chapters', '--remove-chapters', default=[])
-        report_unplayable_conflict('sponsorblock_remove', '--sponsorblock-remove', default=set())
-        report_unplayable_conflict('sponskrub', '--sponskrub', default=set())
-        opts.sponskrub = False
-
-    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
-        opts.addchapters = True
-
-    # PostProcessors
-    postprocessors = list(opts.add_postprocessors)
-    if sponsorblock_query:
-        postprocessors.append({
-            'key': 'SponsorBlock',
-            'categories': sponsorblock_query,
-            'api': opts.sponsorblock_api,
-            # Run this after filtering videos
-            'when': 'after_filter'
-        })
-    if opts.parse_metadata:
-        postprocessors.append({
-            'key': 'MetadataParser',
-            'actions': opts.parse_metadata,
-            # Run this immediately after extraction is complete
-            'when': 'pre_process'
-        })
-    if opts.convertsubtitles:
-        postprocessors.append({
-            'key': 'FFmpegSubtitlesConvertor',
-            'format': opts.convertsubtitles,
-            # Run this before the actual video download
-            'when': 'before_dl'
-        })
-    if opts.convertthumbnails:
-        postprocessors.append({
-            'key': 'FFmpegThumbnailsConvertor',
-            'format': opts.convertthumbnails,
-            # Run this before the actual video download
-            'when': 'before_dl'
-        })
-    if opts.extractaudio:
-        postprocessors.append({
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': opts.audioformat,
-            'preferredquality': opts.audioquality,
-            'nopostoverwrites': opts.nopostoverwrites,
-        })
-    if opts.remuxvideo:
-        postprocessors.append({
-            'key': 'FFmpegVideoRemuxer',
-            'preferedformat': opts.remuxvideo,
-        })
-    if opts.recodevideo:
-        postprocessors.append({
-            'key': 'FFmpegVideoConvertor',
-            'preferedformat': opts.recodevideo,
-        })
-    # If ModifyChapters is going to remove chapters, subtitles must already be in the container.
-    if opts.embedsubtitles:
-        already_have_subtitle = opts.writesubtitles and 'no-keep-subs' not in compat_opts
-        postprocessors.append({
-            'key': 'FFmpegEmbedSubtitle',
-            # already_have_subtitle = True prevents the file from being deleted after embedding
-            'already_have_subtitle': already_have_subtitle
-        })
-        if not opts.writeautomaticsub and 'no-keep-subs' not in compat_opts:
-            opts.writesubtitles = True
-    # --all-sub automatically sets --write-sub if --write-auto-sub is not given
-    # this was the old behaviour if only --all-sub was given.
-    if opts.allsubtitles and not opts.writeautomaticsub:
-        opts.writesubtitles = True
-    # ModifyChapters must run before FFmpegMetadataPP
-    remove_chapters_patterns, remove_ranges = [], []
-    for regex in opts.remove_chapters:
-        if regex.startswith('*'):
-            dur = list(map(parse_duration, regex[1:].split('-')))
-            if len(dur) == 2 and all(t is not None for t in dur):
-                remove_ranges.append(tuple(dur))
-                continue
-            parser.error(f'invalid --remove-chapters time range {regex!r}. Must be of the form *start-end')
-        try:
-            remove_chapters_patterns.append(re.compile(regex))
-        except re.error as err:
-            parser.error(f'invalid --remove-chapters regex {regex!r} - {err}')
-    if opts.remove_chapters or sponsorblock_query:
-        postprocessors.append({
-            'key': 'ModifyChapters',
-            'remove_chapters_patterns': remove_chapters_patterns,
-            'remove_sponsor_segments': opts.sponsorblock_remove,
-            'remove_ranges': remove_ranges,
-            'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
-            'force_keyframes': opts.force_keyframes_at_cuts
-        })
-    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
-    # FFmpegExtractAudioPP as containers before conversion may not support
-    # metadata (3gp, webm, etc.)
-    # By default ffmpeg preserves metadata applicable for both
-    # source and target containers. From this point the container won't change,
-    # so metadata can be added here.
-    if opts.addmetadata or opts.addchapters or opts.embed_infojson:
-        if opts.embed_infojson is None:
-            opts.embed_infojson = 'if_exists'
-        postprocessors.append({
-            'key': 'FFmpegMetadata',
-            'add_chapters': opts.addchapters,
-            'add_metadata': opts.addmetadata,
-            'add_infojson': opts.embed_infojson,
-        })
-    # Deprecated
-    # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
-    # but must be below EmbedSubtitle and FFmpegMetadata
-    # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
-    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
-    if opts.sponskrub is not False:
-        postprocessors.append({
-            'key': 'SponSkrub',
-            'path': opts.sponskrub_path,
-            'args': opts.sponskrub_args,
-            'cut': opts.sponskrub_cut,
-            'force': opts.sponskrub_force,
-            'ignoreerror': opts.sponskrub is None,
-            '_from_cli': True,
-        })
-    if opts.embedthumbnail:
-        postprocessors.append({
-            'key': 'EmbedThumbnail',
-            # already_have_thumbnail = True prevents the file from being deleted after embedding
-            'already_have_thumbnail': opts.writethumbnail
-        })
-        if not opts.writethumbnail:
-            opts.writethumbnail = True
-            opts.outtmpl['pl_thumbnail'] = ''
-    if opts.split_chapters:
-        postprocessors.append({
-            'key': 'FFmpegSplitChapters',
-            'force_keyframes': opts.force_keyframes_at_cuts,
-        })
-    # XAttrMetadataPP should be run after post-processors that may change file contents
-    if opts.xattrs:
-        postprocessors.append({'key': 'XAttrMetadata'})
-    if opts.concat_playlist != 'never':
-        postprocessors.append({
-            'key': 'FFmpegConcat',
-            'only_multi_video': opts.concat_playlist != 'always',
-            'when': 'playlist',
-        })
-    # Exec must be the last PP of each category
-    if opts.exec_before_dl_cmd:
-        opts.exec_cmd.setdefault('before_dl', opts.exec_before_dl_cmd)
-    for when, exec_cmd in opts.exec_cmd.items():
-        postprocessors.append({
-            'key': 'Exec',
-            'exec_cmd': exec_cmd,
-            # Run this only after the files have been moved to their final locations
-            'when': when,
-        })
-
-    def report_args_compat(arg, name):
-        warnings.append('%s given without specifying name. The arguments will be given to all %s' % (arg, name))
-
-    if 'default' in opts.external_downloader_args:
-        report_args_compat('--downloader-args', 'external downloaders')
-
-    if 'default-compat' in opts.postprocessor_args and 'default' not in opts.postprocessor_args:
-        report_args_compat('--post-processor-args', 'post-processors')
+    report_args_compat('external downloader', opts.external_downloader_args, 'default')
+    if report_args_compat('post-processor', opts.postprocessor_args, 'default-compat', 'default'):
+        opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
         opts.postprocessor_args.setdefault('sponskrub', [])
-        opts.postprocessor_args['default'] = opts.postprocessor_args['default-compat']
 
+    def report_conflict(arg1, opt1, arg2='--allow-unplayable-formats', opt2='allow_unplayable_formats',
+                        val1=NO_DEFAULT, val2=NO_DEFAULT, default=False):
+        if val2 is NO_DEFAULT:
+            val2 = getattr(opts, opt2)
+        if not val2:
+            return
+
+        if val1 is NO_DEFAULT:
+            val1 = getattr(opts, opt1)
+        if val1:
+            warnings.append(f'{arg1} is ignored since {arg2} was given')
+        setattr(opts, opt1, default)
+
+    # Conflicting options
+    report_conflict('--date-after', 'dateafter', '--date', 'date', default=None)
+    report_conflict('--date-before', 'datebefore', '--date', 'date', default=None)
+    report_conflict('--exec-before-download', 'exec_before_dl_cmd', '"--exec before_dl:"', 'exec_cmd', opts.exec_cmd.get('before_dl'))
+    report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
+    report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
+    report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
+    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
+    report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
+    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters', val1=opts.sponskrub and opts.sponskrub_cut)
+
+    # Conflicts with --allow-unplayable-formats
+    report_conflict('--add-metadata', 'addmetadata')
+    report_conflict('--embed-chapters', 'addchapters')
+    report_conflict('--embed-info-json', 'embed_infojson')
+    report_conflict('--embed-subs', 'embedsubtitles')
+    report_conflict('--embed-thumbnail', 'embedthumbnail')
+    report_conflict('--extract-audio', 'extractaudio')
+    report_conflict('--fixup', 'fixup', val1=(opts.fixup or '').lower() in ('', 'never', 'ignore'), default='never')
+    report_conflict('--recode-video', 'recodevideo')
+    report_conflict('--remove-chapters', 'remove_chapters', default=[])
+    report_conflict('--remux-video', 'remuxvideo')
+    report_conflict('--sponskrub', 'sponskrub')
+    report_conflict('--sponsorblock-remove', 'sponsorblock_remove', default=set())
+    report_conflict('--xattrs', 'xattrs')
+
+    # Fully deprecated options
     def report_deprecation(val, old, new=None):
         if not val:
             return
@@ -631,9 +438,195 @@ def _real_main(argv=None):
 
     report_deprecation(opts.sponskrub, '--sponskrub', '--sponsorblock-mark or --sponsorblock-remove')
     report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
-    report_deprecation(opts.include_ads, '--include-ads')
+    # report_deprecation(opts.include_ads, '--include-ads')  # We may re-implement this in future
     # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future
     # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
+
+    # Dependent options
+    if opts.exec_before_dl_cmd:
+        opts.exec_cmd['before_dl'] = opts.exec_before_dl_cmd
+
+    if opts.useid:  # --id is not deprecated in youtube-dl
+        opts.outtmpl['default'] = '%(id)s.%(ext)s'
+
+    if opts.overwrites:  # --force-overwrites implies --no-continue
+        opts.continue_dl = False
+
+    if (opts.addmetadata or opts.sponsorblock_mark) and opts.addchapters is None:
+        # Add chapters when adding metadata or marking sponsors
+        opts.addchapters = True
+
+    if opts.extractaudio and not opts.keepvideo and opts.format is None:
+        # Do not unnecessarily download audio
+        opts.format = 'bestaudio/best'
+
+    if opts.getcomments and opts.writeinfojson is None:
+        # If JSON is not printed anywhere, but comments are requested, save it to file
+        if not opts.dumpjson or opts.print_json or opts.dump_single_json:
+            opts.writeinfojson = True
+
+    if opts.allsubtitles and not (opts.embedsubtitles or opts.writeautomaticsub):
+        # --all-sub automatically sets --write-sub if --write-auto-sub is not given
+        opts.writesubtitles = True
+
+    if opts.addmetadata and opts.embed_infojson is None:
+        # If embedding metadata and infojson is present, embed it
+        opts.embed_infojson = 'if_exists'
+
+    # Ask for passwords
+    if opts.username is not None and opts.password is None:
+        opts.password = compat_getpass('Type account password and press [Return]: ')
+    if opts.ap_username is not None and opts.ap_password is None:
+        opts.ap_password = compat_getpass('Type TV provider account password and press [Return]: ')
+
+    return warnings, deprecation_warnings
+
+
+def get_postprocessors(opts):
+    yield from opts.add_postprocessors
+
+    if opts.parse_metadata:
+        yield {
+            'key': 'MetadataParser',
+            'actions': opts.parse_metadata,
+            'when': 'pre_process'
+        }
+    sponsorblock_query = opts.sponsorblock_mark | opts.sponsorblock_remove
+    if sponsorblock_query:
+        yield {
+            'key': 'SponsorBlock',
+            'categories': sponsorblock_query,
+            'api': opts.sponsorblock_api,
+            'when': 'after_filter'
+        }
+    if opts.convertsubtitles:
+        yield {
+            'key': 'FFmpegSubtitlesConvertor',
+            'format': opts.convertsubtitles,
+            'when': 'before_dl'
+        }
+    if opts.convertthumbnails:
+        yield {
+            'key': 'FFmpegThumbnailsConvertor',
+            'format': opts.convertthumbnails,
+            'when': 'before_dl'
+        }
+    if opts.extractaudio:
+        yield {
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': opts.audioformat,
+            'preferredquality': opts.audioquality,
+            'nopostoverwrites': opts.nopostoverwrites,
+        }
+    if opts.remuxvideo:
+        yield {
+            'key': 'FFmpegVideoRemuxer',
+            'preferedformat': opts.remuxvideo,
+        }
+    if opts.recodevideo:
+        yield {
+            'key': 'FFmpegVideoConvertor',
+            'preferedformat': opts.recodevideo,
+        }
+    # If ModifyChapters is going to remove chapters, subtitles must already be in the container.
+    if opts.embedsubtitles:
+        keep_subs = 'no-keep-subs' not in opts.compat_opts
+        yield {
+            'key': 'FFmpegEmbedSubtitle',
+            # already_have_subtitle = True prevents the file from being deleted after embedding
+            'already_have_subtitle': opts.writesubtitles and keep_subs
+        }
+        if not opts.writeautomaticsub and keep_subs:
+            opts.writesubtitles = True
+
+    # ModifyChapters must run before FFmpegMetadataPP
+    if opts.remove_chapters or sponsorblock_query:
+        yield {
+            'key': 'ModifyChapters',
+            'remove_chapters_patterns': opts.remove_chapters,
+            'remove_sponsor_segments': opts.sponsorblock_remove,
+            'remove_ranges': opts.remove_ranges,
+            'sponsorblock_chapter_title': opts.sponsorblock_chapter_title,
+            'force_keyframes': opts.force_keyframes_at_cuts
+        }
+    # FFmpegMetadataPP should be run after FFmpegVideoConvertorPP and
+    # FFmpegExtractAudioPP as containers before conversion may not support
+    # metadata (3gp, webm, etc.)
+    # By default ffmpeg preserves metadata applicable for both
+    # source and target containers. From this point the container won't change,
+    # so metadata can be added here.
+    if opts.addmetadata or opts.addchapters or opts.embed_infojson:
+        yield {
+            'key': 'FFmpegMetadata',
+            'add_chapters': opts.addchapters,
+            'add_metadata': opts.addmetadata,
+            'add_infojson': opts.embed_infojson,
+        }
+    # Deprecated
+    # This should be above EmbedThumbnail since sponskrub removes the thumbnail attachment
+    # but must be below EmbedSubtitle and FFmpegMetadata
+    # See https://github.com/yt-dlp/yt-dlp/issues/204 , https://github.com/faissaloo/SponSkrub/issues/29
+    # If opts.sponskrub is None, sponskrub is used, but it silently fails if the executable can't be found
+    if opts.sponskrub is not False:
+        yield {
+            'key': 'SponSkrub',
+            'path': opts.sponskrub_path,
+            'args': opts.sponskrub_args,
+            'cut': opts.sponskrub_cut,
+            'force': opts.sponskrub_force,
+            'ignoreerror': opts.sponskrub is None,
+            '_from_cli': True,
+        }
+    if opts.embedthumbnail:
+        yield {
+            'key': 'EmbedThumbnail',
+            # already_have_thumbnail = True prevents the file from being deleted after embedding
+            'already_have_thumbnail': opts.writethumbnail
+        }
+        if not opts.writethumbnail:
+            opts.writethumbnail = True
+            opts.outtmpl['pl_thumbnail'] = ''
+    if opts.split_chapters:
+        yield {
+            'key': 'FFmpegSplitChapters',
+            'force_keyframes': opts.force_keyframes_at_cuts,
+        }
+    # XAttrMetadataPP should be run after post-processors that may change file contents
+    if opts.xattrs:
+        yield {'key': 'XAttrMetadata'}
+    if opts.concat_playlist != 'never':
+        yield {
+            'key': 'FFmpegConcat',
+            'only_multi_video': opts.concat_playlist != 'always',
+            'when': 'playlist',
+        }
+    # Exec must be the last PP of each category
+    for when, exec_cmd in opts.exec_cmd.items():
+        yield {
+            'key': 'Exec',
+            'exec_cmd': exec_cmd,
+            'when': when,
+        }
+
+
+def parse_options(argv=None):
+    """ @returns (parser, opts, urls, ydl_opts) """
+    parser, opts, urls = parseOpts(argv)
+    urls = get_urls(urls, opts.batchfile, opts.verbose)
+
+    set_compat_opts(opts)
+    try:
+        warnings, deprecation_warnings = validate_options(opts)
+    except ValueError as err:
+        parser.error(f'{err}\n')
+
+    postprocessors = list(get_postprocessors(opts))
+
+    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
+                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
+                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
+
+    any_printing = opts.print_json
 
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
@@ -641,11 +634,7 @@ def _real_main(argv=None):
         else opts.audioformat if (opts.extractaudio and opts.audioformat != 'best')
         else None)
 
-    match_filter = (
-        None if opts.match_filter is None
-        else match_filter_func(opts.match_filter))
-
-    ydl_opts = {
+    return parser, opts, urls, {
         'usenetrc': opts.usenetrc,
         'netrc_location': opts.netrc_location,
         'username': opts.username,
@@ -713,7 +702,7 @@ def _real_main(argv=None):
         'playlistreverse': opts.playlist_reverse,
         'playlistrandom': opts.playlist_random,
         'noplaylist': opts.noplaylist,
-        'logtostderr': outtmpl_default == '-',
+        'logtostderr': opts.outtmpl.get('default') == '-',
         'consoletitle': opts.consoletitle,
         'nopart': opts.nopart,
         'updatetime': opts.updatetime,
@@ -749,11 +738,11 @@ def _real_main(argv=None):
         'max_filesize': opts.max_filesize,
         'min_views': opts.min_views,
         'max_views': opts.max_views,
-        'daterange': date,
+        'daterange': opts.date,
         'cachedir': opts.cachedir,
         'youtube_print_sig_code': opts.youtube_print_sig_code,
         'age_limit': opts.age_limit,
-        'download_archive': download_archive_fn,
+        'download_archive': opts.download_archive,
         'break_on_existing': opts.break_on_existing,
         'break_on_reject': opts.break_on_reject,
         'break_per_url': opts.break_per_url,
@@ -794,7 +783,7 @@ def _real_main(argv=None):
         'list_thumbnails': opts.list_thumbnails,
         'playlist_items': opts.playlist_items,
         'xattr_set_filesize': opts.xattr_set_filesize,
-        'match_filter': match_filter,
+        'match_filter': opts.match_filter,
         'no_color': opts.no_color,
         'ffmpeg_location': opts.ffmpeg_location,
         'hls_prefer_native': opts.hls_prefer_native,
@@ -809,8 +798,29 @@ def _real_main(argv=None):
         'geo_bypass_ip_block': opts.geo_bypass_ip_block,
         '_warnings': warnings,
         '_deprecation_warnings': deprecation_warnings,
-        'compat_opts': compat_opts,
+        'compat_opts': opts.compat_opts,
     }
+
+
+def _real_main(argv=None):
+    # Compatibility fixes for Windows
+    if sys.platform == 'win32':
+        # https://github.com/ytdl-org/youtube-dl/issues/820
+        codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
+
+    workaround_optparse_bug9161()
+
+    setproctitle('yt-dlp')
+
+    parser, opts, all_urls, ydl_opts = parse_options(argv)
+
+    # Dump user agent
+    if opts.dump_user_agent:
+        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
+        write_string(f'{ua}\n', out=sys.stdout)
+
+    if print_extractor_information(opts, all_urls):
+        sys.exit(0)
 
     with YoutubeDL(ydl_opts) as ydl:
         actual_use = all_urls or opts.load_info_filename
@@ -865,4 +875,10 @@ def main(argv=None):
         sys.exit(f'\nERROR: {e}')
 
 
-__all__ = ['main', 'YoutubeDL', 'gen_extractors', 'list_extractors']
+__all__ = [
+    'main',
+    'YoutubeDL',
+    'parse_options',
+    'gen_extractors',
+    'list_extractors',
+]

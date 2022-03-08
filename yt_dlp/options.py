@@ -1182,7 +1182,7 @@ def create_parser():
         help='Do not write video description (default)')
     filesystem.add_option(
         '--write-info-json',
-        action='store_true', dest='writeinfojson', default=False,
+        action='store_true', dest='writeinfojson', default=None,
         help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',

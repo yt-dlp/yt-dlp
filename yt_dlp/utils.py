@@ -3603,6 +3603,9 @@ def match_str(filter_str, dct, incomplete=False):
 
 
 def match_filter_func(filter_str):
+    if filter_str is None:
+        return None
+
     def _match_func(info_dict, *args, **kwargs):
         if match_str(filter_str, info_dict, *args, **kwargs):
             return None
