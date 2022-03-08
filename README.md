@@ -367,8 +367,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      available. Pass the minimum number of
                                      seconds (or range) to wait between retries
     --no-wait-for-video              Do not wait for scheduled streams (default)
-    --mark-watched                   Mark videos watched (even with --simulate).
-                                     Currently only supported for YouTube
+    --mark-watched                   Mark videos watched (even with --simulate)
     --no-mark-watched                Do not mark videos watched (default)
     --no-colors                      Do not emit color codes in output
     --compat-options OPTS            Options that can help keep compatibility
