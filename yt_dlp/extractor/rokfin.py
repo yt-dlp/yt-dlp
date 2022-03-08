@@ -100,7 +100,7 @@ class RokfinIE(InfoExtractor):
                 video_url, video_id, fatal=False, live=live_status == 'is_live')
 
         if not formats:
-            if metadata.get('premiumPlan') or metadata.get('premium'):
+            if traverse_obj(metadata, 'premiumPlan', 'premium'):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
@@ -129,7 +129,7 @@ class RokfinIE(InfoExtractor):
             'tags': traverse_obj(metadata, ('tags', ..., 'title'), expected_type=str_or_none),
             'live_status': live_status,
             'availability': self._availability(
-                needs_premium=bool(metadata.get('premiumPlan')) or bool(metadata.get('premium')),
+                needs_premium=bool(traverse_obj(metadata, 'premiumPlan', 'premium')),
                 is_private=False, needs_subscription=False, needs_auth=False, is_unlisted=False),
             # 'comment_count': metadata.get('numComments'), # Data provided by website is wrong
             '__post_extractor': self.extract_comments(video_id) if video_type == 'post' else None,
@@ -195,7 +195,7 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
     def _real_extract(self, url):
         list_id = self._match_id(url)
         return self.playlist_result(self._get_video_data(
-            self._download_json(f'{_API_BASE_URL}stack/{list_id}', list_id)), list_id, multi_video=True)
+            self._download_json(f'{_API_BASE_URL}stack/{list_id}', list_id)), list_id)
 
 
 class RokfinChannelIE(RokfinPlaylistBaseIE):
