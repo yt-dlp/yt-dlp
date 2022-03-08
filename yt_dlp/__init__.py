@@ -39,6 +39,7 @@ from .utils import (
     SameFileError,
     setproctitle,
     std_headers,
+    traverse_obj,
     write_string,
 )
 from .update import run_update
@@ -437,7 +438,7 @@ def validate_options(opts):
 
     report_deprecation(opts.sponskrub, '--sponskrub', '--sponsorblock-mark or --sponsorblock-remove')
     report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')
-    report_deprecation(opts.include_ads, '--include-ads')
+    # report_deprecation(opts.include_ads, '--include-ads')  # We may re-implement this in future
     # report_deprecation(opts.call_home, '--call-home')  # We may re-implement this in future
     # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
 
@@ -751,6 +752,7 @@ def parse_options(argv=None):
         'legacyserverconnect': opts.legacy_server_connect,
         'nocheckcertificate': opts.no_check_certificate,
         'prefer_insecure': opts.prefer_insecure,
+        'http_headers': opts.headers,
         'proxy': opts.proxy,
         'socket_timeout': opts.socket_timeout,
         'bidi_workaround': opts.bidi_workaround,
@@ -812,12 +814,10 @@ def _real_main(argv=None):
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
 
-    std_headers.update(opts.headers)
-
     # Dump user agent
     if opts.dump_user_agent:
-        write_string(std_headers['User-Agent'] + '\n', out=sys.stdout)
-        sys.exit(0)
+        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
+        write_string(f'{ua}\n', out=sys.stdout)
 
     if print_extractor_information(opts, all_urls):
         sys.exit(0)

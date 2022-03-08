@@ -8,10 +8,6 @@ import struct
 from base64 import urlsafe_b64encode
 from binascii import unhexlify
 
-import typing
-if typing.TYPE_CHECKING:
-    from ..YoutubeDL import YoutubeDL
-
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..compat import (
@@ -36,15 +32,15 @@ from ..utils import (
 
 # NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
-def add_opener(self: 'YoutubeDL', handler):
+def add_opener(ydl, handler):
     ''' Add a handler for opening URLs, like _download_webpage '''
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(self._opener, compat_urllib_request.OpenerDirector)
-    self._opener.add_handler(handler)
+    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
+    ydl._opener.add_handler(handler)
 
 
-def remove_opener(self: 'YoutubeDL', handler):
+def remove_opener(ydl, handler):
     '''
     Remove handler(s) for opening URLs
     @param handler Either handler object itself or handler type.
@@ -52,8 +48,8 @@ def remove_opener(self: 'YoutubeDL', handler):
     '''
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    opener = self._opener
-    assert isinstance(self._opener, compat_urllib_request.OpenerDirector)
+    opener = ydl._opener
+    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
     if isinstance(handler, (type, tuple)):
         find_cp = lambda x: isinstance(x, handler)
     else:

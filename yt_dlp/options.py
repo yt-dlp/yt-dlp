@@ -727,7 +727,7 @@ def create_parser():
         help='Number of retries (default is %default), or "infinite"')
     downloader.add_option(
         '--file-access-retries',
-        dest='file_access_retries', metavar='RETRIES', default=10,
+        dest='file_access_retries', metavar='RETRIES', default=3,
         help='Number of times to retry on file access error (default is %default), or "infinite"')
     downloader.add_option(
         '--fragment-retries',
@@ -860,17 +860,16 @@ def create_parser():
     workarounds.add_option(
         '--user-agent',
         metavar='UA', dest='user_agent',
-        help='Specify a custom user agent')
+        help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
         '--referer',
         metavar='URL', dest='referer', default=None,
-        help='Specify a custom referer, use if the video access is restricted to one domain',
-    )
+        help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'multiple_keys': False, 'process_key': None},
+        callback_kwargs={'multiple_keys': False},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(

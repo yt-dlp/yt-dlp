@@ -68,6 +68,10 @@ from .anvato import AnvatoIE
 from .aol import AolIE
 from .allocine import AllocineIE
 from .aliexpress import AliExpressLiveIE
+from .alsace20tv import (
+    Alsace20TVIE,
+    Alsace20TVEmbedIE,
+)
 from .apa import APAIE
 from .aparat import AparatIE
 from .appleconnect import AppleConnectIE
@@ -91,6 +95,7 @@ from .arte import (
     ArteTVIE,
     ArteTVEmbedIE,
     ArteTVPlaylistIE,
+    ArteTVCategoryIE,
 )
 from .arnes import ArnesIE
 from .asiancrush import (
@@ -306,6 +311,10 @@ from .commonprotocols import (
 from .condenast import CondeNastIE
 from .contv import CONtvIE
 from .corus import CorusIE
+from .cpac import (
+    CPACIE,
+    CPACPlaylistIE,
+)
 from .cozytv import CozyTVIE
 from .cracked import CrackedIE
 from .crackle import CrackleIE
@@ -348,6 +357,7 @@ from .daum import (
     DaumPlaylistIE,
     DaumUserIE,
 )
+from .daystar import DaystarClipIE
 from .dbtv import DBTVIE
 from .dctp import DctpTvIE
 from .deezer import (
@@ -510,6 +520,7 @@ from .foxnews import (
     FoxNewsArticleIE,
 )
 from .foxsports import FoxSportsIE
+from .fptplay import FptplayIE
 from .franceculture import FranceCultureIE
 from .franceinter import FranceInterIE
 from .francetv import (
@@ -838,6 +849,7 @@ from .microsoftvirtualacademy import (
 from .mildom import (
     MildomIE,
     MildomVodIE,
+    MildomClipIE,
     MildomUserVodIE,
 )
 from .minds import (
@@ -1391,6 +1403,11 @@ from .megatvcom import (
     MegaTVComIE,
     MegaTVComEmbedIE,
 )
+from .ant1newsgr import (
+    Ant1NewsGrWatchIE,
+    Ant1NewsGrArticleIE,
+    Ant1NewsGrEmbedIE,
+)
 from .rutv import RUTVIE
 from .ruutu import RuutuIE
 from .ruv import (
@@ -1593,6 +1610,7 @@ from .tele13 import Tele13IE
 from .telebruxelles import TeleBruxellesIE
 from .telecinco import TelecincoIE
 from .telegraaf import TelegraafIE
+from .telegram import TelegramEmbedIE
 from .telemb import TeleMBIE
 from .telemundo import TelemundoIE
 from .telequebec import (
@@ -1833,6 +1851,10 @@ from .vice import (
 from .vidbit import VidbitIE
 from .viddler import ViddlerIE
 from .videa import VideaIE
+from .videocampus_sachsen import (
+    VideocampusSachsenIE,
+    VideocampusSachsenEmbedIE,
+)
 from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
 from .videomore import (
@@ -1990,6 +2012,7 @@ from .ximalaya import (
     XimalayaIE,
     XimalayaAlbumIE
 )
+from .xinpianchang import XinpianchangIE
 from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xstream import XstreamIE

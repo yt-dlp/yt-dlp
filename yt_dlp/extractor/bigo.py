@@ -34,9 +34,11 @@ class BigoIE(InfoExtractor):
             'https://bigo.tv/studio/getInternalStudioInfo',
             user_id, data=urlencode_postdata({'siteId': user_id}))
 
+        if not isinstance(info_raw, dict):
+            raise ExtractorError('Received invalid JSON data')
         if info_raw.get('code'):
             raise ExtractorError(
-                f'{info_raw["msg"]} (code {info_raw["code"]})', expected=True)
+                'Bigo says: %s (code %s)' % (info_raw.get('msg'), info_raw.get('code')), expected=True)
         info = info_raw.get('data') or {}
 
         if not info.get('alive'):
@@ -44,7 +46,7 @@ class BigoIE(InfoExtractor):
 
         return {
             'id': info.get('roomId') or user_id,
-            'title': info.get('roomTopic'),
+            'title': info.get('roomTopic') or info.get('nick_name') or user_id,
             'formats': [{
                 'url': info.get('hls_src'),
                 'ext': 'mp4',

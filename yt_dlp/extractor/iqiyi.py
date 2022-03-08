@@ -621,7 +621,7 @@ class IqIE(InfoExtractor):
         preview_time = traverse_obj(
             initial_format_data, ('boss_ts', (None, 'data'), ('previewTime', 'rtime')), expected_type=float_or_none, get_all=False)
         if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
-            self.report_warning('This preview video is limited%s' % format_field(preview_time, template='to %s seconds'))
+            self.report_warning('This preview video is limited%s' % format_field(preview_time, template=' to %s seconds'))
 
         # TODO: Extract audio-only formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
