@@ -21,9 +21,9 @@ DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
-    open('README.md').read()))
+    open('README.md', encoding='utf-8').read()))
 
-REQUIREMENTS = open('requirements.txt').read().splitlines()
+REQUIREMENTS = open('requirements.txt', encoding='utf-8').read().splitlines()
 
 
 if sys.argv[1:2] == ['py2exe']:
