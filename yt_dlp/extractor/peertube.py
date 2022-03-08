@@ -87,6 +87,7 @@ class PeerTubeIE(InfoExtractor):
                             maindreieck-tv\.de|
                             mani\.tube|
                             manicphase\.me|
+                            media\.fsfe\.org|
                             media\.gzevd\.de|
                             media\.inno3\.cricket|
                             media\.kaitaia\.life|

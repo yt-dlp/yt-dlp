@@ -112,7 +112,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Other new options**: Many new options have been added such as `--concat-playlist`, `--print`, `--wait-for-video`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
-* **Improvements**: Regex and other operators in `--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
+* **Improvements**: Regex and other operators in `--format`/`--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
 
 * **Plugins**: Extractors and PostProcessors can be loaded from an external file. See [plugins](#plugins) for details
 
@@ -130,7 +130,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * The default [format sorting](#sorting-formats) is different from youtube-dl and prefers higher resolution and better codecs rather than higher bitrates. You can use the `--format-sort` option to change this to any order you prefer, or use `--compat-options format-sort` to use youtube-dl's sorting order
 * The default format selector is `bv*+ba/b`. This means that if a combined video + audio format that is better than the best video-only format is found, the former will be preferred. Use `-f bv+ba/b` or `--compat-options format-spec` to revert this
 * Unlike youtube-dlc, yt-dlp does not allow merging multiple audio/video streams into one file by default (since this conflicts with the use of `-f bv*+ba`). If needed, this feature must be enabled using `--audio-multistreams` and `--video-multistreams`. You can also use `--compat-options multistreams` to enable both
-* `--ignore-errors` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
+* `--no-abort-on-error` is enabled by default. Use `--abort-on-error` or `--compat-options abort-on-error` to abort on errors instead
 * When writing metadata files such as thumbnails, description or infojson, the same information (if available) is also written for playlists. Use `--no-write-playlist-metafiles` or `--compat-options no-playlist-metafiles` to not write these files
 * `--add-metadata` attaches the `infojson` to `mkv` files in addition to writing the metadata when used with `--write-info-json`. Use `--no-embed-info-json` or `--compat-options no-attach-info-json` to revert this
 * Some metadata are embedded into different fields when using `--add-metadata` as compared to youtube-dl. Most notably, `comment` field contains the `webpage_url` and `synopsis` contains the `description`. You can [use `--parse-metadata`](#modifying-metadata) to modify this to your liking or use `--compat-options embed-metadata` to revert this
@@ -267,7 +267,8 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**pycryptodomex**](https://github.com/Legrandin/pycryptodome) - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD2](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets) - For downloading over websocket. Licensed under [BSD3](https://github.com/aaugustin/websockets/blob/main/LICENSE)
 * [**secretstorage**](https://github.com/mitya57/secretstorage) - For accessing the Gnome keyring while decrypting cookies of Chromium-based browsers on Linux. Licensed under [BSD](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
-* [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen is not present. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
+* [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen/ffmpeg cannot. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
+* [**brotli**](https://github.com/google/brotli) or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
 * [**rtmpdump**](http://rtmpdump.mplayerhq.hu) - For downloading `rtmp` streams. ffmpeg will be used as a fallback. Licensed under [GPLv2+](http://rtmpdump.mplayerhq.hu)
 * [**mplayer**](http://mplayerhq.hu/design7/info.html) or [**mpv**](https://mpv.io) - For downloading `rstp` streams. ffmpeg will be used as a fallback. Licensed under [GPLv2+](https://github.com/mpv-player/mpv/blob/master/Copyright)
 * [**phantomjs**](https://github.com/ariya/phantomjs) - Used in extractors where javascript needs to be run. Licensed under [BSD3](https://github.com/ariya/phantomjs/blob/master/LICENSE.BSD)
@@ -278,13 +279,14 @@ To use or redistribute the dependencies, you must agree to their respective lice
 
 The Windows and MacOS standalone release binaries are already built with the python interpreter, mutagen, pycryptodomex and websockets included.
 
+<!-- TODO: ffmpeg has merged this patch. Remove this note once there is new release -->
 **Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
 
 
 ## COMPILE
 
 **For Windows**:
-To build the Windows executable, you must have pyinstaller (and optionally mutagen, pycryptodomex, websockets). Once you have all the necessary dependencies installed, (optionally) build lazy extractors using `devscripts/make_lazy_extractors.py`, and then just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
+To build the Windows executable, you must have pyinstaller (and any of yt-dlp's optional dependencies if needed). Once you have all the necessary dependencies installed, (optionally) build lazy extractors using `devscripts/make_lazy_extractors.py`, and then just run `pyinst.py`. The executable will be built for the same architecture (32/64 bit) as the python used to build it.
 
     py -m pip install -U pyinstaller -r requirements.txt
     py devscripts/make_lazy_extractors.py
@@ -604,11 +606,11 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      --write-description etc. (default)
     --no-write-playlist-metafiles    Do not write playlist metadata when using
                                      --write-info-json, --write-description etc.
-    --clean-infojson                 Remove some private fields such as
+    --clean-info-json                Remove some private fields such as
                                      filenames from the infojson. Note that it
                                      could still contain some personal
                                      information (default)
-    --no-clean-infojson              Write all fields to the infojson
+    --no-clean-info-json             Write all fields to the infojson
     --write-comments                 Retrieve video comments to be placed in the
                                      infojson. The comments are fetched even
                                      without this option if the extraction is
@@ -736,9 +738,6 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --prefer-insecure                Use an unencrypted connection to retrieve
                                      information about the video (Currently
                                      supported only for YouTube)
-    --user-agent UA                  Specify a custom user agent
-    --referer URL                    Specify a custom referer, use if the video
-                                     access is restricted to one domain
     --add-header FIELD:VALUE         Specify a custom HTTP header and its value,
                                      separated by a colon ":". You can use this
                                      option multiple times
@@ -1600,25 +1599,28 @@ This option also has a few special uses:
 * You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. Eg: `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
 * You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (Eg: `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
+**Note**: Metadata modification happens before format selection, post-extraction and other post-processing operations. Some fields may be added or changed during these steps, overriding your changes.
+
 For reference, these are the fields yt-dlp adds by default to the file metadata:
 
-Metadata fields|From
-:---|:---
-`title`|`track` or `title`
-`date`|`upload_date`
-`description`,  `synopsis`|`description`
-`purl`, `comment`|`webpage_url`
-`track`|`track_number`
-`artist`|`artist`, `creator`, `uploader` or `uploader_id`
-`genre`|`genre`
-`album`|`album`
-`album_artist`|`album_artist`
-`disc`|`disc_number`
-`show`|`series`
-`season_number`|`season_number`
-`episode_id`|`episode` or `episode_id`
-`episode_sort`|`episode_number`
-`language` of each stream|From the format's `language`
+Metadata fields            | From
+:--------------------------|:------------------------------------------------
+`title`                    | `track` or `title`
+`date`                     | `upload_date`
+`description`,  `synopsis` | `description`
+`purl`, `comment`          | `webpage_url`
+`track`                    | `track_number`
+`artist`                   | `artist`, `creator`, `uploader` or `uploader_id`
+`genre`                    | `genre`
+`album`                    | `album`
+`album_artist`             | `album_artist`
+`disc`                     | `disc_number`
+`show`                     | `series`
+`season_number`            | `season_number`
+`episode_id`               | `episode` or `episode_id`
+`episode_sort`             | `episode_number`
+`language` of each stream  | the format's `language`
+
 **Note**: The file format may not support some of these fields
 
 
@@ -1817,11 +1819,10 @@ ydl_opts = {
     }],
     'logger': MyLogger(),
     'progress_hooks': [my_hook],
+    # Add custom headers
+    'http_headers': {'Referer': 'https://www.google.com'}
 }
 
-
-# Add custom headers
-yt_dlp.utils.std_headers.update({'Referer': 'https://www.google.com'})
 
 # ℹ️ See the public functions in yt_dlp.YoutubeDL for for other available functions.
 # Eg: "ydl.download", "ydl.download_with_info_file"
@@ -1865,6 +1866,8 @@ While these options are redundant, they are still expected to be used due to the
     --reject-title REGEX             --match-filter "title !~= (?i)REGEX"
     --min-views COUNT                --match-filter "view_count >=? COUNT"
     --max-views COUNT                --match-filter "view_count <=? COUNT"
+    --user-agent UA                  --add-header "User-Agent:UA"
+    --referer URL                    --add-header "Referer:URL"
 
 
 #### Not recommended
