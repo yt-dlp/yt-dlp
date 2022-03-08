@@ -2181,7 +2181,7 @@ class locked_file(object):
         if mode not in ['r', 'rb', 'a', 'ab', 'w', 'wb']:
             raise NotImplementedError(mode)
         fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_CLOEXEC)  # do not pass O_TRUNC
-        self.f = os.fdopen(fd, mode)
+        self.f = os.fdopen(fd, mode, encoding=encoding)
         self.mode = mode
         self.block = block
 
