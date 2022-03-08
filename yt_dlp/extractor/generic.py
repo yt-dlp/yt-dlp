@@ -146,6 +146,7 @@ from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 from .gfycat import GfycatIE
+from .mailru import MailRuIE
 
 
 class GenericIE(InfoExtractor):
@@ -2498,6 +2499,18 @@ class GenericIE(InfoExtractor):
                 'id': '?vid=2295'
             },
             'playlist_count': 9
+        },
+        {
+            # mail.ru embed
+            'url': 'http://uzmovi.com/tarjima-kinolar/4127-abadiylar-umrboqiylar-premyera-uzbek-ozbek-tilida.html',
+            'info_dict': {
+                'id': '73801668_1899',
+                'ext': 'mp4',
+                'title': "sss",
+                'uploader': 'kinolanet',
+                'timestamp': 1642690643,
+                'upload_date': '20220120'
+            }
         }
     ]
 
@@ -3712,6 +3725,10 @@ class GenericIE(InfoExtractor):
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
+
+        mailru_urls = MailRuIE._extract_urls(webpage)
+        if mailru_urls:
+            return self.playlist_from_matches(mailru_urls, video_id, video_title, ie=MailRuIE.ie_key())
 
         # Look for MainStreaming embeds
         mainstreaming_urls = MainStreamingIE._extract_urls(webpage)

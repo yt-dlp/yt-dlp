@@ -193,6 +193,16 @@ class MailRuIE(InfoExtractor):
             'formats': formats,
         }
 
+    @staticmethod
+    def _extract_urls(webpage):
+        return re.findall(
+            r'''<(?:meta[^>]+?content|(?:iframe|script)[^>]+?src)=["\']
+            (?P<url>(?:https?:)?\/\/(?:(?:www|m|videoapi)\.)?my\.mail\.ru\/(?:
+            (?:video\/embed|\+\/video\/meta)\/(?:\d+)|
+            (?:videos\/embed\/)?(?:(?:(?:[^\/]+\/+){2})
+            (?:video\/(?:embed\/)?)?(?:[^\/]+\/\d+))(?:\.html)?))''',
+            webpage)
+
 
 class MailRuMusicSearchBaseIE(InfoExtractor):
     def _search(self, query, url, audio_id, limit=100, offset=0):
