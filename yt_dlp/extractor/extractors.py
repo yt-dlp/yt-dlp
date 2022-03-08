@@ -2012,6 +2012,7 @@ from .ximalaya import (
     XimalayaIE,
     XimalayaAlbumIE
 )
+from .xinpianchang import XinpianchangIE
 from .xminus import XMinusIE
 from .xnxx import XNXXIE
 from .xstream import XstreamIE
