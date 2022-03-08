@@ -1650,14 +1650,14 @@ class AdobePassIE(InfoExtractor):
                     hidden_data = self._hidden_inputs(first_bookend_page)
                     hidden_data['history_val'] = 1
 
-                    provider_login_redirect_page, _ = self._download_webpage_handle(
+                    provider_login_redirect_page = self._download_webpage(
                         urlh.geturl(), video_id, 'Sending First Bookend',
                         query=hidden_data)
 
                     provider_tryauth_url = self._html_search_regex(
                         r'url:\s*[\'"]([^\'"]+)', provider_login_redirect_page, 'ajaxurl')
 
-                    provider_tryauth_page, _ = self._download_webpage_handle(
+                    provider_tryauth_page = self._download_webpage(
                         provider_tryauth_url, video_id, 'Submitting TryAuth',
                         query=hidden_data)
 
