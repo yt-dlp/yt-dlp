@@ -21,28 +21,23 @@ class MildomBaseIE(InfoExtractor):
     _GUEST_ID = None
 
     def _call_api(self, url, video_id, query=None, note='Downloading JSON metadata', body=None):
-        content = self._download_json(
-            update_url_query(url, self._common_queries(query)),
-            video_id, note=note, data=json.dumps(body).encode() if body else None,
-            headers={'Content-Type': 'application/json'} if body else {})
-        if content['code'] == 0:
-            return content['body']
-        else:
-            self.raise_no_formats(
-                f'Mildom says: {content["message"]} (code {content["code"]})',
-                expected=True)
-
-    def _common_queries(self, query=None, guest=True):
-        return {
-            '__guest_id': self.guest_id(),
-            '__platform': 'web',
-            **(query or {}),
-        }
-
-    def guest_id(self):
         if not self._GUEST_ID:
             self._GUEST_ID = f'pc-gp-{random_uuidv4()}'
-        return self._GUEST_ID
+
+        content = self._download_json(
+            url, video_id, note=note, data=json.dumps(body).encode() if body else None,
+            headers={'Content-Type': 'application/json'} if body else {},
+            query={
+                '__guest_id': self._GUEST_ID,
+                '__platform': 'web',
+                **(query or {}),
+            })
+
+        if content['code'] != 0:
+            raise ExtractorError(
+                f'Mildom says: {content["message"]} (code {content["code"]})',
+                expected=True)
+        return content['body']
 
 
 class MildomIE(MildomBaseIE):
@@ -68,17 +63,17 @@ class MildomIE(MildomBaseIE):
 
         playback_token = self._call_api(
             'https://cloudac.mildom.com/nonolive/gappserv/live/token', result_video_id,
-            note='Obtaining live playback token', query=self._common_queries(),
-            body={'host_id': video_id, 'type': 'hls'})
+            note='Obtaining live playback token', body={'host_id': video_id, 'type': 'hls'})
         playback_token = traverse_obj(playback_token, ('data', ..., 'token'), get_all=False)
         if not playback_token:
             raise ExtractorError('Failed to obtain live playback token')
 
-        m3u8_url = f'{servers["stream_server"]}/{video_id}_master.m3u8?{playback_token}'
-        formats = self._extract_m3u8_formats(m3u8_url, result_video_id, 'mp4', headers={
-            'Referer': 'https://www.mildom.com/',
-            'Origin': 'https://www.mildom.com',
-        })
+        formats = self._extract_m3u8_formats(
+            f'{servers["stream_server"]}/{video_id}_master.m3u8?{playback_token}',
+            result_video_id, 'mp4', headers={
+                'Referer': 'https://www.mildom.com/',
+                'Origin': 'https://www.mildom.com',
+            })
 
         for fmt in formats:
             fmt.setdefault('http_headers', {})['Referer'] = 'https://www.mildom.com/'
