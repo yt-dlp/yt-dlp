@@ -1657,7 +1657,7 @@ class AdobePassIE(InfoExtractor):
                     provider_tryauth_url = self._html_search_regex(
                         r'url:\s*[\'"]([^\'"]+)', provider_login_redirect_page, 'ajaxurl')
 
-                    provider_tryauth_page, urlh = self._download_webpage_handle(
+                    provider_tryauth_page, _ = self._download_webpage_handle(
                         provider_tryauth_url, video_id, 'Submitting TryAuth',
                         query=hidden_data)
 
