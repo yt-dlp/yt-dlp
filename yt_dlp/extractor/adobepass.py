@@ -1650,7 +1650,7 @@ class AdobePassIE(InfoExtractor):
                     hidden_data = self._hidden_inputs(first_bookend_page)
                     hidden_data['history_val'] = 1
 
-                    provider_login_redirect_page, urlh = self._download_webpage_handle(
+                    provider_login_redirect_page, _ = self._download_webpage_handle(
                         urlh.geturl(), video_id, 'Sending First Bookend',
                         query=hidden_data)
 
