@@ -2777,7 +2777,7 @@ class YoutubeDL(object):
         if info_dict.get('requested_formats') is not None:
             # For RTMP URLs, also include the playpath
             info_dict['urls'] = '\n'.join(f['url'] + f.get('play_path', '') for f in info_dict['requested_formats'])
-        elif 'url' in info_dict:
+        elif info_dict.get('url'):
             info_dict['urls'] = info_dict['url'] + info_dict.get('play_path', '')
 
         if (self.params.get('forcejson')
