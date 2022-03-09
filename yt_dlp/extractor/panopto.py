@@ -18,6 +18,7 @@ from ..utils import (
     int_or_none,
     OnDemandPagedList,
     parse_qs,
+    srt_subtitles_timecode,
     traverse_obj,
 )
 
@@ -31,7 +32,7 @@ class PanoptoBaseIE(InfoExtractor):
             fatal=fatal, headers={'accept': 'application/json', 'content-type': 'application/json'}, **kwargs)
         if not response:
             return
-        error_code = response.get('ErrorCode')
+        error_code = traverse_obj(response, 'ErrorCode')
         if error_code == 2:
             self.raise_login_required(method='cookies')
         elif error_code is not None:
@@ -191,6 +192,40 @@ class PanoptoIE(PanoptoBaseIE):
             })
         return chapters
 
+    @staticmethod
+    def _json2srt(data, delivery):
+        def _gen_lines():
+            for i, line in enumerate(data):
+                start_time = line['Time']
+                duration = line.get('Duration')
+                if duration:
+                    end_time = start_time + duration
+                else:
+                    end_time = traverse_obj(data, (i+1, 'Time')) or delivery['Duration']
+                yield f'{i + 1}\n{srt_subtitles_timecode(start_time)} --> {srt_subtitles_timecode(end_time)}\n{line["Caption"]}'
+        return '\n\n'.join(_gen_lines())
+
+    def _get_subtitles(self, base_url, video_id, delivery):
+        subtitles = {}
+        for lang in delivery.get('AvailableLanguages') or []:
+            lang = str(lang) or ''
+            response = self._call_api(
+                base_url, '/Pages/Viewer/DeliveryInfo.aspx', video_id, fatal=False,
+                note='Downloading captions JSON metadata', query={
+                    'deliveryId': video_id,
+                    'getCaptions': True,
+                    'language': lang,
+                    'responseType': 'json'
+                }
+            )
+            if not isinstance(response, list):
+                continue
+            subtitles.setdefault(lang or 'en', []).append({
+                'ext': 'srt',
+                'data': self._json2srt(response, delivery),
+            })
+        return subtitles
+
     def _extract_streams_formats_and_subtitles(self, video_id, streams, **fmt_kwargs):
         formats = []
         subtitles = {}
@@ -250,6 +285,7 @@ class PanoptoIE(PanoptoBaseIE):
 
         formats = podcast_formats + streams_formats
         subtitles = self._merge_subtitles(podcast_subtitles, streams_subtitles)
+        subtitles.update(self.extract_subtitles(base_url, video_id, delivery))
         self._sort_formats(formats)
 
         self.mark_watched(base_url, video_id, delivery_info)
