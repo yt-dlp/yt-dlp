@@ -2178,12 +2178,30 @@ class locked_file(object):
     _closed = False
 
     def __init__(self, filename, mode, block=True, encoding=None):
+        flags = 0
+        readable = False
+        writeable = False
         if mode not in ['r', 'rb', 'a', 'ab', 'w', 'wb']:
             raise NotImplementedError(mode)
+        if 'r' in mode:
+            readable = True
+        if 'w' in mode:
+            flags = flags | os.O_CREAT  # do not pass O_TRUNC
+            writeable = True
+        if 'a' in mode:
+            flags = flags | os.O_APPEND | os.O_CREAT
+            writeable = True
+        if readable and writeable:
+            flags = flags | os.O_RDWR
+        elif readable and not writeable:
+            flags = flags | os.O_RDONLY
+        elif writeable and not readable:
+            flags = flags | os.O_WRONLY
+
         try:
-            fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_CLOEXEC)  # do not pass O_TRUNC
+            fd = os.open(filename, flags | os.O_CLOEXEC)
         except AttributeError:  # win32 does not have O_CLOEXEC
-            fd = os.open(filename, os.O_WRONLY | os.O_CREAT)
+            fd = os.open(filename, flags)
         self.f = os.fdopen(fd, mode, encoding=encoding)
         self.mode = mode
         self.block = block
