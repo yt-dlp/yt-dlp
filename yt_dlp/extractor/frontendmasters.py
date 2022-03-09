@@ -252,9 +252,9 @@ class FrontendMastersCourseIE(FrontendMastersPageBaseIE):
         entries = []
         for lesson in lessons:
             lesson_name = lesson.get('slug')
-            if not lesson_name:
-                continue
             lesson_id = lesson.get('hash') or lesson.get('statsId')
+            if not lesson_id or not lesson_name:
+                continue
             entries.append(self._extract_lesson(chapters, lesson_id, lesson))
 
         title = course.get('title')

@@ -22,6 +22,9 @@ class YoutubeLiveChatFD(FragmentFD):
     def real_download(self, filename, info_dict):
         video_id = info_dict['video_id']
         self.to_screen('[%s] Downloading live chat' % self.FD_NAME)
+        if not self.params.get('skip_download'):
+            self.report_warning('Live chat download runs until the livestream ends. '
+                                'If you wish to download the video simultaneously, run a separate yt-dlp instance')
 
         fragment_retries = self.params.get('fragment_retries', 0)
         test = self.params.get('test', False)
