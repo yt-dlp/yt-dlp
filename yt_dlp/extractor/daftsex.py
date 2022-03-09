@@ -34,13 +34,17 @@ class DaftsexIE(InfoExtractor):
             'id': '-156601359_456242791',
             'ext': 'mp4',
             'title': 'Skye Blue - Dinner And A Show',
+            'description': 'Skye Blue - Dinner And A Show - Watch video Watch video in high quality',
+            'upload_date': '20200916',
+            'timestamp': 1600250735,
+            'thumbnail': 'https://psv153-1.crazycloud.ru/videos/-156601359/456242791/thumb.jpg?extra=i3D32KaBbBFf9TqDRMAVmQ',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        title = self._html_search_meta('name', webpage, 'Title', fatal=False)
+        title = self._html_search_meta('name', webpage, 'title')
         timestamp = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
         description = self._html_search_meta('description', webpage, 'Description', default=None)
 
@@ -69,78 +73,75 @@ class DaftsexIE(InfoExtractor):
 
         server_domain = 'https://%s' % compat_b64decode(video_params['server'][::-1]).decode('utf-8')
 
-        if video_params['video'].get('cdn_files') is not None:
+        cdn_files = traverse_obj(video_params, ('video', 'cdn_files')) or {}
+        if cdn_files:
             formats = []
-            for format_id, format_data in video_params['video']['cdn_files'].items():
+            for format_id, format_data in cdn_files.items():
                 ext, height = format_id.split('_')
-                extra_quality_data = format_data.split('.')[-1]
-                url = f'{server_domain}/videos/{video_id.replace("_", "/")}/{height}.mp4?extra={extra_quality_data}'
                 formats.append({
                     'format_id': format_id,
-                    'url': url,
+                    'url': f'{server_domain}/videos/{video_id.replace("_", "/")}/{height}.mp4?extra={format_data.split(".")[-1]}',
                     'height': int_or_none(height),
                     'ext': ext,
                 })
             self._sort_formats(formats)
 
-            thumbnail = try_get(video_params,
-                                lambda vi: 'https:' + compat_b64decode(vi['video']['thumb']).decode('utf-8'))
-
             return {
                 'id': video_id,
                 'title': title,
                 'formats': formats,
                 'description': description,
                 'duration': duration,
-                'thumbnail': thumbnail,
+                'thumbnail': try_get(video_params,
+                                     lambda vi: 'https:' + compat_b64decode(vi['video']['thumb']).decode('utf-8')),
                 'timestamp': timestamp,
                 'view_count': views,
                 'age_limit': 18,
             }
 
-        else:
-            item = self._download_json(
-                f'{server_domain}/method/video.get/{video_id}', video_id,
-                headers={'Referer': url}, query={
-                    'token': video_params['video']['access_token'],
-                    'videos': video_id,
-                    'ckey': video_params['c_key'],
-                    'credentials': video_params['video']['credentials'],
-                })['response']['items'][0]
+        item = self._download_json(
+            f'{server_domain}/method/video.get/{video_id}', video_id,
+            headers={'Referer': url}, query={
+                'token': video_params['video']['access_token'],
+                'videos': video_id,
+                'ckey': video_params['c_key'],
+                'credentials': video_params['video']['credentials'],
+            })['response']['items'][0]
 
-            formats = []
-            for f_id, f_url in item.get('files', {}).items():
-                if f_id == 'external':
-                    return self.url_result(f_url)
-                ext, height = f_id.split('_')
-                height_extra_key = traverse_obj(video_params, ('video', 'partial', 'quality', height))
-                if height_extra_key:
-                    formats.append({
-                        'format_id': f'{height}p',
-                        'url': f'{server_domain}/{f_url[8:]}&videos={video_id}&extra_key={height_extra_key}',
-                        'height': int_or_none(height),
-                        'ext': ext,
-                    })
-            self._sort_formats(formats)
+        formats = []
+        for f_id, f_url in item.get('files', {}).items():
+            if f_id == 'external':
+                return self.url_result(f_url)
+            ext, height = f_id.split('_')
+            height_extra_key = traverse_obj(video_params, ('video', 'partial', 'quality', height))
+            if height_extra_key:
+                formats.append({
+                    'format_id': f'{height}p',
+                    'url': f'{server_domain}/{f_url[8:]}&videos={video_id}&extra_key={height_extra_key}',
+                    'height': int_or_none(height),
+                    'ext': ext,
+                })
+        self._sort_formats(formats)
 
-            thumbnails = []
-            for k, v in item.items():
-                if k.startswith('photo_') and v:
-                    width = k.replace('photo_', '')
-                    thumbnails.append({
-                        'id': width,
-                        'url': v,
-                        'width': int_or_none(width),
-                    })
+        thumbnails = []
+        for k, v in item.items():
+            if k.startswith('photo_') and v:
+                width = k.replace('photo_', '')
+                thumbnails.append({
+                    'id': width,
+                    'url': v,
+                    'width': int_or_none(width),
+                })
 
-            return {
-                'id': video_id,
-                'title': title,
-                'formats': formats,
-                'comment_count': int_or_none(item.get('comments')),
-                'description': description,
-                'duration': duration,
-                'thumbnails': thumbnails,
-                'timestamp': timestamp,
-                'view_count': views,
-            }
+        return {
+            'id': video_id,
+            'title': title,
+            'formats': formats,
+            'comment_count': int_or_none(item.get('comments')),
+            'description': description,
+            'duration': duration,
+            'thumbnails': thumbnails,
+            'timestamp': timestamp,
+            'view_count': views,
+            'age_limit': 18,
+        }
