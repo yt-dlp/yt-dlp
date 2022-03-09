@@ -145,6 +145,14 @@ class PokemonSoundLibraryIE(InfoExtractor):
     # each songs don't have permalink; instead we return all songs at once
     _VALID_URL = r'https?://soundlibrary\.pokemon\.co\.jp'
 
+    _TESTS = [{
+        'url': 'https://soundlibrary.pokemon.co.jp/',
+        'info_dict': {
+            'title': 'Pokémon Diamond and Pearl Sound Tracks',
+        },
+        'playlist_mincount': 149,
+    }]
+
     def _real_extract(self, url):
         musicbox_webpage = self._download_webpage(
             'https://soundlibrary.pokemon.co.jp/musicbox', None,
