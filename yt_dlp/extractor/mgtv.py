@@ -129,22 +129,22 @@ class MGTVIE(InfoExtractor):
             'description': info.get('desc'),
             'duration': int_or_none(info.get('duration')),
             'thumbnail': info.get('thumb'),
-            'subtitles': self.get_all_subtitles(video_id, stream_domain),
+            'subtitles': self._get_subtitles(video_id, stream_domain),
         }
 
-    def get_all_subtitles(self, video_id, domain):
+    def _get_subtitles(self, video_id, domain):
         info = self._download_json(f'https://pcweb.api.mgtv.com/video/title?videoId={video_id}', video_id=video_id,
                                    fatal=False) or {}
         subtitles = {}
-        for sub in try_get(info, lambda x: x['data']['title']):
+        for sub in try_get(info, lambda x: x['data']['title']) or []:
             url_sub = sub.get('url')
             if not url_sub:
                 continue
             locale = sub.get('captionCountrySimpleName')
             sub = self._download_json(f'{domain}{url_sub}', video_id,
                                       note=f'Download subtitle for locale {sub.get("name")} ({locale})',
-                                      fatal=False)
-            sub_url = url_or_none((sub or {}).get('info'))
+                                      fatal=False) or {}
+            sub_url = url_or_none(sub.get('info'))
             if not sub_url:
                 continue
             subtitles.setdefault(locale or 'en', []).append({
