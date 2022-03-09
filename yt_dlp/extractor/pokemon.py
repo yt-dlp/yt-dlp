@@ -142,7 +142,7 @@ class PokemonWatchIE(InfoExtractor):
 
 
 class PokemonSoundLibraryIE(InfoExtractor):
-    # each songs don't have permalink; instead we return all songs at once (w/o network request for paging)
+    # each songs don't have permalink; instead we return all songs at once
     _VALID_URL = r'https?://soundlibrary\.pokemon\.co\.jp'
 
     def _real_extract(self, url):
@@ -165,7 +165,7 @@ class PokemonSoundLibraryIE(InfoExtractor):
             'release_year': 2006,
             'release_date': '20060928',
             'track_number': song_id,
-            'album': 'ポケットモンスター ダイヤモンド・パール' if True else 'Pokémon Diamond and Pearl',
+            'album': 'Pokémon Diamond and Pearl',
         } for song_id, song_title in enumerate(song_titles, 1)]
 
         return self.playlist_result(song_entries, playlist_title='Pokémon Diamond and Pearl Sound Tracks')
