@@ -129,7 +129,7 @@ class MGTVIE(InfoExtractor):
             'description': info.get('desc'),
             'duration': int_or_none(info.get('duration')),
             'thumbnail': info.get('thumb'),
-            'subtitles': self._get_subtitles(video_id, stream_domain),
+            'subtitles': self.extract_subtitles(video_id, stream_domain),
         }
 
     def _get_subtitles(self, video_id, domain):
