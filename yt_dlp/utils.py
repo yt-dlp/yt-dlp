@@ -2180,7 +2180,10 @@ class locked_file(object):
     def __init__(self, filename, mode, block=True, encoding=None):
         if mode not in ['r', 'rb', 'a', 'ab', 'w', 'wb']:
             raise NotImplementedError(mode)
-        fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_CLOEXEC)  # do not pass O_TRUNC
+        try:
+            fd = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_CLOEXEC)  # do not pass O_TRUNC
+        except AttributeError:  # win32 does not have O_CLOEXEC
+            fd = os.open(filename, os.O_WRONLY | os.O_CREAT)
         self.f = os.fdopen(fd, mode, encoding=encoding)
         self.mode = mode
         self.block = block
