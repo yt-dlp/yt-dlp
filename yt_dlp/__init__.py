@@ -255,7 +255,7 @@ def validate_options(opts):
         return numeric_limit
 
     opts.ratelimit = parse_bytes('rate limit', opts.ratelimit)
-    opts.ratelimit = parse_bytes('throttled rate limit', opts.throttledratelimit)
+    opts.throttledratelimit = parse_bytes('throttled rate limit', opts.throttledratelimit)
     opts.min_filesize = parse_bytes('min filesize', opts.min_filesize)
     opts.max_filesize = parse_bytes('max filesize', opts.max_filesize)
     opts.buffersize = parse_bytes('buffer size', opts.buffersize)
