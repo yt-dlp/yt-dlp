@@ -201,7 +201,7 @@ class PanoptoIE(PanoptoBaseIE):
                 if duration:
                     end_time = start_time + duration
                 else:
-                    end_time = traverse_obj(data, (i+1, 'Time')) or delivery['Duration']
+                    end_time = traverse_obj(data, (i + 1, 'Time')) or delivery['Duration']
                 yield f'{i + 1}\n{srt_subtitles_timecode(start_time)} --> {srt_subtitles_timecode(end_time)}\n{line["Caption"]}'
         return '\n\n'.join(_gen_lines())
 
