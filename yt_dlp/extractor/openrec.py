@@ -4,11 +4,11 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    get_first,
     int_or_none,
     traverse_obj,
     unified_strdate,
     unified_timestamp,
-    variadic,
 )
 from ..compat import compat_str
 
@@ -29,10 +29,7 @@ class OpenRecBaseIE(InfoExtractor):
         if not any(movie_stores):
             raise ExtractorError(f'Failed to extract {name} info')
 
-        def get_first(path):
-            return traverse_obj(movie_stores, (..., *variadic(path)), get_all=False)
-
-        m3u8_playlists = get_first('media') or {}
+        m3u8_playlists = get_first(movie_stores, 'media') or {}
         formats = []
         for name, m3u8_url in m3u8_playlists.items():
             if not m3u8_url:
@@ -44,13 +41,13 @@ class OpenRecBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': get_first('title'),
-            'description': get_first('introduction'),
-            'thumbnail': get_first('thumbnailUrl'),
+            'title': get_first(movie_stores, 'title'),
+            'description': get_first(movie_stores, 'introduction'),
+            'thumbnail': get_first(movie_stores, 'thumbnailUrl'),
             'formats': formats,
-            'uploader': get_first(('channel', 'user', 'name')),
-            'uploader_id': get_first(('channel', 'user', 'id')),
-            'timestamp': int_or_none(get_first(['publishedAt', 'time']), scale=1000) or unified_timestamp(get_first('publishedAt')),
+            'uploader': get_first(movie_stores, ('channel', 'user', 'name')),
+            'uploader_id': get_first(movie_stores, ('channel', 'user', 'id')),
+            'timestamp': int_or_none(get_first(movie_stores, ['publishedAt', 'time']), scale=1000) or unified_timestamp(get_first(movie_stores, 'publishedAt')),
             'is_live': is_live,
         }
 
