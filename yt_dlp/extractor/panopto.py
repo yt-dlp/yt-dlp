@@ -24,7 +24,7 @@ from ..utils import (
 
 
 class PanoptoBaseIE(InfoExtractor):
-    BASE_URL_RE = r'(?P<base_url>https?://[\w.]+\.panopto.(?:com|eu)/Panopto)'
+    BASE_URL_RE = r'(?P<base_url>https?://[\w.-]+\.panopto.(?:com|eu)/Panopto)'
 
     def _call_api(self, base_url, path, video_id, data=None, fatal=True, **kwargs):
         response = self._download_json(
@@ -143,6 +143,10 @@ class PanoptoIE(PanoptoBaseIE):
             'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
             'only_matching': True
         },
+        {
+            'url': 'https://na-training-2.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a192ea27-82dc-4d50-8acd-acd3013069fa',
+            'only_matching': True
+        }
     ]
 
     @classmethod
