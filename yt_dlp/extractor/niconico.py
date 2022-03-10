@@ -429,8 +429,6 @@ class NiconicoIE(InfoExtractor):
         def get_video_info(items, get_first=True):
             return traverse_obj(api_data, ('video', items), get_all=not get_first)
 
-        # --extractor-args niconico:segment_duration=TIME
-        # TIME is in milliseconds. should not be changed unless you're an experienced NicoNico investigator
         quality_info = api_data['media']['delivery']['movie']
         session_api_data = quality_info['session']
         for (audio_quality, video_quality, protocol) in itertools.product(quality_info['audios'], quality_info['videos'], session_api_data['protocols']):
