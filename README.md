@@ -1708,7 +1708,7 @@ The following extractors use this feature:
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 
-*1: **READ CAREFULLY**: Using it will make non-standard DMC request(s). You may be being banned of your account or IP address by using it. Use it at your own risk.
+*1: **Warning**: Using this feature may result in your account termination. Use it at your own risk.
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
 
