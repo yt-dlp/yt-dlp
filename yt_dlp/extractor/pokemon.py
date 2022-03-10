@@ -142,7 +142,6 @@ class PokemonWatchIE(InfoExtractor):
 
 
 class PokemonSoundLibraryIE(InfoExtractor):
-    # each songs don't have permalink; instead we return all songs at once
     _VALID_URL = r'https?://soundlibrary\.pokemon\.co\.jp'
 
     _TESTS = [{
@@ -160,12 +159,14 @@ class PokemonSoundLibraryIE(InfoExtractor):
         song_titles = [x.group(1) for x in re.finditer(r'<span>([^>]+?)</span><br/>をてもち曲に加えます。', musicbox_webpage)]
         song_titles = song_titles[4::2]
 
+        # each songs don't have permalink; instead we return all songs at once
         song_entries = [{
             'id': f'pokemon-soundlibrary-{song_id}',
             'url': f'https://soundlibrary.pokemon.co.jp/api/assets/signing/sounds/wav/{song_id}.wav',
+            # note: the server always serves MP3 files, despite its extension of the URL above
             'ext': 'mp3',
-            'vcodec': 'none',
             'acodec': 'mp3',
+            'vcodec': 'none',
             'title': song_title,
             'track': song_title,
             'artist': 'Nintendo / Creatures Inc. / GAME FREAK inc.',
