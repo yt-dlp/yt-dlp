@@ -344,7 +344,7 @@ class NiconicoIE(InfoExtractor):
 
         return info_dict, heartbeat_info_dict
 
-    def _extract_format_for_quality(self, api_data, video_id, audio_quality, video_quality, dmc_protocol):
+    def _extract_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
 
         if not audio_quality['isAvailable'] or not video_quality['isAvailable']:
             return None
@@ -380,7 +380,6 @@ class NiconicoIE(InfoExtractor):
             'width': resolution.get('width'),
             'quality': -2 if is_low else None,
             'protocol': 'niconico_dmc',
-            '_api_data': api_data,
             'expected_protocol': dmc_protocol,
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
@@ -431,8 +430,7 @@ class NiconicoIE(InfoExtractor):
         quality_info = api_data['media']['delivery']['movie']
         session_api_data = quality_info['session']
         for (audio_quality, video_quality, protocol) in itertools.product(quality_info['audios'], quality_info['videos'], session_api_data['protocols']):
-            fmt = self._extract_format_for_quality(
-                api_data, video_id, audio_quality, video_quality, protocol)
+            fmt = self._extract_format_for_quality(video_id, audio_quality, video_quality, protocol)
             if fmt:
                 formats.append(fmt)
 
@@ -471,6 +469,10 @@ class NiconicoIE(InfoExtractor):
 
         uploader_id = traverse_obj(api_data, ('owner', 'id'))
         uploader = traverse_obj(api_data, ('owner', 'nickname'))
+
+        # for channel and community video
+        channel_id = traverse_obj(api_data, ('channel', 'id'), ('community', 'id'))
+        channel = traverse_obj(api_data, ('channel', 'name'), ('community', 'name'))
 
         # attempt to extract tags in 3 ways
         # you have to request Japanese pages to get tags;
@@ -522,6 +524,7 @@ class NiconicoIE(InfoExtractor):
 
         return {
             'id': video_id,
+            '_api_data': api_data,
             'title': title,
             'formats': formats,
             'thumbnail': thumbnail,
@@ -529,6 +532,8 @@ class NiconicoIE(InfoExtractor):
             'uploader': uploader,
             'timestamp': timestamp,
             'uploader_id': uploader_id,
+            'channel': channel,
+            'channel_id': channel_id,
             'view_count': view_count,
             'tags': tags,
             'genre': genre,
