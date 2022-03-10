@@ -371,10 +371,8 @@ class NiconicoIE(InfoExtractor):
             'format_note': 'DMC ' + vid_metadata['label'] + ' ' + dmc_protocol.upper(),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
-            'vcodec': 'h264',  # As far as I'm aware DMC videos can only serve h264/aac combinations
+            'vcodec': 'h264',
             'abr': float_or_none(audio_quality['metadata'].get('bitrate'), 1000),
-            # So this is kind of a hack; sometimes, the bitrate is incorrectly reported as 0kbs. If this is the case,
-            # extract it from the rest of the metadata we have available
             'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_metadata.get('label')), 1000),
             'height': resolution.get('height'),
             'width': resolution.get('width'),
@@ -390,9 +388,6 @@ class NiconicoIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        # Get video webpage. We are not actually interested in it for normal
-        # cases, but need the cookies in order to be able to download the
-        # info webpage
         try:
             webpage, handle = self._download_webpage_handle(
                 'http://www.nicovideo.jp/watch/' + video_id, video_id)
@@ -470,13 +465,9 @@ class NiconicoIE(InfoExtractor):
         uploader_id = traverse_obj(api_data, ('owner', 'id'))
         uploader = traverse_obj(api_data, ('owner', 'nickname'))
 
-        # for channel and community video
         channel_id = traverse_obj(api_data, ('channel', 'id'), ('community', 'id'))
         channel = traverse_obj(api_data, ('channel', 'name'), ('community', 'name'))
 
-        # attempt to extract tags in 3 ways
-        # you have to request Japanese pages to get tags;
-        # NN seems to drop tags data when it's English
         tags = None
         if webpage:
             # use og:video:tag (not logged in)
@@ -488,7 +479,7 @@ class NiconicoIE(InfoExtractor):
                 if kwds:
                     tags = [x for x in kwds.split(',') if x]
         if not tags:
-            # find it in json (logged in)
+            # find in json (logged in)
             tags = traverse_obj(api_data, ('tag', 'items', ..., 'name'))
 
         genre = traverse_obj(api_data, ('genre', 'label'), ('genre', 'key'))
