@@ -8,9 +8,7 @@ import json
 import re
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..postprocessor.ffmpeg import FFmpegPostProcessor
 from ..compat import (
-    compat_str,
     compat_parse_qs,
     compat_urllib_parse_urlparse,
     compat_HTTPError,
