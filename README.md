@@ -1684,6 +1684,9 @@ The following extractors use this feature:
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
+#### niconico
+* `segment_duration` *1: Changes segment duration (in **milliseconds**) for DMC formats. Only have effects for HLS formats.
+
 #### youtubewebarchive
 * `check_all`: Try to check more at the cost of more requests. One or more of `thumbnails`, `captures`
 
@@ -1704,6 +1707,8 @@ The following extractors use this feature:
 
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
+
+*1: **READ CAREFULLY**: Using it will make non-standard DMC request(s). You may be being banned of your account or IP address by using it. Use it at your own risk.
 
 <!-- MANPAGE: MOVE "INSTALLATION" SECTION HERE -->
 

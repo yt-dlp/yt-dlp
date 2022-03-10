@@ -255,11 +255,12 @@ class NiconicoIE(InfoExtractor):
             }
         elif dmc_protocol == 'hls':
             protocol = 'm3u8'
+            segment_duration = try_get(self._configuration_arg('segment_duration'), lambda x: int(x[0])) or 6000
             parsed_token = self._parse_json(session_api_data['token'], video_id)
             encryption = traverse_obj(api_data, ('media', 'delivery', 'encryption'))
             protocol_parameters = {
                 'hls_parameters': {
-                    'segment_duration': 6000,
+                    'segment_duration': segment_duration,
                     'transfer_preset': '',
                     'use_ssl': yesno(session_api_data['urls'][0]['isSsl']),
                     'use_well_known_port': yesno(session_api_data['urls'][0]['isWellKnownPort']),
