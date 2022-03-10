@@ -233,15 +233,15 @@ class NiconicoIE(InfoExtractor):
         session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
 
         def ping():
-            status = try_get(
-                self._download_json(
-                    'https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', video_id,
-                    query={'t': try_get(api_data, lambda x: x['media']['delivery']['trackingId'])},
-                    note='Acquiring permission for downloading video',
-                    headers=self._API_HEADERS),
-                lambda x: x['meta']['status'])
-            if status != 200:
-                self.report_warning('Failed to acquire permission for playing video. The video may not download.')
+            tracking_id = traverse_obj(api_data, ('media', 'delivery', 'trackingId'))
+            if tracking_id:
+                tracking_url = update_url_query('https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', {'t': tracking_id})
+                watch_request_response = self._download_json(
+                    tracking_url, video_id,
+                    note='Acquiring permission for downloading video', fatal=False,
+                    headers=self._API_HEADERS)
+                if traverse_obj(watch_request_response, ('meta', 'status')) != 200:
+                    self.report_warning('Failed to acquire permission for playing video. Video download may fail.')
 
         yesno = lambda x: 'yes' if x else 'no'
 
@@ -483,16 +483,6 @@ class NiconicoIE(InfoExtractor):
             tags = traverse_obj(api_data, ('tag', 'items', ..., 'name'))
 
         genre = traverse_obj(api_data, ('genre', 'label'), ('genre', 'key'))
-
-        tracking_id = traverse_obj(api_data, ('media', 'delivery', 'trackingId'))
-        if tracking_id:
-            tracking_url = update_url_query('https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', {'t': tracking_id})
-            watch_request_response = self._download_json(
-                tracking_url, video_id,
-                note='Acquiring permission for downloading video', fatal=False,
-                headers=self._API_HEADERS)
-            if traverse_obj(watch_request_response, ('meta', 'status')) != 200:
-                self.report_warning('Failed to acquire permission for playing video. Video download may fail.')
 
         subtitles = None
         if self.get_param('getcomments', False) or self.get_param('writesubtitles', False):
