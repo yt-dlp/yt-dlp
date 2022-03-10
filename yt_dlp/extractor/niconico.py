@@ -439,9 +439,6 @@ class NiconicoIE(InfoExtractor):
 
         self._sort_formats(formats)
 
-        all_formats_available = all(
-            traverse_obj([quality_info['audios'], quality_info['videos']], (..., ..., 'isAvailable')))
-
         # Start extracting information
         title = (
             get_video_info(['originalTitle', 'title'], get_first=True)
@@ -528,7 +525,6 @@ class NiconicoIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'formats': formats,
-            'all_formats_available': all_formats_available,
             'thumbnail': thumbnail,
             'description': description,
             'uploader': uploader,
