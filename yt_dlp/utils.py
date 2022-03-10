@@ -5237,6 +5237,10 @@ def decode_base(value, digits):
     return result
 
 
+def time_millis():
+    return round(time.time() * 1000)
+
+
 def time_seconds(**kwargs):
     t = datetime.datetime.now(datetime.timezone(datetime.timedelta(**kwargs)))
     return t.timestamp()
