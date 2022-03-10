@@ -92,6 +92,16 @@ class CrunchyrollBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._login()
 
+    # Beta-specific, but needed for redirects
+    def _get_embedded_json(self, webpage, display_id):
+        initial_state = self._parse_json(
+            self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
+            display_id)
+        app_config = self._parse_json(
+            self._search_regex(r'__APP_CONFIG__\s*=\s*({.+?})\s*;', webpage, 'app config'),
+            display_id)
+        return initial_state, app_config
+
     @staticmethod
     def _add_skip_wall(url):
         parsed_url = compat_urlparse.urlparse(url)
@@ -412,6 +422,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         webpage = self._download_webpage(
             self._add_skip_wall(webpage_url), video_id,
             headers=self.geo_verification_headers())
+        if re.search(r'<div id="preload-data">', webpage):
+            initial_state, app_config = self._get_embedded_json(webpage, video_id)
+            base_site = app_config['baseSiteUrl']
+            path = initial_state['router']['locations']['current']['pathname']
+            self.to_screen(f'{video_id}: Redirected to beta site. Switching extractors. New url: {base_site}{path}')
+            return self.url_result(f'{base_site}{path}', CrunchyrollBetaIE.ie_key(), video_id)
         note_m = self._html_search_regex(
             r'<div class="showmedia-trailer-notice">(.+?)</div>',
             webpage, 'trailer-notice', default='')
@@ -676,6 +692,12 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
             # https:// gives a 403, but http:// does not
             self._add_skip_wall(url).replace('https://', 'http://'), show_id,
             headers=self.geo_verification_headers())
+        if re.search(r'<div id="preload-data">', webpage):
+            initial_state, app_config = self._get_embedded_json(webpage, show_id)
+            base_site = app_config['baseSiteUrl']
+            path = initial_state['router']['locations']['current']['pathname']
+            self.to_screen(f'{show_id}: Redirected to beta site. Switching extractors. New url: {base_site}{path}')
+            return self.url_result(f'{base_site}{path}', CrunchyrollBetaShowIE.ie_key(), show_id)
         title = self._html_search_meta('name', webpage, default=None)
 
         episode_re = r'<li id="showview_videos_media_(\d+)"[^>]+>.*?<a href="([^"]+)"'
@@ -702,15 +724,6 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
     api_domain = None
     bucket = None
     params = None
-
-    def _get_embedded_json(self, webpage, display_id):
-        initial_state = self._parse_json(
-            self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
-            display_id)
-        app_config = self._parse_json(
-            self._search_regex(r'__APP_CONFIG__\s*=\s*({.+?})\s*;', webpage, 'app config'),
-            display_id)
-        return initial_state, app_config
 
     def _get_params(self, initial_state, app_config, display_id):
         if not CrunchyrollBetaBaseIE.api_domain:
@@ -773,6 +786,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             episode_data = initial_state['content']['byId'][internal_id]
             video_id = episode_data['external_id'].split('.')[1]
             series_id = episode_data['episode_metadata']['series_slug_title']
+            self.to_screen(f'{display_id}: Not logged in. Switching extractors. New url: https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}')
             return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
                                    CrunchyrollIE.ie_key(), video_id)
 
@@ -875,6 +889,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         initial_state, app_config = self._get_embedded_json(self._download_webpage(url, display_id), display_id)
 
         if not self._get_cookies(url).get('etp_rt'):
+            self.to_screen(f'{display_id}: Not logged in. Switching extractors. New url: https://www.crunchyroll.com/{lang}{display_id.lower()}')
             return self.url_result(f'https://www.crunchyroll.com/{lang}{display_id.lower()}',
                                    CrunchyrollShowPlaylistIE.ie_key(), display_id)
 
