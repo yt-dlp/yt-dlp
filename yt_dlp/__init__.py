@@ -198,10 +198,13 @@ def validate_options(opts):
     validate_positive('requests sleep interval', opts.sleep_interval_requests)
     validate_positive('sleep interval', opts.sleep_interval)
     validate_positive('max sleep interval', opts.max_sleep_interval)
-    if opts.max_sleep_interval is not None:
+    if opts.sleep_interval is None:
         validate(
-            opts.sleep_interval is not None, 'min sleep interval',
+            opts.max_sleep_interval is None, 'min sleep interval',
             msg='{name} must be specified; use --min-sleep-interval')
+    elif opts.max_sleep_interval is None:
+        opts.max_sleep_interval = opts.sleep_interval
+    else:
         validate_minmax(opts.sleep_interval, opts.max_sleep_interval, 'sleep interval')
 
     if opts.wait_for_video is not None:
