@@ -28,6 +28,7 @@ from yt_dlp.extractor import (
     ThePlatformFeedIE,
     RTVEALaCartaIE,
     DemocracynowIE,
+    PanoptoIE,
 )
 
 
@@ -408,6 +409,40 @@ class TestPBSSubtitles(BaseTestSubtitles):
         self.DL.params['subtitlesformat'] = 'sami'
         subtitles = self.getSubtitles()
         self.assertIn(md5(subtitles['en']), ['4256b16ac7da6a6780fafd04294e85cd'])
+
+
+@is_download_test
+class TestPanoptoSubtitles(BaseTestSubtitles):
+    url = 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=8285224a-9a2b-4957-84f2-acb0000c4ea9'
+    IE = PanoptoIE
+
+    def test_allsubtitles(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['allsubtitles'] = True
+        subtitles = self.getSubtitles()
+        self.assertEqual(set(subtitles.keys()), set(['en', 'es-ES']))
+        self.assertEqual(md5(subtitles['en']), 'a3f4d25963fdeace838f327097c13265')
+        self.assertEqual(md5(subtitles['es-ES']), '57e9dad365fd0fbaf0468eac4949f189')
+
+    def test_subtitles_srt_format(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['subtitlesformat'] = 'srt'
+        self.DL.params['allsubtitles'] = True
+        subtitles = self.getSubtitles()
+        self.assertEqual(md5(subtitles['en']), 'a3f4d25963fdeace838f327097c13265')
+
+    def test_subtitles_vtt_format(self):
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['subtitlesformat'] = 'vtt'
+        subtitles = self.getSubtitles()
+        self.assertEqual(md5(subtitles['en']), 'ade23c2bad3dcae5ce4e27527922b4e9')
+
+    def test_no_subtitles(self):
+        self.url = 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=495ac261-8cf8-4ea5-9714-ad4701326a1b'
+        self.DL.params['writesubtitles'] = True
+        self.DL.params['allsubtitles'] = True
+        subtitles = self.getSubtitles()
+        self.assertFalse(subtitles)
 
 
 if __name__ == '__main__':

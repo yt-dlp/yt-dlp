@@ -26,6 +26,31 @@ from ..utils import (
 class PanoptoBaseIE(InfoExtractor):
     BASE_URL_RE = r'(?P<base_url>https?://[\w.-]+\.panopto.(?:com|eu)/Panopto)'
 
+    _SUB_LANG_MAPPING = {
+        0: 'en',
+        1: 'en-GB',
+        2: 'es-MX',
+        3: 'es-ES',
+        4: 'de',
+        5: 'fr',
+        6: 'nl',
+        7: 'th',
+        8: 'zh-CN',
+        9: 'zh-TW',
+        10: 'kr',
+        11: 'ja',
+        12: 'ru',
+        13: 'pt',
+        14: 'pl',
+        15: 'en-AU',
+        16: 'da',
+        17: 'fi',
+        18: 'hu',
+        19: 'nb',
+        20: 'sv',
+        21: 'it'
+    }
+
     def _call_api(self, base_url, path, video_id, data=None, fatal=True, **kwargs):
         response = self._download_json(
             base_url + path, video_id, data=json.dumps(data).encode('utf8') if data else None,
@@ -212,19 +237,18 @@ class PanoptoIE(PanoptoBaseIE):
     def _get_subtitles(self, base_url, video_id, delivery):
         subtitles = {}
         for lang in delivery.get('AvailableLanguages') or []:
-            lang = str(lang) or ''
             response = self._call_api(
                 base_url, '/Pages/Viewer/DeliveryInfo.aspx', video_id, fatal=False,
                 note='Downloading captions JSON metadata', query={
                     'deliveryId': video_id,
                     'getCaptions': True,
-                    'language': lang,
+                    'language': str(lang),
                     'responseType': 'json'
                 }
             )
             if not isinstance(response, list):
                 continue
-            subtitles.setdefault(lang or 'en', []).append({
+            subtitles.setdefault(self._SUB_LANG_MAPPING.get(lang) or 'en', []).append({
                 'ext': 'srt',
                 'data': self._json2srt(response, delivery),
             })
