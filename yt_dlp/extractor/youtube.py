@@ -1204,7 +1204,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'Tq92D6wQ1mg',
                 'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
                 'ext': 'mp4',
-                'upload_date': '20191227',
+                'upload_date': '20191228',
                 'uploader_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
                 'uploader': 'Projekt Melody',
                 'description': 'md5:17eccca93a786d51bc67646756894066',
@@ -1297,6 +1297,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'expected_warnings': [
                 'DASH manifest missing',
+                'Some formats are possibly damaged'
             ]
         },
         # Olympics (https://github.com/ytdl-org/youtube-dl/issues/4431)
@@ -1569,7 +1570,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'md5:e41008789470fc2533a3252216f1c1d1',
                 'description': 'md5:a677553cf0840649b731a3024aeff4cc',
                 'duration': 721,
-                'upload_date': '20150127',
+                'upload_date': '20150128',
                 'uploader_id': 'BerkmanCenter',
                 'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/BerkmanCenter',
                 'uploader': 'The Berkman Klein Center for Internet & Society',
@@ -1601,7 +1602,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Democratic Socialism and Foreign Policy | Bernie Sanders',
                 'description': 'md5:13a2503d7b5904ef4b223aa101628f39',
                 'duration': 4060,
-                'upload_date': '20151119',
+                'upload_date': '20151120',
                 'uploader': 'Bernie Sanders',
                 'uploader_id': 'UCH1dpzjCEiGAt8CXkryhkZg',
                 'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCH1dpzjCEiGAt8CXkryhkZg',
@@ -3650,14 +3651,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'channel_url': 'uploader_url',
         }
 
-        # The upload date for scheduled and current live streams / premieres in microformats
-        # is generally the true upload date. Although not in UTC, we will prefer that in this case.
-        # Note this changes to the published date when the stream/premiere has finished.
+        # The upload date for scheduled, live and past live streams / premieres in microformats
+        # may be different from the stream date. Although not in UTC, we will prefer it in this case.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
         upload_date = (
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
-        if not upload_date or (not info.get('is_live') and info.get('live_status') != 'is_upcoming'):
+        if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
             upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
         info['upload_date'] = upload_date
 
