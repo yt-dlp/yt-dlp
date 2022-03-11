@@ -112,7 +112,7 @@ class Laola1TvEmbedIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'upload_date': unified_strdate(_v('time_date')),
             'uploader': _v('meta_organisation'),
             'categories': categories,
@@ -161,7 +161,7 @@ class Laola1TvBaseIE(Laola1TvEmbedIE):
         return {
             'id': video_id,
             'display_id': display_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': video_data.get('description'),
             'thumbnail': video_data.get('image'),
             'categories': categories,

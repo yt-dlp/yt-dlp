@@ -1,6 +1,12 @@
 import json
 
-from ..utils import ExtractorError, traverse_obj, try_get, unified_timestamp
+from ..utils import (
+    ExtractorError,
+    format_field,
+    traverse_obj,
+    try_get,
+    unified_timestamp
+)
 from .common import InfoExtractor
 
 
@@ -74,7 +80,7 @@ class RadLiveIE(InfoExtractor):
             'release_timestamp': release_date,
             'channel': channel.get('name'),
             'channel_id': channel_id,
-            'channel_url': f'https://rad.live/content/channel/{channel_id}' if channel_id else None,
+            'channel_url': format_field(channel_id, template='https://rad.live/content/channel/%s'),
 
         }
         if content_type == 'episode':

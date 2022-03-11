@@ -41,7 +41,7 @@ class FancodeVodIE(InfoExtractor):
     _ACCESS_TOKEN = None
     _NETRC_MACHINE = 'fancode'
 
-    _LOGIN_HINT = 'Use "--user refresh --password <refresh_token>" to login using a refresh token'
+    _LOGIN_HINT = 'Use "--username refresh --password <refresh_token>" to login using a refresh token'
 
     headers = {
         'content-type': 'application/json',

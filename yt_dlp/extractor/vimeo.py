@@ -28,7 +28,6 @@ from ..utils import (
     parse_qs,
     sanitized_Request,
     smuggle_url,
-    std_headers,
     str_or_none,
     try_get,
     unified_timestamp,
@@ -131,6 +130,8 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         request = config.get('request') or {}
 
         formats = []
+        subtitles = {}
+
         config_files = video_data.get('files') or request.get('files') or {}
         for f in (config_files.get('progressive') or []):
             video_url = f.get('url')
@@ -163,21 +164,23 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     sep_manifest_urls = [(format_id, manifest_url)]
                 for f_id, m_url in sep_manifest_urls:
                     if files_type == 'hls':
-                        formats.extend(self._extract_m3u8_formats(
-                            m_url, video_id, 'mp4',
-                            'm3u8' if is_live else 'm3u8_native', m3u8_id=f_id,
+                        fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                            m_url, video_id, 'mp4', live=is_live, m3u8_id=f_id,
                             note='Downloading %s m3u8 information' % cdn_name,
-                            fatal=False))
+                            fatal=False)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
                     elif files_type == 'dash':
                         if 'json=1' in m_url:
                             real_m_url = (self._download_json(m_url, video_id, fatal=False) or {}).get('url')
                             if real_m_url:
                                 m_url = real_m_url
-                        mpd_formats = self._extract_mpd_formats(
+                        fmts, subs = self._extract_mpd_formats_and_subtitles(
                             m_url.replace('/master.json', '/master.mpd'), video_id, f_id,
                             'Downloading %s MPD information' % cdn_name,
                             fatal=False)
-                        formats.extend(mpd_formats)
+                        formats.extend(fmts)
+                        self._merge_subtitles(subs, target=subtitles)
 
         live_archive = live_event.get('archive') or {}
         live_archive_source_url = live_archive.get('source_url')
@@ -188,12 +191,11 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 'quality': 10,
             })
 
-        subtitles = {}
         for tt in (request.get('text_tracks') or []):
-            subtitles[tt['lang']] = [{
+            subtitles.setdefault(tt['lang'], []).append({
                 'ext': 'vtt',
                 'url': urljoin('https://vimeo.com', tt['url']),
-            }]
+            })
 
         thumbnails = []
         if not is_live:
@@ -212,14 +214,25 @@ class VimeoBaseInfoExtractor(InfoExtractor):
         owner = video_data.get('owner') or {}
         video_uploader_url = owner.get('url')
 
+        duration = int_or_none(video_data.get('duration'))
+        chapter_data = try_get(config, lambda x: x['embed']['chapters']) or []
+        chapters = [{
+            'title': current_chapter.get('title'),
+            'start_time': current_chapter.get('timecode'),
+            'end_time': next_chapter.get('timecode'),
+        } for current_chapter, next_chapter in zip(chapter_data, chapter_data[1:] + [{'timecode': duration}])]
+        if chapters and chapters[0]['start_time']:  # Chapters may not start from 0
+            chapters[:0] = [{'title': '<Untitled>', 'start_time': 0, 'end_time': chapters[0]['start_time']}]
+
         return {
             'id': str_or_none(video_data.get('id')) or video_id,
-            'title': self._live_title(video_title) if is_live else video_title,
+            'title': video_title,
             'uploader': owner.get('name'),
             'uploader_id': video_uploader_url.split('/')[-1] if video_uploader_url else None,
             'uploader_url': video_uploader_url,
             'thumbnails': thumbnails,
-            'duration': int_or_none(video_data.get('duration')),
+            'duration': duration,
+            'chapters': chapters or None,
             'formats': formats,
             'subtitles': subtitles,
             'is_live': is_live,
@@ -623,6 +636,24 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
         },
+        {
+            # similar, but all numeric: ID must be 581039021, not 9603038895
+            # issue #29690
+            'url': 'https://vimeo.com/581039021/9603038895',
+            'info_dict': {
+                'id': '581039021',
+                # these have to be provided but we don't care
+                'ext': 'mp4',
+                'timestamp': 1627621014,
+                'title': 're:.+',
+                'uploader_id': 're:.+',
+                'uploader': 're:.+',
+                'upload_date': r're:\d+',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
@@ -744,7 +775,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
     def _real_extract(self, url):
         url, data = unsmuggle_url(url, {})
-        headers = std_headers.copy()
+        headers = self.get_param('http_headers').copy()
         if 'http_headers' in data:
             headers.update(data['http_headers'])
         if 'Referer' not in headers:

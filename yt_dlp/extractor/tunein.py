@@ -62,7 +62,7 @@ class TuneInBaseIE(InfoExtractor):
 
         return {
             'id': content_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'formats': formats,
             'thumbnail': thumbnail,
             'location': location,

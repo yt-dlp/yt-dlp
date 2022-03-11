@@ -51,7 +51,7 @@ class BitwaveStreamIE(InfoExtractor):
 
         return {
             'id': username,
-            'title': self._live_title(channel['data']['title']),
+            'title': channel['data']['title'],
             'uploader': username,
             'uploader_id': username,
             'formats': formats,

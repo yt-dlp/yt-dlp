@@ -15,6 +15,7 @@ from ..utils import (
     orderedSet,
     parse_codecs,
     qualities,
+    traverse_obj,
     try_get,
     unified_timestamp,
     update_url_query,
@@ -147,6 +148,7 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': 1613948400,
             'upload_date': '20210221',
         },
+        'skip': 'No longer available: "Diese Seite wurde leider nicht gefunden"',
     }, {
         # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
         'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
@@ -160,6 +162,20 @@ class ZDFIE(ZDFBaseIE):
             'timestamp': 1608604200,
             'upload_date': '20201222',
         },
+        'skip': 'No longer available: "Diese Seite wurde leider nicht gefunden"',
+    }, {
+        'url': 'https://www.zdf.de/nachrichten/heute-journal/heute-journal-vom-30-12-2021-100.html',
+        'info_dict': {
+            'id': '211230_sendung_hjo',
+            'ext': 'mp4',
+            'description': 'md5:47dff85977bde9fb8cba9e9c9b929839',
+            'duration': 1890.0,
+            'upload_date': '20211230',
+            'chapters': list,
+            'thumbnail': 'md5:e65f459f741be5455c952cd820eb188e',
+            'title': 'heute journal vom 30.12.2021',
+            'timestamp': 1640897100,
+        }
     }, {
         'url': 'https://www.zdf.de/dokumentation/terra-x/die-magie-der-farben-von-koenigspurpur-und-jeansblau-100.html',
         'info_dict': {
@@ -170,6 +186,20 @@ class ZDFIE(ZDFBaseIE):
             'duration': 2615,
             'timestamp': 1465021200,
             'upload_date': '20160604',
+            'thumbnail': 'https://www.zdf.de/assets/mauve-im-labor-100~768x432?cb=1464909117806',
+        },
+    }, {
+        'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
+        'md5': '3d6f1049e9682178a11c54b91f3dd065',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': 'video_funk_1770473',
+            'duration': 1278,
+            'description': 'Die Neue an der Schule verdreht Ismail den Kopf.',
+            'title': 'Alles ist verzaubert',
+            'timestamp': 1635520560,
+            'upload_date': '20211029',
+            'thumbnail': 'https://www.zdf.de/assets/teaser-funk-alles-ist-verzaubert-100~1920x1080?cb=1636466431799',
         },
     }, {
         # Same as https://www.phoenix.de/sendungen/dokumentationen/gesten-der-maechtigen-i-a-89468.html?ref=suche
@@ -192,6 +222,17 @@ class ZDFIE(ZDFBaseIE):
     }, {
         'url': 'https://www.zdf.de/dokumentation/planet-e/planet-e-uebersichtsseite-weitere-dokumentationen-von-planet-e-100.html',
         'only_matching': True,
+    }, {
+        'url': 'https://www.zdf.de/arte/todliche-flucht/page-video-artede-toedliche-flucht-16-100.html',
+        'info_dict': {
+            'id': 'video_artede_083871-001-A',
+            'ext': 'mp4',
+            'title': 'Tödliche Flucht (1/6)',
+            'description': 'md5:e34f96a9a5f8abd839ccfcebad3d5315',
+            'duration': 3193.0,
+            'timestamp': 1641355200,
+            'upload_date': '20220105',
+        },
     }]
 
     def _extract_entry(self, url, player, content, video_id):
@@ -202,8 +243,9 @@ class ZDFIE(ZDFBaseIE):
         ptmd_path = t.get('http://zdf.de/rels/streams/ptmd')
 
         if not ptmd_path:
-            ptmd_path = t[
-                'http://zdf.de/rels/streams/ptmd-template'].replace(
+            ptmd_path = traverse_obj(
+                t, ('streams', 'default', 'http://zdf.de/rels/streams/ptmd-template'),
+                'http://zdf.de/rels/streams/ptmd-template').replace(
                 '{playerId}', 'ngplayer_2_4')
 
         info = self._extract_ptmd(
@@ -229,12 +271,21 @@ class ZDFIE(ZDFBaseIE):
                     })
                 thumbnails.append(thumbnail)
 
+        chapter_marks = t.get('streamAnchorTag') or []
+        chapter_marks.append({'anchorOffset': int_or_none(t.get('duration'))})
+        chapters = [{
+            'start_time': chap.get('anchorOffset'),
+            'end_time': next_chap.get('anchorOffset'),
+            'title': chap.get('anchorLabel')
+        } for chap, next_chap in zip(chapter_marks, chapter_marks[1:])]
+
         return merge_dicts(info, {
             'title': title,
             'description': content.get('leadParagraph') or content.get('teasertext'),
             'duration': int_or_none(t.get('duration')),
             'timestamp': unified_timestamp(content.get('editorialDate')),
             'thumbnails': thumbnails,
+            'chapters': chapters or None
         })
 
     def _extract_regular(self, url, player, video_id):

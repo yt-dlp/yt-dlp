@@ -78,11 +78,11 @@ class CanalAlphaIE(InfoExtractor):
             'height': try_get(video, lambda x: x['res']['height'], expected_type=int),
         } for video in try_get(data_json, lambda x: x['video']['mp4'], expected_type=list) or [] if video.get('$url')]
         if manifests.get('hls'):
-            m3u8_frmts, m3u8_subs = self._parse_m3u8_formats_and_subtitles(manifests['hls'], id)
+            m3u8_frmts, m3u8_subs = self._parse_m3u8_formats_and_subtitles(manifests['hls'], video_id=id)
             formats.extend(m3u8_frmts)
             subtitles = self._merge_subtitles(subtitles, m3u8_subs)
         if manifests.get('dash'):
-            dash_frmts, dash_subs = self._parse_mpd_formats_and_subtitles(manifests['dash'], id)
+            dash_frmts, dash_subs = self._parse_mpd_formats_and_subtitles(manifests['dash'])
             formats.extend(dash_frmts)
             subtitles = self._merge_subtitles(subtitles, dash_subs)
         self._sort_formats(formats)

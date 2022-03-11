@@ -203,7 +203,7 @@ class FranceTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'thumbnail': image,
             'duration': duration,
             'timestamp': timestamp,

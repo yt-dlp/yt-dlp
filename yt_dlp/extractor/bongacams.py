@@ -49,7 +49,7 @@ class BongaCamsIE(InfoExtractor):
 
         return {
             'id': channel_id,
-            'title': self._live_title(uploader or uploader_id),
+            'title': uploader or uploader_id,
             'uploader': uploader,
             'uploader_id': uploader_id,
             'like_count': like_count,

@@ -59,8 +59,16 @@ class SoundcloudEmbedIE(InfoExtractor):
 
 
 class SoundcloudBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'soundcloud'
+
     _API_V2_BASE = 'https://api-v2.soundcloud.com/'
     _BASE_URL = 'https://soundcloud.com/'
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
+    _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
+    _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
+    _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
+    _access_token = None
+    _HEADERS = {}
 
     def _store_client_id(self, client_id):
         self._downloader.cache.store('soundcloud', 'client_id', client_id)
@@ -103,14 +111,6 @@ class SoundcloudBaseIE(InfoExtractor):
         self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
         self._login()
 
-    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
-    _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
-    _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
-    _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
-    _access_token = None
-    _HEADERS = {}
-    _NETRC_MACHINE = 'soundcloud'
-
     def _login(self):
         username, password = self._get_login_info()
         if username is None:
@@ -130,7 +130,7 @@ class SoundcloudBaseIE(InfoExtractor):
         elif username is not None:
             self.report_warning(
                 'Login using username and password is not currently supported. '
-                'Use "--user oauth --password <oauth_token>" to login using an oauth token')
+                'Use "--username oauth --password <oauth_token>" to login using an oauth token')
 
         r'''
         def genDevId():
@@ -214,8 +214,9 @@ class SoundcloudIE(SoundcloudBaseIE):
                             (?!stations/track)
                             (?P<uploader>[\w\d-]+)/
                             (?!(?:tracks|albums|sets(?:/.+?)?|reposts|likes|spotlight)/?(?:$|[?#]))
-                            (?P<title>[\w\d-]+)/?
-                            (?P<token>[^?]+?)?(?:[?].*)?$)
+                            (?P<title>[\w\d-]+)
+                            (?:/(?P<token>(?!(?:albums|sets|recommended))[^?]+?))?
+                            (?:[?].*)?$)
                        |(?:api(?:-v2)?\.soundcloud\.com/tracks/(?P<track_id>\d+)
                           (?:/?\?secret_token=(?P<secret_token>[^&]+))?)
                     )
@@ -825,6 +826,54 @@ class SoundcloudTrackStationIE(SoundcloudPagedPlaylistBaseIE):
         return self._extract_playlist(
             self._API_V2_BASE + 'stations/%s/tracks' % track['id'],
             track_id, 'Track station: %s' % track['title'])
+
+
+class SoundcloudRelatedIE(SoundcloudPagedPlaylistBaseIE):
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?soundcloud\.com/(?P<slug>[\w\d-]+/[\w\d-]+)/(?P<relation>albums|sets|recommended)'
+    IE_NAME = 'soundcloud:related'
+    _TESTS = [{
+        'url': 'https://soundcloud.com/wajang/sexapil-pingers-5/recommended',
+        'info_dict': {
+            'id': '1084577272',
+            'title': 'Sexapil - Pingers 5 (Recommended)',
+        },
+        'playlist_mincount': 50,
+    }, {
+        'url': 'https://soundcloud.com/wajang/sexapil-pingers-5/albums',
+        'info_dict': {
+            'id': '1084577272',
+            'title': 'Sexapil - Pingers 5 (Albums)',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://soundcloud.com/wajang/sexapil-pingers-5/sets',
+        'info_dict': {
+            'id': '1084577272',
+            'title': 'Sexapil - Pingers 5 (Sets)',
+        },
+        'playlist_mincount': 4,
+    }]
+
+    _BASE_URL_MAP = {
+        'albums': 'tracks/%s/albums',
+        'sets': 'tracks/%s/playlists_without_albums',
+        'recommended': 'tracks/%s/related',
+    }
+
+    def _real_extract(self, url):
+        slug, relation = self._match_valid_url(url).group('slug', 'relation')
+
+        track = self._download_json(
+            self._resolv_url(self._BASE_URL + slug),
+            slug, 'Downloading track info', headers=self._HEADERS)
+
+        if track.get('errors'):
+            raise ExtractorError(f'{self.IE_NAME} said: %s' % ','.join(
+                str(err['error_message']) for err in track['errors']), expected=True)
+
+        return self._extract_playlist(
+            self._API_V2_BASE + self._BASE_URL_MAP[relation] % track['id'], str(track['id']),
+            '%s (%s)' % (track.get('title') or slug, relation.capitalize()))
 
 
 class SoundcloudPlaylistIE(SoundcloudPlaylistBaseIE):

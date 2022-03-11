@@ -203,6 +203,9 @@ class HotStarIE(HotStarBaseIE):
             format_url = re.sub(
                 r'(?<=//staragvod)(\d)', r'web\1', format_url)
             tags = str_or_none(playback_set.get('tagsCombination')) or ''
+            ingored_res, ignored_vcodec, ignored_dr = self._configuration_arg('res'), self._configuration_arg('vcodec'), self._configuration_arg('dr')
+            if any(f'resolution:{ig_res}' in tags for ig_res in ingored_res) or any(f'video_codec:{ig_vc}' in tags for ig_vc in ignored_vcodec) or any(f'dynamic_range:{ig_dr}' in tags for ig_dr in ignored_dr):
+                continue
             ext = determine_ext(format_url)
             current_formats, current_subs = [], {}
             try:

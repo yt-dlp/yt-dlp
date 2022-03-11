@@ -99,10 +99,10 @@ class TestInfoExtractor(unittest.TestCase):
         self.assertRaises(RegexNotFoundError, ie._html_search_meta, ('z', 'x'), html, None, fatal=True)
 
     def test_search_json_ld_realworld(self):
-        # https://github.com/ytdl-org/youtube-dl/issues/23306
-        expect_dict(
-            self,
-            self.ie._search_json_ld(r'''<script type="application/ld+json">
+        _TESTS = [
+            # https://github.com/ytdl-org/youtube-dl/issues/23306
+            (
+                r'''<script type="application/ld+json">
 {
 "@context": "http://schema.org/",
 "@type": "VideoObject",
@@ -135,17 +135,171 @@ class TestInfoExtractor(unittest.TestCase):
 "name": "Kleio Valentien",
 "url": "https://www.eporner.com/pornstar/kleio-valentien/"
 }]}
-</script>''', None),
-            {
-                'title': '1 On 1 With Kleio',
-                'description': 'Kleio Valentien',
-                'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
-                'timestamp': 1449347075,
-                'duration': 743.0,
-                'view_count': 1120958,
-                'width': 1920,
-                'height': 1080,
-            })
+                </script>''',
+                {
+                    'title': '1 On 1 With Kleio',
+                    'description': 'Kleio Valentien',
+                    'url': 'https://gvideo.eporner.com/xN49A1cT3eB/xN49A1cT3eB.mp4',
+                    'timestamp': 1449347075,
+                    'duration': 743.0,
+                    'view_count': 1120958,
+                    'width': 1920,
+                    'height': 1080,
+                },
+                {},
+            ),
+            (
+                r'''<script type="application/ld+json">
+      {
+      "@context": "https://schema.org",
+      "@graph": [
+      {
+      "@type": "NewsArticle",
+      "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://www.ant1news.gr/Society/article/620286/symmoria-anilikon-dikigoros-thymaton-ithelan-na-toys-apoteleiosoyn"
+      },
+      "headline": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
+      "name": "Συμμορία ανηλίκων – δικηγόρος θυμάτων: ήθελαν να τους αποτελειώσουν",
+      "description": "Τα παιδιά δέχθηκαν την επίθεση επειδή αρνήθηκαν να γίνουν μέλη της συμμορίας, ανέφερε ο Γ. Ζαχαρόπουλος.",
+      "image": {
+      "@type": "ImageObject",
+      "url": "https://ant1media.azureedge.net/imgHandler/1100/a635c968-be71-447c-bf9c-80d843ece21e.jpg",
+      "width": 1100,
+      "height": 756            },
+      "datePublished": "2021-11-10T08:50:00+03:00",
+      "dateModified": "2021-11-10T08:52:53+03:00",
+      "author": {
+      "@type": "Person",
+      "@id": "https://www.ant1news.gr/",
+      "name": "Ant1news",
+      "image": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
+      "url": "https://www.ant1news.gr/"
+      },
+      "publisher": {
+      "@type": "Organization",
+      "@id": "https://www.ant1news.gr#publisher",
+      "name": "Ant1news",
+      "url": "https://www.ant1news.gr",
+      "logo": {
+      "@type": "ImageObject",
+      "url": "https://www.ant1news.gr/images/logo-e5d7e4b3e714c88e8d2eca96130142f6.png",
+      "width": 400,
+      "height": 400                },
+      "sameAs": [
+      "https://www.facebook.com/Ant1news.gr",
+      "https://twitter.com/antennanews",
+      "https://www.youtube.com/channel/UC0smvAbfczoN75dP0Hw4Pzw",
+      "https://www.instagram.com/ant1news/"
+      ]
+      },
+
+      "keywords": "μαχαίρωμα,συμμορία ανηλίκων,ΕΙΔΗΣΕΙΣ,ΕΙΔΗΣΕΙΣ ΣΗΜΕΡΑ,ΝΕΑ,Κοινωνία - Ant1news",
+
+
+      "articleSection": "Κοινωνία"
+      }
+      ]
+      }
+                </script>''',
+                {
+                    'timestamp': 1636523400,
+                    'title': 'md5:91fe569e952e4d146485740ae927662b',
+                },
+                {'expected_type': 'NewsArticle'},
+            ),
+            (
+                r'''<script type="application/ld+json">
+                {"url":"/vrtnu/a-z/het-journaal/2021/het-journaal-het-journaal-19u-20211231/",
+                "name":"Het journaal 19u",
+                "description":"Het journaal 19u van vrijdag 31 december 2021.",
+                "potentialAction":{"url":"https://vrtnu.page.link/pfVy6ihgCAJKgHqe8","@type":"ShareAction"},
+                "mainEntityOfPage":{"@id":"1640092242445","@type":"WebPage"},
+                "publication":[{
+                    "startDate":"2021-12-31T19:00:00.000+01:00",
+                    "endDate":"2022-01-30T23:55:00.000+01:00",
+                    "publishedBy":{"name":"een","@type":"Organization"},
+                    "publishedOn":{"url":"https://www.vrt.be/vrtnu/","name":"VRT NU","@type":"BroadcastService"},
+                    "@id":"pbs-pub-3a7ec233-da95-4c1e-9b2b-cf5fdfebcbe8",
+                    "@type":"BroadcastEvent"
+                    }],
+                "video":{
+                    "name":"Het journaal - Aflevering 365 (Seizoen 2021)",
+                    "description":"Het journaal 19u van vrijdag 31 december 2021. Bekijk aflevering 365 van seizoen 2021 met VRT NU via de site of app.",
+                    "thumbnailUrl":"//images.vrt.be/width1280/2021/12/31/80d5ed00-6a64-11ec-b07d-02b7b76bf47f.jpg",
+                    "expires":"2022-01-30T23:55:00.000+01:00",
+                    "hasPart":[
+                        {"name":"Explosie Turnhout","startOffset":70,"@type":"Clip"},
+                        {"name":"Jaarwisseling","startOffset":440,"@type":"Clip"},
+                        {"name":"Natuurbranden Colorado","startOffset":1179,"@type":"Clip"},
+                        {"name":"Klimaatverandering","startOffset":1263,"@type":"Clip"},
+                        {"name":"Zacht weer","startOffset":1367,"@type":"Clip"},
+                        {"name":"Financiële balans","startOffset":1383,"@type":"Clip"},
+                        {"name":"Club Brugge","startOffset":1484,"@type":"Clip"},
+                        {"name":"Mentale gezondheid bij topsporters","startOffset":1575,"@type":"Clip"},
+                        {"name":"Olympische Winterspelen","startOffset":1728,"@type":"Clip"},
+                        {"name":"Sober oudjaar in Nederland","startOffset":1873,"@type":"Clip"}
+                        ],
+                    "duration":"PT34M39.23S",
+                    "uploadDate":"2021-12-31T19:00:00.000+01:00",
+                    "@id":"vid-9457d0c6-b8ac-4aba-b5e1-15aa3a3295b5",
+                    "@type":"VideoObject"
+                },
+                "genre":["Nieuws en actua"],
+                "episodeNumber":365,
+                "partOfSeries":{"name":"Het journaal","@id":"222831405527","@type":"TVSeries"},
+                "partOfSeason":{"name":"Seizoen 2021","@id":"961809365527","@type":"TVSeason"},
+                "@context":"https://schema.org","@id":"961685295527","@type":"TVEpisode"}</script>
+                ''',
+                {
+                    'chapters': [
+                        {"title": "Explosie Turnhout", "start_time": 70, "end_time": 440},
+                        {"title": "Jaarwisseling", "start_time": 440, "end_time": 1179},
+                        {"title": "Natuurbranden Colorado", "start_time": 1179, "end_time": 1263},
+                        {"title": "Klimaatverandering", "start_time": 1263, "end_time": 1367},
+                        {"title": "Zacht weer", "start_time": 1367, "end_time": 1383},
+                        {"title": "Financiële balans", "start_time": 1383, "end_time": 1484},
+                        {"title": "Club Brugge", "start_time": 1484, "end_time": 1575},
+                        {"title": "Mentale gezondheid bij topsporters", "start_time": 1575, "end_time": 1728},
+                        {"title": "Olympische Winterspelen", "start_time": 1728, "end_time": 1873},
+                        {"title": "Sober oudjaar in Nederland", "start_time": 1873, "end_time": 2079.23}
+                    ],
+                    'title': 'Het journaal - Aflevering 365 (Seizoen 2021)'
+                }, {}
+            ),
+            (
+                # test multiple thumbnails in a list
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":["https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"]}
+</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                },
+                {},
+            ),
+            (
+                # test single thumbnail
+                r'''
+<script type="application/ld+json">
+{"@context":"https://schema.org",
+"@type":"VideoObject",
+"thumbnailUrl":"https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg"}
+</script>''',
+                {
+                    'thumbnails': [{'url': 'https://www.rainews.it/cropgd/640x360/dl/img/2021/12/30/1640886376927_GettyImages.jpg'}],
+                },
+                {},
+            )
+        ]
+        for html, expected_dict, search_json_ld_kwargs in _TESTS:
+            expect_dict(
+                self,
+                self.ie._search_json_ld(html, None, **search_json_ld_kwargs),
+                expected_dict
+            )
 
     def test_download_json(self):
         uri = encode_data_uri(b'{"foo": "blah"}', 'application/json')

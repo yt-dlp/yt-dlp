@@ -6,7 +6,7 @@ from ..utils import unified_strdate
 
 
 class GronkhIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/stream/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/(?:watch/)?stream/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://gronkh.tv/stream/536',
@@ -19,6 +19,9 @@ class GronkhIE(InfoExtractor):
             'upload_date': '20211001'
         },
         'params': {'skip_download': True}
+    }, {
+        'url': 'https://gronkh.tv/watch/stream/546',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

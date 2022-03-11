@@ -1,6 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import datetime
+import math
+import random
 import time
 import uuid
 
@@ -56,17 +59,57 @@ class SonyLIVIE(InfoExtractor):
         'only_matching': True,
     }]
     _GEO_COUNTRIES = ['IN']
-    _TOKEN = None
+    _HEADERS = {}
+    _LOGIN_HINT = 'Use "--username <mobile_number>" to login using OTP or "--username token --password <auth_token>" to login using auth token.'
+    _NETRC_MACHINE = 'sonyliv'
+
+    def _get_device_id(self):
+        e = int(time.time() * 1000)
+        t = list('xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx')
+        for i, c in enumerate(t):
+            n = int((e + 16 * random.random()) % 16) | 0
+            e = math.floor(e / 16)
+            if c == 'x':
+                t[i] = str(n)
+            elif c == 'y':
+                t[i] = '{:x}'.format(3 & n | 8)
+        return ''.join(t) + '-' + str(int(time.time() * 1000))
+
+    def _login(self, username, password):
+        if username.lower() == 'token' and len(password) > 1198:
+            return password
+        elif len(username) != 10 or not username.isdigit():
+            raise ExtractorError(f'Invalid username/password; {self._LOGIN_HINT}')
+
+        self.report_login()
+        data = '''{"mobileNumber":"%s","channelPartnerID":"MSMIND","country":"IN","timestamp":"%s",
+        "otpSize":6,"loginType":"REGISTERORSIGNIN","isMobileMandatory":true}
+         ''' % (username, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
+        otp_request_json = self._download_json(
+            'https://apiv2.sonyliv.com/AGL/1.6/A/ENG/WEB/IN/HR/CREATEOTP-V2',
+            None, note='Sending OTP', data=data.encode(), headers=self._HEADERS)
+        if otp_request_json['resultCode'] == 'KO':
+            raise ExtractorError(otp_request_json['message'], expected=True)
+        otp_code = self._get_tfa_info('OTP')
+        data = '''{"channelPartnerID":"MSMIND","mobileNumber":"%s","country":"IN","otp":"%s",
+        "dmaId":"IN","ageConfirmation":true,"timestamp":"%s","isMobileMandatory":true}
+         ''' % (username, otp_code, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
+        otp_verify_json = self._download_json(
+            'https://apiv2.sonyliv.com/AGL/2.0/A/ENG/WEB/IN/HR/CONFIRMOTP-V2',
+            None, note='Verifying OTP', data=data.encode(), headers=self._HEADERS)
+        if otp_verify_json['resultCode'] == 'KO':
+            raise ExtractorError(otp_request_json['message'], expected=True)
+        return otp_verify_json['resultObj']['accessToken']
 
     def _call_api(self, version, path, video_id):
-        headers = {}
-        if self._TOKEN:
-            headers['security_token'] = self._TOKEN
         try:
             return self._download_json(
                 'https://apiv2.sonyliv.com/AGL/%s/A/ENG/WEB/%s' % (version, path),
-                video_id, headers=headers)['resultObj']
+                video_id, headers=self._HEADERS)['resultObj']
         except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 406 and self._parse_json(
+                    e.cause.read().decode(), video_id)['message'] == 'Please subscribe to watch this content':
+                self.raise_login_required(self._LOGIN_HINT, method=None)
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
                 message = self._parse_json(
                     e.cause.read().decode(), video_id)['message']
@@ -76,7 +119,12 @@ class SonyLIVIE(InfoExtractor):
             raise
 
     def _real_initialize(self):
-        self._TOKEN = self._call_api('1.4', 'ALL/GETTOKEN', None)
+        self._HEADERS['security_token'] = self._call_api('1.4', 'ALL/GETTOKEN', None)
+        username, password = self._get_login_info()
+        if username:
+            self._HEADERS['device_id'] = self._get_device_id()
+            self._HEADERS['content-type'] = 'application/json'
+            self._HEADERS['authorization'] = self._login(username, password)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

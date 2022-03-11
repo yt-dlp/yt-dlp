@@ -12,6 +12,7 @@ from ..compat import (
     compat_zip
 )
 from ..utils import (
+    ExtractorError,
     int_or_none,
     parse_iso8601,
     strip_or_none,
@@ -125,7 +126,20 @@ class MixcloudIE(MixcloudBaseIE):
       tag {
         name
       }
-    }''', track_id, username, slug)
+    }
+    restrictedReason
+    id''', track_id, username, slug)
+
+        if not cloudcast:
+            raise ExtractorError('Track not found', expected=True)
+
+        reason = cloudcast.get('restrictedReason')
+        if reason == 'tracklist':
+            raise ExtractorError('Track unavailable in your country due to licensing restrictions', expected=True)
+        elif reason == 'repeat_play':
+            raise ExtractorError('You have reached your play limit for this track', expected=True)
+        elif reason:
+            raise ExtractorError('Track is restricted', expected=True)
 
         title = cloudcast['name']
 

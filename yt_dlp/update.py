@@ -54,7 +54,7 @@ _NON_UPDATEABLE_REASONS = {
     'win_dir': 'Auto-update is not supported for unpackaged windows executable; Re-download the latest release',
     'mac_dir': 'Auto-update is not supported for unpackaged MacOS executable; Re-download the latest release',
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
-    'unknown': 'It looks like you installed yt-dlp with a package manager, pip, setup.py or a tarball; Use that to update',
+    'unknown': 'It looks like you installed yt-dlp with a package manager, pip or setup.py; Use that to update',
 }
 
 
@@ -257,7 +257,7 @@ def update_self(to_screen, verbose, opener):
 
     write_string(
         'DeprecationWarning: "yt_dlp.update.update_self" is deprecated and may be removed in a future version. '
-        'Use "yt_dlp.update.run_update(ydl)" instead')
+        'Use "yt_dlp.update.run_update(ydl)" instead\n')
 
     class FakeYDL():
         _opener = opener

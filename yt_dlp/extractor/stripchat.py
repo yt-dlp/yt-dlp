@@ -57,7 +57,7 @@ class StripchatIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(video_id),
+            'title': video_id,
             'description': self._og_search_description(webpage),
             'is_live': True,
             'formats': formats,

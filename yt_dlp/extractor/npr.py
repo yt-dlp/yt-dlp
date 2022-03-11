@@ -91,7 +91,8 @@ class NprIE(InfoExtractor):
                     elif format_id == 'smil':
                         smil_formats = self._extract_smil_formats(
                             format_url, media_id, transform_source=lambda s: s.replace(
-                                'rtmp://flash.npr.org/ondemand/', 'https://ondemand.npr.org/'))
+                                'rtmp://flash.npr.org/ondemand/', 'https://ondemand.npr.org/'),
+                            fatal=False)
                         self._check_formats(smil_formats, media_id)
                         formats.extend(smil_formats)
                     else:

@@ -76,7 +76,7 @@ class CanvasIE(InfoExtractor):
                     'vrtPlayerToken': vrtPlayerToken,
                     'client': 'null',
                 }, expected_status=400)
-            if not data.get('title'):
+            if 'title' not in data:
                 code = data.get('code')
                 if code == 'AUTHENTICATION_REQUIRED':
                     self.raise_login_required()
@@ -84,7 +84,8 @@ class CanvasIE(InfoExtractor):
                     self.raise_geo_restricted(countries=['BE'])
                 raise ExtractorError(data.get('message') or code, expected=True)
 
-        title = data['title']
+        # Note: The title may be an empty string
+        title = data['title'] or f'{site_id} {video_id}'
         description = data.get('description')
 
         formats = []
