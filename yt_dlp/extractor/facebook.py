@@ -18,6 +18,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     get_element_by_id,
+    get_first,
     int_or_none,
     js_to_json,
     merge_dicts,
@@ -405,11 +406,9 @@ class FacebookIE(InfoExtractor):
                 ..., 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
             media = [m for m in traverse_obj(post, (..., 'attachments', ..., 'media'), expected_type=dict) or []
                      if str(m.get('id')) == video_id and m.get('__typename') == 'Video']
-            title = traverse_obj(media, (..., 'title', 'text'), get_all=False)
-            description = traverse_obj(media, (
-                ..., 'creation_story', 'comet_sections', 'message', 'story', 'message', 'text'), get_all=False)
-            uploader_data = (traverse_obj(media, (..., 'owner'), get_all=False)
-                             or traverse_obj(post, (..., 'node', 'actors', ...), get_all=False) or {})
+            title = get_first(media, ('title', 'text'))
+            description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
+            uploader_data = get_first(media, 'owner') or get_first(post, ('node', 'actors', ...)) or {}
 
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',

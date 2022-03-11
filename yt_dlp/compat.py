@@ -170,6 +170,13 @@ except ImportError:
     except ImportError:
         compat_pycrypto_AES = None
 
+try:
+    import brotlicffi as compat_brotli
+except ImportError:
+    try:
+        import brotli as compat_brotli
+    except ImportError:
+        compat_brotli = None
 
 WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 
@@ -258,6 +265,7 @@ __all__ = [
     'compat_asyncio_run',
     'compat_b64decode',
     'compat_basestring',
+    'compat_brotli',
     'compat_chr',
     'compat_collections_abc',
     'compat_cookiejar',

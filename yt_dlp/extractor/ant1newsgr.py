@@ -97,8 +97,8 @@ class Ant1NewsGrArticleIE(Ant1NewsGrBaseIE):
         embed_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
         if not embed_urls:
             raise ExtractorError('no videos found for %s' % video_id, expected=True)
-        return self.url_result_or_playlist_from_matches(
-            embed_urls, video_id, info['title'], ie=Ant1NewsGrEmbedIE.ie_key(),
+        return self.playlist_from_matches(
+            embed_urls, video_id, info.get('title'), ie=Ant1NewsGrEmbedIE.ie_key(),
             video_kwargs={'url_transparent': True, 'timestamp': info.get('timestamp')})
 
 

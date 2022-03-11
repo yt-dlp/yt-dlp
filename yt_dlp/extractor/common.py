@@ -226,6 +226,7 @@ class InfoExtractor(object):
 
     The following fields are optional:
 
+    direct:         True if a direct video file was given (must only be set by GenericIE)
     alt_title:      A secondary title of the video.
     display_id      An alternative identifier for the video, not necessarily
                     unique, but available before title. Typically, id is
@@ -274,7 +275,7 @@ class InfoExtractor(object):
                         * "url": A URL pointing to the subtitles file
                     It can optionally also have:
                         * "name": Name or description of the subtitles
-                        * http_headers: A dictionary of additional HTTP headers
+                        * "http_headers": A dictionary of additional HTTP headers
                                   to add to the request.
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
@@ -425,8 +426,8 @@ class InfoExtractor(object):
     title, description etc.
 
 
-    Subclasses of this one should re-define the _real_initialize() and
-    _real_extract() methods and define a _VALID_URL regexp.
+    Subclasses of this should define a _VALID_URL regexp and, re-define the
+    _real_extract() and (optionally) _real_initialize() methods.
     Probably, they should also be added to the list of extractors.
 
     Subclasses may also override suitable() if necessary, but ensure the function
@@ -661,7 +662,7 @@ class InfoExtractor(object):
         return False
 
     def set_downloader(self, downloader):
-        """Sets the downloader for this IE."""
+        """Sets a YoutubeDL instance as the downloader for this IE."""
         self._downloader = downloader
 
     def _real_initialize(self):
@@ -670,7 +671,7 @@ class InfoExtractor(object):
 
     def _real_extract(self, url):
         """Real extraction process. Redefine in subclasses."""
-        pass
+        raise NotImplementedError('This method must be implemented by subclasses')
 
     @classmethod
     def ie_key(cls):
@@ -749,7 +750,7 @@ class InfoExtractor(object):
 
             errmsg = '%s: %s' % (errnote, error_to_compat_str(err))
             if fatal:
-                raise ExtractorError(errmsg, sys.exc_info()[2], cause=err)
+                raise ExtractorError(errmsg, cause=err)
             else:
                 self.report_warning(errmsg)
                 return False
@@ -1661,31 +1662,31 @@ class InfoExtractor(object):
             'format_id': {'type': 'alias', 'field': 'id'},
             'preference': {'type': 'alias', 'field': 'ie_pref'},
             'language_preference': {'type': 'alias', 'field': 'lang'},
+            'source_preference': {'type': 'alias', 'field': 'source'},
+            'protocol': {'type': 'alias', 'field': 'proto'},
+            'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
 
             # Deprecated
-            'dimension': {'type': 'alias', 'field': 'res'},
-            'resolution': {'type': 'alias', 'field': 'res'},
-            'extension': {'type': 'alias', 'field': 'ext'},
-            'bitrate': {'type': 'alias', 'field': 'br'},
-            'total_bitrate': {'type': 'alias', 'field': 'tbr'},
-            'video_bitrate': {'type': 'alias', 'field': 'vbr'},
-            'audio_bitrate': {'type': 'alias', 'field': 'abr'},
-            'framerate': {'type': 'alias', 'field': 'fps'},
-            'protocol': {'type': 'alias', 'field': 'proto'},
-            'source_preference': {'type': 'alias', 'field': 'source'},
-            'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
-            'filesize_estimate': {'type': 'alias', 'field': 'size'},
-            'samplerate': {'type': 'alias', 'field': 'asr'},
-            'video_ext': {'type': 'alias', 'field': 'vext'},
-            'audio_ext': {'type': 'alias', 'field': 'aext'},
-            'video_codec': {'type': 'alias', 'field': 'vcodec'},
-            'audio_codec': {'type': 'alias', 'field': 'acodec'},
-            'video': {'type': 'alias', 'field': 'hasvid'},
-            'has_video': {'type': 'alias', 'field': 'hasvid'},
-            'audio': {'type': 'alias', 'field': 'hasaud'},
-            'has_audio': {'type': 'alias', 'field': 'hasaud'},
-            'extractor': {'type': 'alias', 'field': 'ie_pref'},
-            'extractor_preference': {'type': 'alias', 'field': 'ie_pref'},
+            'dimension': {'type': 'alias', 'field': 'res', 'deprecated': True},
+            'resolution': {'type': 'alias', 'field': 'res', 'deprecated': True},
+            'extension': {'type': 'alias', 'field': 'ext', 'deprecated': True},
+            'bitrate': {'type': 'alias', 'field': 'br', 'deprecated': True},
+            'total_bitrate': {'type': 'alias', 'field': 'tbr', 'deprecated': True},
+            'video_bitrate': {'type': 'alias', 'field': 'vbr', 'deprecated': True},
+            'audio_bitrate': {'type': 'alias', 'field': 'abr', 'deprecated': True},
+            'framerate': {'type': 'alias', 'field': 'fps', 'deprecated': True},
+            'filesize_estimate': {'type': 'alias', 'field': 'size', 'deprecated': True},
+            'samplerate': {'type': 'alias', 'field': 'asr', 'deprecated': True},
+            'video_ext': {'type': 'alias', 'field': 'vext', 'deprecated': True},
+            'audio_ext': {'type': 'alias', 'field': 'aext', 'deprecated': True},
+            'video_codec': {'type': 'alias', 'field': 'vcodec', 'deprecated': True},
+            'audio_codec': {'type': 'alias', 'field': 'acodec', 'deprecated': True},
+            'video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
+            'has_video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
+            'audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
+            'has_audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
+            'extractor': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
+            'extractor_preference': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
         }
 
         def __init__(self, ie, field_preference):
@@ -1785,7 +1786,7 @@ class InfoExtractor(object):
                     continue
                 if self._get_field_setting(field, 'type') == 'alias':
                     alias, field = field, self._get_field_setting(field, 'field')
-                    if alias not in ('format_id', 'preference', 'language_preference'):
+                    if self._get_field_setting(alias, 'deprecated'):
                         self.ydl.deprecation_warning(
                             f'Format sorting alias {alias} is deprecated '
                             f'and may be removed in a future version. Please use {field} instead')

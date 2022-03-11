@@ -323,7 +323,7 @@ def create_parser():
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
+        help='Mark videos watched (even with --simulate)')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -1182,7 +1182,7 @@ def create_parser():
         help='Do not write video description (default)')
     filesystem.add_option(
         '--write-info-json',
-        action='store_true', dest='writeinfojson', default=False,
+        action='store_true', dest='writeinfojson', default=None,
         help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',
