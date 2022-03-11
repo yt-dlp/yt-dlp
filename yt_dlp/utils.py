@@ -1029,7 +1029,7 @@ def make_HTTPS_handler(params, **kwargs):
 
 def bug_reports_message(before=';'):
     msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
-           'filling out the "Broken site" issue template properly. '
+           'filling out the appropriate issue template. '
            'Confirm you are on the latest version using  yt-dlp -U')
 
     before = before.rstrip()
@@ -5489,4 +5489,4 @@ has_websockets = bool(compat_websockets)
 
 def merge_headers(*dicts):
     """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
-    return {k.capitalize(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
+    return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}

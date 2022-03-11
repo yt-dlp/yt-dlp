@@ -9,7 +9,6 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     traverse_obj,
-    HEADRequest,
 )
 
 
@@ -106,18 +105,17 @@ class ZingMp3BaseIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self.get_param('cookiefile') and not self.get_param('cookiesfrombrowser'):
-            self._request_webpage(HEADRequest(self._DOMAIN), None, note='Updating cookies')
+            self._request_webpage(self.get_api_with_signature(name_api=self._SLUG_API['bai-hat'], param={'id': ''}),
+                                  None, note='Updating cookies')
 
     def _real_extract(self, url):
         song_id, type_url = self._match_valid_url(url).group('id', 'type')
-
         api = self.get_api_with_signature(name_api=self._SLUG_API[type_url], param={'id': song_id})
-
         return self._process_data(self._download_json(api, song_id)['data'], song_id, type_url)
 
     def get_api_with_signature(self, name_api, param):
-        sha256 = hashlib.sha256(''.join(f'{k}={v}' for k, v in param.items()).encode('utf-8')).hexdigest()
-
+        param.update({'ctime': '1'})
+        sha256 = hashlib.sha256(''.join(f'{i}={param[i]}' for i in sorted(param)).encode('utf-8')).hexdigest()
         data = {
             'apiKey': self._API_KEY,
             'sig': hmac.new(self._SECRET_KEY, f'{name_api}{sha256}'.encode('utf-8'), hashlib.sha512).hexdigest(),
@@ -162,6 +160,20 @@ class ZingMp3IE(ZingMp3BaseIE):
             'album_artist': 'K-ICM, RYO',
         },
     }, {
+        'url': 'https://zingmp3.vn/bai-hat/Nguoi-Yeu-Toi-Lanh-Lung-Sat-Da-Mr-Siro/ZZ6IW7OU.html',
+        'md5': '3e9f7a9bd0d965573dbff8d7c68b629d',
+        'info_dict': {
+            'id': 'ZZ6IW7OU',
+            'title': 'Người Yêu Tôi Lạnh Lùng Sắt Đá',
+            'ext': 'mp3',
+            'thumbnail': r're:^https?://.+\.jpg',
+            'duration': 303,
+            'track': 'Người Yêu Tôi Lạnh Lùng Sắt Đá',
+            'artist': 'Mr. Siro',
+            'album': 'Người Yêu Tôi Lạnh Lùng Sắt Đá (Single)',
+            'album_artist': 'Mr. Siro',
+        },
+    }, {
         'url': 'https://zingmp3.vn/embed/song/ZWZEI76B?start=false',
         'only_matching': True,
     }, {
@@ -185,6 +197,14 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
             'title': 'Lâu Đài Tình Ái',
         },
         'playlist_count': 9,
+    }, {
+        'url': 'https://zingmp3.vn/album/Nhung-Bai-Hat-Hay-Nhat-Cua-Mr-Siro-Mr-Siro/ZWZAEZZD.html',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ZWZAEZZD',
+            'title': 'Những Bài Hát Hay Nhất Của Mr. Siro',
+        },
+        'playlist_count': 49,
     }, {
         'url': 'http://mp3.zing.vn/playlist/Duong-Hong-Loan-apollobee/IWCAACCB.html',
         'only_matching': True,
