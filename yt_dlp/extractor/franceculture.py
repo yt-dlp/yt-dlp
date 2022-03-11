@@ -21,7 +21,7 @@ class FranceCultureIE(InfoExtractor):
         'info_dict': {
             'id': 'hasta-dente',
             'title': 'Hasta Dente',
-            'description': 'Une série policière loufoque et irrévérencieuse en deux parties Dans une ville de province, deux policiers, Matteo Razzoni et Karim Meziani, sont chargés d’enquêter sur une affaire apparemment anodine : la découverte d’une cache de ramen (bouillons…',
+            'description': 'md5:57479af50648d14e9bb649e6b1f8f911',
             'thumbnail': r're:^https?://.*\.jpg$',
             'upload_date': '20201024',
         },
