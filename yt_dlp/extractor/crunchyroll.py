@@ -912,7 +912,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
             req_type = req_type[0]
         req_num = self._configuration_arg('number')
         if req_num:
-            req_num = map(int, req_num)
+            req_num = list(map(int, req_num))
         req_str = self._configuration_arg('substr')
         if req_str:
             req_str = req_str[0]
