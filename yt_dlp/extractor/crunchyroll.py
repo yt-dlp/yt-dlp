@@ -725,19 +725,22 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
     bucket = None
     params = None
 
-    def _get_params(self, initial_state, app_config, display_id):
+    def _get_params(self, lang):
         if not CrunchyrollBetaBaseIE.api_domain:
+            initial_state, app_config = self._get_embedded_json(
+                self._download_webpage(f'https://beta.crunchyroll.com/{lang}', None,
+                                       note='Retrieving main page'), None)
             client_id = app_config['cxApiParams']['accountAuthClientId']
             api_domain = app_config['cxApiParams']['apiDomain']
             basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
             auth_response = self._download_json(
-                f'{api_domain}/auth/v1/token', display_id,
+                f'{api_domain}/auth/v1/token', None,
                 note='Authenticating with cookie',
                 headers={
                     'Authorization': 'Basic ' + basic_token
                 }, data='grant_type=etp_rt_cookie'.encode('ascii'))
             policy_response = self._download_json(
-                f'{api_domain}/index/v2', display_id,
+                f'{api_domain}/index/v2', None,
                 note='Retrieving signed policy',
                 headers={
                     'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
@@ -780,9 +783,9 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
 
     def _real_extract(self, url):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
-        initial_state, app_config = self._get_embedded_json(self._download_webpage(url, display_id), display_id)
 
         if not self._get_cookies(url).get('etp_rt'):
+            initial_state, app_config = self._get_embedded_json(self._download_webpage(url, display_id), display_id)
             episode_data = initial_state['content']['byId'][internal_id]
             video_id = episode_data['external_id'].split('.')[1]
             series_id = episode_data['episode_metadata']['series_slug_title']
@@ -790,7 +793,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
                                    CrunchyrollIE.ie_key(), video_id)
 
-        api_domain, bucket, params = self._get_params(initial_state, app_config, display_id)
+        api_domain, bucket, params = self._get_params(lang)
 
         episode_response = self._download_json(
             f'{api_domain}/cms/v2{bucket}/episodes/{internal_id}', display_id,
@@ -886,14 +889,18 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
 
     def _real_extract(self, url):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
-        initial_state, app_config = self._get_embedded_json(self._download_webpage(url, display_id), display_id)
 
         if not self._get_cookies(url).get('etp_rt'):
             self.to_screen(f'{display_id}: Not logged in. Switching extractors. New url: https://www.crunchyroll.com/{lang}{display_id.lower()}')
             return self.url_result(f'https://www.crunchyroll.com/{lang}{display_id.lower()}',
                                    CrunchyrollShowPlaylistIE.ie_key(), display_id)
 
-        api_domain, bucket, params = self._get_params(initial_state, app_config, display_id)
+        api_domain, bucket, params = self._get_params(lang)
+
+        series_response = self._download_json(
+            f'{api_domain}/cms/v2{bucket}/series/{internal_id}', display_id,
+            note='Retrieving series metadata',
+            query=params)
 
         seasons_response = self._download_json(
             f'{api_domain}/cms/v2{bucket}/seasons?series_id={internal_id}', display_id,
@@ -935,6 +942,6 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         return {
             '_type': 'playlist',
             'id': internal_id,
-            'title': initial_state['content']['byId'][internal_id]['title'],
+            'title': series_response['title'],
             'entries': entries(),
         }
