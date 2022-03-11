@@ -26,6 +26,12 @@ class RumbleEmbedIE(InfoExtractor):
             'title': 'WMAR 2 News Latest Headlines | October 20, 6pm',
             'timestamp': 1571611968,
             'upload_date': '20191020',
+            'channel': 'WMAR',
+            'channel_url': 'https://rumble.com/c/WMAR',
+            'duration': 234,
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.OvCc-small-WMAR-2-News-Latest-Headline.jpg',
+            'description': 'md5:6c791446ac12dea994674d3976a3cdd5',
+            'view_count': int,
         }
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
@@ -46,6 +52,18 @@ class RumbleEmbedIE(InfoExtractor):
             'https://rumble.com/embedJS/', video_id,
             query={'request': 'video', 'v': video_id})
         title = video['title']
+
+        embed_page = self._download_webpage(url, video_id, note='Downloading embed page')
+        canonical_url = self._search_regex(
+            r'<link\s+rel="canonical"\s*href="(.+?)"', embed_page, 'canonical URL',
+            default=url)
+        webpage = self._download_webpage(canonical_url, video_id)
+        description = self._html_search_regex(
+            r'media-description">([^<]+)<', webpage, 'description', default=None, fatal=False)
+        view_count = self._html_search_regex(
+            r'media-heading-info">([0-9,]+) Views<', webpage, 'view_count', default=None, fatal=False)
+        if view_count:
+            view_count = int_or_none(view_count.replace(',', ''))
 
         formats = []
         for height, ua in (video.get('ua') or {}).items():
@@ -76,6 +94,8 @@ class RumbleEmbedIE(InfoExtractor):
             'channel': author.get('name'),
             'channel_url': author.get('url'),
             'duration': int_or_none(video.get('duration')),
+            'description': description,
+            'view_count': view_count,
         }
 
 
