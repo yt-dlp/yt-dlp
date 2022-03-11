@@ -900,9 +900,27 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
             note='Retrieving season list',
             query=params)
 
+        req_type = self._configuration_arg('type')
+        if req_type:
+            req_type = req_type[0]
+        req_num = self._configuration_arg('number')
+        if req_num:
+            req_num = map(int, req_num)
+        req_str = self._configuration_arg('substr')
+        if req_str:
+            req_str = req_str[0]
+
         def entries():
             for season in seasons_response['items']:
                 season_id = season['id']
+                if req_type == 'dub' and not season['is_dubbed']:
+                    continue
+                if req_type == 'sub' and not season['is_subbed']:
+                    continue
+                if req_num and not season['season_number'] in req_num:
+                    continue
+                if req_str and season['title'].lower().find(req_str) == -1:
+                    continue
                 episodes_response = self._download_json(
                     f'{api_domain}/cms/v2{bucket}/episodes?season_id={season_id}', display_id,
                     note='Retrieving episode list for %s' % season.get('slug_title'),
