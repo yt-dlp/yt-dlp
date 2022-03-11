@@ -3610,7 +3610,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 info.update({
                     'like_count': str_to_int(like_count),
                     'dislike_count': str_to_int(dislike_count),
-                        })
+                })
         vsir = get_first(contents, 'videoSecondaryInfoRenderer')
         if vsir:
             vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
@@ -3655,8 +3655,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         # Note this changes to the published date when the stream/premiere has finished.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
         upload_date = (
-                unified_strdate(get_first(microformats, 'uploadDate'))
-                or unified_strdate(search_meta('uploadDate')))
+            unified_strdate(get_first(microformats, 'uploadDate'))
+            or unified_strdate(search_meta('uploadDate')))
         if not upload_date or not info.get('is_live') or info.get('live_status') != 'is_upcoming':
             upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
         info['upload_date'] = upload_date
