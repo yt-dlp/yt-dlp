@@ -16,23 +16,25 @@ class FranceCultureIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?franceculture\.fr/emissions/(?:[^/]+/)*(?P<id>[^/?#&]+)'
     _TESTS = [{
         # playlist
-        'url': 'https://www.franceculture.fr/emissions/hasta-dente',
+        'url': 'https://www.franceculture.fr/emissions/serie/hasta-dente',
         'playlist_count': 12,
         'info_dict': {
             'id': 'hasta-dente',
-            'title': 'Hasta Dente !',
-            'description': None,
+            'title': 'Hasta Dente',
+            'description': 'Une série policière loufoque et irrévérencieuse en deux parties Dans une ville de province, deux policiers, Matteo Razzoni et Karim Meziani, sont chargés d’enquêter sur une affaire apparemment anodine : la découverte d’une cache de ramen (bouillons…',
             'thumbnail': r're:^https?://.*\.jpg$',
-            'upload_date': '20190305',
+            'upload_date': '20201024',
         },
         'playlist': [{
             'info_dict': {
-                'id': '/emissions/hasta-dente/episode-1-jeudi-vous-avez-dit-bizarre',
+                'id': '3c1c2e55-41a0-11e5-9fe0-005056a87c89',
                 'ext': 'mp3',
-                'title': 'Épisode 1. Jeudi, vous avez dit bizarre ?',
-                'description': 'md5:52ce4deeb6f3facba27f9fc4a546678b',
+                'title': 'Jeudi, vous avez dit bizarre ?',
+                'description': 'md5:47cf1e00cc21c86b0210279996a812c6',
                 'duration': 604,
-                'upload_date': '20180213',
+                'upload_date': '20201024',
+                'thumbnail': r're:^https?://.*\.jpg$',
+                'timestamp': 1603576680
             },
         },
         ],
@@ -64,31 +66,31 @@ class FranceCultureIE(InfoExtractor):
                 r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>',
                 webpage, 'title', default=self._og_search_title(webpage)),
             'description': self._html_search_regex(
-                r'(?s)<div[^>]+class="intro"[^>]*>.*?<h2>(.+?)</h2>', webpage, 'description', default=None),
+                r'(?s)<div[^>]+class="excerpt"[^>]*>(.*?)</div>', webpage, 'description', default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
             'uploader': self._html_search_regex(
                 r'(?s)<span class="author">(.*?)</span>', webpage, 'uploader', default=None),
-            'upload_date': unified_strdate(self._search_regex(
-                r'(?s)"datePublished":\s*"(\d{4}-\d{2}-\d{2})', webpage, 'date', default=None)),
+            'upload_date': unified_strdate(self._html_search_regex(
+                r'(?s)class="teaser-text-date".*?(\d{2}/\d{2}/\d{4})', webpage, 'date', default=None)),
         }
 
         playlist_data = self._search_regex(
             r'''(?sx)
-                <div[^>]+class="[^"]*?podcast-list[^"?]*?"[^>]*>
+                <section[^>]+data-xiti-place="[^"]*?liste_episodes[^"?]*?"[^>]*>
                 (.*?)
-                <div[^>]+class="[^"]*?see-more-anchor[^"]*?">
+                </section>
             ''',
             webpage, 'playlist data', fatal=False, default=None)
 
         if playlist_data:
             entries = []
             for item, item_description in re.findall(
-                    r'(?s)(<button[^<]*class="[^"]*replay-button[^>]*>).*?<p[^>]*class="[^"]*teaser-content-body[^>]*>(.*?)</p>',
+                    r'(?s)(<button[^<]*class="[^"]*replay-button[^>]*>).*?<p[^>]*class="[^"]*teaser-text-chapo[^>]*>(.*?)</p>',
                     playlist_data):
 
                 item_attributes = extract_attributes(item)
                 entries.append({
-                    'id': item_attributes.get('data-diffusion-path'),
+                    'id': item_attributes.get('data-emission-uuid'),
                     'url': item_attributes.get('data-url'),
                     'title': item_attributes.get('data-diffusion-title'),
                     'duration': int_or_none(traverse_obj(item_attributes, 'data-duration-seconds', 'data-duration-seconds')),
