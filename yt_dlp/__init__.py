@@ -358,7 +358,6 @@ def validate_options(opts):
             raise ValueError('unsupported geo-bypass country or ip-block')
 
     opts.match_filter = match_filter_func(opts.match_filter)
-    opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
@@ -406,8 +405,8 @@ def validate_options(opts):
         setattr(opts, opt1, default)
 
     # Conflicting options
-    report_conflict('--date-after', 'dateafter', '--date', 'date', default=None)
-    report_conflict('--date-before', 'datebefore', '--date', 'date', default=None)
+    report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
+    report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
     report_conflict('--exec-before-download', 'exec_before_dl_cmd', '"--exec before_dl:"', 'exec_cmd', opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
@@ -446,6 +445,8 @@ def validate_options(opts):
     # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
 
     # Dependent options
+    opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
+
     if opts.exec_before_dl_cmd:
         opts.exec_cmd['before_dl'] = opts.exec_before_dl_cmd
 
