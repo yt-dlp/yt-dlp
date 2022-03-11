@@ -730,11 +730,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
                     self._search_regex(
-                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'),
+                        (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
                         text.lower(), 'time text', default=None)))
 
         if text and timestamp is None:
-            self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
+            self.report_warning(f"Cannot parse localized time text '{text}'" + bug_reports_message(), only_once=True)
         return timestamp, text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
