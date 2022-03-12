@@ -1,8 +1,11 @@
 from __future__ import division, unicode_literals
 
 import threading
+import typing
 
-from .common import FileDownloader
+if typing.TYPE_CHECKING:
+    from .common import FileDownloader
+
 from ..utils import (
     sanitized_Request,
 )
@@ -11,16 +14,19 @@ from ..utils import (
 class Augment():
     _AUGMENT_KEY = None
 
-    def __init__(self, dl: FileDownloader, info_dict, params: dict) -> None:
+    def __init__(self, dl: 'FileDownloader', info_dict, params: dict) -> None:
         self.dl = dl
         self.ydl = dl.ydl
         self.params = params
         self.info_dict = info_dict
-        # children classes may implement some more initialization tasks
+        # children classes may:
+        # - implement some more initialization tasks
+        # - modify info_dict directly to make things pass through Augment
         # at their __init__
 
     def __enter__(self):
         self.start()
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.end()
@@ -40,7 +46,7 @@ class Augment():
 class HeartbeatAugment(Augment):
     _AUGMENT_KEY = 'heartbeat'
 
-    def __init__(self, dl: FileDownloader, info_dict, params: dict) -> None:
+    def __init__(self, dl: 'FileDownloader', info_dict, params: dict) -> None:
         super().__init__(dl, info_dict, params)
 
         self.interval = params.get('interval', 30)
@@ -86,3 +92,5 @@ class HeartbeatAugment(Augment):
             with self.lock:
                 self.timer[0].cancel()
                 self.complete = True
+
+AUGMENT_MAP = {v._AUGMENT_KEY: v for v in (HeartbeatAugment, )}
