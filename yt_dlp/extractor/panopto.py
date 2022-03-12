@@ -161,6 +161,28 @@ class PanoptoIE(PanoptoBaseIE):
             },
         },
         {
+            # Slides/storyboard
+            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a7f12f1d-3872-4310-84b0-f8d8ab15326b',
+            'info_dict': {
+                'id': 'a7f12f1d-3872-4310-84b0-f8d8ab15326b',
+                'ext': 'mhtml',
+                'timestamp': 1448798857,
+                'duration': 4712.681,
+                'title': 'Cache Memory - CompSci 15-213, Lecture 12',
+                'channel_id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
+                'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
+                'upload_date': '20151129',
+                'average_rating': 0,
+                'uploader': 'Panopto Support',
+                'channel': 'Showcase Videos',
+                'chapters': 'count:54',
+                'description': 'md5:55e51d54233ddb0e6c2ed388ca73822c',
+                'cast': ['ISR Videographer', 'Panopto Support'],
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=a7f12f1d-3872-4310-84b0-f8d8ab15326b&mode=Delivery&random=[\d.]+',
+            },
+            'params': {'format': 'mhtml', 'skip_download': True}
+        },
+        {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
             'only_matching': True
         },
@@ -208,18 +230,48 @@ class PanoptoIE(PanoptoBaseIE):
                 note='Marking watched', errnote='Unable to mark watched')
 
     @staticmethod
-    def _extract_chapters(delivery):
+    def _extract_chapters(timestamps):
         chapters = []
-        for timestamp in delivery.get('Timestamps', []):
+        for timestamp in timestamps or []:
+            caption = timestamp.get('Caption')
             start, duration = int_or_none(timestamp.get('Time')), int_or_none(timestamp.get('Duration'))
-            if start is None or duration is None:
+            if not caption or start is None or duration is None:
                 continue
             chapters.append({
                 'start_time': start,
                 'end_time': start + duration,
-                'title': timestamp.get('Caption')
+                'title': caption
             })
         return chapters
+
+    @staticmethod
+    def _extract_mhtml_formats(base_url, timestamps):
+        image_frags = {}
+        for timestamp in timestamps or []:
+            duration = timestamp.get('Duration')
+            obj_id, obj_sn = timestamp.get('ObjectIdentifier'), timestamp.get('ObjectSequenceNumber'),
+            if timestamp.get('EventTargetType') == 'PowerPoint' and obj_id is not None and obj_sn is not None:
+                image_frags.setdefault('slides', []).append({
+                    'url': base_url + f'/Pages/Viewer/Image.aspx?id={obj_id}&number={obj_sn}',
+                    'duration': duration
+                })
+
+            obj_pid, session_id, abs_time = timestamp.get('ObjectPublicIdentifier'), timestamp.get('SessionID'), timestamp.get('AbsoluteTime')
+            if all(v is not None for v in (obj_pid, session_id, abs_time)):
+                image_frags.setdefault('chapter', []).append({
+                    'url': base_url + f'/Pages/Viewer/Thumb.aspx?eventTargetPID={obj_pid}&sessionPID={session_id}&number={obj_sn}&isPrimary=false&absoluteTime={abs_time}',
+                    'duration': duration,
+                })
+        for name, fragments in image_frags.items():
+            yield {
+                'format_id': name,
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': 'about:invalid',
+                'fragments': fragments
+            }
 
     @staticmethod
     def _json2srt(data, delivery):
@@ -303,6 +355,7 @@ class PanoptoIE(PanoptoBaseIE):
 
         delivery = delivery_info['Delivery']
         session_start_time = int_or_none(delivery.get('SessionStartTime'))
+        timestamps = delivery.get('Timestamps')
 
         # Podcast stream is usually the combined streams. We will prefer that by default.
         podcast_formats, podcast_subtitles = self._extract_streams_formats_and_subtitles(
@@ -312,6 +365,7 @@ class PanoptoIE(PanoptoBaseIE):
             video_id, delivery.get('Streams'), preference=-10)
 
         formats = podcast_formats + streams_formats
+        formats.extend(self._extract_mhtml_formats(base_url, timestamps))
         subtitles = self._merge_subtitles(
             podcast_subtitles, streams_subtitles, self.extract_subtitles(base_url, video_id, delivery))
 
@@ -326,7 +380,7 @@ class PanoptoIE(PanoptoBaseIE):
             'duration': delivery.get('Duration'),
             'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
             'average_rating': delivery.get('AverageRating'),
-            'chapters': self._extract_chapters(delivery) or None,
+            'chapters': self._extract_chapters(timestamps),
             'uploader': delivery.get('OwnerDisplayName') or None,
             'uploader_id': delivery.get('OwnerId'),
             'description': delivery.get('SessionAbstract'),
