@@ -78,7 +78,10 @@ class HeartbeatAugment(Augment):
             self.callback()
 
             with self.lock:
-                if not self.complete:
+                if self.complete:
+                    self.timer[0] = None
+                    self.complete = False
+                else:
                     self.timer[0] = threading.Timer(self.interval, heartbeat)
                     self.timer[0].start()
         

@@ -493,5 +493,6 @@ class FileDownloader(object):
         if not augmentation:
             return es
         for a in augmentation:
+            # TODO: add contitional activation
             es.enter_context(AUGMENT_MAP[a['key']](self, info_dict, a))
         return es
