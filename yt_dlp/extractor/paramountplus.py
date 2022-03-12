@@ -129,7 +129,6 @@ class ParamountPlusSeriesIE(InfoExtractor):
             'id': 'spongebob-squarepants',
         }
     }]
-    _API_URL = 'https://www.paramountplus.com/shows/{}/xhr/episodes/page/{}/size/50/xs/0/season/0/'
 
     def _entries(self, show_name):
         for page in itertools.count():
