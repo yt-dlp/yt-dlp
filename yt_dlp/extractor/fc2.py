@@ -307,7 +307,7 @@ class FC2LiveIE(InfoExtractor):
             'thumbnail': traverse_obj(live_info_view, 'thumb'),
             'is_live': True,
 
-            'augmentations': [{
+            'augments': [{
                 'key': 'heartbeat',
                 'callback': ping,
                 'interval': 30,

@@ -488,7 +488,7 @@ class FileDownloader(object):
         self.write_debug('%s command line: %s' % (exe, shell_quote(str_args)))
 
     def _enter_augmented(self, info_dict):
-        augmentation = info_dict.get('augmentations') or []
+        augmentation = info_dict.get('augments') or []
         es = contextlib.ExitStack()
         if not augmentation:
             return es
