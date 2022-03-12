@@ -261,11 +261,6 @@ class FC2LiveIE(InfoExtractor):
                         }))
 
         self._sort_formats(formats)
-        for fmt in formats:
-            fmt.update({
-                'protocol': 'm3u8',
-                'ws': ws,
-            })
 
         title = self._html_search_meta(('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
         if not title:
