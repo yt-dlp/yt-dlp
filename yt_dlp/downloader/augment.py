@@ -44,6 +44,20 @@ class Augment():
 
 
 class HeartbeatAugment(Augment):
+    """
+    Augment for heartbeating.
+
+    Keys:
+
+    interval:  Interval to wait, in seconds.
+    callback:  Callable to run periodically. Arguments are: (HeartbeatAugment)
+               "url" and "data" are ignored once this key is used.
+    url:       (easy mode) URL to reqeust to. Cannot be used with "callback" key
+    data:      (optional) POST payload to pass. Use if needed.
+    before_dl: Callable to run before download starts. Arguments are: (HeartbeatAugment)
+               Can be used even if any of "callback", "url" and "data" are used.
+    after_dl: Callable to run after download ends. Arguments are: (HeartbeatAugment)
+    """
     _AUGMENT_KEY = 'heartbeat'
 
     def __init__(self, dl: 'FileDownloader', info_dict, params: dict) -> None:
@@ -62,11 +76,8 @@ class HeartbeatAugment(Augment):
                 heartbeat_data = heartbeat_data.encode()
             request = sanitized_Request(heartbeat_url, heartbeat_data)
 
-            def callback():
-                try:
-                    self.ydl.urlopen(request).read()
-                except Exception:
-                    self.to_screen('[download] Heartbeat failed')
+            def callback(a):
+                self.ydl.urlopen(request).read()
 
             self.callback = callback
         else:
@@ -75,7 +86,10 @@ class HeartbeatAugment(Augment):
     def start(self):
         self.complete = False
         def heartbeat():
-            self.callback()
+            try:
+                self.callback(self)
+            except Exception:
+                self.to_screen('[download] Heartbeat failed')
 
             with self.lock:
                 if self.complete:
@@ -84,16 +98,18 @@ class HeartbeatAugment(Augment):
                 else:
                     self.timer[0] = threading.Timer(self.interval, heartbeat)
                     self.timer[0].start()
-        
+
         if 'before_dl' in self.params:
-            self.params['before_dl']()
+            self.params['before_dl'](self)
 
         heartbeat()
 
     def end(self):
-        if self.lock:
-            with self.lock:
-                self.timer[0].cancel()
-                self.complete = True
+        with self.lock:
+            self.timer[0].cancel()
+            self.complete = True
+        if 'after_dl' in self.params:
+            self.params['after_dl'](self)
+
 
 AUGMENT_MAP = {v._AUGMENT_KEY: v for v in (HeartbeatAugment, )}

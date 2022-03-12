@@ -219,7 +219,7 @@ class NiconicoIE(InfoExtractor):
         session_api_data = try_get(api_data, lambda x: x['media']['delivery']['movie']['session'])
         session_api_endpoint = try_get(session_api_data, lambda x: x['urls'][0])
 
-        def ping():
+        def ping(a):
             status = try_get(
                 self._download_json(
                     'https://nvapi.nicovideo.jp/v1/2ab0cbaa/watch', video_id,
@@ -323,7 +323,7 @@ class NiconicoIE(InfoExtractor):
             'data': json.dumps(session_response['data']),
             # interval, convert milliseconds to seconds, then halve to make a buffer.
             'interval': float_or_none(session_api_data.get('heartbeatLifetime'), scale=3000),
-            'ping': ping
+            'before_dl': ping
         }
 
         return info_dict, heartbeat_info_dict
