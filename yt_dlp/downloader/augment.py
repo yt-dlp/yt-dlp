@@ -85,6 +85,7 @@ class HeartbeatAugment(Augment):
 
     def start(self):
         self.complete = False
+
         def heartbeat():
             try:
                 self.callback(self)

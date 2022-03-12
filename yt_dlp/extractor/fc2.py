@@ -286,6 +286,7 @@ class FC2LiveIE(InfoExtractor):
             live_info_view = self._parse_json(js_to_json(live_info_view), video_id)
 
         counter, prev_aug = 1, None
+
         def ping(aug):
             nonlocal counter, prev_aug
             # sanity check
