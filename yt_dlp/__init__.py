@@ -198,10 +198,13 @@ def validate_options(opts):
     validate_positive('requests sleep interval', opts.sleep_interval_requests)
     validate_positive('sleep interval', opts.sleep_interval)
     validate_positive('max sleep interval', opts.max_sleep_interval)
-    if opts.max_sleep_interval is not None:
+    if opts.sleep_interval is None:
         validate(
-            opts.sleep_interval is not None, 'min sleep interval',
+            opts.max_sleep_interval is None, 'min sleep interval',
             msg='{name} must be specified; use --min-sleep-interval')
+    elif opts.max_sleep_interval is None:
+        opts.max_sleep_interval = opts.sleep_interval
+    else:
         validate_minmax(opts.sleep_interval, opts.max_sleep_interval, 'sleep interval')
 
     if opts.wait_for_video is not None:
@@ -255,7 +258,7 @@ def validate_options(opts):
         return numeric_limit
 
     opts.ratelimit = parse_bytes('rate limit', opts.ratelimit)
-    opts.ratelimit = parse_bytes('throttled rate limit', opts.throttledratelimit)
+    opts.throttledratelimit = parse_bytes('throttled rate limit', opts.throttledratelimit)
     opts.min_filesize = parse_bytes('min filesize', opts.min_filesize)
     opts.max_filesize = parse_bytes('max filesize', opts.max_filesize)
     opts.buffersize = parse_bytes('buffer size', opts.buffersize)
@@ -355,7 +358,6 @@ def validate_options(opts):
             raise ValueError('unsupported geo-bypass country or ip-block')
 
     opts.match_filter = match_filter_func(opts.match_filter)
-    opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
 
     if opts.download_archive is not None:
         opts.download_archive = expand_path(opts.download_archive)
@@ -403,8 +405,8 @@ def validate_options(opts):
         setattr(opts, opt1, default)
 
     # Conflicting options
-    report_conflict('--date-after', 'dateafter', '--date', 'date', default=None)
-    report_conflict('--date-before', 'datebefore', '--date', 'date', default=None)
+    report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
+    report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
     report_conflict('--exec-before-download', 'exec_before_dl_cmd', '"--exec before_dl:"', 'exec_cmd', opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
@@ -443,6 +445,8 @@ def validate_options(opts):
     # report_deprecation(opts.writeannotations, '--write-annotations')  # It's just that no website has it
 
     # Dependent options
+    opts.date = DateRange.day(opts.date) if opts.date else DateRange(opts.dateafter, opts.datebefore)
+
     if opts.exec_before_dl_cmd:
         opts.exec_cmd['before_dl'] = opts.exec_before_dl_cmd
 
