@@ -59,8 +59,16 @@ class SoundcloudEmbedIE(InfoExtractor):
 
 
 class SoundcloudBaseIE(InfoExtractor):
+    _NETRC_MACHINE = 'soundcloud'
+
     _API_V2_BASE = 'https://api-v2.soundcloud.com/'
     _BASE_URL = 'https://soundcloud.com/'
+    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
+    _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
+    _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
+    _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
+    _access_token = None
+    _HEADERS = {}
 
     def _store_client_id(self, client_id):
         self._downloader.cache.store('soundcloud', 'client_id', client_id)
@@ -101,14 +109,6 @@ class SoundcloudBaseIE(InfoExtractor):
 
     def _initialize_pre_login(self):
         self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
-
-    _USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.105 Safari/537.36'
-    _API_AUTH_QUERY_TEMPLATE = '?client_id=%s'
-    _API_AUTH_URL_PW = 'https://api-auth.soundcloud.com/web-auth/sign-in/password%s'
-    _API_VERIFY_AUTH_TOKEN = 'https://api-auth.soundcloud.com/connect/session%s'
-    _access_token = None
-    _HEADERS = {}
-    _NETRC_MACHINE = 'soundcloud'
 
     def _login(self, username, password):
         if username != 'oauth':

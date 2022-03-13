@@ -18,7 +18,7 @@ class AliExpressLiveIE(InfoExtractor):
             'id': '2800002704436634',
             'ext': 'mp4',
             'title': 'CASIMA7.22',
-            'thumbnail': r're:http://.*\.jpg',
+            'thumbnail': r're:https?://.*\.jpg',
             'uploader': 'CASIMA Official Store',
             'timestamp': 1500717600,
             'upload_date': '20170722',

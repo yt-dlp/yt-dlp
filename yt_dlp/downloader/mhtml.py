@@ -166,7 +166,11 @@ body > figure > img {
             if (i + 1) <= ctx['fragment_index']:
                 continue
 
-            fragment_url = urljoin(fragment_base_url, fragment['path'])
+            fragment_url = fragment.get('url')
+            if not fragment_url:
+                assert fragment_base_url
+                fragment_url = urljoin(fragment_base_url, fragment['path'])
+
             success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
             if not success:
                 continue
