@@ -822,6 +822,7 @@ def _real_main(argv=None):
     if opts.dump_user_agent:
         ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
         write_string(f'{ua}\n', out=sys.stdout)
+        sys.exit(0)
 
     if print_extractor_information(opts, all_urls):
         sys.exit(0)
