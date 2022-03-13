@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+import ast
 import asyncio
 import atexit
 import base64
@@ -5490,3 +5491,74 @@ has_websockets = bool(compat_websockets)
 def merge_headers(*dicts):
     """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
+
+
+def error_to_str(err):
+    return f'{type(err).__name__}: {err}'
+
+
+class SafeEval(ast.NodeVisitor):
+    CORE_NODES = {
+        ast.Module,
+        ast.Expr,
+    }
+    FUNC_NODES = {ast.Call}
+    MATH_NODES = {
+        ast.BinOp,
+        ast.Add,
+        ast.Sub,
+        ast.Mult,
+        ast.Div,
+        ast.Pow,
+    }
+    MATH_FUNCS = {
+        'abs': abs,
+        'min': min,
+        'max': max,
+        'ceil': math.ceil,
+        'floor': math.floor,
+        'exp': math.exp,
+        'sqrt': math.sqrt,
+        'log': math.log,
+    }
+
+    def __init__(self, constants, nodes, names=None):
+        super().__init__()
+        self.constants = set(constants)
+        self.nodes = set(nodes) | self.CORE_NODES
+        self.names = dict(names or {})
+        self.names['__builtins__'] = {}
+
+    def validate(self, expr):
+        assert isinstance(expr, str)
+        try:
+            tree = ast.parse(expr)
+        except SyntaxError as e:
+            raise ValueError(error_to_str(e))
+        self.visit(tree)
+
+    def to_func(self, expr):
+        self.validate(expr)
+        def func(**kwargs):
+            try:
+                return eval(expr, self.names, kwargs)
+            except Exception as e:
+                raise ValueError(error_to_str(e))
+        return func
+
+    def eval(self, expr, /, **kwargs):
+        return self.to_func(expr)(**kwargs)
+
+    def generic_visit(self, node):
+        if type(node) not in self.nodes:
+            raise ValueError(f'{type(node).__name__} is not allowed')
+
+        super().generic_visit(node)
+
+    def visit_Constant(self, node):
+        if type(node.value) not in self.constants:
+            raise ValueError(f'{type(node.value).__name__} "{node.value}" is not allowed')
+
+    def visit_Name(self, node):
+        if node.id not in self.names:
+            raise ValueError(f'{node.id} is not allowed')
