@@ -23,6 +23,7 @@ from .compat import (
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .utils import (
     DateRange,
+    SafeEval,
     decodeOption,
     DownloadCancelled,
     DownloadError,
@@ -248,6 +249,17 @@ def validate_options(opts):
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
     opts.extractor_retries = parse_retries('extractor', opts.extractor_retries)
     opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
+
+    # Retry sleep function
+    calculator = SafeEval((int, float), SafeEval.FUNC_NODES | SafeEval.MATH_NODES, {**SafeEval.MATH_FUNCS, 'n': 0})
+    for key, expr in opts.retry_sleep.items():
+        if not expr:
+            del opts.retry_sleep[key]
+            continue
+        try:
+            opts.retry_sleep[key] = calculator.to_func(expr)
+        except ValueError as e:
+            raise ValueError(f'invalid {key} retry sleep expression {expr!r}: {e}')
 
     # Bytes
     def parse_bytes(name, value):
@@ -691,6 +703,7 @@ def parse_options(argv=None):
         'file_access_retries': opts.file_access_retries,
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
+        'retry_sleep_functions': opts.retry_sleep,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
         'keep_fragments': opts.keep_fragments,
         'concurrent_fragment_downloads': opts.concurrent_fragment_downloads,

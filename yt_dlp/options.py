@@ -734,6 +734,15 @@ def create_parser():
         dest='fragment_retries', metavar='RETRIES', default=10,
         help='Number of retries for a fragment (default is %default), or "infinite" (DASH, hlsnative and ISM)')
     downloader.add_option(
+        '--retry-sleep',
+        dest='retry_sleep', metavar='[TYPE:]EXPR', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'http|fragment|file_access',
+            'default_key': 'http',
+        }, help=(
+            'TODO'))
+    downloader.add_option(
         '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
         action='store_true', dest='skip_unavailable_fragments', default=True,
         help='Skip unavailable fragments for DASH, hlsnative and ISM (default) (Alias: --no-abort-on-unavailable-fragment)')
