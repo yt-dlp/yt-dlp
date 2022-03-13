@@ -5,11 +5,18 @@ import hashlib
 import random
 from html import unescape
 
-from yt_dlp.compat import compat_urlparse, compat_b64decode
+from ..compat import compat_urlparse, compat_b64decode
 
-from yt_dlp.utils import ExtractorError, try_get, str_or_none, int_or_none, js_to_json, update_url_query
+from ..utils import (
+    ExtractorError,
+    try_get,
+    str_or_none,
+    int_or_none,
+    js_to_json,
+    update_url_query
+)
 
-from yt_dlp.extractor.common import InfoExtractor
+from .common import InfoExtractor
 
 
 class HuyaLiveIE(InfoExtractor):
@@ -20,8 +27,8 @@ class HuyaLiveIE(InfoExtractor):
         'url': 'https://www.huya.com/572329',
         'info_dict': {
             'id': '572329',
-            'title': 're:^.+$',
-            'description': 're:^.+$',
+            'title': str,
+            'description': str,
             'is_live': True,
             'view_count': int,
         },
@@ -64,6 +71,8 @@ class HuyaLiveIE(InfoExtractor):
         screen_type = room_info.get('screenType')
         live_source_type = room_info.get('liveSourceType')
         stream_info_list = try_get(stream_data, lambda x: x['data'][0]['gameStreamInfoList'])
+        if not stream_info_list:
+            raise ExtractorError('Can not extract media info.', expected=True)
         formats = []
         for stream_info in stream_info_list:
             stream_url = stream_info.get('sFlvUrl')
@@ -83,7 +92,7 @@ class HuyaLiveIE(InfoExtractor):
                     params.pop('ratio', None)
                 if re_secret:
                     params['wsSecret'] = hashlib.md5(
-                        '_'.join([fm, params.get('u'), stream_name, ss, params.get('wsTime')]))
+                        '_'.join([fm, params['u'], stream_name, ss, params['wsTime']]))
                 formats.append({
                     'ext': stream_info.get('sFlvUrlSuffix'),
                     'format_id': str_or_none(stream_info.get('iLineIndex')),
@@ -127,5 +136,5 @@ class HuyaLiveIE(InfoExtractor):
             't': '100',
         })
         fm = compat_b64decode(params['fm']).decode().split('_', 1)[0]
-        ss = hashlib.md5('|'.join([params.get('seqid'), params.get('ctype'), params.get('t')]))
+        ss = hashlib.md5('|'.join([params['seqid'], params['ctype'], params['t']]))
         return fm, ss
