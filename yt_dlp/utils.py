@@ -5538,15 +5538,16 @@ class SafeEval(ast.NodeVisitor):
         self.visit(tree)
 
     def to_func(self, expr):
-        self.validate(expr)
         def func(**kwargs):
             try:
                 return eval(expr, self.names, kwargs)
             except Exception as e:
                 raise ValueError(error_to_str(e))
+
+        self.validate(expr)
         return func
 
-    def eval(self, expr, /, **kwargs):
+    def eval(self, expr, **kwargs):
         return self.to_func(expr)(**kwargs)
 
     def generic_visit(self, node):
