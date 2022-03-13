@@ -24,6 +24,7 @@ from ..utils import (
     check_executable,
     Popen,
     remove_end,
+    sleep_exponential,
 )
 
 
@@ -124,6 +125,7 @@ class ExternalFD(FragmentFD):
 
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
+        exponential_backoff = self.params.get('exponential_backoff', 0.0)
 
         count = 0
         while count <= fragment_retries:
@@ -139,6 +141,7 @@ class ExternalFD(FragmentFD):
                 self.to_screen(
                     '[%s] Got error. Retrying fragments (attempt %d of %s)...'
                     % (self.get_basename(), count, self.format_retries(fragment_retries)))
+                sleep_exponential(exponential_backoff, count)
         if count > fragment_retries:
             if not skip_unavailable_fragments:
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)

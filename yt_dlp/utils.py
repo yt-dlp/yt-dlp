@@ -5490,3 +5490,8 @@ has_websockets = bool(compat_websockets)
 def merge_headers(*dicts):
     """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
+
+
+def sleep_exponential(initial_delay_secs, attempt_nr, max_delay_secs=60):
+    if initial_delay_secs:
+        time.sleep(min(initial_delay_secs * 1.5 ** attempt_nr, max_delay_secs))

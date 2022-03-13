@@ -9,6 +9,7 @@ from ..compat import (
     compat_Struct,
     compat_urllib_error,
 )
+from ..utils import sleep_exponential
 
 
 u8 = compat_Struct('>B')
@@ -252,6 +253,7 @@ class IsmFD(FragmentFD):
             'ism_track_written': False,
         })
 
+        exponential_backoff = self.params.get('exponential_backoff', 0.0)
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
@@ -277,6 +279,7 @@ class IsmFD(FragmentFD):
                     count += 1
                     if count <= fragment_retries:
                         self.report_retry_fragment(err, frag_index, count, fragment_retries)
+                        sleep_exponential(exponential_backoff, count)
             if count > fragment_retries:
                 if skip_unavailable_fragments:
                     self.report_skip_fragment(frag_index)

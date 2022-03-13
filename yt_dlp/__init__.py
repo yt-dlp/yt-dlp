@@ -692,6 +692,7 @@ def parse_options(argv=None):
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
+        'exponential_backoff': opts.exponential_backoff,
         'keep_fragments': opts.keep_fragments,
         'concurrent_fragment_downloads': opts.concurrent_fragment_downloads,
         'buffersize': opts.buffersize,

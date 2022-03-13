@@ -734,6 +734,14 @@ def create_parser():
         dest='fragment_retries', metavar='RETRIES', default=10,
         help='Number of retries for a fragment (default is %default), or "infinite" (DASH, hlsnative and ISM)')
     downloader.add_option(
+        '--exponential-backoff',
+        default=0.0, metavar='SECS', type=float,
+        help=(
+            'Start value for exponential backoff when doing retries, in seconds. '
+            'Currently only supported for fragment retries, and capped at 60 seconds. '
+            'The backoff is then calculated by `exponential backoff secs * 1.5 ** number of attempts`. '
+            '(default is %default)'))
+    downloader.add_option(
         '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
         action='store_true', dest='skip_unavailable_fragments', default=True,
         help='Skip unavailable fragments for DASH, hlsnative and ISM (default) (Alias: --no-abort-on-unavailable-fragment)')
