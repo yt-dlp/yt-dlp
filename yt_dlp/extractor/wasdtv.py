@@ -1,12 +1,8 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-from yt_dlp.extractor.common import InfoExtractor
-from yt_dlp.compat import (
-    compat_kwargs,
-    compat_str,
-)
-from yt_dlp.utils import (
+from .common import InfoExtractor
+from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
@@ -17,16 +13,14 @@ from yt_dlp.utils import (
 
 class WASDTVBaseIE(InfoExtractor):
     _API_BASE = 'https://wasd.tv/api/'
-    _THUMBNAIL_SIZES = ('small', 'medium', 'large')
 
-    def _fetch(self, *args, **kwargs):
-        description = kwargs.pop('description')
+    def _fetch(self, path, video_id, description, query={}):
         response = self._download_json(
-            urljoin(self._API_BASE, '/'.join(map(compat_str, args))),
-            video_id=kwargs.pop('item_id'),
-            note='Downloading {} metadata'.format(description),
-            errnote='Unable to download {} metadata'.format(description),
-            **compat_kwargs(kwargs))
+            urljoin(self._API_BASE, path),
+            video_id=video_id,
+            note=f'Downloading {description} metadata',
+            errnote=f'Unable to download {description} metadata',
+            query=query)
         error = response.get('error')
         if error:
             raise ExtractorError(f'{self.IE_NAME} returned error: {error}', expected=True)
@@ -36,7 +30,7 @@ class WASDTVBaseIE(InfoExtractor):
         if not thumbnails_dict:
             return None
         thumbnails = []
-        for index, thumbnail_size in enumerate(self._THUMBNAIL_SIZES):
+        for index, thumbnail_size in enumerate(['small', 'medium', 'large']):
             thumbnail_url = thumbnails_dict.get(thumbnail_size)
             if not thumbnail_url:
                 continue
@@ -46,21 +40,20 @@ class WASDTVBaseIE(InfoExtractor):
             })
         return thumbnails
 
-    def _extract_og_title(self, url, item_id):
-        return self._og_search_title(self._download_webpage(url, item_id))
-
     def _real_extract(self, url):
         container = self._get_container(url)
         stream = try_get(container, lambda x: x['media_container_streams'][0])
         media = try_get(stream, lambda x: x['stream_media'][0])
+        if not media:
+            raise ExtractorError('Can not extract media data.', expected=True)
         media_meta = media.get('media_meta')
         media_url, is_live = self._get_media_url(media_meta)
         video_id = media.get('media_id') or container.get('media_container_id')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(media_url, video_id, 'mp4')
         self._sort_formats(formats)
         return {
-            'id': compat_str(video_id),
-            'title': container.get('media_container_name') or self._extract_og_title(url, video_id),
+            'id': str(video_id),
+            'title': container.get('media_container_name') or self._og_search_title(self._download_webpage(url, video_id)),
             'description': container.get('media_container_description'),
             'thumbnails': self._extract_thumbnails(media_meta.get('media_preview_images')),
             'timestamp': parse_iso8601(container.get('created_at')),
@@ -90,16 +83,16 @@ class WASDTVStreamIE(WASDTVBaseIE):
 
     def _get_container(self, url):
         nickname = self._match_id(url)
-        channel = self._fetch('channels', 'nicknames', nickname, item_id=nickname, description='channel')
+        channel = self._fetch(f'channels/nicknames/{nickname}', video_id=nickname, description='channel')
         channel_id = channel.get('channel_id')
         containers = self._fetch(
-            'v2', 'media-containers',
+            f'v2/media-containers',
             query={
                 'channel_id': channel_id,
                 'media_container_type': 'SINGLE',
                 'media_container_status': 'RUNNING',
             },
-            item_id=channel_id,
+            video_id=channel_id,
             description='running media containers')
         if not containers:
             raise ExtractorError(f'{nickname} is offline', expected=True)
@@ -131,8 +124,8 @@ class WASDTVRecordIE(WASDTVBaseIE):
     def _get_container(self, url):
         container_id = self._match_id(url)
         return self._fetch(
-            'v2', 'media-containers', container_id,
-            item_id=container_id,
+            f'v2/media-containers/{container_id}',
+            video_id=container_id,
             description='media container')
 
     def _get_media_url(self, media_meta):
@@ -161,13 +154,13 @@ class WASDTVClipIE(WASDTVBaseIE):
 
     def _real_extract(self, url):
         clip_id = self._match_id(url)
-        clip = self._fetch('v2', 'clips', clip_id, item_id=clip_id, description='clip')
+        clip = self._fetch(f'v2/clips/{clip_id}', video_id=clip_id, description='clip')
         clip_data = clip.get('clip_data')
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(clip_data.get('url'), video_id=clip_id, ext='mp4')
         self._sort_formats(formats)
         return {
             'id': clip_id,
-            'title': clip.get('clip_title') or self._extract_og_title(url, clip_id),
+            'title': clip.get('clip_title') or self._og_search_title(self._download_webpage(url, clip_id)),
             'thumbnails': self._extract_thumbnails(clip_data.get('preview')),
             'timestamp': parse_iso8601(clip.get('created_at')),
             'view_count': int_or_none(clip.get('clip_views_count')),
