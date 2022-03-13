@@ -460,6 +460,7 @@ class YoutubeDL(object):
                        Allowed keys are 'download', 'postprocess',
                        'download-title' (console title) and 'postprocess-title'.
                        The template is mapped on a dictionary with keys 'progress' and 'info'
+    retry_sleep_functions: TODO
 
     The following parameters are not used by YoutubeDL itself, they are used by
     the downloader (see yt_dlp/downloader/common.py):
