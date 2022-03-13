@@ -537,7 +537,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
+    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mka', 'ogg', *FFmpegExtractAudioPP.SUPPORTED_EXTS)
     FORMAT_RE = re.compile(r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(SUPPORTED_EXTS)))
     _ACTION = 'converting'
 
