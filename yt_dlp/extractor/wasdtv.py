@@ -86,7 +86,7 @@ class WASDTVStreamIE(WASDTVBaseIE):
         channel = self._fetch(f'channels/nicknames/{nickname}', video_id=nickname, description='channel')
         channel_id = channel.get('channel_id')
         containers = self._fetch(
-            f'v2/media-containers',
+            'v2/media-containers',
             query={
                 'channel_id': channel_id,
                 'media_container_type': 'SINGLE',
