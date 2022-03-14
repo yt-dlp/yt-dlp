@@ -126,12 +126,7 @@ class HttpFD(FileDownloader):
                 set_range(request, range_start, range_end)
             # Establish connection
             try:
-                try:
-                    ctx.data = self.ydl.urlopen(request)
-                except (compat_urllib_error.URLError, ) as err:
-                    if isinstance(err.reason, TimeoutError):
-                        raise RetryDownload(err)
-                    raise err
+                ctx.data = self.ydl.urlopen(request)
                 # When trying to resume, Content-Range HTTP header of response has to be checked
                 # to match the value of requested Range HTTP header. This is due to a webservers
                 # that don't support resuming and serve a whole file with no Content-Range
@@ -201,6 +196,13 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
+            except compat_urllib_error.URLError as err:
+                # TODO: What errors should we exclude?
+                if any(isinstance(err.reason, et) for et in (ssl.CertificateError, )):
+                    raise RetryDownload(err)
+                raise
+
+            # TODO: when do these occur now?
             except (TimeoutError, ConnectionResetError) as err:
                 raise RetryDownload(err)
 
@@ -249,8 +251,8 @@ class HttpFD(FileDownloader):
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
 
-                except (TimeoutError, ConnectionResetError, ssl.SSLError) as e:
-                    retry(e)
+                except (TimeoutError, ConnectionResetError, ssl.SSLError) as err:
+                    retry(err)
 
                 byte_counter += len(data_block)
 
