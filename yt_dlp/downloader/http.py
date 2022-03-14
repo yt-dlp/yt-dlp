@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import errno
 import os
 import socket
+import ssl
 import time
 import random
 
@@ -254,16 +255,9 @@ class HttpFD(FileDownloader):
                 try:
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
-                # socket.timeout is a subclass of socket.error but may not have
-                # errno set
-                except socket.timeout as e:
+
+                except (TimeoutError, ConnectionResetError, ssl.SSLError) as e:
                     retry(e)
-                except socket.error as e:
-                    # SSLError on python 2 (inherits socket.error) may have
-                    # no errno set but this error message
-                    if e.errno in (errno.ECONNRESET, errno.ETIMEDOUT) or getattr(e, 'message', None) == 'The read operation timed out':
-                        retry(e)
-                    raise
 
                 byte_counter += len(data_block)
 
