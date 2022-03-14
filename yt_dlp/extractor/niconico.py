@@ -233,8 +233,7 @@ class NiconicoIE(InfoExtractor):
         yesno = lambda x: 'yes' if x else 'no'
 
         # m3u8 (encryption)
-        if try_get(api_data, lambda x: x['media']['delivery']['encryption']) is not None:
-            protocol = 'm3u8'
+        if traverse_obj(api_data, ('media', 'delivery', 'encryption')):
             encryption = self._parse_json(session_api_data['token'], video_id)['hls_encryption']
             session_api_http_parameters = {
                 'parameters': {
@@ -254,7 +253,6 @@ class NiconicoIE(InfoExtractor):
             }
         # http
         else:
-            protocol = 'http'
             session_api_http_parameters = {
                 'parameters': {
                     'http_output_download_parameters': {
@@ -315,7 +313,6 @@ class NiconicoIE(InfoExtractor):
             }).encode())
 
         info_dict['url'] = session_response['data']['session']['content_uri']
-        info_dict['protocol'] = protocol
 
         # get heartbeat info
         heartbeat_info_dict = {
@@ -328,6 +325,14 @@ class NiconicoIE(InfoExtractor):
 
         return info_dict, heartbeat_info_dict
 
+    def _augment_callback(self, info_dict, params):
+        self.to_screen('Downloading from DMC')
+
+        ret = self._get_heartbeat_info(info_dict)
+        if ret[0]['protocol'].startswith('m3u8'):
+            ret[0].update(self._extract_m3u8_formats(ret[0]['url'], ret[0]['id'])[0])
+        return ret
+
     def _extract_format_for_quality(self, api_data, video_id, audio_quality, video_quality):
         def parse_format_id(id_code):
             mobj = re.match(r'''(?x)
@@ -338,7 +343,10 @@ class NiconicoIE(InfoExtractor):
                 ''', '%s_' % id_code)
             return mobj.groupdict() if mobj else {}
 
-        protocol = 'niconico_dmc'
+        if traverse_obj(api_data, ('media', 'delivery', 'encryption')):
+            protocol = 'm3u8'
+        else:
+            protocol = 'http'
         format_id = '-'.join(map(lambda s: remove_start(s['id'], 'archive_'), [video_quality, audio_quality]))
         vdict = parse_format_id(video_quality['id'])
         adict = parse_format_id(audio_quality['id'])
@@ -607,6 +615,11 @@ class NiconicoIE(InfoExtractor):
             'comment_count': comment_count,
             'duration': duration,
             'webpage_url': webpage_url,
+
+            'augments': [{
+                'key': 'heartbeat',
+                'init_callback': self._augment_callback,
+            }]
         }
 
 

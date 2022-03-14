@@ -17,8 +17,13 @@ class Augment():
     def __init__(self, dl: 'FileDownloader', info_dict, params: dict) -> None:
         self.dl = dl
         self.ydl = dl.ydl
+
+        if 'init_callback' in params:
+            info_dict, params = params['init_callback'](info_dict, params)
+
         self.params = params
         self.info_dict = info_dict
+
         # children classes may:
         # - implement some more initialization tasks
         # - modify info_dict directly to make things pass through Augment
@@ -62,6 +67,7 @@ class HeartbeatAugment(Augment):
 
     def __init__(self, dl: 'FileDownloader', info_dict, params: dict) -> None:
         super().__init__(dl, info_dict, params)
+        params, info_dict = self.params, self.info_dict
 
         self.interval = params.get('interval', 30)
         self.lock = threading.Lock()
