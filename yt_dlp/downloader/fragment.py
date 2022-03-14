@@ -470,8 +470,7 @@ class FragmentFD(FileDownloader):
             fatal, count = is_fatal(fragment.get('index') or (frag_index - 1)), 0
             while count <= fragment_retries:
                 try:
-                    success = self._download_fragment(ctx, fragment['url'], info_dict, headers)
-                    if success:
+                    if self._download_fragment(ctx, fragment['url'], info_dict, headers):
                         break
                     return
                 except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
@@ -490,13 +489,9 @@ class FragmentFD(FileDownloader):
                         break
                     raise
 
-            if count > fragment_retries:
-                if not fatal:
-                    return
+            if count > fragment_retries and fatal:
                 ctx['dest_stream'].close()
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                return
-            return
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
