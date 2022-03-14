@@ -129,9 +129,7 @@ class HttpFD(FileDownloader):
                 try:
                     ctx.data = self.ydl.urlopen(request)
                 except (compat_urllib_error.URLError, ) as err:
-                    # reason may not be available, e.g. for urllib2.HTTPError on python 2.6
-                    reason = getattr(err, 'reason', None)
-                    if isinstance(reason, socket.timeout):
+                    if isinstance(err.reason, TimeoutError):
                         raise RetryDownload(err)
                     raise err
                 # When trying to resume, Content-Range HTTP header of response has to be checked
@@ -203,13 +201,8 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except socket.timeout as err:
+            except (TimeoutError, ConnectionResetError) as err:
                 raise RetryDownload(err)
-            except socket.error as err:
-                if err.errno in (errno.ECONNRESET, errno.ETIMEDOUT):
-                    # Connection reset is no problem, just retry
-                    raise RetryDownload(err)
-                raise
 
         def download():
             nonlocal throttle_start
