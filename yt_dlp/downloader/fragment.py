@@ -143,9 +143,9 @@ class FragmentFD(FileDownloader):
         try:
             down, frag_sanitized = self.sanitize_open(ctx['fragment_filename_sanitized'], 'rb')
         except FileNotFoundError:
-            if not ctx.get('live'):
-                raise
-            return False
+            if ctx.get('live'):
+                return False
+            raise
         ctx['fragment_filename_sanitized'] = frag_sanitized
         frag_content = down.read()
         down.close()
@@ -457,7 +457,7 @@ class FragmentFD(FileDownloader):
 
         def download_fragment(fragment, ctx):
             if not interrupt_trigger[0]:
-                return False, fragment['frag_index']
+                return
 
             frag_index = ctx['fragment_index'] = fragment['frag_index']
             ctx['last_error'] = None
@@ -471,9 +471,9 @@ class FragmentFD(FileDownloader):
             while count <= fragment_retries:
                 try:
                     success = self._download_fragment(ctx, fragment['url'], info_dict, headers)
-                    if not success:
-                        return False, frag_index
-                    break
+                    if success:
+                        break
+                    return
                 except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
                     # Unavailable (possibly temporary) fragments may be served.
                     # First we try to retry then either skip or abort.
@@ -492,11 +492,11 @@ class FragmentFD(FileDownloader):
 
             if count > fragment_retries:
                 if not fatal:
-                    return False, frag_index
+                    return
                 ctx['dest_stream'].close()
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)
-                return False, frag_index
-            return True, frag_index
+                return
+            return
 
         def append_fragment(frag_content, frag_index, ctx):
             if not frag_content:
@@ -519,8 +519,8 @@ class FragmentFD(FileDownloader):
 
             def _download_fragment(fragment):
                 ctx_copy = ctx.copy()
-                _, frag_index = download_fragment(fragment, ctx_copy)
-                return fragment, frag_index, ctx_copy.get('fragment_filename_sanitized')
+                download_fragment(fragment, ctx_copy)
+                return fragment, fragment['frag_index'], ctx_copy.get('fragment_filename_sanitized')
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
@@ -534,8 +534,8 @@ class FragmentFD(FileDownloader):
             for fragment in fragments:
                 if not interrupt_trigger[0]:
                     break
-                _, frag_index = download_fragment(fragment, ctx)
-                result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx)
+                download_fragment(fragment, ctx)
+                result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
                 if not result:
                     return False
 
