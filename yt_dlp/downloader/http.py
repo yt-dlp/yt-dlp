@@ -199,7 +199,7 @@ class HttpFD(FileDownloader):
                 raise RetryDownload(err)
             except compat_urllib_error.URLError as err:
                 # TODO: What errors should we exclude?
-                if any(isinstance(err.reason, et) for et in (ssl.CertificateError, )):
+                if not any(isinstance(err.reason, et) for et in (ssl.CertificateError, )):
                     raise RetryDownload(err)
                 raise
 
