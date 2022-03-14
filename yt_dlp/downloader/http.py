@@ -11,6 +11,7 @@ from .common import FileDownloader
 from ..compat import (
     compat_str,
     compat_urllib_error,
+    compat_http_client
 )
 from ..utils import (
     ContentTooShortError,
@@ -251,7 +252,7 @@ class HttpFD(FileDownloader):
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
 
-                except (TimeoutError, ConnectionResetError, ssl.SSLError) as err:
+                except (TimeoutError, ConnectionResetError, ssl.SSLError, compat_http_client.HTTPException) as err:
                     retry(err)
 
                 byte_counter += len(data_block)
