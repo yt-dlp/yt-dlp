@@ -171,9 +171,10 @@ body > figure > img {
                 assert fragment_base_url
                 fragment_url = urljoin(fragment_base_url, fragment['path'])
 
-            success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
+            success = self._download_fragment(ctx, fragment_url, info_dict)
             if not success:
                 continue
+            frag_content = self._read_fragment(ctx)
 
             mime_type = b'image/jpeg'
             if frag_content.startswith(b'\x89PNG\r\n\x1a\n'):
