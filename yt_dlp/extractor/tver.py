@@ -30,15 +30,12 @@ class TVerIE(InfoExtractor):
         'url': 'https://tver.jp/corner/f0068870',
         'only_matching': True,
     }, {
-        # landing page 'f'
         'url': 'https://tver.jp/lp/f0009694',
         'only_matching': True,
     }, {
-        # landing page 'c'
         'url': 'https://tver.jp/lp/c0000239',
         'only_matching': True,
     }, {
-        # TOKYO2020
         'url': 'https://tver.jp/tokyo2020/video/6264525510001',
         'only_matching': True,
     }]
