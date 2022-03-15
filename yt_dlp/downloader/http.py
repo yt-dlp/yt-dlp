@@ -119,7 +119,6 @@ class HttpFD(FileDownloader):
                 range_end = None
 
             ctx.has_range = has_range = range_start is not None
-            # NOTE: `range_end is not None` may be omotted but no confidence
             if has_range and range_end is not None and range_start > range_end:
                 ctx.resume_len = 0
                 ctx.open_mode = 'wb'
