@@ -118,6 +118,7 @@ class HttpFD(FileDownloader):
             else:
                 range_end = None
 
+            print(f'start={range_start} end={range_end}')
             if range_start > range_end:
                 ctx.resume_len = 0
                 ctx.open_mode = 'wb'
