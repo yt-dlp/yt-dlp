@@ -102,6 +102,8 @@ class HttpFD(FileDownloader):
                 ctx.open_mode = 'ab'
             elif ctx.chunk_size > 0:
                 range_start = 0
+            elif req_start is not None:
+                range_start = req_start
             else:
                 range_start = None
             ctx.is_resume = False
@@ -115,6 +117,11 @@ class HttpFD(FileDownloader):
                 range_end = req_end
             else:
                 range_end = None
+
+            if range_start > range_end:
+                ctx.resume_len = 0
+                ctx.open_mode = 'wb'
+                raise RetryDownload(AssertionError(f'Conflicting range. (start={range_start} > end={range_end})'))
 
             if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
                 range_end = ctx.data_len - 1
