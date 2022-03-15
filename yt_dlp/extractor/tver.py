@@ -48,9 +48,9 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         path, video_id = self._match_valid_url(url).groups()
-        if path == "lp":
+        if path == 'lp':
             webpage = self._download_webpage(url, video_id)
-            redirect_path = self._search_regex(r'to_href="([^"]+?)"', webpage, 'redirect path')
+            redirect_path = self._search_regex(r'to_href="([^"]+)', webpage, 'redirect path')
             path, video_id = self._match_valid_url(f'https://tver.jp{redirect_path}').groups()
         api_response = self._download_json(f'https://api.tver.jp/v4/{path}/{video_id}', video_id, query={'token': self._TOKEN})
         p_id = traverse_obj(api_response, ('main', 'publisher_id'))
