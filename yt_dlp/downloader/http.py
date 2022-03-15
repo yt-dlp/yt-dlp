@@ -122,7 +122,7 @@ class HttpFD(FileDownloader):
             if has_range and range_end is not None and range_start > range_end:
                 ctx.resume_len = 0
                 ctx.open_mode = 'wb'
-                raise RetryDownload(AssertionError(f'Conflicting range. (start={range_start} > end={range_end})'))
+                raise RetryDownload(Exception(f'Conflicting range. (start={range_start} > end={range_end})'))
 
             if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
                 range_end = ctx.data_len - 1
