@@ -100,10 +100,10 @@ class HttpFD(FileDownloader):
                 if ctx.is_resume:
                     self.report_resuming_byte(ctx.resume_len)
                 ctx.open_mode = 'ab'
-            elif ctx.chunk_size > 0:
-                range_start = 0
             elif req_start is not None:
                 range_start = req_start
+            elif ctx.chunk_size > 0:
+                range_start = 0
             else:
                 range_start = None
             ctx.is_resume = False
