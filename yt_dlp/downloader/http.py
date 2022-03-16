@@ -201,8 +201,8 @@ class HttpFD(FileDownloader):
                 if isinstance(err.reason, ssl.CertificateError):
                     raise
                 raise RetryDownload(err)
-            # The response is partially read on request, in which during any of these errors will not be wrapped by URLError
-            # See: https://github.com/python/cpython/blob/7c776521418676c074a483266339d31c950f516e/Lib/urllib/request.py#L1346-L1355
+            # In urllib.request.AbstractHTTPHandler, the response is partially read on request,
+            # in which during any of these errors will not be wrapped by URLError
             except HTTP_RES_READ_EXCEPTIONS as err:
                 raise RetryDownload(err)
 
