@@ -458,7 +458,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'https://%s/youtubei/v1/%s' % (api_hostname or self._get_innertube_host(default_client), ep),
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
             data=json.dumps(data).encode('utf8'), headers=real_headers,
-            query={'key': api_key or self._extract_api_key()})
+            query={'key': api_key or self._extract_api_key(), 'prettyPrint': 'false'})
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
         data = self._search_regex(
@@ -730,11 +730,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             timestamp = (
                 unified_timestamp(text) or unified_timestamp(
                     self._search_regex(
-                        (r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*on)?\s*(.+\d)', r'\w+[\s,\.-]*\w+[\s,\.-]+20\d{2}'),
+                        (r'([a-z]+\s*\d{1,2},?\s*20\d{2})', r'(?:.+|^)(?:live|premieres|ed|ing)(?:\s*(?:on|for))?\s*(.+\d)'),
                         text.lower(), 'time text', default=None)))
 
         if text and timestamp is None:
-            self.report_warning('Cannot parse localized time text' + bug_reports_message(), only_once=True)
+            self.report_warning(f"Cannot parse localized time text '{text}'" + bug_reports_message(), only_once=True)
         return timestamp, text
 
     def _extract_response(self, item_id, query, note='Downloading API JSON', headers=None,
@@ -1204,7 +1204,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'id': 'Tq92D6wQ1mg',
                 'title': '[MMD] Adios - EVERGLOW [+Motion DL]',
                 'ext': 'mp4',
-                'upload_date': '20191227',
+                'upload_date': '20191228',
                 'uploader_id': 'UC1yoRdFoFJaCY-AGfD9W0wQ',
                 'uploader': 'Projekt Melody',
                 'description': 'md5:17eccca93a786d51bc67646756894066',
@@ -1297,6 +1297,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'expected_warnings': [
                 'DASH manifest missing',
+                'Some formats are possibly damaged'
             ]
         },
         # Olympics (https://github.com/ytdl-org/youtube-dl/issues/4431)
@@ -1569,7 +1570,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'md5:e41008789470fc2533a3252216f1c1d1',
                 'description': 'md5:a677553cf0840649b731a3024aeff4cc',
                 'duration': 721,
-                'upload_date': '20150127',
+                'upload_date': '20150128',
                 'uploader_id': 'BerkmanCenter',
                 'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/BerkmanCenter',
                 'uploader': 'The Berkman Klein Center for Internet & Society',
@@ -1601,7 +1602,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'title': 'Democratic Socialism and Foreign Policy | Bernie Sanders',
                 'description': 'md5:13a2503d7b5904ef4b223aa101628f39',
                 'duration': 4060,
-                'upload_date': '20151119',
+                'upload_date': '20151120',
                 'uploader': 'Bernie Sanders',
                 'uploader_id': 'UCH1dpzjCEiGAt8CXkryhkZg',
                 'uploader_url': r're:https?://(?:www\.)?youtube\.com/channel/UCH1dpzjCEiGAt8CXkryhkZg',
@@ -3207,7 +3208,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'width': width,
                 'height': height,
                 'fragments': [{
-                    'path': url.replace('$M', str(j)),
+                    'url': url.replace('$M', str(j)),
                     'duration': min(fragment_duration, duration - (j * fragment_duration)),
                 } for j in range(math.ceil(fragment_count))],
             }
@@ -3565,86 +3566,84 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 or self._extract_chapters_from_engagement_panel(initial_data, duration)
                 or None)
 
-            contents = try_get(
-                initial_data,
-                lambda x: x['contents']['twoColumnWatchNextResults']['results']['results']['contents'],
-                list) or []
-            for content in contents:
-                vpir = content.get('videoPrimaryInfoRenderer')
-                if vpir:
-                    info['upload_date'] = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
-                    stl = vpir.get('superTitleLink')
-                    if stl:
-                        stl = self._get_text(stl)
-                        if try_get(
-                                vpir,
-                                lambda x: x['superTitleIcon']['iconType']) == 'LOCATION_PIN':
-                            info['location'] = stl
-                        else:
-                            mobj = re.search(r'(.+?)\s*S(\d+)\s*•\s*E(\d+)', stl)
-                            if mobj:
-                                info.update({
-                                    'series': mobj.group(1),
-                                    'season_number': int(mobj.group(2)),
-                                    'episode_number': int(mobj.group(3)),
-                                })
-                    for tlb in (try_get(
-                            vpir,
-                            lambda x: x['videoActions']['menuRenderer']['topLevelButtons'],
-                            list) or []):
-                        tbr = tlb.get('toggleButtonRenderer') or {}
-                        for getter, regex in [(
-                                lambda x: x['defaultText']['accessibility']['accessibilityData'],
-                                r'(?P<count>[\d,]+)\s*(?P<type>(?:dis)?like)'), ([
-                                    lambda x: x['accessibility'],
-                                    lambda x: x['accessibilityData']['accessibilityData'],
-                                ], r'(?P<type>(?:dis)?like) this video along with (?P<count>[\d,]+) other people')]:
-                            label = (try_get(tbr, getter, dict) or {}).get('label')
-                            if label:
-                                mobj = re.match(regex, label)
-                                if mobj:
-                                    info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
-                                    break
-                    sbr_tooltip = try_get(
-                        vpir, lambda x: x['sentimentBar']['sentimentBarRenderer']['tooltip'])
-                    if sbr_tooltip:
-                        like_count, dislike_count = sbr_tooltip.split(' / ')
-                        info.update({
-                            'like_count': str_to_int(like_count),
-                            'dislike_count': str_to_int(dislike_count),
-                        })
-                vsir = content.get('videoSecondaryInfoRenderer')
-                if vsir:
-                    vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
-                    info.update({
-                        'channel': self._get_text(vor, 'title'),
-                        'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
+        contents = traverse_obj(
+            initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents'),
+            expected_type=list, default=[])
 
-                    rows = try_get(
-                        vsir,
-                        lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'],
-                        list) or []
-                    multiple_songs = False
-                    for row in rows:
-                        if try_get(row, lambda x: x['metadataRowRenderer']['hasDividerLine']) is True:
-                            multiple_songs = True
+        vpir = get_first(contents, 'videoPrimaryInfoRenderer')
+        if vpir:
+            stl = vpir.get('superTitleLink')
+            if stl:
+                stl = self._get_text(stl)
+                if try_get(
+                        vpir,
+                        lambda x: x['superTitleIcon']['iconType']) == 'LOCATION_PIN':
+                    info['location'] = stl
+                else:
+                    mobj = re.search(r'(.+?)\s*S(\d+)\s*•\s*E(\d+)', stl)
+                    if mobj:
+                        info.update({
+                            'series': mobj.group(1),
+                            'season_number': int(mobj.group(2)),
+                            'episode_number': int(mobj.group(3)),
+                        })
+            for tlb in (try_get(
+                    vpir,
+                    lambda x: x['videoActions']['menuRenderer']['topLevelButtons'],
+                    list) or []):
+                tbr = tlb.get('toggleButtonRenderer') or {}
+                for getter, regex in [(
+                        lambda x: x['defaultText']['accessibility']['accessibilityData'],
+                        r'(?P<count>[\d,]+)\s*(?P<type>(?:dis)?like)'), ([
+                            lambda x: x['accessibility'],
+                            lambda x: x['accessibilityData']['accessibilityData'],
+                        ], r'(?P<type>(?:dis)?like) this video along with (?P<count>[\d,]+) other people')]:
+                    label = (try_get(tbr, getter, dict) or {}).get('label')
+                    if label:
+                        mobj = re.match(regex, label)
+                        if mobj:
+                            info[mobj.group('type') + '_count'] = str_to_int(mobj.group('count'))
                             break
-                    for row in rows:
-                        mrr = row.get('metadataRowRenderer') or {}
-                        mrr_title = mrr.get('title')
-                        if not mrr_title:
-                            continue
-                        mrr_title = self._get_text(mrr, 'title')
-                        mrr_contents_text = self._get_text(mrr, ('contents', 0))
-                        if mrr_title == 'License':
-                            info['license'] = mrr_contents_text
-                        elif not multiple_songs:
-                            if mrr_title == 'Album':
-                                info['album'] = mrr_contents_text
-                            elif mrr_title == 'Artist':
-                                info['artist'] = mrr_contents_text
-                            elif mrr_title == 'Song':
-                                info['track'] = mrr_contents_text
+            sbr_tooltip = try_get(
+                vpir, lambda x: x['sentimentBar']['sentimentBarRenderer']['tooltip'])
+            if sbr_tooltip:
+                like_count, dislike_count = sbr_tooltip.split(' / ')
+                info.update({
+                    'like_count': str_to_int(like_count),
+                    'dislike_count': str_to_int(dislike_count),
+                })
+        vsir = get_first(contents, 'videoSecondaryInfoRenderer')
+        if vsir:
+            vor = traverse_obj(vsir, ('owner', 'videoOwnerRenderer'))
+            info.update({
+                'channel': self._get_text(vor, 'title'),
+                'channel_follower_count': self._get_count(vor, 'subscriberCountText')})
+
+            rows = try_get(
+                vsir,
+                lambda x: x['metadataRowContainer']['metadataRowContainerRenderer']['rows'],
+                list) or []
+            multiple_songs = False
+            for row in rows:
+                if try_get(row, lambda x: x['metadataRowRenderer']['hasDividerLine']) is True:
+                    multiple_songs = True
+                    break
+            for row in rows:
+                mrr = row.get('metadataRowRenderer') or {}
+                mrr_title = mrr.get('title')
+                if not mrr_title:
+                    continue
+                mrr_title = self._get_text(mrr, 'title')
+                mrr_contents_text = self._get_text(mrr, ('contents', 0))
+                if mrr_title == 'License':
+                    info['license'] = mrr_contents_text
+                elif not multiple_songs:
+                    if mrr_title == 'Album':
+                        info['album'] = mrr_contents_text
+                    elif mrr_title == 'Artist':
+                        info['artist'] = mrr_contents_text
+                    elif mrr_title == 'Song':
+                        info['track'] = mrr_contents_text
 
         fallbacks = {
             'channel': 'uploader',
@@ -3652,15 +3651,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'channel_url': 'uploader_url',
         }
 
-        # The upload date for scheduled and current live streams / premieres in microformats
-        # is generally the true upload date. Although not in UTC, we will prefer that in this case.
-        # Note this changes to the published date when the stream/premiere has finished.
+        # The upload date for scheduled, live and past live streams / premieres in microformats
+        # may be different from the stream date. Although not in UTC, we will prefer it in this case.
         # See: https://github.com/yt-dlp/yt-dlp/pull/2223#issuecomment-1008485139
-        if not info.get('upload_date') or info.get('is_live') or info.get('live_status') == 'is_upcoming':
-            info['upload_date'] = (
-                unified_strdate(get_first(microformats, 'uploadDate'))
-                or unified_strdate(search_meta('uploadDate'))
-                or info.get('upload_date'))
+        upload_date = (
+            unified_strdate(get_first(microformats, 'uploadDate'))
+            or unified_strdate(search_meta('uploadDate')))
+        if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
+            upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
+        info['upload_date'] = upload_date
 
         for to, frm in fallbacks.items():
             if not info.get(to):
