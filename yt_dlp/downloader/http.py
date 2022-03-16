@@ -160,7 +160,7 @@ class HttpFD(FileDownloader):
                         if accept_content_len:
                             ctx.data_len = try_get(None, [
                                 lambda x: req_end - req_start,
-                                lambda x: content_range_end - content_range_start + ctx.resume_len])
+                                lambda x: content_range_end - content_range_start + ctx.resume_len]) or content_len
                             # print(ctx.data_len, req_end - req_start, content_range_end - content_range_start + ctx.resume_len)
                             return
                     # Content-Range is either not present or invalid. Assuming remote webserver is
