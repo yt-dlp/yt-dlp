@@ -1297,7 +1297,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             },
             'expected_warnings': [
                 'DASH manifest missing',
-                'Some formats are possibly damaged'
             ]
         },
         # Olympics (https://github.com/ytdl-org/youtube-dl/issues/4431)
@@ -3013,7 +3012,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(last_error)
         return prs, player_url
 
-    def _extract_formats(self, streaming_data, video_id, player_url, is_live):
+    def _extract_formats(self, streaming_data, video_id, player_url, is_live, duration):
         itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {}
         q = qualities([
@@ -3024,7 +3023,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'small', 'medium', 'large', 'hd720', 'hd1080', 'hd1440', 'hd2160', 'hd2880', 'highres'
         ])
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
-        approx_duration = max(traverse_obj(streaming_formats, (..., 'approxDurationMs'), expected_type=float_or_none) or [0]) or None
 
         for fmt in streaming_formats:
             if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
@@ -3091,7 +3089,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 else -1)
             # Some formats may have much smaller duration than others (possibly damaged during encoding)
             # Eg: 2-nOtRESiUc Ref: https://github.com/yt-dlp/yt-dlp/issues/2823
-            is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) < approx_duration - 10000)
+            # Make sure to avoid false positives with small duration differences.
+            # Eg: __2ABJjxzNo, ySuUZEjARPY
+            is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) / duration < 500)
             if is_damaged:
                 self.report_warning(f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
             dct = {
@@ -3227,14 +3227,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         return webpage, master_ytcfg, player_responses, player_url
 
-    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url):
+    def _list_formats(self, video_id, microformats, video_details, player_responses, player_url, duration=None):
         live_broadcast_details = traverse_obj(microformats, (..., 'liveBroadcastDetails'))
         is_live = get_first(video_details, 'isLive')
         if is_live is None:
             is_live = get_first(live_broadcast_details, 'isLiveNow')
 
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live))
+        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live, duration))
 
         return live_broadcast_details, is_live, streaming_data, formats
 
@@ -3315,7 +3315,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 return self.playlist_result(
                     entries, video_id, video_title, video_description)
 
-        live_broadcast_details, is_live, streaming_data, formats = self._list_formats(video_id, microformats, video_details, player_responses, player_url)
+        duration = int_or_none(
+            get_first(video_details, 'lengthSeconds')
+            or get_first(microformats, 'lengthSeconds')
+            or parse_duration(search_meta('duration'))) or None
+
+        live_broadcast_details, is_live, streaming_data, formats = self._list_formats(
+            video_id, microformats, video_details, player_responses, player_url, duration)
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -3387,10 +3393,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             get_first(video_details, 'channelId')
             or get_first(microformats, 'externalChannelId')
             or search_meta('channelId'))
-        duration = int_or_none(
-            get_first(video_details, 'lengthSeconds')
-            or get_first(microformats, 'lengthSeconds')
-            or parse_duration(search_meta('duration'))) or None
         owner_profile_url = get_first(microformats, 'ownerProfileUrl')
 
         live_content = get_first(video_details, 'isLiveContent')
