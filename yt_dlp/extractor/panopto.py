@@ -178,7 +178,6 @@ class PanoptoIE(PanoptoBaseIE):
                 'average_rating': 0,
                 'uploader': 'Panopto Support',
                 'channel': 'Showcase Videos',
-                'chapters': 'count:54',
                 'description': 'md5:55e51d54233ddb0e6c2ed388ca73822c',
                 'cast': ['ISR Videographer', 'Panopto Support'],
                 'chapters': 'count:28',
