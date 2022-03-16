@@ -181,7 +181,6 @@ class RUTVIE(InfoExtractor):
                         'rtmp_live': True,
                         'ext': 'flv',
                         'vbr': str_to_int(quality),
-                        'quality': preference,
                     }
                 elif transport == 'm3u8':
                     formats.extend(self._extract_m3u8_formats(
@@ -192,13 +191,15 @@ class RUTVIE(InfoExtractor):
                         'url': url
                     }
                 fmt.update({
-                    'width': width,
-                    'height': height,
+                    'width': width * int_or_none(quality, default=height) / height,
+                    'height': int_or_none(quality, default=height),
                     'format_id': '%s-%s' % (transport, quality),
+                    'quality': quality,
+                    'preference': preference,
                 })
                 formats.append(fmt)
 
-        self._sort_formats(formats)
+        self._sort_formats(formats, ('quality', 'preference'))
 
         return {
             'id': video_id,
