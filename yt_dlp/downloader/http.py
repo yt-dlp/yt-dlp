@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 
-import errno
 import os
-import socket
 import ssl
 import time
 import random
@@ -198,13 +196,12 @@ class HttpFD(FileDownloader):
                     raise
                 raise RetryDownload(err)
             except compat_urllib_error.URLError as err:
-                # TODO: What errors should we exclude?
-                if not any(isinstance(err.reason, et) for et in (ssl.CertificateError, )):
-                    raise RetryDownload(err)
-                raise
+                if isinstance(err.reason, ssl.CertificateError):
+                    raise
+                raise RetryDownload(err)
 
             # TODO: when do these occur now?
-            except (TimeoutError, ConnectionResetError) as err:
+            except (TimeoutError, ConnectionError) as err:
                 raise RetryDownload(err)
 
         def download():
@@ -252,7 +249,7 @@ class HttpFD(FileDownloader):
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
 
-                except (TimeoutError, ConnectionResetError, ssl.SSLError, compat_http_client.HTTPException) as err:
+                except (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException) as err:
                     retry(err)
 
                 byte_counter += len(data_block)
