@@ -191,7 +191,7 @@ class RUTVIE(InfoExtractor):
                         'url': url
                     }
                 fmt.update({
-                    'width': width * int_or_none(quality, default=height) / height,
+                    'width': int_or_none(quality, default=height, invscale=width, scale=height),
                     'height': int_or_none(quality, default=height),
                     'format_id': '%s-%s' % (transport, quality),
                     'quality': quality,
