@@ -2,10 +2,11 @@
 from __future__ import unicode_literals
 
 import datetime
-import itertools
 import functools
+import itertools
 import json
 import re
+import time
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -25,7 +26,6 @@ from ..utils import (
     parse_filesize,
     parse_iso8601,
     remove_start,
-    time_millis,
     traverse_obj,
     try_get,
     unescapeHTML,
@@ -397,7 +397,7 @@ class NiconicoIE(InfoExtractor):
         except ExtractorError as e:
             try:
                 api_data = self._download_json(
-                    'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, time_millis()), video_id,
+                    'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, round(time.time() * 1000)), video_id,
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except (ExtractorError, KeyError):
                 if not isinstance(getattr(e, 'cause', None), compat_HTTPError):
