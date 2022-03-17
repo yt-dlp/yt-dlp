@@ -16,7 +16,7 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
-    bugs_report_message,
+    bug_reports_message,
     clean_html,
     float_or_none,
     int_or_none,
@@ -485,7 +485,7 @@ class NiconicoIE(InfoExtractor):
                     }],
                 }
             else:
-                self.report_warning(f'Failed to get comments. {bugs_report_message()}')
+                self.report_warning(f'Failed to get comments. {bug_reports_message()}')
 
         return {
             'id': video_id,
