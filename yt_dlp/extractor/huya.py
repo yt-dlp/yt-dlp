@@ -70,9 +70,7 @@ class HuyaLiveIE(InfoExtractor):
             r'<title>([^<]+)</title>', webpage, 'title')
         screen_type = room_info.get('screenType')
         live_source_type = room_info.get('liveSourceType')
-        stream_info_list = try_get(stream_data, lambda x: x['data'][0]['gameStreamInfoList'])
-        if not stream_info_list:
-            raise ExtractorError('Can not extract media info.')
+        stream_info_list = stream_data['data'][0]['gameStreamInfoList']
         formats = []
         for stream_info in stream_info_list:
             stream_url = stream_info.get('sFlvUrl')
