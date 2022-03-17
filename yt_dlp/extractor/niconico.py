@@ -350,12 +350,8 @@ class NiconicoIE(InfoExtractor):
             return None
 
         def extract_video_quality(video_quality):
-            # Example: 480p | 0.9M
-            r = re.match(r'^.*\| ([0-9]*\.?[0-9]*[MK])', video_quality)
-            if not r:
-                # Maybe conditionally throw depending on the settings?
-                return 0
-            return parse_filesize(f'{r.group(1)}B') or 0
+            return parse_filesize('%sB' % self._search_regex(
+                r'\| ([0-9]*\.?[0-9]*[MK])', video_quality, 'vbr', default=''))
 
         format_id = '-'.join(
             [remove_start(s['id'], 'archive_') for s in (video_quality, audio_quality)] + [dmc_protocol])
@@ -368,7 +364,7 @@ class NiconicoIE(InfoExtractor):
         return {
             'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
             'format_id': format_id,
-            'format_note': 'DMC ' + vid_metadata['label'] + ' ' + dmc_protocol.upper(),
+            'format_note': join_nonempty('DMC', vid_metadata.get('label'), dmc_protocol.upper(), delim=' '),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
@@ -410,7 +406,7 @@ class NiconicoIE(InfoExtractor):
                 webpage = e.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
                     r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
-                    webpage, 'error reason', group=1, default=None)
+                    webpage, 'error reason', default=None)
                 if not error_msg:
                     raise e
                 else:
