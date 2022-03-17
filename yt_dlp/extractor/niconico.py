@@ -360,7 +360,7 @@ class NiconicoIE(InfoExtractor):
             [remove_start(s['id'], 'archive_') for s in (video_quality, audio_quality)] + [dmc_protocol])
 
         vid_qual_label = traverse_obj(video_quality, ('metadata', 'label'))
-        vid_quality = traverse_obj(video_quality, ('metadata', 'resolution', 'bitrate'))
+        vid_quality = traverse_obj(video_quality, ('metadata', 'bitrate'))
 
         return {
             'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
