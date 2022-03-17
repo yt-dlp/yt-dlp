@@ -82,20 +82,18 @@ class WASDTVStreamIE(WASDTVBaseIE):
         channel = self._fetch(f'channels/nicknames/{nickname}', video_id=nickname, description='channel')
         channel_id = channel.get('channel_id')
         containers = self._fetch(
-            'v2/media-containers',
+            'v2/media-containers', channel_id, 'running media containers',
             query={
                 'channel_id': channel_id,
                 'media_container_type': 'SINGLE',
                 'media_container_status': 'RUNNING',
-            },
-            video_id=channel_id,
-            description='running media containers')
+            })
         if not containers:
             raise ExtractorError(f'{nickname} is offline', expected=True)
         return containers[0]
 
     def _get_media_url(self, media_meta):
-        return media_meta.get('media_url'), True
+        return media_meta['media_url'], True
 
 
 class WASDTVRecordIE(WASDTVBaseIE):
@@ -120,9 +118,7 @@ class WASDTVRecordIE(WASDTVBaseIE):
     def _get_container(self, url):
         container_id = self._match_id(url)
         return self._fetch(
-            f'v2/media-containers/{container_id}',
-            video_id=container_id,
-            description='media container')
+            f'v2/media-containers/{container_id}', container_id, 'media container')
 
     def _get_media_url(self, media_meta):
         media_archive_url = media_meta.get('media_archive_url')
