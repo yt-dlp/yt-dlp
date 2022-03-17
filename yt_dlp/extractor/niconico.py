@@ -412,8 +412,8 @@ class NiconicoIE(InfoExtractor):
 
         formats = []
 
-        def get_video_info(items, get_first=True):
-            return traverse_obj(api_data, ('video', items), get_all=not get_first)
+        def get_video_info(*items, get_first=True, **kwargs):
+            return traverse_obj(api_data, ('video', *items), get_all=not get_first, **kwargs)
 
         quality_info = api_data['media']['delivery']['movie']
         session_api_data = quality_info['session']
