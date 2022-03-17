@@ -423,6 +423,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             self._add_skip_wall(webpage_url), video_id,
             headers=self.geo_verification_headers())
         if re.search(r'<div id="preload-data">', webpage):
+            if not self._get_cookies(url).get('etp_rt'):
+                raise ExtractorError('Received a beta page from non-beta url when not logged in.')
             initial_state, app_config = self._get_beta_embedded_json(webpage, video_id)
             base_site = app_config['baseSiteUrl']
             path = initial_state['router']['locations']['current']['pathname']
@@ -693,6 +695,8 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
             self._add_skip_wall(url).replace('https://', 'http://'), show_id,
             headers=self.geo_verification_headers())
         if re.search(r'<div id="preload-data">', webpage):
+            if not self._get_cookies(url).get('etp_rt'):
+                raise ExtractorError('Received a beta page from non-beta url when not logged in.')
             initial_state, app_config = self._get_beta_embedded_json(webpage, show_id)
             base_site = app_config['baseSiteUrl']
             path = initial_state['router']['locations']['current']['pathname']
