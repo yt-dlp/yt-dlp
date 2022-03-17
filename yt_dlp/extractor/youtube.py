@@ -4026,6 +4026,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 continue
 
             known_renderers = {
+                'videoRenderer': (self._grid_entries, 'items'),  # for membership tab
                 'gridPlaylistRenderer': (self._grid_entries, 'items'),
                 'gridVideoRenderer': (self._grid_entries, 'items'),
                 'gridChannelRenderer': (self._grid_entries, 'items'),
