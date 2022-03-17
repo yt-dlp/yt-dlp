@@ -16,9 +16,11 @@ from ..compat import (
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
+    bugs_report_message,
     clean_html,
     float_or_none,
     int_or_none,
+    join_nonempty,
     parse_duration,
     parse_filesize,
     parse_iso8601,
@@ -28,6 +30,7 @@ from ..utils import (
     try_get,
     unescapeHTML,
     update_url_query,
+    url_or_none,
     urlencode_postdata,
 )
 
@@ -449,7 +452,7 @@ class NiconicoIE(InfoExtractor):
             parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
             or get_video_info('duration'))
 
-        webpage_url = url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}}'
+        webpage_url = url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}'
 
         uploader_id = traverse_obj(api_data, ('owner', 'id'))
         uploader = traverse_obj(api_data, ('owner', 'nickname'))
