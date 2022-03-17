@@ -346,7 +346,7 @@ class NiconicoIE(InfoExtractor):
 
     def _extract_format_for_quality(self, video_id, audio_quality, video_quality, dmc_protocol):
 
-        if not audio_quality['isAvailable'] or not video_quality['isAvailable']:
+        if not audio_quality.get('isAvailable') or not video_quality.get('isAvailable'):
             return None
 
         def extract_video_quality(video_quality):
@@ -401,17 +401,13 @@ class NiconicoIE(InfoExtractor):
             except (ExtractorError, KeyError):
                 if not isinstance(e.cause, compat_HTTPError):
                     raise e
-                else:
-                    e = e.cause
-                webpage = e.read().decode('utf-8', 'replace')
+                webpage = e.cause.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
                     r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
                     webpage, 'error reason', default=None)
                 if not error_msg:
                     raise e
-                else:
-                    error_msg = re.sub(r'\s+', ' ', error_msg)
-                    raise ExtractorError(error_msg, expected=True)
+                raise ExtractorError(re.sub(r'\s+', ' ', error_msg), expected=True)
 
         formats = []
 
@@ -429,7 +425,7 @@ class NiconicoIE(InfoExtractor):
 
         # Start extracting information
         title = (
-            get_video_info(['originalTitle', 'title'], get_first=True)
+            get_video_info(('originalTitle', 'title'))
             or self._og_search_title(webpage, default=None))
 
         thumbnail = traverse_obj(api_data, ('video', 'thumbnail', 'url'))
@@ -453,10 +449,7 @@ class NiconicoIE(InfoExtractor):
             parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
             or get_video_info('duration'))
 
-        if url.startswith('http://') or url.startswith('https://'):
-            webpage_url = url
-        else:
-            webpage_url = 'https://www.nicovideo.jp/watch/%s' % video_id
+        webpage_url = url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}}'
 
         uploader_id = traverse_obj(api_data, ('owner', 'id'))
         uploader = traverse_obj(api_data, ('owner', 'nickname'))
@@ -497,7 +490,7 @@ class NiconicoIE(InfoExtractor):
                     }],
                 }
             else:
-                self.report_warning('Failed to get comments. Skipping, but make sure to report it as bugs!')
+                self.report_warning(f'Failed to get comments. {bugs_report_message()}')
 
         return {
             'id': video_id,
