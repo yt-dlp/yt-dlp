@@ -359,23 +359,21 @@ class NiconicoIE(InfoExtractor):
         format_id = '-'.join(
             [remove_start(s['id'], 'archive_') for s in (video_quality, audio_quality)] + [dmc_protocol])
 
-        vid_metadata = video_quality.get('metadata') or {}
-        resolution = vid_metadata.get('resolution') or {}
-        vid_quality = vid_metadata.get('bitrate')
-        is_low = 'low' in video_quality['id']
+        vid_qual_label = traverse_obj(video_quality, ('metadata', 'label'))
+        vid_quality = traverse_obj(video_quality, ('metadata', 'resolution', 'bitrate'))
 
         return {
             'url': 'niconico_dmc:%s/%s/%s' % (video_id, video_quality['id'], audio_quality['id']),
             'format_id': format_id,
-            'format_note': join_nonempty('DMC', vid_metadata.get('label'), dmc_protocol.upper(), delim=' '),
+            'format_note': join_nonempty('DMC', vid_qual_label, dmc_protocol.upper(), delim=' '),
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
             'abr': float_or_none(audio_quality['metadata'].get('bitrate'), 1000),
-            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_metadata.get('label')), 1000),
-            'height': resolution.get('height'),
-            'width': resolution.get('width'),
-            'quality': -2 if is_low else None,
+            'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
+            'height': traverse_obj(video_quality, ('metadata', 'resolution', 'height')),
+            'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
+            'quality': -2 if 'low' in video_quality['id'] else None,
             'protocol': 'niconico_dmc',
             'expected_protocol': dmc_protocol,
             'http_headers': {
@@ -402,7 +400,7 @@ class NiconicoIE(InfoExtractor):
                     'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, time_millis()), video_id,
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except (ExtractorError, KeyError):
-                if not isinstance(e.cause, compat_HTTPError):
+                if not isinstance(getattr(e, 'cause', None), compat_HTTPError):
                     raise e
                 webpage = e.cause.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
@@ -454,12 +452,6 @@ class NiconicoIE(InfoExtractor):
 
         webpage_url = url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}'
 
-        uploader_id = traverse_obj(api_data, ('owner', 'id'))
-        uploader = traverse_obj(api_data, ('owner', 'nickname'))
-
-        channel_id = traverse_obj(api_data, ('channel', 'id'), ('community', 'id'))
-        channel = traverse_obj(api_data, ('channel', 'name'), ('community', 'name'))
-
         tags = None
         if webpage:
             # use og:video:tag (not logged in)
@@ -502,11 +494,11 @@ class NiconicoIE(InfoExtractor):
             'formats': formats,
             'thumbnail': thumbnail,
             'description': description,
-            'uploader': uploader,
+            'uploader': traverse_obj(api_data, ('owner', 'nickname')),
             'timestamp': timestamp,
-            'uploader_id': uploader_id,
-            'channel': channel,
-            'channel_id': channel_id,
+            'uploader_id': traverse_obj(api_data, ('owner', 'id')),
+            'channel': traverse_obj(api_data, ('channel', 'name'), ('community', 'name')),
+            'channel_id': traverse_obj(api_data, ('channel', 'id'), ('community', 'id')),
             'view_count': view_count,
             'tags': tags,
             'genre': genre,
