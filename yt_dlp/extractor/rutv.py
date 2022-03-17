@@ -195,11 +195,11 @@ class RUTVIE(InfoExtractor):
                     'height': int_or_none(quality, default=height),
                     'format_id': '%s-%s' % (transport, quality),
                     'quality': quality,
-                    'preference': preference,
+                    'source_preference': preference,
                 })
                 formats.append(fmt)
 
-        self._sort_formats(formats, ('quality', 'preference'))
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
