@@ -401,13 +401,13 @@ class NiconicoIE(InfoExtractor):
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except (ExtractorError, KeyError):
                 if not isinstance(getattr(e, 'cause', None), compat_HTTPError):
-                    raise
+                    raise e
                 webpage = e.cause.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
                     r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
                     webpage, 'error reason', default=None)
                 if not error_msg:
-                    raise
+                    raise e
                 raise ExtractorError(re.sub(r'\s+', ' ', error_msg), expected=True)
 
         formats = []
