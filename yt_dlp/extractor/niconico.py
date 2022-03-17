@@ -425,12 +425,6 @@ class NiconicoIE(InfoExtractor):
         self._sort_formats(formats)
 
         # Start extracting information
-        timestamp = parse_iso8601(get_video_info('registeredAt'))
-        if not timestamp:
-            match = self._html_search_meta('video:release_date', webpage, 'date published', default=None)
-            if match:
-                timestamp = parse_iso8601(match)
-
         tags = None
         if webpage:
             # use og:video:tag (not logged in)
@@ -473,7 +467,8 @@ class NiconicoIE(InfoExtractor):
                 ) or self._html_search_meta(('image', 'og:image'), webpage, 'thumbnail', default=None),
             'description': clean_html(get_video_info('description')),
             'uploader': traverse_obj(api_data, ('owner', 'nickname')),
-            'timestamp': timestamp,
+            'timestamp': parse_iso8601(get_video_info('registeredAt')) or parse_iso8601(
+                self._html_search_meta('video:release_date', webpage, 'date published', default=None)),
             'uploader_id': traverse_obj(api_data, ('owner', 'id')),
             'channel': traverse_obj(api_data, ('channel', 'name'), ('community', 'name')),
             'channel_id': traverse_obj(api_data, ('channel', 'id'), ('community', 'id')),
