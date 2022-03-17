@@ -194,7 +194,6 @@ class RUTVIE(InfoExtractor):
                     'width': int_or_none(quality, default=height, invscale=width, scale=height),
                     'height': int_or_none(quality, default=height),
                     'format_id': '%s-%s' % (transport, quality),
-                    'quality': quality,
                     'source_preference': preference,
                 })
                 formats.append(fmt)
