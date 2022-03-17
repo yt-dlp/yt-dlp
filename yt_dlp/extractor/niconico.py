@@ -463,8 +463,8 @@ class NiconicoIE(InfoExtractor):
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
             'formats': formats,
-            'thumbnail': traverse_obj(api_data, ('video', 'thumbnail', 'url')
-                ) or self._html_search_meta(('image', 'og:image'), webpage, 'thumbnail', default=None),
+            'thumbnail': traverse_obj(api_data, ('video', 'thumbnail', 'url')) or self._html_search_meta(
+                ('image', 'og:image'), webpage, 'thumbnail', default=None),
             'description': clean_html(get_video_info('description')),
             'uploader': traverse_obj(api_data, ('owner', 'nickname')),
             'timestamp': parse_iso8601(get_video_info('registeredAt')) or parse_iso8601(
