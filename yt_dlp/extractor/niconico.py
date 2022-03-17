@@ -221,7 +221,7 @@ class NiconicoIE(InfoExtractor):
 
     def _get_heartbeat_info(self, info_dict):
         video_id, video_src_id, audio_src_id = info_dict['url'].split(':')[1].split('/')
-        dmc_protocol = info_dict['expected_protocol']
+        dmc_protocol = info_dict['_expected_protocol']
 
         api_data = (
             info_dict.get('_api_data')
@@ -369,13 +369,13 @@ class NiconicoIE(InfoExtractor):
             'ext': 'mp4',  # Session API are used in HTML5, which always serves mp4
             'acodec': 'aac',
             'vcodec': 'h264',
-            'abr': float_or_none(audio_quality['metadata'].get('bitrate'), 1000),
+            'abr': float_or_none(traverse_obj(audio_quality, ('metadata', 'bitrate')), 1000),
             'vbr': float_or_none(vid_quality if vid_quality > 0 else extract_video_quality(vid_qual_label), 1000),
             'height': traverse_obj(video_quality, ('metadata', 'resolution', 'height')),
             'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
             'quality': -2 if 'low' in video_quality['id'] else None,
             'protocol': 'niconico_dmc',
-            'expected_protocol': dmc_protocol,
+            '_expected_protocol': dmc_protocol,
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
@@ -463,7 +463,7 @@ class NiconicoIE(InfoExtractor):
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
             'formats': formats,
-            'thumbnail': traverse_obj(api_data, ('video', 'thumbnail', 'url')) or self._html_search_meta(
+            'thumbnail': get_video_info('thumbnail', 'url') or self._html_search_meta(
                 ('image', 'og:image'), webpage, 'thumbnail', default=None),
             'description': clean_html(get_video_info('description')),
             'uploader': traverse_obj(api_data, ('owner', 'nickname')),
@@ -472,11 +472,10 @@ class NiconicoIE(InfoExtractor):
             'uploader_id': traverse_obj(api_data, ('owner', 'id')),
             'channel': traverse_obj(api_data, ('channel', 'name'), ('community', 'name')),
             'channel_id': traverse_obj(api_data, ('channel', 'id'), ('community', 'id')),
-            'view_count': int_or_none(traverse_obj(api_data, ('video', 'count', 'view'))),
+            'view_count': int_or_none(get_video_info('count', 'view')),
             'tags': tags,
             'genre': traverse_obj(api_data, ('genre', 'label'), ('genre', 'key')),
-            'comment_count': traverse_obj(
-                api_data, ('video', 'count', 'comment'), expected_type=int),
+            'comment_count': get_video_info('count', 'comment', expected_type=int),
             'duration': (
                 parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
                 or get_video_info('duration')),
@@ -485,15 +484,10 @@ class NiconicoIE(InfoExtractor):
         }
 
     def _extract_all_comments(self, video_id, threads, user_id, user_key):
-        if user_id and user_key:
-            # authenticate as an user
-            auth_data = {
-                'user_id': user_id,
-                'userkey': user_key,
-            }
-        else:
-            # user_id field with empty string is still needed
-            auth_data = {'user_id': ''}
+        auth_data = {
+            'user_id': user_id,
+            'userkey': user_key,
+        } if user_id and user_key else {'user_id': ''}
 
         # Request Start
         post_data = [{'ping': {'content': 'rs:0'}}]
@@ -534,19 +528,16 @@ class NiconicoIE(InfoExtractor):
         post_data.append({'ping': {'content': 'rf:0'}})
 
         for api_url in self._COMMENT_API_ENDPOINTS:
-            try:
-                return self._download_json(
-                    api_url, video_id,
-                    headers={
-                        'Referer': 'https://www.nicovideo.jp/watch/%s' % video_id,
-                        'Origin': 'https://www.nicovideo.jp',
-                        'Content-Type': 'text/plain;charset=UTF-8',
-                    },
-                    data=json.dumps(post_data).encode(),
-                    note='Downloading comments (jp)')
-            except ExtractorError as e:
-                self.report_warning(f'Failed to access endpoint {api_url} .\n{e}')
-        return None
+            comments = self._download_json(
+                api_url, video_id, data=json.dumps(post_data).encode(),
+                headers={
+                    'Referer': 'https://www.nicovideo.jp/watch/%s' % video_id,
+                    'Origin': 'https://www.nicovideo.jp',
+                    'Content-Type': 'text/plain;charset=UTF-8',
+                },
+                note='Downloading comments', errnote=f'Failed to access endpoint {api_url}')
+            if comments is not None:
+                return comments
 
 
 class NiconicoPlaylistBaseIE(InfoExtractor):
