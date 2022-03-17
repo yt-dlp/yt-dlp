@@ -93,7 +93,7 @@ class CrunchyrollBaseIE(InfoExtractor):
         self._login()
 
     # Beta-specific, but needed for redirects
-    def _get_embedded_json(self, webpage, display_id):
+    def _get_beta_embedded_json(self, webpage, display_id):
         initial_state = self._parse_json(
             self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
             display_id)
@@ -423,7 +423,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             self._add_skip_wall(webpage_url), video_id,
             headers=self.geo_verification_headers())
         if re.search(r'<div id="preload-data">', webpage):
-            initial_state, app_config = self._get_embedded_json(webpage, video_id)
+            initial_state, app_config = self._get_beta_embedded_json(webpage, video_id)
             base_site = app_config['baseSiteUrl']
             path = initial_state['router']['locations']['current']['pathname']
             self.to_screen(f'{video_id}: Redirected to beta site. Switching extractors. New url: {base_site}{path}')
@@ -693,7 +693,7 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
             self._add_skip_wall(url).replace('https://', 'http://'), show_id,
             headers=self.geo_verification_headers())
         if re.search(r'<div id="preload-data">', webpage):
-            initial_state, app_config = self._get_embedded_json(webpage, show_id)
+            initial_state, app_config = self._get_beta_embedded_json(webpage, show_id)
             base_site = app_config['baseSiteUrl']
             path = initial_state['router']['locations']['current']['pathname']
             self.to_screen(f'{show_id}: Redirected to beta site. Switching extractors. New url: {base_site}{path}')
@@ -721,13 +721,11 @@ class CrunchyrollShowPlaylistIE(CrunchyrollBaseIE):
 
 
 class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
-    api_domain = None
-    bucket = None
     params = None
 
     def _get_params(self, lang):
-        if not CrunchyrollBetaBaseIE.api_domain:
-            initial_state, app_config = self._get_embedded_json(
+        if not CrunchyrollBetaBaseIE.params:
+            initial_state, app_config = self._get_beta_embedded_json(
                 self._download_webpage(f'https://beta.crunchyroll.com/{lang}', None,
                                        note='Retrieving main page'), None)
             client_id = app_config['cxApiParams']['accountAuthClientId']
@@ -754,10 +752,8 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
             locale = traverse_obj(initial_state, ('localization', 'locale'))
             if locale:
                 params['locale'] = locale
-            CrunchyrollBetaBaseIE.api_domain = api_domain
-            CrunchyrollBetaBaseIE.bucket = bucket
-            CrunchyrollBetaBaseIE.params = params
-        return CrunchyrollBetaBaseIE.api_domain, CrunchyrollBetaBaseIE.bucket, CrunchyrollBetaBaseIE.params
+            CrunchyrollBetaBaseIE.params = (api_domain, bucket, params)
+        return CrunchyrollBetaBaseIE.params
 
 
 class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
@@ -785,7 +781,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
 
         if not self._get_cookies(url).get('etp_rt'):
-            initial_state, app_config = self._get_embedded_json(self._download_webpage(url, display_id), display_id)
+            initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(url, display_id), display_id)
             episode_data = initial_state['content']['byId'][internal_id]
             video_id = episode_data['external_id'].split('.')[1]
             series_id = episode_data['episode_metadata']['series_slug_title']
