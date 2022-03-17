@@ -461,8 +461,7 @@ class NiconicoIE(InfoExtractor):
                 parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
                 or get_video_info('duration')),
             'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}',
-            'subtitles': self._get_subtitles(video_id, api_data, session_api_data)
-                         if self.get_param('writesubtitles', False) else None,
+            'subtitles': self.extract_subtitles(video_id, api_data, session_api_data),
         }
 
     def _get_subtitles(self, video_id, api_data, session_api_data):
@@ -471,15 +470,14 @@ class NiconicoIE(InfoExtractor):
 
         thread_ids = [x for x in traverse_obj(api_data, ('comment', 'threads')) or [] if x['isActive']]
         raw_danmaku = self._extract_all_comments(video_id, thread_ids, user_id_str, comment_user_key)
-        if raw_danmaku:
-            return {
-                'comments': [{
-                    'ext': 'json',
-                    'data': json.dumps(raw_danmaku),
-                }],
-            }
-        else:
+        if not raw_danmaku:
             self.report_warning(f'Failed to get comments. {bug_reports_message()}')
+        return {
+            'comments': [{
+                'ext': 'json',
+                'data': json.dumps(raw_danmaku),
+            }],
+        }
 
     def _extract_all_comments(self, video_id, threads, user_id, user_key):
         auth_data = {
@@ -534,7 +532,7 @@ class NiconicoIE(InfoExtractor):
                     'Content-Type': 'text/plain;charset=UTF-8',
                 },
                 note='Downloading comments', errnote=f'Failed to access endpoint {api_url}')
-            if comments is not None:
+            if comments:
                 return comments
 
 
