@@ -529,7 +529,7 @@ class NiconicoIE(InfoExtractor):
 
         for api_url in self._COMMENT_API_ENDPOINTS:
             comments = self._download_json(
-                api_url, video_id, data=json.dumps(post_data).encode(),
+                api_url, video_id, data=json.dumps(post_data).encode(), fatal=False,
                 headers={
                     'Referer': 'https://www.nicovideo.jp/watch/%s' % video_id,
                     'Origin': 'https://www.nicovideo.jp',
