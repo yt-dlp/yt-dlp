@@ -401,13 +401,13 @@ class NiconicoIE(InfoExtractor):
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
             except (ExtractorError, KeyError):
                 if not isinstance(getattr(e, 'cause', None), compat_HTTPError):
-                    raise e
+                    raise
                 webpage = e.cause.read().decode('utf-8', 'replace')
                 error_msg = self._html_search_regex(
                     r'(?s)<section\s+class="(?:(?:ErrorMessage|WatchExceptionPage-message)\s*)+">(.+?)</section>',
                     webpage, 'error reason', default=None)
                 if not error_msg:
-                    raise e
+                    raise
                 raise ExtractorError(re.sub(r'\s+', ' ', error_msg), expected=True)
 
         formats = []
@@ -425,32 +425,11 @@ class NiconicoIE(InfoExtractor):
         self._sort_formats(formats)
 
         # Start extracting information
-        title = (
-            get_video_info(('originalTitle', 'title'))
-            or self._og_search_title(webpage, default=None))
-
-        thumbnail = traverse_obj(api_data, ('video', 'thumbnail', 'url'))
-        if not thumbnail:
-            thumbnail = self._html_search_meta(('image', 'og:image'), webpage, 'thumbnail', default=None)
-
-        view_count = int_or_none(traverse_obj(api_data, ('video', 'count', 'view')))
-
-        description = clean_html(get_video_info('description'))
-
         timestamp = parse_iso8601(get_video_info('registeredAt'))
         if not timestamp:
             match = self._html_search_meta('video:release_date', webpage, 'date published', default=None)
             if match:
                 timestamp = parse_iso8601(match)
-
-        comment_count = traverse_obj(
-            api_data, ('video', 'count', 'comment'), expected_type=int)
-
-        duration = (
-            parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
-            or get_video_info('duration'))
-
-        webpage_url = url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}'
 
         tags = None
         if webpage:
@@ -465,8 +444,6 @@ class NiconicoIE(InfoExtractor):
         if not tags:
             # find in json (logged in)
             tags = traverse_obj(api_data, ('tag', 'items', ..., 'name'))
-
-        genre = traverse_obj(api_data, ('genre', 'label'), ('genre', 'key'))
 
         subtitles = None
         if self.get_param('getcomments', False) or self.get_param('writesubtitles', False):
@@ -490,21 +467,25 @@ class NiconicoIE(InfoExtractor):
         return {
             'id': video_id,
             '_api_data': api_data,
-            'title': title,
+            'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
             'formats': formats,
-            'thumbnail': thumbnail,
-            'description': description,
+            'thumbnail': traverse_obj(api_data, ('video', 'thumbnail', 'url')
+                ) or self._html_search_meta(('image', 'og:image'), webpage, 'thumbnail', default=None),
+            'description': clean_html(get_video_info('description')),
             'uploader': traverse_obj(api_data, ('owner', 'nickname')),
             'timestamp': timestamp,
             'uploader_id': traverse_obj(api_data, ('owner', 'id')),
             'channel': traverse_obj(api_data, ('channel', 'name'), ('community', 'name')),
             'channel_id': traverse_obj(api_data, ('channel', 'id'), ('community', 'id')),
-            'view_count': view_count,
+            'view_count': int_or_none(traverse_obj(api_data, ('video', 'count', 'view'))),
             'tags': tags,
-            'genre': genre,
-            'comment_count': comment_count,
-            'duration': duration,
-            'webpage_url': webpage_url,
+            'genre': traverse_obj(api_data, ('genre', 'label'), ('genre', 'key')),
+            'comment_count': traverse_obj(
+                api_data, ('video', 'count', 'comment'), expected_type=int),
+            'duration': (
+                parse_duration(self._html_search_meta('video:duration', webpage, 'video duration', default=None))
+                or get_video_info('duration')),
+            'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}',
             'subtitles': subtitles,
         }
 
