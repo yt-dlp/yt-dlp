@@ -3,17 +3,17 @@ from __future__ import unicode_literals
 
 import hashlib
 import random
-from html import unescape
 
 from ..compat import compat_urlparse, compat_b64decode
 
 from ..utils import (
     ExtractorError,
-    try_get,
-    str_or_none,
     int_or_none,
     js_to_json,
-    update_url_query
+    str_or_none,
+    try_get,
+    unescapeHTML,
+    update_url_query,
 )
 
 from .common import InfoExtractor
@@ -72,7 +72,7 @@ class HuyaLiveIE(InfoExtractor):
         live_source_type = room_info.get('liveSourceType')
         stream_info_list = try_get(stream_data, lambda x: x['data'][0]['gameStreamInfoList'])
         if not stream_info_list:
-            raise ExtractorError('Can not extract media info.', expected=True)
+            raise ExtractorError('Can not extract media info.')
         formats = []
         for stream_info in stream_info_list:
             stream_url = stream_info.get('sFlvUrl')
@@ -80,7 +80,7 @@ class HuyaLiveIE(InfoExtractor):
                 continue
             stream_name = stream_info.get('sStreamName')
             re_secret = not screen_type and live_source_type in (0, 8, 13)
-            params = dict(compat_urlparse.parse_qsl(unescape(stream_info['sFlvAntiCode'])))
+            params = dict(compat_urlparse.parse_qsl(unescapeHTML(stream_info['sFlvAntiCode'])))
             fm, ss = '', ''
             if re_secret:
                 fm, ss = self.encrypt(params, stream_info, stream_name)
@@ -99,7 +99,7 @@ class HuyaLiveIE(InfoExtractor):
                     'tbr': rate,
                     'url': update_url_query(f'{stream_url}/{stream_name}.{stream_info.get("sFlvUrlSuffix")}',
                                             query=params),
-                    **(try_get(self._RESOLUTION, lambda x: x[si.get('sDisplayName')]) or {}),
+                    **self._RESOLUTION.get(si.get('sDisplayName'), {}),
                 })
 
         self._sort_formats(formats)
