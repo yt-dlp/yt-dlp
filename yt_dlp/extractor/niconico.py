@@ -440,7 +440,7 @@ class NiconicoIE(InfoExtractor):
             tags = traverse_obj(api_data, ('tag', 'items', ..., 'name'))
 
         subtitles = None
-        if self.get_param('getcomments', False) or self.get_param('writesubtitles', False):
+        if self.get_param('writesubtitles', False):
             comment_user_key = traverse_obj(api_data, ('comment', 'keys', 'userKey'))
             user_id_str = session_api_data.get('serviceUserId')
 
@@ -450,7 +450,7 @@ class NiconicoIE(InfoExtractor):
                 raw_danmaku = json.dumps(raw_danmaku)
 
                 subtitles = {
-                    'jpn': [{
+                    'comments': [{
                         'ext': 'json',
                         'data': raw_danmaku,
                     }],
