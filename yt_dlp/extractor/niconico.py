@@ -399,7 +399,7 @@ class NiconicoIE(InfoExtractor):
                 api_data = self._download_json(
                     'https://www.nicovideo.jp/api/watch/v3/%s?_frontendId=6&_frontendVersion=0&actionTrackId=AAAAAAAAAA_%d' % (video_id, round(time.time() * 1000)), video_id,
                     note='Downloading API JSON', errnote='Unable to fetch data')['data']
-            except ExtractorError as e:
+            except ExtractorError:
                 if not isinstance(e.cause, compat_HTTPError):
                     raise
                 webpage = e.cause.read().decode('utf-8', 'replace')
@@ -462,7 +462,7 @@ class NiconicoIE(InfoExtractor):
                 or get_video_info('duration')),
             'webpage_url': url_or_none(url) or f'https://www.nicovideo.jp/watch/{video_id}',
             'subtitles': self._get_subtitles(video_id, api_data, session_api_data)
-                if self.get_param('writesubtitles', False) else None,
+                         if self.get_param('writesubtitles', False) else None,
         }
 
     def _get_subtitles(self, video_id, api_data, session_api_data):
@@ -480,7 +480,6 @@ class NiconicoIE(InfoExtractor):
             }
         else:
             self.report_warning(f'Failed to get comments. {bug_reports_message()}')
-
 
     def _extract_all_comments(self, video_id, threads, user_id, user_key):
         auth_data = {
