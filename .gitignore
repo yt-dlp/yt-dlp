@@ -24,6 +24,7 @@ cookies
 
 *.3gp
 *.ape
+*.ass
 *.avi
 *.desktop
 *.flac
@@ -106,6 +107,7 @@ yt-dlp.zip
 *.iml
 .vscode
 *.sublime-*
+*.code-workspace
 
 # Lazy extractors
 */extractor/lazy_extractors.py
