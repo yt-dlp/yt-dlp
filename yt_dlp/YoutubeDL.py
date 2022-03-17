@@ -518,17 +518,6 @@ class YoutubeDL(object):
         'storyboards': {'mhtml'},
     }
 
-    params = None
-    _ies = {}
-    _pps = {k: [] for k in POSTPROCESS_WHEN}
-    _printed_messages = set()
-    _first_webpage_request = True
-    _download_retcode = None
-    _num_downloads = None
-    _playlist_level = 0
-    _playlist_urls = set()
-    _screen_file = None
-
     def __init__(self, params=None, auto_init=True):
         """Create a FileDownloader object with the given options.
         @param auto_init    Whether to load the default extractors and print header (if verbose).
@@ -536,6 +525,7 @@ class YoutubeDL(object):
         """
         if params is None:
             params = {}
+        self.params = params
         self._ies = {}
         self._ies_instances = {}
         self._pps = {k: [] for k in POSTPROCESS_WHEN}
@@ -547,15 +537,21 @@ class YoutubeDL(object):
         self._download_retcode = 0
         self._num_downloads = 0
         self._num_videos = 0
-        self._screen_file = [sys.stdout, sys.stderr][params.get('logtostderr', False)]
-        self._err_file = sys.stderr
-        self.params = params
+        self._playlist_level = 0
+        self._playlist_urls = set()
         self.cache = Cache(self)
 
         windows_enable_vt_mode()
+        self._out_files = {
+            'error': sys.stderr,
+            'print': sys.stderr if self.params.get('logtostderr') else sys.stdout,
+            'console': None if compat_os_name == 'nt' else next(
+                filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
+        }
+        self._out_files['screen'] = sys.stderr if self.params.get('quiet') else self._out_files['print']
         self._allow_colors = {
-            'screen': not self.params.get('no_color') and supports_terminal_sequences(self._screen_file),
-            'err': not self.params.get('no_color') and supports_terminal_sequences(self._err_file),
+            type_: not self.params.get('no_color') and supports_terminal_sequences(self._out_files[type_])
+            for type_ in ('screen', 'error')
         }
 
         if sys.version_info < (3, 6):
@@ -620,7 +616,7 @@ class YoutubeDL(object):
                 sp_kwargs = dict(
                     stdin=subprocess.PIPE,
                     stdout=slave,
-                    stderr=self._err_file)
+                    stderr=self._out_files['error'])
                 try:
                     self._output_process = Popen(['bidiv'] + width_args, **sp_kwargs)
                 except OSError:
@@ -788,14 +784,24 @@ class YoutubeDL(object):
             self._printed_messages.add(message)
         write_string(message, out=out, encoding=self.params.get('encoding'))
 
-    def to_stdout(self, message, skip_eol=False, quiet=False):
+    def to_stdout(self, message, skip_eol=False, quiet=None):
         """Print message to stdout"""
+        if quiet is not None:
+            self.deprecation_warning('"ydl.to_stdout" no longer accepts the argument quiet. Use "ydl.to_screen" instead')
+        self._write_string(
+            '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
+            self._out_files['print'])
+
+    def to_screen(self, message, skip_eol=False, quiet=None):
+        """Print message to screen if not in quiet mode"""
         if self.params.get('logger'):
             self.params['logger'].debug(message)
-        elif not quiet or self.params.get('verbose'):
-            self._write_string(
-                '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
-                self._err_file if quiet else self._screen_file)
+            return
+        if (self.params.get('quiet') if quiet is None else quiet) and not self.params.get('verbose'):
+            return
+        self._write_string(
+            '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
+            self._out_files['screen'])
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
@@ -803,7 +809,12 @@ class YoutubeDL(object):
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
-            self._write_string('%s\n' % self._bidi_workaround(message), self._err_file, only_once=only_once)
+            self._write_string('%s\n' % self._bidi_workaround(message), self._out_files['error'], only_once=only_once)
+
+    def _send_console_code(self, code):
+        if compat_os_name == 'nt' or not self._out_files['console']:
+            return
+        self._write_string(code, self._out_files['console'])
 
     def to_console_title(self, message):
         if not self.params.get('consoletitle', False):
@@ -814,26 +825,18 @@ class YoutubeDL(object):
                 # c_wchar_p() might not be necessary if `message` is
                 # already of type unicode()
                 ctypes.windll.kernel32.SetConsoleTitleW(ctypes.c_wchar_p(message))
-        elif 'TERM' in os.environ:
-            self._write_string('\033]0;%s\007' % message, self._screen_file)
+        else:
+            self._send_console_code(f'\033]0;{message}\007')
 
     def save_console_title(self):
-        if not self.params.get('consoletitle', False):
+        if not self.params.get('consoletitle') or self.params.get('simulate'):
             return
-        if self.params.get('simulate'):
-            return
-        if compat_os_name != 'nt' and 'TERM' in os.environ:
-            # Save the title on stack
-            self._write_string('\033[22;0t', self._screen_file)
+        self._send_console_code('\033[22;0t')  # Save the title on stack
 
     def restore_console_title(self):
-        if not self.params.get('consoletitle', False):
+        if not self.params.get('consoletitle') or self.params.get('simulate'):
             return
-        if self.params.get('simulate'):
-            return
-        if compat_os_name != 'nt' and 'TERM' in os.environ:
-            # Restore the title from stack
-            self._write_string('\033[23;0t', self._screen_file)
+        self._send_console_code('\033[23;0t')  # Restore the title from stack
 
     def __enter__(self):
         self.save_console_title()
@@ -879,11 +882,6 @@ class YoutubeDL(object):
             raise DownloadError(message, exc_info)
         self._download_retcode = 1
 
-    def to_screen(self, message, skip_eol=False):
-        """Print message to stdout if not in quiet mode"""
-        self.to_stdout(
-            message, skip_eol, quiet=self.params.get('quiet', False))
-
     class Styles(Enum):
         HEADERS = 'yellow'
         EMPHASIS = 'light blue'
@@ -907,11 +905,11 @@ class YoutubeDL(object):
 
     def _format_screen(self, *args, **kwargs):
         return self._format_text(
-            self._screen_file, self._allow_colors['screen'], *args, **kwargs)
+            self._out_files['screen'], self._allow_colors['screen'], *args, **kwargs)
 
     def _format_err(self, *args, **kwargs):
         return self._format_text(
-            self._err_file, self._allow_colors['err'], *args, **kwargs)
+            self._out_files['error'], self._allow_colors['error'], *args, **kwargs)
 
     def report_warning(self, message, only_once=False):
         '''
@@ -3604,7 +3602,7 @@ class YoutubeDL(object):
         encoding_str = 'Encodings: locale %s, fs %s, out %s, err %s, pref %s' % (
             locale.getpreferredencoding(),
             sys.getfilesystemencoding(),
-            get_encoding(self._screen_file), get_encoding(self._err_file),
+            get_encoding(self._out_files['screen']), get_encoding(self._out_files['error']),
             self.get_encoding())
 
         logger = self.params.get('logger')

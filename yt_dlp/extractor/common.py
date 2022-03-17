@@ -3651,11 +3651,11 @@ class InfoExtractor(object):
 
     @staticmethod
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
-        """ Merge subtitle items for one language. Items with duplicated URLs
+        """ Merge subtitle items for one language. Items with duplicated URLs/data
         will be dropped. """
-        list1_urls = set([item['url'] for item in subtitle_list1])
+        list1_data = set([item.get('url') or item['data'] for item in subtitle_list1])
         ret = list(subtitle_list1)
-        ret.extend([item for item in subtitle_list2 if item['url'] not in list1_urls])
+        ret.extend([item for item in subtitle_list2 if (item.get('url') or item['data']) not in list1_data])
         return ret
 
     @classmethod
