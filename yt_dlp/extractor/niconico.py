@@ -472,6 +472,7 @@ class NiconicoIE(InfoExtractor):
         raw_danmaku = self._extract_all_comments(video_id, thread_ids, user_id_str, comment_user_key)
         if not raw_danmaku:
             self.report_warning(f'Failed to get comments. {bug_reports_message()}')
+            return
         return {
             'comments': [{
                 'ext': 'json',
