@@ -6,43 +6,33 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_iso8601,
-    urljoin,
+    traverse_obj,
     try_get,
 )
 
 
 class WASDTVBaseIE(InfoExtractor):
-    _API_BASE = 'https://wasd.tv/api/'
 
     def _fetch(self, path, video_id, description, query={}):
         response = self._download_json(
-            urljoin(self._API_BASE, path),
-            video_id=video_id,
+            f'https://wasd.tv/api/{path}', video_id, query=query,
             note=f'Downloading {description} metadata',
-            errnote=f'Unable to download {description} metadata',
-            query=query)
+            errnote=f'Unable to download {description} metadata')
         error = response.get('error')
         if error:
             raise ExtractorError(f'{self.IE_NAME} returned error: {error}', expected=True)
         return response.get('result')
 
     def _extract_thumbnails(self, thumbnails_dict):
-        if not thumbnails_dict:
-            return None
-        thumbnails = []
-        for index, thumbnail_size in enumerate(['small', 'medium', 'large']):
-            thumbnail_url = thumbnails_dict.get(thumbnail_size)
-            if not thumbnail_url:
-                continue
-            thumbnails.append({
-                'url': thumbnail_url,
-                'preference': index,
-            })
-        return thumbnails
+        return [{
+            'url': url,
+            'preference': index,
+        } for index, url in enumerate(
+            traverse_obj(thumbnails_dict, (('small', 'medium', 'large'),))) if url]
 
     def _real_extract(self, url):
         container = self._get_container(url)
-        stream = try_get(container, lambda x: x['media_container_streams'][0])
+        stream = traverse_obj(container, ('media_container_streams', 0))
         media = try_get(stream, lambda x: x['stream_media'][0])
         if not media:
             raise ExtractorError('Can not extract media data.', expected=True)
@@ -62,6 +52,12 @@ class WASDTVBaseIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
+
+    def _get_container(self, url):
+        raise NotImplementedError('Subclass for get media container')
+
+    def _get_media_url(self, media_meta):
+        raise NotImplementedError('Subclass for get media url')
 
 
 class WASDTVStreamIE(WASDTVBaseIE):
@@ -160,7 +156,7 @@ class WASDTVClipIE(WASDTVBaseIE):
         self._sort_formats(formats)
         return {
             'id': clip_id,
-            'title': clip.get('clip_title') or self._og_search_title(self._download_webpage(url, clip_id)),
+            'title': clip.get('clip_title') or self._og_search_title(self._download_webpage(url, clip_id, fatal=False)),
             'thumbnails': self._extract_thumbnails(clip_data.get('preview')),
             'timestamp': parse_iso8601(clip.get('created_at')),
             'view_count': int_or_none(clip.get('clip_views_count')),
