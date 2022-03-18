@@ -5,7 +5,6 @@ from .common import InfoExtractor
 
 from ..utils import (
     int_or_none,
-    join_nonempty,
     mimetype2ext,
     str_or_none,
     unified_timestamp,
@@ -50,10 +49,10 @@ class VeoIE(InfoExtractor):
             if not format_url or mimetype == 'video/mp2t':
                 continue
             height = int_or_none(fmt.get('height'))
-            format_id = join_nonempty(fmt.get('render_type'), height)
+            render_type = str_or_none(fmt.get('render_type'))
             formats.append({
                 'url': format_url,
-                'format_id': format_id + 'p' if format_id else None,
+                'format_id': f'{render_type}-{height}p' if render_type and height else None,
                 'ext': mimetype2ext(mimetype),
                 'width': int_or_none(fmt.get('width')),
                 'height': height,
