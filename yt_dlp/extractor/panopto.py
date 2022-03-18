@@ -27,28 +27,28 @@ class PanoptoBaseIE(InfoExtractor):
     BASE_URL_RE = r'(?P<base_url>https?://[\w.-]+\.panopto.(?:com|eu)/Panopto)'
 
     _SUB_LANG_MAPPING = {
-        0: 'en',
+        0: 'en-US',
         1: 'en-GB',
         2: 'es-MX',
         3: 'es-ES',
-        4: 'de',
-        5: 'fr',
-        6: 'nl',
-        7: 'th',
+        4: 'de-DE',
+        5: 'fr-FR',
+        6: 'nl-NL',
+        7: 'th-TH',
         8: 'zh-CN',
         9: 'zh-TW',
-        10: 'kr',
-        11: 'ja',
-        12: 'ru',
-        13: 'pt',
-        14: 'pl',
+        10: 'ko-KR',
+        11: 'ja-JP',
+        12: 'ru-RU',
+        13: 'pt-PT',
+        14: 'pl-PL',
         15: 'en-AU',
-        16: 'da',
-        17: 'fi',
-        18: 'hu',
-        19: 'nb',
-        20: 'sv',
-        21: 'it'
+        16: 'da-DK',
+        17: 'fi-FI',
+        18: 'hu-HU',
+        19: 'nb-NO',
+        20: 'sv-SE',
+        21: 'it-IT'
     }
 
     def _call_api(self, base_url, path, video_id, data=None, fatal=True, **kwargs):
@@ -303,7 +303,7 @@ class PanoptoIE(PanoptoBaseIE):
             )
             if not isinstance(response, list):
                 continue
-            subtitles.setdefault(self._SUB_LANG_MAPPING.get(lang) or 'en', []).append({
+            subtitles.setdefault(self._SUB_LANG_MAPPING.get(lang) or 'default', []).append({
                 'ext': 'srt',
                 'data': self._json2srt(response, delivery),
             })
