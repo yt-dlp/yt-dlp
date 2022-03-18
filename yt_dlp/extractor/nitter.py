@@ -160,7 +160,7 @@ class NitterIE(InfoExtractor):
                 'uploader_id': 'Le___Doc',
                 'uploader_url': 'https://%s/Le___Doc' % current_instance,
                 'upload_date': '20200829',
-                'timestamp': 1598711341,
+                'timestamp': 1598711340,
                 'view_count': int,
                 'like_count': int,
                 'repost_count': int,
@@ -178,7 +178,7 @@ class NitterIE(InfoExtractor):
                 'uploader_id': 'mozilla',
                 'uploader_url': 'https://%s/mozilla' % current_instance,
                 'upload_date': '20201027',
-                'timestamp': 1603820982,
+                'timestamp': 1603820940,
                 'view_count': int,
                 'like_count': int,
                 'repost_count': int,
@@ -268,7 +268,7 @@ class NitterIE(InfoExtractor):
                 'url': thumbnail + '%3A' + id,
             })
 
-        date = self._html_search_regex(r'<span[^>]+class="tweet-date"[^>]*><a[^>]+title="([^"]+)"', webpage, 'upload date', fatal=False)
+        date = self._html_search_regex(r'<span[^>]+class="tweet-date"[^>]*><a[^>]+title="([^"]+)"', webpage, 'upload date', default='').replace('·', '')
         upload_date = unified_strdate(date)
         timestamp = unified_timestamp(date)
 
