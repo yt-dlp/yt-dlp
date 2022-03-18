@@ -48,18 +48,26 @@ class VeoIE(InfoExtractor):
             # skip configuration file for panoramic video
             if not format_url or mimetype == 'video/mp2t':
                 continue
+
             height = int_or_none(fmt.get('height'))
             render_type = str_or_none(fmt.get('render_type'))
+            format_id = f'{render_type}-{height}p' if render_type and height else None
+
+            # Veo returns panoramic video information even if panoramic video is not available.
+            # e.g. https://app.veo.co/matches/20201027-last-period/
+            if render_type == 'panorama':
+                if not self._is_valid_url(format_url, video_id, format_id):
+                    continue
+
             formats.append({
                 'url': format_url,
-                'format_id': f'{render_type}-{height}p' if render_type and height else None,
+                'format_id': format_id,
                 'ext': mimetype2ext(mimetype),
                 'width': int_or_none(fmt.get('width')),
                 'height': height,
                 'vbr': int_or_none(fmt.get('bit_rate'), scale=1000),
             })
 
-        self._check_formats(formats, video_id)
         self._sort_formats(formats)
 
         return {
