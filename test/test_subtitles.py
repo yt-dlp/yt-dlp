@@ -411,49 +411,5 @@ class TestPBSSubtitles(BaseTestSubtitles):
         self.assertIn(md5(subtitles['en']), ['4256b16ac7da6a6780fafd04294e85cd'])
 
 
-@is_download_test
-class TestPanoptoSubtitles(BaseTestSubtitles):
-    url = 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=8285224a-9a2b-4957-84f2-acb0000c4ea9'
-    IE = PanoptoIE
-
-    def test_allsubtitles(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en-US', 'es-ES']))
-        self.assertEqual(md5(subtitles['en-US']), 'a3f4d25963fdeace838f327097c13265')
-        self.assertEqual(md5(subtitles['es-ES']), '57e9dad365fd0fbaf0468eac4949f189')
-
-    def test_subtitles_srt_format(self):
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['subtitlesformat'] = 'srt'
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(md5(subtitles['en-US']), 'a3f4d25963fdeace838f327097c13265')
-
-    def test_subtitles_vtt_format(self):
-        self.url = 'https://na-training-2.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a192ea27-82dc-4d50-8acd-acd3013069fa'
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['subtitlesformat'] = 'vtt'
-        subtitles = self.getSubtitles()
-        self.assertEqual(md5(subtitles['en']), '67f71051ad26195869c6cc29ec955895')
-
-    def test_blank_subtitles(self):
-        # On Panopto there are two subs: "Default" and en-US. en-US is blank and should be skipped.
-        self.url = 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=940cbd41-f616-4a45-b13e-aaf1000c915b'
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertEqual(md5(subtitles['default']), '25fa274a5182f4a41a757ff215047fef')
-        self.assertNotIn('en-US', subtitles)
-
-    def test_no_subtitles(self):
-        self.url = 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=495ac261-8cf8-4ea5-9714-ad4701326a1b'
-        self.DL.params['writesubtitles'] = True
-        self.DL.params['allsubtitles'] = True
-        subtitles = self.getSubtitles()
-        self.assertFalse(subtitles)
-
-
 if __name__ == '__main__':
     unittest.main()

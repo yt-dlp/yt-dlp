@@ -88,7 +88,7 @@ class PanoptoIE(PanoptoBaseIE):
                 'id': '26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
                 'title': 'Panopto for Business - Use Cases',
                 'timestamp': 1459184200,
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
                 'upload_date': '20160328',
                 'ext': 'mp4',
                 'cast': [],
@@ -107,7 +107,7 @@ class PanoptoIE(PanoptoBaseIE):
                 'title': 'Overcoming Top 4 Challenges of Enterprise Video',
                 'uploader': 'Panopto Support',
                 'timestamp': 1449409251,
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
                 'upload_date': '20151206',
                 'ext': 'mp4',
                 'chapters': 'count:12',
@@ -133,7 +133,7 @@ class PanoptoIE(PanoptoBaseIE):
                 'tags': ['Viewer', 'Enterprise'],
                 'chapters': [],
                 'upload_date': '20190930',
-                'thumbnail': r're:https://howtovideos\.hosted\.panopto\.com/Panopto/Services/FrameGrabber.svc/FrameRedirect\?objectId=5fa74e93-3d87-4694-b60e-aaa4012214ed&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://howtovideos\.hosted\.panopto\.com/.+',
                 'description': 'md5:2d844aaa1b1a14ad0e2601a0993b431f',
                 'title': 'Getting Started: View a Video',
                 'average_rating': int,
@@ -158,7 +158,7 @@ class PanoptoIE(PanoptoBaseIE):
                 'uploader': 'LTS CLI Script',
                 'timestamp': 1572458134,
                 'title': 'WW2 Vets Interview 3 Ronald Stanley George',
-                'thumbnail': r're:https://unisa\.au\.panopto\.com/Panopto/Services/FrameGrabber.svc/FrameRedirect\?objectId=9d9a0fa3-e99a-4ebd-a281-aac2017f4da4&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://unisa\.au\.panopto\.com/.+',
                 'channel': 'World War II Veteran Interviews',
                 'upload_date': '20191030',
             },
@@ -181,7 +181,7 @@ class PanoptoIE(PanoptoBaseIE):
                 'description': 'md5:55e51d54233ddb0e6c2ed388ca73822c',
                 'cast': ['ISR Videographer', 'Panopto Support'],
                 'chapters': 'count:28',
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=a7f12f1d-3872-4310-84b0-f8d8ab15326b&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
             },
             'params': {'format': 'mhtml', 'skip_download': True}
         },
@@ -202,19 +202,39 @@ class PanoptoIE(PanoptoBaseIE):
                 'uploader': 'Cait M.',
                 'upload_date': '20210306',
                 'cast': ['Cait M.'],
-                'subtitles': {'en-US': [{'ext': 'srt', 'data': 'md5:a3f4d25963fdeace838f327097c13265'}]},
+                'subtitles': {'en-US': [{'ext': 'srt', 'data': 'md5:a3f4d25963fdeace838f327097c13265'}],
+                              'es-ES': [{'ext': 'srt', 'data': 'md5:57e9dad365fd0fbaf0468eac4949f189'}]},
             },
             'params': {'writesubtitles': True, 'skip_download': True}
         }, {
+            # On Panopto there are two subs: "Default" and en-US. en-US is blank and should be skipped.
+            'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=940cbd41-f616-4a45-b13e-aaf1000c915b',
+            'info_dict': {
+                'id': '940cbd41-f616-4a45-b13e-aaf1000c915b',
+                'ext': 'mp4',
+                'subtitles': 'count:1',
+                'title': 'HR Benefits Review Meeting*',
+                'cast': ['Panopto Support'],
+                'chapters': [],
+                'timestamp': 1575024251,
+                'thumbnail': r're:https://na-training-1\.hosted\.panopto\.com/.+',
+                'channel': 'Zoom',
+                'description': 'md5:04f90a9c2c68b7828144abfb170f0106',
+                'uploader': 'Panopto Support',
+                'average_rating': 0,
+                'duration': 409.34499999999997,
+                'uploader_id': 'b6ac04ad-38b8-4724-a004-a851004ea3df',
+                'upload_date': '20191129',
+
+            },
+            'params': {'writesubtitles': True, 'skip_download': True}
+        },
+        {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
             'only_matching': True
         },
         {
             'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
-            'only_matching': True
-        },
-        {
-            'url': 'https://na-training-2.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a192ea27-82dc-4d50-8acd-acd3013069fa',
             'only_matching': True
         }
     ]
