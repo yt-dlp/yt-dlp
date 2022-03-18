@@ -2279,7 +2279,7 @@ def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     num, factor = float_or_none(num), float(factor)
     if num is None or num < 0:
         return None
-    exponent = 0 if num == 0 else int(math.log(num, factor))
+    exponent = 0 if num == 0 else min(int(math.log(num, factor)), 8)
     suffix = ['', *'kMGTPEZY'][exponent]
     if factor == 1024:
         suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
