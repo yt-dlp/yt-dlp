@@ -250,10 +250,13 @@ class NitterIE(InfoExtractor):
         if uploader:
             title = '%s - %s' % (uploader, title)
 
-        view_count = parse_count(self._html_search_regex(r'<span[^>]+class="icon-play[^>]*></span>\s([^<]+)</div>', webpage, 'view count', fatal=False))
-        like_count = parse_count(self._html_search_regex(r'<span[^>]+class="icon-heart[^>]*></span>\s([^<]+)</div>', webpage, 'like count', fatal=False))
-        repost_count = parse_count(self._html_search_regex(r'<span[^>]+class="icon-retweet[^>]*></span>\s([^<]+)</div>', webpage, 'repost count', fatal=False))
-        comment_count = parse_count(self._html_search_regex(r'<span[^>]+class="icon-comment[^>]*></span>\s([^<]+)</div>', webpage, 'repost count', fatal=False))
+        counts = {
+            f'{x[0]}_count': self._html_search_regex(
+                fr'<span[^>]+class="icon-{x[1]}[^>]*></span>([^<]*)</div>',
+                webpage, f'{x[0]} count', fatal=False)
+            for x in (('view', 'play'), ('like', 'heart'), ('repost', 'retweet'), ('comment', 'comment'))
+        }
+        counts = {field: 0 if count == '' else parse_count(count) for field, count in counts.items()}
 
         thumbnail = self._html_search_meta('og:image', full_webpage, 'thumbnail url')
         if not thumbnail:
@@ -280,12 +283,8 @@ class NitterIE(InfoExtractor):
             'timestamp': timestamp,
             'uploader_id': uploader_id,
             'uploader_url': uploader_url,
-            'view_count': view_count,
-            'like_count': like_count,
-            'repost_count': repost_count,
-            'comment_count': comment_count,
             'formats': formats,
             'thumbnails': thumbnails,
             'thumbnail': thumbnail,
             'upload_date': upload_date,
-        }
+        } | counts
