@@ -329,11 +329,15 @@ class RokfinSearchIE(SearchInfoExtractor):
                 self._BASE_URL + js_file_path.group('path'), self._SEARCH_KEY,
                 note='Downloading JavaScript file', fatal=False) or ''
             if not search_engine_access_url:
-                search_engine_access_url_mobj = re.search(r'REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)"', js_content)
-                search_engine_access_url = url_or_none(search_engine_access_url_mobj.group('url') + '/api/as/v1/engines/rokfin-search/search.json') if search_engine_access_url_mobj else None
+                search_engine_access_url = self._search_regex(
+                    r'REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)"', js_content,
+                    name='Search engine URL', default=None, fatal=False, group='url')
+                search_engine_access_url = url_or_none(search_engine_access_url + '/api/as/v1/engines/rokfin-search/search.json') if search_engine_access_url else None
             if not search_engine_access_key:
-                search_engine_access_key_mobj = re.search(r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)"', js_content)
-                search_engine_access_key = ('Bearer ' + search_engine_access_key_mobj.group('key')) if search_engine_access_key_mobj else None
+                search_engine_access_key = self._search_regex(
+                    r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)"', js_content,
+                    name='Search engine access key', default=None, fatal=False, group='key')
+                search_engine_access_key = ('Bearer ' + search_engine_access_key) if search_engine_access_key else None
             if search_engine_access_url and search_engine_access_key:
                 self._downloader.cache.store(self._CACHE_SECTION_NAME, 'url', search_engine_access_url)
                 self._downloader.cache.store(self._CACHE_SECTION_NAME, 'key', search_engine_access_key)
