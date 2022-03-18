@@ -186,6 +186,26 @@ class PanoptoIE(PanoptoBaseIE):
             'params': {'format': 'mhtml', 'skip_download': True}
         },
         {
+            'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=8285224a-9a2b-4957-84f2-acb0000c4ea9',
+            'info_dict': {
+                'id': '8285224a-9a2b-4957-84f2-acb0000c4ea9',
+                'ext': 'mp4',
+                'chapters': [],
+                'title': 'Company Policy',
+                'average_rating': 0,
+                'timestamp': 1615058901,
+                'channel': 'Human Resources',
+                'tags': ['HumanResources'],
+                'duration': 1604.243,
+                'thumbnail': r're:https://na-training-1\.hosted\.panopto\.com/.+',
+                'uploader_id': '8e8ba0a3-424f-40df-a4f1-ab3a01375103',
+                'uploader': 'Cait M.',
+                'upload_date': '20210306',
+                'cast': ['Cait M.'],
+                'subtitles': {'en-US': [{'ext': 'srt', 'data': 'md5:a3f4d25963fdeace838f327097c13265'}]},
+            },
+            'params': {'writesubtitles': True, 'skip_download': True}
+        }, {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
             'only_matching': True
         },
