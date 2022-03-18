@@ -26,6 +26,7 @@ from ..utils import (
 class PanoptoBaseIE(InfoExtractor):
     BASE_URL_RE = r'(?P<base_url>https?://[\w.-]+\.panopto.(?:com|eu)/Panopto)'
 
+    # see panopto core.js
     _SUB_LANG_MAPPING = {
         0: 'en-US',
         1: 'en-GB',
@@ -236,7 +237,7 @@ class PanoptoIE(PanoptoBaseIE):
         {
             'url': 'https://brown.hosted.panopto.com/Panopto/Pages/Embed.aspx?id=0b3ff73b-36a0-46c5-8455-aadf010a3638',
             'only_matching': True
-        }
+        },
     ]
 
     @classmethod

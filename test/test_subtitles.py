@@ -28,7 +28,6 @@ from yt_dlp.extractor import (
     ThePlatformFeedIE,
     RTVEALaCartaIE,
     DemocracynowIE,
-    PanoptoIE,
 )
 
 
