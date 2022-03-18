@@ -12,7 +12,7 @@ from ..utils import (
 
 
 class VeoIE(InfoExtractor):
-    _VALID_URL = r'https?://app\.veo\.co/matches/(?P<id>[0-9A-Za-z-]+)'
+    _VALID_URL = r'https?://app\.veo\.co/matches/(?P<id>[0-9A-Za-z-_]+)'
 
     _TESTS = [{
         'url': 'https://app.veo.co/matches/20201027-last-period/',
@@ -25,6 +25,9 @@ class VeoIE(InfoExtractor):
             'timestamp': 1603847208,
             'duration': 1916,
         }
+    }, {
+        'url': 'https://app.veo.co/matches/20220313-2022-03-13_u15m-plsjq-vs-csl/',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
