@@ -622,6 +622,7 @@ from .hse import (
     HSEProductIE,
 )
 from .huajiao import HuajiaoIE
+from .huya import HuyaLiveIE
 from .huffpost import HuffPostIE
 from .hungama import (
     HungamaIE,

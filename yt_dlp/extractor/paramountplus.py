@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import itertools
 
 from .common import InfoExtractor
 from .cbs import CBSBaseIE
@@ -128,11 +129,13 @@ class ParamountPlusSeriesIE(InfoExtractor):
             'id': 'spongebob-squarepants',
         }
     }]
-    _API_URL = 'https://www.paramountplus.com/shows/{}/xhr/episodes/page/0/size/100000/xs/0/season/0/'
 
     def _entries(self, show_name):
-        show_json = self._download_json(self._API_URL.format(show_name), video_id=show_name)
-        if show_json.get('success'):
+        for page in itertools.count():
+            show_json = self._download_json(
+                f'https://www.paramountplus.com/shows/{show_name}/xhr/episodes/page/{page}/size/50/xs/0/season/0', show_name)
+            if not show_json.get('success'):
+                return
             for episode in show_json['result']['data']:
                 yield self.url_result(
                     'https://www.paramountplus.com%s' % episode['url'],
