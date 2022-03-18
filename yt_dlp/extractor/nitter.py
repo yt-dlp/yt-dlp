@@ -5,7 +5,6 @@ from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
     parse_count,
-    unified_strdate,
     unified_timestamp,
     remove_end,
     determine_ext,
@@ -125,7 +124,7 @@ class NitterIE(InfoExtractor):
 
     INSTANCES = NON_HTTP_INSTANCES + HTTP_INSTANCES + DEAD_INSTANCES
 
-    _INSTANCES_RE = f'(?:{"|".join([re.escape(instance) for instance in INSTANCES])})'
+    _INSTANCES_RE = f'(?:{"|".join(map(re.escape, INSTANCES))})'
     _VALID_URL = fr'https?://{_INSTANCES_RE}/(?P<uploader_id>.+)/status/(?P<id>[0-9]+)(#.)?'
     current_instance = random.choice(HTTP_INSTANCES)
 
@@ -207,7 +206,7 @@ class NitterIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
         parsed_url = compat_urlparse.urlparse(url)
         base_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
 
@@ -230,14 +229,11 @@ class NitterIE(InfoExtractor):
                 'ext': ext
             }]
 
-        title = self._og_search_description(full_webpage) or self._html_search_regex(
+        title = description = self._og_search_description(full_webpage) or self._html_search_regex(
             r'<div class="tweet-content[^>]+>([^<]+)</div>', webpage, 'title', fatal=False)
-        description = title
 
-        uploader_id = (
-            self._html_search_regex(
-                r'<a class="username"[^>]+title="@([^"]+)"', webpage, 'uploader id', fatal=False)
-            or self._match_valid_url(url).group('uploader_id'))
+        uploader_id = self._html_search_regex(
+            r'<a class="username"[^>]+title="@([^"]+)"', webpage, 'uploader id', fatal=False) or uploader_id
 
         uploader = self._html_search_regex(
             r'<a class="fullname"[^>]+title="([^"]+)"', webpage, 'uploader name', fatal=False)
@@ -277,6 +273,5 @@ class NitterIE(InfoExtractor):
             'formats': formats,
             'thumbnails': thumbnails,
             'thumbnail': thumbnail,
-            'upload_date': unified_strdate(date),
             **counts,
         }
