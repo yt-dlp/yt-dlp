@@ -53,7 +53,6 @@ class HttpFD(FileDownloader):
 
         ctx.open_mode = 'wb'
         ctx.resume_len = 0
-        ctx.data_len = None
         ctx.block_size = self.params.get('buffersize', 1024)
         ctx.start_time = time.time()
         ctx.chunk_size = None
@@ -124,8 +123,8 @@ class HttpFD(FileDownloader):
                 ctx.open_mode = 'wb'
                 raise RetryDownload(Exception(f'Conflicting range. (start={range_start} > end={range_end})'))
 
-            if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
-                range_end = ctx.data_len - 1
+            if range_end and ctx.content_len is not None and range_end >= ctx.content_len:
+                range_end = ctx.content_len - 1
             request = sanitized_Request(url, request_data, headers)
             if has_range:
                 set_range(request, range_start, range_end)
@@ -157,6 +156,7 @@ class HttpFD(FileDownloader):
                             or content_range_end == range_end
                             or content_len < range_end)
                         if accept_content_len:
+                            ctx.content_len = content_len
                             ctx.data_len = min(content_len, req_end or content_len) - (req_start or 0)
                             return
                     # Content-Range is either not present or invalid. Assuming remote webserver is
@@ -165,8 +165,7 @@ class HttpFD(FileDownloader):
                     self.report_unable_to_resume()
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
-                ctx.data_len = int_or_none(ctx.data.info().get('Content-length', None))
-                return
+                ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
             except (compat_urllib_error.HTTPError, ) as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
@@ -349,7 +348,7 @@ class HttpFD(FileDownloader):
                 elif speed:
                     throttle_start = None
 
-            if not is_test and ctx.chunk_size and ctx.data_len is not None and byte_counter < ctx.data_len:
+            if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
                 ctx.resume_len = byte_counter
                 # ctx.block_size = block_size
                 raise NextFragment()
