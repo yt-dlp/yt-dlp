@@ -5,7 +5,9 @@ from .common import InfoExtractor
 
 from ..utils import (
     int_or_none,
+    join_nonempty,
     mimetype2ext,
+    str_or_none,
     unified_timestamp,
     url_or_none,
 )
@@ -24,6 +26,7 @@ class VeoIE(InfoExtractor):
             'upload_date': '20201028',
             'timestamp': 1603847208,
             'duration': 1916,
+            'view_count': int,
         }
     }, {
         'url': 'https://app.veo.co/matches/20220313-2022-03-13_u15m-plsjq-vs-csl/',
@@ -39,39 +42,33 @@ class VeoIE(InfoExtractor):
         video_data = self._download_json(
             'https://app.veo.co/api/app/matches/%s/videos' % video_id, video_id, 'Downloading video data')
 
-        title = metadata.get('title')
-        thumbnail = url_or_none(metadata.get('thumbnail'))
-
-        timestamp = unified_timestamp(metadata.get('created'))
-        duration = int_or_none(metadata.get('duration'))
-        view_count = int_or_none(metadata.get('view_count'))
-
         formats = []
         for fmt in video_data:
-            mimetype = fmt.get('mime_type')
+            mimetype = str_or_none(fmt.get('mime_type'))
+            format_url = url_or_none(fmt.get('url'))
             # skip configuration file for panoramic video
-            if mimetype == 'video/mp2t':
+            if not format_url or mimetype == 'video/mp2t':
                 continue
             height = int_or_none(fmt.get('height'))
-            bitrate = int_or_none(fmt.get('bit_rate'), scale=1000)
-            render_type = fmt.get('render_type')
+            format_id = join_nonempty(fmt.get('render_type'), height)
             formats.append({
-                'url': url_or_none(fmt.get('url')),
-                'format_id': '%s-%sp' % (render_type, height),
+                'url': format_url,
+                'format_id': format_id + 'p' if format_id else None,
                 'ext': mimetype2ext(mimetype),
                 'width': int_or_none(fmt.get('width')),
                 'height': height,
-                'vbr': bitrate
+                'vbr': int_or_none(fmt.get('bit_rate'), scale=1000),
             })
 
+        self._check_formats(formats, video_id)
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
+            'title': str_or_none(metadata.get('title')),
             'formats': formats,
-            'thumbnail': thumbnail,
-            'timestamp': timestamp,
-            'view_count': view_count,
-            'duration': duration
+            'thumbnail': url_or_none(metadata.get('thumbnail')),
+            'timestamp': unified_timestamp(metadata.get('created')),
+            'view_count': int_or_none(metadata.get('view_count')),
+            'duration': int_or_none(metadata.get('duration')),
         }
