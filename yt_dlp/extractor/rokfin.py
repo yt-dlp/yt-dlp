@@ -3,7 +3,6 @@ import itertools
 from datetime import datetime
 import re
 import json
-import functools
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
@@ -270,15 +269,21 @@ class RokfinSearchIE(SearchInfoExtractor):
         'dead_stream': (('content_id', 'raw'), 'stream'),
         'stack': (('content_id', 'raw'), 'stack'),
     }
-    _ENTRIES_PER_PAGE = 100
     _BASE_URL = 'https://rokfin.com'
-    _service_url = None
-    _service_access_key = None
+    _CACHE_SECTION_NAME = 'rokfin-search-engine-access'
+    _search_engine_access_url = None
+    _search_engine_access_key = None
+
+    def _real_initialize(self):
+        self._search_engine_access_url = self._downloader.cache.load(self._CACHE_SECTION_NAME, 'url')
+        self._search_engine_access_key = self._downloader.cache.load(self._CACHE_SECTION_NAME, 'key')
+        if not self._search_engine_access_url or not self._search_engine_access_key:
+            self._search_engine_access_url, self._search_engine_access_key = self._get_search_engine_access_credentials()
 
     def _search_results(self, query):
         def get_video_data(metadata):
             for search_result in metadata.get('results', []):
-                video_id_ind, video_type = self._TYPES.get(str_or_none(traverse_obj(search_result, ('content_type', 'raw'))), (None, None))
+                video_id_ind, video_type = self._TYPES.get(traverse_obj(search_result, ('content_type', 'raw')), (None, None))
                 video_id = traverse_obj(search_result, video_id_ind, expected_type=int_or_none)
                 if not video_id or not video_type:
                     self.write_debug(msg=f'skipping {search_result}')
@@ -286,35 +291,50 @@ class RokfinSearchIE(SearchInfoExtractor):
                 yield self.url_result(url=f'{self._BASE_URL}/{video_type}/{video_id}')
         if not query:
             return
-        if not self._service_url or not self._service_access_key:
-            self._service_url, self._service_access_key = self._get_access_credentials()
-        QUERY_DATA = {'query': query, 'page': {'size': self._ENTRIES_PER_PAGE, 'current': 1}}
+        query_data = {'query': query, 'page': {'size': 100}}
         total_pages = None
-        while True:
-            search_results = self._download_json(
-                self._service_url, self._SEARCH_KEY, headers={'authorization': self._service_access_key},
-                data=json.dumps(QUERY_DATA).encode('utf-8'), encoding='utf-8',
-                note='Downloading search results page %d%s' % (QUERY_DATA['page']['current'], (' of ~%d') % (total_pages,) if total_pages and total_pages >= QUERY_DATA['page']['current'] else ''),
-                fatal=False) or {}
-            QUERY_DATA['page']['current'] += 1
+        for page_number in itertools.count(1):
+            query_data['page']['current'] = page_number
+            search_results = self._run_search_query(
+                data=query_data,
+                note='Downloading search results page %d%s' % (page_number, format_field(total_pages, template=' of ~%d') if total_pages and total_pages >= page_number else ''),
+                errnote='Unable to download search results page %d%s' % (page_number, format_field(total_pages, template=' of ~%d') if total_pages and total_pages >= page_number else ''))
             total_pages = traverse_obj(search_results, ('meta', 'page', 'total_pages'), expected_type=int_or_none)
             yield from get_video_data(search_results)
             if not search_results.get('results'):
                 return
 
-    def _get_access_credentials(self):
+    def _run_search_query(self, data, note, errnote):
+        data_bytes = json.dumps(data).encode('utf-8')
+        search_results = self._download_json(
+            self._search_engine_access_url, self._SEARCH_KEY, note=note, errnote=errnote, fatal=False,
+            encoding='utf-8', data=data_bytes, headers={'authorization': self._search_engine_access_key})
+        if search_results is not False:
+            return search_results
+        self.write_debug('updating access credentials')
+        self._search_engine_access_url = self._search_engine_access_key = None
+        self._downloader.cache.store(self._CACHE_SECTION_NAME, 'url', None)
+        self._downloader.cache.store(self._CACHE_SECTION_NAME, 'key', None)
+        self._search_engine_access_url, self._search_engine_access_key = self._get_search_engine_access_credentials()
+        return self._download_json(
+            self._search_engine_access_url, self._SEARCH_KEY, note=note, errnote=errnote, fatal=False,
+            encoding='utf-8', data=data_bytes, headers={'authorization': self._search_engine_access_key}) or {}
+
+    def _get_search_engine_access_credentials(self):
         notfound_err_page = self._download_webpage('https://rokfin.com/discover', self._SEARCH_KEY, expected_status=404, fatal=False)
-        js = functools.reduce(
-            lambda result, m: result + self._download_webpage(
-                self._BASE_URL + m.group('path'), self._SEARCH_KEY,
-                note='Downloading JavaScript file', fatal=False) or '',
-            re.finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', notfound_err_page), '')
-        service_url = None
-        services_access_key = None
-        for m in re.finditer(r'(REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)")|(REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)")', js):
-            if m.group('url'):
-                service_url = m.group('url') + '/api/as/v1/engines/rokfin-search/search.json'
-            elif m.group('key'):
-                services_access_key = 'Bearer ' + m.group('key')
-            if service_url and services_access_key:
-                return (service_url, services_access_key)
+        js_content = ''
+        search_engine_access_url = search_engine_access_key = None
+        for js_file_path in re.finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', notfound_err_page):
+            js_content += self._download_webpage(
+                self._BASE_URL + js_file_path.group('path'), self._SEARCH_KEY,
+                note='Downloading JavaScript file', fatal=False) or ''
+            if not search_engine_access_url:
+                search_engine_access_url_mobj = re.search(r'REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)"', js_content)
+                search_engine_access_url = url_or_none(search_engine_access_url_mobj.group('url') + '/api/as/v1/engines/rokfin-search/search.json') if search_engine_access_url_mobj else None
+            if not search_engine_access_key:
+                search_engine_access_key_mobj = re.search(r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)"', js_content)
+                search_engine_access_key = ('Bearer ' + search_engine_access_key_mobj.group('key')) if search_engine_access_key_mobj else None
+            if search_engine_access_url and search_engine_access_key:
+                self._downloader.cache.store(self._CACHE_SECTION_NAME, 'url', search_engine_access_url)
+                self._downloader.cache.store(self._CACHE_SECTION_NAME, 'key', search_engine_access_key)
+                return (search_engine_access_url, search_engine_access_key)
