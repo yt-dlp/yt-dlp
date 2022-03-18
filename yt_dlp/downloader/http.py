@@ -23,7 +23,7 @@ from ..utils import (
     XAttrUnavailableError,
 )
 
-HTTP_RES_READ_EXCEPTIONS = (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException)
+RESPONSE_READ_EXCEPTIONS = (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException)
 
 
 class HttpFD(FileDownloader):
@@ -203,7 +203,7 @@ class HttpFD(FileDownloader):
                 raise RetryDownload(err)
             # In urllib.request.AbstractHTTPHandler, the response is partially read on request,
             # in which during any of these errors will not be wrapped by URLError
-            except HTTP_RES_READ_EXCEPTIONS as err:
+            except RESPONSE_READ_EXCEPTIONS as err:
                 raise RetryDownload(err)
 
         def download():
@@ -250,7 +250,7 @@ class HttpFD(FileDownloader):
                 try:
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
-                except HTTP_RES_READ_EXCEPTIONS as err:
+                except RESPONSE_READ_EXCEPTIONS as err:
                     retry(err)
 
                 byte_counter += len(data_block)
