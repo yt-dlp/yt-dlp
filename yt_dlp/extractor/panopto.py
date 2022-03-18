@@ -280,7 +280,7 @@ class PanoptoIE(PanoptoBaseIE):
                 })
 
             obj_pid, session_id, abs_time = timestamp.get('ObjectPublicIdentifier'), timestamp.get('SessionID'), timestamp.get('AbsoluteTime')
-            if all(v is not None for v in (obj_pid, session_id, abs_time)):
+            if None not in (obj_pid, session_id, abs_time):
                 image_frags.setdefault('chapter', []).append({
                     'url': base_url + f'/Pages/Viewer/Thumb.aspx?eventTargetPID={obj_pid}&sessionPID={session_id}&number={obj_sn}&isPrimary=false&absoluteTime={abs_time}',
                     'duration': duration,
