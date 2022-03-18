@@ -201,8 +201,8 @@ class HttpFD(FileDownloader):
                 if isinstance(err.reason, ssl.CertificateError):
                     raise
                 raise RetryDownload(err)
-            # In urllib.request.AbstractHTTPHandler, the response is partially read on request,
-            # in which during any of these errors will not be wrapped by URLError
+            # In urllib.request.AbstractHTTPHandler, the response is partially read on request.
+            # Any errors that occur during this will not be wrapped by URLError
             except RESPONSE_READ_EXCEPTIONS as err:
                 raise RetryDownload(err)
 
