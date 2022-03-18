@@ -36,7 +36,7 @@ class TestIqiyiSDKInterpreter(unittest.TestCase):
         '''
         logger = WarningLogger()
         ie = IqiyiIE(FakeYDL({'logger': logger}))
-        ie._login('foo', 'bar')
+        ie._perform_login('foo', 'bar')
         self.assertTrue('unable to log in:' in logger.messages[0])
 
 

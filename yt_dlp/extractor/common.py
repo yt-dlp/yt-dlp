@@ -436,10 +436,11 @@ class InfoExtractor(object):
 
     To support username + password (or netrc) login, the extractor must define a
     _NETRC_MACHINE and re-define _perform_login(username, password) and
-    (optionally) _initialize_pre_login() methods. The login method will be called
-    between _initialize_pre_login and _real_initialize if credentials are passed.
-    In cases where it is necessary to have the login process as part of the
-    extraction rather than initialization, _perform_login can be left undefined.
+    (optionally) _initialize_pre_login() methods. The _perform_login method will
+    be called between _initialize_pre_login and _real_initialize if credentials
+    are passed by the user. In cases where it is necessary to have the login
+    process as part of the extraction rather than initialization, _perform_login
+    can be left undefined.
 
     _GEO_BYPASS attribute may be set to False in order to disable
     geo restriction bypass mechanisms for a particular extractor.
