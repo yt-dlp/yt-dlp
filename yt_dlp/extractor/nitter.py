@@ -212,9 +212,8 @@ class NitterIE(InfoExtractor):
         base_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
 
         self._set_cookie(parsed_url.netloc, 'hlsPlayback', 'on')
-        full_webpage = self._download_webpage(url, video_id)
+        full_webpage = webpage = self._download_webpage(url, video_id)
 
-        webpage = full_webpage
         main_tweet_start = full_webpage.find('class="main-tweet"')
         if main_tweet_start > 0:
             webpage = full_webpage[main_tweet_start:]
@@ -235,8 +234,9 @@ class NitterIE(InfoExtractor):
             r'<div class="tweet-content[^>]+>([^<]+)</div>', webpage, 'title', fatal=False)
         description = title
 
-        uploader_id = (self._html_search_regex(
-            r'<a class="username"[^>]+title="@([^"]+)"', webpage, 'uploader id', fatal=False)
+        uploader_id = (
+            self._html_search_regex(
+                r'<a class="username"[^>]+title="@([^"]+)"', webpage, 'uploader id', fatal=False)
             or self._match_valid_url(url).group('uploader_id'))
 
         uploader = self._html_search_regex(
@@ -278,4 +278,5 @@ class NitterIE(InfoExtractor):
             'thumbnails': thumbnails,
             'thumbnail': thumbnail,
             'upload_date': unified_strdate(date),
-        } | counts
+            **counts,
+        }
