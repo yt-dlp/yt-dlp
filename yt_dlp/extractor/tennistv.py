@@ -32,7 +32,7 @@ class TennisTVIE(InfoExtractor):
     _NETRC_MACHINE = 'tennistv'
     _session_token = None
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
 
         login_form = {
             'Email': username,

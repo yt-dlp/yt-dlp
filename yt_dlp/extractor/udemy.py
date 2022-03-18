@@ -168,7 +168,7 @@ class UdemyIE(InfoExtractor):
         self._handle_error(response)
         return response
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         login_popup = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login popup')
 

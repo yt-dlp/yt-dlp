@@ -40,7 +40,7 @@ class TouTvIE(RadioCanadaIE):
     }]
     _CLIENT_KEY = '90505c8d-9c34-4f34-8da1-3a85bdc6d4f4'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         try:
             self._access_token = self._download_json(
                 'https://services.radio-canada.ca/toutv/profiling/accounts/login',

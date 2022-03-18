@@ -821,7 +821,7 @@ class BiliIntlBaseIE(InfoExtractor):
             'extractor_key': BiliIntlIE.ie_key(),
         }
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         try:
             from Cryptodome.PublicKey import RSA
             from Cryptodome.Cipher import PKCS1_v1_5

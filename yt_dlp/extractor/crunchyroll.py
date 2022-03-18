@@ -57,7 +57,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             return
 

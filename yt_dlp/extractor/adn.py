@@ -126,7 +126,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             }])
         return subtitles
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         try:
             access_token = (self._download_json(
                 self._API_BASE_URL + 'authentication/login', None,

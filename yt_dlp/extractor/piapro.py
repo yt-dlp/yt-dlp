@@ -31,7 +31,7 @@ class PiaproIE(InfoExtractor):
 
     _login_status = False
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         login_ok = True
         login_form_strs = {
             '_username': username,

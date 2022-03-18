@@ -59,7 +59,7 @@ class GaiaIE(InfoExtractor):
             auth = self._parse_json(compat_urllib_parse_unquote(auth.value), None, fatal=False)
             self._jwt = auth.get('jwt')
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._jwt:
             return
         auth = self._download_json(

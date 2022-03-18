@@ -51,7 +51,7 @@ class TeamTreeHouseIE(InfoExtractor):
     }]
     _NETRC_MACHINE = 'teamtreehouse'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
 
         signin_page = self._download_webpage(
             'https://teamtreehouse.com/signin',

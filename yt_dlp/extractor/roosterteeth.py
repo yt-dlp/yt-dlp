@@ -21,7 +21,7 @@ class RoosterTeethBaseIE(InfoExtractor):
     _API_BASE = 'https://svod-be.roosterteeth.com'
     _API_BASE_URL = f'{_API_BASE}/api/v1'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._get_cookies(self._API_BASE_URL).get('rt_access_token'):
             return
 

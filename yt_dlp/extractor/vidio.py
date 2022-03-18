@@ -23,7 +23,7 @@ class VidioBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://www.vidio.com/users/login'
     _NETRC_MACHINE = 'vidio'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         def is_logged_in():
             res = self._download_json(
                 'https://www.vidio.com/interactions.json', None, 'Checking if logged in', fatal=False) or {}

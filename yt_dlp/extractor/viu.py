@@ -244,7 +244,7 @@ class ViuOTTIE(InfoExtractor):
             'to provide account credentials.' % self._NETRC_MACHINE,
             expected=True)
 
-    def _perform_login(self, country_code, video_id):
+    def _login(self, country_code, video_id):
         if not self._user_info:
             username, password = self._get_login_info()
             if username is None or password is None:
@@ -324,7 +324,7 @@ class ViuOTTIE(InfoExtractor):
         except (ExtractorError, KeyError):
             stream_data = None
             if video_data.get('user_level', 0) > 0:
-                user = self._perform_login(country_code, video_id)
+                user = self._login(country_code, video_id)
                 if user:
                     query['identity'] = user['identity']
                     stream_data = self._download_json(

@@ -25,7 +25,7 @@ class LinkedInBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'linkedin'
     _logged_in = False
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._logged_in:
             return
 

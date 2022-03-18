@@ -88,7 +88,7 @@ class PatreonIE(InfoExtractor):
     # Currently Patreon exposes download URL via hidden CSS, so login is not
     # needed. Keeping this commented for when this inevitably changes.
     '''
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         login_form = {
             'redirectUrl': 'http://www.patreon.com/',
             'email': username,

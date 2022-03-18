@@ -29,7 +29,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
         if not self._power_guide_hash:
             self.raise_login_required('An account is needed to access this media', method='password')
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         try:
             data = self._download_json(
                 '%s/zapi/v2/account/login' % self._host_url(), None, 'Logging in',

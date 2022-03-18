@@ -124,7 +124,7 @@ class VRVIE(VRVBaseIE):
     }]
     _NETRC_MACHINE = 'vrv'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         token_credentials = self._call_api(
             'authenticate/by:credentials', None, 'Token Credentials', data={
                 'email': username,

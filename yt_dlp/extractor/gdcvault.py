@@ -125,7 +125,7 @@ class GDCVaultIE(InfoExtractor):
         },
     ]
 
-    def _perform_login(self, webpage_url, display_id):
+    def _login(self, webpage_url, display_id):
         username, password = self._get_login_info()
         if username is None or password is None:
             self.report_warning('It looks like ' + webpage_url + ' requires a login. Try specifying a username and password and try again.')
@@ -185,7 +185,7 @@ class GDCVaultIE(InfoExtractor):
                 PLAYER_REGEX, start_page, 'xml root', default=None)
             if xml_root is None:
                 # Probably need to authenticate
-                login_res = self._perform_login(webpage_url, display_id)
+                login_res = self._login(webpage_url, display_id)
                 if login_res is None:
                     self.report_warning('Could not login.')
                 else:

@@ -45,7 +45,7 @@ class DigitalConcertHallIE(InfoExtractor):
         'playlist_count': 3,
     }]
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         token_response = self._download_json(
             self._OAUTH_URL,
             None, 'Obtaining token', errnote='Unable to obtain token', data=urlencode_postdata({

@@ -249,7 +249,7 @@ class IqiyiIE(InfoExtractor):
 
         return ohdave_rsa_encrypt(data, e, N)
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
 
         data = self._download_json(
             'http://kylin.iqiyi.com/get_token', None,

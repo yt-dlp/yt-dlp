@@ -36,7 +36,7 @@ class FunimationBaseIE(InfoExtractor):
                 note='Checking geo-location', errnote='Unable to fetch geo-location information'),
             'region') or 'US'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._TOKEN:
             return
         try:

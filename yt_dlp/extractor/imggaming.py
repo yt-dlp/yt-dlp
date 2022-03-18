@@ -27,7 +27,7 @@ class ImgGamingBaseIE(InfoExtractor):
             'x-api-key': self._API_KEY,
         }
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         p_headers = self._HEADERS.copy()
         p_headers['Content-Type'] = 'application/json'
         self._HEADERS['Authorization'] = 'Bearer ' + self._download_json(

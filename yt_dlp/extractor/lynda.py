@@ -29,7 +29,7 @@ class LyndaBaseIE(InfoExtractor):
             if error:
                 raise ExtractorError('Unable to login: %s' % error, expected=True)
 
-    def _login_step(self, form_html, fallback_action_url, extra_form_data, note, referrer_url):
+    def _perform_login_step(self, form_html, fallback_action_url, extra_form_data, note, referrer_url):
         action_url = self._search_regex(
             r'<form[^>]+action=(["\'])(?P<url>.+?)\1', form_html,
             'post url', default=fallback_action_url, group='url')
@@ -52,7 +52,7 @@ class LyndaBaseIE(InfoExtractor):
 
         return response, action_url
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         # Step 1: download signin page
         signin_page = self._download_webpage(
             self._SIGNIN_URL, None, 'Downloading signin page')

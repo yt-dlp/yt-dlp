@@ -183,7 +183,7 @@ class NiconicoIE(InfoExtractor):
         'Origin': 'https://www.nicovideo.jp',
     }
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         login_ok = True
         login_form_strs = {
             'mail_tel': username,

@@ -256,7 +256,7 @@ class TumblrIE(InfoExtractor):
         if not self._ACCESS_TOKEN:
             self.report_warning('Failed to get access token; metadata will be missing and some videos may not work')
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if not self._ACCESS_TOKEN:
             return
 

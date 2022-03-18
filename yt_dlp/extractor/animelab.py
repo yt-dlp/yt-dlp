@@ -26,7 +26,7 @@ class AnimeLabBaseIE(InfoExtractor):
             AnimeLabBaseIE._LOGGED_IN = 'Sign In' not in login_page
         return self._LOGGED_IN
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._is_logged_in():
             return
 

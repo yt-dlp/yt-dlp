@@ -54,7 +54,7 @@ class TubiTvIE(InfoExtractor):
         },
     }]
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         self.report_login()
         form_data = {
             'username': username,

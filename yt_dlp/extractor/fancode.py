@@ -49,7 +49,7 @@ class FancodeVodIE(InfoExtractor):
         'referer': 'https://fancode.com',
     }
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         # Access tokens are shortlived, so get them using the refresh token.
         if username != 'refresh':
             self.report_warning(f'Login using username and password is not currently supported. {self._LOGIN_HINT}')

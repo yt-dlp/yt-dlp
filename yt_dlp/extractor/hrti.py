@@ -65,7 +65,7 @@ class HRTiBaseIE(InfoExtractor):
 
         self._logout_url = modules['user']['resources']['logout']['uri']
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         auth_data = {
             'username': username,
             'password': password,

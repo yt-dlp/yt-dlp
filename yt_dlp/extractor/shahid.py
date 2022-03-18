@@ -79,7 +79,7 @@ class ShahidIE(ShahidBaseIE):
         'only_matching': True
     }]
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         try:
             user_data = self._download_json(
                 'https://shahid.mbc.net/wd/service/users/login',

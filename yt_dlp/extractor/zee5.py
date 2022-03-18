@@ -93,7 +93,7 @@ class Zee5IE(InfoExtractor):
     _NETRC_MACHINE = 'zee5'
     _GEO_COUNTRIES = ['IN']
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
             self.report_login()
             otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),

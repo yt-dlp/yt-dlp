@@ -45,7 +45,7 @@ class AtresPlayerIE(InfoExtractor):
             raise ExtractorError(error['error_description'], expected=True)
         raise
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         self._request_webpage(
             self._API_BASE + 'login', None, 'Downloading login page')
 

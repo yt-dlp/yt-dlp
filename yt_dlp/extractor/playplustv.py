@@ -38,7 +38,7 @@ class PlayPlusTVIE(InfoExtractor):
             'Authorization': 'Bearer ' + self._token,
         }, query=query)
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         req = PUTRequest(
             'https://api.playplus.tv/api/web/login', json.dumps({
                 'email': username,

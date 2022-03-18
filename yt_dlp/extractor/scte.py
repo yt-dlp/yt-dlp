@@ -14,7 +14,7 @@ class SCTEBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://www.scte.org/SCTE/Sign_In.aspx'
     _NETRC_MACHINE = 'scte'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         login_popup = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login popup')
 

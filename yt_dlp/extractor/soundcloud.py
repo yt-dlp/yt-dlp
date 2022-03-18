@@ -110,7 +110,7 @@ class SoundcloudBaseIE(InfoExtractor):
     def _initialize_pre_login(self):
         self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if username != 'oauth':
             self.report_warning(
                 'Login using username and password is not currently supported. '

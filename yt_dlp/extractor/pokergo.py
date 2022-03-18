@@ -15,7 +15,7 @@ class PokerGoBaseIE(InfoExtractor):
     _AUTH_TOKEN = None
     _PROPERTY_ID = '1dfb3940-7d53-4980-b0b0-f28b369a000d'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._AUTH_TOKEN:
             return
         self.report_login()

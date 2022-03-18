@@ -29,7 +29,7 @@ from .youtube import YoutubeIE
 class VKBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'vk'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         login_page, url_handle = self._download_webpage_handle(
             'https://vk.com', None, 'Downloading login page')
 

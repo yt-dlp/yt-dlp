@@ -75,7 +75,7 @@ class LinuxAcademyIE(InfoExtractor):
     _CLIENT_ID = 'KaWxNn1C2Gc7n83W9OFeXltd8Utb5vvx'
     _NETRC_MACHINE = 'linuxacademy'
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         def random_string():
             return ''.join([
                 random.choice('0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._~')

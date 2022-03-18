@@ -329,7 +329,7 @@ class FacebookIE(InfoExtractor):
             urls.append(mobj.group('url'))
         return urls
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         login_page_req = sanitized_Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
         login_page = self._download_webpage(login_page_req, None,

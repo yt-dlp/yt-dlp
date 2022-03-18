@@ -26,7 +26,7 @@ class VLiveBaseIE(NaverBaseIE):
     _NETRC_MACHINE = 'vlive'
     _logged_in = False
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._logged_in:
             return
         LOGIN_URL = 'https://www.vlive.tv/auth/email/login'

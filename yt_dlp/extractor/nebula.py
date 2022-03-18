@@ -148,7 +148,7 @@ class NebulaBaseIE(InfoExtractor):
             'creator': episode['channel_title'],
         }
 
-    def _login(self, username=None, password=None):
+    def _perform_login(self, username=None, password=None):
         # FIXME: username should be passed from here to inner functions
         self._nebula_api_token = self._retrieve_nebula_api_token()
         self._nebula_bearer_token = self._fetch_nebula_bearer_token()

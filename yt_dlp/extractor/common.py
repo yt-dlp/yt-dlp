@@ -435,11 +435,11 @@ class InfoExtractor(object):
     (except other extractors), so that lazy_extractors works correctly.
 
     To support username + password (or netrc) login, the extractor must define a
-    _NETRC_MACHINE and re-define _login(username, password) and (optionally)
-    _initialize_pre_login() methods. The login method will be called between
-    _initialize_pre_login and _real_initialize if credentials are passed.
+    _NETRC_MACHINE and re-define _perform_login(username, password) and
+    (optionally) _initialize_pre_login() methods. The login method will be called
+    between _initialize_pre_login and _real_initialize if credentials are passed.
     In cases where it is necessary to have the login process as part of the
-    extraction rather than initialization, _login can be left undefined.
+    extraction rather than initialization, _perform_login can be left undefined.
 
     _GEO_BYPASS attribute may be set to False in order to disable
     geo restriction bypass mechanisms for a particular extractor.
@@ -536,7 +536,7 @@ class InfoExtractor(object):
             if self.supports_login():
                 username, password = self._get_login_info()
                 if username:
-                    self._login(username, password)
+                    self._perform_login(username, password)
             elif self.get_param('username') and False not in (self.IE_DESC, self._NETRC_MACHINE):
                 self.report_warning(f'Login with password is not supported for this website. {self._LOGIN_HINTS["cookies"]}')
             self._real_initialize()
@@ -688,7 +688,7 @@ class InfoExtractor(object):
         """ Intialization before login. Redefine in subclasses."""
         pass
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         """ Login with username and password. Redefine in subclasses."""
         pass
 

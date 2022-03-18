@@ -65,7 +65,7 @@ class IPrimaIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self.access_token:
             return
 

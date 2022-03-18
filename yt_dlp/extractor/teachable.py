@@ -36,7 +36,7 @@ class TeachableBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._logged_in = False
 
-    def _perform_login(self, site):
+    def _login(self, site):
         if self._logged_in:
             return
 
@@ -154,7 +154,7 @@ class TeachableIE(TeachableBaseIE):
         site = mobj.group('site') or mobj.group('site_t')
         video_id = mobj.group('id')
 
-        self._perform_login(site)
+        self._login(site)
 
         prefixed = url.startswith(self._URL_PREFIX)
         if prefixed:
@@ -251,7 +251,7 @@ class TeachableCourseIE(TeachableBaseIE):
         site = mobj.group('site') or mobj.group('site_t')
         course_id = mobj.group('id')
 
-        self._perform_login(site)
+        self._login(site)
 
         prefixed = url.startswith(self._URL_PREFIX)
         if prefixed:

@@ -63,7 +63,7 @@ class PornHubBaseIE(InfoExtractor):
     def _real_initialize(self):
         self._logged_in = False
 
-    def _perform_login(self, host):
+    def _login(self, host):
         if self._logged_in:
             return
 
@@ -266,7 +266,7 @@ class PornHubIE(PornHubBaseIE):
         host = mobj.group('host') or 'pornhub.com'
         video_id = mobj.group('id')
 
-        self._perform_login(host)
+        self._login(host)
 
         self._set_cookie(host, 'age_verified', '1')
 
@@ -633,7 +633,7 @@ class PornHubPagedPlaylistBaseIE(PornHubPlaylistBaseIE):
         host = mobj.group('host')
         item_id = mobj.group('id')
 
-        self._perform_login(host)
+        self._login(host)
 
         return self.playlist_result(self._entries(url, host, item_id), item_id)
 
@@ -812,6 +812,6 @@ class PornHubPlaylistIE(PornHubPlaylistBaseIE):
         host = mobj.group('host')
         item_id = mobj.group('id')
 
-        self._perform_login(host)
+        self._login(host)
 
         return self.playlist_result(self._entries(mobj.group('url'), host, item_id), item_id)

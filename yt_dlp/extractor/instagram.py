@@ -29,7 +29,7 @@ class InstagramBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'instagram'
     _IS_LOGGED_IN = False
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         if self._IS_LOGGED_IN:
             return
 

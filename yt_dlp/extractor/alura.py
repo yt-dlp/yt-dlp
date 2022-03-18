@@ -74,7 +74,7 @@ class AluraIE(InfoExtractor):
                 "formats": formats
             }
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
 
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login popup')

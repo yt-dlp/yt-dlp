@@ -111,7 +111,7 @@ class VierIE(InfoExtractor):
     def _real_initialize(self):
         self._logged_in = False
 
-    def _perform_login(self, site):
+    def _login(self, site):
         username, password = self._get_login_info()
         if username is None or password is None:
             return
@@ -142,7 +142,7 @@ class VierIE(InfoExtractor):
         site = mobj.group('site')
 
         if not self._logged_in:
-            self._perform_login(site)
+            self._login(site)
 
         webpage = self._download_webpage(url, display_id)
 

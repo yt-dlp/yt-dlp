@@ -35,7 +35,7 @@ class HiDiveIE(InfoExtractor):
         'skip': 'Requires Authentication',
     }]
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         webpage = self._download_webpage(self._LOGIN_URL, None)
         form = self._search_regex(
             r'(?s)<form[^>]+action="/account/login"[^>]*>(.+?)</form>',

@@ -75,7 +75,7 @@ class SonyLIVIE(InfoExtractor):
                 t[i] = '{:x}'.format(3 & n | 8)
         return ''.join(t) + '-' + str(int(time.time() * 1000))
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         self._HEADERS['device_id'] = self._get_device_id()
         self._HEADERS['content-type'] = 'application/json'
 

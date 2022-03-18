@@ -39,7 +39,7 @@ class EroProfileIE(InfoExtractor):
         'skip': 'Requires login',
     }]
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
         query = compat_urllib_parse_urlencode({
             'username': username,
             'password': password,
