@@ -263,7 +263,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
     _PLAYLIST_ID_RE = r'(?:(?:PL|LL|EC|UU|FL|RD|UL|TL|PU|OLAK5uy_)[0-9A-Za-z-_]{10,}|RDMM|WL|LL|LM)'
 
-    _NETRC_MACHINE = 'youtube'
+    # _NETRC_MACHINE = 'youtube'
 
     # If True it will raise an error if no login info is provided
     _LOGIN_REQUIRED = False
@@ -334,21 +334,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?hpniueoejy4opn7bc4ftgazyqjoeqwlvh2uiku2xqku6zpoa4bf5ruid\.onion',
     )
 
-    def _login(self):
-        """
-        Attempt to log in to YouTube.
-        If _LOGIN_REQUIRED is set and no authentication was provided, an error is raised.
-        """
-
-        if (self._LOGIN_REQUIRED
-                and self.get_param('cookiefile') is None
-                and self.get_param('cookiesfrombrowser') is None):
-            self.raise_login_required(
-                'Login details are needed to download this content', method='cookies')
-        username, password = self._get_login_info()
-        if username:
-            self.report_warning(f'Cannot login to YouTube using username and password. {self._LOGIN_HINTS["cookies"]}')
-
     def _initialize_consent(self):
         cookies = self._get_cookies('https://www.youtube.com/')
         if cookies.get('__Secure-3PSID'):
@@ -379,7 +364,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _real_initialize(self):
         self._initialize_pref()
         self._initialize_consent()
-        self._login()
+        if (self._LOGIN_REQUIRED
+                and self.get_param('cookiefile') is None
+                and self.get_param('cookiesfrombrowser') is None):
+            self.raise_login_required('Login details are needed to download this content', method='cookies')
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
     _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
@@ -3928,6 +3916,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 if entry:
                     yield entry
     '''
+
     def _extract_entries(self, parent_renderer, continuation_list):
         # continuation_list is modified in-place with continuation_list = [continuation_token]
         continuation_list[:] = [None]

@@ -29,13 +29,9 @@ class PiaproIE(InfoExtractor):
         }
     }]
 
-    def _real_initialize(self):
-        self._login_status = self._login()
+    _login_status = False
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username:
-            return False
+    def _perform_login(self, username, password):
         login_ok = True
         login_form_strs = {
             '_username': username,
@@ -57,7 +53,7 @@ class PiaproIE(InfoExtractor):
         if not login_ok:
             self.report_warning(
                 'unable to log in: bad username or password')
-        return login_ok
+        self._login_status = login_ok
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

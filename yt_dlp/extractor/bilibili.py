@@ -821,11 +821,7 @@ class BiliIntlBaseIE(InfoExtractor):
             'extractor_key': BiliIntlIE.ie_key(),
         }
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         try:
             from Cryptodome.PublicKey import RSA
             from Cryptodome.Cipher import PKCS1_v1_5
@@ -855,9 +851,6 @@ class BiliIntlBaseIE(InfoExtractor):
                 raise ExtractorError(f'Unable to log in: {self.IE_NAME} said: {login_post["message"]}', expected=True)
             else:
                 raise ExtractorError('Unable to log in')
-
-    def _real_initialize(self):
-        self._login()
 
 
 class BiliIntlIE(BiliIntlBaseIE):

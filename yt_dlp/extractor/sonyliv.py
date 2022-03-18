@@ -75,9 +75,12 @@ class SonyLIVIE(InfoExtractor):
                 t[i] = '{:x}'.format(3 & n | 8)
         return ''.join(t) + '-' + str(int(time.time() * 1000))
 
-    def _login(self, username, password):
+    def _perform_login(self, username, password):
+        self._HEADERS['device_id'] = self._get_device_id()
+        self._HEADERS['content-type'] = 'application/json'
+
         if username.lower() == 'token' and len(password) > 1198:
-            return password
+            self._HEADERS['authorization'] = password
         elif len(username) != 10 or not username.isdigit():
             raise ExtractorError(f'Invalid username/password; {self._LOGIN_HINT}')
 
@@ -99,7 +102,7 @@ class SonyLIVIE(InfoExtractor):
             None, note='Verifying OTP', data=data.encode(), headers=self._HEADERS)
         if otp_verify_json['resultCode'] == 'KO':
             raise ExtractorError(otp_request_json['message'], expected=True)
-        return otp_verify_json['resultObj']['accessToken']
+        self._HEADERS['authorization'] = otp_verify_json['resultObj']['accessToken']
 
     def _call_api(self, version, path, video_id):
         try:
@@ -118,13 +121,8 @@ class SonyLIVIE(InfoExtractor):
                 raise ExtractorError(message)
             raise
 
-    def _real_initialize(self):
+    def _initialize_pre_login(self):
         self._HEADERS['security_token'] = self._call_api('1.4', 'ALL/GETTOKEN', None)
-        username, password = self._get_login_info()
-        if username:
-            self._HEADERS['device_id'] = self._get_device_id()
-            self._HEADERS['content-type'] = 'application/json'
-            self._HEADERS['authorization'] = self._login(username, password)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
