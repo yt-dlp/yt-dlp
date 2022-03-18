@@ -32,7 +32,7 @@ class AfreecaTVIE(InfoExtractor):
                                 /app/(?:index|read_ucc_bbs)\.cgi|
                                 /player/[Pp]layer\.(?:swf|html)
                             )\?.*?\bnTitleNo=|
-                            vod\.afreecatv\.com/PLAYER/STATION/
+                            vod\.afreecatv\.com/(PLAYER/STATION|player)/
                         )
                         (?P<id>\d+)
                     '''
@@ -169,6 +169,9 @@ class AfreecaTVIE(InfoExtractor):
         'only_matching': True,
     }, {
         'url': 'http://vod.afreecatv.com/PLAYER/STATION/15055030',
+        'only_matching': True,
+    }, {
+        'url': 'http://vod.afreecatv.com/player/15055030',
         'only_matching': True,
     }]
 
