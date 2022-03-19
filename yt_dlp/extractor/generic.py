@@ -153,6 +153,7 @@ class GenericIE(InfoExtractor):
     IE_DESC = 'Generic downloader that works on some sites'
     _VALID_URL = r'.*'
     IE_NAME = 'generic'
+    _NETRC_MACHINE = False  # Supress username warning
     _TESTS = [
         # Direct link to a video
         {

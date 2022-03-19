@@ -85,7 +85,7 @@ class VRVBaseIE(InfoExtractor):
                 'resource_key': resource_key,
             })['__links__']['cms_resource']['href']
 
-    def _real_initialize(self):
+    def _initialize_pre_login(self):
         webpage = self._download_webpage(
             'https://vrv.co/', None, headers=self.geo_verification_headers())
         self._API_PARAMS = self._parse_json(self._search_regex(
@@ -124,16 +124,10 @@ class VRVIE(VRVBaseIE):
     }]
     _NETRC_MACHINE = 'vrv'
 
-    def _real_initialize(self):
-        super(VRVIE, self)._real_initialize()
-
-        email, password = self._get_login_info()
-        if email is None:
-            return
-
+    def _perform_login(self, username, password):
         token_credentials = self._call_api(
             'authenticate/by:credentials', None, 'Token Credentials', data={
-                'email': email,
+                'email': username,
                 'password': password,
             })
         self._TOKEN = token_credentials['oauth_token']
