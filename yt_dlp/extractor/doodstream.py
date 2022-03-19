@@ -40,6 +40,16 @@ class DoodStreamIE(InfoExtractor):
             'description': 'Stacy Cruz Cute ALLWAYSWELL | DoodStream.com',
             'thumbnail': 'https://img.doodcdn.com/snaps/8edqd5nppkac3x8u.jpg',
         }
+    }, {
+        'url': 'https://dood.so/d/wlihoael8uog',
+        'md5': '5144b8066c68c5a5a3321eb623ab7272',
+        'info_dict': {
+            'id': 'wlihoael8uog',
+            'ext': 'mp4',
+            'title': 'VID 20220319 161659',
+            'description': 'VID 20220319 161659',
+            'thumbnail': 'https://img.doodcdn.com/snaps/8edqd5nppkac3x8u.jpg',
+        }
     }]
 
     def _real_extract(self, url):
