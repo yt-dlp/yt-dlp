@@ -18,6 +18,7 @@ from ..utils import (
     parse_http_range,
     sanitized_Request,
     ThrottledDownload,
+    try_get,
     write_xattr,
     XAttrMetadataError,
     XAttrUnavailableError,
@@ -117,15 +118,16 @@ class HttpFD(FileDownloader):
             else:
                 range_end = None
 
-            ctx.has_range = has_range = range_start is not None
-            if has_range and range_end is not None and range_start > range_end:
+            if try_get(None, lambda _: range_start > range_end):
                 ctx.resume_len = 0
                 ctx.open_mode = 'wb'
                 raise RetryDownload(Exception(f'Conflicting range. (start={range_start} > end={range_end})'))
 
-            if range_end and ctx.content_len is not None and range_end >= ctx.content_len:
+            if try_get(None, lambda _: range_end >= ctx.content_len):
                 range_end = ctx.content_len - 1
+
             request = sanitized_Request(url, request_data, headers)
+            has_range = range_start is not None
             if has_range:
                 set_range(request, range_start, range_end)
             # Establish connection
