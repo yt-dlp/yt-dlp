@@ -8,6 +8,7 @@ import time
 from .common import InfoExtractor
 from ..compat import compat_urlparse
 
+
 class DoodStreamIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so)/[ed]/(?P<id>[a-z0-9]+)'
     _TESTS = [{
