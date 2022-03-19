@@ -6,7 +6,7 @@ import random
 import time
 
 from .common import InfoExtractor
-
+from ..compat import compat_urlparse
 
 class DoodStreamIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so)/[ed]/(?P<id>[a-z0-9]+)'
@@ -43,8 +43,16 @@ class DoodStreamIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
+        parts = compat_urlparse.urlsplit(url)
+        hostname = parts.hostname
+        path = parts.path
         video_id = self._match_id(url)
-        url = f'https://dood.to/e/{video_id}'
+
+        if path.startswith('/d/'):
+            webpage = self._download_webpage(url, video_id)
+            iframe = self._html_search_regex(r'<iframe +src="([^"]+)"', webpage, 'iframe')
+            url = f'https://{hostname}{iframe}'
+
         webpage = self._download_webpage(url, video_id)
 
         title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
@@ -60,7 +68,7 @@ class DoodStreamIE(InfoExtractor):
 
         pass_md5 = self._html_search_regex(r'(/pass_md5.*?)\'', webpage, 'pass_md5')
         final_url = ''.join((
-            self._download_webpage(f'https://dood.to{pass_md5}', video_id, headers=headers),
+            self._download_webpage(f'https://{hostname}{pass_md5}', video_id, headers=headers),
             *(random.choice(string.ascii_letters + string.digits) for _ in range(10)),
             f'?token={token}&expiry={int(time.time() * 1000)}',
         ))
