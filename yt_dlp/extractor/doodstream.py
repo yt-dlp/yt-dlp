@@ -59,18 +59,25 @@ class DoodStreamIE(InfoExtractor):
         path = parts.path
         video_id = self._match_id(url)
 
+        title = None
+        description = None
         if path.startswith('/d/'):
             webpage = self._download_webpage(url, video_id)
             iframe = self._html_search_regex(r'<iframe +src="([^"]+)"', webpage, 'iframe')
             url = f'https://{hostname}{iframe}'
+            title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
+            description = self._html_search_meta(
+                ['og:description', 'description', 'twitter:description'], webpage, default=None)
 
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
+        if title is None:
+            title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
         thumb = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
         token = self._html_search_regex(r'[?&]token=([a-z0-9]+)[&\']', webpage, 'token')
-        description = self._html_search_meta(
-            ['og:description', 'description', 'twitter:description'], webpage, default=None)
+        if description is None:
+            description = self._html_search_meta(
+                ['og:description', 'description', 'twitter:description'], webpage, default=None)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/66.0',
