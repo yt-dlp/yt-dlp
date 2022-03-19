@@ -839,10 +839,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      to when -x is used. Currently supported
                                      formats are: best (default) or one of
                                      best|aac|flac|mp3|m4a|opus|vorbis|wav|alac
-    --audio-quality QUALITY          Specify ffmpeg audio quality, insert a
-                                     value between 0 (best) and 10 (worst) for
-                                     VBR or a specific bitrate like 128K
-                                     (default 5)
+    --audio-quality QUALITY          Specify ffmpeg audio quality to convert the
+                                     audio with. Insert a value between 0 (best)
+                                     and 10 (worst) for VBR or a specific
+                                     bitrate like 128K. (default 5)
     --remux-video FORMAT             Remux the video into another container if
                                      necessary (currently supported: mp4|mkv|flv
                                      |webm|mov|avi|mp3|mka|m4a|ogg|opus). If
