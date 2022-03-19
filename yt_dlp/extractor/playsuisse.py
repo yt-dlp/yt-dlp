@@ -2,7 +2,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import int_or_none, traverse_obj
+from ..utils import int_or_none
 
 
 class PlaySuisseIE(InfoExtractor):
@@ -95,7 +95,7 @@ class PlaySuisseIE(InfoExtractor):
         thumbnails = [{
             'id': thumb['id'],
             'url': thumb['url']
-        } for thumb in traverse_obj(media_data, lambda x: x.startswith('thumbnail'))]
+        } for key, thumb in media_data.items() if key.startswith('thumbnail') and thumb is not None]
 
         formats, subtitles = [], {}
         for media in media_data['medias']:
