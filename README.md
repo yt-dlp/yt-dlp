@@ -143,7 +143,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
 * Some private fields such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
-* `certifi` will be used for SSL root certificates if installed. If you want to use system certificates (e.g. self-signed), use `--no-certifi`
+* `certifi` will be used for SSL root certificates if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
 
 For ease of use, a few more compat options are available:
 * `--compat-options all`: Use all compat options
