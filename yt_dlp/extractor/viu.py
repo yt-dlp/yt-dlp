@@ -21,27 +21,8 @@ from ..utils import (
 
 
 class ViuBaseIE(InfoExtractor):
-    def _real_initialize(self):
-        viu_auth_res = self._request_webpage(
-            'https://www.viu.com/api/apps/v2/authenticate', None,
-            'Requesting Viu auth', query={
-                'acct': 'test',
-                'appid': 'viu_desktop',
-                'fmt': 'json',
-                'iid': 'guest',
-                'languageid': 'default',
-                'platform': 'desktop',
-                'userid': 'guest',
-                'useridtype': 'guest',
-                'ver': '1.0'
-            }, headers=self.geo_verification_headers())
-        self._auth_token = viu_auth_res.info()['X-VIU-AUTH']
-
     def _call_api(self, path, *args, **kwargs):
         headers = self.geo_verification_headers()
-        headers.update({
-            'X-VIU-AUTH': self._auth_token
-        })
         headers.update(kwargs.get('headers', {}))
         kwargs['headers'] = headers
         response = self._download_json(
@@ -312,35 +293,38 @@ class ViuOTTIE(InfoExtractor):
             'ccs_product_id': video_data['ccs_product_id'],
             'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
         }
+
+        # seems this is just a constant token and required now for playback request
+        bearer_token = 'eyJhbGciOiJBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0.gcafCQNMi4I8G6WH9soiw_BcO3KsTE0AZp26zeOZl9aTEi2k_NjNAQ.xO-Yg4E3cVDuz1aWuiSYVw.TVHnZExH0Ot-ZG4eD7gq2JOB1Xm872DeiHPA0EXBxNoktcN2kmEGnZ4LEB4hqObjudf1J5grda6P51DT4RqRyV9SRdMaqreJjXLzRM4HSDR1WYmpA69u0-wkc3ObOQer_g3tRStKP_p24wGpxp5e8T6-ZFmD1SuFgX-M4C1X2-1X87fC4dRlBgMBIMs4lZ1Q.pXXlzeWazu_DEh4sQJHd-A'
+
         headers = {
+            'Authorization': f'Bearer {bearer_token}',
             'Referer': url,
             'Origin': url,
         }
-        try:
+
+        def download_playback():
             stream_data = self._download_json(
-                'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
+                'https://api-gateway-global.viu.com/api/playback/distribute',
                 video_id, 'Downloading stream info', query=query, headers=headers)
-            stream_data = self._detect_error(stream_data)['stream']
+            return self._detect_error(stream_data).get('stream')
+
+        try:
+            stream_data = download_playback()
         except (ExtractorError, KeyError):
             stream_data = None
             if video_data.get('user_level', 0) > 0:
                 user = self._login(country_code, video_id)
                 if user:
                     query['identity'] = user['identity']
-                    stream_data = self._download_json(
-                        'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                        video_id, 'Downloading stream info', query=query, headers=headers)
-                    stream_data = self._detect_error(stream_data).get('stream')
+                    stream_data = download_playback()
                 else:
                     # preview is limited to 3min for non-members
                     # try to bypass the duration limit
                     duration_limit = True
                     query['duration'] = '180'
-                    stream_data = self._download_json(
-                        'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                        video_id, 'Downloading stream info', query=query, headers=headers)
                     try:
-                        stream_data = self._detect_error(stream_data)['stream']
+                        stream_data = download_playback()
                     except (ExtractorError, KeyError):  # if still not working, give up
                         self._raise_login_required()
 
