@@ -9,7 +9,7 @@ from .common import InfoExtractor
 
 
 class DoodStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch)/[ed]/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?P<hostname>(?:www\.)?dood\.(?:to|watch|so))/(?P<path>[ed])/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
         'md5': '4568b83b31e13242b3f1ff96c55f0595',
@@ -40,18 +40,31 @@ class DoodStreamIE(InfoExtractor):
             'description': 'Stacy Cruz Cute ALLWAYSWELL | DoodStream.com',
             'thumbnail': 'https://img.doodcdn.com/snaps/8edqd5nppkac3x8u.jpg',
         }
+    }, {
+        'url': 'https://dood.so/d/wlihoael8uog',
+        'md5': '5144b8066c68c5a5a3321eb623ab7272',
+        'info_dict': {
+            'id': 'wlihoael8uog',
+            'ext': 'mp4',
+            'title': 'VID 20220319 161659',
+            'description': 'VID 20220319 161659',
+            'thumbnail': 'https://img.doodcdn.com/splash/rmpnhb8ckkk79cge.jpg',
+        }
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        url = f'https://dood.to/e/{video_id}'
-        webpage = self._download_webpage(url, video_id)
+        video_id, hostname, path = self._match_valid_url(url).group('id', 'hostname', 'path')
 
-        title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
+        webpage = original_webpage = self._download_webpage(url, video_id)
+        if path == 'd':
+            url = 'https://%s%s' % (hostname, self._html_search_regex(r'<iframe\s+src="([^"]+)"', webpage, 'iframe'))
+            webpage = self._download_webpage(url, video_id, note='Downloading embedded page')
+
+        title = self._html_search_meta(['og:title', 'twitter:title'], original_webpage, default=None)
         thumb = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
         token = self._html_search_regex(r'[?&]token=([a-z0-9]+)[&\']', webpage, 'token')
         description = self._html_search_meta(
-            ['og:description', 'description', 'twitter:description'], webpage, default=None)
+            ['og:description', 'description', 'twitter:description'], original_webpage, default=None)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/66.0',
@@ -60,7 +73,7 @@ class DoodStreamIE(InfoExtractor):
 
         pass_md5 = self._html_search_regex(r'(/pass_md5.*?)\'', webpage, 'pass_md5')
         final_url = ''.join((
-            self._download_webpage(f'https://dood.to{pass_md5}', video_id, headers=headers),
+            self._download_webpage(f'https://{hostname}{pass_md5}', video_id, headers=headers),
             *(random.choice(string.ascii_letters + string.digits) for _ in range(10)),
             f'?token={token}&expiry={int(time.time() * 1000)}',
         ))
