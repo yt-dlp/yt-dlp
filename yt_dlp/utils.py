@@ -89,7 +89,6 @@ try:
     import certifi
     has_certifi = True
 except ImportError:
-    certifi = None
     has_certifi = False
 
 
