@@ -18,12 +18,39 @@ from ..utils import (
     int_or_none,
     OnDemandPagedList,
     parse_qs,
+    srt_subtitles_timecode,
     traverse_obj,
 )
 
 
 class PanoptoBaseIE(InfoExtractor):
-    BASE_URL_RE = r'(?P<base_url>https?://[\w.]+\.panopto.(?:com|eu)/Panopto)'
+    BASE_URL_RE = r'(?P<base_url>https?://[\w.-]+\.panopto.(?:com|eu)/Panopto)'
+
+    # see panopto core.js
+    _SUB_LANG_MAPPING = {
+        0: 'en-US',
+        1: 'en-GB',
+        2: 'es-MX',
+        3: 'es-ES',
+        4: 'de-DE',
+        5: 'fr-FR',
+        6: 'nl-NL',
+        7: 'th-TH',
+        8: 'zh-CN',
+        9: 'zh-TW',
+        10: 'ko-KR',
+        11: 'ja-JP',
+        12: 'ru-RU',
+        13: 'pt-PT',
+        14: 'pl-PL',
+        15: 'en-AU',
+        16: 'da-DK',
+        17: 'fi-FI',
+        18: 'hu-HU',
+        19: 'nb-NO',
+        20: 'sv-SE',
+        21: 'it-IT'
+    }
 
     def _call_api(self, base_url, path, video_id, data=None, fatal=True, **kwargs):
         response = self._download_json(
@@ -31,7 +58,7 @@ class PanoptoBaseIE(InfoExtractor):
             fatal=fatal, headers={'accept': 'application/json', 'content-type': 'application/json'}, **kwargs)
         if not response:
             return
-        error_code = response.get('ErrorCode')
+        error_code = traverse_obj(response, 'ErrorCode')
         if error_code == 2:
             self.raise_login_required(method='cookies')
         elif error_code is not None:
@@ -62,10 +89,11 @@ class PanoptoIE(PanoptoBaseIE):
                 'id': '26b3ae9e-4a48-4dcc-96ba-0befba08a0fb',
                 'title': 'Panopto for Business - Use Cases',
                 'timestamp': 1459184200,
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=26b3ae9e-4a48-4dcc-96ba-0befba08a0fb&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
                 'upload_date': '20160328',
                 'ext': 'mp4',
                 'cast': [],
+                'chapters': [],
                 'duration': 88.17099999999999,
                 'average_rating': int,
                 'uploader_id': '2db6b718-47a0-4b0b-9e17-ab0b00f42b1e',
@@ -80,10 +108,10 @@ class PanoptoIE(PanoptoBaseIE):
                 'title': 'Overcoming Top 4 Challenges of Enterprise Video',
                 'uploader': 'Panopto Support',
                 'timestamp': 1449409251,
-                'thumbnail': r're:https://demo\.hosted\.panopto\.com/Panopto/Services/FrameGrabber\.svc/FrameRedirect\?objectId=ed01b077-c9e5-4c7b-b8ff-15fa306d7a59&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
                 'upload_date': '20151206',
                 'ext': 'mp4',
-                'chapters': 'count:21',
+                'chapters': 'count:12',
                 'cast': ['Panopto Support'],
                 'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
                 'average_rating': int,
@@ -104,8 +132,9 @@ class PanoptoIE(PanoptoBaseIE):
                 'uploader_id': '316a0a58-7fa2-4cd9-be1c-64270d284a56',
                 'timestamp': 1569845768,
                 'tags': ['Viewer', 'Enterprise'],
+                'chapters': [],
                 'upload_date': '20190930',
-                'thumbnail': r're:https://howtovideos\.hosted\.panopto\.com/Panopto/Services/FrameGrabber.svc/FrameRedirect\?objectId=5fa74e93-3d87-4694-b60e-aaa4012214ed&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://howtovideos\.hosted\.panopto\.com/.+',
                 'description': 'md5:2d844aaa1b1a14ad0e2601a0993b431f',
                 'title': 'Getting Started: View a Video',
                 'average_rating': int,
@@ -121,6 +150,7 @@ class PanoptoIE(PanoptoBaseIE):
                 'id': '9d9a0fa3-e99a-4ebd-a281-aac2017f4da4',
                 'ext': 'mp4',
                 'cast': ['LTS CLI Script'],
+                'chapters': [],
                 'duration': 2178.45,
                 'description': 'md5:ee5cf653919f55b72bce2dbcf829c9fa',
                 'channel_id': 'b23e673f-c287-4cb1-8344-aae9005a69f8',
@@ -129,10 +159,76 @@ class PanoptoIE(PanoptoBaseIE):
                 'uploader': 'LTS CLI Script',
                 'timestamp': 1572458134,
                 'title': 'WW2 Vets Interview 3 Ronald Stanley George',
-                'thumbnail': r're:https://unisa\.au\.panopto\.com/Panopto/Services/FrameGrabber.svc/FrameRedirect\?objectId=9d9a0fa3-e99a-4ebd-a281-aac2017f4da4&mode=Delivery&random=[\d.]+',
+                'thumbnail': r're:https://unisa\.au\.panopto\.com/.+',
                 'channel': 'World War II Veteran Interviews',
                 'upload_date': '20191030',
             },
+        },
+        {
+            # Slides/storyboard
+            'url': 'https://demo.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=a7f12f1d-3872-4310-84b0-f8d8ab15326b',
+            'info_dict': {
+                'id': 'a7f12f1d-3872-4310-84b0-f8d8ab15326b',
+                'ext': 'mhtml',
+                'timestamp': 1448798857,
+                'duration': 4712.681,
+                'title': 'Cache Memory - CompSci 15-213, Lecture 12',
+                'channel_id': 'e4c6a2fc-1214-4ca0-8fb7-aef2e29ff63a',
+                'uploader_id': 'a96d1a31-b4de-489b-9eee-b4a5b414372c',
+                'upload_date': '20151129',
+                'average_rating': 0,
+                'uploader': 'Panopto Support',
+                'channel': 'Showcase Videos',
+                'description': 'md5:55e51d54233ddb0e6c2ed388ca73822c',
+                'cast': ['ISR Videographer', 'Panopto Support'],
+                'chapters': 'count:28',
+                'thumbnail': r're:https://demo\.hosted\.panopto\.com/.+',
+            },
+            'params': {'format': 'mhtml', 'skip_download': True}
+        },
+        {
+            'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=8285224a-9a2b-4957-84f2-acb0000c4ea9',
+            'info_dict': {
+                'id': '8285224a-9a2b-4957-84f2-acb0000c4ea9',
+                'ext': 'mp4',
+                'chapters': [],
+                'title': 'Company Policy',
+                'average_rating': 0,
+                'timestamp': 1615058901,
+                'channel': 'Human Resources',
+                'tags': ['HumanResources'],
+                'duration': 1604.243,
+                'thumbnail': r're:https://na-training-1\.hosted\.panopto\.com/.+',
+                'uploader_id': '8e8ba0a3-424f-40df-a4f1-ab3a01375103',
+                'uploader': 'Cait M.',
+                'upload_date': '20210306',
+                'cast': ['Cait M.'],
+                'subtitles': {'en-US': [{'ext': 'srt', 'data': 'md5:a3f4d25963fdeace838f327097c13265'}],
+                              'es-ES': [{'ext': 'srt', 'data': 'md5:57e9dad365fd0fbaf0468eac4949f189'}]},
+            },
+            'params': {'writesubtitles': True, 'skip_download': True}
+        }, {
+            # On Panopto there are two subs: "Default" and en-US. en-US is blank and should be skipped.
+            'url': 'https://na-training-1.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=940cbd41-f616-4a45-b13e-aaf1000c915b',
+            'info_dict': {
+                'id': '940cbd41-f616-4a45-b13e-aaf1000c915b',
+                'ext': 'mp4',
+                'subtitles': 'count:1',
+                'title': 'HR Benefits Review Meeting*',
+                'cast': ['Panopto Support'],
+                'chapters': [],
+                'timestamp': 1575024251,
+                'thumbnail': r're:https://na-training-1\.hosted\.panopto\.com/.+',
+                'channel': 'Zoom',
+                'description': 'md5:04f90a9c2c68b7828144abfb170f0106',
+                'uploader': 'Panopto Support',
+                'average_rating': 0,
+                'duration': 409.34499999999997,
+                'uploader_id': 'b6ac04ad-38b8-4724-a004-a851004ea3df',
+                'upload_date': '20191129',
+
+            },
+            'params': {'writesubtitles': True, 'skip_download': True}
         },
         {
             'url': 'https://ucc.cloud.panopto.eu/Panopto/Pages/Viewer.aspx?id=0e8484a4-4ceb-4d98-a63f-ac0200b455cb',
@@ -178,18 +274,81 @@ class PanoptoIE(PanoptoBaseIE):
                 note='Marking watched', errnote='Unable to mark watched')
 
     @staticmethod
-    def _extract_chapters(delivery):
+    def _extract_chapters(timestamps):
         chapters = []
-        for timestamp in delivery.get('Timestamps', []):
+        for timestamp in timestamps or []:
+            caption = timestamp.get('Caption')
             start, duration = int_or_none(timestamp.get('Time')), int_or_none(timestamp.get('Duration'))
-            if start is None or duration is None:
+            if not caption or start is None or duration is None:
                 continue
             chapters.append({
                 'start_time': start,
                 'end_time': start + duration,
-                'title': timestamp.get('Caption')
+                'title': caption
             })
         return chapters
+
+    @staticmethod
+    def _extract_mhtml_formats(base_url, timestamps):
+        image_frags = {}
+        for timestamp in timestamps or []:
+            duration = timestamp.get('Duration')
+            obj_id, obj_sn = timestamp.get('ObjectIdentifier'), timestamp.get('ObjectSequenceNumber'),
+            if timestamp.get('EventTargetType') == 'PowerPoint' and obj_id is not None and obj_sn is not None:
+                image_frags.setdefault('slides', []).append({
+                    'url': base_url + f'/Pages/Viewer/Image.aspx?id={obj_id}&number={obj_sn}',
+                    'duration': duration
+                })
+
+            obj_pid, session_id, abs_time = timestamp.get('ObjectPublicIdentifier'), timestamp.get('SessionID'), timestamp.get('AbsoluteTime')
+            if None not in (obj_pid, session_id, abs_time):
+                image_frags.setdefault('chapter', []).append({
+                    'url': base_url + f'/Pages/Viewer/Thumb.aspx?eventTargetPID={obj_pid}&sessionPID={session_id}&number={obj_sn}&isPrimary=false&absoluteTime={abs_time}',
+                    'duration': duration,
+                })
+        for name, fragments in image_frags.items():
+            yield {
+                'format_id': name,
+                'ext': 'mhtml',
+                'protocol': 'mhtml',
+                'acodec': 'none',
+                'vcodec': 'none',
+                'url': 'about:invalid',
+                'fragments': fragments
+            }
+
+    @staticmethod
+    def _json2srt(data, delivery):
+        def _gen_lines():
+            for i, line in enumerate(data):
+                start_time = line['Time']
+                duration = line.get('Duration')
+                if duration:
+                    end_time = start_time + duration
+                else:
+                    end_time = traverse_obj(data, (i + 1, 'Time')) or delivery['Duration']
+                yield f'{i + 1}\n{srt_subtitles_timecode(start_time)} --> {srt_subtitles_timecode(end_time)}\n{line["Caption"]}'
+        return '\n\n'.join(_gen_lines())
+
+    def _get_subtitles(self, base_url, video_id, delivery):
+        subtitles = {}
+        for lang in delivery.get('AvailableLanguages') or []:
+            response = self._call_api(
+                base_url, '/Pages/Viewer/DeliveryInfo.aspx', video_id, fatal=False,
+                note='Downloading captions JSON metadata', query={
+                    'deliveryId': video_id,
+                    'getCaptions': True,
+                    'language': str(lang),
+                    'responseType': 'json'
+                }
+            )
+            if not isinstance(response, list):
+                continue
+            subtitles.setdefault(self._SUB_LANG_MAPPING.get(lang) or 'default', []).append({
+                'ext': 'srt',
+                'data': self._json2srt(response, delivery),
+            })
+        return subtitles
 
     def _extract_streams_formats_and_subtitles(self, video_id, streams, **fmt_kwargs):
         formats = []
@@ -240,6 +399,7 @@ class PanoptoIE(PanoptoBaseIE):
 
         delivery = delivery_info['Delivery']
         session_start_time = int_or_none(delivery.get('SessionStartTime'))
+        timestamps = delivery.get('Timestamps')
 
         # Podcast stream is usually the combined streams. We will prefer that by default.
         podcast_formats, podcast_subtitles = self._extract_streams_formats_and_subtitles(
@@ -249,9 +409,11 @@ class PanoptoIE(PanoptoBaseIE):
             video_id, delivery.get('Streams'), preference=-10)
 
         formats = podcast_formats + streams_formats
-        subtitles = self._merge_subtitles(podcast_subtitles, streams_subtitles)
-        self._sort_formats(formats)
+        formats.extend(self._extract_mhtml_formats(base_url, timestamps))
+        subtitles = self._merge_subtitles(
+            podcast_subtitles, streams_subtitles, self.extract_subtitles(base_url, video_id, delivery))
 
+        self._sort_formats(formats)
         self.mark_watched(base_url, video_id, delivery_info)
 
         return {
@@ -262,7 +424,7 @@ class PanoptoIE(PanoptoBaseIE):
             'duration': delivery.get('Duration'),
             'thumbnail': base_url + f'/Services/FrameGrabber.svc/FrameRedirect?objectId={video_id}&mode=Delivery&random={random()}',
             'average_rating': delivery.get('AverageRating'),
-            'chapters': self._extract_chapters(delivery) or None,
+            'chapters': self._extract_chapters(timestamps),
             'uploader': delivery.get('OwnerDisplayName') or None,
             'uploader_id': delivery.get('OwnerId'),
             'description': delivery.get('SessionAbstract'),

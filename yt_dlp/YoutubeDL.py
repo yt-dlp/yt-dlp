@@ -2859,13 +2859,12 @@ class YoutubeDL(object):
 
         # Does nothing under normal operation - for backward compatibility of process_info
         self.post_extract(info_dict)
+        self._num_downloads += 1
 
         # info_dict['_filename'] needs to be set for backward compatibility
         info_dict['_filename'] = full_filename = self.prepare_filename(info_dict, warn=True)
         temp_filename = self.prepare_filename(info_dict, 'temp')
         files_to_move = {}
-
-        self._num_downloads += 1
 
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))

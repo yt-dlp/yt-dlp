@@ -432,7 +432,15 @@ class InfoExtractor(object):
 
     Subclasses may also override suitable() if necessary, but ensure the function
     signature is preserved and that this function imports everything it needs
-    (except other extractors), so that lazy_extractors works correctly
+    (except other extractors), so that lazy_extractors works correctly.
+
+    To support username + password (or netrc) login, the extractor must define a
+    _NETRC_MACHINE and re-define _perform_login(username, password) and
+    (optionally) _initialize_pre_login() methods. The _perform_login method will
+    be called between _initialize_pre_login and _real_initialize if credentials
+    are passed by the user. In cases where it is necessary to have the login
+    process as part of the extraction rather than initialization, _perform_login
+    can be left undefined.
 
     _GEO_BYPASS attribute may be set to False in order to disable
     geo restriction bypass mechanisms for a particular extractor.
@@ -460,9 +468,10 @@ class InfoExtractor(object):
     _GEO_COUNTRIES = None
     _GEO_IP_BLOCKS = None
     _WORKING = True
+    _NETRC_MACHINE = None
 
     _LOGIN_HINTS = {
-        'any': 'Use --cookies, --username and --password, or --netrc to provide account credentials',
+        'any': 'Use --cookies, --cookies-from-browser, --username and --password, or --netrc to provide account credentials',
         'cookies': (
             'Use --cookies-from-browser or --cookies for the authentication. '
             'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
@@ -512,6 +521,10 @@ class InfoExtractor(object):
         """Getter method for _WORKING."""
         return cls._WORKING
 
+    @classmethod
+    def supports_login(cls):
+        return bool(cls._NETRC_MACHINE)
+
     def initialize(self):
         """Initializes an instance (authentication, etc)."""
         self._printed_messages = set()
@@ -520,6 +533,13 @@ class InfoExtractor(object):
             'ip_blocks': self._GEO_IP_BLOCKS,
         })
         if not self._ready:
+            self._initialize_pre_login()
+            if self.supports_login():
+                username, password = self._get_login_info()
+                if username:
+                    self._perform_login(username, password)
+            elif self.get_param('username') and False not in (self.IE_DESC, self._NETRC_MACHINE):
+                self.report_warning(f'Login with password is not supported for this website. {self._LOGIN_HINTS["cookies"]}')
             self._real_initialize()
             self._ready = True
 
@@ -664,6 +684,14 @@ class InfoExtractor(object):
     def set_downloader(self, downloader):
         """Sets a YoutubeDL instance as the downloader for this IE."""
         self._downloader = downloader
+
+    def _initialize_pre_login(self):
+        """ Intialization before login. Redefine in subclasses."""
+        pass
+
+    def _perform_login(self, username, password):
+        """ Login with username and password. Redefine in subclasses."""
+        pass
 
     def _real_initialize(self):
         """Real initialization process. Redefine in subclasses."""
@@ -1098,12 +1126,15 @@ class InfoExtractor(object):
 
     def raise_login_required(
             self, msg='This video is only available for registered users',
-            metadata_available=False, method='any'):
+            metadata_available=False, method=NO_DEFAULT):
         if metadata_available and (
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
             return
+        if method is NO_DEFAULT:
+            method = 'any' if self.supports_login() else 'cookies'
         if method is not None:
+            assert method in self._LOGIN_HINTS, 'Invalid login method'
             msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
         raise ExtractorError(msg, expected=True)
 
@@ -3680,9 +3711,8 @@ class InfoExtractor(object):
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if (hasattr(self, '_NETRC_MACHINE') and self._get_login_info()[0] is not None
-                or self.get_param('cookiefile')
-                or self.get_param('cookiesfrombrowser')):
+        if (self.supports_login() and self._get_login_info()[0] is not None
+                or self.get_param('cookiefile') or self.get_param('cookiesfrombrowser')):
             self._mark_watched(*args, **kwargs)
 
     def _mark_watched(self, *args, **kwargs):

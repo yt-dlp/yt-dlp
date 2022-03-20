@@ -44,12 +44,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            if self._LOGIN_REQUIRED:
-                raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
-            return
+    def _perform_login(self, username, password):
         webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
         token, vuid = self._extract_xsrft_and_vuid(webpage)
@@ -74,6 +69,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Unable to log in: bad username or password',
                     expected=True)
             raise ExtractorError('Unable to log in')
+
+    def _real_initialize(self):
+        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vuid'):
+            self._raise_login_required()
 
     def _get_video_password(self):
         password = self.get_param('videopassword')
@@ -701,9 +700,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
             raise ExtractorError('Wrong video password', expected=True)
         return checked
 
-    def _real_initialize(self):
-        self._login()
-
     def _extract_from_api(self, video_id, unlisted_hash=None):
         token = self._download_json(
             'https://vimeo.com/_rv/jwt', video_id, headers={
@@ -1231,9 +1227,6 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         'skip': 'video gone',
     }]
 
-    def _real_initialize(self):
-        self._login()
-
     def _real_extract(self, url):
         page_url, video_id = self._match_valid_url(url).groups()
         data = self._download_json(
@@ -1274,9 +1267,6 @@ class VimeoWatchLaterIE(VimeoChannelIE):
         'url': 'https://vimeo.com/watchlater',
         'only_matching': True,
     }]
-
-    def _real_initialize(self):
-        self._login()
 
     def _page_url(self, base_url, pagenum):
         url = '%s/page:%d/' % (base_url, pagenum)

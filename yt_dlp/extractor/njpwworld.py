@@ -43,15 +43,7 @@ class NJPWWorldIE(InfoExtractor):
 
     _LOGIN_URL = 'https://front.njpwworld.com/auth/login'
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        # No authentication to be performed
-        if not username:
-            return True
-
+    def _perform_login(self, username, password):
         # Setup session (will set necessary cookies)
         self._request_webpage(
             'https://njpwworld.com/', None, note='Setting up session')
