@@ -6,11 +6,10 @@ import random
 import time
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
 
 
 class DoodStreamIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?dood\.(?:to|watch|so)/[ed]/(?P<id>[a-z0-9]+)'
+    _VALID_URL = r'https?://(?P<hostname>(?:www\.)?dood\.(?:to|watch|so))/(?P<path>[ed])/(?P<id>[a-z0-9]+)'
     _TESTS = [{
         'url': 'http://dood.to/e/5s1wmbdacezb',
         'md5': '4568b83b31e13242b3f1ff96c55f0595',
@@ -49,35 +48,23 @@ class DoodStreamIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'VID 20220319 161659',
             'description': 'VID 20220319 161659',
-            'thumbnail': 'https://img.doodcdn.com/snaps/8edqd5nppkac3x8u.jpg',
+            'thumbnail': 'https://img.doodcdn.com/splash/rmpnhb8ckkk79cge.jpg',
         }
     }]
 
     def _real_extract(self, url):
-        parts = compat_urlparse.urlsplit(url)
-        hostname = parts.hostname
-        path = parts.path
-        video_id = self._match_id(url)
+        video_id, hostname, path = self._match_valid_url(url).group('id', 'hostname', 'path')
 
-        title = None
-        description = None
-        if path.startswith('/d/'):
-            webpage = self._download_webpage(url, video_id)
-            iframe = self._html_search_regex(r'<iframe +src="([^"]+)"', webpage, 'iframe')
-            url = f'https://{hostname}{iframe}'
-            title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
-            description = self._html_search_meta(
-                ['og:description', 'description', 'twitter:description'], webpage, default=None)
+        webpage = original_webpage = self._download_webpage(url, video_id)
+        if path == 'd':
+            url = 'https://%s%s' % (hostname, self._html_search_regex(r'<iframe\s+src="([^"]+)"', webpage, 'iframe'))
+            webpage = self._download_webpage(url, video_id, note='Downloading embedded page')
 
-        webpage = self._download_webpage(url, video_id)
-
-        if title is None:
-            title = self._html_search_meta(['og:title', 'twitter:title'], webpage, default=None)
+        title = self._html_search_meta(['og:title', 'twitter:title'], original_webpage, default=None)
         thumb = self._html_search_meta(['og:image', 'twitter:image'], webpage, default=None)
         token = self._html_search_regex(r'[?&]token=([a-z0-9]+)[&\']', webpage, 'token')
-        if description is None:
-            description = self._html_search_meta(
-                ['og:description', 'description', 'twitter:description'], webpage, default=None)
+        description = self._html_search_meta(
+            ['og:description', 'description', 'twitter:description'], original_webpage, default=None)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:53.0) Gecko/20100101 Firefox/66.0',
