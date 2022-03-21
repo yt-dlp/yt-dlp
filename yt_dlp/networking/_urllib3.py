@@ -3,7 +3,8 @@ import errno
 from ..compat import (
     compat_http_client,
     compat_urllib_parse_urlparse,
-    compat_urllib_parse
+    compat_urllib_parse,
+    compat_brotli
 )
 
 from .common import (
@@ -40,6 +41,11 @@ import urllib3.connection
 SUPPORTED_ENCODINGS = [
     'gzip', 'deflate'
 ]
+
+# TODO: make it a requirement to have urllib3 >= 1.26.9
+# urllib3 does not support brotlicffi on versions < 1.26.9
+if compat_brotli and not (compat_brotli.__name__ == 'brotlicffi' and urllib3.__version__ < '1.26.9'):
+    SUPPORTED_ENCODINGS.append('br')
 
 
 class Urllib3ResponseAdapter(HTTPResponse):
@@ -152,8 +158,9 @@ class Urllib3BackendAdapter(BackendAdapter):
             remove_headers_on_redirect=request.unredirected_headers.keys(),
             raise_on_redirect=False, other=0, read=0, connect=0)
         all_headers = get_std_headers(SUPPORTED_ENCODINGS)
-        all_headers.replace_headers(request.headers)
-        all_headers.replace_headers(request.unredirected_headers)
+        all_headers.update(self.ydl.params.get('http_headers'))
+        all_headers.update(request.headers)
+        all_headers.update(request.unredirected_headers)
         if not request.compression:
             del all_headers['accept-encoding']
 
