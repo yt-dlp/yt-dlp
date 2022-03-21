@@ -146,12 +146,14 @@ from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 from .gfycat import GfycatIE
+from .panopto import PanoptoBaseIE
 
 
 class GenericIE(InfoExtractor):
     IE_DESC = 'Generic downloader that works on some sites'
     _VALID_URL = r'.*'
     IE_NAME = 'generic'
+    _NETRC_MACHINE = False  # Supress username warning
     _TESTS = [
         # Direct link to a video
         {
@@ -2498,6 +2500,15 @@ class GenericIE(InfoExtractor):
                 'id': '?vid=2295'
             },
             'playlist_count': 9
+        },
+        {
+            # Panopto embeds
+            'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
+            'info_dict': {
+                'title': 'Insert a quiz into a Panopto video',
+                'id': 'insert-a-quiz-into-a-panopto-video'
+            },
+            'playlist_count': 1
         }
     ]
 
@@ -3723,6 +3734,9 @@ class GenericIE(InfoExtractor):
         if gfycat_urls:
             return self.playlist_from_matches(gfycat_urls, video_id, video_title, ie=GfycatIE.ie_key())
 
+        panopto_urls = PanoptoBaseIE._extract_urls(webpage)
+        if panopto_urls:
+            return self.playlist_from_matches(panopto_urls, video_id, video_title)
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:

@@ -100,7 +100,7 @@ class RokfinIE(InfoExtractor):
                 video_url, video_id, fatal=False, live=live_status == 'is_live')
 
         if not formats:
-            if metadata.get('premiumPlan'):
+            if traverse_obj(metadata, 'premiumPlan', 'premium'):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
@@ -129,7 +129,7 @@ class RokfinIE(InfoExtractor):
             'tags': traverse_obj(metadata, ('tags', ..., 'title'), expected_type=str_or_none),
             'live_status': live_status,
             'availability': self._availability(
-                needs_premium=bool(metadata.get('premiumPlan')),
+                needs_premium=bool(traverse_obj(metadata, 'premiumPlan', 'premium')),
                 is_private=False, needs_subscription=False, needs_auth=False, is_unlisted=False),
             # 'comment_count': metadata.get('numComments'), # Data provided by website is wrong
             '__post_extractor': self.extract_comments(video_id) if video_type == 'post' else None,

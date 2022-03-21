@@ -40,8 +40,7 @@ class TeachableBaseIE(InfoExtractor):
         if self._logged_in:
             return
 
-        username, password = self._get_login_info(
-            netrc_machine=self._SITES.get(site, site))
+        username, password = self._get_login_info(netrc_machine=self._SITES.get(site, site))
         if username is None:
             return
 

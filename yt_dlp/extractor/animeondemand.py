@@ -53,11 +53,7 @@ class AnimeOnDemandIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
 
@@ -92,9 +88,6 @@ class AnimeOnDemandIE(InfoExtractor):
             if error:
                 raise ExtractorError('Unable to login: %s' % error, expected=True)
             raise ExtractorError('Unable to log in')
-
-    def _real_initialize(self):
-        self._login()
 
     def _real_extract(self, url):
         anime_id = self._match_id(url)

@@ -263,9 +263,11 @@ class IsmFD(FragmentFD):
             count = 0
             while count <= fragment_retries:
                 try:
-                    success, frag_content = self._download_fragment(ctx, segment['url'], info_dict)
+                    success = self._download_fragment(ctx, segment['url'], info_dict)
                     if not success:
                         return False
+                    frag_content = self._read_fragment(ctx)
+
                     if not extra_state['ism_track_written']:
                         tfhd_data = extract_box_data(frag_content, [b'moof', b'traf', b'tfhd'])
                         info_dict['_download_params']['track_id'] = u32.unpack(tfhd_data[4:8])[0]
