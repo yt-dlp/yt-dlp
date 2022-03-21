@@ -22,6 +22,9 @@ class YoutubeLiveChatFD(FragmentFD):
     def real_download(self, filename, info_dict):
         video_id = info_dict['video_id']
         self.to_screen('[%s] Downloading live chat' % self.FD_NAME)
+        if not self.params.get('skip_download') and info_dict['protocol'] == 'youtube_live_chat':
+            self.report_warning('Live chat download runs until the livestream ends. '
+                                'If you wish to download the video simultaneously, run a separate yt-dlp instance')
 
         fragment_retries = self.params.get('fragment_retries', 0)
         test = self.params.get('test', False)
@@ -112,9 +115,10 @@ class YoutubeLiveChatFD(FragmentFD):
             count = 0
             while count <= fragment_retries:
                 try:
-                    success, raw_fragment = dl_fragment(url, request_data, headers)
+                    success = dl_fragment(url, request_data, headers)
                     if not success:
                         return False, None, None, None
+                    raw_fragment = self._read_fragment(ctx)
                     try:
                         data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
                     except RegexNotFoundError:
@@ -142,9 +146,10 @@ class YoutubeLiveChatFD(FragmentFD):
 
         self._prepare_and_start_frag_download(ctx, info_dict)
 
-        success, raw_fragment = dl_fragment(info_dict['url'])
+        success = dl_fragment(info_dict['url'])
         if not success:
             return False
+        raw_fragment = self._read_fragment(ctx)
         try:
             data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
         except RegexNotFoundError:

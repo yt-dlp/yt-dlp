@@ -93,32 +93,27 @@ class Zee5IE(InfoExtractor):
     _NETRC_MACHINE = 'zee5'
     _GEO_COUNTRIES = ['IN']
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username:
-            if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
-                self.report_login()
-                otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),
-                                                       None, note='Sending OTP')
-                if otp_request_json['code'] == 0:
-                    self.to_screen(otp_request_json['message'])
-                else:
-                    raise ExtractorError(otp_request_json['message'], expected=True)
-                otp_code = self._get_tfa_info('OTP')
-                otp_verify_json = self._download_json('https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token={}&platform=web'.format(username, otp_code, self._DEVICE_ID),
-                                                      None, note='Verifying OTP', fatal=False)
-                if not otp_verify_json:
-                    raise ExtractorError('Unable to verify OTP.', expected=True)
-                self._USER_TOKEN = otp_verify_json.get('token')
-                if not self._USER_TOKEN:
-                    raise ExtractorError(otp_request_json['message'], expected=True)
-            elif username.lower() == 'token' and len(password) > 1198:
-                self._USER_TOKEN = password
+    def _perform_login(self, username, password):
+        if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
+            self.report_login()
+            otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),
+                                                   None, note='Sending OTP')
+            if otp_request_json['code'] == 0:
+                self.to_screen(otp_request_json['message'])
             else:
-                raise ExtractorError(self._LOGIN_HINT, expected=True)
-
-    def _real_initialize(self):
-        self._login()
+                raise ExtractorError(otp_request_json['message'], expected=True)
+            otp_code = self._get_tfa_info('OTP')
+            otp_verify_json = self._download_json('https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token={}&platform=web'.format(username, otp_code, self._DEVICE_ID),
+                                                  None, note='Verifying OTP', fatal=False)
+            if not otp_verify_json:
+                raise ExtractorError('Unable to verify OTP.', expected=True)
+            self._USER_TOKEN = otp_verify_json.get('token')
+            if not self._USER_TOKEN:
+                raise ExtractorError(otp_request_json['message'], expected=True)
+        elif username.lower() == 'token' and len(password) > 1198:
+            self._USER_TOKEN = password
+        else:
+            raise ExtractorError(self._LOGIN_HINT, expected=True)
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')

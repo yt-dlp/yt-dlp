@@ -14,24 +14,20 @@ from ..utils import (
 
 
 class AnimeLabBaseIE(InfoExtractor):
-    _LOGIN_REQUIRED = True
     _LOGIN_URL = 'https://www.animelab.com/login'
     _NETRC_MACHINE = 'animelab'
+    _LOGGED_IN = False
 
-    def _login(self):
-        def is_logged_in(login_webpage):
-            return 'Sign In' not in login_webpage
+    def _is_logged_in(self, login_page=None):
+        if not self._LOGGED_IN:
+            if not login_page:
+                login_page = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
+            AnimeLabBaseIE._LOGGED_IN = 'Sign In' not in login_page
+        return self._LOGGED_IN
 
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-
-        # Check if already logged in
-        if is_logged_in(login_page):
+    def _perform_login(self, username, password):
+        if self._is_logged_in():
             return
-
-        (username, password) = self._get_login_info()
-        if username is None and self._LOGIN_REQUIRED:
-            self.raise_login_required('Login is required to access any AnimeLab content')
 
         login_form = {
             'email': username,
@@ -46,17 +42,14 @@ class AnimeLabBaseIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, HTTPError) and e.cause.code == 400:
                 raise ExtractorError('Unable to log in (wrong credentials?)', expected=True)
-            else:
-                raise
+            raise
 
-        # if login was successful
-        if is_logged_in(response):
-            return
-
-        raise ExtractorError('Unable to login (cannot verify if logged in)')
+        if not self._is_logged_in(response):
+            raise ExtractorError('Unable to login (cannot verify if logged in)')
 
     def _real_initialize(self):
-        self._login()
+        if not self._is_logged_in():
+            self.raise_login_required('Login is required to access any AnimeLab content')
 
 
 class AnimeLabIE(AnimeLabBaseIE):
