@@ -32,7 +32,7 @@ class AfreecaTVIE(InfoExtractor):
                                 /app/(?:index|read_ucc_bbs)\.cgi|
                                 /player/[Pp]layer\.(?:swf|html)
                             )\?.*?\bnTitleNo=|
-                            vod\.afreecatv\.com/PLAYER/STATION/
+                            vod\.afreecatv\.com/(PLAYER/STATION|player)/
                         )
                         (?P<id>\d+)
                     '''
@@ -170,6 +170,9 @@ class AfreecaTVIE(InfoExtractor):
     }, {
         'url': 'http://vod.afreecatv.com/PLAYER/STATION/15055030',
         'only_matching': True,
+    }, {
+        'url': 'http://vod.afreecatv.com/player/15055030',
+        'only_matching': True,
     }]
 
     @staticmethod
@@ -181,14 +184,7 @@ class AfreecaTVIE(InfoExtractor):
             video_key['part'] = int(m.group('part'))
         return video_key
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_form = {
             'szWork': 'login',
             'szType': 'json',

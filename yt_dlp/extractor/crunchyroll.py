@@ -57,10 +57,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _perform_login(self, username, password):
         if self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             return
 
@@ -88,9 +85,6 @@ class CrunchyrollBaseIE(InfoExtractor):
             raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
         if not self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
-
-    def _real_initialize(self):
-        self._login()
 
     @staticmethod
     def _add_skip_wall(url):
