@@ -8,9 +8,9 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
-    compat_HTTPError,
     determine_ext,
     ExtractorError,
+    HTTPError,
     int_or_none,
     parse_duration,
     str_or_none,
@@ -152,7 +152,7 @@ class NRKIE(NRKBaseIE):
             try:
                 return self._call_api(f'playback/{item}/program/{video_id}', video_id, item, query=query)
             except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                if isinstance(e.cause, HTTPError) and e.cause.code == 400:
                     return self._call_api(f'playback/{item}/{video_id}', video_id, item, query=query)
                 raise
 
