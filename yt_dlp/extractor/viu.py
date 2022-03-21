@@ -210,6 +210,31 @@ class ViuOTTIE(InfoExtractor):
         'zh-cn': 2,
         'en-us': 3,
     }
+
+    def _real_initialize(self):
+        config = self._download_json(
+            'https://api-gateway-global.viu.com/api/config',
+            video_id=None,
+            note='Downloading location info'
+        )
+        carried_id = config['carrier']['id']
+        country_code = config['countryCode']
+
+        rand = ''.join(random.choice('0123456789') for _ in range(10))
+        self.bearer_token = self._download_json(
+            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000',
+            video_id=None,
+            data=json.dumps({
+                'countryCode': country_code.upper(),
+                'platform': 'browser',
+                'platformFlagLabel': 'web',
+                'language': 'en',
+                'uuid': str(uuid.uuid4()),
+                'carrierId': carried_id
+            }).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+            note='Getting bearer token')['token']
+
     _user_info = None
 
     def _detect_error(self, response):
@@ -250,7 +275,6 @@ class ViuOTTIE(InfoExtractor):
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
         country_code, lang_code, video_id = self._match_valid_url(url).groups()
-
         query = {
             'r': 'vod/ajax-detail',
             'platform_flag_label': 'web',
@@ -296,23 +320,8 @@ class ViuOTTIE(InfoExtractor):
             'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
         }
 
-        rand = ''.join(random.choice('0123456789') for _ in range(10))
-        bearer_token = self._download_json(
-            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000',
-            video_id=None,
-            data=json.dumps({
-                'countryCode': country_code.upper(),
-                'platform': 'browser',
-                'platformFlagLabel': 'web',
-                'language': 'en',
-                'uuid': str(uuid.uuid4()),
-                'carrierId': '0'
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json'},
-            note='Getting bearer token')['token']
-
         headers = {
-            'Authorization': f'Bearer {bearer_token}',
+            'Authorization': f'Bearer {self.bearer_token}',
             'Referer': url,
             'Origin': url,
         }
