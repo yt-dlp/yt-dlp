@@ -165,8 +165,10 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         # Substitute URL if any change after escaping
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
-        headers = get_std_headers(supported_encodings=SUPPORTED_ENCODINGS).update(self._params.get('http_headers'))
-        for h, v in headers:
+        # TODO
+        headers = get_std_headers(supported_encodings=SUPPORTED_ENCODINGS)
+        headers.update(self._params.get('http_headers'))
+        for h, v in headers.items():
             # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:

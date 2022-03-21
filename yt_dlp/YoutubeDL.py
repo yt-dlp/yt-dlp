@@ -647,7 +647,9 @@ class YoutubeDL(object):
             else self.build_format_selector(self.params['format']))
 
         # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = get_std_headers().update(self.params.get('http_headers', {}))
+        headers = get_std_headers()
+        headers.update(self.params.get('http_headers', {}))
+        self.params['http_headers'] = headers
 
         self.default_session = self._setup_backends()
 
@@ -2252,7 +2254,8 @@ class YoutubeDL(object):
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = self.params['http_headers'].copy().update(info_dict.get('http_headers') or {})
+        res = self.params['http_headers'].copy()
+        res.update(info_dict.get('http_headers') or {})
         cookies = self._calc_cookies(info_dict)
         if cookies:
             res['Cookie'] = cookies
