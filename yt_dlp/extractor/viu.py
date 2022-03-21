@@ -211,45 +211,21 @@ class ViuOTTIE(InfoExtractor):
         'en-us': 3,
     }
 
-    def _real_initialize(self):
-        config = self._download_json(
-            'https://api-gateway-global.viu.com/api/config',
-            video_id=None,
-            note='Downloading location info'
-        )
-        carried_id = config['carrier']['id']
-        country_code = config['countryCode']
-
-        rand = ''.join(random.choice('0123456789') for _ in range(10))
-        self.bearer_token = self._download_json(
-            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000',
-            video_id=None,
-            data=json.dumps({
-                'countryCode': country_code.upper(),
-                'platform': 'browser',
-                'platformFlagLabel': 'web',
-                'language': 'en',
-                'uuid': str(uuid.uuid4()),
-                'carrierId': carried_id
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json'},
-            note='Getting bearer token')['token']
-
     _user_info = None
 
     def _detect_error(self, response):
         code = response.get('status', {}).get('code')
         if code > 0:
             message = try_get(response, lambda x: x['status']['message'])
-            raise ExtractorError('%s said: %s (%s)' % (
-                self.IE_NAME, message, code), expected=True)
+            raise ExtractorError(
+                f'{self.IE_NAME} said: {message} ({code})', expected=True)
         return response['data']
 
     def _raise_login_required(self):
         raise ExtractorError(
             'This video requires login. '
-            'Specify --username and --password or --netrc (machine: %s) '
-            'to provide account credentials.' % self._NETRC_MACHINE,
+            f'Specify --username and --password or --netrc (machine: {self._NETRC_MACHINE}) '
+            'to provide account credentials.',
             expected=True)
 
     def _login(self, country_code, video_id):
@@ -260,7 +236,7 @@ class ViuOTTIE(InfoExtractor):
 
             data = self._download_json(
                 compat_urllib_request.Request(
-                    'https://www.viu.com/ott/%s/index.php' % country_code, method='POST'),
+                    f'https://www.viu.com/ott/{country_code}/index.php', method='POST'),
                 video_id, 'Logging in', errnote=False, fatal=False,
                 query={'r': 'user/login'},
                 data=json.dumps({
@@ -272,9 +248,30 @@ class ViuOTTIE(InfoExtractor):
 
         return self._user_info
 
+    def _get_token(self, country_code):
+        rand = ''.join(random.choice('0123456789') for _ in range(10))
+        return self._download_json(
+            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000',
+            video_id=None,
+            data=json.dumps({
+                'countryCode': country_code.upper(),
+                'platform': 'browser',
+                'platformFlagLabel': 'web',
+                'language': 'en',
+                'uuid': str(uuid.uuid4()),
+                'carrierId': '0'
+            }).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+            note='Getting bearer token')['token']
+
+    auth_codes = {}
+
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
         country_code, lang_code, video_id = self._match_valid_url(url).groups()
+        if not self.auth_codes.get(country_code):
+            self.auth_codes[country_code] = self._get_token(country_code)
+
         query = {
             'r': 'vod/ajax-detail',
             'platform_flag_label': 'web',
@@ -286,7 +283,7 @@ class ViuOTTIE(InfoExtractor):
             query['area_id'] = area_id
 
         product_data = self._download_json(
-            'http://www.viu.com/ott/%s/index.php' % country_code, video_id,
+            f'http://www.viu.com/ott/{country_code}/index.php', video_id,
             'Downloading video info', query=query)['data']
 
         video_data = product_data.get('current_product')
@@ -306,7 +303,7 @@ class ViuOTTIE(InfoExtractor):
                     item_id = compat_str(item_id)
                     entries.append(self.url_result(
                         smuggle_url(
-                            'http://www.viu.com/ott/%s/%s/vod/%s/' % (country_code, lang_code, item_id),
+                            f'http://www.viu.com/ott/{country_code}/{lang_code}/vod/{item_id}/',
                             {'force_noplaylist': True}),  # prevent infinite recursion
                         'ViuOTT',
                         item_id,
@@ -320,16 +317,17 @@ class ViuOTTIE(InfoExtractor):
             'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
         }
 
-        headers = {
-            'Authorization': f'Bearer {self.bearer_token}',
-            'Referer': url,
-            'Origin': url,
-        }
-
         def download_playback():
             stream_data = self._download_json(
                 'https://api-gateway-global.viu.com/api/playback/distribute',
-                video_id, 'Downloading stream info', query=query, headers=headers)
+                video_id=video_id,
+                note='Downloading stream info',
+                query=query,
+                headers={
+                    'Authorization': f'Bearer {self.auth_codes[country_code]}',
+                    'Referer': url,
+                    'Origin': url
+                })
             return self._detect_error(stream_data).get('stream')
 
         try:
@@ -337,7 +335,7 @@ class ViuOTTIE(InfoExtractor):
         except (ExtractorError, KeyError):
             stream_data = None
             if video_data.get('user_level', 0) > 0:
-                user = self._login(country_code, video_id)
+                user = self._login(self._country_code, video_id)
                 if user:
                     query['identity'] = user['identity']
                     stream_data = download_playback()
