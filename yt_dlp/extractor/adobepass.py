@@ -1656,8 +1656,8 @@ class AdobePassIE(InfoExtractor):
 
                     provider_login_redirect_page, urlh = provider_login_redirect_page_res
 
-                    #Some website partners seem to not have the extra ajaxurl redirect step, so we check if we already
-                    #have the login prompt or not
+                    # Some website partners seem to not have the extra ajaxurl redirect step, so we check if we already
+                    # have the login prompt or not
                     if 'id="password" type="password" name="password"' in provider_login_redirect_page:
                         provider_login_page_res = provider_login_redirect_page_res
                     else:
