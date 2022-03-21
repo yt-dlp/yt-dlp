@@ -731,6 +731,11 @@ from .laola1tv import (
     EHFTVIE,
     ITTFIE,
 )
+from .lastfm import (
+    LastFMIE,
+    LastFMAlbumIE,
+    LastFMPlaylistIE,
+)
 from .lbry import (
     LBRYIE,
     LBRYChannelIE,
