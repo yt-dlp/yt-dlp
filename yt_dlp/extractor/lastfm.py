@@ -94,6 +94,17 @@ class LastFMPlaylistIE(LastFMPlaylistBaseIE):
     }]
 
 
+class LastFMUserIE(LastFMPlaylistBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/user/(?P<user_id>[^/]+)/playlists/(?P<id>[^/#?]+)(/|[^/]*/?)$'
+    _TESTS = [{
+        'url': 'https://www.last.fm/user/mehq/playlists/12319471',
+        'info_dict': {
+            'id': '12319471',
+        },
+        'playlist_count': 30,
+    }]
+
+
 class LastFMIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://(?:www\.)?last\.fm/

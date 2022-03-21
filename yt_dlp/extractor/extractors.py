@@ -735,6 +735,7 @@ from .lastfm import (
     LastFMIE,
     LastFMAlbumIE,
     LastFMPlaylistIE,
+    LastFMUserIE,
 )
 from .lbry import (
     LBRYIE,
