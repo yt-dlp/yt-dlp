@@ -21,7 +21,7 @@ class LastFMPlaylistBaseIE(InfoExtractor):
             default=None)
 
         if pagination_list:
-            page_numbers = set(re.findall(r'(\d+)', pagination_list))
+            page_numbers = re.findall(r'(\d+)', pagination_list)
             last_page = max([int_or_none(page_number) for page_number in page_numbers])
 
         return last_page
@@ -64,7 +64,7 @@ class LastFMPlaylistBaseIE(InfoExtractor):
 
 
 class LastFMAlbumIE(LastFMPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/music/(?P<artist_id>[^/]+)/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/music/(?P<artist_id>[^/]+)/(?P<id>[^+/#?][^/#?]+)(/|[^/]*/?)$'
     _TESTS = [{
         'url': 'https://www.last.fm/music/Oasis/(What%27s+the+Story)+Morning+Glory%3F',
         'info_dict': {
@@ -75,7 +75,7 @@ class LastFMAlbumIE(LastFMPlaylistBaseIE):
 
 
 class LastFMPlaylistIE(LastFMPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/(music|tag)/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/(music|tag)/(?P<id>[^/#?]+)(/|/\+?tracks/?|[^/]*/?)$'
     _TESTS = [{
         'url': 'https://www.last.fm/music/Oasis',
         'info_dict': {
@@ -95,7 +95,10 @@ class LastFMPlaylistIE(LastFMPlaylistBaseIE):
 
 
 class LastFMIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/music/(?P<artist_id>[^/]+)/(?P<album_id>[^/]+)/(?P<id>[^/]+)'
+    _VALID_URL = r'''(?x)
+                    https?://(?:www\.)?last\.fm/
+                    music/(?P<artist_id>[^/]+)/(?P<album_id>[^/]+)/(?P<id>[^/#?]+)(/|[^/]*/?)$
+                  '''
     _TESTS = [{
         'url': 'https://www.last.fm/music/Oasis/_/Wonderwall',
         'md5': '9c4a70c2e84c03d54fe24229b9e13b7b',
