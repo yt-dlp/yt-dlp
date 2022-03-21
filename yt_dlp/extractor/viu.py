@@ -1,8 +1,10 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import json
 import re
+import json
+import uuid
+import random
 
 from .common import InfoExtractor
 from ..compat import (
@@ -294,8 +296,20 @@ class ViuOTTIE(InfoExtractor):
             'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
         }
 
-        # seems this is just a constant token and required now for playback request
-        bearer_token = 'eyJhbGciOiJBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0.gcafCQNMi4I8G6WH9soiw_BcO3KsTE0AZp26zeOZl9aTEi2k_NjNAQ.xO-Yg4E3cVDuz1aWuiSYVw.TVHnZExH0Ot-ZG4eD7gq2JOB1Xm872DeiHPA0EXBxNoktcN2kmEGnZ4LEB4hqObjudf1J5grda6P51DT4RqRyV9SRdMaqreJjXLzRM4HSDR1WYmpA69u0-wkc3ObOQer_g3tRStKP_p24wGpxp5e8T6-ZFmD1SuFgX-M4C1X2-1X87fC4dRlBgMBIMs4lZ1Q.pXXlzeWazu_DEh4sQJHd-A'
+        rand = ''.join(random.choice('0123456789') for _ in range(10))
+        bearer_token = self._download_json(
+            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000',
+            video_id=None,
+            data=json.dumps({
+                'countryCode': country_code.upper(),
+                'platform': 'browser',
+                'platformFlagLabel': 'web',
+                'language': 'en',
+                'uuid': str(uuid.uuid4()),
+                'carrierId': '0'
+            }).encode('utf-8'),
+            headers={'Content-Type': 'application/json'},
+            note='Getting bearer token')['token']
 
         headers = {
             'Authorization': f'Bearer {bearer_token}',
