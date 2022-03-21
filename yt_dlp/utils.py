@@ -70,7 +70,7 @@ from .compat import (
     compat_urllib_parse_unquote_plus,
     compat_urlparse,
     compat_websockets,
-    compat_xpath,
+    compat_xpath, compat_urllib_request,
 )
 
 std_headers = {}
@@ -2048,6 +2048,7 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
+# TODO
 def request_to_url(req):
     if isinstance(req, compat_urllib_request.Request):
         return req.get_full_url()

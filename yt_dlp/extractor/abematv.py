@@ -29,7 +29,7 @@ from ..utils import (
     urljoin,
 )
 
-
+# TODO
 # NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
 def add_opener(ydl, handler):
