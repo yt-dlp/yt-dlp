@@ -15,7 +15,7 @@ from ..compat import (
     compat_urllib_request_DataHandler,
     compat_urllib_request,
     compat_http_client,
-    compat_urlparse, compat_HTTPError
+    compat_urlparse, compat_HTTPError, compat_brotli
 )
 
 from .common import HTTPResponse, BackendAdapter, Request, get_std_headers
@@ -38,6 +38,8 @@ SUPPORTED_ENCODINGS = [
     'gzip', 'deflate'
 ]
 
+if compat_brotli:
+    SUPPORTED_ENCODINGS.append('br')
 
 def make_HTTPS_handler(params, **kwargs):
     return YoutubeDLHTTPSHandler(params, context=make_ssl_context(params), **kwargs)
@@ -142,6 +144,12 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         except zlib.error:
             return zlib.decompress(data)
 
+    @staticmethod
+    def brotli(data):
+        if not data:
+            return data
+        return compat_brotli.decompress(data)
+
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
         # always respected by websites, some tend to give out URLs with non percent-encoded
@@ -157,8 +165,8 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         # Substitute URL if any change after escaping
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
-
-        for h, v in get_std_headers(supported_encodings=SUPPORTED_ENCODINGS).items():
+        headers = get_std_headers(supported_encodings=SUPPORTED_ENCODINGS).update(self._params.get('http_headers'))
+        for h, v in headers:
             # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:
@@ -195,6 +203,12 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
             resp = compat_urllib_request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
+            resp.msg = old_resp.msg
+            del resp.headers['Content-encoding']
+        # brotli
+        if resp.headers.get('Content-encoding', '') == 'br':
+            resp = compat_urllib_request.addinfourl(
+                io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
