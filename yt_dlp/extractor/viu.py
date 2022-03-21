@@ -9,8 +9,8 @@ from ..compat import (
     compat_kwargs,
     compat_str,
     compat_urlparse,
-    compat_urllib_request,
 )
+from ..networking.common import Request
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -251,7 +251,7 @@ class ViuOTTIE(InfoExtractor):
                 return
 
             data = self._download_json(
-                compat_urllib_request.Request(
+                Request(
                     'https://www.viu.com/ott/%s/index.php' % country_code, method='POST'),
                 video_id, 'Logging in', errnote=False, fatal=False,
                 query={'r': 'user/login'},

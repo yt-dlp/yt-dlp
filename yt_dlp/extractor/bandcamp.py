@@ -183,6 +183,7 @@ class BandcampIE(InfoExtractor):
                             'format_note': f.get('description'),
                             'filesize': parse_filesize(f.get('size_mb')),
                             'vcodec': 'none',
+                            'acodec': format_id.split('-')[0],
                         })
 
         self._sort_formats(formats)

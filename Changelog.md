@@ -11,6 +11,139 @@
 -->
 
 
+### 2022.03.08.1
+
+* [cleanup] Refactor `__init__.py`
+* [build] Fix bug
+
+### 2022.03.08
+
+* Merge youtube-dl: Upto [commit/6508688](https://github.com/ytdl-org/youtube-dl/commit/6508688e88c83bb811653083db9351702cd39a6a) (except NDR)
+* Add regex operator and quoting to format filters by [lukasfink1](https://github.com/lukasfink1)
+* Add brotli content-encoding support by [coletdjnz](https://github.com/coletdjnz)
+* Add pre-processor stage `after_filter`
+* Better error message when no `--live-from-start` format
+* Create necessary directories for `--print-to-file`
+* Fill more fields for playlists by [Lesmiscore](https://github.com/Lesmiscore)
+* Fix `-all` for `--sub-langs`
+* Fix doubling of `video_id` in `ExtractorError`
+* Fix for when stdout/stderr encoding is `None`
+* Handle negative duration from extractor
+* Implement `--add-header` without modifying `std_headers`
+* Obey `--abort-on-error` for "ffmpeg not installed"
+* Set `webpage_url_...` from `webpage_url` and not input URL
+* Tolerate failure to `--write-link` due to unknown URL
+* [aria2c] Add `--http-accept-gzip=true`
+* [build] Update pyinstaller to 4.10 by [shirt-dev](https://github.com/shirt-dev)
+* [cookies] Update MacOS12 `Cookies.binarycookies` location by [mdpauley](https://github.com/mdpauley)
+* [devscripts] Improve `prepare_manpage`
+* [downloader] Do not use aria2c for non-native `m3u8`
+* [downloader] Obey `--file-access-retries` when deleting/renaming by [ehoogeveen-medweb](https://github.com/ehoogeveen-medweb)
+* [extractor] Allow `http_headers` to be specified for `thumbnails`
+* [extractor] Extract subtitles from manifests for vimeo, globo, kaltura, svt by [fstirlitz](https://github.com/fstirlitz)
+* [extractor] Fix for manifests without period duration by [dirkf](https://github.com/dirkf), [pukkandan](https://github.com/pukkandan)
+* [extractor] Support `--mark-watched` without `_NETRC_MACHINE` by [coletdjnz](https://github.com/coletdjnz)
+* [FFmpegConcat] Abort on `--simulate`
+* [FormatSort] Consider `acodec`=`ogg` as `vorbis`
+* [fragment] Fix bugs around resuming with Range by [Lesmiscore](https://github.com/Lesmiscore)
+* [fragment] Improve `--live-from-start` for YouTube livestreams by [Lesmiscore](https://github.com/Lesmiscore)
+* [generic] Pass referer to extracted formats
+* [generic] Set rss `guid` as video id by [Bricio](https://github.com/Bricio)
+* [options] Better ambiguous option resolution
+* [options] Rename `--clean-infojson` to `--clean-info-json`
+* [SponsorBlock] Fixes for highlight and "full video labels" by [nihil-admirari](https://github.com/nihil-admirari)
+* [Sponsorblock] minor fixes by [nihil-admirari](https://github.com/nihil-admirari)
+* [utils] Better traceback for `ExtractorError`
+* [utils] Fix file locking for AOSP by [jakeogh](https://github.com/jakeogh)
+* [utils] Improve file locking
+* [utils] OnDemandPagedList: Do not download pages after error
+* [utils] render_table: Fix character calculation for removing extra gap by [Lesmiscore](https://github.com/Lesmiscore)
+* [utils] Use `locked_file` for `sanitize_open` by [jakeogh](https://github.com/jakeogh)
+* [utils] Validate `DateRange` input
+* [utils] WebSockets wrapper for non-async functions by [Lesmiscore](https://github.com/Lesmiscore)
+* [cleanup] Don't pass protocol to `_extract_m3u8_formats` for live videos
+* [cleanup] Remove extractors for some dead websites by [marieell](https://github.com/marieell)
+* [cleanup, docs] Misc cleanup
+* [AbemaTV] Add extractors by [Lesmiscore](https://github.com/Lesmiscore)
+* [adobepass] Add Suddenlink MSO by [CplPwnies](https://github.com/CplPwnies)
+* [ant1newsgr] Add extractor by [zmousm](https://github.com/zmousm)
+* [bigo] Add extractor by [Lesmiscore](https://github.com/Lesmiscore)
+* [Caltrans] Add extractor by [Bricio](https://github.com/Bricio)
+* [daystar] Add extractor by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [fc2:live] Add extractor by [Lesmiscore](https://github.com/Lesmiscore)
+* [fptplay] Add extractor by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [murrtube] Add extractor by [cyberfox1691](https://github.com/cyberfox1691)
+* [nfb] Add extractor by [ofkz](https://github.com/ofkz)
+* [niconico] Add playlist extractors and refactor by [Lesmiscore](https://github.com/Lesmiscore)
+* [peekvids] Add extractor by [schn0sch](https://github.com/schn0sch)
+* [piapro] Add extractor by [pycabbage](https://github.com/pycabbage), [Lesmiscore](https://github.com/Lesmiscore)
+* [rokfin] Add extractor by [P-reducible](https://github.com/P-reducible), [pukkandan](https://github.com/pukkandan)
+* [rokfin] Add stack and channel extractors by [P-reducible](https://github.com/P-reducible), [pukkandan](https://github.com/pukkandan)
+* [ruv.is] Add extractor by [iw0nderhow](https://github.com/iw0nderhow)
+* [telegram] Add extractor by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [VideocampusSachsen] Add extractors by [FestplattenSchnitzel](https://github.com/FestplattenSchnitzel)
+* [xinpianchang] Add extractor by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [abc] Support 1080p by [Ronnnny](https://github.com/Ronnnny)
+* [afreecatv] Support password-protected livestreams by [wlritchi](https://github.com/wlritchi)
+* [ard] Fix valid URL
+* [ATVAt] Detect geo-restriction by [marieell](https://github.com/marieell)
+* [bandcamp] Detect acodec
+* [bandcamp] Fix user URLs by [lyz-code](https://github.com/lyz-code)
+* [bbc] Fix extraction of news articles by [ajj8](https://github.com/ajj8)
+* [beeg] Fix extractor by [Bricio](https://github.com/Bricio)
+* [bigo] Fix extractor to not to use `form_params`
+* [Bilibili] Pass referer for all formats by [blackgear](https://github.com/blackgear)
+* [Biqle] Fix extractor by [Bricio](https://github.com/Bricio)
+* [ccma] Fix timestamp parsing by [nyuszika7h](https://github.com/nyuszika7h)
+* [crunchyroll] Better error reporting on login failure by [tejing1](https://github.com/tejing1)
+* [cspan] Support of C-Span congress videos by [Grabien](https://github.com/Grabien)
+* [dropbox] fix regex by [zenerdi0de](https://github.com/zenerdi0de)
+* [fc2] Fix extraction by [Lesmiscore](https://github.com/Lesmiscore)
+* [fujitv] Extract resolution for free sources by [YuenSzeHong](https://github.com/YuenSzeHong)
+* [Gettr] Add `GettrStreamingIE` by [i6t](https://github.com/i6t)
+* [Gettr] Fix formats order by [i6t](https://github.com/i6t)
+* [Gettr] Improve extractor by [i6t](https://github.com/i6t)
+* [globo] Expand valid URL by [Bricio](https://github.com/Bricio)
+* [lbry] Fix `--ignore-no-formats-error`
+* [manyvids] Extract `uploader` by [regarten](https://github.com/regarten)
+* [mildom] Fix linter
+* [mildom] Rework extractors by [Lesmiscore](https://github.com/Lesmiscore)
+* [mirrativ] Cleanup extractor code by [Lesmiscore](https://github.com/Lesmiscore)
+* [nhk] Add support for NHK for School by [Lesmiscore](https://github.com/Lesmiscore)
+* [niconico:tag] Add support for searching tags
+* [nrk] Add fallback API
+* [peekvids] Use JSON-LD by [schn0sch](https://github.com/schn0sch)
+* [peertube] Add media.fsfe.org by [mxmehl](https://github.com/mxmehl)
+* [rtvs] Fix extractor by [Bricio](https://github.com/Bricio)
+* [spiegel] Fix `_VALID_URL`
+* [ThumbnailsConvertor] Support `webp`
+* [tiktok] Fix `vm.tiktok`/`vt.tiktok` URLs
+* [tubitv] Fix/improve TV series extraction by [bbepis](https://github.com/bbepis)
+* [tumblr] Fix extractor by [foghawk](https://github.com/foghawk)
+* [twitcasting] Add fallback for finding running live by [Lesmiscore](https://github.com/Lesmiscore)
+* [TwitCasting] Check for password protection by [Lesmiscore](https://github.com/Lesmiscore)
+* [twitcasting] Fix extraction by [Lesmiscore](https://github.com/Lesmiscore)
+* [twitch] Fix field name of `view_count`
+* [twitter] Fix for private videos by [iphoting](https://github.com/iphoting)
+* [washingtonpost] Fix extractor by [Bricio](https://github.com/Bricio)
+* [youtube:tab] Add `approximate_date` extractor-arg
+* [youtube:tab] Follow redirect to regional channel  by [coletdjnz](https://github.com/coletdjnz)
+* [youtube:tab] Reject webpage data if redirected to home page
+* [youtube] De-prioritize potentially damaged formats
+* [youtube] Differentiate descriptive audio by language code
+* [youtube] Ensure subtitle urls are absolute by [coletdjnz](https://github.com/coletdjnz)
+* [youtube] Escape possible `$` in `_extract_n_function_name` regex by [Lesmiscore](https://github.com/Lesmiscore)
+* [youtube] Fix automatic captions
+* [youtube] Fix n-sig extraction for phone player JS by [MinePlayersPE](https://github.com/MinePlayersPE)
+* [youtube] Further de-prioritize 3gp format
+* [youtube] Label original auto-subs
+* [youtube] Prefer UTC upload date for videos by [coletdjnz](https://github.com/coletdjnz)
+* [zaq1] Remove dead extractor by [marieell](https://github.com/marieell)
+* [zee5] Support web-series by [Aniruddh-J](https://github.com/Aniruddh-J)
+* [zingmp3] Fix extractor by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [zoom] Add support for screen cast by [Mipsters](https://github.com/Mipsters)
+
+
 ### 2022.02.04
 
 * [youtube:search] Fix extractor by [coletdjnz](https://github.com/coletdjnz)

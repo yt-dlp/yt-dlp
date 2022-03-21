@@ -35,7 +35,6 @@ from ..utils import (
     urlhandle_detect_ext, HTTPError,
 )
 from ..networking.common import HEADRequest, Request
-from ..networking.common import get_std_headers
 
 
 class VimeoBaseInfoExtractor(InfoExtractor):
@@ -43,12 +42,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            if self._LOGIN_REQUIRED:
-                raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
-            return
+    def _perform_login(self, username, password):
         webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
         token, vuid = self._extract_xsrft_and_vuid(webpage)
@@ -73,6 +67,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Unable to log in: bad username or password',
                     expected=True)
             raise ExtractorError('Unable to log in')
+
+    def _real_initialize(self):
+        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vuid'):
+            self._raise_login_required()
 
     def _get_video_password(self):
         password = self.get_param('videopassword')
@@ -164,8 +162,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                 for f_id, m_url in sep_manifest_urls:
                     if files_type == 'hls':
                         fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                            m_url, video_id, 'mp4',
-                            'm3u8' if is_live else 'm3u8_native', m3u8_id=f_id,
+                            m_url, video_id, 'mp4', live=is_live, m3u8_id=f_id,
                             note='Downloading %s m3u8 information' % cdn_name,
                             fatal=False)
                         formats.extend(fmts)
@@ -636,6 +633,24 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'url': 'https://vimeo.com/392479337/a52724358e',
             'only_matching': True,
         },
+        {
+            # similar, but all numeric: ID must be 581039021, not 9603038895
+            # issue #29690
+            'url': 'https://vimeo.com/581039021/9603038895',
+            'info_dict': {
+                'id': '581039021',
+                # these have to be provided but we don't care
+                'ext': 'mp4',
+                'timestamp': 1627621014,
+                'title': 're:.+',
+                'uploader_id': 're:.+',
+                'uploader': 're:.+',
+                'upload_date': r're:\d+',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }
         # https://gettingthingsdone.com/workflowmap/
         # vimeo embed with check-password page protected by Referer header
     ]
@@ -682,9 +697,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
         if checked is False:
             raise ExtractorError('Wrong video password', expected=True)
         return checked
-
-    def _real_initialize(self):
-        self._login()
 
     def _extract_from_api(self, video_id, unlisted_hash=None):
         token = self._download_json(
@@ -757,7 +769,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
 
     def _real_extract(self, url):
         url, data = unsmuggle_url(url, {})
-        headers = get_std_headers()
+        headers = self.get_param('http_headers').copy()
         if 'http_headers' in data:
             headers.update(data['http_headers'])
         if 'Referer' not in headers:
@@ -1213,9 +1225,6 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         'skip': 'video gone',
     }]
 
-    def _real_initialize(self):
-        self._login()
-
     def _real_extract(self, url):
         page_url, video_id = self._match_valid_url(url).groups()
         data = self._download_json(
@@ -1256,9 +1265,6 @@ class VimeoWatchLaterIE(VimeoChannelIE):
         'url': 'https://vimeo.com/watchlater',
         'only_matching': True,
     }]
-
-    def _real_initialize(self):
-        self._login()
 
     def _page_url(self, base_url, pagenum):
         url = '%s/page:%d/' % (base_url, pagenum)

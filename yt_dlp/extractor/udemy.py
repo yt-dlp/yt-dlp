@@ -6,7 +6,6 @@ from .common import InfoExtractor
 from ..compat import (
     compat_kwargs,
     compat_str,
-    compat_urllib_request,
     compat_urlparse,
 )
 from ..utils import (
@@ -157,7 +156,7 @@ class UdemyIE(InfoExtractor):
                 headers['X-Udemy-Bearer-Token'] = cookie.value
                 headers['X-Udemy-Authorization'] = 'Bearer %s' % cookie.value
 
-        if isinstance(url_or_request, compat_urllib_request.Request):
+        if isinstance(url_or_request, Request):
             for header, value in headers.items():
                 url_or_request.add_header(header, value)
         else:
@@ -167,14 +166,7 @@ class UdemyIE(InfoExtractor):
         self._handle_error(response)
         return response
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_popup = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login popup')
 

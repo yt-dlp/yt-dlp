@@ -4,6 +4,7 @@
 from __future__ import unicode_literals
 
 import asyncio
+import atexit
 import base64
 import binascii
 import calendar
@@ -52,6 +53,7 @@ from .compat import (
     compat_http_client,
     compat_integer_types,
     compat_numeric_types,
+    compat_kwargs,
     compat_os_name,
     compat_parse_qs,
     compat_shlex_split,
@@ -65,14 +67,14 @@ from .compat import (
     compat_urllib_parse_urlunparse,
     compat_urllib_parse_quote,
     compat_urllib_parse_quote_plus,
+    compat_urllib_parse_unquote_plus,
     compat_urlparse,
     compat_websockets,
-    compat_xpath,
+    compat_xpath, compat_urllib_request,
 )
 
 std_headers = {}
 # This is not clearly defined otherwise
-
 compiled_regex_type = type(re.compile(''))
 
 NO_DEFAULT = object()
@@ -195,17 +197,36 @@ def write_json_file(obj, fn):
     """ Encode obj as JSON and write it to fn, atomically if possible """
 
     fn = encodeFilename(fn)
-    path_basename = os.path.basename
-    path_dirname = os.path.dirname
+    if sys.version_info < (3, 0) and sys.platform != 'win32':
+        encoding = get_filesystem_encoding()
+        # os.path.basename returns a bytes object, but NamedTemporaryFile
+        # will fail if the filename contains non ascii characters unless we
+        # use a unicode object
+        path_basename = lambda f: os.path.basename(fn).decode(encoding)
+        # the same for os.path.dirname
+        path_dirname = lambda f: os.path.dirname(fn).decode(encoding)
+    else:
+        path_basename = os.path.basename
+        path_dirname = os.path.dirname
 
-    tf = tempfile.NamedTemporaryFile(
-        suffix='.tmp',
-        prefix=path_basename(fn) + '.',
-        dir=path_dirname(fn),
-        delete=False,
-        mode='w',
-        encoding='utf-8'
-    )
+    args = {
+        'suffix': '.tmp',
+        'prefix': path_basename(fn) + '.',
+        'dir': path_dirname(fn),
+        'delete': False,
+    }
+
+    # In Python 2.x, json.dump expects a bytestream.
+    # In Python 3.x, it writes to a character stream
+    if sys.version_info < (3, 0):
+        args['mode'] = 'wb'
+    else:
+        args.update({
+            'mode': 'w',
+            'encoding': 'utf-8',
+        })
+
+    tf = tempfile.NamedTemporaryFile(**compat_kwargs(args))
 
     try:
         with tf:
@@ -642,6 +663,8 @@ def sanitize_path(s, force=False):
     if sys.platform == 'win32':
         force = False
         drive_or_unc, _ = os.path.splitdrive(s)
+        if sys.version_info < (2, 7) and not drive_or_unc:
+            drive_or_unc, _ = os.path.splitunc(s)
     elif force:
         drive_or_unc = ''
     else:
@@ -798,11 +821,31 @@ def encodeFilename(s, for_subprocess=False):
     assert type(s) == compat_str
 
     # Python 3 has a Unicode API
-    return s
+    if sys.version_info >= (3, 0):
+        return s
+
+    # Pass '' directly to use Unicode APIs on Windows 2000 and up
+    # (Detecting Windows NT 4 is tricky because 'major >= 4' would
+    # match Windows 9x series as well. Besides, NT 4 is obsolete.)
+    if not for_subprocess and sys.platform == 'win32' and sys.getwindowsversion()[0] >= 5:
+        return s
+
+    # Jython assumes filenames are Unicode strings though reported as Python 2.x compatible
+    if sys.platform.startswith('java'):
+        return s
+
+    return s.encode(get_subprocess_encoding(), 'ignore')
 
 
 def decodeFilename(b, for_subprocess=False):
-    return b
+
+    if sys.version_info >= (3, 0):
+        return b
+
+    if not isinstance(b, bytes):
+        return b
+
+    return b.decode(get_subprocess_encoding(), 'ignore')
 
 
 def encodeArgument(s):
@@ -851,8 +894,8 @@ def formatSeconds(secs, delim=':', msec=False):
 
 def bug_reports_message(before=';'):
     msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
-           'filling out the "Broken site" issue template properly. '
-           'Confirm you are on the latest version using -U')
+           'filling out the appropriate issue template. '
+           'Confirm you are on the latest version using  yt-dlp -U')
 
     before = before.rstrip()
     if not before or before.endswith(('.', '!', '?')):
@@ -883,7 +926,7 @@ class ExtractorError(YoutubeDLError):
         if sys.exc_info()[0] in network_exceptions:
             expected = True
 
-        self.msg = str(msg)
+        self.orig_msg = str(msg)
         self.traceback = tb
         self.expected = expected
         self.cause = cause
@@ -894,14 +937,15 @@ class ExtractorError(YoutubeDLError):
         super(ExtractorError, self).__init__(''.join((
             format_field(ie, template='[%s] '),
             format_field(video_id, template='%s: '),
-            self.msg,
+            msg,
             format_field(cause, template=' (caused by %r)'),
             '' if expected else bug_reports_message())))
 
     def format_traceback(self):
-        if self.traceback is None:
-            return None
-        return ''.join(traceback.format_tb(self.traceback))
+        return join_nonempty(
+            self.traceback and ''.join(traceback.format_tb(self.traceback)),
+            self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
+            delim='\n') or None
 
 
 class UnsupportedError(ExtractorError):
@@ -1067,11 +1111,15 @@ class RequestError(YoutubeDLError):
         super().__init__(msg)
         self.url = url
 
+    def __str__(self):
+        return f'<yt-dlp {self.__class__.__name__} {self.msg}>'
+
 
 # TODO: Add tests for reading, closing, trying to read again etc.
 # Test for making sure connection is released
 # TODO: what parameters do we want? code/reason, response or both?
 # Similar API as urllib.error.HTTPError
+
 
 class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
     def __init__(self, response, url):
@@ -1085,6 +1133,9 @@ class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
         super().__init__(msg, url)
         tempfile._TemporaryFileWrapper.__init__(self, response, '<yt-dlp response>', delete=False)
 
+    def __str__(self):
+        return self.msg
+
 
 class TransportError(RequestError):
     def __init__(self, url=None, msg=None, cause=None):
@@ -1095,11 +1146,11 @@ class TransportError(RequestError):
 
 
 class ReadTimeoutError(TransportError, TimeoutError):
-    """timeout error occurred when reading data"""
+    msg = 'Timed out while attempting to read data'
 
 
 class ConnectionTimeoutError(TransportError, TimeoutError):
-    """timeout error occurred when trying to connect to server"""
+    msg = 'Timed out while trying to connect to the server'
 
 
 class ResolveHostError(TransportError):
@@ -1132,7 +1183,7 @@ class ContentDecodingError(RequestError):
 
 
 class MaxRedirectsError(RequestError):
-    pass
+    msg = 'Maximum redirects reached'
 
 
 network_exceptions = [HTTPError, TransportError]
@@ -1493,7 +1544,8 @@ def write_string(s, out=None, encoding=None):
         if _windows_write_string(s, out):
             return
 
-    if 'b' in getattr(out, 'mode', ''):
+    if ('b' in getattr(out, 'mode', '')
+            or sys.version_info[0] < 3):  # Python 2 lies about mode of sys.stderr
         byt = s.encode(encoding or preferredencoding(), 'ignore')
         out.write(byt)
     elif hasattr(out, 'buffer'):
@@ -1557,37 +1609,47 @@ if sys.platform == 'win32':
     whole_low = 0xffffffff
     whole_high = 0x7fffffff
 
-    def _lock_file(f, exclusive, block):  # todo: block unused on win32
+    def _lock_file(f, exclusive, block):
         overlapped = OVERLAPPED()
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
         overlapped.hEvent = 0
         f._lock_file_overlapped_p = ctypes.pointer(overlapped)
-        handle = msvcrt.get_osfhandle(f.fileno())
-        if not LockFileEx(handle, 0x2 if exclusive else 0x0, 0,
-                          whole_low, whole_high, f._lock_file_overlapped_p):
-            raise OSError('Locking file failed: %r' % ctypes.FormatError())
+
+        if not LockFileEx(msvcrt.get_osfhandle(f.fileno()),
+                          (0x2 if exclusive else 0x0) | (0x0 if block else 0x1),
+                          0, whole_low, whole_high, f._lock_file_overlapped_p):
+            raise BlockingIOError('Locking file failed: %r' % ctypes.FormatError())
 
     def _unlock_file(f):
         assert f._lock_file_overlapped_p
         handle = msvcrt.get_osfhandle(f.fileno())
-        if not UnlockFileEx(handle, 0,
-                            whole_low, whole_high, f._lock_file_overlapped_p):
+        if not UnlockFileEx(handle, 0, whole_low, whole_high, f._lock_file_overlapped_p):
             raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
 
 else:
-    # Some platforms, such as Jython, is missing fcntl
     try:
         import fcntl
 
         def _lock_file(f, exclusive, block):
-            fcntl.flock(f,
-                        fcntl.LOCK_SH if not exclusive
-                        else fcntl.LOCK_EX if block
-                        else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                fcntl.flock(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise
+            except OSError:  # AOSP does not have flock()
+                fcntl.lockf(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         def _unlock_file(f):
-            fcntl.flock(f, fcntl.LOCK_UN)
+            try:
+                fcntl.flock(f, fcntl.LOCK_UN)
+            except OSError:
+                fcntl.lockf(f, fcntl.LOCK_UN)
 
     except ImportError:
         UNSUPPORTED_MSG = 'file locking is not supported on this platform'
@@ -1600,6 +1662,8 @@ else:
 
 
 class locked_file(object):
+    _closed = False
+
     def __init__(self, filename, mode, block=True, encoding=None):
         assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
         self.f = io.open(filename, mode, encoding=encoding)
@@ -1617,9 +1681,11 @@ class locked_file(object):
 
     def __exit__(self, etype, value, traceback):
         try:
-            _unlock_file(self.f)
+            if not self._closed:
+                _unlock_file(self.f)
         finally:
             self.f.close()
+            self._closed = True
 
     def __iter__(self):
         return iter(self.f)
@@ -1678,10 +1744,11 @@ def unsmuggle_url(smug_url, default=None):
 def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     """ Formats numbers with decimal sufixes like K, M, etc """
     num, factor = float_or_none(num), float(factor)
-    if num is None:
+    if num is None or num < 0:
         return None
-    exponent = 0 if num == 0 else int(math.log(num, factor))
-    suffix = ['', *'kMGTPEZY'][exponent]
+    POSSIBLE_SUFFIXES = 'kMGTPEZY'
+    exponent = 0 if num == 0 else min(int(math.log(num, factor)), len(POSSIBLE_SUFFIXES))
+    suffix = ['', *POSSIBLE_SUFFIXES][exponent]
     if factor == 1024:
         suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
     converted = num / (factor ** exponent)
@@ -1980,6 +2047,14 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
+# TODO
+def request_to_url(req):
+    if isinstance(req, compat_urllib_request.Request):
+        return req.get_full_url()
+    else:
+        return req
+
+
 def strftime_or_none(timestamp, date_format, default=None):
     datetime_object = None
     try:
@@ -2217,13 +2292,14 @@ class PagedList:
     def __init__(self, pagefunc, pagesize, use_cache=True):
         self._pagefunc = pagefunc
         self._pagesize = pagesize
+        self._pagecount = float('inf')
         self._use_cache = use_cache
         self._cache = {}
 
     def getpage(self, pagenum):
         page_results = self._cache.get(pagenum)
         if page_results is None:
-            page_results = list(self._pagefunc(pagenum))
+            page_results = [] if pagenum > self._pagecount else list(self._pagefunc(pagenum))
         if self._use_cache:
             self._cache[pagenum] = page_results
         return page_results
@@ -2235,7 +2311,7 @@ class PagedList:
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def __getitem__(self, idx):
-        # NOTE: cache must be enabled if this is used
+        assert self._use_cache, 'Indexing PagedList requires cache'
         if not isinstance(idx, int) or idx < 0:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
@@ -2261,7 +2337,11 @@ class OnDemandPagedList(PagedList):
                 if (end is not None and firstid <= end <= nextfirstid)
                 else None)
 
-            page_results = self.getpage(pagenum)
+            try:
+                page_results = self.getpage(pagenum)
+            except Exception:
+                self._pagecount = pagenum - 1
+                raise
             if startv != 0 or endv is not None:
                 page_results = page_results[startv:endv]
             yield from page_results
@@ -2281,8 +2361,8 @@ class OnDemandPagedList(PagedList):
 
 class InAdvancePagedList(PagedList):
     def __init__(self, pagefunc, pagecount, pagesize):
-        self._pagecount = pagecount
         PagedList.__init__(self, pagefunc, pagesize, True)
+        self._pagecount = pagecount
 
     def _getslice(self, start, end):
         start_page = start // self._pagesize
@@ -2321,6 +2401,8 @@ def lowercase_escape(s):
 
 def escape_rfc3986(s):
     """Escape non-ASCII characters as suggested by RFC 3986"""
+    if sys.version_info < (3, 0) and isinstance(s, compat_str):
+        s = s.encode('utf-8')
     return compat_urllib_parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
 
 
@@ -2648,7 +2730,12 @@ def args_to_str(args):
 
 
 def error_to_compat_str(err):
-    return str(err)
+    err_str = str(err)
+    # On python 2 error byte string must be decoded with proper
+    # encoding rather than ascii
+    if sys.version_info[0] < 3:
+        err_str = err_str.decode(preferredencoding())
+    return err_str
 
 
 def mimetype2ext(mt):
@@ -2857,7 +2944,7 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
     extra_gap += 1
     if delim:
         table = [header_row, [delim * (ml + extra_gap) for ml in max_lens]] + data
-        table[1][-1] = table[1][-1][:-extra_gap]  # Remove extra_gap from end of delimiter
+        table[1][-1] = table[1][-1][:-extra_gap * len(delim)]  # Remove extra_gap from end of delimiter
     for row in table:
         for pos, text in enumerate(map(str, row)):
             if '\t' in text:
@@ -2955,6 +3042,9 @@ def match_str(filter_str, dct, incomplete=False):
 
 
 def match_filter_func(filter_str):
+    if filter_str is None:
+        return None
+
     def _match_func(info_dict, *args, **kwargs):
         if match_str(filter_str, info_dict, *args, **kwargs):
             return None
@@ -4542,8 +4632,28 @@ def traverse_dict(dictn, keys, casesense=True):
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
+def get_first(obj, keys, **kwargs):
+    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
+
+
 def variadic(x, allowed_types=(str, bytes, dict)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
+
+
+def decode_base(value, digits):
+    # This will convert given base-x string to scalar (long or int)
+    table = {char: index for index, char in enumerate(digits)}
+    result = 0
+    base = len(digits)
+    for chr in value:
+        result *= base
+        result += table[chr]
+    return result
+
+
+def time_seconds(**kwargs):
+    t = datetime.datetime.now(datetime.timezone(datetime.timedelta(**kwargs)))
+    return t.timestamp()
 
 
 # create a JSON Web Signature (jws) with HS256 algorithm
@@ -4602,6 +4712,38 @@ def join_nonempty(*values, delim='-', from_dict=None):
     return delim.join(map(str, filter(None, values)))
 
 
+def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
+    """
+    Find the largest format dimensions in terms of video width and, for each thumbnail:
+    * Modify the URL: Match the width with the provided regex and replace with the former width
+    * Update dimensions
+
+    This function is useful with video services that scale the provided thumbnails on demand
+    """
+    _keys = ('width', 'height')
+    max_dimensions = max(
+        [tuple(format.get(k) or 0 for k in _keys) for format in formats],
+        default=(0, 0))
+    if not max_dimensions[0]:
+        return thumbnails
+    return [
+        merge_dicts(
+            {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
+            dict(zip(_keys, max_dimensions)), thumbnail)
+        for thumbnail in thumbnails
+    ]
+
+
+def parse_http_range(range):
+    """ Parse value of "Range" or "Content-Range" HTTP header into tuple. """
+    if not range:
+        return None, None, None
+    crg = re.search(r'bytes[ =](\d+)-(\d+)?(?:/(\d+))?', range)
+    if not crg:
+        return None, None, None
+    return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
+
+
 class Config:
     own_args = None
     filename = None
@@ -4650,6 +4792,8 @@ class Config:
         try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read()
+            if sys.version_info < (3,):
+                contents = contents.decode(preferredencoding())
             res = compat_shlex_split(contents, comments=True)
         finally:
             optionf.close()
@@ -4697,6 +4841,7 @@ class WebSocketsWrapper():
         self.conn = compat_websockets.connect(
             url, extra_headers=headers, ping_interval=None,
             close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
+        atexit.register(self.__exit__, None, None, None)
 
     def __enter__(self):
         self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
@@ -4713,7 +4858,7 @@ class WebSocketsWrapper():
             return self.run_with_loop(self.conn.__aexit__(type, value, traceback), self.loop)
         finally:
             self.loop.close()
-            self.r_cancel_all_tasks(self.loop)
+            self._cancel_all_tasks(self.loop)
 
     # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
@@ -4754,3 +4899,8 @@ class WebSocketsWrapper():
 
 
 has_websockets = bool(compat_websockets)
+
+
+def merge_headers(*dicts):
+    """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
+    return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}

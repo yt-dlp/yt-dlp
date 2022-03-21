@@ -224,6 +224,7 @@ class InfoExtractor(object):
 
     The following fields are optional:
 
+    direct:         True if a direct video file was given (must only be set by GenericIE)
     alt_title:      A secondary title of the video.
     display_id      An alternative identifier for the video, not necessarily
                     unique, but available before title. Typically, id is
@@ -272,7 +273,7 @@ class InfoExtractor(object):
                         * "url": A URL pointing to the subtitles file
                     It can optionally also have:
                         * "name": Name or description of the subtitles
-                        * http_headers: A dictionary of additional HTTP headers
+                        * "http_headers": A dictionary of additional HTTP headers
                                   to add to the request.
                     "ext" will be calculated from URL if missing
     automatic_captions: Like 'subtitles'; contains automatically generated
@@ -423,13 +424,21 @@ class InfoExtractor(object):
     title, description etc.
 
 
-    Subclasses of this one should re-define the _real_initialize() and
-    _real_extract() methods and define a _VALID_URL regexp.
+    Subclasses of this should define a _VALID_URL regexp and, re-define the
+    _real_extract() and (optionally) _real_initialize() methods.
     Probably, they should also be added to the list of extractors.
 
     Subclasses may also override suitable() if necessary, but ensure the function
     signature is preserved and that this function imports everything it needs
-    (except other extractors), so that lazy_extractors works correctly
+    (except other extractors), so that lazy_extractors works correctly.
+
+    To support username + password (or netrc) login, the extractor must define a
+    _NETRC_MACHINE and re-define _perform_login(username, password) and
+    (optionally) _initialize_pre_login() methods. The _perform_login method will
+    be called between _initialize_pre_login and _real_initialize if credentials
+    are passed by the user. In cases where it is necessary to have the login
+    process as part of the extraction rather than initialization, _perform_login
+    can be left undefined.
 
     _GEO_BYPASS attribute may be set to False in order to disable
     geo restriction bypass mechanisms for a particular extractor.
@@ -457,9 +466,10 @@ class InfoExtractor(object):
     _GEO_COUNTRIES = None
     _GEO_IP_BLOCKS = None
     _WORKING = True
+    _NETRC_MACHINE = None
 
     _LOGIN_HINTS = {
-        'any': 'Use --cookies, --username and --password, or --netrc to provide account credentials',
+        'any': 'Use --cookies, --cookies-from-browser, --username and --password, or --netrc to provide account credentials',
         'cookies': (
             'Use --cookies-from-browser or --cookies for the authentication. '
             'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
@@ -509,6 +519,10 @@ class InfoExtractor(object):
         """Getter method for _WORKING."""
         return cls._WORKING
 
+    @classmethod
+    def supports_login(cls):
+        return bool(cls._NETRC_MACHINE)
+
     def initialize(self):
         """Initializes an instance (authentication, etc)."""
         self._printed_messages = set()
@@ -517,6 +531,13 @@ class InfoExtractor(object):
             'ip_blocks': self._GEO_IP_BLOCKS,
         })
         if not self._ready:
+            self._initialize_pre_login()
+            if self.supports_login():
+                username, password = self._get_login_info()
+                if username:
+                    self._perform_login(username, password)
+            elif self.get_param('username') and False not in (self.IE_DESC, self._NETRC_MACHINE):
+                self.report_warning(f'Login with password is not supported for this website. {self._LOGIN_HINTS["cookies"]}')
             self._real_initialize()
             self._ready = True
 
@@ -637,7 +658,7 @@ class InfoExtractor(object):
             }
             if hasattr(e, 'countries'):
                 kwargs['countries'] = e.countries
-            raise type(e)(e.msg, **kwargs)
+            raise type(e)(e.orig_msg, **kwargs)
         except IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
@@ -659,8 +680,16 @@ class InfoExtractor(object):
         return False
 
     def set_downloader(self, downloader):
-        """Sets the downloader for this IE."""
+        """Sets a YoutubeDL instance as the downloader for this IE."""
         self._downloader = downloader
+
+    def _initialize_pre_login(self):
+        """ Intialization before login. Redefine in subclasses."""
+        pass
+
+    def _perform_login(self, username, password):
+        """ Login with username and password. Redefine in subclasses."""
+        pass
 
     def _real_initialize(self):
         """Real initialization process. Redefine in subclasses."""
@@ -668,7 +697,7 @@ class InfoExtractor(object):
 
     def _real_extract(self, url):
         """Real extraction process. Redefine in subclasses."""
-        pass
+        raise NotImplementedError('This method must be implemented by subclasses')
 
     @classmethod
     def ie_key(cls):
@@ -748,7 +777,7 @@ class InfoExtractor(object):
 
             errmsg = '%s: %s' % (errnote, error_to_compat_str(err))
             if fatal:
-                raise ExtractorError(errmsg, sys.exc_info()[2], cause=err)
+                raise ExtractorError(errmsg, cause=err)
             else:
                 self.report_warning(errmsg)
                 return False
@@ -1096,11 +1125,15 @@ class InfoExtractor(object):
 
     def raise_login_required(
             self, msg='This video is only available for registered users',
-            metadata_available=False, method='any'):
+            metadata_available=False, method=NO_DEFAULT):
         if metadata_available and (
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
+            return
+        if method is NO_DEFAULT:
+            method = 'any' if self.supports_login() else 'cookies'
         if method is not None:
+            assert method in self._LOGIN_HINTS, 'Invalid login method'
             msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
         raise ExtractorError(msg, expected=True)
 
@@ -1138,8 +1171,8 @@ class InfoExtractor(object):
             'url': url,
         }
 
-    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, **kwargs):
-        urls = (self.url_result(self._proto_relative_url(m), ie)
+    def playlist_from_matches(self, matches, playlist_id=None, playlist_title=None, getter=None, ie=None, video_kwargs=None, **kwargs):
+        urls = (self.url_result(self._proto_relative_url(m), ie, **(video_kwargs or {}))
                 for m in orderedSet(map(getter, matches) if getter else matches))
         return self.playlist_result(urls, playlist_id, playlist_title, **kwargs)
 
@@ -1616,7 +1649,7 @@ class InfoExtractor(object):
             'vcodec': {'type': 'ordered', 'regex': True,
                        'order': ['av0?1', 'vp0?9.2', 'vp0?9', '[hx]265|he?vc?', '[hx]264|avc', 'vp0?8', 'mp4v|h263', 'theora', '', None, 'none']},
             'acodec': {'type': 'ordered', 'regex': True,
-                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
+                       'order': ['[af]lac', 'wav|aiff', 'opus', 'vorbis|ogg', 'aac', 'mp?4a?', 'mp3', 'e-?a?c-?3', 'ac-?3', 'dts', '', None, 'none']},
             'hdr': {'type': 'ordered', 'regex': True, 'field': 'dynamic_range',
                     'order': ['dv', '(hdr)?12', r'(hdr)?10\+', '(hdr)?10', 'hlg', '', 'sdr', None]},
             'proto': {'type': 'ordered', 'regex': True, 'field': 'protocol',
@@ -1659,31 +1692,31 @@ class InfoExtractor(object):
             'format_id': {'type': 'alias', 'field': 'id'},
             'preference': {'type': 'alias', 'field': 'ie_pref'},
             'language_preference': {'type': 'alias', 'field': 'lang'},
+            'source_preference': {'type': 'alias', 'field': 'source'},
+            'protocol': {'type': 'alias', 'field': 'proto'},
+            'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
 
             # Deprecated
-            'dimension': {'type': 'alias', 'field': 'res'},
-            'resolution': {'type': 'alias', 'field': 'res'},
-            'extension': {'type': 'alias', 'field': 'ext'},
-            'bitrate': {'type': 'alias', 'field': 'br'},
-            'total_bitrate': {'type': 'alias', 'field': 'tbr'},
-            'video_bitrate': {'type': 'alias', 'field': 'vbr'},
-            'audio_bitrate': {'type': 'alias', 'field': 'abr'},
-            'framerate': {'type': 'alias', 'field': 'fps'},
-            'protocol': {'type': 'alias', 'field': 'proto'},
-            'source_preference': {'type': 'alias', 'field': 'source'},
-            'filesize_approx': {'type': 'alias', 'field': 'fs_approx'},
-            'filesize_estimate': {'type': 'alias', 'field': 'size'},
-            'samplerate': {'type': 'alias', 'field': 'asr'},
-            'video_ext': {'type': 'alias', 'field': 'vext'},
-            'audio_ext': {'type': 'alias', 'field': 'aext'},
-            'video_codec': {'type': 'alias', 'field': 'vcodec'},
-            'audio_codec': {'type': 'alias', 'field': 'acodec'},
-            'video': {'type': 'alias', 'field': 'hasvid'},
-            'has_video': {'type': 'alias', 'field': 'hasvid'},
-            'audio': {'type': 'alias', 'field': 'hasaud'},
-            'has_audio': {'type': 'alias', 'field': 'hasaud'},
-            'extractor': {'type': 'alias', 'field': 'ie_pref'},
-            'extractor_preference': {'type': 'alias', 'field': 'ie_pref'},
+            'dimension': {'type': 'alias', 'field': 'res', 'deprecated': True},
+            'resolution': {'type': 'alias', 'field': 'res', 'deprecated': True},
+            'extension': {'type': 'alias', 'field': 'ext', 'deprecated': True},
+            'bitrate': {'type': 'alias', 'field': 'br', 'deprecated': True},
+            'total_bitrate': {'type': 'alias', 'field': 'tbr', 'deprecated': True},
+            'video_bitrate': {'type': 'alias', 'field': 'vbr', 'deprecated': True},
+            'audio_bitrate': {'type': 'alias', 'field': 'abr', 'deprecated': True},
+            'framerate': {'type': 'alias', 'field': 'fps', 'deprecated': True},
+            'filesize_estimate': {'type': 'alias', 'field': 'size', 'deprecated': True},
+            'samplerate': {'type': 'alias', 'field': 'asr', 'deprecated': True},
+            'video_ext': {'type': 'alias', 'field': 'vext', 'deprecated': True},
+            'audio_ext': {'type': 'alias', 'field': 'aext', 'deprecated': True},
+            'video_codec': {'type': 'alias', 'field': 'vcodec', 'deprecated': True},
+            'audio_codec': {'type': 'alias', 'field': 'acodec', 'deprecated': True},
+            'video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
+            'has_video': {'type': 'alias', 'field': 'hasvid', 'deprecated': True},
+            'audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
+            'has_audio': {'type': 'alias', 'field': 'hasaud', 'deprecated': True},
+            'extractor': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
+            'extractor_preference': {'type': 'alias', 'field': 'ie_pref', 'deprecated': True},
         }
 
         def __init__(self, ie, field_preference):
@@ -1783,7 +1816,7 @@ class InfoExtractor(object):
                     continue
                 if self._get_field_setting(field, 'type') == 'alias':
                     alias, field = field, self._get_field_setting(field, 'field')
-                    if alias not in ('format_id', 'preference', 'language_preference'):
+                    if self._get_field_setting(alias, 'deprecated'):
                         self.ydl.deprecation_warning(
                             f'Format sorting alias {alias} is deprecated '
                             f'and may be removed in a future version. Please use {field} instead')
@@ -3648,11 +3681,11 @@ class InfoExtractor(object):
 
     @staticmethod
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
-        """ Merge subtitle items for one language. Items with duplicated URLs
+        """ Merge subtitle items for one language. Items with duplicated URLs/data
         will be dropped. """
-        list1_urls = set([item['url'] for item in subtitle_list1])
+        list1_data = set([item.get('url') or item['data'] for item in subtitle_list1])
         ret = list(subtitle_list1)
-        ret.extend([item for item in subtitle_list2 if item['url'] not in list1_urls])
+        ret.extend([item for item in subtitle_list2 if (item.get('url') or item['data']) not in list1_data])
         return ret
 
     @classmethod
@@ -3677,9 +3710,8 @@ class InfoExtractor(object):
     def mark_watched(self, *args, **kwargs):
         if not self.get_param('mark_watched', False):
             return
-        if (self._get_login_info()[0] is not None
-                or self.get_param('cookiefile')
-                or self.get_param('cookiesfrombrowser')):
+        if (self.supports_login() and self._get_login_info()[0] is not None
+                or self.get_param('cookiefile') or self.get_param('cookiesfrombrowser')):
             self._mark_watched(*args, **kwargs)
 
     def _mark_watched(self, *args, **kwargs):

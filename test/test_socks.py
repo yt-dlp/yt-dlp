@@ -18,7 +18,6 @@ from test.helper import (
 )
 from yt_dlp.compat import (
     compat_str,
-    compat_urllib_request,
 )
 
 from yt_dlp.networking.common import Request
@@ -62,7 +61,6 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('http://yt-dl.org/ip')
         req = Request('http://yt-dl.org/ip', proxy=params['secondary_proxy'])
         self.assertEqual(
             ydl.urlopen(req).read().decode('utf-8'),
@@ -73,7 +71,6 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('https://yt-dl.org/ip')
         req = Request('http://yt-dl.org/ip', proxy=params['secondary_proxy'])
         self.assertEqual(
             ydl.urlopen(req).read().decode('utf-8'),

@@ -64,7 +64,7 @@ def report_warning(message):
     else:
         _msg_header = 'WARNING:'
     output = '%s %s\n' % (_msg_header, message)
-    if 'b' in getattr(sys.stderr, 'mode', ''):
+    if 'b' in getattr(sys.stderr, 'mode', '') or sys.version_info[0] < 3:
         output = output.encode(preferredencoding())
     sys.stderr.write(output)
 

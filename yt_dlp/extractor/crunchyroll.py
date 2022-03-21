@@ -16,7 +16,6 @@ from ..compat import (
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_urlencode,
-    compat_urllib_request,
     compat_urlparse,
 )
 from ..utils import (
@@ -57,10 +56,7 @@ class CrunchyrollBaseIE(InfoExtractor):
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _perform_login(self, username, password):
         if self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             return
 
@@ -85,12 +81,9 @@ class CrunchyrollBaseIE(InfoExtractor):
                 'session_id': session_id
             }).encode('ascii'))
         if login_response['code'] != 'ok':
-            raise ExtractorError('Login failed. Bad username or password?', expected=True)
+            raise ExtractorError('Login failed. Server message: %s' % login_response['message'], expected=True)
         if not self._get_cookies(self._LOGIN_URL).get('etp_rt'):
             raise ExtractorError('Login succeeded but did not set etp_rt cookie')
-
-    def _real_initialize(self):
-        self._login()
 
     @staticmethod
     def _add_skip_wall(url):
@@ -252,7 +245,7 @@ class CrunchyrollIE(CrunchyrollBaseIE, VRVIE):
     }
 
     def _download_webpage(self, url_or_request, *args, **kwargs):
-        request = (url_or_request if isinstance(url_or_request, compat_urllib_request.Request)
+        request = (url_or_request if isinstance(url_or_request, Request)
                    else Request(url_or_request))
         # Accept-Language must be set explicitly to accept any language to avoid issues
         # similar to https://github.com/ytdl-org/youtube-dl/issues/6797.

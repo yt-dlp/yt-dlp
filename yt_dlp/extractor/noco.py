@@ -61,14 +61,7 @@ class NocoIE(InfoExtractor):
         }
     ]
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login = self._download_json(
             self._LOGIN_URL, None, 'Logging in',
             data=urlencode_postdata({
