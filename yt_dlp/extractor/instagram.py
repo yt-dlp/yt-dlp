@@ -20,7 +20,6 @@ from ..utils import (
     url_or_none,
     urlencode_postdata, HTTPError,
 )
-from ..networking.common import get_std_headers
 
 
 class InstagramBaseIE(InfoExtractor):

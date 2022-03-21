@@ -18,7 +18,6 @@ from ..utils import (
     is_outdated_version,
     Popen,
 )
-from ..networking.common import get_std_headers
 
 
 def cookie_to_dict(cookie):

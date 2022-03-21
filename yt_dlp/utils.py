@@ -75,7 +75,6 @@ from .compat import (
 
 std_headers = {}
 # This is not clearly defined otherwise
-
 compiled_regex_type = type(re.compile(''))
 
 NO_DEFAULT = object()

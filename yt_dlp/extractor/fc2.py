@@ -17,7 +17,7 @@ from ..utils import (
     urlencode_postdata,
     urljoin,
 )
-from ..networking.common import Request, get_std_headers
+from ..networking.common import Request
 
 
 class FC2IE(InfoExtractor):
