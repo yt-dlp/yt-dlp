@@ -88,7 +88,6 @@ from .utils import (
     locked_file,
     make_dir,
     MaxDownloadsReached,
-    merge_headers,
     network_exceptions,
     number_of_digits,
     orderedSet,
@@ -648,7 +647,7 @@ class YoutubeDL(object):
             else self.build_format_selector(self.params['format']))
 
         # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = merge_headers(get_std_headers(), self.params.get('http_headers', {}))
+        self.params['http_headers'] = get_std_headers().update(self.params.get('http_headers', {}))
 
         self.default_session = self._setup_backends()
 
@@ -2253,8 +2252,7 @@ class YoutubeDL(object):
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
-
+        res = self.params['http_headers'].copy().update(info_dict.get('http_headers') or {})
         cookies = self._calc_cookies(info_dict)
         if cookies:
             res['Cookie'] = cookies
