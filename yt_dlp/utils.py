@@ -153,7 +153,6 @@ if compat_brotli:
 std_headers = {
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Encoding': ', '.join(SUPPORTED_ENCODINGS),
     'Accept-Language': 'en-us,en;q=0.5',
     'Sec-Fetch-Mode': 'navigate',
 }
@@ -1386,7 +1385,10 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
 
-        for h, v in self._params.get('http_headers', std_headers).items():
+        headers = merge_headers(
+            {'Accept-Encoding': ', '.join(SUPPORTED_ENCODINGS)}, self._params.get('http_headers', std_headers))
+
+        for h, v in headers.items():
             # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:
