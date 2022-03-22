@@ -25,11 +25,8 @@ class LinkedInBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'linkedin'
     _logged_in = False
 
-    def _real_initialize(self):
+    def _perform_login(self, username, password):
         if self._logged_in:
-            return
-        email, password = self._get_login_info()
-        if email is None:
             return
 
         login_page = self._download_webpage(
@@ -39,7 +36,7 @@ class LinkedInBaseIE(InfoExtractor):
             default='https://www.linkedin.com/uas/login-submit', group='url'))
         data = self._hidden_inputs(login_page)
         data.update({
-            'session_key': email,
+            'session_key': username,
             'session_password': password,
         })
         login_submit_page = self._download_webpage(

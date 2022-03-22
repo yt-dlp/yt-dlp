@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
-import errno
 import os
-import socket
+import ssl
 import time
 import random
 
@@ -10,6 +9,7 @@ from .common import FileDownloader
 from ..compat import (
     compat_str,
     compat_urllib_error,
+    compat_http_client
 )
 from ..utils import (
     ContentTooShortError,
@@ -18,10 +18,13 @@ from ..utils import (
     parse_http_range,
     sanitized_Request,
     ThrottledDownload,
+    try_get,
     write_xattr,
     XAttrMetadataError,
     XAttrUnavailableError,
 )
+
+RESPONSE_READ_EXCEPTIONS = (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException)
 
 
 class HttpFD(FileDownloader):
@@ -53,7 +56,6 @@ class HttpFD(FileDownloader):
 
         ctx.open_mode = 'wb'
         ctx.resume_len = 0
-        ctx.data_len = None
         ctx.block_size = self.params.get('buffersize', 1024)
         ctx.start_time = time.time()
         ctx.chunk_size = None
@@ -100,6 +102,8 @@ class HttpFD(FileDownloader):
                 if ctx.is_resume:
                     self.report_resuming_byte(ctx.resume_len)
                 ctx.open_mode = 'ab'
+            elif req_start is not None:
+                range_start = req_start
             elif ctx.chunk_size > 0:
                 range_start = 0
             else:
@@ -116,23 +120,21 @@ class HttpFD(FileDownloader):
             else:
                 range_end = None
 
-            if range_end and ctx.data_len is not None and range_end >= ctx.data_len:
-                range_end = ctx.data_len - 1
-            has_range = range_start is not None
-            ctx.has_range = has_range
+            if try_get(None, lambda _: range_start > range_end):
+                ctx.resume_len = 0
+                ctx.open_mode = 'wb'
+                raise RetryDownload(Exception(f'Conflicting range. (start={range_start} > end={range_end})'))
+
+            if try_get(None, lambda _: range_end >= ctx.content_len):
+                range_end = ctx.content_len - 1
+
             request = sanitized_Request(url, request_data, headers)
+            has_range = range_start is not None
             if has_range:
                 set_range(request, range_start, range_end)
             # Establish connection
             try:
-                try:
-                    ctx.data = self.ydl.urlopen(request)
-                except (compat_urllib_error.URLError, ) as err:
-                    # reason may not be available, e.g. for urllib2.HTTPError on python 2.6
-                    reason = getattr(err, 'reason', None)
-                    if isinstance(reason, socket.timeout):
-                        raise RetryDownload(err)
-                    raise err
+                ctx.data = self.ydl.urlopen(request)
                 # When trying to resume, Content-Range HTTP header of response has to be checked
                 # to match the value of requested Range HTTP header. This is due to a webservers
                 # that don't support resuming and serve a whole file with no Content-Range
@@ -151,7 +153,8 @@ class HttpFD(FileDownloader):
                             or content_range_end == range_end
                             or content_len < range_end)
                         if accept_content_len:
-                            ctx.data_len = content_len
+                            ctx.content_len = content_len
+                            ctx.data_len = min(content_len, req_end or content_len) - (req_start or 0)
                             return
                     # Content-Range is either not present or invalid. Assuming remote webserver is
                     # trying to send the whole file, resume is not possible, so wiping the local file
@@ -159,8 +162,7 @@ class HttpFD(FileDownloader):
                     self.report_unable_to_resume()
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
-                ctx.data_len = int_or_none(ctx.data.info().get('Content-length', None))
-                return
+                ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
             except (compat_urllib_error.HTTPError, ) as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
@@ -202,13 +204,14 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except socket.timeout as err:
+            except compat_urllib_error.URLError as err:
+                if isinstance(err.reason, ssl.CertificateError):
+                    raise
                 raise RetryDownload(err)
-            except socket.error as err:
-                if err.errno in (errno.ECONNRESET, errno.ETIMEDOUT):
-                    # Connection reset is no problem, just retry
-                    raise RetryDownload(err)
-                raise
+            # In urllib.request.AbstractHTTPHandler, the response is partially read on request.
+            # Any errors that occur during this will not be wrapped by URLError
+            except RESPONSE_READ_EXCEPTIONS as err:
+                raise RetryDownload(err)
 
         def download():
             nonlocal throttle_start
@@ -254,16 +257,8 @@ class HttpFD(FileDownloader):
                 try:
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
-                # socket.timeout is a subclass of socket.error but may not have
-                # errno set
-                except socket.timeout as e:
-                    retry(e)
-                except socket.error as e:
-                    # SSLError on python 2 (inherits socket.error) may have
-                    # no errno set but this error message
-                    if e.errno in (errno.ECONNRESET, errno.ETIMEDOUT) or getattr(e, 'message', None) == 'The read operation timed out':
-                        retry(e)
-                    raise
+                except RESPONSE_READ_EXCEPTIONS as err:
+                    retry(err)
 
                 byte_counter += len(data_block)
 
@@ -343,7 +338,7 @@ class HttpFD(FileDownloader):
                 elif speed:
                     throttle_start = None
 
-            if not is_test and ctx.chunk_size and ctx.data_len is not None and byte_counter < ctx.data_len:
+            if not is_test and ctx.chunk_size and ctx.content_len is not None and byte_counter < ctx.content_len:
                 ctx.resume_len = byte_counter
                 # ctx.block_size = block_size
                 raise NextFragment()

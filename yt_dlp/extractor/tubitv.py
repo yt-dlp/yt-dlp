@@ -54,10 +54,7 @@ class TubiTvIE(InfoExtractor):
         },
     }]
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _perform_login(self, username, password):
         self.report_login()
         form_data = {
             'username': username,
@@ -71,9 +68,6 @@ class TubiTvIE(InfoExtractor):
         if not re.search(r'id="tubi-logout"', login_page):
             raise ExtractorError(
                 'Login failed (invalid username/password)', expected=True)
-
-    def _real_initialize(self):
-        self._login()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

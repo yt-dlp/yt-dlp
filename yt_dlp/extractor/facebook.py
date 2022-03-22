@@ -329,11 +329,7 @@ class FacebookIE(InfoExtractor):
             urls.append(mobj.group('url'))
         return urls
 
-    def _login(self):
-        useremail, password = self._get_login_info()
-        if useremail is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page_req = sanitized_Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
         login_page = self._download_webpage(login_page_req, None,
@@ -345,7 +341,7 @@ class FacebookIE(InfoExtractor):
         lgnrnd = self._search_regex(r'name="lgnrnd" value="([^"]*?)"', login_page, 'lgnrnd')
 
         login_form = {
-            'email': useremail,
+            'email': username,
             'pass': password,
             'lsd': lsd,
             'lgnrnd': lgnrnd,
@@ -391,9 +387,6 @@ class FacebookIE(InfoExtractor):
         except network_exceptions as err:
             self.report_warning('unable to log in: %s' % error_to_compat_str(err))
             return
-
-    def _real_initialize(self):
-        self._login()
 
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
