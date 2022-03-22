@@ -206,7 +206,7 @@ class ViuOTTIE(InfoExtractor):
         'en-us': 3,
     }
 
-    _user_info = None
+    _user_token = None
     _auth_codes = {}
 
     def _detect_error(self, response):
@@ -217,21 +217,39 @@ class ViuOTTIE(InfoExtractor):
         return response.get('data') or {}
 
     def _login(self, country_code, video_id):
-        if not self._user_info:
+        if self._user_token is None:
             username, password = self._get_login_info()
             if username is None:
                 return
+            headers = {
+                'Authorization': f'Bearer {self._auth_codes[country_code]}',
+                'Content-Type': 'application/json'
+            }
+            data = self._download_json(
+                'https://api-gateway-global.viu.com/api/account/validate',
+                video_id, 'Validating email address',
+                headers=headers,
+                data=json.dumps({
+                    'principal': username,
+                    'provider': 'email'
+                }).encode())
+            if not data.get('exists'):
+                raise ExtractorError('Invalid email address')
 
             data = self._download_json(
-                f'https://www.viu.com/ott/{country_code}/index.php',
-                video_id, 'Logging in', query={'r': 'user/login'},
+                f'https://api-gateway-global.viu.com/api/auth/login',
+                video_id, 'Logging in',
+                headers=headers,
                 data=json.dumps({
-                    'username': username,
+                    'email': username,
                     'password': password,
-                    'platform_flag_label': 'web',
+                    'provider': 'email',
                 }).encode())
-            self._user_info = self._detect_error(data)['user']
-        return self._user_info
+            self._detect_error(data)
+            self._user_token = data.get('identity')
+            # need to update with valid user's token else will throw an error again
+            self._auth_codes[country_code] = data.get('token')
+        return self._user_token
 
     def _get_token(self, country_code, video_id):
         rand = ''.join(random.choice('0123456789') for _ in range(10))
@@ -310,21 +328,18 @@ class ViuOTTIE(InfoExtractor):
         try:
             stream_data = download_playback()
         except (ExtractorError, KeyError):
-            if not try_get(video_data, lambda x: x['user_level'] > 0):
-                raise
-            user = self._login(country_code, video_id)
-            if user:
-                query['identity'] = user['identity']
+            token = self._login(country_code, video_id)
+            if token is not None:
+                query['identity'] = token
             else:
                 # preview is limited to 3min for non-members. But we can try to bypass it
                 duration_limit, query['duration'] = True, '180'
             try:
                 stream_data = download_playback()
             except (ExtractorError, KeyError):
-                if user:
+                if token is not None:
                     raise
                 self.raise_login_required(method='password')
-
         if not stream_data:
             raise ExtractorError('Cannot get stream info', expected=True)
 
@@ -347,7 +362,7 @@ class ViuOTTIE(InfoExtractor):
                 'url': stream_url,
                 'height': height,
                 'ext': 'mp4',
-                'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int_or_none)
+                'filesize': try_get(stream_data, lambda x: x['size'][vid_format])
             })
         self._sort_formats(formats)
 
