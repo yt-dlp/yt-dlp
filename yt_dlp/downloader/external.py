@@ -230,7 +230,10 @@ class WgetFD(ExternalFD):
                 retry[1] = '0'
             cmd += retry
         cmd += self._option('--bind-address', 'source_address')
-        cmd += self._option('--proxy', 'proxy')
+        proxy = self.params.get('proxy')
+        if proxy:
+            for var in ('http_proxy', 'https_proxy'):
+                cmd += ['--execute', '%s=%s' % (var, proxy)]
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
