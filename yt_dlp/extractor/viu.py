@@ -5,20 +5,21 @@ import re
 import json
 import uuid
 import random
+import urllib.parse
 
 from .common import InfoExtractor
 from ..compat import (
     compat_kwargs,
     compat_str,
-    compat_urlparse,
-    compat_urllib_request,
 )
 from ..utils import (
     ExtractorError,
     int_or_none,
+    strip_or_none,
     try_get,
     smuggle_url,
     unsmuggle_url,
+    url_or_none,
 )
 
 
@@ -212,40 +213,31 @@ class ViuOTTIE(InfoExtractor):
     }
 
     _user_info = None
+    _auth_codes = {}
 
     def _detect_error(self, response):
-        code = response.get('status', {}).get('code')
-        if code > 0:
+        code = try_get(response, lambda x: x['status']['code'])
+        if code and code > 0:
             message = try_get(response, lambda x: x['status']['message'])
             raise ExtractorError(
                 f'{self.IE_NAME} said: {message} ({code})', expected=True)
-        return response['data']
-
-    def _raise_login_required(self):
-        raise ExtractorError(
-            'This video requires login. '
-            f'Specify --username and --password or --netrc (machine: {self._NETRC_MACHINE}) '
-            'to provide account credentials.',
-            expected=True)
+        return response.get('data') or {}
 
     def _login(self, country_code, video_id):
         if not self._user_info:
             username, password = self._get_login_info()
-            if username is None or password is None:
+            if username is None:
                 return
 
             data = self._download_json(
-                compat_urllib_request.Request(
-                    f'https://www.viu.com/ott/{country_code}/index.php', method='POST'),
-                video_id, 'Logging in', errnote=False, fatal=False,
-                query={'r': 'user/login'},
+                f'https://www.viu.com/ott/{country_code}/index.php',
+                video_id, 'Logging in', query={'r': 'user/login'},
                 data=json.dumps({
                     'username': username,
                     'password': password,
                     'platform_flag_label': 'web',
                 }).encode())
             self._user_info = self._detect_error(data)['user']
-
         return self._user_info
 
     def _get_token(self, country_code):
@@ -264,13 +256,9 @@ class ViuOTTIE(InfoExtractor):
             headers={'Content-Type': 'application/json'},
             note='Getting bearer token')['token']
 
-    auth_codes = {}
-
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
         country_code, lang_code, video_id = self._match_valid_url(url).groups()
-        if not self.auth_codes.get(country_code):
-            self.auth_codes[country_code] = self._get_token(country_code)
 
         query = {
             'r': 'vod/ajax-detail',
@@ -288,11 +276,11 @@ class ViuOTTIE(InfoExtractor):
 
         video_data = product_data.get('current_product')
         if not video_data:
-            raise ExtractorError('This video is not available in your region.', expected=True)
+            self.raise_geo_restricted()
 
         series_id = video_data.get('series_id')
         if self._yes_playlist(series_id, video_id, idata):
-            series = product_data.get('series', {})
+            series = product_data.get('series') or {}
             product = series.get('product')
             if product:
                 entries = []
@@ -300,14 +288,10 @@ class ViuOTTIE(InfoExtractor):
                     item_id = entry.get('product_id')
                     if not item_id:
                         continue
-                    item_id = compat_str(item_id)
                     entries.append(self.url_result(
-                        smuggle_url(
-                            f'http://www.viu.com/ott/{country_code}/{lang_code}/vod/{item_id}/',
-                            {'force_noplaylist': True}),  # prevent infinite recursion
-                        'ViuOTT',
-                        item_id,
-                        entry.get('synopsis', '').strip()))
+                        smuggle_url(f'http://www.viu.com/ott/{country_code}/{lang_code}/vod/{item_id}/',
+                                    {'force_noplaylist': True}),
+                        ViuOTTIE, str(item_id), entry.get('synopsis', '').strip()))
 
                 return self.playlist_result(entries, series_id, series.get('name'), series.get('description'))
 
@@ -320,66 +304,64 @@ class ViuOTTIE(InfoExtractor):
         def download_playback():
             stream_data = self._download_json(
                 'https://api-gateway-global.viu.com/api/playback/distribute',
-                video_id=video_id,
-                note='Downloading stream info',
-                query=query,
+                video_id=video_id, query=query, fatal=False, note='Downloading stream info',
                 headers={
-                    'Authorization': f'Bearer {self.auth_codes[country_code]}',
+                    'Authorization': f'Bearer {self._auth_codes[country_code]}',
                     'Referer': url,
                     'Origin': url
                 })
             return self._detect_error(stream_data).get('stream')
 
+        if not self._auth_codes.get(country_code):
+            self._auth_codes[country_code] = self._get_token(country_code)
+
+        stream_data = None
         try:
             stream_data = download_playback()
         except (ExtractorError, KeyError):
-            stream_data = None
-            if video_data.get('user_level', 0) > 0:
-                user = self._login(self._country_code, video_id)
+            if not try_get(video_data, lambda x: x['user_level'] > 0):
+                raise
+            user = self._login(country_code, video_id)
+            if user:
+                query['identity'] = user['identity']
+            else:
+                # preview is limited to 3min for non-members. But we can try to bypass it
+                duration_limit, query['duration'] = True, '180'
+            try:
+                stream_data = download_playback()
+            except (ExtractorError, KeyError):
                 if user:
-                    query['identity'] = user['identity']
-                    stream_data = download_playback()
-                else:
-                    # preview is limited to 3min for non-members
-                    # try to bypass the duration limit
-                    duration_limit = True
-                    query['duration'] = '180'
-                    try:
-                        stream_data = download_playback()
-                    except (ExtractorError, KeyError):  # if still not working, give up
-                        self._raise_login_required()
+                    raise
+                self.raise_login_required(method='password')
 
         if not stream_data:
             raise ExtractorError('Cannot get stream info', expected=True)
 
-        stream_sizes = stream_data.get('size', {})
         formats = []
-        for vid_format, stream_url in stream_data.get('url', {}).items():
-            height = int_or_none(self._search_regex(
-                r's(\d+)p', vid_format, 'height', default=None))
+        for vid_format, stream_url in (stream_data.get('url') or {}).items():
+            height = int(self._search_regex(r's(\d+)p', vid_format, 'height', default=None))
 
             # bypass preview duration limit
             if duration_limit:
-                stream_url = compat_urlparse.urlparse(stream_url)
-                query = dict(compat_urlparse.parse_qsl(stream_url.query, keep_blank_values=True))
-                time_duration = int_or_none(video_data.get('time_duration'))
+                stream_url = urllib.parse.urlparse(stream_url)
                 query.update({
-                    'duration': time_duration if time_duration > 0 else '9999999',
+                    'duration': video_data.get('time_duration') or '9999999',
                     'duration_start': '0',
                 })
-                stream_url = stream_url._replace(query=compat_urlparse.urlencode(query)).geturl()
+                stream_url = stream_url._replace(query=urllib.parse.urlencode(dict(
+                    urllib.parse.parse_qsl(stream_url.query, keep_blank_values=True)))).geturl()
 
             formats.append({
                 'format_id': vid_format,
                 'url': stream_url,
                 'height': height,
                 'ext': 'mp4',
-                'filesize': int_or_none(stream_sizes.get(vid_format))
+                'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int_or_none)
             })
         self._sort_formats(formats)
 
         subtitles = {}
-        for sub in video_data.get('subtitle', []):
+        for sub in video_data.get('subtitle') or []:
             sub_url = sub.get('url')
             if not sub_url:
                 continue
@@ -388,17 +370,16 @@ class ViuOTTIE(InfoExtractor):
                 'ext': 'srt',
             })
 
-        title = video_data['synopsis'].strip()
-
+        title = strip_or_none(video_data.get('synopsis'))
         return {
             'id': video_id,
             'title': title,
             'description': video_data.get('description'),
-            'series': product_data.get('series', {}).get('name'),
+            'series': try_get(product_data, lambda x: x['series']['name']),
             'episode': title,
             'episode_number': int_or_none(video_data.get('number')),
             'duration': int_or_none(stream_data.get('duration')),
-            'thumbnail': video_data.get('cover_image_url'),
+            'thumbnail': url_or_none(video_data.get('cover_image_url')),
             'formats': formats,
             'subtitles': subtitles,
         }
