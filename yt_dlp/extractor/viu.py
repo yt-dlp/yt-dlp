@@ -227,8 +227,7 @@ class ViuOTTIE(InfoExtractor):
             }
             data = self._download_json(
                 'https://api-gateway-global.viu.com/api/account/validate',
-                video_id, 'Validating email address',
-                headers=headers,
+                video_id, 'Validating email address', headers=headers,
                 data=json.dumps({
                     'principal': username,
                     'provider': 'email'
@@ -237,9 +236,8 @@ class ViuOTTIE(InfoExtractor):
                 raise ExtractorError('Invalid email address')
 
             data = self._download_json(
-                f'https://api-gateway-global.viu.com/api/auth/login',
-                video_id, 'Logging in',
-                headers=headers,
+                'https://api-gateway-global.viu.com/api/auth/login',
+                video_id, 'Logging in', headers=headers,
                 data=json.dumps({
                     'email': username,
                     'password': password,
@@ -362,7 +360,7 @@ class ViuOTTIE(InfoExtractor):
                 'url': stream_url,
                 'height': height,
                 'ext': 'mp4',
-                'filesize': try_get(stream_data, lambda x: x['size'][vid_format])
+                'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int)
             })
         self._sort_formats(formats)
 
