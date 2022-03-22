@@ -8,10 +8,7 @@ import random
 import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_kwargs,
-    compat_str,
-)
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -24,16 +21,12 @@ from ..utils import (
 
 
 class ViuBaseIE(InfoExtractor):
-    def _call_api(self, path, *args, **kwargs):
-        headers = self.geo_verification_headers()
-        headers.update(kwargs.get('headers', {}))
-        kwargs['headers'] = headers
+    def _call_api(self, path, *args, headers={}, **kwargs):
         response = self._download_json(
-            'https://www.viu.com/api/' + path, *args,
-            **compat_kwargs(kwargs))['response']
+            f'https://www.viu.com/api/{path}', *args, **kwargs,
+            headers={**self.geo_verification_headers(), **headers})['response']
         if response.get('status') != 'success':
-            raise ExtractorError('%s said: %s' % (
-                self.IE_NAME, response['message']), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {response["message"]}', expected=True)
         return response
 
 
@@ -85,6 +78,7 @@ class ViuIE(ViuBaseIE):
         tdirforwhole = video_data.get('tdirforwhole')
         # #EXT-X-BYTERANGE is not supported by native hls downloader
         # and ffmpeg (#10955)
+        # FIXME: It is supported in yt-dlp
         # hls_file = video_data.get('hlsfile')
         hls_file = video_data.get('jwhlsfile')
         if url_path and tdirforwhole and hls_file:
