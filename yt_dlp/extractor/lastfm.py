@@ -4,9 +4,7 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none
-)
+from ..utils import int_or_none
 
 
 class LastFMPlaylistBaseIE(InfoExtractor):
@@ -21,8 +19,7 @@ class LastFMPlaylistBaseIE(InfoExtractor):
             default=None)
 
         if pagination_list:
-            page_numbers = re.findall(r'(\d+)', pagination_list)
-            last_page = max([int_or_none(page_number) for page_number in page_numbers])
+            last_page = max(map(int_or_none, re.findall(r'(\d+)', pagination_list)))
 
         return last_page
 
@@ -46,12 +43,10 @@ class LastFMPlaylistBaseIE(InfoExtractor):
 
     def _entries(self, url, playlist_id):
         webpage = self._download_webpage(url, playlist_id)
-        current_page_number = self._extract_current_page(url)
         last_page_number = self._extract_last_page(webpage)
-        start_page_number = current_page_number or 1
-        end_page_number = last_page_number if last_page_number is not None else start_page_number
+        start_page_number = self._extract_current_page(url) or 1
 
-        for page_number in range(start_page_number, end_page_number + 1):
+        for page_number in range(start_page_number, (last_page_number or start_page_number) + 1):
             webpage = self._download_page(url, page_number, last_page_number, playlist_id)
             page_entries = self._extract_entries(webpage)
 
