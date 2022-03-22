@@ -213,8 +213,7 @@ class ViuOTTIE(InfoExtractor):
         code = try_get(response, lambda x: x['status']['code'])
         if code and code > 0:
             message = try_get(response, lambda x: x['status']['message'])
-            raise ExtractorError(
-                f'{self.IE_NAME} said: {message} ({code})', expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {message} ({code})', expected=True)
         return response.get('data') or {}
 
     def _login(self, country_code, video_id):
@@ -234,11 +233,11 @@ class ViuOTTIE(InfoExtractor):
             self._user_info = self._detect_error(data)['user']
         return self._user_info
 
-    def _get_token(self, country_code):
+    def _get_token(self, country_code, video_id):
         rand = ''.join(random.choice('0123456789') for _ in range(10))
         return self._download_json(
-            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000',
-            video_id=None,
+            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000', video_id,
+            headers={'Content-Type': 'application/json'}, note='Getting bearer token',
             data=json.dumps({
                 'countryCode': country_code.upper(),
                 'platform': 'browser',
@@ -246,9 +245,7 @@ class ViuOTTIE(InfoExtractor):
                 'language': 'en',
                 'uuid': str(uuid.uuid4()),
                 'carrierId': '0'
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json'},
-            note='Getting bearer token')['token']
+            }).encode('utf-8'))['token']
 
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
@@ -307,7 +304,7 @@ class ViuOTTIE(InfoExtractor):
             return self._detect_error(stream_data).get('stream')
 
         if not self._auth_codes.get(country_code):
-            self._auth_codes[country_code] = self._get_token(country_code)
+            self._auth_codes[country_code] = self._get_token(country_code, video_id)
 
         stream_data = None
         try:
