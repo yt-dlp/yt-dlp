@@ -807,6 +807,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         description = self._get_text(renderer, 'descriptionSnippet')
         duration = parse_duration(self._get_text(
             renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
+
+        if duration is None:
+            duration = parse_duration(self._search_regex(
+                r'ago\s*([A-Za-z0-9 ,]+?)\s*[\d,]+\sviews',
+                traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label')),
+                video_id, default=None))
+
         view_count = self._get_count(renderer, 'viewCountText')
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')

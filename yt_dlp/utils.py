@@ -2638,23 +2638,23 @@ def parse_duration(s):
         m = re.match(
             r'''(?ix)(?:P?
                 (?:
-                    [0-9]+\s*y(?:ears?)?\s*
+                    [0-9]+\s*y(?:ears?)?,?\s*
                 )?
                 (?:
-                    [0-9]+\s*m(?:onths?)?\s*
+                    [0-9]+\s*m(?:onths?)?,?\s*
                 )?
                 (?:
-                    [0-9]+\s*w(?:eeks?)?\s*
+                    [0-9]+\s*w(?:eeks?)?,?\s*
                 )?
                 (?:
-                    (?P<days>[0-9]+)\s*d(?:ays?)?\s*
+                    (?P<days>[0-9]+)\s*d(?:ays?)?,?\s*
                 )?
                 T)?
                 (?:
-                    (?P<hours>[0-9]+)\s*h(?:ours?)?\s*
+                    (?P<hours>[0-9]+)\s*h(?:ours?)?,?\s*
                 )?
                 (?:
-                    (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?\s*
+                    (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?,?\s*
                 )?
                 (?:
                     (?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?\s*s(?:ec(?:ond)?s?)?\s*
