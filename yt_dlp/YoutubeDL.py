@@ -72,6 +72,7 @@ from .utils import (
     formatSeconds,
     GeoRestrictedError,
     get_domain,
+    has_certifi,
     HEADRequest,
     InAdvancePagedList,
     int_or_none,
@@ -3676,6 +3677,7 @@ class YoutubeDL(object):
 
         lib_str = join_nonempty(
             compat_brotli and compat_brotli.__name__,
+            has_certifi and 'certifi',
             compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
             SECRETSTORAGE_AVAILABLE and 'secretstorage',
             has_mutagen and 'mutagen',
@@ -3857,9 +3859,12 @@ class YoutubeDL(object):
                 sub_info['filepath'] = sub_filename
                 ret.append((sub_filename, sub_filename_final))
             except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
+                msg = f'Unable to download video subtitles for {sub_lang!r}: {err}'
                 if self.params.get('ignoreerrors') is not True:  # False or 'only_download'
-                    raise DownloadError(f'Unable to download video subtitles for {sub_lang!r}: {err}', err)
-                self.report_warning(f'Unable to download video subtitles for {sub_lang!r}: {err}')
+                    if not self.params.get('ignoreerrors'):
+                        self.report_error(msg)
+                    raise DownloadError(msg)
+                self.report_warning(msg)
         return ret
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):

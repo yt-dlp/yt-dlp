@@ -169,7 +169,7 @@ class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '--location', '-o', tmpfilename]
+        cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -219,7 +219,7 @@ class WgetFD(ExternalFD):
     AVAILABLE_OPT = '--version'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies']
+        cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies', '--compression=auto']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -230,7 +230,10 @@ class WgetFD(ExternalFD):
                 retry[1] = '0'
             cmd += retry
         cmd += self._option('--bind-address', 'source_address')
-        cmd += self._option('--proxy', 'proxy')
+        proxy = self.params.get('proxy')
+        if proxy:
+            for var in ('http_proxy', 'https_proxy'):
+                cmd += ['--execute', '%s=%s' % (var, proxy)]
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]

@@ -85,6 +85,12 @@ from .socks import (
     sockssocket,
 )
 
+try:
+    import certifi
+    has_certifi = True
+except ImportError:
+    has_certifi = False
+
 
 def register_socks_protocols():
     # "Register" SOCKS protocols
@@ -153,7 +159,6 @@ if compat_brotli:
 std_headers = {
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Encoding': ', '.join(SUPPORTED_ENCODINGS),
     'Accept-Language': 'en-us,en;q=0.5',
     'Sec-Fetch-Mode': 'navigate',
 }
@@ -1010,20 +1015,23 @@ def make_HTTPS_handler(params, **kwargs):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
-        try:
-            context.load_default_certs()
-            # Work around the issue in load_default_certs when there are bad certificates. See:
-            # https://github.com/yt-dlp/yt-dlp/issues/1060,
-            # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-        except ssl.SSLError:
-            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                # Create a new context to discard any certificates that were already loaded
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
-                for storename in ('CA', 'ROOT'):
-                    _ssl_load_windows_store_certs(context, storename)
-            context.set_default_verify_paths()
+        if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
+            context.load_verify_locations(cafile=certifi.where())
+        else:
+            try:
+                context.load_default_certs()
+                # Work around the issue in load_default_certs when there are bad certificates. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/1060,
+                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+            except ssl.SSLError:
+                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                    # Create a new context to discard any certificates that were already loaded
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
+                    for storename in ('CA', 'ROOT'):
+                        _ssl_load_windows_store_certs(context, storename)
+                context.set_default_verify_paths()
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
@@ -1391,6 +1399,9 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:
                 req.add_header(h, v)
+
+        if 'Accept-encoding' not in req.headers:
+            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
 
         req.headers = handle_youtubedl_headers(req.headers)
 
