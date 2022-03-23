@@ -1,11 +1,12 @@
-﻿# coding: utf-8
+# coding: utf-8
 from __future__ import unicode_literals
 
 from .common import InfoExtractor
 
 from ..utils import (
     sanitized_Request,
-    urlencode_postdata
+    urlencode_postdata,
+    qualities
 )
 
 
@@ -22,7 +23,8 @@ class ITProTVIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Security and Risk Management Key Points',
             'thumbnail': r're:^https?://.*\.png$',
-            'description': 'In this episode, we will be reviewing the Domain 1, Security and Risk Management key points that you need to focus on for the CISSP exam. After watching this episode you will be able to understand and identify the key points and items from Domain 1 that need to be mastered as part of your preparation to take and pass the CISSP exam.'
+            'description': 'In this episode, we will be reviewing the Domain 1, Security and Risk Management key points that you need to focus on for the CISSP exam. After watching this episode you will be able to understand and identify the key points and items from Domain 1 that need to be mastered as part of your preparation to take and pass the CISSP exam.',
+            'duration': 1100
             # TODO more properties, either as:
             # * A value
             # * MD5 checksum; start the string with md5:
@@ -58,21 +60,37 @@ class ITProTVIE(InfoExtractor):
 
         jwt = self._search_regex(r'{"passedToken":"([A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]+)",', webpage, 'jwt')
 
-        headers = {'Authorization': 'Bearer ' + jwt}
-        api = self._download_json(f'https://api.itpro.tv/api/urza/v3/consumer-web/brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url=' + video_id, video_id, headers=headers)
+        if jwt:
+            headers = {'Authorization': 'Bearer ' + jwt}
+            api = self._download_json(f'https://api.itpro.tv/api/urza/v3/consumer-web/brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url=' + video_id, video_id, headers=headers)
 
         # TODO more code goes here, for example ...
-        title = api['episode']['title']
-        description = api['episode']['description']
-        video_url = api['episode']['jwVideo1080Embed']
-        thumbnail = api['episode']['thumbnail']
+        episode = api['episode']
+
+        title = episode['title']
+        description = episode['description']
+        video_url = episode['jwVideo1080Embed']
+        thumbnail = episode['thumbnail']
+
+        QUALITIES = qualities(['low', 'medium', 'high', 'veryhigh'])
 
         return {
             'id': video_id,
             'title': title,
             'description': description,
-            'url': video_url,
-            'thumbnail': thumbnail
+            'thumbnail': thumbnail,
+            'formats': [
+                {'url': episode['jwVideo320Embed'], 'height': 320, 'quality': QUALITIES('low')},
+                {'url': episode['jwVideo480Embed'], 'height': 480, 'quality': QUALITIES('medium')},
+                {'url': episode['jwVideo720Embed'], 'height': 720, 'quality': QUALITIES('high')},
+                {'url': episode['jwVideo1080Embed'], 'height': 1080, 'quality': QUALITIES('verhigh')}
+            ],
+            'duration': episode['length'],
+            'automatic_captions': {
+                'en':
+                    [{'url': episode['enCaptionLink']}]
+
+                }
             # 'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
             # TODO more properties (see youtube_dl/extractor/common.py)
         }
