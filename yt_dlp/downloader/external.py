@@ -169,7 +169,7 @@ class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '--location', '-o', tmpfilename]
+        cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -219,7 +219,7 @@ class WgetFD(ExternalFD):
     AVAILABLE_OPT = '--version'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies']
+        cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies', '--compression=auto']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
