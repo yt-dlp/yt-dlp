@@ -34,7 +34,7 @@ class LastFMPlaylistBaseIE(InfoExtractor):
 
 
 class LastFMPlaylistIE(LastFMPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/(music|tag)/(?P<id>[^/]+)/?[^/]+?$'
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/(music|tag)/(?P<id>[^/]+)(?:/[^/]+)?/?(?:[?#]|$)'
     _TESTS = [{
         'url': 'https://www.last.fm/music/Oasis/(What%27s+the+Story)+Morning+Glory%3F',
         'info_dict': {
@@ -45,7 +45,19 @@ class LastFMPlaylistIE(LastFMPlaylistBaseIE):
         'url': 'https://www.last.fm/music/Oasis',
         'only_matching': True,
     }, {
+        'url': 'https://www.last.fm/music/Oasis/',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.last.fm/music/Oasis?top_tracks_date_preset=ALL#top-tracks',
+        'only_matching': True,
+    }, {
         'url': 'https://www.last.fm/music/Oasis/+tracks',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.last.fm/music/Oasis/+tracks?page=2',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.last.fm/music/Oasis/+tracks?date_preset=LAST_90_DAYS#top-tracks',
         'only_matching': True,
     }, {
         'url': 'https://www.last.fm/tag/rock',
@@ -68,7 +80,7 @@ class LastFMUserIE(LastFMPlaylistBaseIE):
 
 
 class LastFMIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/music/[^/]+/[^/]+/(?P<id>[^/#?]+)'
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/music(?:/[^/]+){2}/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://www.last.fm/music/Oasis/_/Wonderwall',
         'md5': '9c4a70c2e84c03d54fe24229b9e13b7b',
@@ -103,7 +115,7 @@ class LastFMIE(InfoExtractor):
         },
         'add_ie': ['Youtube'],
     }, {
-        'url': 'https://www.last.fm/music/Oasis/_/Don%27t+Look+Back+In+Anger+-+Remastered',
+        'url': 'https://www.last.fm/music/Oasis/_/Don%27t+Look+Back+In+Anger+-+Remastered/',
         'only_matching': True,
     }, {
         'url': 'https://www.last.fm/music/Guns+N%27+Roses/_/Sweet+Child+o%27+Mine',
