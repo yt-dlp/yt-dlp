@@ -3778,7 +3778,7 @@ class GenericIE(InfoExtractor):
 
         # Video.js embed
         mobj = re.search(
-            r'(?s)\bvideojs\s*\(.+?([a-zA-Z0-9_$]+?)\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
+            r'(?s)\bvideojs\s*\(.+?([a-zA-Z0-9_$]+)\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
             webpage)
         if mobj is not None:
             varname = mobj.group(1)
