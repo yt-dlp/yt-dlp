@@ -733,7 +733,6 @@ from .laola1tv import (
 )
 from .lastfm import (
     LastFMIE,
-    LastFMAlbumIE,
     LastFMPlaylistIE,
     LastFMUserIE,
 )

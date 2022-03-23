@@ -4,51 +4,27 @@ from __future__ import unicode_literals
 import re
 
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, format_field
 
 
 class LastFMPlaylistBaseIE(InfoExtractor):
-    def _extract_current_page(self, url):
-        return int_or_none(self._search_regex(
-            r'\bpage=(\d+)', url, 'page', default=None))
-
-    def _extract_last_page(self, webpage):
-        last_page = None
-        pagination_list = self._search_regex(
-            r'(?s)class="[^"]*pagination-list[^"]*"[^>]*>(.+?)</ul>', webpage, 'pagination_list', fatal=False,
-            default=None)
-
-        if pagination_list:
-            last_page = max(map(int_or_none, re.findall(r'(\d+)', pagination_list)))
-
-        return last_page
-
-    def _extract_entries(self, webpage):
-        tbody = self._search_regex(
-            r'(?s)tbody\s+data-playlisting-add-entries[^>]*>(.+?)</tbody>', webpage, 'tbody')
-        return [
-            self.url_result(player_url, 'Youtube')
-            for player_url in re.findall(r'href="([^"]+youtube.com/watch[^"]+)"', tbody)
-        ]
-
-    def _download_page(self, url, current_page_number, last_page_number, playlist_id):
-        note = 'Downloading page'
-        query = {}
-
-        if last_page_number:
-            note = '%s %d of %d' % (note, current_page_number, last_page_number)
-            query['page'] = current_page_number
-
-        return self._download_webpage(url, playlist_id, note, query=query)
-
     def _entries(self, url, playlist_id):
         webpage = self._download_webpage(url, playlist_id)
-        last_page_number = self._extract_last_page(webpage)
-        start_page_number = self._extract_current_page(url) or 1
+        start_page_number = int_or_none(self._search_regex(
+            r'\bpage=(\d+)', url, 'page', default=None)) or 1
+
+        last_page_number = int_or_none(self._search_regex(
+            r'>(\d+)</a>[^<]*</li>[^<]*<li[^>]+class="pagination-next', webpage, 'last_page', default=None))
 
         for page_number in range(start_page_number, (last_page_number or start_page_number) + 1):
-            webpage = self._download_page(url, page_number, last_page_number, playlist_id)
-            page_entries = self._extract_entries(webpage)
+            webpage = self._download_webpage(
+                url, playlist_id,
+                note='Downloading page %d%s' % (page_number, format_field(last_page_number, template=' of %d')),
+                query={'page': page_number})
+            page_entries = [
+                self.url_result(player_url, 'Youtube')
+                for player_url in set(re.findall(r'data-youtube-url="([^"]+)"', webpage))
+            ]
 
             for e in page_entries:
                 yield e
@@ -58,25 +34,17 @@ class LastFMPlaylistBaseIE(InfoExtractor):
         return self.playlist_result(self._entries(url, playlist_id), playlist_id)
 
 
-class LastFMAlbumIE(LastFMPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/music/(?P<artist_id>[^/]+)/(?P<id>[^+/#?][^/#?]+)(/|[^/]*/?)$'
+class LastFMPlaylistIE(LastFMPlaylistBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/(music|tag)/(?P<id>[^/]+)/?[^/]+?$'
     _TESTS = [{
         'url': 'https://www.last.fm/music/Oasis/(What%27s+the+Story)+Morning+Glory%3F',
         'info_dict': {
-            'id': '(What%27s+the+Story)+Morning+Glory%3F',
-        },
-        'playlist_count': 12,
-    }]
-
-
-class LastFMPlaylistIE(LastFMPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/(music|tag)/(?P<id>[^/#?]+)(/|/\+?tracks/?|[^/]*/?)$'
-    _TESTS = [{
-        'url': 'https://www.last.fm/music/Oasis',
-        'info_dict': {
             'id': 'Oasis',
         },
-        'playlist_count': 10,
+        'playlist_count': 11,
+    }, {
+        'url': 'https://www.last.fm/music/Oasis',
+        'only_matching': True,
     }, {
         'url': 'https://www.last.fm/music/Oasis/+tracks',
         'only_matching': True,
@@ -90,7 +58,7 @@ class LastFMPlaylistIE(LastFMPlaylistBaseIE):
 
 
 class LastFMUserIE(LastFMPlaylistBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?last\.fm/user/(?P<user_id>[^/]+)/playlists/(?P<id>[^/#?]+)(/|[^/]*/?)$'
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/user/[^/]+/playlists/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://www.last.fm/user/mehq/playlists/12319471',
         'info_dict': {
@@ -101,10 +69,7 @@ class LastFMUserIE(LastFMPlaylistBaseIE):
 
 
 class LastFMIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://(?:www\.)?last\.fm/
-                    music/(?P<artist_id>[^/]+)/(?P<album_id>[^/]+)/(?P<id>[^/#?]+)(/|[^/]*/?)$
-                  '''
+    _VALID_URL = r'https?://(?:www\.)?last\.fm/music/[^/]+/[^/]+/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://www.last.fm/music/Oasis/_/Wonderwall',
         'md5': '9c4a70c2e84c03d54fe24229b9e13b7b',
