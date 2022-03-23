@@ -810,7 +810,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         if duration is None:
             duration = parse_duration(self._search_regex(
-                r'ago\s*([A-Za-z0-9 ,]+?)\s*[\d,]+\sviews',
+                r'ago\s*([A-Za-z0-9 ,]+?)\s*[\d,]+\s*views',
                 traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label')),
                 video_id, default=None))
 
