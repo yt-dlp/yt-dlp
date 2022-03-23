@@ -3822,16 +3822,13 @@ class GenericIE(InfoExtractor):
                     })
             # https://docs.videojs.com/player#addRemoteTextTrack
             # https://html.spec.whatwg.org/multipage/media.html#htmltrackelement
-            for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*(?:,\s*(?:true|false))\)', webpage):
+            for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
                 sub = self._parse_json(
-                    sub_match.group(1), video_id, transform_source=js_to_json,
-                    fatal=False)
-                if not sub or not isinstance(sub, dict):
+                    sub_match.group(1), video_id, transform_source=js_to_json, fatal=False) or {}
+                src = str_or_none(sub.get('src'))
+                if not src:
                     continue
-                src = sub.get('src')
-                if not src or not isinstance(src, str):
-                    continue
-                subtitles.setdefault(sub.get('language') or sub.get('srclang') or 'und', []).append({
+                subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
                     'url': compat_urlparse.urljoin(url, src),
                     'name': sub.get('label'),
                     'http_headers': {
