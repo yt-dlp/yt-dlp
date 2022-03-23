@@ -10,10 +10,9 @@ from ..utils import int_or_none, format_field
 class LastFMPlaylistBaseIE(InfoExtractor):
     def _entries(self, url, playlist_id):
         webpage = self._download_webpage(url, playlist_id)
-        start_page_number = int(self._search_regex(
+        start_page_number = int_or_none(self._search_regex(
             r'\bpage=(\d+)', url, 'page', default=None)) or 1
-
-        last_page_number = int(self._search_regex(
+        last_page_number = int_or_none(self._search_regex(
             r'>(\d+)</a>[^<]*</li>[^<]*<li[^>]+class="pagination-next', webpage, 'last_page', default=None))
 
         for page_number in range(start_page_number, (last_page_number or start_page_number) + 1):
