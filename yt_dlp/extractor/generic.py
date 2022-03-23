@@ -17,6 +17,7 @@ from ..compat import (
 )
 from ..utils import (
     determine_ext,
+    dict_get,
     ExtractorError,
     float_or_none,
     HEADRequest,
@@ -31,6 +32,7 @@ from ..utils import (
     parse_resolution,
     sanitized_Request,
     smuggle_url,
+    str_or_none,
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
