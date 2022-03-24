@@ -86,7 +86,7 @@ class TennisTVIE(InfoExtractor):
                 '', headers=self.headers)
 
             self.get_token(None, {
-                'code': compat_urlparse.parse_qs(handle.geturl()).get('code')[-1],  # There can be multiple, always use the last one
+                'code': compat_urlparse.parse_qs(handle.geturl()).get('code')[-1],
                 'grant_type': 'authorization_code',
                 'client_id': 'tennis-tv-web',
                 'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html'
@@ -102,9 +102,9 @@ class TennisTVIE(InfoExtractor):
             self.report_warning('Site requires a subscribed account. Either pass in the cookies or login credentials.')
 
     def get_token(self, video_id, payload):
-        res = self._download_json('https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect/token', video_id,
-                                  'Fetching tokens', 'Unable to fetch tokens', headers=self.headers,
-                                  data=urlencode_postdata(payload))
+        res = self._download_json('https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect/token',
+                                  video_id, 'Fetching tokens', 'Unable to fetch tokens',
+                                  headers=self.headers, data=urlencode_postdata(payload))
 
         self.ACCESS_TOKEN = res.get('access_token')
         self.REFRESH_TOKEN = res.get('refresh_token')
@@ -113,8 +113,9 @@ class TennisTVIE(InfoExtractor):
         self._login()
 
     def _download_session_json(self, video_id, entryid,):
-        return self._download_json(f'https://atppayments.streamamg.com/api/v1/session/ksession/?lang=en&apijwttoken={self.ACCESS_TOKEN}&entryId={entryid}',
-                                   video_id, 'Downloading ksession token', 'Failed to download ksession token', headers=self.headers)
+        return self._download_json(
+            f'https://atppayments.streamamg.com/api/v1/session/ksession/?lang=en&apijwttoken={self.ACCESS_TOKEN}&entryId={entryid}',
+            video_id, 'Downloading ksession token', 'Failed to download ksession token', headers=self.headers)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -144,16 +145,20 @@ class TennisTVIE(InfoExtractor):
         if session_json.get('ErrorMessage'):
             self.report_warning(session_json['ErrorMessage'])
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(self._FORMAT_URL.format(partner=self.PARTNER_ID, entry=entryid, session=k_session), video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+            self._FORMAT_URL.format(partner=self.PARTNER_ID, entry=entryid, session=k_session), video_id)
 
         self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': title,
-            'description': self._html_search_regex((r'<span itemprop="description" content=["\'](.+?)["\']>', *self._og_regexes('description')), webpage, 'description', fatal=False),
+            'description': self._html_search_regex(
+                (r'<span itemprop="description" content=["\']([^"\']+)["\']>', *self._og_regexes('description')),
+                webpage, 'description', fatal=False),
             'formats': formats,
             'thumbnail': f'https://open.http.mp.streamamg.com/p/{self.PARTNER_ID}/sp/{self.PARTNER_ID}00/thumbnail/entry_id/{entryid}/version/100001/height/1920',
-            'timestamp': unified_timestamp(self._html_search_regex(r'<span itemprop="description" content=["\'](.+?)["\']>', webpage, 'upload time')),
+            'timestamp': unified_timestamp(self._html_search_regex(
+                r'<span itemprop="description" content=["\']([^"\']+)["\']>', webpage, 'upload time')),
             'subtitles': subtitles,
         }
