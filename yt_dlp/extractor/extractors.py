@@ -124,7 +124,7 @@ from .azmedien import AZMedienIE
 from .baidu import BaiduVideoIE
 from .banbye import (
     BanByeIE,
-    BanByePlaylistIE
+    BanByeChannelIE,
 )
 from .bandaichannel import BandaiChannelIE
 from .bandcamp import (

@@ -1,29 +1,39 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import math
 
 from .common import InfoExtractor
-from ..utils import unified_timestamp
+from ..compat import (
+    compat_urllib_parse_urlparse,
+    compat_parse_qs,
+)
+from ..utils import (
+    format_field,
+    unified_timestamp,
+    InAdvancePagedList,
+)
 
 
 class BanByeBaseIE(InfoExtractor):
     _API_BASE = 'https://api.banbye.com'
     _CDN_BASE = 'https://cdn.banbye.com'
+    _VIDEO_BASE = 'https://banbye.com/watch'
+
+    @staticmethod
+    def _extract_playlist_id(url, param='playlist'):
+        return compat_parse_qs(
+            compat_urllib_parse_urlparse(url).query).get(param, [None])[0]
 
     def _extract_playlist(self, playlist_id):
-        data = self._download_json('%s/playlists/%s' % (self._API_BASE, playlist_id), playlist_id)
+        data = self._download_json(f'{self._API_BASE}/playlists/{playlist_id}', playlist_id)
         return self.playlist_result([
-            self.url_result('https://banbye.com/watch/%s' % video_id, ie_key='BanBye')
-            for video_id in data['videoIds']], playlist_id, data['name'])
+            self.url_result(f'{self._VIDEO_BASE}/{video_id}', BanByeIE)
+            for video_id in data['videoIds']], playlist_id, data.get('name'))
 
 
 class BanByeIE(BanByeBaseIE):
-    _VALID_URL = r'''(?x)
-                    https?://
-                        (?:www\.)?banbye.com/
-                        (?:en/)?watch/
-                        (?P<id>[^/?\#&]+)/?
-                        \??(?:playlistId=(?P<playlist_id>[^/?\#&]+))?'''
+    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?watch/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://banbye.com/watch/v_ytfmvkVYLE8T',
         'md5': '2f4ea15c5ca259a73d909b2cfd558eb5',
@@ -55,9 +65,8 @@ class BanByeIE(BanByeBaseIE):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        video_id = mobj.group('id')
-        playlist_id = mobj.group('playlist_id')
+        video_id = self._match_id(url)
+        playlist_id = self._extract_playlist_id(url, 'playlistId')
 
         if playlist_id and not self.get_param('noplaylist'):
             self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')
@@ -66,41 +75,49 @@ class BanByeIE(BanByeBaseIE):
         if playlist_id:
             self.to_screen(f'Downloading just video {video_id} because of --no-playlist')
 
-        data = self._download_json('%s/videos/%s' % (self._API_BASE, video_id), video_id)
+        data = self._download_json(f'{self._API_BASE}/videos/{video_id}', video_id)
         thumbnails = [{
-            'id': '%sp' % quality,
-            'url': '%s/video/%s/%d.webp' % (self._CDN_BASE, video_id, quality),
+            'id': f'{quality}p',
+            'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.webp',
         } for quality in [48, 96, 144, 240, 512, 1080]]
         formats = [{
-            'format_id': 'http-%sp' % quality,
+            'format_id': f'http-{quality}p',
             'quality': quality,
-            'url': '%s/video/%s/%d.mp4' % (self._CDN_BASE, video_id, quality),
+            'url': f'{self._CDN_BASE}/video/{video_id}/{quality}.mp4',
         } for quality in data['quality']]
 
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': data['title'],
-            'description': data['desc'],
-            'uploader': data['channel']['name'],
-            'channel_id': data['channelId'],
-            'channel_url': 'https://banbye.com/channel/%s' % data['channelId'],
-            'timestamp': unified_timestamp(data['publishedAt']),
-            'duration': data['duration'],
-            'tags': data['tags'],
+            'title': data.get('title'),
+            'description': data.get('desc'),
+            'uploader': data.get('channel', {}).get('name'),
+            'channel_id': data.get('channelId'),
+            'channel_url': format_field(data.get('channelId'), template='https://banbye.com/channel/%s'),
+            'timestamp': unified_timestamp(data.get('publishedAt')),
+            'duration': data.get('duration'),
+            'tags': data.get('tags'),
             'formats': formats,
             'thumbnails': thumbnails,
-            'like_count': data['likes'],
-            'dislike_count': data['dislikes'],
-            'view_count': data['views'],
-            'comment_count': data['commentCount'],
+            'like_count': data.get('likes'),
+            'dislike_count': data.get('dislikes'),
+            'view_count': data.get('views'),
+            'comment_count': data.get('commentCount'),
         }
 
 
-class BanByePlaylistIE(BanByeBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?channel/[^/]+/?\?playlist=(?P<id>[^/?\#&]+)'
+class BanByeChannelIE(BanByeBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?banbye.com/(?:en/)?channel/(?P<id>\w+)'
     _TESTS = [{
+        'url': 'https://banbye.com/channel/ch_wrealu24',
+        'info_dict': {
+            'title': 'wRealu24',
+            'id': 'ch_wrealu24',
+            'description': 'md5:da54e48416b74dfdde20a04867c0c2f6',
+        },
+        'playlist_mincount': 791,
+    }, {
         'url': 'https://banbye.com/channel/ch_wrealu24?playlist=p_Ld82N6gBw_OJ',
         'info_dict': {
             'title': 'Krzysztof Karoń',
@@ -108,7 +125,32 @@ class BanByePlaylistIE(BanByeBaseIE):
         },
         'playlist_count': 9,
     }]
+    _PAGE_SIZE = 100
 
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
-        return self._extract_playlist(playlist_id)
+        channel_id = self._match_id(url)
+        playlist_id = self._extract_playlist_id(url)
+
+        if playlist_id:
+            return self._extract_playlist(playlist_id)
+
+        def page_func(page_num):
+            data = self._download_json(f'{self._API_BASE}/videos', channel_id, query={
+                'channelId': channel_id,
+                'sort': 'new',
+                'limit': self._PAGE_SIZE,
+                'offset': page_num * self._PAGE_SIZE,
+            }, note=f'Downloading page {page_num+1}')
+            return [
+                self.url_result(f"{self._VIDEO_BASE}/{video['_id']}", BanByeIE)
+                for video in data['items']
+            ]
+
+        channel_data = self._download_json(f'{self._API_BASE}/channels/{channel_id}', channel_id)
+        entries = InAdvancePagedList(
+            page_func,
+            math.ceil(channel_data['videoCount'] / self._PAGE_SIZE),
+            self._PAGE_SIZE)
+
+        return self.playlist_result(
+            entries, channel_id, channel_data.get('name'), channel_data.get('description'))
