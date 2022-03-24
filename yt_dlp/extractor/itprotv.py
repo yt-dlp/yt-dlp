@@ -1,13 +1,10 @@
 # coding: utf-8
-from __future__ import unicode_literals
 
 import re
 
 from .common import InfoExtractor
 
 from ..utils import (
-    sanitized_Request,
-    urlencode_postdata,
     qualities
 )
 
@@ -15,27 +12,6 @@ from ..utils import (
 class ITProTVIE(InfoExtractor):
     _VALID_URL = r'https://app.itpro.tv/course/([0-9a-z-]+)/(?P<id>[0-9a-z-]+)'
     _TESTS = [
-        {
-        'url': 'https://app.itpro.tv/course/accelerated-cissp-2021/securityrisk-keycissp',
-        'md5': '0d8f96562ff3b180ba1dabda7093d822',
-        'info_dict': {
-            'id': 'securityrisk-keycissp',
-            'ext': 'mp4',
-            'title': 'Security and Risk Management Key Points',
-            'thumbnail': r're:^https?://.*\.png$',
-            'description': 'In this episode, we will be reviewing the Domain 1, Security and Risk Management key points that you need to focus on for the CISSP exam. After watching this episode you will be able to understand and identify the key points and items from Domain 1 that need to be mastered as part of your preparation to take and pass the CISSP exam.',
-            'duration': 1100,
-            'series': 'Certified Information Systems Security Professional - CISSP 2021',
-            'series_id': 'accelerated-cissp-2021',
-            'availability': 'needs_auth',
-            'chapter': 'Security and Risk Management',
-            'chapter_number': 1,
-            'chapter_id': '5ffe09ef8a8eba000ee1947e'
-        },
-        'params': {
-                'skip_download': True,
-            },
-    },
     {
         'url': 'https://app.itpro.tv/course/guided-tour/introductionitprotv',
         'md5': 'bca4a28c2667fd1a63052e71a94bb88c',
@@ -118,3 +94,43 @@ class ITProTVIE(InfoExtractor):
             'chapter_number': chapter_number,
             'chapter_id': chapter_id
         }
+
+class ITProTVCourseIE(InfoExtractor):
+    _VALID_URL = r'https?://app.itpro.tv/course/(?P<id>[0-9a-z-]+)/?'
+    _TESTS = [
+        {
+            'url': 'https://app.itpro.tv/course/guided-tour',
+            'info_dict': {
+                'id': 'guided-tour',
+                'ext': 'mp4',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        }
+    ]
+
+    def _real_extract(self, url):
+        course_id = self._match_id(url)
+        webpage = self._download_webpage(url, course_id)
+
+        jwt = self._search_regex(r'{"passedToken":"([A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]+)",', webpage, 'jwt')
+
+        if jwt:
+            headers = {'Authorization': 'Bearer ' + jwt}
+            course_api = self._download_json(f'https://api.itpro.tv/api/urza/v3/consumer-web/course?url={course_id}&brand=00002560-0000-3fa9-0000-1d61000035f3', course_id, headers=headers, note='Fetching data from course API')
+
+        course = course_api['course']
+
+        entries = []
+
+        for episode in course['episodes']:
+            entry = {
+                '_type': 'url',
+                'ie_key': 'ITProTV',
+                'url': url + '/' + episode['url'],
+                'title': episode['title']
+            }
+            entries.append(entry)
+
+        return self.playlist_result(entries, playlist_id=course_id, playlist_title=course['name'], playlist_description=course['description'])

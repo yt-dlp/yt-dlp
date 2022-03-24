@@ -676,7 +676,8 @@ from .iqiyi import (
 )
 
 from .itprotv import (
-    ITProTVIE
+    ITProTVIE,
+    ITProTVCourseIE
 )
 
 from .itv import (
