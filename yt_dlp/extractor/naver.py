@@ -12,6 +12,7 @@ from ..utils import (
     parse_duration,
     try_get,
     update_url_query,
+    js_to_json,
 )
 
 
@@ -20,10 +21,8 @@ class NaverBaseIE(InfoExtractor):
 
     def _extract_video_info(self, video_id, vid, key):
         video_data = self._download_json(
-            'http://play.rmcnmv.naver.com/vod/play/v2.0/' + vid,
-            video_id, query={
-                'key': key,
-            })
+            f'http://play.rmcnmv.naver.com/vod/play/v2.0/{vid}',
+            video_id, query={'key': key})
         meta = video_data['meta']
         title = meta['subject']
         formats = []
@@ -38,7 +37,7 @@ class NaverBaseIE(InfoExtractor):
                 encoding_option = stream.get('encodingOption', {})
                 bitrate = stream.get('bitrate', {})
                 formats.append({
-                    'format_id': '%s_%s' % (stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
+                    'format_id': f'{stream.get("type") or stream_type}_{dict_get(encoding_option, ("name", "id"))}',
                     'url': stream_url,
                     'ext': 'mp4',
                     'width': int_or_none(encoding_option.get('width')),
@@ -118,6 +117,11 @@ class NaverIE(NaverBaseIE):
             'upload_date': '20130903',
             'uploader': '메가스터디, 합격불변의 법칙',
             'uploader_id': 'megastudy',
+            'duration': 2118.0,
+            'view_count': int,
+            'like_count': int,
+            'thumbnail': 're:^https?://.+\.jpg',
+            'uploader_url': 'http://tv.naver.com/megastudy',
         },
     }, {
         'url': 'http://tv.naver.com/v/395837',
@@ -140,10 +144,11 @@ class NaverIE(NaverBaseIE):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        content = self._download_json(
-            'https://tv.naver.com/api/json/v/' + video_id,
-            video_id, headers=self.geo_verification_headers())
-        player_info_json = content.get('playerInfoJson') or {}
+        content = self._download_webpage(f'https://tv.naver.com/api/json/v/{video_id}', video_id,
+                                         headers=self.geo_verification_headers())
+        player_info_json = self._parse_json(
+            self._search_regex(r'\"playerInfoJson\"\s+\:\s+(\{.*\})', content, 'Player Info Json'), video_id,
+            transform_source=js_to_json)
         current_clip = player_info_json.get('currentClip') or {}
 
         vid = current_clip.get('videoId')
