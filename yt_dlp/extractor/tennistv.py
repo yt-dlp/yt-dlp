@@ -37,6 +37,7 @@ class TennisTVIE(InfoExtractor):
     ACCESS_TOKEN = None
     REFRESH_TOKEN = None
     PARTNER_ID = 3001482
+    _FORMAT_URL = 'https://open.http.mp.streamamg.com/p/{partner}/sp/{partner}00/playManifest/entryId/{entry}/format/applehttp/protocol/https/a.m3u8?ks={session}'
     headers = {
         'origin': 'https://www.tennistv.com',
         'referer': 'https://www.tennistv.com/',
@@ -58,12 +59,13 @@ class TennisTVIE(InfoExtractor):
                 'submitAction': 'Log In'
             }
 
-            login_page = self._download_webpage(update_url_query(BASE_URL, {'client_id': 'tennis-tv-web',
-                                                'redirect_uri': 'https://tennistv.com',
-                                                                            'response_mode': 'fragment',
-                                                                            'response_type': 'code',
-                                                                            'scope': 'openid'}),
-                                                '')
+            login_page = self._download_webpage(BASE_URL, None, query={
+                'client_id': 'tennis-tv-web',
+                'redirect_uri': 'https://tennistv.com',
+                'response_mode': 'fragment',
+                'response_type': 'code',
+                'scope': 'openid'
+            })
             post_url = self._html_search_regex(r'action=["\'](.+?)["\']\s+?method=["\']post["\']', login_page, None)
 
             temp_page = self._download_webpage(post_url, None, 'Sending login data', 'Unable to send login data',
@@ -72,17 +74,18 @@ class TennisTVIE(InfoExtractor):
             if 'Your username or password was incorrect' in temp_page:
                 raise ExtractorError('Your username or password was incorrect', expected=True)
 
-            _, handle = self._download_webpage_handle(update_url_query(BASE_URL, {'client_id': 'tennis-tv-web',
-                                                                                  'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
-                                                                                  'state': random_uuidv4(),
-                                                                                  'response_mode': 'fragment',
-                                                                                  'response_type': 'code',
-                                                                                  'scope': 'openid',
-                                                                                  'nonce': random_uuidv4(),
-                                                                                  'prompt': 'none'}), '',
-                                                      headers=self.headers)
+            handle = self._request_webpage(update_url_query(BASE_URL, query={
+                'client_id': 'tennis-tv-web',
+                'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
+                'state': random_uuidv4(),
+                'response_mode': 'fragment',
+                'response_type': 'code',
+                'scope': 'openid',
+                'nonce': random_uuidv4(),
+                'prompt': 'none'}),
+                '', headers=self.headers)
 
-            self.token_util(None, {
+            self.get_token(None, {
                 'code': compat_urlparse.parse_qs(handle.geturl()).get('code')[-1],  # There can be multiple, always use the last one
                 'grant_type': 'authorization_code',
                 'client_id': 'tennis-tv-web',
@@ -90,15 +93,15 @@ class TennisTVIE(InfoExtractor):
             })
             return
 
-        if cookies is not None:
+        if cookies.get('access_token') and cookies.get('refresh_token') is not None:
             self.ACCESS_TOKEN = cookies.get('access_token').value
             self.REFRESH_TOKEN = cookies.get('refresh_token').value
             return
 
         else:
-            self.report_warning('Site requires a sbuscribed account. Either pass in the cookies or login credentials')
+            self.report_warning('Site requires a subscribed account. Either pass in the cookies or login credentials.')
 
-    def token_util(self, video_id, payload):
+    def get_token(self, video_id, payload):
         res = self._download_json('https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect/token', video_id,
                                   'Fetching tokens', 'Unable to fetch tokens', headers=self.headers,
                                   data=urlencode_postdata(payload))
@@ -117,8 +120,8 @@ class TennisTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'Title',
-                                        fatal=False) or self._og_search_title(webpage)
+        title = self._html_search_regex((r'<title>(.+?)</title>', *self._og_regexes('title')),
+                                        webpage, 'Title', fatal=False)
 
         entryid = self._search_regex(r'data-entry-id=["\']([^"\']+)', webpage, 'entryID')
 
@@ -128,7 +131,7 @@ class TennisTVIE(InfoExtractor):
         if k_session is None:
 
             # retry with fresh tokens
-            self.token_util(video_id, {
+            self.get_token(video_id, {
                 'grant_type': 'refresh_token',
                 'refresh_token': self.REFRESH_TOKEN,
                 'client_id': 'tennis-tv-web'
@@ -139,16 +142,16 @@ class TennisTVIE(InfoExtractor):
                 raise ExtractorError('Failed to get KSession, possibly a premium video', expected=True)
 
         if session_json.get('ErrorMessage'):
-            self.to_screen(session_json['ErrorMessage'])
+            self.report_warning(session_json['ErrorMessage'])
 
-        formats, subtitles = self._extract_m3u8_formats_and_subtitles(f'https://open.http.mp.streamamg.com/p/{self.PARTNER_ID}/sp/{self.PARTNER_ID}00/playManifest/entryId/{entryid}/format/applehttp/protocol/https/a.m3u8?ks={k_session}', video_id)
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(self._FORMAT_URL.format(partner=self.PARTNER_ID, entry=entryid, session=k_session), video_id)
 
         self._sort_formats(formats)
 
         return {
             'id': video_id,
             'title': title,
-            'description': self._html_search_regex(r'<span itemprop="description" content=["\'](.+?)["\']>', webpage, 'description', fatal=False) or self._og_search_description(webpage),
+            'description': self._html_search_regex((r'<span itemprop="description" content=["\'](.+?)["\']>', *self._og_regexes('description')), webpage, 'description', fatal=False),
             'formats': formats,
             'thumbnail': f'https://open.http.mp.streamamg.com/p/{self.PARTNER_ID}/sp/{self.PARTNER_ID}00/thumbnail/entry_id/{entryid}/version/100001/height/1920',
             'timestamp': unified_timestamp(self._html_search_regex(r'<span itemprop="description" content=["\'](.+?)["\']>', webpage, 'upload time')),
