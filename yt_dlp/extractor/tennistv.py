@@ -3,14 +3,13 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 
-from ..compat import compat_urlparse
+import urllib.parse
 
 from ..utils import (
     ExtractorError,
     unified_timestamp,
     urlencode_postdata,
     random_uuidv4,
-    update_url_query
 )
 
 
@@ -44,14 +43,10 @@ class TennisTVIE(InfoExtractor):
         'content-Type': 'application/x-www-form-urlencoded'
     }
 
-    def _login(self):
+    def _perform_login(self, username, password):
 
         BASE_URL = 'https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect/auth'
-
-        cookies = self._get_cookies('https://www.tennistv.com/')
-        username, password = self._get_login_info()
-
-        if username and password:
+        if password:
 
             login_form = {
                 'username': username,
@@ -74,7 +69,7 @@ class TennisTVIE(InfoExtractor):
             if 'Your username or password was incorrect' in temp_page:
                 raise ExtractorError('Your username or password was incorrect', expected=True)
 
-            handle = self._request_webpage(update_url_query(BASE_URL, query={
+            handle = self._request_webpage(BASE_URL, query={
                 'client_id': 'tennis-tv-web',
                 'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
                 'state': random_uuidv4(),
@@ -82,24 +77,28 @@ class TennisTVIE(InfoExtractor):
                 'response_type': 'code',
                 'scope': 'openid',
                 'nonce': random_uuidv4(),
-                'prompt': 'none'}),
-                '', headers=self.headers)
+                'prompt': 'none'},
+                video_id='', headers=self.headers)
 
             self.get_token(None, {
-                'code': compat_urlparse.parse_qs(handle.geturl()).get('code')[-1],
+                'code': urllib.parse.parse_qs(handle.geturl()).get('code')[-1],
                 'grant_type': 'authorization_code',
                 'client_id': 'tennis-tv-web',
                 'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html'
             })
+
+    def _cookie_login(self):
+
+        if self.ACCESS_TOKEN and self.REFRESH_TOKEN:
             return
 
-        if cookies.get('access_token') and cookies.get('refresh_token') is not None:
-            self.ACCESS_TOKEN = cookies.get('access_token').value
-            self.REFRESH_TOKEN = cookies.get('refresh_token').value
-            return
+        cookies = self._get_cookies('https://www.tennistv.com/')
+        if cookies.get('access_token') and cookies.get('refresh_token'):
+            self.ACCESS_TOKEN = cookies['access_token'].value
+            self.REFRESH_TOKEN = cookies['refresh_token'].value
 
         else:
-            self.report_warning('Site requires a subscribed account. Either pass in the cookies or login credentials.')
+            self.raise_login_required()
 
     def get_token(self, video_id, payload):
         res = self._download_json('https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect/token',
@@ -110,7 +109,7 @@ class TennisTVIE(InfoExtractor):
         self.REFRESH_TOKEN = res.get('refresh_token')
 
     def _real_initialize(self):
-        self._login()
+        self._cookie_login()
 
     def _download_session_json(self, video_id, entryid,):
         return self._download_json(
