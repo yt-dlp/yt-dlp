@@ -120,7 +120,7 @@ class NaverIE(NaverBaseIE):
             'duration': 2118.0,
             'view_count': int,
             'like_count': int,
-            'thumbnail': 're:^https?://.+\.jpg',
+            'thumbnail': r're:^https?://.+\.jpg',
             'uploader_url': 'http://tv.naver.com/megastudy',
         },
     }, {
