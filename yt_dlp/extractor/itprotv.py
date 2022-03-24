@@ -13,11 +13,9 @@ from ..utils import (
 
 
 class ITProTVIE(InfoExtractor):
-    _LOGIN_URL = 'https://app.itpro.tv/login/'
-    _NETRC_MACHINE = 'itprotv'
-
     _VALID_URL = r'https://app.itpro.tv/course/([0-9a-z-]+)/(?P<id>[0-9a-z-]+)'
-    _TEST = {
+    _TESTS = [
+        {
         'url': 'https://app.itpro.tv/course/accelerated-cissp-2021/securityrisk-keycissp',
         'md5': '0d8f96562ff3b180ba1dabda7093d822',
         'info_dict': {
@@ -33,16 +31,33 @@ class ITProTVIE(InfoExtractor):
             'chapter': 'Security and Risk Management',
             'chapter_number': 1,
             'chapter_id': '5ffe09ef8a8eba000ee1947e'
-            # TODO more properties, either as:
-            # * A value
-            # * MD5 checksum; start the string with md5:
-            # * A regular expression; start the string with re:
-            # * Any Python type (for example int or float)
+        },
+        'params': {
+                'skip_download': True,
+            },
+    },
+    {
+        'url': 'https://app.itpro.tv/course/guided-tour/introductionitprotv',
+        'md5': 'bca4a28c2667fd1a63052e71a94bb88c',
+        'info_dict': {
+            'id': 'introductionitprotv',
+            'ext': 'mp4',
+            'title': 'An Introduction to ITProTV 101',
+            'thumbnail': r're:^https?://.*\.png$',
+            'description': 'Welcome to ITProTV! The guided tour you are about to participate in has been assembled to introduce you to ITProTV and show you many of the features available as part of ITProTV.',
+            'duration': 269,
+            'series': 'ITProTV 101',
+            'series_id': 'guided-tour',
+            'availability': 'needs_auth',
+            'chapter': 'ITProTV 101',
+            'chapter_number': 1,
+            'chapter_id': '5dbb3de426b46c0010b5d1b6'
         },
         'params': {
                 'skip_download': True,
             },
     }
+    ]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -92,7 +107,7 @@ class ITProTVIE(InfoExtractor):
                             'data': episode['enCaptionData'],
                             'ext': 'vtt'
                         }
-                        ]
+                    ]
                 },
             'series': course['name'],
             'series_id': course['url'],
