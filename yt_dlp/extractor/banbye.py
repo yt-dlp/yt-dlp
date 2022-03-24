@@ -68,12 +68,8 @@ class BanByeIE(BanByeBaseIE):
         video_id = self._match_id(url)
         playlist_id = self._extract_playlist_id(url, 'playlistId')
 
-        if playlist_id and not self.get_param('noplaylist'):
-            self.to_screen(f'Downloading playlist {playlist_id}; add --no-playlist to just download video {video_id}')
+        if self._yes_playlist(playlist_id, video_id):
             return self._extract_playlist(playlist_id)
-
-        if playlist_id:
-            self.to_screen(f'Downloading just video {video_id} because of --no-playlist')
 
         data = self._download_json(f'{self._API_BASE}/videos/{video_id}', video_id)
         thumbnails = [{
