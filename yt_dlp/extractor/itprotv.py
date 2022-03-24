@@ -19,7 +19,7 @@ class ITProTVIE(InfoExtractor):
             'id': 'introductionitprotv',
             'ext': 'mp4',
             'title': 'An Introduction to ITProTV 101',
-            'thumbnail': r're:^https?://.*\.png$',
+            'thumbnail': 'https://itprotv-image-bucket.s3.amazonaws.com/getting-started/itprotv-101-introduction-PGM.11_39_56_02.Still001.png',
             'description': 'Welcome to ITProTV! The guided tour you are about to participate in has been assembled to introduce you to ITProTV and show you many of the features available as part of ITProTV.',
             'duration': 269,
             'series': 'ITProTV 101',
@@ -64,7 +64,7 @@ class ITProTVIE(InfoExtractor):
 
         QUALITIES = qualities(['low', 'medium', 'high', 'veryhigh'])
 
-        return {
+        info_dict = {
             'id': video_id,
             'title': title,
             'description': description,
@@ -76,15 +76,7 @@ class ITProTVIE(InfoExtractor):
                 {'url': episode['jwVideo1080Embed'], 'height': 1080, 'quality': QUALITIES('verhigh')}
             ],
             'duration': episode['length'],
-            'subtitles': {
-                'en':
-                    [
-                        {
-                            'data': episode['enCaptionData'],
-                            'ext': 'vtt'
-                        }
-                    ]
-                },
+
             'series': course['name'],
             'series_id': course['url'],
             'availability': self._availability(
@@ -94,6 +86,19 @@ class ITProTVIE(InfoExtractor):
             'chapter_number': chapter_number,
             'chapter_id': chapter_id
         }
+
+        if episode['enCaptionData']:
+            info_dict['subtitles'] = {
+                    'en':
+                        [
+                            {
+                                'data': episode['enCaptionData'],
+                                'ext': 'vtt'
+                            }
+                        ]
+                    }
+
+        return info_dict
 
 class ITProTVCourseIE(InfoExtractor):
     _VALID_URL = r'https?://app.itpro.tv/course/(?P<id>[0-9a-z-]+)/?'
@@ -126,7 +131,7 @@ class ITProTVCourseIE(InfoExtractor):
 
         for episode in course['episodes']:
             entry = {
-                '_type': 'url',
+                '_type': 'url_transparent',
                 'ie_key': 'ITProTV',
                 'url': url + '/' + episode['url'],
                 'title': episode['title']
