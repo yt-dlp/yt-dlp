@@ -323,7 +323,7 @@ def create_parser():
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
+        help='Mark videos watched (even with --simulate)')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -341,7 +341,7 @@ def create_parser():
                 'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
+                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
@@ -860,17 +860,16 @@ def create_parser():
     workarounds.add_option(
         '--user-agent',
         metavar='UA', dest='user_agent',
-        help='Specify a custom user agent')
+        help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
         '--referer',
         metavar='URL', dest='referer', default=None,
-        help='Specify a custom referer, use if the video access is restricted to one domain',
-    )
+        help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'multiple_keys': False, 'process_key': None},
+        callback_kwargs={'multiple_keys': False},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
@@ -1183,7 +1182,7 @@ def create_parser():
         help='Do not write video description (default)')
     filesystem.add_option(
         '--write-info-json',
-        action='store_true', dest='writeinfojson', default=False,
+        action='store_true', dest='writeinfojson', default=None,
         help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',
@@ -1317,7 +1316,7 @@ def create_parser():
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality, insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help='Specify ffmpeg audio quality to use when converting the audio with -x. Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,

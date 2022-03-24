@@ -17,6 +17,7 @@ from ..compat import (
 )
 from ..utils import (
     determine_ext,
+    dict_get,
     ExtractorError,
     float_or_none,
     HEADRequest,
@@ -31,6 +32,7 @@ from ..utils import (
     parse_resolution,
     sanitized_Request,
     smuggle_url,
+    str_or_none,
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
@@ -103,6 +105,7 @@ from .videopress import VideoPressIE
 from .rutube import RutubeIE
 from .glomex import GlomexEmbedIE
 from .megatvcom import MegaTVComEmbedIE
+from .ant1newsgr import Ant1NewsGrEmbedIE
 from .limelight import LimelightBaseIE
 from .anvato import AnvatoIE
 from .washingtonpost import WashingtonPostIE
@@ -145,12 +148,14 @@ from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 from .gfycat import GfycatIE
+from .panopto import PanoptoBaseIE
 
 
 class GenericIE(InfoExtractor):
     IE_DESC = 'Generic downloader that works on some sites'
     _VALID_URL = r'.*'
     IE_NAME = 'generic'
+    _NETRC_MACHINE = False  # Supress username warning
     _TESTS = [
         # Direct link to a video
         {
@@ -2497,6 +2502,15 @@ class GenericIE(InfoExtractor):
                 'id': '?vid=2295'
             },
             'playlist_count': 9
+        },
+        {
+            # Panopto embeds
+            'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
+            'info_dict': {
+                'title': 'Insert a quiz into a Panopto video',
+                'id': 'insert-a-quiz-into-a-panopto-video'
+            },
+            'playlist_count': 1
         }
     ]
 
@@ -3544,6 +3558,12 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 megatvcom_urls, video_id, video_title, ie=MegaTVComEmbedIE.ie_key())
 
+        # Look for ant1news.gr embeds
+        ant1newsgr_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
+        if ant1newsgr_urls:
+            return self.playlist_from_matches(
+                ant1newsgr_urls, video_id, video_title, ie=Ant1NewsGrEmbedIE.ie_key())
+
         # Look for WashingtonPost embeds
         wapo_urls = WashingtonPostIE._extract_urls(webpage)
         if wapo_urls:
@@ -3716,6 +3736,9 @@ class GenericIE(InfoExtractor):
         if gfycat_urls:
             return self.playlist_from_matches(gfycat_urls, video_id, video_title, ie=GfycatIE.ie_key())
 
+        panopto_urls = PanoptoBaseIE._extract_urls(webpage)
+        if panopto_urls:
+            return self.playlist_from_matches(panopto_urls, video_id, video_title)
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:
@@ -3757,11 +3780,12 @@ class GenericIE(InfoExtractor):
 
         # Video.js embed
         mobj = re.search(
-            r'(?s)\bvideojs\s*\(.+?\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
+            r'(?s)\bvideojs\s*\(.+?([a-zA-Z0-9_$]+)\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
             webpage)
         if mobj is not None:
+            varname = mobj.group(1)
             sources = self._parse_json(
-                mobj.group(1), video_id, transform_source=js_to_json,
+                mobj.group(2), video_id, transform_source=js_to_json,
                 fatal=False) or []
             if not isinstance(sources, list):
                 sources = [sources]
@@ -3798,6 +3822,21 @@ class GenericIE(InfoExtractor):
                             'Referer': full_response.geturl(),
                         },
                     })
+            # https://docs.videojs.com/player#addRemoteTextTrack
+            # https://html.spec.whatwg.org/multipage/media.html#htmltrackelement
+            for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
+                sub = self._parse_json(
+                    sub_match.group(1), video_id, transform_source=js_to_json, fatal=False) or {}
+                src = str_or_none(sub.get('src'))
+                if not src:
+                    continue
+                subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
+                    'url': compat_urlparse.urljoin(url, src),
+                    'name': sub.get('label'),
+                    'http_headers': {
+                        'Referer': full_response.geturl(),
+                    },
+                })
             if formats or subtitles:
                 self.report_detected('video.js embed')
                 self._sort_formats(formats)

@@ -47,6 +47,7 @@ from .compat import (
     compat_HTMLParser,
     compat_HTTPError,
     compat_basestring,
+    compat_brotli,
     compat_chr,
     compat_cookiejar,
     compat_ctypes_WINFUNCTYPE,
@@ -83,6 +84,12 @@ from .socks import (
     ProxyType,
     sockssocket,
 )
+
+try:
+    import certifi
+    has_certifi = True
+except ImportError:
+    has_certifi = False
 
 
 def register_socks_protocols():
@@ -143,10 +150,15 @@ def random_user_agent():
     return _USER_AGENT_TPL % random.choice(_CHROME_VERSIONS)
 
 
+SUPPORTED_ENCODINGS = [
+    'gzip', 'deflate'
+]
+if compat_brotli:
+    SUPPORTED_ENCODINGS.append('br')
+
 std_headers = {
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
     'Accept-Language': 'en-us,en;q=0.5',
     'Sec-Fetch-Mode': 'navigate',
 }
@@ -1003,27 +1015,30 @@ def make_HTTPS_handler(params, **kwargs):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
-        try:
-            context.load_default_certs()
-            # Work around the issue in load_default_certs when there are bad certificates. See:
-            # https://github.com/yt-dlp/yt-dlp/issues/1060,
-            # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-        except ssl.SSLError:
-            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                # Create a new context to discard any certificates that were already loaded
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
-                for storename in ('CA', 'ROOT'):
-                    _ssl_load_windows_store_certs(context, storename)
-            context.set_default_verify_paths()
+        if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
+            context.load_verify_locations(cafile=certifi.where())
+        else:
+            try:
+                context.load_default_certs()
+                # Work around the issue in load_default_certs when there are bad certificates. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/1060,
+                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+            except ssl.SSLError:
+                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                    # Create a new context to discard any certificates that were already loaded
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
+                    for storename in ('CA', 'ROOT'):
+                        _ssl_load_windows_store_certs(context, storename)
+                context.set_default_verify_paths()
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
 def bug_reports_message(before=';'):
     msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
-           'filling out the "Broken site" issue template properly. '
-           'Confirm you are on the latest version using -U')
+           'filling out the appropriate issue template. '
+           'Confirm you are on the latest version using  yt-dlp -U')
 
     before = before.rstrip()
     if not before or before.endswith(('.', '!', '?')):
@@ -1060,7 +1075,7 @@ class ExtractorError(YoutubeDLError):
         if sys.exc_info()[0] in network_exceptions:
             expected = True
 
-        self.msg = str(msg)
+        self.orig_msg = str(msg)
         self.traceback = tb
         self.expected = expected
         self.cause = cause
@@ -1071,14 +1086,15 @@ class ExtractorError(YoutubeDLError):
         super(ExtractorError, self).__init__(''.join((
             format_field(ie, template='[%s] '),
             format_field(video_id, template='%s: '),
-            self.msg,
+            msg,
             format_field(cause, template=' (caused by %r)'),
             '' if expected else bug_reports_message())))
 
     def format_traceback(self):
-        if self.traceback is None:
-            return None
-        return ''.join(traceback.format_tb(self.traceback))
+        return join_nonempty(
+            self.traceback and ''.join(traceback.format_tb(self.traceback)),
+            self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
+            delim='\n') or None
 
 
 class UnsupportedError(ExtractorError):
@@ -1356,6 +1372,12 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         except zlib.error:
             return zlib.decompress(data)
 
+    @staticmethod
+    def brotli(data):
+        if not data:
+            return data
+        return compat_brotli.decompress(data)
+
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
         # always respected by websites, some tend to give out URLs with non percent-encoded
@@ -1372,11 +1394,14 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
 
-        for h, v in std_headers.items():
+        for h, v in self._params.get('http_headers', std_headers).items():
             # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:
                 req.add_header(h, v)
+
+        if 'Accept-encoding' not in req.headers:
+            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
 
         req.headers = handle_youtubedl_headers(req.headers)
 
@@ -1414,6 +1439,12 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
             resp = compat_urllib_request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
+            resp.msg = old_resp.msg
+            del resp.headers['Content-encoding']
+        # brotli
+        if resp.headers.get('Content-encoding', '') == 'br':
+            resp = compat_urllib_request.addinfourl(
+                io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
@@ -2257,10 +2288,11 @@ def unsmuggle_url(smug_url, default=None):
 def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     """ Formats numbers with decimal sufixes like K, M, etc """
     num, factor = float_or_none(num), float(factor)
-    if num is None:
+    if num is None or num < 0:
         return None
-    exponent = 0 if num == 0 else int(math.log(num, factor))
-    suffix = ['', *'kMGTPEZY'][exponent]
+    POSSIBLE_SUFFIXES = 'kMGTPEZY'
+    exponent = 0 if num == 0 else min(int(math.log(num, factor)), len(POSSIBLE_SUFFIXES))
+    suffix = ['', *POSSIBLE_SUFFIXES][exponent]
     if factor == 1024:
         suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
     converted = num / (factor ** exponent)
@@ -3485,7 +3517,7 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
     extra_gap += 1
     if delim:
         table = [header_row, [delim * (ml + extra_gap) for ml in max_lens]] + data
-        table[1][-1] = table[1][-1][:-extra_gap]  # Remove extra_gap from end of delimiter
+        table[1][-1] = table[1][-1][:-extra_gap * len(delim)]  # Remove extra_gap from end of delimiter
     for row in table:
         for pos, text in enumerate(map(str, row)):
             if '\t' in text:
@@ -3583,6 +3615,9 @@ def match_str(filter_str, dct, incomplete=False):
 
 
 def match_filter_func(filter_str):
+    if filter_str is None:
+        return None
+
     def _match_func(info_dict, *args, **kwargs):
         if match_str(filter_str, info_dict, *args, **kwargs):
             return None
@@ -5195,6 +5230,10 @@ def traverse_dict(dictn, keys, casesense=True):
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
+def get_first(obj, keys, **kwargs):
+    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
+
+
 def variadic(x, allowed_types=(str, bytes, dict)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
 
@@ -5269,6 +5308,28 @@ def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
         values = map(from_dict.get, values)
     return delim.join(map(str, filter(None, values)))
+
+
+def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
+    """
+    Find the largest format dimensions in terms of video width and, for each thumbnail:
+    * Modify the URL: Match the width with the provided regex and replace with the former width
+    * Update dimensions
+
+    This function is useful with video services that scale the provided thumbnails on demand
+    """
+    _keys = ('width', 'height')
+    max_dimensions = max(
+        [tuple(format.get(k) or 0 for k in _keys) for format in formats],
+        default=(0, 0))
+    if not max_dimensions[0]:
+        return thumbnails
+    return [
+        merge_dicts(
+            {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
+            dict(zip(_keys, max_dimensions)), thumbnail)
+        for thumbnail in thumbnails
+    ]
 
 
 def parse_http_range(range):
@@ -5436,3 +5497,8 @@ class WebSocketsWrapper():
 
 
 has_websockets = bool(compat_websockets)
+
+
+def merge_headers(*dicts):
+    """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
+    return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}

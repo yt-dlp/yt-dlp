@@ -404,7 +404,7 @@ class FFmpegPostProcessor(PostProcessor):
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
     COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
-    SUPPORTED_EXTS = ('best', 'aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav', 'alac')
+    SUPPORTED_EXTS = ('aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav', 'alac')
 
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
@@ -537,7 +537,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
+    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mka', 'ogg', *FFmpegExtractAudioPP.SUPPORTED_EXTS)
     FORMAT_RE = re.compile(r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(SUPPORTED_EXTS)))
     _ACTION = 'converting'
 

@@ -29,6 +29,7 @@ class AudiomackIE(InfoExtractor):
             }
         },
         # audiomack wrapper around soundcloud song
+        # Needs new test URL.
         {
             'add_ie': ['Soundcloud'],
             'url': 'http://www.audiomack.com/song/hip-hop-daily/black-mamba-freestyle',

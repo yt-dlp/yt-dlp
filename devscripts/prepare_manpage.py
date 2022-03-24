@@ -75,7 +75,11 @@ def filter_options(readme):
     section = re.search(r'(?sm)^# USAGE AND OPTIONS\n.+?(?=^# )', readme).group(0)
     options = '# OPTIONS\n'
     for line in section.split('\n')[1:]:
-        mobj = re.fullmatch(r'\s{4}(?P<opt>-(?:,\s|[^\s])+)(?:\s(?P<meta>([^\s]|\s(?!\s))+))?(\s{2,}(?P<desc>.+))?', line)
+        mobj = re.fullmatch(r'''(?x)
+                \s{4}(?P<opt>-(?:,\s|[^\s])+)
+                (?:\s(?P<meta>(?:[^\s]|\s(?!\s))+))?
+                (\s{2,}(?P<desc>.+))?
+            ''', line)
         if not mobj:
             options += f'{line.lstrip()}\n'
             continue

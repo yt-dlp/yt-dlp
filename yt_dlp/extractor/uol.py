@@ -95,7 +95,6 @@ class UOLIE(InfoExtractor):
                 if v:
                     query[k] = v
             f_url = update_url_query(f_url, query)
-            format_id = format_id
             if format_id == 'HLS':
                 m3u8_formats = self._extract_m3u8_formats(
                     f_url, media_id, 'mp4', 'm3u8_native',
