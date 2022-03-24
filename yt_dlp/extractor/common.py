@@ -469,6 +469,7 @@ class InfoExtractor(object):
     _GEO_IP_BLOCKS = None
     _WORKING = True
     _NETRC_MACHINE = None
+    IE_DESC = None
 
     _LOGIN_HINTS = {
         'any': 'Use --cookies, --cookies-from-browser, --username and --password, or --netrc to provide account credentials',
