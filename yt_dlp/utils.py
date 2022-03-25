@@ -5442,7 +5442,8 @@ class WebSocketsWrapper():
         atexit.register(self.__exit__, None, None, None)
 
     def __enter__(self):
-        self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
+        if not self.pool:
+            self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
         return self
 
     def send(self, *args):
