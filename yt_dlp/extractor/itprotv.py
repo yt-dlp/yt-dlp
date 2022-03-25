@@ -76,7 +76,7 @@ class ITProTVIE(InfoExtractor):
                 {'url': episode.get('jwVideo320Embed'), 'height': 320, 'quality': QUALITIES('low')},
                 {'url': episode.get('jwVideo480Embed'), 'height': 480, 'quality': QUALITIES('medium')},
                 {'url': episode.get('jwVideo720Embed'), 'height': 720, 'quality': QUALITIES('high')},
-                {'url': episode.get('jwVideo1080Embed'), 'height': 1080, 'quality': QUALITIES('verhigh')}
+                {'url': episode.get('jwVideo1080Embed'), 'height': 1080, 'quality': QUALITIES('veryhigh')}
             ],
             'duration': episode.get('length'),
             'series': course.get('name'),
