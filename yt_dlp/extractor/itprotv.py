@@ -32,6 +32,25 @@ class ITProTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
+    },
+    {
+        'url':'https://app.itpro.tv/course/beyond-tech/job-interview-tips',
+        'md5': '101a299b98c47ccf4c67f9f0951defa8',
+        'info_dict': {
+            'id': 'job-interview-tips',
+            'ext': 'mp4',
+            'title': 'Job Interview Tips',
+            'thumbnail': 'https://s3.amazonaws.com:443/production-itprotv-thumbnails/2f370bf5-294d-4bbe-ab80-c0b5781630ea.png',
+            'description': "Did you know that preparation is one of the most important aspects of a successful job interview? Just as the interviewer will do their research on you, it's equally as important for you to do your research on the company. In this episode Jo will share with you some key preparation tips and best practices that will hopefully help you nail your next job interview!",
+            'duration': 267,
+            'series': 'Beyond Tech',
+            'series_id': 'beyond-tech',
+            'availability': 'needs_auth',
+            'chapter': 'Job Development',
+            'chapter_number': 2,
+            'chapter_id': '5f7c78d424330c000edf04d9'
+        },
+
     }
     ]
 
@@ -49,11 +68,16 @@ class ITProTVIE(InfoExtractor):
     def _fetch_jwt(self, webpage):
         return self._search_regex(r'{"passedToken":"([A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]+)",', webpage, 'jwt')
 
+    def _check_if_logged_in(self, webpage):
+        if '{ member: null' in webpage:
+            raise self.raise_login_required(method='cookies')
+
     def _real_extract(self, url):
         QUALITIES = qualities(['low', 'medium', 'high', 'veryhigh'])
 
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        self._check_if_logged_in(webpage)
 
         course_name = re.match(r'https?://.*/course/(?P<course_name>[0-9a-z-]+)/.*', url).group(1)
         course_api = self._get_course_api_json(webpage, course_name)
@@ -86,7 +110,8 @@ class ITProTVIE(InfoExtractor):
                 is_private=False, is_unlisted=False),
             'chapter': chapter_name,
             'chapter_number': chapter_number,
-            'chapter_id': chapter_id
+            'chapter_id': chapter_id,
+            'subtitles': {'en':[{'ext': 'vtt', 'data': episode.get('enCaptionData')}]}
         }
 
 
@@ -102,12 +127,23 @@ class ITProTVCourseIE(ITProTVIE):
             'params': {
                 'skip_download': True,
             },
-        }
+        },
+        {
+            'url': 'https://app.itpro.tv/course/beyond-tech',
+            'info_dict': {
+                'id': 'beyond-tech',
+                'ext': 'mp4',
+            },
+            'params': {
+                'skip_download': True,
+            },
+        },
     ]
 
     def _real_extract(self, url):
         course_id = self._match_id(url)
         webpage = self._download_webpage(url, course_id)
+        self._check_if_logged_in(webpage)
         course_api = self._get_course_api_json(webpage, course_id)
 
         course = course_api['course']
