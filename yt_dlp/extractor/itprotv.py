@@ -33,8 +33,8 @@ class ITProTVIE(InfoExtractor):
             'skip_download': True,
         },
     },
-    {
-        'url':'https://app.itpro.tv/course/beyond-tech/job-interview-tips',
+        {
+        'url': 'https://app.itpro.tv/course/beyond-tech/job-interview-tips',
         'md5': '101a299b98c47ccf4c67f9f0951defa8',
         'info_dict': {
             'id': 'job-interview-tips',
@@ -65,6 +65,17 @@ class ITProTVIE(InfoExtractor):
 
         return course_api
 
+    def _get_episode_api_json(self, webpage, episode_id):
+        jwt = self._fetch_jwt(webpage)
+
+        if jwt:
+            headers = {'Authorization': 'Bearer ' + jwt}
+            episode_api = self._download_json(
+                f'https://api.itpro.tv/api/urza/v3/consumer-web/brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={episode_id}',
+                episode_id, headers=headers, note='Fetching data from episode API')
+
+        return episode_api
+
     def _fetch_jwt(self, webpage):
         return self._search_regex(r'{"passedToken":"([A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]+)",', webpage, 'jwt')
 
@@ -75,15 +86,16 @@ class ITProTVIE(InfoExtractor):
     def _real_extract(self, url):
         QUALITIES = qualities(['low', 'medium', 'high', 'veryhigh'])
 
-        video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        episode_id = self._match_id(url)
+        webpage = self._download_webpage(url, episode_id)
         self._check_if_logged_in(webpage)
 
         course_name = re.match(r'https?://.*/course/(?P<course_name>[0-9a-z-]+)/.*', url).group(1)
         course_api = self._get_course_api_json(webpage, course_name)
-
         course = course_api['course']
-        episode = course_api['currentEpisode']
+
+        episode_api = self._get_episode_api_json(webpage, episode_id)
+        episode = episode_api['episode']
 
         for i in range(len(course.get('topics'))):
             if traverse_obj(course, ('topics', i, 'id'), expected_type=str) == episode.get('topic'):
@@ -92,7 +104,7 @@ class ITProTVIE(InfoExtractor):
                 chapter_number = i + 1
 
         return {
-            'id': video_id,
+            'id': episode_id,
             'title': episode['title'],
             'description': episode.get('description'),
             'thumbnail': episode.get('thumbnail'),
@@ -111,7 +123,7 @@ class ITProTVIE(InfoExtractor):
             'chapter': chapter_name,
             'chapter_number': chapter_number,
             'chapter_id': chapter_id,
-            'subtitles': {'en':[{'ext': 'vtt', 'data': episode.get('enCaptionData')}]}
+            'subtitles': {'en': [{'ext': 'vtt', 'data': episode.get('enCaptionData')}]}
         }
 
 
