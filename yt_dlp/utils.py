@@ -3545,6 +3545,11 @@ def _match_one(filter_part, dct, incomplete):
         '=': operator.eq,
     }
 
+    if isinstance(incomplete, bool):
+        is_incomplete = lambda _: incomplete
+    else:
+        is_incomplete = lambda k: k in incomplete
+
     operator_rex = re.compile(r'''(?x)\s*
         (?P<key>[a-z_]+)
         \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
@@ -3583,7 +3588,7 @@ def _match_one(filter_part, dct, incomplete):
         if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
             raise ValueError('Operator %s only supports string values!' % m['op'])
         if actual_value is None:
-            return incomplete or m['none_inclusive']
+            return is_incomplete(m['key']) or m['none_inclusive']
         return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
 
     UNARY_OPERATORS = {
@@ -3598,7 +3603,7 @@ def _match_one(filter_part, dct, incomplete):
     if m:
         op = UNARY_OPERATORS[m.group('op')]
         actual_value = dct.get(m.group('key'))
-        if incomplete and actual_value is None:
+        if is_incomplete(m.group('key')) and actual_value is None:
             return True
         return op(actual_value)
 
@@ -3606,8 +3611,11 @@ def _match_one(filter_part, dct, incomplete):
 
 
 def match_str(filter_str, dct, incomplete=False):
-    """ Filter a dictionary with a simple string syntax. Returns True (=passes filter) or false
-        When incomplete, all conditions passes on missing fields
+    """ Filter a dictionary with a simple string syntax.
+    @returns           Whether the filter passes
+    @param incomplete  Set of keys that is expected to be missing from dct.
+                       Can be True/False to indicate all/none of the keys may be missing.
+                       All conditions on incomplete keys pass if the key is missing
     """
     return all(
         _match_one(filter_part.replace(r'\&', '&'), dct, incomplete)
