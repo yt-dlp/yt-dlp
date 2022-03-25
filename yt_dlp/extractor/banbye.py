@@ -10,8 +10,9 @@ from ..compat import (
 )
 from ..utils import (
     format_field,
-    unified_timestamp,
     InAdvancePagedList,
+    traverse_obj,
+    unified_timestamp,
 )
 
 
@@ -88,7 +89,7 @@ class BanByeIE(BanByeBaseIE):
             'id': video_id,
             'title': data.get('title'),
             'description': data.get('desc'),
-            'uploader': data.get('channel', {}).get('name'),
+            'uploader': traverse_obj(data, ('channel', 'name')),
             'channel_id': data.get('channelId'),
             'channel_url': format_field(data.get('channelId'), template='https://banbye.com/channel/%s'),
             'timestamp': unified_timestamp(data.get('publishedAt')),
