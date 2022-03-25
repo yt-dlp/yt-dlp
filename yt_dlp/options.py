@@ -465,19 +465,18 @@ def create_parser():
         metavar='COUNT', dest='max_views', default=None, type=int,
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--match-filter',
-        metavar='FILTER', dest='match_filter', default=None,
+        '--match-filters',
+        metavar='FILTER', dest='match_filter', action='append',
         help=(
             'Generic video filter. Any field (see "OUTPUT TEMPLATE") can be compared with a '
             'number or a string using the operators defined in "Filtering formats". '
-            'You can also simply specify a field to match if the field is present '
-            'and "!field" to check if the field is not present. In addition, '
-            'Python style regular expression matching can be done using "~=", '
-            'and multiple filters can be checked with "&". '
-            'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
-            '"!is_live & like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
-            'matches only videos that are not live, has a like count more than 100 '
-            '(or the like field is not available), and also has a description '
+            'You can also simply specify a field to match if the field is present, '
+            'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
+            'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
+            'the filter matches if atleast one of the conditions are met. Eg: --match-filter '
+            '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
+            'matches only videos that are not live OR those that have a like count more than 100 '
+            '(or the like field is not available) and also has a description '
             'that contains the phrase "cats & dogs" (ignoring case)'))
     selection.add_option(
         '--no-match-filter',

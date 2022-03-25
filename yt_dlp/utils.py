@@ -3614,16 +3614,18 @@ def match_str(filter_str, dct, incomplete=False):
         for filter_part in re.split(r'(?<!\\)&', filter_str))
 
 
-def match_filter_func(filter_str):
-    if filter_str is None:
+def match_filter_func(filters):
+    if not filters:
         return None
+    filters = variadic(filters)
 
     def _match_func(info_dict, *args, **kwargs):
-        if match_str(filter_str, info_dict, *args, **kwargs):
+        if any(match_str(f, info_dict, *args, **kwargs) for f in filters):
             return None
         else:
-            video_title = info_dict.get('title', info_dict.get('id', 'video'))
-            return '%s does not pass filter %s, skipping ..' % (video_title, filter_str)
+            video_title = info_dict.get('title') or info_dict.get('id') or 'video'
+            filter_str = ') | ('.join(map(str.strip, filters))
+            return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func
 
 
