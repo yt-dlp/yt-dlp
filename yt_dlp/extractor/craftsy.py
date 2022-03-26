@@ -26,7 +26,7 @@ class CraftsyIE(InfoExtractor):
         'info_dict': {
             'id': 'sew-your-own-designer-handbag',
             'title': 'Sew Your Own Designer Handbag',
-            'description': 'md5::8270d0ef5427d3c895a27351aeaac276',
+            'description': 'md5:8270d0ef5427d3c895a27351aeaac276',
         },
         'playlist_mincount': 1,
     }]
