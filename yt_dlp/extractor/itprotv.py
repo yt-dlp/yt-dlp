@@ -13,7 +13,7 @@ from ..utils import (
 
 
 class ITProTVIE(InfoExtractor):
-    _VALID_URL = r'https://app.itpro.tv/course/([0-9a-z-]+)/(?P<id>[0-9a-z-]+)'
+    _VALID_URL = r'https://app.itpro.tv/course/([\w-]+)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.itpro.tv/course/guided-tour/introductionitprotv',
         'md5': 'bca4a28c2667fd1a63052e71a94bb88c',
@@ -66,15 +66,15 @@ class ITProTVIE(InfoExtractor):
         jwt = self._fetch_jwt(webpage)
 
         if jwt:
-            headers = {'Authorization': 'Bearer ' + jwt}
+            headers = {'Authorization': f'Bearer {jwt}'}
             episode_api = self._download_json(
                 f'https://api.itpro.tv/api/urza/v3/consumer-web/brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={episode_id}',
                 episode_id, headers=headers, note='Fetching data from episode API')
 
-        return episode_api
+            return episode_api
 
     def _fetch_jwt(self, webpage):
-        return self._search_regex(r'{"passedToken":"([A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]+)",', webpage, 'jwt')
+        return self._search_regex(r'{"passedToken":"([\w-]+\.[\w-]+\.[\w-]+)",', webpage, 'jwt')
 
     def _check_if_logged_in(self, webpage):
         if re.match(r'{\s*member\s*:\s*null', webpage):
@@ -85,7 +85,7 @@ class ITProTVIE(InfoExtractor):
         webpage = self._download_webpage(url, episode_id)
         self._check_if_logged_in(webpage)
 
-        course_name = self._search_regex(r'https?://.+/course/(?P<course_name>[0-9a-z-]+)/.+', url, 'course_name')
+        course_name = self._search_regex(r'https?://.+/course/(?P<course_name>[\w-]+)/[\w-]+', url, 'course_name')
         course = self._get_course_api_json(webpage, course_name)['course']
 
         episode = self._get_episode_api_json(webpage, episode_id)['episode']
@@ -121,7 +121,7 @@ class ITProTVIE(InfoExtractor):
 
 
 class ITProTVCourseIE(ITProTVIE):
-    _VALID_URL = r'https?://app.itpro.tv/course/(?P<id>[0-9a-z-]+)'
+    _VALID_URL = r'https?://app.itpro.tv/course/(?P<id>[\w-]+)/?(?:$|[#?])'
     _TESTS = [
         {
             'url': 'https://app.itpro.tv/course/guided-tour',
@@ -149,15 +149,9 @@ class ITProTVCourseIE(ITProTVIE):
         self._check_if_logged_in(webpage)
         course = self._get_course_api_json(webpage, course_id)['course']
 
-        entries = []
-        for episode in course['episodes']:
-            entry = {
-                '_type': 'url_transparent',
-                'ie_key': 'ITProTV',
-                'url': urljoin(url, episode['url']),
-                'title': episode.get('title')
-            }
-            entries.append(entry)
+        entries = [self.url_result(
+            urljoin(url, f"{course_id}/{episode['url']}"),ie='ITProTV',video_id=episode['url'],title=episode.get('title'), url_transparent=True)
+            for episode in course['episodes']]
 
         return self.playlist_result(
             entries, course_id, course.get('name'), course.get('description'))
