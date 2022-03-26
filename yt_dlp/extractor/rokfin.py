@@ -1,10 +1,10 @@
 # coding: utf-8
 import itertools
-from datetime import datetime
-import re
 import json
-import urllib.parse
 import random
+import re
+import urllib.parse
+from datetime import datetime
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     determine_ext,
@@ -14,11 +14,11 @@ from ..utils import (
     int_or_none,
     str_or_none,
     traverse_obj,
+    try_get,
     unified_timestamp,
     url_or_none,
     unescapeHTML,
     urlencode_postdata,
-    try_get,
 )
 
 
@@ -439,20 +439,18 @@ class RokfinSearchIE(SearchInfoExtractor):
     _NETRC_MACHINE = False
     _BASE_URL = 'https://rokfin.com'
     _CACHE_SECTION_NAME = 'rokfin-search-engine-access'
-    _search_engine_access_url = None
-    _search_engine_access_key = None
+    _db_url = None
+    _db_access_key = None
 
     def _real_initialize(self):
-        self._search_engine_access_url = self._downloader.cache.load(self._CACHE_SECTION_NAME, 'url')
-        self._search_engine_access_key = self._downloader.cache.load(self._CACHE_SECTION_NAME, 'key')
-        if not self._search_engine_access_url or not self._search_engine_access_key:
-            self._search_engine_access_url, self._search_engine_access_key = self._get_search_engine_access_credentials()
+        self._db_url, self._db_access_key = self._downloader.cache.load(
+            self.ie_key(), 'auth') or self._get_db_access_credentials()
 
     def _search_results(self, query):
         def get_video_data(metadata):
             for search_result in metadata.get('results') or []:
-                video_id_ind, video_type = self._TYPES.get(traverse_obj(search_result, ('content_type', 'raw')), (None, None))
-                video_id = traverse_obj(search_result, video_id_ind, expected_type=int_or_none)
+                video_id_key, video_type = self._TYPES.get(traverse_obj(search_result, ('content_type', 'raw')), (None, None))
+                video_id = traverse_obj(search_result, video_id_key, expected_type=int_or_none)
                 if not video_id or not video_type:
                     continue
                 yield self.url_result(url=f'{self._BASE_URL}/{video_type}/{video_id}')
@@ -474,38 +472,36 @@ class RokfinSearchIE(SearchInfoExtractor):
     def _run_search_query(self, data, note, errnote):
         data_bytes = json.dumps(data).encode('utf-8')
         search_results = self._download_json(
-            self._search_engine_access_url, self._SEARCH_KEY, note=note, errnote=errnote, fatal=False,
-            encoding='utf-8', data=data_bytes, headers={'authorization': self._search_engine_access_key})
+            self._db_url, self._SEARCH_KEY, note=note, errnote=errnote, fatal=False,
+            encoding='utf-8', data=data_bytes, headers={'authorization': self._db_access_key})
         if search_results is not False:
             return search_results
         self.write_debug('updating access credentials')
-        self._search_engine_access_url = self._search_engine_access_key = None
-        self._downloader.cache.store(self._CACHE_SECTION_NAME, 'url', None)
-        self._downloader.cache.store(self._CACHE_SECTION_NAME, 'key', None)
-        self._search_engine_access_url, self._search_engine_access_key = self._get_search_engine_access_credentials()
+        self._db_url = self._db_access_key = None
+        self._downloader.cache.store(self.ie_key(), 'auth', None)
+        self._db_url, self._db_access_key = self._get_db_access_credentials()
         return self._download_json(
-            self._search_engine_access_url, self._SEARCH_KEY, note=note, errnote=errnote, fatal=False,
-            encoding='utf-8', data=data_bytes, headers={'authorization': self._search_engine_access_key}) or {}
+            self._db_url, self._SEARCH_KEY, note=note, errnote=errnote, fatal=False,
+            encoding='utf-8', data=data_bytes, headers={'authorization': self._db_access_key}) or {}
 
-    def _get_search_engine_access_credentials(self):
-        notfound_err_page = self._download_webpage('https://rokfin.com/discover', self._SEARCH_KEY, expected_status=404, fatal=False)
+    def _get_db_access_credentials(self):
+        notfound_err_page = self._download_webpage('https://rokfin.com/discover', self._SEARCH_KEY, expected_status=404)
         js_content = ''
-        search_engine_access_url = search_engine_access_key = None
+        db_url = db_access_key = None
         for js_file_path in re.finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', notfound_err_page):
             js_content += self._download_webpage(
                 self._BASE_URL + js_file_path.group('path'), self._SEARCH_KEY,
                 note='Downloading JavaScript file', fatal=False) or ''
-            if not search_engine_access_url:
-                search_engine_access_url = self._search_regex(
+            if not db_url:
+                db_url = self._search_regex(
                     r'REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]+)"', js_content,
                     name='Search engine URL', default=None, fatal=False, group='url')
-                search_engine_access_url = url_or_none(search_engine_access_url + '/api/as/v1/engines/rokfin-search/search.json') if search_engine_access_url else None
-            if not search_engine_access_key:
-                search_engine_access_key = self._search_regex(
+                db_url = url_or_none(db_url + '/api/as/v1/engines/rokfin-search/search.json') if db_url else None
+            if not db_access_key:
+                db_access_key = self._search_regex(
                     r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)"', js_content,
                     name='Search engine access key', default=None, fatal=False, group='key')
-                search_engine_access_key = f'Bearer {search_engine_access_key}' if search_engine_access_key else None
-            if search_engine_access_url and search_engine_access_key:
-                self._downloader.cache.store(self._CACHE_SECTION_NAME, 'url', search_engine_access_url)
-                self._downloader.cache.store(self._CACHE_SECTION_NAME, 'key', search_engine_access_key)
-                return search_engine_access_url, search_engine_access_key
+                db_access_key = f'Bearer {db_access_key}' if db_access_key else None
+            if db_url and db_access_key:
+                self._downloader.cache.store(self.ie_key(), 'auth', (db_url, db_access_key))
+                return (db_url, db_access_key)
