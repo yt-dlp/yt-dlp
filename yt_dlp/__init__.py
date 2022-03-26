@@ -94,9 +94,9 @@ def print_extractor_information(opts, urls):
         for ie in list_extractors(opts.age_limit):
             if not ie.working():
                 continue
-            desc = getattr(ie, 'IE_DESC', ie.IE_NAME)
-            if desc is False:
+            if ie.IE_DESC is False:
                 continue
+            desc = ie.IE_DESC or ie.IE_NAME
             if getattr(ie, 'SEARCH_KEY', None) is not None:
                 _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
                 _COUNTS = ('', '5', '10', 'all')
