@@ -13,6 +13,7 @@ from ..compat import (
 )
 from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
 from ..utils import (
+    classproperty,
     cli_option,
     cli_valueless_option,
     cli_bool_option,
@@ -73,17 +74,23 @@ class ExternalFD(FragmentFD):
     def get_basename(cls):
         return cls.__name__[:-2].lower()
 
+    @classproperty
+    def EXE_NAME(cls):
+        return cls.get_basename()
+
     @property
     def exe(self):
-        return self.get_basename()
+        return self.EXE_NAME
 
     @classmethod
     def available(cls, path=None):
-        path = check_executable(path or cls.get_basename(), [cls.AVAILABLE_OPT])
-        if path:
-            cls.exe = path
-            return path
-        return False
+        path = check_executable(
+            cls.EXE_NAME if path in (None, cls.get_basename()) else path,
+            [cls.AVAILABLE_OPT])
+        if not path:
+            return False
+        cls.exe = path
+        return path
 
     @classmethod
     def supports(cls, info_dict):
@@ -106,7 +113,7 @@ class ExternalFD(FragmentFD):
 
     def _configuration_args(self, keys=None, *args, **kwargs):
         return _configuration_args(
-            self.get_basename(), self.params.get('external_downloader_args'), self.get_basename(),
+            self.get_basename(), self.params.get('external_downloader_args'), self.EXE_NAME,
             keys, *args, **kwargs)
 
     def _call_downloader(self, tmpfilename, info_dict):
@@ -169,7 +176,7 @@ class CurlFD(ExternalFD):
     AVAILABLE_OPT = '-V'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '--location', '-o', tmpfilename]
+        cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -219,7 +226,7 @@ class WgetFD(ExternalFD):
     AVAILABLE_OPT = '--version'
 
     def _make_cmd(self, tmpfilename, info_dict):
-        cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies']
+        cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies', '--compression=auto']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
                 cmd += ['--header', '%s: %s' % (key, val)]
@@ -230,7 +237,10 @@ class WgetFD(ExternalFD):
                 retry[1] = '0'
             cmd += retry
         cmd += self._option('--bind-address', 'source_address')
-        cmd += self._option('--proxy', 'proxy')
+        proxy = self.params.get('proxy')
+        if proxy:
+            for var in ('http_proxy', 'https_proxy'):
+                cmd += ['--execute', '%s=%s' % (var, proxy)]
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
@@ -303,10 +313,7 @@ class Aria2cFD(ExternalFD):
 
 class HttpieFD(ExternalFD):
     AVAILABLE_OPT = '--version'
-
-    @classmethod
-    def available(cls, path=None):
-        return super().available(path or 'http')
+    EXE_NAME = 'http'
 
     def _make_cmd(self, tmpfilename, info_dict):
         cmd = ['http', '--download', '--output', tmpfilename, info_dict['url']]
@@ -507,11 +514,13 @@ class AVconvFD(FFmpegFD):
     pass
 
 
-_BY_NAME = dict(
-    (klass.get_basename(), klass)
+_BY_NAME = {
+    klass.get_basename(): klass
     for name, klass in globals().items()
     if name.endswith('FD') and name not in ('ExternalFD', 'FragmentFD')
-)
+}
+
+_BY_EXE = {klass.EXE_NAME: klass for klass in _BY_NAME.values()}
 
 
 def list_external_downloaders():
@@ -523,4 +532,4 @@ def get_external_downloader(external_downloader):
         downloader . """
     # Drop .exe extension on Windows
     bn = os.path.splitext(os.path.basename(external_downloader))[0]
-    return _BY_NAME.get(bn)
+    return _BY_NAME.get(bn, _BY_EXE.get(bn))
