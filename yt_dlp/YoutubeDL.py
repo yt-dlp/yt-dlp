@@ -1099,10 +1099,11 @@ class YoutubeDL(object):
             (?P<fields>{field})
             (?P<maths>(?:{math_op}{math_field})*)
             (?:>(?P<strf_format>.+?))?
-            (?P<alternate>(?<!\\),[^|&)]+)?
-            (?:&(?P<replacement>.*?))?
-            (?:\|(?P<default>.*?))?
-            $'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
+            (?P<remaining>
+                (?P<alternate>(?<!\\),[^|&)]+)?
+                (?:&(?P<replacement>.*?))?
+                (?:\|(?P<default>.*?))?
+            )$'''.format(field=FIELD_RE, math_op=MATH_OPERATORS_RE, math_field=MATH_FIELD_RE))
 
         def _traverse_infodict(k):
             k = k.split('.')
@@ -1173,7 +1174,7 @@ class YoutubeDL(object):
                 value = get_value(mobj)
                 replacement = mobj['replacement']
                 if value is None and mobj['alternate']:
-                    mobj = re.match(INTERNAL_FORMAT_RE, mobj['alternate'][1:])
+                    mobj = re.match(INTERNAL_FORMAT_RE, mobj['remaining'][1:])
                 else:
                     break
 
