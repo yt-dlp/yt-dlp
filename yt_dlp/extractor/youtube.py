@@ -2940,13 +2940,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
                 video_id, 'initial player response')
 
-        original_clients = clients
+        all_clients = set(clients)
         clients = clients[::-1]
         prs = []
 
-        def append_client(client_name):
-            if client_name in INNERTUBE_CLIENTS and client_name not in original_clients:
-                clients.append(client_name)
+        def append_client(*client_names):
+            """ Append the first client name that exists """
+            for client_name in client_names:
+                if client_name in INNERTUBE_CLIENTS:
+                    if client_name not in all_clients:
+                        clients.append(client_name)
+                        all_clients.add(client_name)
+                    return
 
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
@@ -2992,7 +2997,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if client.endswith('_agegate') and self._is_unplayable(pr) and self.is_authenticated:
                 append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
-                append_client(f'{client}_agegate')
+                append_client(f'{client}_embedded', f'{client.replace("_embedded", "")}_agegate')
 
         if last_error:
             if not len(prs):
