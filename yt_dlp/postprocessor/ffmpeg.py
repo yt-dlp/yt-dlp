@@ -1129,6 +1129,8 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         super().__init__(downloader)
 
     def concat_files(self, in_files, out_file):
+        if not self._downloader._ensure_dir_exists(out_file):
+            return
         if len(in_files) == 1:
             if os.path.realpath(in_files[0]) != os.path.realpath(out_file):
                 self.to_screen(f'Moving "{in_files[0]}" to "{out_file}"')
