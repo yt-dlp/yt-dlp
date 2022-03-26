@@ -5,6 +5,7 @@ import re
 from .common import InfoExtractor
 
 from ..utils import (
+    int_or_none,
     qualities,
     traverse_obj
 )
@@ -91,7 +92,7 @@ class ITProTVIE(InfoExtractor):
         course_name = re.match(r'https?://.*/course/(?P<course_name>[0-9a-z-]+)/.*', url).group(1)
         course = self._get_course_api_json(webpage, course_name)['course']
 
-        episode_api = self._get_episode_api_json(webpage, episode_id)['episode']
+        episode = self._get_episode_api_json(webpage, episode_id)['episode']
 
         for i in range(len(course.get('topics'))):
             if traverse_obj(course, ('topics', i, 'id'), expected_type=str) == episode.get('topic'):
@@ -130,8 +131,10 @@ class ITProTVCourseIE(ITProTVIE):
             'url': 'https://app.itpro.tv/course/guided-tour',
             'info_dict': {
                 'id': 'guided-tour',
-                'ext': 'mp4',
+                'description': 'md5:b175c2c3061ce35a4dd33865b2c1da4e',
+                'title': 'ITProTV 101',
             },
+            'playlist_count': 6,
             'params': {
                 'skip_download': True,
             },
@@ -140,8 +143,10 @@ class ITProTVCourseIE(ITProTVIE):
             'url': 'https://app.itpro.tv/course/beyond-tech',
             'info_dict': {
                 'id': 'beyond-tech',
-                'ext': 'mp4',
+                'description': 'md5:44cd99855e7f81a15ce1269bd0621fed',
+                'title': 'Beyond Tech'
             },
+            'playlist_count': 15,
             'params': {
                 'skip_download': True,
             },
@@ -152,7 +157,7 @@ class ITProTVCourseIE(ITProTVIE):
         course_id = self._match_id(url)
         webpage = self._download_webpage(url, course_id)
         self._check_if_logged_in(webpage)
-        course_api = self._get_course_api_json(webpage, course_id)['course']
+        course = self._get_course_api_json(webpage, course_id)['course']
 
         entries = []
         for episode in course['episodes']:
