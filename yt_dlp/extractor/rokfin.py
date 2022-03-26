@@ -450,7 +450,7 @@ class RokfinSearchIE(SearchInfoExtractor):
 
     def _search_results(self, query):
         def get_video_data(metadata):
-            for search_result in metadata.get('results', []):
+            for search_result in metadata.get('results') or []:
                 video_id_ind, video_type = self._TYPES.get(traverse_obj(search_result, ('content_type', 'raw')), (None, None))
                 video_id = traverse_obj(search_result, video_id_ind, expected_type=int_or_none)
                 if not video_id or not video_type:
