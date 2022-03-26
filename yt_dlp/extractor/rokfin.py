@@ -3,7 +3,8 @@ import itertools
 from datetime import datetime
 import re
 import json
-
+import urllib.parse
+import random
 from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     determine_ext,
@@ -15,6 +16,9 @@ from ..utils import (
     traverse_obj,
     unified_timestamp,
     url_or_none,
+    unescapeHTML,
+    urlencode_postdata,
+    try_get,
 )
 
 
@@ -23,6 +27,9 @@ _API_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
 
 class RokfinIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>(?P<type>post|stream)/\d+)'
+    _NETRC_MACHINE = 'rokfin'
+    _TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7 = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/token'
+    _access_mgmt_tokens = None  # OAuth 2.0: RFC 6749, Sec. 1.4-5
     _TESTS = [{
         'url': 'https://www.rokfin.com/post/57548/Mitt-Romneys-Crazy-Solution-To-Climate-Change',
         'info_dict': {
@@ -87,7 +94,7 @@ class RokfinIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
 
-        metadata = self._download_json(f'{_API_BASE_URL}{video_id}', video_id)
+        metadata = self._download_json_using_access_token(f'{_API_BASE_URL}{video_id}', video_id)
 
         scheduled = unified_timestamp(metadata.get('scheduledAt'))
         live_status = ('was_live' if metadata.get('stoppedAt')
@@ -162,6 +169,161 @@ class RokfinIE(InfoExtractor):
             if not raw_comments.get('content') or is_last or (page_n > pages_total if pages_total else is_last is not False):
                 return
 
+    def _perform_login(self, username, password):
+        LOGIN_PAGE_URL = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Ffeed&response_mode=fragment&response_type=code&scope=openid'
+        AUTHENTICATION_URL_REGEX_STEP_1 = r'\<form\s+[^>]+action\s*=\s*"(?P<authentication_point_url>https://secure\.rokfin\.com/auth/realms/rokfin-web/login-actions/authenticate\?[^"]+)"[^>]*>'
+
+        # In OpenID terms (https://openid.net/specs/), this program acts as a (public) Client (a.k.a. Client Application),
+        # the User Agent, and the Relying Party (RP) simultaneously, with the Identity Provider (IDP) being secure.rokfin.com.
+        # Rokfin uses KeyCloak (https://www.keycloak.org) as the OpenID implementation of choice.
+        #
+        # ---------------------------- CODE FLOW AUTHORIZATION ----------------------------
+        # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1.1)
+        #
+        # Authentication phase:
+        #
+        # Step 1: preparation
+        login_page, urlh = self._download_webpage_handle(LOGIN_PAGE_URL, None, note='loading login page', fatal=False) or (None, None)
+        if not login_page:
+            return
+        authentication_point_url = unescapeHTML(re.search(AUTHENTICATION_URL_REGEX_STEP_1, login_page).group('authentication_point_url'))
+        if authentication_point_url is None:
+            self.report_warning('login failed unexpectedly: Rokfin extractor must be updated')
+            self._clear_cookies()
+            return
+
+        # Step 2 & 3: authentication
+        resp_body, urlh = self._download_webpage_handle(
+            authentication_point_url, None, note='logging in', fatal=False, expected_status=404, encoding='utf-8',
+            data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''})) or (None, None)
+        # rememberMe=off resets the session when yt-dlp exits:
+        # https://web.archive.org/web/20220218003425/https://wjw465150.gitbooks.io/keycloak-documentation/content/server_admin/topics/login-settings/remember-me.html
+        if not self._authentication_active():
+            self._clear_cookies()
+            self.report_warning('login failed' + (': invalid username or password.' if type(resp_body) is str and re.search(r'invalid\s+username\s+or\s+password', resp_body, re.IGNORECASE) else ''))
+            return
+
+        # Authorization phase:
+        #
+        # Steps 4-7:
+        access_mgmt_tokens = self._get_OAuth_tokens()
+        if not access_mgmt_tokens:
+            self._logout()
+            return
+
+        # No validation phase (step 8):
+        #
+        # (1) the client-side ID-token validation skipped;
+        # (2) Rokfin does not supply Subject Identifier.
+
+        self._access_mgmt_tokens = access_mgmt_tokens
+
+    def _logout(self):
+        LOGOUT_URL = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/logout?redirect_uri=https%3A%2F%2Frokfin.com%2F'
+        if self._get_login_info()[0] is None:  # username is None
+            return
+        self._download_webpage_handle(LOGOUT_URL, None, note='logging out', fatal=False, encoding='utf-8')
+        if self._authentication_active():
+            self.write_debug('logout failed')
+        self._clear_cookies()
+        self._access_mgmt_tokens = None
+        # No token revocation takes place during logout, as KEYCLOAK does not -- and has no plans to -- support individual token
+        # revocation on external party's request. See
+        # https://web.archive.org/web/20220215040021/https://keycloak.discourse.group/t/revoking-or-invalidating-an-authorization-token/1032
+
+    def _authentication_active(self):
+        current_time_utc = datetime.utcnow().timestamp()
+        SESSION_COOKIE_NAMES = {'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'}
+        return set([cookie.name for cookie in self._downloader.cookiejar if (cookie.name in SESSION_COOKIE_NAMES)
+                    and (cookie.name not in ('KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY')
+                         or cookie.expires > current_time_utc)]) == SESSION_COOKIE_NAMES
+
+    def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
+        assert 'authorization' not in headers
+        headers = headers.copy()
+        # Testing only:
+        if False and self._access_mgmt_tokens and 'access_token' in self._access_mgmt_tokens and 'token_type' in self._access_mgmt_tokens:
+            self._access_mgmt_tokens['access_token'] = 'eyJh'
+            self.write_debug('Invalidated access token')
+        authorization_hdr_val = try_get(self._access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
+        if authorization_hdr_val:
+            headers['authorization'] = authorization_hdr_val
+        json_string, urlh = self._download_webpage_handle(
+            url_or_request, video_id, note='Downloading JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
+            errnote='Unable to download JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
+            headers=headers, query=query, expected_status=401)  # 401=Unauthorized
+        if not authorization_hdr_val or urlh.code != 401 or self._access_mgmt_tokens.get('refresh_token') is None:
+            return self._parse_json(json_string, video_id)
+        del headers['authorization']
+        del self._access_mgmt_tokens['access_token']
+        del self._access_mgmt_tokens['token_type']
+        try:
+            del self._access_mgmt_tokens['expires_in']
+        except KeyError:
+            pass
+        self._access_mgmt_tokens.update(
+            self._download_json(
+                self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, video_id, note='Restoring lost authorization',
+                errnote='Failed to restore authorization', fatal=False,
+                data=urlencode_postdata({'grant_type': 'refresh_token', 'refresh_token': self._access_mgmt_tokens.get('refresh_token'), 'client_id': 'web'})) or {})
+        self.write_debug(f'Updated tokens: {self._access_mgmt_tokens.keys()}')
+        if {'access_token', 'expires_in', 'refresh_expires_in', 'refresh_token', 'token_type', 'id_token', 'not-before-policy', 'session_state', 'scope'} - self._access_mgmt_tokens.keys():
+            username, password = self._get_login_info()
+            self._logout()
+            self._perform_login(username, password)
+        authorization_hdr_val = try_get(self._access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
+        if authorization_hdr_val:
+            headers['authorization'] = authorization_hdr_val
+        return self._download_json(
+            url_or_request, video_id, note='Downloading JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
+            errnote='Unable to download JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
+            headers=headers, query=query)
+
+    def _get_OAuth_tokens(self):
+        PARTIAL_USER_CONSENT_URL_STEP_4_5 = urllib.parse.urlparse('https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Fsilent-check-sso.html&response_mode=fragment&response_type=code&scope=openid&prompt=none')
+
+        # ---------------------------- CODE FLOW AUTHORIZATION ----------------------------
+        # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1.1)
+
+        # Steps 4 & 5 authorize yt-dlp to act on user's behalf.
+
+        # random_str() came from https://www.rokfin.com/static/js/2.*.chunk.js
+        def random_str():
+            rnd_lst = [random.choice('0123456789abcdef') for _ in range(36)]
+            rnd_lst[14] = '4'
+            rnd_lst[19] = '0123456789abcdef'[3 & ord(rnd_lst[19]) | 8]
+            rnd_lst[8] = rnd_lst[13] = rnd_lst[18] = rnd_lst[23] = '-'
+            return ''.join(rnd_lst)
+
+        user_consent_url_step_4_5 = PARTIAL_USER_CONSENT_URL_STEP_4_5._replace(query=urllib.parse.urlencode((lambda d: d.update(state=random_str(), nonce=random_str()) or d)(dict(urllib.parse.parse_qsl(PARTIAL_USER_CONSENT_URL_STEP_4_5.query))))).geturl()
+
+        # By making this HTTP request, the user authorizes yt-dlp to act on behalf of the user:
+        urlh = (self._download_webpage_handle(
+            user_consent_url_step_4_5, None, note='granting user authorization', errnote='user authorization rejected by Rokfin', fatal=False, encoding='utf-8') or (None, None))[1]
+
+        def parse_authorization_code(urlh):
+            codes = urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.geturl()).fragment).get('code')
+            return codes[0] if codes else None
+
+        authorization_code = parse_authorization_code(urlh)
+        if not authorization_code:
+            self.write_debug('authorization failed: missing authorization code')
+            return None
+
+        # Steps 6 & 7 request and acquire ID Token & Access Token:
+        access_token = self._download_json(
+            self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, None, note='getting access credentials', fatal=False, encoding='utf-8',
+            data=urlencode_postdata({'code': authorization_code, 'grant_type': 'authorization_code', 'client_id': 'web', 'redirect_uri': 'https://rokfin.com/silent-check-sso.html'})) or {}
+
+        # Usage: --extractor-args "rokfin:print-user-info"  # For testing by those who don't have premium access.
+        if self._configuration_arg('print_user_info'):
+            self.to_screen(self._download_json('https://prod-api-v2.production.rokfin.com/api/v2/user/me', None, note='obtaining user info', errnote='could not obtain user info', fatal=False, headers={'authorization': access_token['token_type'] + ' ' + access_token['access_token']}))
+
+        return access_token
+
+    def _clear_cookies(self):
+        self._downloader.cookiejar.clear, lambda f: f(domain='secure.rokfin.com')
+
 
 class RokfinPlaylistBaseIE(InfoExtractor):
     _TYPES = {
@@ -184,7 +346,7 @@ class RokfinPlaylistBaseIE(InfoExtractor):
 
 
 class RokfinStackIE(RokfinPlaylistBaseIE):
-    IE_NAME = 'rokfin:stack'
+    IE_DESC = 'Rokfin Stacks'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/stack/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://www.rokfin.com/stack/271/Tulsi-Gabbard-Portsmouth-Townhall-FULL--Feb-9-2020',
@@ -193,6 +355,8 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
             'id': '271',
         },
     }]
+    IE_NAME = 'rokfin:stack'
+    _NETRC_MACHINE = False
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
@@ -201,7 +365,7 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
 
 
 class RokfinChannelIE(RokfinPlaylistBaseIE):
-    IE_NAME = 'rokfin:channel'
+    IE_DESC = 'Rokfin Channels'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?!((feed/?)|(discover/?)|(channels/?))$)(?P<id>[^/]+)/?$'
     _TESTS = [{
         'url': 'https://rokfin.com/TheConvoCouch',
@@ -212,6 +376,8 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
             'description': 'md5:bb622b1bca100209b91cd685f7847f06',
         },
     }]
+    IE_NAME = 'rokfin:channel'
+    _NETRC_MACHINE = False
 
     _TABS = {
         'new': 'posts',
@@ -260,8 +426,7 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
 
 # E.g.: rkfnsearch5:"\"zelenko\"" or rkfnsearch5:"\"mollie james\""
 class RokfinSearchIE(SearchInfoExtractor):
-    IE_NAME = 'rokfin:search'
-    _SEARCH_KEY = 'rkfnsearch'
+    IE_DESC = 'Rokfin Search'
     _TYPES = {
         'video': (('id', 'raw'), 'post'),
         'audio': (('id', 'raw'), 'post'),
@@ -269,6 +434,9 @@ class RokfinSearchIE(SearchInfoExtractor):
         'dead_stream': (('content_id', 'raw'), 'stream'),
         'stack': (('content_id', 'raw'), 'stack'),
     }
+    IE_NAME = 'rokfin:search'
+    _SEARCH_KEY = 'rkfnsearch'
+    _NETRC_MACHINE = False
     _BASE_URL = 'https://rokfin.com'
     _CACHE_SECTION_NAME = 'rokfin-search-engine-access'
     _search_engine_access_url = None
