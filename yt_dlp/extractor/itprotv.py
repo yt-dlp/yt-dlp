@@ -130,10 +130,7 @@ class ITProTVCourseIE(ITProTVIE):
                 'description': 'md5:b175c2c3061ce35a4dd33865b2c1da4e',
                 'title': 'ITProTV 101',
             },
-            'playlist_count': 6,
-            'params': {
-                'skip_download': True,
-            },
+            'playlist_count': 6
         },
         {
             'url': 'https://app.itpro.tv/course/beyond-tech',
@@ -142,10 +139,7 @@ class ITProTVCourseIE(ITProTVIE):
                 'description': 'md5:44cd99855e7f81a15ce1269bd0621fed',
                 'title': 'Beyond Tech'
             },
-            'playlist_count': 15,
-            'params': {
-                'skip_download': True,
-            },
+            'playlist_count': 15
         },
     ]
 
