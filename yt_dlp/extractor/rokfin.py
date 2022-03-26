@@ -498,7 +498,7 @@ class RokfinSearchIE(SearchInfoExtractor):
                 note='Downloading JavaScript file', fatal=False) or ''
             if not search_engine_access_url:
                 search_engine_access_url = self._search_regex(
-                    r'REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]*)"', js_content,
+                    r'REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]+)"', js_content,
                     name='Search engine URL', default=None, fatal=False, group='url')
                 search_engine_access_url = url_or_none(search_engine_access_url + '/api/as/v1/engines/rokfin-search/search.json') if search_engine_access_url else None
             if not search_engine_access_key:
