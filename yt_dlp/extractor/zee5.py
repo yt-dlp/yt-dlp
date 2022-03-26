@@ -23,7 +23,7 @@ class Zee5IE(InfoExtractor):
                         zee5:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
                         (?:
-                            (?:tv-shows|kids|zee5originals)(?:/[^#/?]+){3}
+                            (?:tv-shows|kids|web-series|zee5originals)(?:/[^#/?]+){3}
                             |movies/[^#/?]+
                         )/(?P<display_id>[^#/?]+)/
                      )
@@ -82,6 +82,9 @@ class Zee5IE(InfoExtractor):
     }, {
         'url': 'https://www.zee5.com/global/hi/tv-shows/details/kundali-bhagya/0-6-366/kundali-bhagya-march-08-2021/0-1-manual_7g9jv1os7730',
         'only_matching': True
+    }, {
+        'url': 'https://www.zee5.com/web-series/details/mithya/0-6-4z587408/maine-dekhi-hai-uski-mrityu/0-1-6z587412',
+        'only_matching': True
     }]
     _DETAIL_API_URL = 'https://spapi.zee5.com/singlePlayback/getDetails?content_id={}&device_id={}&platform_name=desktop_web&country=IN&check_parental_control=false'
     _DEVICE_ID = 'iIxsxYf40cqO3koIkwzKHZhnJzHN13zb'
@@ -90,32 +93,27 @@ class Zee5IE(InfoExtractor):
     _NETRC_MACHINE = 'zee5'
     _GEO_COUNTRIES = ['IN']
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username:
-            if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
-                self.report_login()
-                otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),
-                                                       None, note='Sending OTP')
-                if otp_request_json['code'] == 0:
-                    self.to_screen(otp_request_json['message'])
-                else:
-                    raise ExtractorError(otp_request_json['message'], expected=True)
-                otp_code = self._get_tfa_info('OTP')
-                otp_verify_json = self._download_json('https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token={}&platform=web'.format(username, otp_code, self._DEVICE_ID),
-                                                      None, note='Verifying OTP', fatal=False)
-                if not otp_verify_json:
-                    raise ExtractorError('Unable to verify OTP.', expected=True)
-                self._USER_TOKEN = otp_verify_json.get('token')
-                if not self._USER_TOKEN:
-                    raise ExtractorError(otp_request_json['message'], expected=True)
-            elif username.lower() == 'token' and len(password) > 1198:
-                self._USER_TOKEN = password
+    def _perform_login(self, username, password):
+        if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
+            self.report_login()
+            otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),
+                                                   None, note='Sending OTP')
+            if otp_request_json['code'] == 0:
+                self.to_screen(otp_request_json['message'])
             else:
-                raise ExtractorError(self._LOGIN_HINT, expected=True)
-
-    def _real_initialize(self):
-        self._login()
+                raise ExtractorError(otp_request_json['message'], expected=True)
+            otp_code = self._get_tfa_info('OTP')
+            otp_verify_json = self._download_json('https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token={}&platform=web'.format(username, otp_code, self._DEVICE_ID),
+                                                  None, note='Verifying OTP', fatal=False)
+            if not otp_verify_json:
+                raise ExtractorError('Unable to verify OTP.', expected=True)
+            self._USER_TOKEN = otp_verify_json.get('token')
+            if not self._USER_TOKEN:
+                raise ExtractorError(otp_request_json['message'], expected=True)
+        elif username.lower() == 'token' and len(password) > 1198:
+            self._USER_TOKEN = password
+        else:
+            raise ExtractorError(self._LOGIN_HINT, expected=True)
 
     def _real_extract(self, url):
         video_id, display_id = self._match_valid_url(url).group('id', 'display_id')
@@ -179,7 +177,7 @@ class Zee5SeriesIE(InfoExtractor):
                      (?:
                         zee5:series:|
                         https?://(?:www\.)?zee5\.com/(?:[^#?]+/)?
-                        (?:tv-shows|kids|zee5originals)(?:/[^#/?]+){2}/
+                        (?:tv-shows|web-series|kids|zee5originals)(?:/[^#/?]+){2}/
                      )
                      (?P<id>[^#/?]+)(?:/episodes)?/?(?:$|[?#])
                      '''
@@ -215,6 +213,9 @@ class Zee5SeriesIE(InfoExtractor):
         },
     }, {
         'url': 'https://www.zee5.com/tv-shows/details/chala-hawa-yeu-dya-ladies-zindabaad/0-6-2943/episodes',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.zee5.com/web-series/details/mithya/0-6-4z587408',
         'only_matching': True,
     }]
 

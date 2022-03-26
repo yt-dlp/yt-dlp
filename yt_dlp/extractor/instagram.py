@@ -17,7 +17,6 @@ from ..utils import (
     get_element_by_attribute,
     int_or_none,
     lowercase_escape,
-    std_headers,
     str_or_none,
     str_to_int,
     traverse_obj,
@@ -30,9 +29,8 @@ class InstagramBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'instagram'
     _IS_LOGGED_IN = False
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None or self._IS_LOGGED_IN:
+    def _perform_login(self, username, password):
+        if self._IS_LOGGED_IN:
             return
 
         login_webpage = self._download_webpage(
@@ -72,9 +70,6 @@ class InstagramBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to login: The username you entered doesn\'t belong to an account. Please check your username and try again.', expected=True)
             raise ExtractorError('Unable to login')
         InstagramBaseIE._IS_LOGGED_IN = True
-
-    def _real_initialize(self):
-        self._login()
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(
@@ -503,7 +498,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                     '%s' % rhx_gis,
                     '',
                     '%s:%s' % (rhx_gis, csrf_token),
-                    '%s:%s:%s' % (rhx_gis, csrf_token, std_headers['User-Agent']),
+                    '%s:%s:%s' % (rhx_gis, csrf_token, self.get_param('http_headers')['User-Agent']),
                 ]
 
             # try all of the ways to generate a GIS query, and not only use the

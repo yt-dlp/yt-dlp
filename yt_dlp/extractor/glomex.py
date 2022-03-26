@@ -7,6 +7,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
+    extract_attributes,
     ExtractorError,
     int_or_none,
     parse_qs,
@@ -177,49 +178,38 @@ class GlomexEmbedIE(GlomexBaseIE):
 
     @classmethod
     def _extract_urls(cls, webpage, origin_url):
-        VALID_SRC = rf'(?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=_q1)).)+'
-
         # https://docs.glomex.com/publisher/video-player-integration/javascript-api/
-        EMBED_RE = r'''(?x)(?:
-            <iframe[^>]+?src=(?P<_q1>%(quot_re)s)(?P<url>%(url_re)s)(?P=_q1)|
-            <(?P<html_tag>glomex-player|div)(?:
-                data-integration-id=(?P<_q2>%(quot_re)s)(?P<integration_html>(?:(?!(?P=_q2)).)+)(?P=_q2)|
-                data-playlist-id=(?P<_q3>%(quot_re)s)(?P<id_html>(?:(?!(?P=_q3)).)+)(?P=_q3)|
-                data-glomex-player=(?P<_q4>%(quot_re)s)(?P<glomex_player>true)(?P=_q4)|
-                [^>]*?
-            )+>|
-            # naive parsing of inline scripts for hard-coded integration parameters
-            <(?P<script_tag>script)[^<]*?>(?:
-                (?P<_stjs1>dataset\.)?integrationId\s*(?(_stjs1)=|:)\s*
-                    (?P<_q5>%(quot_re)s)(?P<integration_js>(?:(?!(?P=_q5)).)+)(?P=_q5)\s*(?(_stjs1);|,)?|
-                (?P<_stjs2>dataset\.)?playlistId\s*(?(_stjs2)=|:)\s*
-                    (?P<_q6>%(quot_re)s)(?P<id_js>(?:(?!(?P=_q6)).)+)(?P=_q6)\s*(?(_stjs2);|,)?|
-                (?:\s|.)*?
-            )+</script>
-        )''' % {'quot_re': r'["\']', 'url_re': VALID_SRC}
+        quot_re = r'["\']'
 
-        for mtup in re.findall(EMBED_RE, webpage):
-            # re.finditer causes a memory spike. See https://github.com/yt-dlp/yt-dlp/issues/2512
-            mdict = dict(zip((
-                'url', '_',
-                'html_tag', '_', 'integration_html', '_', 'id_html', '_', 'glomex_player',
-                'script_tag', '_', '_', 'integration_js', '_', 'id_js',
-            ), mtup))
-            if mdict.get('url'):
-                url = unescapeHTML(mdict['url'])
-                if not cls.suitable(url):
-                    continue
+        regex = fr'''(?x)
+            <iframe[^>]+?src=(?P<q>{quot_re})(?P<url>
+                (?:https?:)?{cls._BASE_PLAYER_URL_RE}\?(?:(?!(?P=q)).)+
+            )(?P=q)'''
+        for mobj in re.finditer(regex, webpage):
+            url = unescapeHTML(mobj.group('url'))
+            if cls.suitable(url):
                 yield cls._smuggle_origin_url(url, origin_url)
-            elif mdict.get('html_tag'):
-                if mdict['html_tag'] == 'div' and not mdict.get('glomex_player'):
-                    continue
-                if not mdict.get('video_id_html') or not mdict.get('integration_html'):
-                    continue
-                yield cls.build_player_url(mdict['video_id_html'], mdict['integration_html'], origin_url)
-            elif mdict.get('script_tag'):
-                if not mdict.get('video_id_js') or not mdict.get('integration_js'):
-                    continue
-                yield cls.build_player_url(mdict['video_id_js'], mdict['integration_js'], origin_url)
+
+        regex = fr'''(?x)
+            <glomex-player [^>]+?>|
+            <div[^>]* data-glomex-player=(?P<q>{quot_re})true(?P=q)[^>]*>'''
+        for mobj in re.finditer(regex, webpage):
+            attrs = extract_attributes(mobj.group(0))
+            if attrs.get('data-integration-id') and attrs.get('data-playlist-id'):
+                yield cls.build_player_url(attrs['data-playlist-id'], attrs['data-integration-id'], origin_url)
+
+        # naive parsing of inline scripts for hard-coded integration parameters
+        regex = fr'''(?x)
+            (?P<is_js>dataset\.)?%s\s*(?(is_js)=|:)\s*
+            (?P<q>{quot_re})(?P<id>(?:(?!(?P=q)).)+)(?P=q)\s'''
+        for mobj in re.finditer(r'(?x)<script[^<]*>.+?</script>', webpage):
+            script = mobj.group(0)
+            integration_id = re.search(regex % 'integrationId', script)
+            if not integration_id:
+                continue
+            playlist_id = re.search(regex % 'playlistId', script)
+            if playlist_id:
+                yield cls.build_player_url(playlist_id, integration_id, origin_url)
 
     def _real_extract(self, url):
         url, origin_url = self._unsmuggle_origin_url(url)

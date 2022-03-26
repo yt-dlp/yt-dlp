@@ -1,5 +1,4 @@
 import re
-
 from enum import Enum
 
 from .common import PostProcessor
@@ -26,12 +25,17 @@ class MetadataParserPP(PostProcessor):
         '''
         if not isinstance(action, cls.Actions):
             raise ValueError(f'{action!r} is not a valid action')
-        getattr(cls, action.value)(cls, *data)
+        getattr(cls, action.value)(cls, *data)  # So this can raise error to validate
 
     @staticmethod
     def field_to_template(tmpl):
         if re.match(r'[a-zA-Z_]+$', tmpl):
             return f'%({tmpl})s'
+
+        from ..YoutubeDL import YoutubeDL
+        err = YoutubeDL.validate_outtmpl(tmpl)
+        if err:
+            raise err
         return tmpl
 
     @staticmethod

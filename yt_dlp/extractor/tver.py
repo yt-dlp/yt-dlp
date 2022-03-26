@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class TVerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?P<path>(?:corner|episode|feature)/(?P<id>f?\d+))'
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?P<path>corner|episode|feature|lp|tokyo2020/video)/(?P<id>[fc]?\d+)'
     # videos are only available for 7 days
     _TESTS = [{
         'url': 'https://tver.jp/corner/f0062178',
@@ -29,6 +29,15 @@ class TVerIE(InfoExtractor):
         # subtitle = ' '
         'url': 'https://tver.jp/corner/f0068870',
         'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/lp/f0009694',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/lp/c0000239',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/tokyo2020/video/6264525510001',
+        'only_matching': True,
     }]
     _TOKEN = None
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
@@ -39,9 +48,11 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         path, video_id = self._match_valid_url(url).groups()
-        api_response = self._download_json(
-            'https://api.tver.jp/v4/' + path, video_id,
-            query={'token': self._TOKEN})
+        if path == 'lp':
+            webpage = self._download_webpage(url, video_id)
+            redirect_path = self._search_regex(r'to_href="([^"]+)', webpage, 'redirect path')
+            path, video_id = self._match_valid_url(f'https://tver.jp{redirect_path}').groups()
+        api_response = self._download_json(f'https://api.tver.jp/v4/{path}/{video_id}', video_id, query={'token': self._TOKEN})
         p_id = traverse_obj(api_response, ('main', 'publisher_id'))
         if not p_id:
             error_msg, expected = traverse_obj(api_response, ('episode', 0, 'textbar', 0, ('text', 'longer')), get_all=False), True

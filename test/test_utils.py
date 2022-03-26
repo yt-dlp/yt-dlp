@@ -1133,7 +1133,7 @@ class TestUtil(unittest.TestCase):
 
     def test_clean_html(self):
         self.assertEqual(clean_html('a:\nb'), 'a: b')
-        self.assertEqual(clean_html('a:\n   "b"'), 'a:    "b"')
+        self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
 
     def test_intlist_to_bytes(self):
@@ -1780,6 +1780,7 @@ Line 1
         self.assertEqual(format_bytes(1024**6), '1.00EiB')
         self.assertEqual(format_bytes(1024**7), '1.00ZiB')
         self.assertEqual(format_bytes(1024**8), '1.00YiB')
+        self.assertEqual(format_bytes(1024**9), '1024.00YiB')
 
     def test_hide_login_info(self):
         self.assertEqual(Config.hide_login_info(['-u', 'foo', '-p', 'bar']),

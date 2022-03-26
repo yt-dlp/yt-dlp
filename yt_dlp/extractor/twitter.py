@@ -90,6 +90,9 @@ class TwitterBaseIE(InfoExtractor):
         headers = {
             'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
         }
+        token = self._get_cookies(self._API_BASE).get('ct0')
+        if token:
+            headers['x-csrf-token'] = token.value
         if not self._GUEST_TOKEN:
             self._GUEST_TOKEN = self._download_json(
                 self._API_BASE + 'guest/activate.json', video_id,

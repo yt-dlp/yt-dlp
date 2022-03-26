@@ -15,7 +15,8 @@ class AZMedienIE(InfoExtractor):
                         (?P<host>
                             telezueri\.ch|
                             telebaern\.tv|
-                            telem1\.ch
+                            telem1\.ch|
+                            tvo-online\.ch
                         )/
                         [^/]+/
                         (?P<id>

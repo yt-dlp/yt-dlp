@@ -25,14 +25,7 @@ class SafariBaseIE(InfoExtractor):
 
     LOGGED_IN = False
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         _, urlh = self._download_webpage_handle(
             'https://learning.oreilly.com/accounts/login-check/', None,
             'Downloading login page')

@@ -6,7 +6,8 @@ import re
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    int_or_none
+    int_or_none,
+    str_to_int
 )
 
 
@@ -179,8 +180,7 @@ class RUTVIE(InfoExtractor):
                         'player_url': 'http://player.rutv.ru/flash3v/osmf.swf?i=22',
                         'rtmp_live': True,
                         'ext': 'flv',
-                        'vbr': int(quality),
-                        'quality': preference,
+                        'vbr': str_to_int(quality),
                     }
                 elif transport == 'm3u8':
                     formats.extend(self._extract_m3u8_formats(
@@ -191,9 +191,10 @@ class RUTVIE(InfoExtractor):
                         'url': url
                     }
                 fmt.update({
-                    'width': width,
-                    'height': height,
+                    'width': int_or_none(quality, default=height, invscale=width, scale=height),
+                    'height': int_or_none(quality, default=height),
                     'format_id': '%s-%s' % (transport, quality),
+                    'source_preference': preference,
                 })
                 formats.append(fmt)
 
