@@ -29,6 +29,14 @@ class CraftsyIE(InfoExtractor):
             'description': 'md5:8270d0ef5427d3c895a27351aeaac276',
         },
         'playlist_mincount': 1,
+    }, {
+        'url': 'https://www.craftsy.com/class/all-access-estes-park-wool-market/',
+        'info_dict': {
+            'id': 'all-access-estes-park-wool-market',
+            'title': 'All Access: Estes Park Wool Market',
+            'description': 'md5:aded1bd8d38ae2fae4dae936c0ae01e7',
+        },
+        'playlist_count': 6,
     }]
 
     def _real_extract(self, url):
@@ -44,6 +52,8 @@ class CraftsyIE(InfoExtractor):
         class_title = video_data.get('class_title')
         description = self._html_search_meta(['og:description', 'description'], webpage, default=None)
 
+        is_free = video_data.get('is_free')
+        user_has_access = video_data.get('user_has_access')
         class_preview = traverse_obj(video_data, ('video_player', 'class_preview'))
         entries = []
         if class_preview:
@@ -51,7 +61,8 @@ class CraftsyIE(InfoExtractor):
             title = class_preview.get('title')
             url = f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={video_id}'
             entries.append(self.url_result(url, 'BrightcoveNew', video_id, title))
-        else:
+
+        if is_free or user_has_access:
             lessons = video_data.get('lessons')
             for lesson in lessons:
                 video_id = lesson.get('video_id')
