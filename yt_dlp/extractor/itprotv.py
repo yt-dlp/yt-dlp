@@ -81,8 +81,6 @@ class ITProTVIE(InfoExtractor):
             raise self.raise_login_required()
 
     def _real_extract(self, url):
-        QUALITIES = qualities(['low', 'medium', 'high', 'veryhigh'])
-
         episode_id = self._match_id(url)
         webpage = self._download_webpage(url, episode_id)
         self._check_if_logged_in(webpage)
