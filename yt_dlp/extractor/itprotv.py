@@ -6,13 +6,43 @@ from .common import InfoExtractor
 
 from ..utils import (
     int_or_none,
-    qualities,
     traverse_obj,
     urljoin
 )
 
 
-class ITProTVIE(InfoExtractor):
+class ITProTVBaseIE(InfoExtractor):
+    def _get_course_api_json(self, webpage, course_name):
+        jwt = self._fetch_jwt(webpage)
+
+        if jwt:
+            headers = {'Authorization': f'Bearer {jwt}'}
+            course_api = self._download_json(
+                f'https://api.itpro.tv/api/urza/v3/consumer-web/course?url={course_name}&brand=00002560-0000-3fa9-0000-1d61000035f3',
+                course_name, headers=headers, note='Fetching data from course API')
+
+            return course_api
+
+    def _get_episode_api_json(self, webpage, episode_id):
+        jwt = self._fetch_jwt(webpage)
+
+        if jwt:
+            headers = {'Authorization': f'Bearer {jwt}'}
+            episode_api = self._download_json(
+                f'https://api.itpro.tv/api/urza/v3/consumer-web/brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={episode_id}',
+                episode_id, headers=headers, note='Fetching data from episode API')
+
+            return episode_api
+
+    def _fetch_jwt(self, webpage):
+        return self._search_regex(r'{"passedToken":"([\w-]+\.[\w-]+\.[\w-]+)",', webpage, 'jwt')
+
+    def _check_if_logged_in(self, webpage):
+        if re.match(r'{\s*member\s*:\s*null', webpage):
+            raise self.raise_login_required()
+
+
+class ITProTVIE(ITProTVBaseIE):
     _VALID_URL = r'https://app.itpro.tv/course/([\w-]+)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.itpro.tv/course/guided-tour/introductionitprotv',
@@ -50,35 +80,6 @@ class ITProTVIE(InfoExtractor):
             'chapter_id': '5f7c78d424330c000edf04d9'
         },
     }]
-
-    def _get_course_api_json(self, webpage, course_name):
-        jwt = self._fetch_jwt(webpage)
-
-        if jwt:
-            headers = {'Authorization': f'Bearer {jwt}'}
-            course_api = self._download_json(
-                f'https://api.itpro.tv/api/urza/v3/consumer-web/course?url={course_name}&brand=00002560-0000-3fa9-0000-1d61000035f3',
-                course_name, headers=headers, note='Fetching data from course API')
-
-        return course_api
-
-    def _get_episode_api_json(self, webpage, episode_id):
-        jwt = self._fetch_jwt(webpage)
-
-        if jwt:
-            headers = {'Authorization': f'Bearer {jwt}'}
-            episode_api = self._download_json(
-                f'https://api.itpro.tv/api/urza/v3/consumer-web/brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={episode_id}',
-                episode_id, headers=headers, note='Fetching data from episode API')
-
-            return episode_api
-
-    def _fetch_jwt(self, webpage):
-        return self._search_regex(r'{"passedToken":"([\w-]+\.[\w-]+\.[\w-]+)",', webpage, 'jwt')
-
-    def _check_if_logged_in(self, webpage):
-        if re.match(r'{\s*member\s*:\s*null', webpage):
-            raise self.raise_login_required()
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
@@ -120,7 +121,7 @@ class ITProTVIE(InfoExtractor):
         }
 
 
-class ITProTVCourseIE(ITProTVIE):
+class ITProTVCourseIE(ITProTVBaseIE):
     _VALID_URL = r'https?://app.itpro.tv/course/(?P<id>[\w-]+)/?(?:$|[#?])'
     _TESTS = [
         {
@@ -150,7 +151,7 @@ class ITProTVCourseIE(ITProTVIE):
         course = self._get_course_api_json(webpage, course_id)['course']
 
         entries = [self.url_result(
-            urljoin(url, f"{course_id}/{episode['url']}"),ie='ITProTV',video_id=episode['url'],title=episode.get('title'), url_transparent=True)
+            urljoin(url, f"{course_id}/{episode['url']}"), ie='ITProTV', video_id=episode['url'], title=episode.get('title'), url_transparent=True)
             for episode in course['episodes']]
 
         return self.playlist_result(
