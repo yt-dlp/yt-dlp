@@ -505,7 +505,7 @@ class RokfinSearchIE(SearchInfoExtractor):
                 search_engine_access_key = self._search_regex(
                     r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)"', js_content,
                     name='Search engine access key', default=None, fatal=False, group='key')
-                search_engine_access_key = ('Bearer ' + search_engine_access_key) if search_engine_access_key else None
+                search_engine_access_key = f'Bearer {search_engine_access_key}' if search_engine_access_key else None
             if search_engine_access_url and search_engine_access_key:
                 self._downloader.cache.store(self._CACHE_SECTION_NAME, 'url', search_engine_access_url)
                 self._downloader.cache.store(self._CACHE_SECTION_NAME, 'key', search_engine_access_key)
