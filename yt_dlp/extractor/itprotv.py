@@ -91,11 +91,9 @@ class ITProTVIE(ITProTVBaseIE):
 
         episode = self._get_episode_api_json(webpage, episode_id)['episode']
 
-        for i in range(len(course.get('topics'))):
-            if traverse_obj(course, ('topics', i, 'id'), expected_type=str) == episode.get('topic'):
-                chapter_name = traverse_obj(course, ('topics', i, 'title'), expected_type=str)
-                chapter_id = traverse_obj(course, ('topics', i, 'id'), expected_type=str)
-                chapter_number = i + 1
+        chapter_number, chapter = next((
+            (i, topic) for i, topic in enumerate(course.get('topics') or [], 1)
+            if traverse_obj(topic, 'id') == episode.get('topic')), {})
 
         return {
             'id': episode_id,
