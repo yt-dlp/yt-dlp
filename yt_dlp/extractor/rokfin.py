@@ -454,7 +454,6 @@ class RokfinSearchIE(SearchInfoExtractor):
                 video_id_ind, video_type = self._TYPES.get(traverse_obj(search_result, ('content_type', 'raw')), (None, None))
                 video_id = traverse_obj(search_result, video_id_ind, expected_type=int_or_none)
                 if not video_id or not video_type:
-                    self.write_debug(msg=f'skipping {search_result}')
                     continue
                 yield self.url_result(url=f'{self._BASE_URL}/{video_type}/{video_id}')
         if not query:
