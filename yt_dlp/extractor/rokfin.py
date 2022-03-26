@@ -509,4 +509,4 @@ class RokfinSearchIE(SearchInfoExtractor):
             if search_engine_access_url and search_engine_access_key:
                 self._downloader.cache.store(self._CACHE_SECTION_NAME, 'url', search_engine_access_url)
                 self._downloader.cache.store(self._CACHE_SECTION_NAME, 'key', search_engine_access_key)
-                return (search_engine_access_url, search_engine_access_key)
+                return search_engine_access_url, search_engine_access_key
