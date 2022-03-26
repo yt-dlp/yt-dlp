@@ -7,7 +7,8 @@ from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     qualities,
-    traverse_obj
+    traverse_obj,
+    urljoin
 )
 
 
@@ -29,9 +30,6 @@ class ITProTVIE(InfoExtractor):
             'chapter': 'ITProTV 101',
             'chapter_number': 1,
             'chapter_id': '5dbb3de426b46c0010b5d1b6'
-        },
-        'params': {
-            'skip_download': True,
         },
     },
         {
@@ -89,7 +87,7 @@ class ITProTVIE(InfoExtractor):
         webpage = self._download_webpage(url, episode_id)
         self._check_if_logged_in(webpage)
 
-        course_name = re.match(r'https?://.*/course/(?P<course_name>[0-9a-z-]+)/.*', url).group(1)
+        course_name = self._search_regex(r'https?://.+/course/(?P<course_name>[0-9a-z-]+)/.+', url, 'course_name')
         course = self._get_course_api_json(webpage, course_name)['course']
 
         episode = self._get_episode_api_json(webpage, episode_id)['episode']
@@ -164,7 +162,7 @@ class ITProTVCourseIE(ITProTVIE):
             entry = {
                 '_type': 'url_transparent',
                 'ie_key': 'ITProTV',
-                'url': url + '/' + episode['url'],
+                'url': urljoin(url, episode['url']),
                 'title': episode.get('title')
             }
             entries.append(entry)
