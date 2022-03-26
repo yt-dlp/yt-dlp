@@ -50,15 +50,13 @@ class ITProTVIE(InfoExtractor):
             'chapter_number': 2,
             'chapter_id': '5f7c78d424330c000edf04d9'
         },
-
-    }
-    ]
+    }]
 
     def _get_course_api_json(self, webpage, course_name):
         jwt = self._fetch_jwt(webpage)
 
         if jwt:
-            headers = {'Authorization': 'Bearer ' + jwt}
+            headers = {'Authorization': f'Bearer {jwt}'}
             course_api = self._download_json(
                 f'https://api.itpro.tv/api/urza/v3/consumer-web/course?url={course_name}&brand=00002560-0000-3fa9-0000-1d61000035f3',
                 course_name, headers=headers, note='Fetching data from course API')
@@ -80,8 +78,8 @@ class ITProTVIE(InfoExtractor):
         return self._search_regex(r'{"passedToken":"([A-Za-z0-9-_]*\.[A-Za-z0-9-_]*\.[A-Za-z0-9-_]+)",', webpage, 'jwt')
 
     def _check_if_logged_in(self, webpage):
-        if '{ member: null' in webpage:
-            raise self.raise_login_required(method='cookies')
+        if re.match(r'{\s*member\s*:\s*null', webpage):
+            raise self.raise_login_required()
 
     def _real_extract(self, url):
         QUALITIES = qualities(['low', 'medium', 'high', 'veryhigh'])
@@ -91,11 +89,9 @@ class ITProTVIE(InfoExtractor):
         self._check_if_logged_in(webpage)
 
         course_name = re.match(r'https?://.*/course/(?P<course_name>[0-9a-z-]+)/.*', url).group(1)
-        course_api = self._get_course_api_json(webpage, course_name)
-        course = course_api['course']
+        course = self._get_course_api_json(webpage, course_name)['course']
 
-        episode_api = self._get_episode_api_json(webpage, episode_id)
-        episode = episode_api['episode']
+        episode_api = self._get_episode_api_json(webpage, episode_id)['episode']
 
         for i in range(len(course.get('topics'))):
             if traverse_obj(course, ('topics', i, 'id'), expected_type=str) == episode.get('topic'):
@@ -105,16 +101,14 @@ class ITProTVIE(InfoExtractor):
 
         return {
             'id': episode_id,
-            'title': episode['title'],
+            'title': episode.get('title'),
             'description': episode.get('description'),
             'thumbnail': episode.get('thumbnail'),
             'formats': [
-                {'url': episode.get('jwVideo320Embed'), 'height': 320, 'quality': QUALITIES('low')},
-                {'url': episode.get('jwVideo480Embed'), 'height': 480, 'quality': QUALITIES('medium')},
-                {'url': episode.get('jwVideo720Embed'), 'height': 720, 'quality': QUALITIES('high')},
-                {'url': episode.get('jwVideo1080Embed'), 'height': 1080, 'quality': QUALITIES('veryhigh')}
+                {'url': episode[f'jwVideo{h}Embed'], 'height': h}
+                for h in (320, 480, 720, 1080) if episode.get(f'jwVideo{h}Embed')
             ],
-            'duration': episode.get('length'),
+            'duration': int_or_none(episode.get('length')),
             'series': course.get('name'),
             'series_id': course.get('url'),
             'availability': self._availability(
@@ -123,12 +117,14 @@ class ITProTVIE(InfoExtractor):
             'chapter': chapter_name,
             'chapter_number': chapter_number,
             'chapter_id': chapter_id,
-            'subtitles': {'en': [{'ext': 'vtt', 'data': episode.get('enCaptionData')}]}
+            'subtitles': {
+                'en': [{'ext': 'vtt', 'data': episode['enCaptionData']}]
+            } if episode.get('enCaptionData') else None,
         }
 
 
 class ITProTVCourseIE(ITProTVIE):
-    _VALID_URL = r'https?://app.itpro.tv/course/(?P<id>[0-9a-z-]+)/?'
+    _VALID_URL = r'https?://app.itpro.tv/course/(?P<id>[0-9a-z-]+)'
     _TESTS = [
         {
             'url': 'https://app.itpro.tv/course/guided-tour',
@@ -156,9 +152,7 @@ class ITProTVCourseIE(ITProTVIE):
         course_id = self._match_id(url)
         webpage = self._download_webpage(url, course_id)
         self._check_if_logged_in(webpage)
-        course_api = self._get_course_api_json(webpage, course_id)
-
-        course = course_api['course']
+        course_api = self._get_course_api_json(webpage, course_id)['course']
 
         entries = []
         for episode in course['episodes']:
@@ -171,4 +165,4 @@ class ITProTVCourseIE(ITProTVIE):
             entries.append(entry)
 
         return self.playlist_result(
-            entries, playlist_id=course_id, playlist_title=course.get('name'), playlist_description=course.get('description'))
+            entries, course_id, course.get('name'), course.get('description'))
