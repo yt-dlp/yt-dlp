@@ -125,17 +125,6 @@ class AmazonTrailerIE(InfoExtractor):
             'description': 'md5:5cc470d189c0e62d782f700ad46d6015',
             'display_id': 'amzn1.dv.gti.e4b85f95-60b7-b172-232b-3a7f3ffd78c4',
         },
-    }, {
-        'url': 'https://www.amazon.com/dp/B07RK3CBNQ/',
-        'info_dict': {
-            'id': 'B07RK3CBNQ',
-            'title': 'Mission: Impossible - Fallout (4K UHD)',
-            'ext': 'mp4',
-            'duration': 148,
-            'description': 'md5:ee89d792fd3fafec8bc71afe94f6a495',
-            'display_id': 'amzn1.dv.gti.06b54b63-a783-11c2-6943-2237d7c49aad',
-        },
-        'only_matching': True,
     }]
 
     def _real_extract(self, url):
