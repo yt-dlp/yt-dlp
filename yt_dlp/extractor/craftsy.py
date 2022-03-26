@@ -13,7 +13,7 @@ from ..utils import (
 
 class CraftsyIE(InfoExtractor):
     _VALID_URL = r'https?://www.craftsy.com/class/(?P<id>[a-z0-9_-]+)/'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.craftsy.com/class/the-midnight-quilt-show-season-5/',
         'info_dict': {
             'id': 'the-midnight-quilt-show-season-5',
@@ -26,10 +26,10 @@ class CraftsyIE(InfoExtractor):
         'info_dict': {
             'id': 'sew-your-own-designer-handbag',
             'title': 'Sew Your Own Designer Handbag',
-            'description': 'md5:f6dd9ad2fb0bc2464a2cce8a812f3459',
+            'description': 'md5::8270d0ef5427d3c895a27351aeaac276',
         },
         'playlist_mincount': 1,
-    }
+    }]
 
     def _real_extract(self, url):
         video_name = self._match_id(url)
