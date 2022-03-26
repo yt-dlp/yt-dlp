@@ -163,9 +163,9 @@ class ZattooPlatformBaseIE(InfoExtractor):
             url = '%s/zapi/watch/vod/video' % self._host_url()
         else:
             url = '%s/zapi/v3/watch/replay/%s/%s' % (self._host_url(), cid, video_id)
-
         formats = []
-        for stream_type in ('dash', 'hls', 'hls5', 'hds'):
+        subtitles = {}
+        for stream_type in ('dash', 'hls7'):
             postdata = postdata_common.copy()
             postdata['stream_type'] = stream_type
 
@@ -190,13 +190,15 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 preference = 1 if audio_channel == 'A' else None
                 format_id = join_nonempty(stream_type, watch.get('maxrate'), audio_channel)
                 if stream_type in ('dash', 'dash_widevine', 'dash_playready'):
-                    this_formats = self._extract_mpd_formats(
+                    this_formats, subs = self._extract_mpd_formats_and_subtitles(
                         watch_url, video_id, mpd_id=format_id, fatal=False)
-                elif stream_type in ('hls', 'hls5', 'hls5_fairplay'):
-                    this_formats = self._extract_m3u8_formats(
+                    self._merge_subtitles(subs, target=subtitles)
+                elif stream_type in ('hls', 'hls5', 'hls7', 'hls5_fairplay'):
+                    this_formats, subs = self._extract_m3u8_formats_and_subtitles(
                         watch_url, video_id, 'mp4',
                         entry_protocol='m3u8_native', m3u8_id=format_id,
                         fatal=False)
+                    self._merge_subtitles(subs, target=subtitles)
                 elif stream_type == 'hds':
                     this_formats = self._extract_f4m_formats(
                         watch_url, video_id, f4m_id=format_id, fatal=False)
@@ -209,34 +211,37 @@ class ZattooPlatformBaseIE(InfoExtractor):
                     this_format['quality'] = preference
                 formats.extend(this_formats)
         self._sort_formats(formats)
-        return formats
+        return formats, subtitles
 
     def _extract_video(self, video_id, record_id=None):
         cid, info_dict = self._extract_cid_and_video_info(video_id)
-        info_dict['formats'] = self._extract_formats(cid, video_id, record_id=record_id)
+        info_dict['formats'], info_dict['subtitles'] = self._extract_formats(cid, video_id, record_id=record_id)
         return info_dict
 
     def _extract_live(self, channel_name):
         cid = self._extract_cid(channel_name, channel_name)
+        formats, subtitles = self._extract_formats(cid, cid, is_live=True)
         return {
             'id': channel_name,
             'title': channel_name,
             'is_live': True,
-            'format': self._extract_formats(cid, cid, is_live=True),
+            'format': formats,
+            'subtitles': subtitles
         }
 
     def _extract_record(self, record_id):
         video_id = self._extract_video_id_from_recording(record_id)
         cid, info_dict = self._extract_cid_and_video_info(video_id)
-        info_dict['formats'] = self._extract_formats(cid, video_id, record_id=record_id)
+        info_dict['formats'], info_dict['subtitles'] = self._extract_formats(cid, video_id, record_id=record_id)
         return info_dict
 
     def _extract_ondemand(self, ondemand_id):
         ondemand_termtoken, ondemand_type, info_dict = self._extract_ondemand_info(ondemand_id)
-        formats = self._extract_formats(
+        formats, subtitles = self._extract_formats(
             None, ondemand_id, ondemand_id=ondemand_id,
             ondemand_termtoken=ondemand_termtoken, ondemand_type=ondemand_type)
         info_dict['formats'] = formats
+        info_dict['subtitles'] = subtitles
         return info_dict
 
 
@@ -283,25 +288,34 @@ def _make_valid_url(tmpl, host):
 
 
 class ZattooIE(ZattooBaseIE):
-    _VALID_URL_TEMPLATE = r'''(?x)
-                            https?://(?:www\.)?%s/
-                            (?:
-                                (?:
-                                    vod/movies/([A-Za-z0-9]+)|
-                                    (?:program|watch)/([^/]+)/(\d+)|
-                                    live/([^/]+)
-                                )|
-                                (?:
-                                    .+\?recording=([0-9]+)|
-                                    .+\?movie_id=([A-Za-z0-9]+)|
-                                    .+\?channel=([^&]+)(?:
-                                        &program=(\d+)
-                                    )?
-                                )
-                            )'''
-
-    _VALID_URL = _make_valid_url(_VALID_URL_TEMPLATE, ZattooBaseIE._HOST)
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?zattoo.com/(?:
+            (?:
+                vod/movies/([A-Za-z0-9]+)|
+                (?:program|watch)/([^/]+)/(\d+)|
+                live/([^/]+)
+            )|
+            [^?#]+\?(?:
+                recording=([0-9]+)|
+                movie_id=([A-Za-z0-9]+)|
+                channel=([^&]+)(?:&program=(\d+))?
+            )
+        )'''
     _TESTS = [{
+        'url': 'https://zattoo.com/program/zdf/250380873',
+        'info_dict': {
+            'id': '250380873',
+            'ext': 'mp4',
+            'title': 'heute-show',
+            'description': 'md5:413cf29b7a2f157455a4581aced7a3e9',
+            'thumbnail': 'md5:62e70eb5cc3a2e203773b43be051196d',
+            'creator': 'ZDF HD',
+            'release_year': 2022,
+            'episode': 'Folge 407',
+            'categories': ['Séries'],
+            'tags': ['Comédie']
+        },
+    }, {
         'url': 'https://zattoo.com/channels/german?channel=srf_zwei',
         'only_matching': True,
     }, {
@@ -340,6 +354,7 @@ class ZattooIE(ZattooBaseIE):
             if program_id:
                 return self._extract_video(program_id)
             return self._extract_live(channel_id)
+        raise ExtractorError('An extractor error has occured.')
 
 
 class ZattooOldIE(ZattooBaseIE):
