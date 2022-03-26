@@ -195,9 +195,7 @@ class VGTVIE(XstreamIE):
         hls_url = streams.get('hls')
         if hls_url:
             formats.extend(self._extract_m3u8_formats(
-                hls_url, video_id, 'mp4',
-                entry_protocol='m3u8' if is_live else 'm3u8_native',
-                m3u8_id='hls', fatal=False))
+                hls_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
 
         hds_url = streams.get('hds')
         if hds_url:

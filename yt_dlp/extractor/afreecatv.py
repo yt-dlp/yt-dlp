@@ -32,7 +32,7 @@ class AfreecaTVIE(InfoExtractor):
                                 /app/(?:index|read_ucc_bbs)\.cgi|
                                 /player/[Pp]layer\.(?:swf|html)
                             )\?.*?\bnTitleNo=|
-                            vod\.afreecatv\.com/PLAYER/STATION/
+                            vod\.afreecatv\.com/(PLAYER/STATION|player)/
                         )
                         (?P<id>\d+)
                     '''
@@ -170,6 +170,9 @@ class AfreecaTVIE(InfoExtractor):
     }, {
         'url': 'http://vod.afreecatv.com/PLAYER/STATION/15055030',
         'only_matching': True,
+    }, {
+        'url': 'http://vod.afreecatv.com/player/15055030',
+        'only_matching': True,
     }]
 
     @staticmethod
@@ -181,14 +184,7 @@ class AfreecaTVIE(InfoExtractor):
             video_key['part'] = int(m.group('part'))
         return video_key
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_form = {
             'szWork': 'login',
             'szType': 'json',
@@ -416,26 +412,35 @@ class AfreecaTVLiveIE(AfreecaTVIE):
 
     def _real_extract(self, url):
         broadcaster_id, broadcast_no = self._match_valid_url(url).group('id', 'bno')
+        password = self.get_param('videopassword')
 
         info = self._download_json(self._LIVE_API_URL, broadcaster_id, fatal=False,
                                    data=urlencode_postdata({'bid': broadcaster_id})) or {}
         channel_info = info.get('CHANNEL') or {}
         broadcaster_id = channel_info.get('BJID') or broadcaster_id
         broadcast_no = channel_info.get('BNO') or broadcast_no
+        password_protected = channel_info.get('BPWD')
         if not broadcast_no:
             raise ExtractorError(f'Unable to extract broadcast number ({broadcaster_id} may not be live)', expected=True)
+        if password_protected == 'Y' and password is None:
+            raise ExtractorError(
+                'This livestream is protected by a password, use the --video-password option',
+                expected=True)
 
         formats = []
         quality_key = qualities(self._QUALITIES)
         for quality_str in self._QUALITIES:
+            params = {
+                'bno': broadcast_no,
+                'stream_type': 'common',
+                'type': 'aid',
+                'quality': quality_str,
+            }
+            if password is not None:
+                params['pwd'] = password
             aid_response = self._download_json(
                 self._LIVE_API_URL, broadcast_no, fatal=False,
-                data=urlencode_postdata({
-                    'bno': broadcast_no,
-                    'stream_type': 'common',
-                    'type': 'aid',
-                    'quality': quality_str,
-                }),
+                data=urlencode_postdata(params),
                 note=f'Downloading access token for {quality_str} stream',
                 errnote=f'Unable to download access token for {quality_str} stream')
             aid = traverse_obj(aid_response, ('CHANNEL', 'AID'))

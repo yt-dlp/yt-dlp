@@ -8,6 +8,7 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    compat_HTTPError,
     determine_ext,
     ExtractorError,
     int_or_none,
@@ -147,10 +148,14 @@ class NRKIE(NRKBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url).split('/')[-1]
 
-        path_templ = 'playback/%s/program/' + video_id
-
         def call_playback_api(item, query=None):
-            return self._call_api(path_templ % item, video_id, item, query=query)
+            try:
+                return self._call_api(f'playback/{item}/program/{video_id}', video_id, item, query=query)
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
+                    return self._call_api(f'playback/{item}/{video_id}', video_id, item, query=query)
+                raise
+
         # known values for preferredCdn: akamai, iponly, minicdn and telenor
         manifest = call_playback_api('manifest', {'preferredCdn': 'akamai'})
 

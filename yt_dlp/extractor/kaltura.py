@@ -301,6 +301,7 @@ class KalturaIE(InfoExtractor):
             data_url = re.sub(r'/flvclipper/.*', '/serveFlavor', data_url)
 
         formats = []
+        subtitles = {}
         for f in flavor_assets:
             # Continue if asset is not ready
             if f.get('status') != 2:
@@ -344,13 +345,14 @@ class KalturaIE(InfoExtractor):
         if '/playManifest/' in data_url:
             m3u8_url = sign_url(data_url.replace(
                 'format/url', 'format/applehttp'))
-            formats.extend(self._extract_m3u8_formats(
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, entry_id, 'mp4', 'm3u8_native',
-                m3u8_id='hls', fatal=False))
+                m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         self._sort_formats(formats)
 
-        subtitles = {}
         if captions:
             for caption in captions.get('objects', []):
                 # Continue if caption is not ready

@@ -241,9 +241,6 @@ class IqiyiIE(InfoExtractor):
         '18': 7,    # 1080p
     }
 
-    def _real_initialize(self):
-        self._login()
-
     @staticmethod
     def _rsa_fun(data):
         # public key extracted from http://static.iqiyi.com/js/qiyiV2/20160129180840/jobs/i18n/i18nIndex.js
@@ -252,12 +249,7 @@ class IqiyiIE(InfoExtractor):
 
         return ohdave_rsa_encrypt(data, e, N)
 
-    def _login(self):
-        username, password = self._get_login_info()
-
-        # No authentication to be performed
-        if not username:
-            return True
+    def _perform_login(self, username, password):
 
         data = self._download_json(
             'http://kylin.iqiyi.com/get_token', None,
@@ -621,7 +613,7 @@ class IqIE(InfoExtractor):
         preview_time = traverse_obj(
             initial_format_data, ('boss_ts', (None, 'data'), ('previewTime', 'rtime')), expected_type=float_or_none, get_all=False)
         if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
-            self.report_warning('This preview video is limited%s' % format_field(preview_time, template='to %s seconds'))
+            self.report_warning('This preview video is limited%s' % format_field(preview_time, template=' to %s seconds'))
 
         # TODO: Extract audio-only formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):

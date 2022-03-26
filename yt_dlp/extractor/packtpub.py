@@ -47,10 +47,7 @@ class PacktPubIE(PacktPubBaseIE):
     _NETRC_MACHINE = 'packtpub'
     _TOKEN = None
 
-    def _real_initialize(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _perform_login(self, username, password):
         try:
             self._TOKEN = self._download_json(
                 'https://services.packtpub.com/auth-v1/users/tokens', None,

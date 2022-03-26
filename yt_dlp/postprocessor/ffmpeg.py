@@ -384,12 +384,10 @@ class FFmpegPostProcessor(PostProcessor):
 
         out_flags = list(self.stream_copy_opts(ext=determine_ext(out_file)))
 
-        try:
-            self.real_run_ffmpeg(
-                [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
-                [(out_file, out_flags)])
-        finally:
-            os.remove(concat_file)
+        self.real_run_ffmpeg(
+            [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
+            [(out_file, out_flags)])
+        os.remove(concat_file)
 
     @classmethod
     def _concat_spec(cls, in_files, concat_opts=None):
@@ -406,7 +404,7 @@ class FFmpegPostProcessor(PostProcessor):
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
     COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
-    SUPPORTED_EXTS = ('best', 'aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav', 'alac')
+    SUPPORTED_EXTS = ('aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav', 'alac')
 
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
@@ -539,7 +537,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mp3', 'mka', 'm4a', 'ogg', 'opus')
+    SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mka', 'ogg', *FFmpegExtractAudioPP.SUPPORTED_EXTS)
     FORMAT_RE = re.compile(r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(SUPPORTED_EXTS)))
     _ACTION = 'converting'
 
@@ -1057,7 +1055,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
-    SUPPORTED_EXTS = ('jpg', 'png')
+    SUPPORTED_EXTS = ('jpg', 'png', 'webp')
 
     def __init__(self, downloader=None, format=None):
         super(FFmpegThumbnailsConvertorPP, self).__init__(downloader)
@@ -1147,22 +1145,20 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         super().concat_files(in_files, out_file)
         return in_files
 
-    @PostProcessor._restrict_to(images=False)
+    @PostProcessor._restrict_to(images=False, simulated=False)
     def run(self, info):
-        if not info.get('entries') or self._only_multi_video and info['_type'] != 'multi_video':
+        entries = info.get('entries') or []
+        if not any(entries) or (self._only_multi_video and info['_type'] != 'multi_video'):
             return [], info
-        elif None in info['entries']:
-            raise PostProcessingError('Aborting concatenation because some downloads failed')
-        elif any(len(entry) > 1 for entry in traverse_obj(info, ('entries', ..., 'requested_downloads')) or []):
+        elif any(len(entry) > 1 for entry in traverse_obj(entries, (..., 'requested_downloads')) or []):
             raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
 
-        in_files = traverse_obj(info, ('entries', ..., 'requested_downloads', 0, 'filepath'))
-        if not in_files:
-            self.to_screen('There are no files to concatenate')
-            return [], info
+        in_files = traverse_obj(entries, (..., 'requested_downloads', 0, 'filepath')) or []
+        if len(in_files) < len(entries):
+            raise PostProcessingError('Aborting concatenation because some downloads failed')
 
         ie_copy = self._downloader._playlist_infodict(info)
-        exts = [traverse_obj(entry, ('requested_downloads', 0, 'ext'), 'ext') for entry in info['entries']]
+        exts = traverse_obj(entries, (..., 'requested_downloads', 0, 'ext'), (..., 'ext'))
         ie_copy['ext'] = exts[0] if len(set(exts)) == 1 else 'mkv'
         out_file = self._downloader.prepare_filename(ie_copy, 'pl_video')
 

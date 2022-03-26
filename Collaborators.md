@@ -29,6 +29,7 @@ You can also find lists of all [contributors of yt-dlp](CONTRIBUTORS) and [autho
 
 * YouTube improvements including: age-gate bypass, private playlists, multiple-clients (to avoid throttling) and a lot of under-the-hood improvements
 * Added support for downloading YoutubeWebArchive videos
+* Added support for new websites MainStreaming, PRX, nzherald, etc
 
 
 

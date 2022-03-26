@@ -25,7 +25,8 @@ body:
         Ask your question in an arbitrary form.
         Please make sure it's worded well enough to be understood, see [is-the-description-of-the-issue-itself-sufficient](https://github.com/ytdl-org/youtube-dl#is-the-description-of-the-issue-itself-sufficient).
         Provide any additional information and as much context and examples as possible.
-        If your question contains "isn't working" or "can you add", this is most likely the wrong template
+        If your question contains "isn't working" or "can you add", this is most likely the wrong template.
+        If you are in doubt if this is the right template, use another template!
       placeholder: WRITE QUESTION HERE
     validations:
       required: true
