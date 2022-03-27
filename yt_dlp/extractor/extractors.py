@@ -678,6 +678,12 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
+
+from .itprotv import (
+    ITProTVIE,
+    ITProTVCourseIE
+)
+
 from .itv import (
     ITVIE,
     ITVBTCCIE,
