@@ -245,39 +245,6 @@ class ZattooPlatformBaseIE(InfoExtractor):
         return info_dict
 
 
-class QuicklineBaseIE(ZattooPlatformBaseIE):
-    _NETRC_MACHINE = 'quickline'
-    _HOST = 'mobiltv.quickline.com'
-
-
-class QuicklineIE(QuicklineBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?%s/watch/[^/]+/(?P<id>[0-9]+)' % re.escape(QuicklineBaseIE._HOST)
-
-    _TEST = {
-        'url': 'https://mobiltv.quickline.com/watch/prosieben/130671867-maze-runner-die-auserwaehlten-in-der-brandwueste',
-        'only_matching': True,
-    }
-
-    def _real_extract(self, url):
-        return self._extract_video(self._match_id(url))
-
-
-class QuicklineLiveIE(QuicklineBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?%s/watch/(?P<id>[^/]+)' % re.escape(QuicklineBaseIE._HOST)
-
-    _TEST = {
-        'url': 'https://mobiltv.quickline.com/watch/srf1',
-        'only_matching': True,
-    }
-
-    @classmethod
-    def suitable(cls, url):
-        return False if QuicklineIE.suitable(url) else super(QuicklineLiveIE, cls).suitable(url)
-
-    def _real_extract(self, url):
-        return self._extract_live(self._match_id(url))
-
-
 class ZattooBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'zattoo'
     _HOST = 'zattoo.com'
@@ -447,18 +414,6 @@ class VTXTVIE(ZattooOldIE):
 
     _TESTS = [{
         'url': 'https://www.vtxtv.ch/watch/abc/123-abc',
-        'only_matching': True,
-    }]
-
-
-class MyVisionTVIE(ZattooOldIE):
-    _NETRC_MACHINE = 'myvisiontv'
-    _HOST = 'myvisiontv.ch'
-    _API_HOST = 'www.%s' % _HOST
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
-
-    _TESTS = [{
-        'url': 'https://www.myvisiontv.ch/watch/abc/123-abc',
         'only_matching': True,
     }]
 
