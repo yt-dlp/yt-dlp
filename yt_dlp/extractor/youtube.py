@@ -821,7 +821,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
             renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'), expected_type=str))
         url = f'https://www.youtube.com/watch?v={video_id}'
-        if overlay_style == 'SHORTS' or '/shorts/' in navigation_url:
+        if overlay_style == 'SHORTS' or (navigation_url and '/shorts/' in navigation_url):
             url = f'https://www.youtube.com/shorts/{video_id}'
 
         return {
