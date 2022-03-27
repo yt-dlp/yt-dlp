@@ -12,27 +12,16 @@ from ..utils import (
 
 
 class ITProTVBaseIE(InfoExtractor):
-    def _get_course_api_json(self, webpage, course_name):
-        jwt = self._fetch_jwt(webpage)
+    _ENDPOINTS = {
+        'course': 'course?url={}&brand=00002560-0000-3fa9-0000-1d61000035f3',
+        'episode': 'brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={}'
+    }
 
-        if jwt:
-            headers = {'Authorization': f'Bearer {jwt}'}
-            course_api = self._download_json(
-                f'https://api.itpro.tv/api/urza/v3/consumer-web/course?url={course_name}&brand=00002560-0000-3fa9-0000-1d61000035f3',
-                course_name, headers=headers, note='Fetching data from course API')
-
-            return course_api
-
-    def _get_episode_api_json(self, webpage, episode_id):
-        jwt = self._fetch_jwt(webpage)
-
-        if jwt:
-            headers = {'Authorization': f'Bearer {jwt}'}
-            episode_api = self._download_json(
-                f'https://api.itpro.tv/api/urza/v3/consumer-web/brand/00002560-0000-3fa9-0000-1d61000035f3/episode?url={episode_id}',
-                episode_id, headers=headers, note='Fetching data from episode API')
-
-            return episode_api
+    def _call_api(self, ep, item_id, webpage):
+        return self._download_json(
+                f'https://api.itpro.tv/api/urza/v3/consumer-web/{self._ENDPOINTS[ep].format(item_id)}',
+                item_id, note=f'Fetching {ep} data API',
+                headers={'Authorization': f'Bearer {self._fetch_jwt(webpage)}'})[ep]
 
     def _fetch_jwt(self, webpage):
         return self._search_regex(r'{"passedToken":"([\w-]+\.[\w-]+\.[\w-]+)",', webpage, 'jwt')
@@ -43,7 +32,7 @@ class ITProTVBaseIE(InfoExtractor):
 
 
 class ITProTVIE(ITProTVBaseIE):
-    _VALID_URL = r'https://app.itpro.tv/course/([\w-]+)/(?P<id>[\w-]+)'
+    _VALID_URL = r'https://app.itpro.tv/course/(?P<course>[\w-]+)/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://app.itpro.tv/course/guided-tour/introductionitprotv',
         'md5': 'bca4a28c2667fd1a63052e71a94bb88c',
@@ -82,11 +71,9 @@ class ITProTVIE(ITProTVBaseIE):
     }]
 
     def _real_extract(self, url):
-        episode_id = self._match_id(url)
+        episode_id, course_name = self._match_valid_url(url).group('id', 'course')
         webpage = self._download_webpage(url, episode_id)
         self._check_if_logged_in(webpage)
-
-        course_name = self._search_regex(r'https?://.+/course/(?P<course_name>[\w-]+)/[\w-]+', url, 'course_name')
         course = self._get_course_api_json(webpage, course_name)['course']
 
         episode = self._get_episode_api_json(webpage, episode_id)['episode']
@@ -149,7 +136,8 @@ class ITProTVCourseIE(ITProTVBaseIE):
         course = self._get_course_api_json(webpage, course_id)['course']
 
         entries = [self.url_result(
-            urljoin(url, f"{course_id}/{episode['url']}"), ie='ITProTV', video_id=episode['url'], title=episode.get('title'), url_transparent=True)
+            urljoin(url, f'{course_id}/{episode["url"]}'), ITProTVIE,
+            episode['url'], episode.get('title'), url_transparent=True)
             for episode in course['episodes']]
 
         return self.playlist_result(
