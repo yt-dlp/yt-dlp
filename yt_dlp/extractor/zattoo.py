@@ -279,8 +279,8 @@ class ZattooIE(ZattooBaseIE):
             'creator': 'ZDF HD',
             'release_year': 2022,
             'episode': 'Folge 407',
-            'categories': ['Séries'],
-            'tags': ['Comédie']
+            'categories': 'count:1',
+            'tags': 'count:1'
         },
         'params': {'skip_download': 'm3u8'}
     }, {
