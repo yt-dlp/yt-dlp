@@ -3023,7 +3023,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
 
         for fmt in streaming_formats:
-            if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
+            if fmt.get('targetDurationSec'):
                 continue
 
             itag = str_or_none(fmt.get('itag'))
@@ -3105,6 +3105,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'fps': int_or_none(fmt.get('fps')) or None,
                 'height': height,
                 'quality': q(quality),
+                'has_drm': bool(fmt.get('drmFamilies')),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
