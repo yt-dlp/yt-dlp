@@ -810,7 +810,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if duration is None:
             duration = parse_duration(self._search_regex(
                 r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
-                traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label')),
+                traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
                 video_id, default=None, group='duration'))
 
         view_count = self._get_count(renderer, 'viewCountText')
