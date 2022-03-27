@@ -2459,6 +2459,11 @@ class YoutubeDL(object):
         info_dict['__has_drm'] = any(f.get('has_drm') for f in formats)
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
+            if info_dict['__has_drm'] and all(
+                    f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
+                self.report_warning(
+                    'This video is DRM protected and only images are available for download. '
+                    'Use --list-formats to see them')
 
         get_from_start = not info_dict.get('is_live') or bool(self.params.get('live_from_start'))
         if not get_from_start:
@@ -2631,8 +2636,9 @@ class YoutubeDL(object):
 
         if not formats_to_download:
             if not self.params.get('ignore_no_formats_error'):
-                raise ExtractorError('Requested format is not available', expected=True,
-                                     video_id=info_dict['id'], ie=info_dict['extractor'])
+                raise ExtractorError(
+                    'Requested format is not available. Use --list-formats for a list of available formats',
+                    expected=True, video_id=info_dict['id'], ie=info_dict['extractor'])
             self.report_warning('Requested format is not available')
             # Process what we can, even without any available formats.
             formats_to_download = [{}]
