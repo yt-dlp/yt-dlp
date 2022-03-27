@@ -160,10 +160,12 @@ class TestUtil(unittest.TestCase):
             sanitize_filename('New World record at 0:12:34'),
             'New World record at 0_12_34')
 
-        self.assertEqual(sanitize_filename('--gasdgf'), '_-gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf'), '--gasdgf')
         self.assertEqual(sanitize_filename('--gasdgf', is_id=True), '--gasdgf')
-        self.assertEqual(sanitize_filename('.gasdgf'), 'gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf', is_id=False), '_-gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf'), '.gasdgf')
         self.assertEqual(sanitize_filename('.gasdgf', is_id=True), '.gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf', is_id=False), 'gasdgf')
 
         forbidden = '"\0\\/'
         for fc in forbidden:

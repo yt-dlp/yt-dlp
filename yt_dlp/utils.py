@@ -705,36 +705,40 @@ def timeconvert(timestr):
     return timestamp
 
 
-def sanitize_filename(s, restricted=False, is_id=False):
+def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     """Sanitizes a string so it could be used as part of a filename.
-    If restricted is set, use a stricter subset of allowed characters.
-    Set is_id if this is not an arbitrary string, but an ID that should be kept
-    if possible.
+    @param restricted   Use a stricter subset of allowed characters
+    @param is_id        Whether this is an ID that should be kept unchanged if possible.
+                        If unset, yt-dlp's new sanitization rules are in effect
     """
+    if s == '':
+        return ''
+
     def replace_insane(char):
         if restricted and char in ACCENT_CHARS:
             return ACCENT_CHARS[char]
         elif not restricted and char == '\n':
-            return ' '
+            return '\0 '
         elif char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
         elif char == '"':
             return '' if restricted else '\''
         elif char == ':':
-            return '_-' if restricted else ' -'
+            return '\0_\0-' if restricted else '\0 \0-'
         elif char in '\\/|*<>':
-            return '_'
-        if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace()):
-            return '_'
-        if restricted and ord(char) > 127:
-            return '_'
+            return '\0_'
+        if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace() or ord(char) > 127):
+            return '\0_'
         return char
 
-    if s == '':
-        return ''
-    # Handle timestamps
-    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)
+    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
+    if is_id is NO_DEFAULT:
+        result = re.sub('(\0.)(?:(?=\\1)..)+', r'\1', result)  # Remove repeated substitute chars
+        STRIP_RE = '(?:\0.|[ _-])*'
+        result = re.sub(f'^\0.{STRIP_RE}|{STRIP_RE}\0.$', '', result)  # Remove substitute chars from start/end
+    result = result.replace('\0', '') or '_'
+
     if not is_id:
         while '__' in result:
             result = result.replace('__', '_')
