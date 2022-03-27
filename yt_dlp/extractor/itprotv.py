@@ -6,6 +6,7 @@ from .common import InfoExtractor
 
 from ..utils import (
     int_or_none,
+    str_or_none,
     traverse_obj,
     urljoin
 )
@@ -19,9 +20,9 @@ class ITProTVBaseIE(InfoExtractor):
 
     def _call_api(self, ep, item_id, webpage):
         return self._download_json(
-                f'https://api.itpro.tv/api/urza/v3/consumer-web/{self._ENDPOINTS[ep].format(item_id)}',
-                item_id, note=f'Fetching {ep} data API',
-                headers={'Authorization': f'Bearer {self._fetch_jwt(webpage)}'})[ep]
+            f'https://api.itpro.tv/api/urza/v3/consumer-web/{self._ENDPOINTS[ep].format(item_id)}',
+            item_id, note=f'Fetching {ep} data API',
+            headers={'Authorization': f'Bearer {self._fetch_jwt(webpage)}'})[ep]
 
     def _fetch_jwt(self, webpage):
         return self._search_regex(r'{"passedToken":"([\w-]+\.[\w-]+\.[\w-]+)",', webpage, 'jwt')
@@ -74,9 +75,8 @@ class ITProTVIE(ITProTVBaseIE):
         episode_id, course_name = self._match_valid_url(url).group('id', 'course')
         webpage = self._download_webpage(url, episode_id)
         self._check_if_logged_in(webpage)
-        course = self._get_course_api_json(webpage, course_name)['course']
-
-        episode = self._get_episode_api_json(webpage, episode_id)['episode']
+        course = self._call_api('course', course_name, webpage)
+        episode = self._call_api('episode', episode_id, webpage)
 
         chapter_number, chapter = next((
             (i, topic) for i, topic in enumerate(course.get('topics') or [], 1)
@@ -97,9 +97,9 @@ class ITProTVIE(ITProTVBaseIE):
             'availability': self._availability(
                 needs_premium=False, needs_subscription=False, needs_auth=True,
                 is_private=False, is_unlisted=False),
-            'chapter': chapter_name,
+            'chapter': str_or_none(chapter.get('title')),
             'chapter_number': chapter_number,
-            'chapter_id': chapter_id,
+            'chapter_id': str_or_none(chapter.get('id')),
             'subtitles': {
                 'en': [{'ext': 'vtt', 'data': episode['enCaptionData']}]
             } if episode.get('enCaptionData') else None,
@@ -133,7 +133,7 @@ class ITProTVCourseIE(ITProTVBaseIE):
         course_id = self._match_id(url)
         webpage = self._download_webpage(url, course_id)
         self._check_if_logged_in(webpage)
-        course = self._get_course_api_json(webpage, course_id)['course']
+        course = self._call_api('course', course_id, webpage)
 
         entries = [self.url_result(
             urljoin(url, f'{course_id}/{episode["url"]}'), ITProTVIE,
