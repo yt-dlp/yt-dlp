@@ -11,7 +11,7 @@ body:
       options:
         - label: I'm reporting a new site support request
           required: true
-        - label: I've verified that I'm running yt-dlp version **%(version)s**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
+        - label: I've verified that I'm running yt-dlp version **%(version)s** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true
         - label: I've checked that all provided URLs are alive and playable in a browser
           required: true

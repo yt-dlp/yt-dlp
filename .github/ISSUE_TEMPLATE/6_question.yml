@@ -35,7 +35,7 @@ body:
     attributes:
       label: Verbose log
       description: |
-        If your question involes a yt-dlp command, provide the complete verbose output of that command.
+        If your question involves a yt-dlp command, provide the complete verbose output of that command.
         Add the `-vU` flag to **your** command line you run yt-dlp with (`yt-dlp -vU <your command line>`), copy the WHOLE output and insert it below.
         It should look similar to this:
       placeholder: |

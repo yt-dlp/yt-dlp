@@ -1040,7 +1040,7 @@ def make_HTTPS_handler(params, **kwargs):
 
 
 def bug_reports_message(before=';'):
-    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
+    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , '
            'filling out the appropriate issue template. '
            'Confirm you are on the latest version using  yt-dlp -U')
 
@@ -2883,6 +2883,7 @@ class PagedList:
 
 
 class OnDemandPagedList(PagedList):
+    """Download pages until a page with less than maximum results"""
     def _getslice(self, start, end):
         for pagenum in itertools.count(start // self._pagesize):
             firstid = pagenum * self._pagesize
@@ -2922,6 +2923,7 @@ class OnDemandPagedList(PagedList):
 
 
 class InAdvancePagedList(PagedList):
+    """PagedList with total number of pages known in advance"""
     def __init__(self, pagefunc, pagecount, pagesize):
         PagedList.__init__(self, pagefunc, pagesize, True)
         self._pagecount = pagecount
@@ -3090,13 +3092,10 @@ def multipart_encode(data, boundary=None):
 
 
 def dict_get(d, key_or_keys, default=None, skip_false_values=True):
-    if isinstance(key_or_keys, (list, tuple)):
-        for key in key_or_keys:
-            if key not in d or d[key] is None or skip_false_values and not d[key]:
-                continue
-            return d[key]
-        return default
-    return d.get(key_or_keys, default)
+    for val in map(d.get, variadic(key_or_keys)):
+        if val is not None and (val or not skip_false_values):
+            return val
+    return default
 
 
 def try_call(*funcs, expected_type=None, args=[], kwargs={}):
@@ -3322,6 +3321,10 @@ def error_to_compat_str(err):
     if sys.version_info[0] < 3:
         err_str = err_str.decode(preferredencoding())
     return err_str
+
+
+def error_to_str(err):
+    return f'{type(err).__name__}: {err}'
 
 
 def mimetype2ext(mt):

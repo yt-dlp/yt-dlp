@@ -379,7 +379,7 @@ def validate_options(opts):
             'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
 
-    # --(post-processor/downloader)-args without name
+    # --(postprocessor/downloader)-args without name
     def report_args_compat(name, value, key1, key2=None):
         if key1 in value and key2 not in value:
             warnings.append(f'{name} arguments given without specifying name. The arguments will be given to all {name}s')

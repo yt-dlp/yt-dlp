@@ -264,7 +264,7 @@ class TikTokBaseIE(InfoExtractor):
         return {
             'id': aweme_id,
             'title': aweme_detail.get('desc'),
-            'description': aweme_detail['desc'],
+            'description': aweme_detail.get('desc'),
             'view_count': int_or_none(stats_info.get('play_count')),
             'like_count': int_or_none(stats_info.get('digg_count')),
             'repost_count': int_or_none(stats_info.get('share_count')),
@@ -387,6 +387,9 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'artist': 'Ysrbeats',
+            'album': 'Lehanga',
+            'track': 'Lehanga',
         }
     }, {
         'url': 'https://www.tiktok.com/@patroxofficial/video/6742501081818877190?langCountry=en',
@@ -410,6 +413,8 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
+            'artist': 'Evan Todd, Jessica Keenan Wynn, Alice Lee, Barrett Wilbert Weed & Jon Eidson',
+            'track': 'Big Fun',
         }
     }, {
         # Banned audio, only available on the app
@@ -463,7 +468,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '7059698374567611694',
             'ext': 'mp4',
-            'title': 'N/A',
+            'title': 'tiktok video #7059698374567611694',
             'description': '',
             'uploader': 'pokemonlife22',
             'creator': 'Pokemon',
@@ -480,7 +485,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Video not available']
+        'expected_warnings': ['Video not available', 'Creating a generic title']
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',

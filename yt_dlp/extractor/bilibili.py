@@ -926,9 +926,9 @@ class BiliIntlIE(BiliIntlBaseIE):
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
             season_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={season_id}&platform=web', video_id)
-            video_data = next(
-                episode for episode in traverse_obj(season_json, ('sections', ..., 'episodes', ...), expected_type=dict)
-                if str(episode.get('episode_id')) == ep_id)
+            video_data = traverse_obj(season_json,
+                                      ('sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == ep_id),
+                                      expected_type=dict, get_all=False)
         return self._extract_video_info(video_data, ep_id=ep_id, aid=aid)
 
 

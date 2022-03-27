@@ -500,6 +500,9 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         temp_path = new_path = prefix + sep + extension
 
         if new_path == path:
+            if acodec == 'copy':
+                self.to_screen(f'File is already in target format {self._preferredcodec}, skipping')
+                return [], information
             orig_path = prepend_extension(path, 'orig')
             temp_path = prepend_extension(path, 'temp')
         if (self._nopostoverwrites and os.path.exists(encodeFilename(new_path))
@@ -1122,6 +1125,11 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         self._only_multi_video = only_multi_video
         super().__init__(downloader)
 
+    def _get_codecs(self, file):
+        codecs = traverse_obj(self.get_metadata_object(file), ('streams', ..., 'codec_name'))
+        self.write_debug(f'Codecs = {", ".join(codecs)}')
+        return tuple(codecs)
+
     def concat_files(self, in_files, out_file):
         if not self._downloader._ensure_dir_exists(out_file):
             return
@@ -1131,8 +1139,7 @@ class FFmpegConcatPP(FFmpegPostProcessor):
             os.replace(in_files[0], out_file)
             return []
 
-        codecs = [traverse_obj(self.get_metadata_object(file), ('streams', ..., 'codec_name')) for file in in_files]
-        if len(set(map(tuple, codecs))) > 1:
+        if len(set(map(self._get_codecs, in_files))) > 1:
             raise PostProcessingError(
                 'The files have different streams/codecs and cannot be concatenated. '
                 'Either select different formats or --recode-video them to a common format')
@@ -1146,7 +1153,7 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         entries = info.get('entries') or []
         if not any(entries) or (self._only_multi_video and info['_type'] != 'multi_video'):
             return [], info
-        elif any(len(entry) > 1 for entry in traverse_obj(entries, (..., 'requested_downloads')) or []):
+        elif traverse_obj(entries, (..., 'requested_downloads', lambda _, v: len(v) > 1)):
             raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
 
         in_files = traverse_obj(entries, (..., 'requested_downloads', 0, 'filepath')) or []

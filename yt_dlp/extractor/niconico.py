@@ -469,7 +469,7 @@ class NiconicoIE(InfoExtractor):
         comment_user_key = traverse_obj(api_data, ('comment', 'keys', 'userKey'))
         user_id_str = session_api_data.get('serviceUserId')
 
-        thread_ids = [x for x in traverse_obj(api_data, ('comment', 'threads')) or [] if x['isActive']]
+        thread_ids = traverse_obj(api_data, ('comment', 'threads', lambda _, v: v['isActive']))
         raw_danmaku = self._extract_all_comments(video_id, thread_ids, user_id_str, comment_user_key)
         if not raw_danmaku:
             self.report_warning(f'Failed to get comments. {bug_reports_message()}')

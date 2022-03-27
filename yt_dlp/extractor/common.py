@@ -139,6 +139,8 @@ class InfoExtractor(object):
                                    for HDS - URL of the F4M manifest,
                                    for DASH - URL of the MPD manifest,
                                    for MSS - URL of the ISM manifest.
+                    * manifest_stream_number  (For internal use only)
+                                 The index of the stream in the manifest file
                     * ext        Will be calculated from URL if missing
                     * format     A human-readable description of the format
                                  ("mp4 container with h264/opus").
@@ -215,7 +217,7 @@ class InfoExtractor(object):
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
                     * downloader_options  A dictionary of downloader options as
-                                 described in FileDownloader
+                                 described in FileDownloader (For internal use only)
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -3684,9 +3686,9 @@ class InfoExtractor(object):
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
         """ Merge subtitle items for one language. Items with duplicated URLs/data
         will be dropped. """
-        list1_data = set([item.get('url') or item['data'] for item in subtitle_list1])
+        list1_data = set((item.get('url'), item.get('data')) for item in subtitle_list1)
         ret = list(subtitle_list1)
-        ret.extend([item for item in subtitle_list2 if (item.get('url') or item['data']) not in list1_data])
+        ret.extend(item for item in subtitle_list2 if (item.get('url'), item.get('data')) not in list1_data)
         return ret
 
     @classmethod

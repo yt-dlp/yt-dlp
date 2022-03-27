@@ -163,6 +163,8 @@ def create_parser():
         values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
+            if not val:
+                raise optparse.OptionValueError(f'Invalid {option.metavar} for {opt_str}: {value}')
             if val == 'all':
                 current.update(allowed_values)
             elif val == '-all':
@@ -1311,7 +1313,7 @@ def create_parser():
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
             'Specify audio format to convert the audio to when -x is used. Currently supported formats are: '
-            'best (default) or one of %s' % '|'.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
+            'best (default) or one of %s' % ', '.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
@@ -1323,7 +1325,7 @@ def create_parser():
             'Remux the video into another container if necessary (currently supported: %s). '
             'If target container does not support the video/audio codec, remuxing will fail. '
             'You can specify multiple rules; Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % '|'.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
+            'and anything else to mkv.' % ', '.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
@@ -1438,7 +1440,7 @@ def create_parser():
             '"multi_video" (default; only when the videos form a single show). '
             'All the video files must have same codecs and number of streams to be concatable. '
             'The "pl_video:" prefix can be used with "--paths" and "--output" to '
-            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
+            'set the output filename for the concatenated files. See "OUTPUT TEMPLATE" for details'))
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
@@ -1486,20 +1488,20 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--no-exec-before-download',
-        action='store_const', dest='exec_before_dl_cmd', const=[],
+        action='store_const', dest='exec_before_dl_cmd', const=None,
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
             'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % '|'.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
+            '(Alias: --convert-subtitles)' % ', '.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            '(currently supported: %s) ' % '|'.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
+            '(currently supported: %s) ' % ', '.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,

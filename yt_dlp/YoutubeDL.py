@@ -517,7 +517,7 @@ class YoutubeDL(object):
 
     _format_fields = {
         # NB: Keep in sync with the docstring of extractor/common.py
-        'url', 'manifest_url', 'ext', 'format', 'format_id', 'format_note',
+        'url', 'manifest_url', 'manifest_stream_number', 'ext', 'format', 'format_id', 'format_note',
         'width', 'height', 'resolution', 'dynamic_range', 'tbr', 'abr', 'acodec', 'asr',
         'vbr', 'fps', 'vcodec', 'container', 'filesize', 'filesize_approx',
         'player_url', 'protocol', 'fragment_base_url', 'fragments', 'is_from_start',
@@ -938,7 +938,7 @@ class YoutubeDL(object):
 
     def deprecation_warning(self, message):
         if self.params.get('logger') is not None:
-            self.params['logger'].warning('DeprecationWarning: {message}')
+            self.params['logger'].warning(f'DeprecationWarning: {message}')
         else:
             self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
 
@@ -2478,8 +2478,9 @@ class YoutubeDL(object):
         if info_dict.get('is_live') and formats:
             formats = [f for f in formats if bool(f.get('is_from_start')) == get_from_start]
             if get_from_start and not formats:
-                self.raise_no_formats(info_dict, msg='--live-from-start is passed, but there are no formats that can be downloaded from the start. '
-                                                     'If you want to download from the current time, pass --no-live-from-start')
+                self.raise_no_formats(info_dict, msg=(
+                    '--live-from-start is passed, but there are no formats that can be downloaded from the start. '
+                    'If you want to download from the current time, use --no-live-from-start'))
 
         if not formats:
             self.raise_no_formats(info_dict)

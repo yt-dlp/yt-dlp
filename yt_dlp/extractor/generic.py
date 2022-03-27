@@ -2523,7 +2523,7 @@ class GenericIE(InfoExtractor):
                 'title': 'Riku ja Tunna lähtevät peurajahtiin tv:stä tutun biologin kanssa – metsästysreissu huipentuu kasvissyöjän painajaiseen!',
                 'thumbnail': r're:^https?://.+\.jpg$',
                 'duration': 108,
-                'series' : 'Madventures Suomi',
+                'series': 'Madventures Suomi',
                 'description': 'md5:aa55b44bd06a1e337a6f1d0b46507381',
                 'categories': ['Matkailu', 'Elämäntyyli'],
                 'age_limit': 0,
@@ -3886,8 +3886,8 @@ class GenericIE(InfoExtractor):
             if RtmpIE.suitable(vurl):
                 return True
             vpath = compat_urlparse.urlparse(vurl).path
-            vext = determine_ext(vpath)
-            return '.' in vpath and vext not in ('swf', 'png', 'jpg', 'srt', 'sbv', 'sub', 'vtt', 'ttml', 'js', 'xml')
+            vext = determine_ext(vpath, None)
+            return vext not in (None, 'swf', 'png', 'jpg', 'srt', 'sbv', 'sub', 'vtt', 'ttml', 'js', 'xml')
 
         def filter_video(urls):
             return list(filter(check_video, urls))

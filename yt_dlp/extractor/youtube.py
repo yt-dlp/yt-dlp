@@ -837,17 +837,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
-            renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'), expected_type=str, get_all=False)
+            renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
+            expected_type=str, get_all=False)
         timestamp, time_text = self._extract_time_text(renderer, 'publishedTimeText')
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
-            renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
+            renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
+            get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
         thumbnails = self._extract_thumbnails(renderer, 'thumbnail')
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
-            renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'), expected_type=str))
+            renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
+            expected_type=str)) or ''
         url = f'https://www.youtube.com/watch?v={video_id}'
-        if overlay_style == 'SHORTS' or (navigation_url and '/shorts/' in navigation_url):
+        if overlay_style == 'SHORTS' or '/shorts/' in navigation_url:
             url = f'https://www.youtube.com/shorts/{video_id}'
 
         return {
@@ -862,7 +865,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader': uploader,
             'channel_id': channel_id,
             'thumbnails': thumbnails,
-            'upload_date': strftime_or_none(timestamp, '%Y%m%d') if self._configuration_arg('approximate_date', ie_key='youtubetab') else None,
+            'upload_date': (strftime_or_none(timestamp, '%Y%m%d')
+                            if self._configuration_arg('approximate_date', ie_key='youtubetab')
+                            else None),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
                             else 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges

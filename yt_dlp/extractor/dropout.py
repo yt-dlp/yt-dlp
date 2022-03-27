@@ -123,7 +123,7 @@ class DropoutIE(InfoExtractor):
             self._login(display_id)
             webpage = self._download_webpage(url, display_id, note='Downloading video webpage')
         finally:
-            self._download_webpage('https://www.dropout.tv/logout', display_id, note='Logging out')
+            self._download_webpage('https://www.dropout.tv/logout', display_id, note='Logging out', fatal=False)
 
         embed_url = self._search_regex(r'embed_url:\s*["\'](.+?)["\']', webpage, 'embed url')
         thumbnail = self._og_search_thumbnail(webpage)
@@ -139,7 +139,7 @@ class DropoutIE(InfoExtractor):
             '_type': 'url_transparent',
             'ie_key': VHXEmbedIE.ie_key(),
             'url': embed_url,
-            'id': self._search_regex(r'embed.vhx.tv/videos/(.+?)\?', embed_url, 'id'),
+            'id': self._search_regex(r'embed\.vhx\.tv/videos/(.+?)\?', embed_url, 'id'),
             'display_id': display_id,
             'title': title,
             'description': self._html_search_meta('description', webpage, fatal=False),
