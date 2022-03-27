@@ -94,9 +94,6 @@ class ITProTVIE(ITProTVBaseIE):
             'duration': int_or_none(episode.get('length')),
             'series': course.get('name'),
             'series_id': course.get('url'),
-            'availability': self._availability(
-                needs_premium=False, needs_subscription=False, needs_auth=True,
-                is_private=False, is_unlisted=False),
             'chapter': str_or_none(chapter.get('title')),
             'chapter_number': chapter_number,
             'chapter_id': str_or_none(chapter.get('id')),
