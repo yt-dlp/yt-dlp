@@ -282,6 +282,7 @@ class ZattooIE(ZattooBaseIE):
             'categories': ['Séries'],
             'tags': ['Comédie']
         },
+        'params': {'skip_download': 'm3u8'}
     }, {
         'url': 'https://zattoo.com/channels/german?channel=srf_zwei',
         'only_matching': True,
