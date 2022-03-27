@@ -3493,6 +3493,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not trans_code:
                         continue
                     if caption_track.get('kind') != 'asr':
+                        if 'translated_subs' in self._configuration_arg('skip'):
+                            continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, template=' from %s')
                     # Add an "-orig" label to the original language so that it can be distinguished.
