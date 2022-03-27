@@ -91,7 +91,7 @@ class BanByeIE(BanByeBaseIE):
             'description': data.get('desc'),
             'uploader': traverse_obj(data, ('channel', 'name')),
             'channel_id': data.get('channelId'),
-            'channel_url': format_field(data.get('channelId'), template='https://banbye.com/channel/%s'),
+            'channel_url': format_field(data, 'channelId', 'https://banbye.com/channel/%s'),
             'timestamp': unified_timestamp(data.get('publishedAt')),
             'duration': data.get('duration'),
             'tags': data.get('tags'),
