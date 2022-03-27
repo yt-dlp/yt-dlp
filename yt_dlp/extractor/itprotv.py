@@ -29,7 +29,7 @@ class ITProTVBaseIE(InfoExtractor):
 
     def _check_if_logged_in(self, webpage):
         if re.match(r'{\s*member\s*:\s*null', webpage):
-            raise self.raise_login_required()
+            self.raise_login_required()
 
 
 class ITProTVIE(ITProTVBaseIE):
