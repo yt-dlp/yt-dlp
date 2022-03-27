@@ -438,7 +438,6 @@ class RokfinSearchIE(SearchInfoExtractor):
     _SEARCH_KEY = 'rkfnsearch'
     _NETRC_MACHINE = False
     _BASE_URL = 'https://rokfin.com'
-    _CACHE_SECTION_NAME = 'rokfin-search-engine-access'
     _db_url = None
     _db_access_key = None
 
