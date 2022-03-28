@@ -15,6 +15,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    filter_dict,
     int_or_none,
     float_or_none,
     mimetype2ext,
@@ -756,16 +757,13 @@ class BiliIntlBaseIE(InfoExtractor):
         return data
 
     def _get_subtitles(self, *, ep_id=None, aid=None):
-        params = {
-            'platform': 'web'
-        }
-        if ep_id:
-            params['episode_id'] = ep_id
-        if aid:
-            params['aid'] = aid
         sub_json = self._call_api(
             '/web/v2/subtitle', ep_id or aid, note='Downloading subtitles list',
-            errnote='Unable to download subtitles list', query=params)
+            errnote='Unable to download subtitles list', query=filter_dict({
+                'platform': 'web',
+                'episode_id': ep_id,
+                'aid': aid,
+            }))
         subtitles = {}
         for sub in sub_json.get('subtitles') or []:
             sub_url = sub.get('url')
@@ -783,16 +781,13 @@ class BiliIntlBaseIE(InfoExtractor):
         return subtitles
 
     def _get_formats(self, *, ep_id=None, aid=None):
-        params = {
-            'platform': 'web'
-        }
-        if ep_id:
-            params['ep_id'] = ep_id
-        if aid:
-            params['aid'] = aid
         video_json = self._call_api(
             '/web/playurl', ep_id or aid, note='Downloading video formats',
-            errnote='Unable to download video formats', query=params)
+            errnote='Unable to download video formats', query=filter_dict({
+                'platform': 'web',
+                'ep_id': ep_id,
+                'aid': aid,
+            }))
         video_json = video_json['playurl']
         formats = []
         for vid in video_json.get('video') or []:
