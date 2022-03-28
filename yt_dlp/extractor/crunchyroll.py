@@ -931,7 +931,16 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
                     episode_display_id = episode['slug_title']
                     yield self.url_result(
                         f'https://beta.crunchyroll.com/{lang}watch/{episode_id}/{episode_display_id}',
-                        CrunchyrollBetaIE.ie_key(), episode_id, episode['title'])
+                        CrunchyrollBetaIE.ie_key(), episode_id, episode['title'],
+                        description=episode.get('description').replace(r'\r\n', '\n'),
+                        duration=float_or_none(episode.get('duration_ms'), 1000),
+                        series=episode.get('series_title'),
+                        series_id=episode.get('series_id'),
+                        season=episode.get('season_title'),
+                        season_id=episode.get('season_id'),
+                        season_number=episode.get('season_number'),
+                        episode=episode.get('title'),
+                        episode_number=episode.get('sequence_number'))
 
         return {
             '_type': 'playlist',
