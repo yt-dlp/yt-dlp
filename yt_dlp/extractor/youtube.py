@@ -217,13 +217,25 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2
-    }
+    },
+    # This client can access age restricted videos (unless the uploader has disabled the 'allow embedding' option)
+    # See: https://github.com/zerodytrash/YouTube-Internal-Clients
+    'tv_embedded': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
+                'clientVersion': '2.0',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 85
+    },
 }
 
 
 def build_innertube_clients():
     THIRD_PARTY = {
-        'embedUrl': 'https://google.com',  # Can be any valid URL
+        'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
     BASE_CLIENTS = ('android', 'web', 'ios', 'mweb')
     priority = qualities(BASE_CLIENTS[::-1])
@@ -3009,6 +3021,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
                 append_client(f'{client}_embedded', f'{client.replace("_embedded", "")}_agegate')
+                append_client('tv_embedded')
 
         if last_error:
             if not len(prs):
