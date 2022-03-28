@@ -183,7 +183,7 @@ class RokfinIE(InfoExtractor):
         # Authentication phase:
         #
         # Step 1: preparation
-        login_page, urlh = self._download_webpage_handle(LOGIN_PAGE_URL, None, note='loading login page', fatal=False) or (None, None)
+        login_page = self._download_webpage(LOGIN_PAGE_URL, None, note='loading login page', fatal=False)
         if not login_page:
             return
         authentication_point_url = unescapeHTML(re.search(AUTHENTICATION_URL_REGEX_STEP_1, login_page).group('authentication_point_url'))
@@ -193,9 +193,9 @@ class RokfinIE(InfoExtractor):
             return
 
         # Step 2 & 3: authentication
-        resp_body, urlh = self._download_webpage_handle(
+        resp_body = self._download_webpage(
             authentication_point_url, None, note='logging in', fatal=False, expected_status=404, encoding='utf-8',
-            data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''})) or (None, None)
+            data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''}))
         # rememberMe=off resets the session when yt-dlp exits:
         # https://web.archive.org/web/20220218003425/https://wjw465150.gitbooks.io/keycloak-documentation/content/server_admin/topics/login-settings/remember-me.html
         if not self._authentication_active():
@@ -211,9 +211,9 @@ class RokfinIE(InfoExtractor):
             self._logout()
             return
 
-        # No validation phase (step 8):
+        # Validation phase (step 8) skipped, i.e.
         #
-        # (1) the client-side ID-token validation skipped;
+        # (1) this extractor does not implement client-side ID-token validation;
         # (2) Rokfin does not supply Subject Identifier.
 
         self._access_mgmt_tokens = access_mgmt_tokens
@@ -241,10 +241,6 @@ class RokfinIE(InfoExtractor):
     def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
         assert 'authorization' not in headers
         headers = headers.copy()
-        # Testing only:
-        if False and self._access_mgmt_tokens and 'access_token' in self._access_mgmt_tokens and 'token_type' in self._access_mgmt_tokens:
-            self._access_mgmt_tokens['access_token'] = 'eyJh'
-            self.write_debug('Invalidated access token')
         authorization_hdr_val = try_get(self._access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
         if authorization_hdr_val:
             headers['authorization'] = authorization_hdr_val
