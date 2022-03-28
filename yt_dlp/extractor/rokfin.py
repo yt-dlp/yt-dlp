@@ -451,12 +451,10 @@ class RokfinSearchIE(SearchInfoExtractor):
                 yield self.url_result(url=f'{self._BASE_URL}/{video_type}/{video_id}')
         if not query:
             return
-        query_data = {'query': query, 'page': {'size': 100}}
         total_pages = None
         for page_number in itertools.count(1):
-            query_data['page']['current'] = page_number
             search_results = self._run_search_query(
-                data=query_data,
+                data={'query': query, 'page': {'size': 100, 'current': page_number}},
                 note='Downloading search results page %d%s' % (page_number, format_field(total_pages, template=' of ~%d') if total_pages and total_pages >= page_number else ''),
                 errnote='Unable to download search results page %d%s' % (page_number, format_field(total_pages, template=' of ~%d') if total_pages and total_pages >= page_number else ''))
             total_pages = traverse_obj(search_results, ('meta', 'page', 'total_pages'), expected_type=int_or_none)
