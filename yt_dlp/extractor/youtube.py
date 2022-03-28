@@ -807,6 +807,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         description = self._get_text(renderer, 'descriptionSnippet')
         duration = parse_duration(self._get_text(
             renderer, 'lengthText', ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'text')))
+        if duration is None:
+            duration = parse_duration(self._search_regex(
+                r'(?i)(ago)(?!.*\1)\s+(?P<duration>[a-z0-9 ,]+?)(?:\s+[\d,]+\s+views)?(?:\s+-\s+play\s+short)?$',
+                traverse_obj(renderer, ('title', 'accessibility', 'accessibilityData', 'label'), default='', expected_type=str),
+                video_id, default=None, group='duration'))
+
         view_count = self._get_count(renderer, 'viewCountText')
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
@@ -818,12 +824,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
         thumbnails = self._extract_thumbnails(renderer, 'thumbnail')
+        navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
+            renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'), expected_type=str))
+        url = f'https://www.youtube.com/watch?v={video_id}'
+        if overlay_style == 'SHORTS' or (navigation_url and '/shorts/' in navigation_url):
+            url = f'https://www.youtube.com/shorts/{video_id}'
 
         return {
             '_type': 'url',
             'ie_key': YoutubeIE.ie_key(),
             'id': video_id,
-            'url': f'https://www.youtube.com/watch?v={video_id}',
+            'url': url,
             'title': title,
             'description': description,
             'duration': duration,
@@ -3018,7 +3029,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         streaming_formats = traverse_obj(streaming_data, (..., ('formats', 'adaptiveFormats'), ...), default=[])
 
         for fmt in streaming_formats:
-            if fmt.get('targetDurationSec') or fmt.get('drmFamilies'):
+            if fmt.get('targetDurationSec'):
                 continue
 
             itag = str_or_none(fmt.get('itag'))
@@ -3100,6 +3111,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'fps': int_or_none(fmt.get('fps')) or None,
                 'height': height,
                 'quality': q(quality),
+                'has_drm': bool(fmt.get('drmFamilies')),
                 'tbr': tbr,
                 'url': fmt_url,
                 'width': int_or_none(fmt.get('width')),
@@ -3473,6 +3485,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             subtitles, automatic_captions = {}, {}
             for lang_code, caption_track in captions.items():
                 base_url = caption_track.get('baseUrl')
+                orig_lang = parse_qs(base_url).get('lang', [None])[-1]
                 if not base_url:
                     continue
                 lang_name = self._get_text(caption_track, 'name', max_runs=1)
@@ -3486,19 +3499,20 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for trans_code, trans_name in translation_languages.items():
                     if not trans_code:
                         continue
+                    orig_trans_code = trans_code
                     if caption_track.get('kind') != 'asr':
+                        if 'translated_subs' in self._configuration_arg('skip'):
+                            continue
                         trans_code += f'-{lang_code}'
                         trans_name += format_field(lang_name, template=' from %s')
                     # Add an "-orig" label to the original language so that it can be distinguished.
                     # The subs are returned without "-orig" as well for compatibility
-                    if lang_code == f'a-{trans_code}':
+                    if lang_code == f'a-{orig_trans_code}':
                         process_language(
                             automatic_captions, base_url, f'{trans_code}-orig', f'{trans_name} (Original)', {})
                     # Setting tlang=lang returns damaged subtitles.
-                    # Not using lang_code == f'a-{trans_code}' here for future-proofing
-                    orig_lang = parse_qs(base_url).get('lang', [None])[-1]
                     process_language(automatic_captions, base_url, trans_code, trans_name,
-                                     {} if orig_lang == trans_code else {'tlang': trans_code})
+                                     {} if orig_lang == orig_trans_code else {'tlang': trans_code})
             info['automatic_captions'] = automatic_captions
             info['subtitles'] = subtitles
 

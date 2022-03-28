@@ -553,9 +553,9 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
+        yield from FFmpegPostProcessor.stream_copy_opts(False)
         if target_ext == 'avi':
-            return ['-c:v', 'libxvid', '-vtag', 'XVID']
-        return []
+            yield from ('-c:v', 'libxvid', '-vtag', 'XVID')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
@@ -1129,6 +1129,8 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         super().__init__(downloader)
 
     def concat_files(self, in_files, out_file):
+        if not self._downloader._ensure_dir_exists(out_file):
+            return
         if len(in_files) == 1:
             if os.path.realpath(in_files[0]) != os.path.realpath(out_file):
                 self.to_screen(f'Moving "{in_files[0]}" to "{out_file}"')
