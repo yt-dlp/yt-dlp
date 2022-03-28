@@ -263,6 +263,7 @@ class YoutubeDL(object):
     skip_playlist_after_errors: Number of allowed failures until the rest of
                        the playlist is skipped
     force_generic_extractor: Force downloader to use the generic extractor
+    force_extractor:   Force downloader to use the given extractor
     overwrites:        Overwrite all video and metadata files if True,
                        overwrite only non-video files if None
                        and don't overwrite any file if False
@@ -591,6 +592,16 @@ class YoutubeDL(object):
         check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
         check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
         check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
+        check_deprecated('force_generic_extractor', '--force-generic-extractor', '--force-extractor=generic')
+
+        all_extractor_names = {ie.IE_NAME for ie in gen_extractor_classes()}
+        force_extractors = self.params.get('force_extractor', [])
+        for extractor_name in force_extractors:
+            if extractor_name not in all_extractor_names:
+                raise Exception('No such extractor {}. See available extractors with --list-extractors'.format(extractor_name))
+        self.allowed_extractor_names = None
+        if force_extractors:
+            self.allowed_extractor_names = all_extractor_names.intersection(force_extractors)
 
         for msg in self.params.get('_warnings', []):
             self.report_warning(msg)
@@ -726,6 +737,8 @@ class YoutubeDL(object):
     def add_info_extractor(self, ie):
         """Add an InfoExtractor object to the end of the list."""
         ie_key = ie.ie_key()
+        if self.allowed_extractor_names and ie.IE_NAME not in self.allowed_extractor_names:
+            return
         self._ies[ie_key] = ie
         if not isinstance(ie, type):
             self._ies_instances[ie_key] = ie
@@ -1350,7 +1363,7 @@ class YoutubeDL(object):
             info_dict.setdefault(key, value)
 
     def extract_info(self, url, download=True, ie_key=None, extra_info=None,
-                     process=True, force_generic_extractor=False):
+                     process=True):
         """
         Return a list with a dictionary for each video extracted.
 
@@ -1363,14 +1376,10 @@ class YoutubeDL(object):
         extra_info -- dictionary containing the extra values to add to each result
         process -- whether to resolve all unresolved references (URLs, playlist items),
             must be True for download to work.
-        force_generic_extractor -- force using the generic extractor
         """
 
         if extra_info is None:
             extra_info = {}
-
-        if not ie_key and force_generic_extractor:
-            ie_key = 'Generic'
 
         if ie_key:
             ies = {ie_key: self._get_info_extractor_class(ie_key)}
@@ -1550,9 +1559,7 @@ class YoutubeDL(object):
                     '[info] %s: %d additional URL(s) requested' % (ie_result['id'], len(additional_urls)))
                 self.write_debug('Additional URLs: "%s"' % '", "'.join(additional_urls))
                 ie_result['additional_entries'] = [
-                    self.extract_info(
-                        url, download, extra_info=extra_info,
-                        force_generic_extractor=self.params.get('force_generic_extractor'))
+                    self.extract_info(url, download, extra_info=extra_info)
                     for url in additional_urls
                 ]
             return ie_result
@@ -3266,8 +3273,7 @@ class YoutubeDL(object):
             raise SameFileError(outtmpl)
 
         for url in url_list:
-            self.__download_wrapper(self.extract_info)(
-                url, force_generic_extractor=self.params.get('force_generic_extractor', False))
+            self.__download_wrapper(self.extract_info)(url)
 
         return self._download_retcode
 

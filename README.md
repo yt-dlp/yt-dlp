@@ -332,7 +332,13 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --extractor-descriptions         Output descriptions of all supported
                                      extractors and exit
     --force-generic-extractor        Force extraction to use the generic
-                                     extractor
+                                     extractor (deprecated in factor of --force-
+                                     extractor generic)
+    --force-extractor None           Force extraction to use only the given
+                                     extractors. This can save significant time
+                                     at program startup if only one particular
+                                     extractor is going to be used for a given
+                                     invocation.
     --default-search PREFIX          Use this prefix for unqualified URLs. For
                                      example "gvsearch2:" downloads two videos
                                      from google videos for the search term

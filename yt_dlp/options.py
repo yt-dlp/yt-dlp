@@ -269,8 +269,12 @@ def create_parser():
         help='Output descriptions of all supported extractors and exit')
     general.add_option(
         '--force-generic-extractor',
-        action='store_true', dest='force_generic_extractor', default=False,
-        help='Force extraction to use the generic extractor')
+        action='store_true', dest='force_generic_extractor', default=None,
+        help='Force extraction to use the generic extractor (deprecated in factor of --force-extractor generic)')
+    general.add_option(
+        '--force-extractor',
+        default=[], action='append', dest='force_extractor',
+        help='Force extraction to use only the given extractors. This can save significant time at program startup if only one particular extractor is going to be used for a given invocation.')
     general.add_option(
         '--default-search',
         dest='default_search', metavar='PREFIX',
