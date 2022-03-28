@@ -1682,11 +1682,6 @@ The following extractors use this feature:
     * Potentially useful values include `adaptive_hls`, `adaptive_dash`, `vo_adaptive_hls`, `vo_adaptive_dash`, `download_hls`, `trailer_hls`, `trailer_dash`
 * `hardsub`: Preference order for which hardsub versions to extract. Default is `None` (no hardsubs). Eg: `crunchyrollbeta:hardsub=en-US,None`
 
-#### crunchyrollbetashow
-* `type`: Select only seasons of a specific type (`sub` or `dub`). Eg: `crunchyrollbetashow:type=sub`
-* `number`: Select only seasons with specific season numbers. Eg: `crunchyrollbetashow:number=2,3`
-* `substr`: Select only seasons with a specific substring in the title. Case insensitive. Eg: `crunchyrollbetashow:substr=(english dub)`
-
 #### vikichannel
 * `video_types`: Types of videos to download - one or more of `episodes`, `movies`, `clips`, `trailers`
 
