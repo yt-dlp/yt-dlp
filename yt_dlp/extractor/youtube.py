@@ -240,6 +240,7 @@ def _split_innertube_client(client_name):
     base, *variant = client_name.split('_', 1)
     return client_name, base, variant[0] if variant else None
 
+
 def build_innertube_clients():
     THIRD_PARTY = {
         'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
