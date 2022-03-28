@@ -293,7 +293,6 @@ class RokfinIE(InfoExtractor):
 
         user_consent_url_step_4_5 = PARTIAL_USER_CONSENT_URL_STEP_4_5._replace(query=urllib.parse.urlencode((lambda d: d.update(state=random_str(), nonce=random_str()) or d)(dict(urllib.parse.parse_qsl(PARTIAL_USER_CONSENT_URL_STEP_4_5.query))))).geturl()
 
-        # By making this HTTP request, the user authorizes yt-dlp to act on behalf of the user:
         urlh = (self._download_webpage_handle(
             user_consent_url_step_4_5, None, note='granting user authorization', errnote='user authorization rejected by Rokfin', fatal=False, encoding='utf-8') or (None, None))[1]
 
