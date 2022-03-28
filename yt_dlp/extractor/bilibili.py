@@ -829,10 +829,10 @@ class BiliIntlBaseIE(InfoExtractor):
     def _extract_video_info(self, video_data, *, ep_id=None, aid=None):
         return {
             'id': ep_id or aid,
-            'title': video_data.get('title_display') or video_data['title'],
+            'title': video_data.get('title_display') or video_data.get('title'),
             'thumbnail': video_data.get('cover'),
             'episode_number': int_or_none(self._search_regex(
-                r'^E(\d+)(?:$| - )', video_data.get('title_display', ''), 'episode number', default=None)),
+                r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
             'formats': self._get_formats(ep_id=ep_id, aid=aid),
             'subtitles': self._get_subtitles(ep_id=ep_id, aid=aid),
             'extractor_key': BiliIntlIE.ie_key(),
