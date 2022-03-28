@@ -65,6 +65,7 @@ from .utils import (
     ExistingVideoReached,
     expand_path,
     ExtractorError,
+    filter_dict,
     float_or_none,
     format_bytes,
     format_field,
@@ -1574,13 +1575,9 @@ class YoutubeDL(object):
             if not info:
                 return info
 
-            force_properties = dict(
-                (k, v) for k, v in ie_result.items() if v is not None)
-            for f in ('_type', 'url', 'id', 'extractor', 'extractor_key', 'ie_key'):
-                if f in force_properties:
-                    del force_properties[f]
             new_result = info.copy()
-            new_result.update(force_properties)
+            new_result.update(filter_dict(ie_result, lambda k, v: (
+                v is not None and k not in {'_type', 'url', 'id', 'extractor', 'extractor_key', 'ie_key'})))
 
             # Extracted info may not be a video result (i.e.
             # info.get('_type', 'video') != video) but rather an url or

@@ -3105,16 +3105,16 @@ def try_get(src, getter, expected_type=None):
                 return v
 
 
+def filter_dict(dct, cndn=lambda _, v: v is not None):
+    return {k: v for k, v in dct.items() if cndn(k, v)}
+
+
 def merge_dicts(*dicts):
     merged = {}
     for a_dict in dicts:
         for k, v in a_dict.items():
-            if v is None:
-                continue
-            if (k not in merged
-                    or (isinstance(v, compat_str) and v
-                        and isinstance(merged[k], compat_str)
-                        and not merged[k])):
+            if (v is not None and k not in merged
+                    or isinstance(v, str) and merged[k] == ''):
                 merged[k] = v
     return merged
 
