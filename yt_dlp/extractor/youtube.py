@@ -3020,7 +3020,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if client.endswith('_agegate') and self._is_unplayable(pr) and self.is_authenticated:
                 append_client(client.replace('_agegate', '_creator'))
             elif self._is_agegated(pr):
-                append_client(f'{client}_embedded', f'{client.replace("_embedded", "")}_agegate')
                 append_client('tv_embedded')
 
         if last_error:
