@@ -767,6 +767,33 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             'uploader': 'Toei Animation',
             'title': 'World Trigger Episode 73 – To the Future',
             'upload_date': '20160402',
+            'episode_number': 73,
+            'series': 'World Trigger',
+            'average_rating': 4.9,
+            'episode': 'To the Future',
+            'season': 'World Trigger',
+            'thumbnail': 'https://img1.ak.crunchyroll.com/i/spire3-tmb/c870dedca1a83137c2d3d144984155ed1459527119_main.jpg',
+            'season_number': 1,
+        },
+        'params': {'skip_download': 'm3u8'},
+        'expected_warnings': ['Unable to download XML']
+    }, {
+        'url': 'https://beta.crunchyroll.com/watch/GYK53DMPR/wicked-lord-shingan-reborn',
+        'info_dict': {
+            'id': '648781',
+            'ext': 'mp4',
+            'episode_number': 1,
+            'timestamp': 1389173400,
+            'series': 'Love, Chunibyo & Other Delusions - Heart Throb -',
+            'description': 'md5:5579d1a0355cc618558ba23d27067a62',
+            'uploader': 'TBS',
+            'episode': 'Wicked Lord Shingan... Reborn',
+            'average_rating': 4.9,
+            'season': 'Love, Chunibyo & Other Delusions - Heart Throb -',
+            'thumbnail': 'https://img1.ak.crunchyroll.com/i/spire3-tmb/2ba0384e225a5370d5f0ee9496d91ea51389046521_main.jpg',
+            'title': 'Love, Chunibyo & Other Delusions - Heart Throb - Episode 1 – Wicked Lord Shingan... Reborn',
+            'season_number': 2,
+            'upload_date': '20140108',
         },
         'params': {'skip_download': 'm3u8'},
         'expected_warnings': ['Unable to download XML']
@@ -782,7 +809,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
             initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(url, display_id), display_id)
             episode_data = initial_state['content']['byId'][internal_id]
             video_id = episode_data['external_id'].split('.')[1]
-            series_id = episode_data['episode_metadata']['series_slug_title']
+            series_id = re.sub(r'-{2,}', '-', episode_data['episode_metadata']['series_slug_title'])
             self.to_screen(f'{display_id}: Not logged in. Switching extractors. New url: https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}')
             return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
                                    CrunchyrollIE.ie_key(), video_id)
@@ -877,6 +904,13 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         },
         'playlist_mincount': 10,
     }, {
+        'url': 'https://beta.crunchyroll.com/series/GYJQV73V6/love-chunibyo--other-delusions---heart-throb--',
+        'info_dict': {
+            'id': 'love-chunibyo-other-delusions-heart-throb-',
+            'title': 'Love, Chunibyo & Other Delusions - Heart Throb -',
+        },
+        'playlist_mincount': 10,
+    }, {
         'url': 'https://beta.crunchyroll.com/it/series/GY19NQ2QR/Girl-Friend-BETA',
         'only_matching': True,
     }]
@@ -885,9 +919,11 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
 
         if not self._get_cookies(url).get('etp_rt'):
-            self.to_screen(f'{display_id}: Not logged in. Switching extractors. New url: https://www.crunchyroll.com/{lang}{display_id.lower()}')
-            return self.url_result(f'https://www.crunchyroll.com/{lang}{display_id.lower()}',
-                                   CrunchyrollShowPlaylistIE.ie_key(), display_id)
+            initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(url, display_id), display_id)
+            series_id = re.sub(r'-{2,}', '-', initial_state['content']['byId'][internal_id]['slug_title'])
+            self.to_screen(f'{display_id}: Not logged in. Switching extractors. New url: https://www.crunchyroll.com/{lang}{series_id}')
+            return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}',
+                                   CrunchyrollShowPlaylistIE.ie_key(), series_id)
 
         api_domain, bucket, params = self._get_params(lang)
 
