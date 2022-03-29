@@ -171,7 +171,7 @@ class RokfinIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         LOGIN_PAGE_URL = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Ffeed&response_mode=fragment&response_type=code&scope=openid'
-        AUTHENTICATION_URL_REGEX_STEP_1 = r'\<form\s+[^>]+action\s*=\s*"(?P<authentication_point_url>https://secure\.rokfin\.com/auth/realms/rokfin-web/login-actions/authenticate\?[^"]+)"[^>]*>'
+        AUTHENTICATION_URL_REGEX_STEP_1 = r'\<form\s+[^>]+action\s*=\s*"(?P<authentication_point_url>https://secure\.rokfin\.com/auth/realms/rokfin-web/login-actions/authenticate\?[^"]+)"'
 
         # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1)
         login_page = self._download_webpage(LOGIN_PAGE_URL, None, note='loading login page', fatal=False)
