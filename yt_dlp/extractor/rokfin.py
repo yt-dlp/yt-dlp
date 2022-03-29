@@ -419,9 +419,11 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
             f'{channel_id}-{tab}', f'{channel_name} - {tab.title()}', str_or_none(channel_info.get('description')))
 
 
-# E.g.: rkfnsearch5:"\"zelenko\"" or rkfnsearch5:"\"mollie james\""
 class RokfinSearchIE(SearchInfoExtractor):
+    IE_NAME = 'rokfin:search'
     IE_DESC = 'Rokfin Search'
+    _SEARCH_KEY = 'rkfnsearch'
+
     _TYPES = {
         'video': (('id', 'raw'), 'post'),
         'audio': (('id', 'raw'), 'post'),
@@ -429,8 +431,6 @@ class RokfinSearchIE(SearchInfoExtractor):
         'dead_stream': (('content_id', 'raw'), 'stream'),
         'stack': (('content_id', 'raw'), 'stack'),
     }
-    IE_NAME = 'rokfin:search'
-    _SEARCH_KEY = 'rkfnsearch'
     _NETRC_MACHINE = False
     _BASE_URL = 'https://rokfin.com'
     _db_url = None
