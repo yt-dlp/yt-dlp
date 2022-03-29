@@ -217,15 +217,35 @@ INNERTUBE_CLIENTS = {
             }
         },
         'INNERTUBE_CONTEXT_CLIENT_NAME': 2
-    }
+    },
+    # This client can access age restricted videos (unless the uploader has disabled the 'allow embedding' option)
+    # See: https://github.com/zerodytrash/YouTube-Internal-Clients
+    'tv_embedded': {
+        'INNERTUBE_API_KEY': 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+        'INNERTUBE_CONTEXT': {
+            'client': {
+                'clientName': 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
+                'clientVersion': '2.0',
+            },
+        },
+        'INNERTUBE_CONTEXT_CLIENT_NAME': 85
+    },
 }
+
+
+def _split_innertube_client(client_name):
+    variant, *base = client_name.rsplit('.', 1)
+    if base:
+        return variant, base[0], variant
+    base, *variant = client_name.split('_', 1)
+    return client_name, base, variant[0] if variant else None
 
 
 def build_innertube_clients():
     THIRD_PARTY = {
-        'embedUrl': 'https://google.com',  # Can be any valid URL
+        'embedUrl': 'https://www.youtube.com/',  # Can be any valid URL
     }
-    BASE_CLIENTS = ('android', 'web', 'ios', 'mweb')
+    BASE_CLIENTS = ('android', 'web', 'tv', 'ios', 'mweb')
     priority = qualities(BASE_CLIENTS[::-1])
 
     for client, ytcfg in tuple(INNERTUBE_CLIENTS.items()):
@@ -234,15 +254,15 @@ def build_innertube_clients():
         ytcfg.setdefault('REQUIRE_JS_PLAYER', True)
         ytcfg['INNERTUBE_CONTEXT']['client'].setdefault('hl', 'en')
 
-        base_client, *variant = client.split('_')
+        _, base_client, variant = _split_innertube_client(client)
         ytcfg['priority'] = 10 * priority(base_client)
 
         if not variant:
-            INNERTUBE_CLIENTS[f'{client}_agegate'] = agegate_ytcfg = copy.deepcopy(ytcfg)
-            agegate_ytcfg['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
-            agegate_ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
-            agegate_ytcfg['priority'] -= 1
-        elif variant == ['embedded']:
+            INNERTUBE_CLIENTS[f'{client}_embedscreen'] = embedscreen = copy.deepcopy(ytcfg)
+            embedscreen['INNERTUBE_CONTEXT']['client']['clientScreen'] = 'EMBED'
+            embedscreen['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
+            embedscreen['priority'] -= 3
+        elif variant == 'embedded':
             ytcfg['INNERTUBE_CONTEXT']['thirdParty'] = THIRD_PARTY
             ytcfg['priority'] -= 2
         else:
@@ -2956,13 +2976,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         prs = []
 
         def append_client(*client_names):
-            """ Append the first client name that exists """
+            """ Append the first client name that exists but not already used """
             for client_name in client_names:
-                if client_name in INNERTUBE_CLIENTS:
-                    if client_name not in all_clients:
+                actual_client = _split_innertube_client(client_name)[0]
+                if actual_client in INNERTUBE_CLIENTS:
+                    if actual_client not in all_clients:
                         clients.append(client_name)
-                        all_clients.add(client_name)
-                    return
+                        all_clients.add(actual_client)
+                        return
 
         # Android player_response does not have microFormats which are needed for
         # extraction of some data. So we return the initial_pr with formats
@@ -2977,7 +2998,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         tried_iframe_fallback = False
         player_url = None
         while clients:
-            client = clients.pop()
+            client, base_client, variant = _split_innertube_client(clients.pop())
             player_ytcfg = master_ytcfg if client == 'web' else {}
             if 'configs' not in self._configuration_arg('player_skip'):
                 player_ytcfg = self._extract_player_ytcfg(client, video_id) or player_ytcfg
@@ -3005,10 +3026,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 prs.append(pr)
 
             # creator clients can bypass AGE_VERIFICATION_REQUIRED if logged in
-            if client.endswith('_agegate') and self._is_unplayable(pr) and self.is_authenticated:
-                append_client(client.replace('_agegate', '_creator'))
+            if variant == 'embedded' and self._is_unplayable(pr) and self.is_authenticated:
+                append_client(f'{base_client}_creator')
             elif self._is_agegated(pr):
-                append_client(f'{client}_embedded', f'{client.replace("_embedded", "")}_agegate')
+                if variant == 'tv_embedded':
+                    append_client(f'{base_client}_embedded')
+                elif not variant:
+                    append_client(f'tv_embedded.{base_client}', f'{base_client}_embedded')
 
         if last_error:
             if not len(prs):
