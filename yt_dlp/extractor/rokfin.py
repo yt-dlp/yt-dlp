@@ -190,7 +190,7 @@ class RokfinIE(InfoExtractor):
         # https://web.archive.org/web/20220218003425/https://wjw465150.gitbooks.io/keycloak-documentation/content/server_admin/topics/login-settings/remember-me.html
         if not self._authentication_active():
             self._clear_cookies()
-            self.report_warning('login failed' + (': invalid username or password.' if type(resp_body) is str and re.search(r'invalid\s+username\s+or\s+password', resp_body, re.IGNORECASE) else ''))
+            self.report_warning('login failed' + (': invalid username and/or password.' if type(resp_body) is str and re.search(r'invalid\s+username\s+or\s+password', resp_body, re.IGNORECASE) else ''))
             return
 
         access_mgmt_tokens = self._get_OAuth_tokens()
@@ -214,9 +214,7 @@ class RokfinIE(InfoExtractor):
         # https://web.archive.org/web/20220215040021/https://keycloak.discourse.group/t/revoking-or-invalidating-an-authorization-token/1032
 
     def _authentication_active(self):
-        return bool(traverse_obj(
-            self._get_cookies('https://www.rokfin.com'),
-            'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'))
+        return not ({'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'} - set([cookie.name for cookie in self._downloader.cookiejar]))
 
     def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
         assert 'authorization' not in headers
@@ -282,7 +280,9 @@ class RokfinIE(InfoExtractor):
         # Steps 6 & 7 request and acquire ID Token & Access Token:
         access_token = self._download_json(
             self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, None, note='getting access credentials', fatal=False, encoding='utf-8',
-            data=urlencode_postdata({'code': authorization_code, 'grant_type': 'authorization_code', 'client_id': 'web', 'redirect_uri': 'https://rokfin.com/silent-check-sso.html'})) or {}
+            data=urlencode_postdata(
+                {'code': authorization_code, 'grant_type': 'authorization_code', 'client_id': 'web',
+                 'redirect_uri': 'https://rokfin.com/silent-check-sso.html'})) or {}
 
         # Usage: --extractor-args "rokfin:print-user-info"  # For testing by those who don't have premium access.
         if self._configuration_arg('print_user_info'):
@@ -315,6 +315,7 @@ class RokfinPlaylistBaseIE(InfoExtractor):
 
 
 class RokfinStackIE(RokfinPlaylistBaseIE):
+    IE_NAME = 'rokfin:stack'
     IE_DESC = 'Rokfin Stacks'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/stack/(?P<id>[^/]+)'
     _TESTS = [{
@@ -324,7 +325,6 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
             'id': '271',
         },
     }]
-    IE_NAME = 'rokfin:stack'
     _NETRC_MACHINE = False
 
     def _real_extract(self, url):
@@ -334,6 +334,7 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
 
 
 class RokfinChannelIE(RokfinPlaylistBaseIE):
+    IE_NAME = 'rokfin:channel'
     IE_DESC = 'Rokfin Channels'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?!((feed/?)|(discover/?)|(channels/?))$)(?P<id>[^/]+)/?$'
     _TESTS = [{
@@ -345,7 +346,6 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
             'description': 'md5:bb622b1bca100209b91cd685f7847f06',
         },
     }]
-    IE_NAME = 'rokfin:channel'
     _NETRC_MACHINE = False
 
     _TABS = {
@@ -428,7 +428,8 @@ class RokfinSearchIE(SearchInfoExtractor):
         for page_number in itertools.count(1):
             search_results = self._run_search_query(
                 data={'query': query, 'page': {'size': 100, 'current': page_number}},
-                note='Downloading search results page %d%s' % (page_number, f' of ~{total_pages}' if total_pages and total_pages >= page_number else ''))
+                note='Downloading search results page %d%s' % (page_number, f' of ~{total_pages}' if total_pages and total_pages >= page_number else ''),
+                errnote='Failed to download search results page %d%s' % (page_number, f' of ~{total_pages}' if total_pages and total_pages >= page_number else ''))
             total_pages = traverse_obj(search_results, ('meta', 'page', 'total_pages'), expected_type=int_or_none)
             yield from get_video_data(search_results)
             if not search_results.get('results'):
