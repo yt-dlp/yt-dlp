@@ -224,10 +224,8 @@ class RokfinIE(InfoExtractor):
         authorization_hdr_val = try_get(self._access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
         if authorization_hdr_val:
             headers['authorization'] = authorization_hdr_val
-        json_string, urlh = self._download_webpage_handle(
-            url_or_request, video_id, note='Downloading JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
-            errnote='Unable to download JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
-            headers=headers, query=query, expected_status=401)  # 401=Unauthorized
+        json_string, urlh = self._download_webpage_handle(url_or_request, video_id),
+            headers=headers, query=query, expected_status=401)
         if not authorization_hdr_val or urlh.code != 401 or self._access_mgmt_tokens.get('refresh_token') is None:
             return self._parse_json(json_string, video_id)
         del headers['authorization']
