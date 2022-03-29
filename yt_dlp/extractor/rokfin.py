@@ -214,11 +214,9 @@ class RokfinIE(InfoExtractor):
         # https://web.archive.org/web/20220215040021/https://keycloak.discourse.group/t/revoking-or-invalidating-an-authorization-token/1032
 
     def _authentication_active(self):
-        current_time_utc = datetime.utcnow().timestamp()
-        SESSION_COOKIE_NAMES = {'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'}
-        return set([cookie.name for cookie in self._downloader.cookiejar if (cookie.name in SESSION_COOKIE_NAMES)
-                    and (cookie.name not in ('KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY')
-                         or cookie.expires > current_time_utc)]) == SESSION_COOKIE_NAMES
+        return bool(traverse_obj(
+            self._get_cookies('https://www.rokfin.com'),
+            'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'))
 
     def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
         assert 'authorization' not in headers
