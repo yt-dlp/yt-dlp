@@ -183,7 +183,6 @@ class RokfinIE(InfoExtractor):
             self._clear_cookies()
             return
 
-        # Step 2 & 3: authentication
         resp_body = self._download_webpage(
             authentication_point_url, None, note='logging in', fatal=False, expected_status=404, encoding='utf-8',
             data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''}))
