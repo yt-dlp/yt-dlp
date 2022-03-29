@@ -256,12 +256,7 @@ class RokfinIE(InfoExtractor):
     def _get_OAuth_tokens(self):
         PARTIAL_USER_CONSENT_URL_STEP_4_5 = urllib.parse.urlparse('https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Fsilent-check-sso.html&response_mode=fragment&response_type=code&scope=openid&prompt=none')
 
-        # ---------------------------- CODE FLOW AUTHORIZATION ----------------------------
-        # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1.1)
-
-        # Steps 4 & 5 authorize yt-dlp to act on user's behalf.
-
-        # random_str() came from https://www.rokfin.com/static/js/2.*.chunk.js
+        # From https://www.rokfin.com/static/js/2.*.chunk.js
         def random_str():
             rnd_lst = [random.choice('0123456789abcdef') for _ in range(36)]
             rnd_lst[14] = '4'
