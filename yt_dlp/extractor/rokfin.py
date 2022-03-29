@@ -193,18 +193,10 @@ class RokfinIE(InfoExtractor):
             self.report_warning('login failed' + (': invalid username or password.' if type(resp_body) is str and re.search(r'invalid\s+username\s+or\s+password', resp_body, re.IGNORECASE) else ''))
             return
 
-        # Authorization phase:
-        #
-        # Steps 4-7:
         access_mgmt_tokens = self._get_OAuth_tokens()
         if not access_mgmt_tokens:
             self._logout()
             return
-
-        # Validation phase (step 8) skipped, i.e.
-        #
-        # (1) this extractor does not implement client-side ID-token validation;
-        # (2) Rokfin does not supply Subject Identifier.
 
         self._access_mgmt_tokens = access_mgmt_tokens
 
