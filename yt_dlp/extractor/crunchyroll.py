@@ -743,6 +743,21 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
             CrunchyrollBetaBaseIE.params = (api_domain, bucket, params)
         return CrunchyrollBetaBaseIE.params
 
+    def _redirect_from_beta(self, url, lang, internal_id, display_id, is_episode, iekey):
+        initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(url, display_id), display_id)
+        content_data = initial_state['content']['byId'][internal_id]
+        if is_episode:
+            video_id = content_data['external_id'].split('.')[1]
+            series_id = content_data['episode_metadata']['series_slug_title']
+        else:
+            series_id = content_data['slug_title']
+        series_id = re.sub(r'-{2,}', '-', series_id)
+        url = f'https://www.crunchyroll.com/{lang}{series_id}'
+        if is_episode:
+            url = url + f'/{display_id}-{video_id}'
+        self.to_screen(f'{display_id}: Not logged in. Redirecting to non-beta site - {url}')
+        return self.url_result(url, iekey, display_id)
+
 
 class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
     IE_NAME = 'crunchyroll:beta'
@@ -796,13 +811,7 @@ class CrunchyrollBetaIE(CrunchyrollBetaBaseIE):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
 
         if not self._get_cookies(url).get('etp_rt'):
-            initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(url, display_id), display_id)
-            episode_data = initial_state['content']['byId'][internal_id]
-            video_id = episode_data['external_id'].split('.')[1]
-            series_id = re.sub(r'-{2,}', '-', episode_data['episode_metadata']['series_slug_title'])
-            self.to_screen(f'{display_id}: Not logged in. Redirecting to https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}')
-            return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}/{display_id}-{video_id}',
-                                   CrunchyrollIE.ie_key(), video_id)
+            return self._redirect_from_beta(url, lang, internal_id, display_id, True, CrunchyrollIE.ie_key())
 
         api_domain, bucket, params = self._get_params(lang)
 
@@ -909,11 +918,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
         lang, internal_id, display_id = self._match_valid_url(url).group('lang', 'id', 'display_id')
 
         if not self._get_cookies(url).get('etp_rt'):
-            initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(url, display_id), display_id)
-            series_id = re.sub(r'-{2,}', '-', initial_state['content']['byId'][internal_id]['slug_title'])
-            self.to_screen(f'{display_id}: Not logged in. Switching extractors. New url: https://www.crunchyroll.com/{lang}{series_id}')
-            return self.url_result(f'https://www.crunchyroll.com/{lang}{series_id}',
-                                   CrunchyrollShowPlaylistIE.ie_key(), series_id)
+            return self._redirect_from_beta(url, lang, internal_id, display_id, False, CrunchyrollShowPlaylistIE.ie_key())
 
         api_domain, bucket, params = self._get_params(lang)
 
