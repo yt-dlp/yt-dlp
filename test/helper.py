@@ -196,15 +196,7 @@ def expect_dict(self, got_dict, expected_dict):
 
 def sanitize_got_info_dict(got_dict):
     IGNORED_FIELDS = (
-        # Format keys
-        'url', 'manifest_url', 'format', 'format_id', 'format_note', 'width', 'height', 'resolution',
-        'dynamic_range', 'tbr', 'abr', 'acodec', 'asr', 'vbr', 'fps', 'vcodec', 'container', 'filesize',
-        'filesize_approx', 'player_url', 'protocol', 'fragment_base_url', 'fragments', 'preference',
-        'language', 'language_preference', 'quality', 'source_preference', 'http_headers',
-        'stretched_ratio', 'no_resume', 'has_drm', 'downloader_options',
-
-        # RTMP formats
-        'page_url', 'app', 'play_path', 'tc_url', 'flash_version', 'rtmp_live', 'rtmp_conn', 'rtmp_protocol', 'rtmp_real_time',
+        *YoutubeDL._format_fields,
 
         # Lists
         'formats', 'thumbnails', 'subtitles', 'automatic_captions', 'comments', 'entries',
