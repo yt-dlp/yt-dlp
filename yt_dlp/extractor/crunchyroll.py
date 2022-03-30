@@ -9,7 +9,7 @@ import zlib
 from hashlib import sha1
 from math import pow, sqrt, floor
 from .common import InfoExtractor
-from .vrv import VRVIE
+from .vrv import VRVBaseIE
 from ..compat import (
     compat_b64decode,
     compat_etree_Element,
@@ -100,7 +100,7 @@ class CrunchyrollBaseIE(InfoExtractor):
             parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
 
 
-class CrunchyrollIE(CrunchyrollBaseIE, VRVIE):
+class CrunchyrollIE(CrunchyrollBaseIE, VRVBaseIE):
     IE_NAME = 'crunchyroll'
     _VALID_URL = r'https?://(?:(?P<prefix>www|m)\.)?(?P<url>crunchyroll\.(?:com|fr)/(?:media(?:-|/\?id=)|(?:[^/]*/){1,2}[^/?&]*?)(?P<id>[0-9]+))(?:[/?&]|$)'
     _TESTS = [{
