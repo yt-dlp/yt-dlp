@@ -1,10 +1,11 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import json
-
+from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
+
 from ..utils import (
+    dict_get,
     get_element_by_id,
     js_to_json,
     traverse_obj,
@@ -40,34 +41,34 @@ class CraftsyIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_name = self._match_id(url)
-        webpage = self._download_webpage(url, video_name)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
 
-        extra_data = get_element_by_id('vidstore-classes_class-video-player-js-extra', webpage)
-        video_data = json.loads(js_to_json(self._search_regex(
+        video_data = self._parse_json(self._search_regex(
             r'class_video_player_vars\s*=\s*({.*})\s*;',
-            extra_data, 'video data')))
+            get_element_by_id('vidstore-classes_class-video-player-js-extra', webpage),
+            'video data'), video_id, transform_source=js_to_json)
 
         account_id = traverse_obj(video_data, ('video_player', 'bc_account_id'))
-        class_title = video_data.get('class_title')
-        description = self._html_search_meta(['og:description', 'description'], webpage, default=None)
 
-        is_free = video_data.get('is_free')
-        user_has_access = video_data.get('user_has_access')
-        class_preview = traverse_obj(video_data, ('video_player', 'class_preview'))
         entries = []
+        class_preview = traverse_obj(video_data, ('video_player', 'class_preview'))
         if class_preview:
-            video_id = class_preview.get('video_id')
-            title = class_preview.get('title')
-            url = f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={video_id}'
-            entries.append(self.url_result(url, 'BrightcoveNew', video_id, title))
+            v_id = class_preview.get('video_id')
+            entries.append(self.url_result(
+                f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={v_id}',
+                BrightcoveNewIE, v_id, class_preview.get('title')))
 
-        if is_free or user_has_access:
-            lessons = video_data.get('lessons')
-            for lesson in lessons:
-                video_id = lesson.get('video_id')
-                title = lesson.get('title')
-                url = f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={video_id}'
-                entries.append(self.url_result(url, 'BrightcoveNew', video_id, title))
+        if dict_get(video_data, ('is_free', 'user_has_access')):
+            entries += [
+                self.url_result(
+                    f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={lesson["video_id"]}',
+                    BrightcoveNewIE, lesson['video_id'], lesson.get('title'))
+                for lesson in video_data['lessons']]
 
-        return self.playlist_result(entries, video_name, class_title, description)
+        return self.playlist_result(
+            entries,
+            video_id,
+            video_data.get('class_title'),
+            self._html_search_meta(['og:description', 'description'], webpage, default=None)
+        )
