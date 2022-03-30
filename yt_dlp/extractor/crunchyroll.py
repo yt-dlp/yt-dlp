@@ -951,7 +951,7 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
                         'ie_key': CrunchyrollBetaIE.ie_key(),
                         'id': episode_id,
                         'title': '%s Episode %s – %s' % (episode.get('season_title'), episode.get('episode'), episode.get('title')),
-                        'description': episode.get('description').replace(r'\r\n', '\n'),
+                        'description': try_get(episode, lambda x: x['description'].replace(r'\r\n', '\n')),
                         'duration': float_or_none(episode.get('duration_ms'), 1000),
                         'series': episode.get('series_title'),
                         'series_id': episode.get('series_id'),
