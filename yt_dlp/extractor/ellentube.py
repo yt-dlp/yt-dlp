@@ -26,7 +26,7 @@ class EllenTubeBaseIE(InfoExtractor):
         duration = None
         for entry in data.get('media'):
             if entry.get('id') == 'm3u8':
-                formats = self._extract_m3u8_formats(
+                formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                     entry['url'], video_id, 'mp4',
                     entry_protocol='m3u8_native', m3u8_id='hls')
                 duration = int_or_none(entry.get('duration'))
@@ -48,6 +48,7 @@ class EllenTubeBaseIE(InfoExtractor):
             'view_count': get_insight('view'),
             'like_count': get_insight('like'),
             'formats': formats,
+            'subtitles': subtitles,
         }
 
 
