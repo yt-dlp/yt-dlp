@@ -724,9 +724,8 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
         if not CrunchyrollBetaBaseIE.params:
             initial_state, app_config = self._get_beta_embedded_json(self._download_webpage(
                 f'https://beta.crunchyroll.com/{lang}', None, note='Retrieving main page'), None)
-            client_id = app_config['cxApiParams']['accountAuthClientId']
             api_domain = app_config['cxApiParams']['apiDomain']
-            basic_token = str(base64.b64encode(('%s:' % client_id).encode('ascii')), 'ascii')
+            basic_token = str(base64.b64encode(('%s:' % app_config['cxApiParams']['accountAuthClientId']).encode('ascii')), 'ascii')
             auth_response = self._download_json(
                 f'{api_domain}/auth/v1/token', None,
                 note='Authenticating with cookie',
