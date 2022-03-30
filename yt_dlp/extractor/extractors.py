@@ -350,7 +350,6 @@ from .dailymotion import (
     DailymotionIE,
     DailymotionPlaylistIE,
     DailymotionUserIE,
-    DailymotionPlayerIE
 )
 from .damtomo import (
     DamtomoRecordIE,
