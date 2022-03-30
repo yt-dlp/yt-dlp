@@ -245,16 +245,13 @@ class ZattooPlatformBaseIE(InfoExtractor):
         return info_dict
 
 
-class ZattooBaseIE(ZattooPlatformBaseIE):
-    _NETRC_MACHINE = 'zattoo'
-    _HOST = 'zattoo.com'
-
-
 def _make_valid_url(host):
     return rf'https?://(?:www\.)?{re.escape(host)}/watch/[^/]+?/(?P<id>[0-9]+)[^/]+(?:/(?P<recid>[0-9]+))?'
 
 
-class ZattooIE(ZattooBaseIE):
+class ZattooIE(ZattooPlatformBaseIE):
+    _NETRC_MACHINE = 'zattoo'
+    _HOST = 'zattoo.com'
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?zattoo.com/(?:
             (?:
