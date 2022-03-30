@@ -88,10 +88,9 @@ class ViuIE(ViuBaseIE):
             #     r'(/hlsc_)[a-z]+(\d+\.m3u8)',
             #     r'\1whe\2', video_data['href'])
             m3u8_url = video_data['href']
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
         self._sort_formats(formats)
 
-        subtitles = {}
         for key, value in video_data.items():
             mobj = re.match(r'^subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
             if not mobj:

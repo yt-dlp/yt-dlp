@@ -65,6 +65,7 @@ from .utils import (
     ExistingVideoReached,
     expand_path,
     ExtractorError,
+    filter_dict,
     float_or_none,
     format_bytes,
     format_field,
@@ -87,6 +88,7 @@ from .utils import (
     MaxDownloadsReached,
     merge_headers,
     network_exceptions,
+    NO_DEFAULT,
     number_of_digits,
     orderedSet,
     OUTTMPL_TYPES,
@@ -1150,8 +1152,10 @@ class YoutubeDL(object):
         na = self.params.get('outtmpl_na_placeholder', 'NA')
 
         def filename_sanitizer(key, value, restricted=self.params.get('restrictfilenames')):
-            return sanitize_filename(str(value), restricted=restricted,
-                                     is_id=re.search(r'(^|[_.])id(\.|$)', key))
+            return sanitize_filename(str(value), restricted=restricted, is_id=(
+                bool(re.search(r'(^|[_.])id(\.|$)', key))
+                if 'filename-sanitization' in self.params.get('compat_opts', [])
+                else NO_DEFAULT))
 
         sanitizer = sanitize if callable(sanitize) else filename_sanitizer
         sanitize = bool(sanitize)
@@ -1571,13 +1575,9 @@ class YoutubeDL(object):
             if not info:
                 return info
 
-            force_properties = dict(
-                (k, v) for k, v in ie_result.items() if v is not None)
-            for f in ('_type', 'url', 'id', 'extractor', 'extractor_key', 'ie_key'):
-                if f in force_properties:
-                    del force_properties[f]
             new_result = info.copy()
-            new_result.update(force_properties)
+            new_result.update(filter_dict(ie_result, lambda k, v: (
+                v is not None and k not in {'_type', 'url', 'id', 'extractor', 'extractor_key', 'ie_key'})))
 
             # Extracted info may not be a video result (i.e.
             # info.get('_type', 'video') != video) but rather an url or
@@ -1815,7 +1815,7 @@ class YoutubeDL(object):
         ie_result['entries'] = playlist_results
 
         # Write the updated info to json
-        if _infojson_written and self._write_info_json(
+        if _infojson_written is True and self._write_info_json(
                 'updated playlist', ie_result,
                 self.prepare_filename(ie_copy, 'pl_infojson'), overwrite=True) is None:
             return
@@ -2456,6 +2456,11 @@ class YoutubeDL(object):
         info_dict['__has_drm'] = any(f.get('has_drm') for f in formats)
         if not self.params.get('allow_unplayable_formats'):
             formats = [f for f in formats if not f.get('has_drm')]
+            if info_dict['__has_drm'] and all(
+                    f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
+                self.report_warning(
+                    'This video is DRM protected and only images are available for download. '
+                    'Use --list-formats to see them')
 
         get_from_start = not info_dict.get('is_live') or bool(self.params.get('live_from_start'))
         if not get_from_start:
@@ -2628,8 +2633,9 @@ class YoutubeDL(object):
 
         if not formats_to_download:
             if not self.params.get('ignore_no_formats_error'):
-                raise ExtractorError('Requested format is not available', expected=True,
-                                     video_id=info_dict['id'], ie=info_dict['extractor'])
+                raise ExtractorError(
+                    'Requested format is not available. Use --list-formats for a list of available formats',
+                    expected=True, video_id=info_dict['id'], ie=info_dict['extractor'])
             self.report_warning('Requested format is not available')
             # Process what we can, even without any available formats.
             formats_to_download = [{}]
@@ -3780,7 +3786,7 @@ class YoutubeDL(object):
         return encoding
 
     def _write_info_json(self, label, ie_result, infofn, overwrite=None):
-        ''' Write infojson and returns True = written, False = skip, None = error '''
+        ''' Write infojson and returns True = written, 'exists' = Already exists, False = skip, None = error '''
         if overwrite is None:
             overwrite = self.params.get('overwrites', True)
         if not self.params.get('writeinfojson'):
@@ -3792,14 +3798,15 @@ class YoutubeDL(object):
             return None
         elif not overwrite and os.path.exists(infofn):
             self.to_screen(f'[info] {label.title()} metadata is already present')
-        else:
-            self.to_screen(f'[info] Writing {label} metadata as JSON to: {infofn}')
-            try:
-                write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
-            except (OSError, IOError):
-                self.report_error(f'Cannot write {label} metadata to JSON file {infofn}')
-                return None
-        return True
+            return 'exists'
+
+        self.to_screen(f'[info] Writing {label} metadata as JSON to: {infofn}')
+        try:
+            write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
+            return True
+        except (OSError, IOError):
+            self.report_error(f'Cannot write {label} metadata to JSON file {infofn}')
+            return None
 
     def _write_description(self, label, ie_result, descfn):
         ''' Write description and returns True = written, False = skip, None = error '''
