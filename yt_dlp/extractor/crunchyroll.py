@@ -88,12 +88,10 @@ class CrunchyrollBaseIE(InfoExtractor):
 
     # Beta-specific, but needed for redirects
     def _get_beta_embedded_json(self, webpage, display_id):
-        initial_state = self._parse_json(
-            self._search_regex(r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'),
-            display_id)
-        app_config = self._parse_json(
-            self._search_regex(r'__APP_CONFIG__\s*=\s*({.+?})\s*;', webpage, 'app config'),
-            display_id)
+        initial_state = self._parse_json(self._search_regex(
+            r'__INITIAL_STATE__\s*=\s*({.+?})\s*;', webpage, 'initial state'), display_id)
+        app_config = self._parse_json(self._search_regex(
+            r'__APP_CONFIG__\s*=\s*({.+?})\s*;', webpage, 'app config'), display_id)
         return initial_state, app_config
 
     @staticmethod
@@ -727,14 +725,12 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
             api_domain = app_config['cxApiParams']['apiDomain']
             basic_token = str(base64.b64encode(('%s:' % app_config['cxApiParams']['accountAuthClientId']).encode('ascii')), 'ascii')
             auth_response = self._download_json(
-                f'{api_domain}/auth/v1/token', None,
-                note='Authenticating with cookie',
+                f'{api_domain}/auth/v1/token', None, note='Authenticating with cookie',
                 headers={
                     'Authorization': 'Basic ' + basic_token
                 }, data='grant_type=etp_rt_cookie'.encode('ascii'))
             policy_response = self._download_json(
-                f'{api_domain}/index/v2', None,
-                note='Retrieving signed policy',
+                f'{api_domain}/index/v2', None, note='Retrieving signed policy',
                 headers={
                     'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
                 })
@@ -926,21 +922,17 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
 
         series_response = self._download_json(
             f'{api_domain}/cms/v2{bucket}/series/{internal_id}', display_id,
-            note='Retrieving series metadata',
-            query=params)
+            note='Retrieving series metadata', query=params)
 
         seasons_response = self._download_json(
             f'{api_domain}/cms/v2{bucket}/seasons?series_id={internal_id}', display_id,
-            note='Retrieving season list',
-            query=params)
+            note='Retrieving season list', query=params)
 
         def entries():
             for season in seasons_response['items']:
-                season_id = season['id']
                 episodes_response = self._download_json(
-                    f'{api_domain}/cms/v2{bucket}/episodes?season_id={season_id}', display_id,
-                    note='Retrieving episode list for %s' % season.get('slug_title'),
-                    query=params)
+                    f'{api_domain}/cms/v2{bucket}/episodes?season_id={season["id"]}', display_id,
+                    note=f'Retrieving episode list for {season.get("slug_title")}', query=params)
                 for episode in episodes_response['items']:
                     episode_id = episode['id']
                     episode_display_id = episode['slug_title']
