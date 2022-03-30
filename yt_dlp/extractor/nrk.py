@@ -248,8 +248,7 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
-            'upload_date': unified_strdate(
-                str_or_none(try_get(manifest, lambda x: x['availability']['onDemand']['from'])))
+            'upload_date': unified_strdate(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str))
         }
 
         if is_series:
