@@ -250,8 +250,8 @@ class ZattooBaseIE(ZattooPlatformBaseIE):
     _HOST = 'zattoo.com'
 
 
-def _make_valid_url(tmpl, host):
-    return tmpl % re.escape(host)
+def _make_valid_url(host):
+    return rf'https?://(?:www\.)?{re.escape(host)}/watch/[^/]+?/(?P<id>[0-9]+)[^/]+(?:/(?P<recid>[0-9]+))?'
 
 
 class ZattooIE(ZattooBaseIE):
@@ -325,47 +325,11 @@ class ZattooIE(ZattooBaseIE):
         raise ExtractorError('An extractor error has occured.')
 
 
-class ZattooOldIE(ZattooBaseIE):
-    _VALID_URL_TEMPLATE = r'https?://(?:www\.)?%s/watch/[^/]+?/(?P<id>[0-9]+)[^/]+(?:/(?P<recid>[0-9]+))?'
-    _VALID_URL = _make_valid_url(_VALID_URL_TEMPLATE, ZattooBaseIE._HOST)
-
-    # Since regular videos are only available for 7 days and recorded videos
-    # are only available for a specific user, we cannot have detailed tests.
-    _TESTS = [{
-        'url': 'https://zattoo.com/watch/prosieben/130671867-maze-runner-die-auserwaehlten-in-der-brandwueste',
-        'only_matching': True,
-    }, {
-        'url': 'https://zattoo.com/watch/srf_zwei/132905652-eishockey-spengler-cup/102791477/1512211800000/1514433500000/92000',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        video_id, record_id = self._match_valid_url(url).groups()
-        return self._extract_video(video_id, record_id=record_id)
-
-
-class ZattooOldLiveIE(ZattooBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?zattoo\.com/watch/(?P<id>[^/]+)'
-
-    _TEST = {
-        'url': 'https://zattoo.com/watch/srf1',
-        'only_matching': True,
-    }
-
-    @classmethod
-    def suitable(cls, url):
-        return False if ZattooOldIE.suitable(url) else super(ZattooOldLiveIE, cls).suitable(url)
-
-    def _real_extract(self, url):
-        channel_name = self._match_id(url)
-        return self._extract_live(channel_name)
-
-
-class NetPlusIE(ZattooOldIE):
+class NetPlusIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'netplus'
     _HOST = 'netplus.tv'
     _API_HOST = 'www.%s' % _HOST
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://www.netplus.tv/watch/abc/123-abc',
@@ -373,10 +337,10 @@ class NetPlusIE(ZattooOldIE):
     }]
 
 
-class MNetTVIE(ZattooOldIE):
+class MNetTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'mnettv'
     _HOST = 'tvplus.m-net.de'
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://tvplus.m-net.de/watch/abc/123-abc',
@@ -384,10 +348,10 @@ class MNetTVIE(ZattooOldIE):
     }]
 
 
-class WalyTVIE(ZattooOldIE):
+class WalyTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'walytv'
     _HOST = 'player.waly.tv'
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://player.waly.tv/watch/abc/123-abc',
@@ -395,11 +359,11 @@ class WalyTVIE(ZattooOldIE):
     }]
 
 
-class BBVTVIE(ZattooOldIE):
+class BBVTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'bbvtv'
     _HOST = 'bbv-tv.net'
     _API_HOST = 'www.%s' % _HOST
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://www.bbv-tv.net/watch/abc/123-abc',
@@ -407,11 +371,11 @@ class BBVTVIE(ZattooOldIE):
     }]
 
 
-class VTXTVIE(ZattooOldIE):
+class VTXTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'vtxtv'
     _HOST = 'vtxtv.ch'
     _API_HOST = 'www.%s' % _HOST
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://www.vtxtv.ch/watch/abc/123-abc',
@@ -419,10 +383,10 @@ class VTXTVIE(ZattooOldIE):
     }]
 
 
-class GlattvisionTVIE(ZattooOldIE):
+class GlattvisionTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'glattvisiontv'
     _HOST = 'iptv.glattvision.ch'
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://iptv.glattvision.ch/watch/abc/123-abc',
@@ -430,11 +394,11 @@ class GlattvisionTVIE(ZattooOldIE):
     }]
 
 
-class SAKTVIE(ZattooOldIE):
+class SAKTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'saktv'
     _HOST = 'saktv.ch'
     _API_HOST = 'www.%s' % _HOST
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://www.saktv.ch/watch/abc/123-abc',
@@ -442,10 +406,10 @@ class SAKTVIE(ZattooOldIE):
     }]
 
 
-class EWETVIE(ZattooOldIE):
+class EWETVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'ewetv'
     _HOST = 'tvonline.ewe.de'
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://tvonline.ewe.de/watch/abc/123-abc',
@@ -453,11 +417,11 @@ class EWETVIE(ZattooOldIE):
     }]
 
 
-class QuantumTVIE(ZattooOldIE):
+class QuantumTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'quantumtv'
     _HOST = 'quantum-tv.com'
     _API_HOST = 'www.%s' % _HOST
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://www.quantum-tv.com/watch/abc/123-abc',
@@ -465,10 +429,10 @@ class QuantumTVIE(ZattooOldIE):
     }]
 
 
-class OsnatelTVIE(ZattooOldIE):
+class OsnatelTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'osnateltv'
     _HOST = 'tvonline.osnatel.de'
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://tvonline.osnatel.de/watch/abc/123-abc',
@@ -476,11 +440,11 @@ class OsnatelTVIE(ZattooOldIE):
     }]
 
 
-class EinsUndEinsTVIE(ZattooOldIE):
+class EinsUndEinsTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = '1und1tv'
     _HOST = '1und1.tv'
     _API_HOST = 'www.%s' % _HOST
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://www.1und1.tv/watch/abc/123-abc',
@@ -488,10 +452,10 @@ class EinsUndEinsTVIE(ZattooOldIE):
     }]
 
 
-class SaltTVIE(ZattooOldIE):
+class SaltTVIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'salttv'
     _HOST = 'tv.salt.ch'
-    _VALID_URL = _make_valid_url(ZattooOldIE._VALID_URL_TEMPLATE, _HOST)
+    _VALID_URL = _make_valid_url(_HOST)
 
     _TESTS = [{
         'url': 'https://tv.salt.ch/watch/abc/123-abc',
