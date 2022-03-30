@@ -97,7 +97,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                             (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
-                        (?:\/|\=)(?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                        [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
     IE_NAME = 'dailymotion'
     _TESTS = [{
