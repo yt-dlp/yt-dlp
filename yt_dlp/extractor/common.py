@@ -49,6 +49,7 @@ from ..utils import (
     error_to_compat_str,
     extract_attributes,
     ExtractorError,
+    filter_dict,
     fix_xml_ampersands,
     float_or_none,
     format_field,
@@ -1588,7 +1589,7 @@ class InfoExtractor(object):
                     break
         traverse_json_ld(json_ld)
 
-        return dict((k, v) for k, v in info.items() if v is not None)
+        return filter_dict(info)
 
     def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
         return self._parse_json(
