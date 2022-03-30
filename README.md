@@ -741,6 +741,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --prefer-insecure                Use an unencrypted connection to retrieve
                                      information about the video (Currently
                                      supported only for YouTube)
+    --no-persistent-connections      Do not keep the connection open after a request
+                                     (Currently only applies to urllib3 backend)
     --add-header FIELD:VALUE         Specify a custom HTTP header and its value,
                                      separated by a colon ":". You can use this
                                      option multiple times

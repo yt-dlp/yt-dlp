@@ -781,6 +781,7 @@ def parse_options(argv=None):
         'fixup': opts.fixup,
         'source_address': opts.source_address,
         'call_home': opts.call_home,
+        'no_persistent_connections': opts.no_persistent_connections,
         'sleep_interval_requests': opts.sleep_interval_requests,
         'sleep_interval': opts.sleep_interval,
         'max_sleep_interval': opts.max_sleep_interval,

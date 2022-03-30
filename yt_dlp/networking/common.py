@@ -333,6 +333,9 @@ class BackendManager:
         req.proxy = proxy or req.proxy or self.proxy
         req.timeout = req.timeout or self.socket_timeout
 
+        if self.ydl.params.get('no_persistent_connections', False) is True:
+            req.headers['Connection'] = 'close'
+
         for handler in reversed(self.handlers):
             if not handler.can_handle(req):
                 continue

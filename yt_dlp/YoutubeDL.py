@@ -334,6 +334,7 @@ class YoutubeDL(object):
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
+    no_persistent_connections: Do not keep the connection open after a request
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
     http_headers:      A dictionary of custom headers to be used for all requests
