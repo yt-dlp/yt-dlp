@@ -95,7 +95,7 @@ class FFmpegPostProcessor(PostProcessor):
 
         def get_ffmpeg_version(path, prog):
             if path in self._version_cache:
-                self._versions[path], self._features = self._version_cache[path], self._features_cache.get(path, {})
+                self._versions[prog], self._features = self._version_cache[path], self._features_cache.get(path, {})
                 return
             out = _get_exe_version_output(path, ['-bsfs'], to_screen=self.write_debug)
             ver = detect_exe_version(out) if out else False
