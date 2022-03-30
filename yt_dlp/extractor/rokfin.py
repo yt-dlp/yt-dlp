@@ -1,7 +1,6 @@
 # coding: utf-8
 import itertools
 import json
-import random
 import re
 import urllib.parse
 from datetime import datetime
@@ -182,22 +181,17 @@ class RokfinIE(InfoExtractor):
             self.report_warning('login failed unexpectedly: Rokfin extractor must be updated')
             self._clear_cookies()
             return
-
         resp_body = self._download_webpage(
             authentication_point_url, None, note='logging in', fatal=False, expected_status=404, encoding='utf-8',
             data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''}))
-        # rememberMe=off resets the session when yt-dlp exits:
-        # https://web.archive.org/web/20220218003425/https://wjw465150.gitbooks.io/keycloak-documentation/content/server_admin/topics/login-settings/remember-me.html
         if not self._authentication_active():
             self._clear_cookies()
             self.report_warning('login failed' + (': invalid username and/or password.' if type(resp_body) is str and re.search(r'invalid\s+username\s+or\s+password', resp_body, re.IGNORECASE) else ''))
             return
-
         access_mgmt_tokens = self._get_OAuth_tokens()
         if not access_mgmt_tokens:
             self._logout()
             return
-
         self._access_mgmt_tokens = access_mgmt_tokens
 
     def _logout(self):
@@ -247,47 +241,32 @@ class RokfinIE(InfoExtractor):
         authorization_hdr_val = try_get(self._access_mgmt_tokens, lambda tokens: tokens['token_type'] + ' ' + tokens['access_token'])
         if authorization_hdr_val:
             headers['authorization'] = authorization_hdr_val
-        return self._download_json(
-            url_or_request, video_id, note='Downloading JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
-            errnote='Unable to download JSON metadata' + (' [logged in]' if 'authorization' in headers else ''),
-            headers=headers, query=query)
+        return self._download_json(url_or_request, video_id, headers=headers, query=query)
 
     def _get_OAuth_tokens(self):
-        PARTIAL_USER_CONSENT_URL_STEP_4_5 = urllib.parse.urlparse('https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Fsilent-check-sso.html&response_mode=fragment&response_type=code&scope=openid&prompt=none')
-
-        # From https://www.rokfin.com/static/js/2.*.chunk.js
-        def random_str():
-            rnd_lst = [random.choice('0123456789abcdef') for _ in range(36)]
-            rnd_lst[14] = '4'
-            rnd_lst[19] = '0123456789abcdef'[3 & ord(rnd_lst[19]) | 8]
-            rnd_lst[8] = rnd_lst[13] = rnd_lst[18] = rnd_lst[23] = '-'
-            return ''.join(rnd_lst)
-
-        user_consent_url_step_4_5 = PARTIAL_USER_CONSENT_URL_STEP_4_5._replace(query=urllib.parse.urlencode((lambda d: d.update(state=random_str(), nonce=random_str()) or d)(dict(urllib.parse.parse_qsl(PARTIAL_USER_CONSENT_URL_STEP_4_5.query))))).geturl()
-
-        urlh = (self._download_webpage_handle(
-            user_consent_url_step_4_5, None, note='granting user authorization', errnote='user authorization rejected by Rokfin', fatal=False, encoding='utf-8') or (None, None))[1]
+        urlh = self._request_webpage(
+            'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth', None,
+            note='granting user authorization', errnote='user authorization rejected by Rokfin',
+            query={'client_id': 'web', 'redirect_uri': 'https://rokfin.com/silent-check-sso.html',
+                   'response_mode': 'fragment', 'response_type': 'code', 'scope': 'openid',
+                   'prompt': 'none'}) or None
 
         def parse_authorization_code(urlh):
             codes = urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.geturl()).fragment).get('code')
             return codes[0] if codes else None
-
         authorization_code = parse_authorization_code(urlh)
         if not authorization_code:
             self.write_debug('authorization failed: missing authorization code')
             return None
-
         # Steps 6 & 7 request and acquire ID Token & Access Token:
         access_token = self._download_json(
             self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, None, note='getting access credentials', fatal=False, encoding='utf-8',
             data=urlencode_postdata(
                 {'code': authorization_code, 'grant_type': 'authorization_code', 'client_id': 'web',
                  'redirect_uri': 'https://rokfin.com/silent-check-sso.html'})) or {}
-
         # Usage: --extractor-args "rokfin:print-user-info"  # For testing by those who don't have premium access.
         if self._configuration_arg('print_user_info'):
             self.to_screen(self._download_json('https://prod-api-v2.production.rokfin.com/api/v2/user/me', None, note='obtaining user info', errnote='could not obtain user info', fatal=False, headers={'authorization': access_token['token_type'] + ' ' + access_token['access_token']}))
-
         return access_token
 
     def _clear_cookies(self):
@@ -325,7 +304,6 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
             'id': '271',
         },
     }]
-    _NETRC_MACHINE = False
 
     def _real_extract(self, url):
         list_id = self._match_id(url)
@@ -346,7 +324,6 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
             'description': 'md5:bb622b1bca100209b91cd685f7847f06',
         },
     }]
-    _NETRC_MACHINE = False
 
     _TABS = {
         'new': 'posts',
@@ -397,7 +374,6 @@ class RokfinSearchIE(SearchInfoExtractor):
     IE_NAME = 'rokfin:search'
     IE_DESC = 'Rokfin Search'
     _SEARCH_KEY = 'rkfnsearch'
-
     _TYPES = {
         'video': (('id', 'raw'), 'post'),
         'audio': (('id', 'raw'), 'post'),
@@ -405,7 +381,6 @@ class RokfinSearchIE(SearchInfoExtractor):
         'dead_stream': (('content_id', 'raw'), 'stream'),
         'stack': (('content_id', 'raw'), 'stack'),
     }
-    _NETRC_MACHINE = False
     _BASE_URL = 'https://rokfin.com'
     _db_url = None
     _db_access_key = None
