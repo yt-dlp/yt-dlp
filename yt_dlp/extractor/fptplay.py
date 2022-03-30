@@ -2,20 +2,19 @@
 from __future__ import unicode_literals
 
 import hashlib
-import re
 import time
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
-    int_or_none,
     join_nonempty,
+    strip_or_none,
 )
 
 
 class FptplayIE(InfoExtractor):
-    _VALID_URL = r'https?://fptplay\.vn/(?P<type>xem-video)/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>[^/]+)?/?(?:[?#]|$)|)'
+    _VALID_URL = r'https?://fptplay\.vn/xem-video/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>[^/]+)?/?(?:[?#]|$)|)'
     _GEO_COUNTRIES = ['VN']
     IE_NAME = 'fptplay'
     IE_DESC = 'fptplay.vn'
@@ -52,24 +51,21 @@ class FptplayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        type_url, video_id, slug_episode = self._match_valid_url(url).group('type', 'id', 'episode')
+        video_id, slug_episode = self._match_valid_url(url).group('id', 'episode')
         webpage = self._download_webpage(url, video_id=video_id, fatal=False) or ''
         title = self._search_regex(
-            r'(?s)<h4\s+class="mb-1 text-2xl text-white"[^>]*>(.+)</h4>', webpage, 'title')
-        if title:
-            real_episode = self._search_regex(
-                r'<p.+title="(?P<episode>[^">]+)"\s+class="epi-title active"', webpage, 'episode')
-            title = f'{title.strip()} - {real_episode}'
-        else:
-            title = join_nonempty(
-                self._html_search_meta(('og:title', 'twitter:title'), webpage), slug_episode, delim=' - ')
+            r'(?s)<h4\s+class="mb-1 text-2xl text-white"[^>]*>(.+)</h4>', webpage, 'title', fatal=False)
+        real_episode = slug_episode if not title else self._search_regex(
+            r'<p.+title="(?P<episode>[^">]+)"\s+class="epi-title active"', webpage, 'episode', fatal=False)
+        title = strip_or_none(title) or self._html_search_meta(('og:title', 'twitter:title'), webpage)
+
         info = self._download_json(
             self.get_api_with_st_token(video_id, int(slug_episode) - 1 if slug_episode else 0), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(info['data']['url'], video_id, 'mp4')
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': title,
+            'title': join_nonempty(title, real_episode, delim=' - '),
             'description': (
                 clean_html(self._search_regex(r'<p\s+class="overflow-hidden"[^>]*>(.+)</p>', webpage, 'description'))
                 or self._html_search_meta(('og:description', 'twitter:description'), webpage)),
