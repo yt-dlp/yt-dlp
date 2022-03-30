@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import absolute_import, division, unicode_literals
-
 # Taken from https://github.com/add-ons/plugin.video.viervijfzes/blob/master/resources/lib/viervijfzes/auth_awsidp.py
 # with some small modifications (replacement of six and requests, removal of unused function, reformatting)
 # This file is licensed as GPL-3 from https://github.com/add-ons/plugin.video.viervijfzes:
