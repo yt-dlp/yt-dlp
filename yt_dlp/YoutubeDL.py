@@ -46,8 +46,8 @@ from .cookies import load_cookies
 from .networking.common import (
     Request,
     BackendManager,
-    get_std_headers,
-    HEADRequest
+    make_std_headers,
+    HEADRequest, UniqueHTTPHeaderStore
 )
 
 from .networking.utils import has_certifi
@@ -660,9 +660,8 @@ class YoutubeDL(object):
             else self.build_format_selector(self.params['format']))
 
         # Set http_headers defaults according to std_headers
-        headers = get_std_headers()
-        headers.update(self.params.get('http_headers', {}))
-        self.params['http_headers'] = headers
+        self.params['http_headers'] = UniqueHTTPHeaderStore(
+            make_std_headers(), self.params.get('http_headers', {}))
 
         self.default_session = self._setup_backends()
 
@@ -2266,8 +2265,7 @@ class YoutubeDL(object):
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = self.params['http_headers'].copy()
-        res.update(info_dict.get('http_headers') or {})
+        res = UniqueHTTPHeaderStore(self.params['http_headers'], info_dict.get('http_headers'))
         cookies = self._calc_cookies(info_dict)
         if cookies:
             res['Cookie'] = cookies

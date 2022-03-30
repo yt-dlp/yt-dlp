@@ -58,7 +58,7 @@ from .postprocessor import (
 )
 from .YoutubeDL import YoutubeDL
 
-from .networking.common import get_std_headers
+from .networking.common import make_std_headers
 
 
 def get_urls(urls, batchfile, verbose):
@@ -822,7 +822,7 @@ def _real_main(argv=None):
 
     # Dump user agent
     if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=get_std_headers()['User-Agent'])
+        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=make_std_headers()['User-Agent'])
         write_string(f'{ua}\n', out=sys.stdout)
         sys.exit(0)
 

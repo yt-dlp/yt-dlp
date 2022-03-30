@@ -18,7 +18,7 @@ from ..compat import (
     compat_urlparse, compat_HTTPError, compat_brotli
 )
 
-from .common import HTTPResponse, BackendAdapter, Request, get_std_headers
+from .common import HTTPResponse, BackendAdapter, Request, make_std_headers
 from .socksproxy import sockssocket
 from .utils import handle_youtubedl_headers, make_ssl_context, socks_create_proxy_args
 from ..utils import (
@@ -166,15 +166,14 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         # Substitute URL if any change after escaping
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
-        # TODO
-        headers = get_std_headers(supported_encodings=SUPPORTED_ENCODINGS)
-        headers.update(self._params.get('http_headers'))
-        for h, v in headers.items():
+
+        for h, v in self._params.get('http_headers', make_std_headers()).items():
             # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:
                 req.add_header(h, v)
-
+        if 'Accept-encoding' not in req.headers:
+            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
         req.headers = handle_youtubedl_headers(req.headers)
 
         return req
