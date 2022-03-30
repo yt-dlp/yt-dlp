@@ -962,9 +962,4 @@ class CrunchyrollBetaShowIE(CrunchyrollBetaBaseIE):
                         'episode_number': episode.get('sequence_number')
                     }
 
-        return {
-            '_type': 'playlist',
-            'id': internal_id,
-            'title': series_response['title'],
-            'entries': entries(),
-        }
+        return self.playlist_result(entries(), internal_id, series_response.get('title'))
