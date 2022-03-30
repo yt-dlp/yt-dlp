@@ -2019,7 +2019,7 @@ from .vidio import (
     VidioLiveIE
 )
 from .vidlii import VidLiiIE
-from .vier import VierIE, VierVideosIE
+from .vier import VierIE, VierVideosIE, VierVijfKijkOnlineIE
 from .viewlift import (
     ViewLiftIE,
     ViewLiftEmbedIE,

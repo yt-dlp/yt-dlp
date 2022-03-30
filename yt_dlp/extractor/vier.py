@@ -1,6 +1,8 @@
 import re
+import json
 import itertools
 
+from .vier_auth_aws import AwsIdp
 from .common import InfoExtractor
 from ..utils import (
     urlencode_postdata,
@@ -9,16 +11,118 @@ from ..utils import (
 )
 
 
+class VierVijfKijkOnlineIE(InfoExtractor):
+    IE_NAME = 'viervijfkijkonline'
+    IE_DESC = 'vier.be and vijf.be - Kijk Online'
+    _VALID_URL = r'https?://(?:www\.)?(?P<site>vier|vijf|goplay)\.be/video/(?P<series>(?!v3)[^/]+)/(?P<season>[^/]+)(/(?P<episode>[^/]+)|)'
+    _NETRC_MACHINE = 'vier'
+    _TESTS = [{
+        'url': 'https://www.vier.be/video/hotel-romantiek/2017/hotel-romantiek-aflevering-1',
+        'info_dict': {
+            'id': 'ebcd3c39-10a2-4730-b137-b0e7aaed247c',
+            'ext': 'mp4',
+            'title': 'Hotel Römantiek - Seizoen 1 - Aflevering 1',
+            'series': 'Hotel Römantiek',
+            'season_number': 1,
+            'episode_number': 1,
+        },
+        'skip': 'This video is only available for registered users'
+    }, {
+        'url': 'https://www.vier.be/video/blockbusters/in-juli-en-augustus-summer-classics',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.vier.be/video/achter-de-rug/2017/achter-de-rug-seizoen-1-aflevering-6',
+        'only_matching': True,
+    }]
+
+    def _real_initialize(self):
+        self._logged_in = False
+        self.id_token = ''
+
+    def _login(self):
+
+        username, password = self._get_login_info()
+        if username is None or password is None:
+            self.raise_login_required()
+
+        aws = AwsIdp(pool_id='eu-west-1_dViSsKM5Y', client_id='6s1h851s8uplco5h6mqh1jac8m')
+        self.id_token, _ = aws.authenticate(username=username, password=password)
+        self._logged_in = True
+
+    def _real_extract(self, url):
+
+        if not self._logged_in:
+            self._login()
+
+        if "#" in url:
+            url = url.split("#")[0]
+
+        webpage = self._download_webpage(url, None)
+
+        title = self._html_search_regex(
+            r'<meta\s*property="og:title"\s*content="(.+?)"\s*/>',
+            webpage, 'title')
+
+        title_split = title.split(' - ')
+        series = title_split[0].strip()
+        if len(title_split) == 3:
+            if 'Seizoen' in title_split[1]:
+                season = title_split[1].split('Seizoen')[1].strip()
+            else:
+                season = title_split[1].strip()
+            episode = title_split[2].split('Aflevering')[1].strip()
+        elif len(title_split) == 1:
+            season = None
+            episode = None
+        else:
+            season = None
+            episode = title_split[1].split('Aflevering')[1].strip()
+
+        video_data = self._html_search_regex(
+            r'<div data-hero="([^"]*)"',
+            webpage, 'video_data')
+
+        playlists = json.loads(video_data.replace('&quot;', '"'))['data']['playlists']
+        wanted_playlist = [x for x in playlists if x['pageInfo']['url'] in url][0]
+        wanted_episode = [x for x in wanted_playlist['episodes'] if x['pageInfo']['url'] == url][0] or [x for x in wanted_playlist['episodes'] if x['pageInfo']['url'] in url][0]
+        video_id = wanted_episode['videoUuid']
+
+        api_url = 'https://api.viervijfzes.be/content/%s' % (video_id)
+        api_headers = {
+            'authorization': self.id_token,
+        }
+        api = self._download_json(
+            api_url,
+            None, note='Peforming API Call', errnote='API Call Failed',
+            headers=api_headers,
+        )
+
+        formats = []
+        formats.extend(self._extract_m3u8_formats(
+            api['video']['S'], video_id, 'mp4', entry_protocol='m3u8_native',
+            m3u8_id='HLS', fatal=False))
+
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': title,
+            'series': series,
+            'season_number': int_or_none(season),
+            'episode_number': int_or_none(episode),
+            'formats': formats,
+        }
+
+
 class VierIE(InfoExtractor):
     IE_NAME = 'vier'
     IE_DESC = 'vier.be and vijf.be'
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:www\.)?(?P<site>vier|vijf)\.be/
+                        (?:www\.)?(?P<site>vier|vijf|goplay)\.be/
                         (?:
                             (?:
-                                [^/]+/videos|
-                                video(?:/[^/]+)*
+                                [^/]+/videos
                             )/
                             (?P<display_id>[^/]+)(?:/(?P<id>\d+))?|
                             (?:
@@ -97,12 +201,6 @@ class VierIE(InfoExtractor):
     }, {
         'url': 'https://www.vijf.be/embed/video/public/4093',
         'only_matching': True,
-    }, {
-        'url': 'https://www.vier.be/video/blockbusters/in-juli-en-augustus-summer-classics',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.vier.be/video/achter-de-rug/2017/achter-de-rug-seizoen-1-aflevering-6',
-        'only_matching': True,
     }]
 
     def _real_initialize(self):
@@ -132,7 +230,7 @@ class VierIE(InfoExtractor):
             self._logged_in = True
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
+        mobj = re.match(self._VALID_URL, url)
         embed_id = mobj.group('embed_id')
         display_id = mobj.group('display_id') or embed_id
         video_id = mobj.group('id') or embed_id
@@ -231,7 +329,7 @@ class VierVideosIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
+        mobj = re.match(self._VALID_URL, url)
         program = mobj.group('program')
         site = mobj.group('site')
 
