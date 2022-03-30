@@ -26,6 +26,11 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
         'Origin': 'https://www.dailymotion.com',
     }
     _NETRC_MACHINE = 'dailymotion'
+    _COMMON_MEDIA_FIELDS = '''description
+      geoblockedCountries {
+        allowed
+      }
+      xid'''
 
     def _get_dailymotion_cookies(self):
         return self._get_cookies('https://www.dailymotion.com/')
@@ -88,139 +93,6 @@ class DailymotionBaseInfoExtractor(InfoExtractor):
         if not obj:
             raise ExtractorError(resp['errors'][0]['message'], expected=True)
         return obj
-
-
-class DailymotionIE(DailymotionBaseInfoExtractor):
-    _VALID_URL = r'''(?ix)
-                    https?://
-                        (?:
-                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
-                            (?:www\.)?lequipe\.fr/video
-                        )
-                        (?:\/|\=)(?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
-                    '''
-    IE_NAME = 'dailymotion'
-    _TESTS = [{
-        'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
-        'md5': '074b95bdee76b9e3654137aee9c79dfe',
-        'info_dict': {
-            'id': 'x5kesuj',
-            'ext': 'mp4',
-            'title': 'Office Christmas Party Review –  Jason Bateman, Olivia Munn, T.J. Miller',
-            'description': 'Office Christmas Party Review -  Jason Bateman, Olivia Munn, T.J. Miller',
-            'duration': 187,
-            'timestamp': 1493651285,
-            'upload_date': '20170501',
-            'uploader': 'Deadline',
-            'uploader_id': 'x1xm8ri',
-            'age_limit': 0,
-        },
-    }, {
-        'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
-        'md5': 'e2f9717c6604773f963f069ca53a07f8',
-        'info_dict': {
-            'id': 'x89eyek',
-            'ext': 'mp4',
-            'title': "En quête d'esprit du 27/03/2022",
-            'description': 'md5:66542b9f4df2eb23f314fc097488e553',
-            'duration': 2756,
-            'timestamp': 1648383669,
-            'upload_date': '20220327',
-            'uploader': 'CNEWS',
-            'uploader_id': 'x24vth',
-            'age_limit': 0,
-            'view_count': int,
-            'like_count': int,
-            'tags': ['en_quete_d_esprit'],
-            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
-        }
-    }, {
-        'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
-        'md5': '2137c41a8e78554bb09225b8eb322406',
-        'info_dict': {
-            'id': 'x2iuewm',
-            'ext': 'mp4',
-            'title': 'Steam Machine Models, Pricing Listed on Steam Store - IGN News',
-            'description': 'Several come bundled with the Steam Controller.',
-            'thumbnail': r're:^https?:.*\.(?:jpg|png)$',
-            'duration': 74,
-            'timestamp': 1425657362,
-            'upload_date': '20150306',
-            'uploader': 'IGN',
-            'uploader_id': 'xijv66',
-            'age_limit': 0,
-            'view_count': int,
-        },
-        'skip': 'video gone',
-    }, {
-        # Vevo video
-        'url': 'http://www.dailymotion.com/video/x149uew_katy-perry-roar-official_musi',
-        'info_dict': {
-            'title': 'Roar (Official)',
-            'id': 'USUV71301934',
-            'ext': 'mp4',
-            'uploader': 'Katy Perry',
-            'upload_date': '20130905',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': 'VEVO is only available in some countries',
-    }, {
-        # age-restricted video
-        'url': 'http://www.dailymotion.com/video/xyh2zz_leanna-decker-cyber-girl-of-the-year-desires-nude-playboy-plus_redband',
-        'md5': '0d667a7b9cebecc3c89ee93099c4159d',
-        'info_dict': {
-            'id': 'xyh2zz',
-            'ext': 'mp4',
-            'title': 'Leanna Decker - Cyber Girl Of The Year Desires Nude [Playboy Plus]',
-            'uploader': 'HotWaves1012',
-            'age_limit': 18,
-        },
-        'skip': 'video gone',
-    }, {
-        # geo-restricted, player v5
-        'url': 'http://www.dailymotion.com/video/xhza0o',
-        'only_matching': True,
-    }, {
-        # with subtitles
-        'url': 'http://www.dailymotion.com/video/x20su5f_the-power-of-nightmares-1-the-rise-of-the-politics-of-fear-bbc-2004_news',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.dailymotion.com/swf/video/x3n92nf',
-        'only_matching': True,
-    }, {
-        'url': 'http://www.dailymotion.com/swf/x3ss1m_funny-magic-trick-barry-and-stuart_fun',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.lequipe.fr/video/x791mem',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.lequipe.fr/video/k7MtHciueyTcrFtFKA2',
-        'only_matching': True,
-    }, {
-        'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
-        'only_matching': True,
-    }]
-    _GEO_BYPASS = False
-    _COMMON_MEDIA_FIELDS = '''description
-      geoblockedCountries {
-        allowed
-      }
-      xid'''
-
-    @staticmethod
-    def _extract_urls(webpage):
-        urls = []
-        # Look for embedded Dailymotion player
-        # https://developer.dailymotion.com/player#player-parameters
-        for mobj in re.finditer(
-                r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1', webpage):
-            urls.append(unescapeHTML(mobj.group('url')))
-        for mobj in re.finditer(
-                r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
-            urls.append('https://www.dailymotion.com/embed/video/' + mobj.group('id'))
-        return urls
 
     def _real_extract(self, url):
         video_id, playlist_id = self._match_valid_url(url).groups()
@@ -337,6 +209,116 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         }
 
 
+class DailymotionIE(DailymotionBaseInfoExtractor):
+    _VALID_URL = r'''(?ix)
+                    https?://
+                        (?:
+                            (?:(?:www|touch)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:embed|swf|\#)/)?video|swf)|
+                            (?:www\.)?lequipe\.fr/video
+                        )
+                        /(?P<id>[^/?_]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                    '''
+    IE_NAME = 'dailymotion'
+    _TESTS = [{
+        'url': 'http://www.dailymotion.com/video/x5kesuj_office-christmas-party-review-jason-bateman-olivia-munn-t-j-miller_news',
+        'md5': '074b95bdee76b9e3654137aee9c79dfe',
+        'info_dict': {
+            'id': 'x5kesuj',
+            'ext': 'mp4',
+            'title': 'Office Christmas Party Review –  Jason Bateman, Olivia Munn, T.J. Miller',
+            'description': 'Office Christmas Party Review -  Jason Bateman, Olivia Munn, T.J. Miller',
+            'duration': 187,
+            'timestamp': 1493651285,
+            'upload_date': '20170501',
+            'uploader': 'Deadline',
+            'uploader_id': 'x1xm8ri',
+            'age_limit': 0,
+        },
+    }, {
+        'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
+        'md5': '2137c41a8e78554bb09225b8eb322406',
+        'info_dict': {
+            'id': 'x2iuewm',
+            'ext': 'mp4',
+            'title': 'Steam Machine Models, Pricing Listed on Steam Store - IGN News',
+            'description': 'Several come bundled with the Steam Controller.',
+            'thumbnail': r're:^https?:.*\.(?:jpg|png)$',
+            'duration': 74,
+            'timestamp': 1425657362,
+            'upload_date': '20150306',
+            'uploader': 'IGN',
+            'uploader_id': 'xijv66',
+            'age_limit': 0,
+            'view_count': int,
+        },
+        'skip': 'video gone',
+    }, {
+        # Vevo video
+        'url': 'http://www.dailymotion.com/video/x149uew_katy-perry-roar-official_musi',
+        'info_dict': {
+            'title': 'Roar (Official)',
+            'id': 'USUV71301934',
+            'ext': 'mp4',
+            'uploader': 'Katy Perry',
+            'upload_date': '20130905',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': 'VEVO is only available in some countries',
+    }, {
+        # age-restricted video
+        'url': 'http://www.dailymotion.com/video/xyh2zz_leanna-decker-cyber-girl-of-the-year-desires-nude-playboy-plus_redband',
+        'md5': '0d667a7b9cebecc3c89ee93099c4159d',
+        'info_dict': {
+            'id': 'xyh2zz',
+            'ext': 'mp4',
+            'title': 'Leanna Decker - Cyber Girl Of The Year Desires Nude [Playboy Plus]',
+            'uploader': 'HotWaves1012',
+            'age_limit': 18,
+        },
+        'skip': 'video gone',
+    }, {
+        # geo-restricted, player v5
+        'url': 'http://www.dailymotion.com/video/xhza0o',
+        'only_matching': True,
+    }, {
+        # with subtitles
+        'url': 'http://www.dailymotion.com/video/x20su5f_the-power-of-nightmares-1-the-rise-of-the-politics-of-fear-bbc-2004_news',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.dailymotion.com/swf/video/x3n92nf',
+        'only_matching': True,
+    }, {
+        'url': 'http://www.dailymotion.com/swf/x3ss1m_funny-magic-trick-barry-and-stuart_fun',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.lequipe.fr/video/x791mem',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.lequipe.fr/video/k7MtHciueyTcrFtFKA2',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.dailymotion.com/video/x3z49k?playlist=xv4bw',
+        'only_matching': True,
+    }]
+    _GEO_BYPASS = False
+
+    @staticmethod
+    def _extract_urls(webpage):
+        urls = []
+        # Look for embedded Dailymotion player
+        # https://developer.dailymotion.com/player#player-parameters
+        for mobj in re.finditer(
+                r'<(?:(?:embed|iframe)[^>]+?src=|input[^>]+id=[\'"]dmcloudUrlEmissionSelect[\'"][^>]+value=)(["\'])(?P<url>(?:https?:)?//(?:www\.)?dailymotion\.com/(?:embed|swf)/video/.+?)\1',
+                webpage):
+            urls.append(unescapeHTML(mobj.group('url')))
+        for mobj in re.finditer(
+                r'(?s)DM\.player\([^,]+,\s*{.*?video[\'"]?\s*:\s*["\']?(?P<id>[0-9a-zA-Z]+).+?}\s*\);', webpage):
+            urls.append('https://www.dailymotion.com/embed/video/' + mobj.group('id'))
+        return urls
+
+
 class DailymotionPlaylistBaseIE(DailymotionBaseInfoExtractor):
     _PAGE_SIZE = 100
 
@@ -406,3 +388,32 @@ class DailymotionUserIE(DailymotionPlaylistBaseIE):
         },
     }]
     _OBJECT_TYPE = 'channel'
+
+
+class DailymotionPlayerIE(DailymotionBaseInfoExtractor):
+    IE_NAME = 'dailymotion:player'
+    _VALID_URL = r'''(?x)
+                    https?://
+                        (?:geo\.)?dailymotion\.[a-z]{2,3}/
+                        player\.html.+?video=(?P<id>[^&]+)(?:playlist=(?P<playlist_id>x[0-9a-z]+))?
+                    '''
+    TESTS = [{
+        'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
+        'md5': 'e2f9717c6604773f963f069ca53a07f8',
+        'info_dict': {
+            'id': 'x89eyek',
+            'ext': 'mp4',
+            'title': "En quête d'esprit du 27/03/2022",
+            'description': 'md5:66542b9f4df2eb23f314fc097488e553',
+            'duration': 2756,
+            'timestamp': 1648383669,
+            'upload_date': '20220327',
+            'uploader': 'CNEWS',
+            'uploader_id': 'x24vth',
+            'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+            'tags': ['en_quete_d_esprit'],
+            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+        }
+    }]
