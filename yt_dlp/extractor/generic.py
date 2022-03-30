@@ -17,6 +17,7 @@ from ..compat import (
 )
 from ..utils import (
     determine_ext,
+    dict_get,
     ExtractorError,
     float_or_none,
     int_or_none,
@@ -29,6 +30,7 @@ from ..utils import (
     parse_duration,
     parse_resolution,
     smuggle_url,
+    str_or_none,
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
@@ -3777,11 +3779,12 @@ class GenericIE(InfoExtractor):
 
         # Video.js embed
         mobj = re.search(
-            r'(?s)\bvideojs\s*\(.+?\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
+            r'(?s)\bvideojs\s*\(.+?([a-zA-Z0-9_$]+)\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
             webpage)
         if mobj is not None:
+            varname = mobj.group(1)
             sources = self._parse_json(
-                mobj.group(1), video_id, transform_source=js_to_json,
+                mobj.group(2), video_id, transform_source=js_to_json,
                 fatal=False) or []
             if not isinstance(sources, list):
                 sources = [sources]
@@ -3818,6 +3821,21 @@ class GenericIE(InfoExtractor):
                             'Referer': full_response.geturl(),
                         },
                     })
+            # https://docs.videojs.com/player#addRemoteTextTrack
+            # https://html.spec.whatwg.org/multipage/media.html#htmltrackelement
+            for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
+                sub = self._parse_json(
+                    sub_match.group(1), video_id, transform_source=js_to_json, fatal=False) or {}
+                src = str_or_none(sub.get('src'))
+                if not src:
+                    continue
+                subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
+                    'url': compat_urlparse.urljoin(url, src),
+                    'name': sub.get('label'),
+                    'http_headers': {
+                        'Referer': full_response.geturl(),
+                    },
+                })
             if formats or subtitles:
                 self.report_detected('video.js embed')
                 self._sort_formats(formats)

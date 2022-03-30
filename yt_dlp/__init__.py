@@ -58,7 +58,7 @@ from .postprocessor import (
 )
 from .YoutubeDL import YoutubeDL
 
-from .networking.common import get_std_headers
+from .networking.common import make_std_headers
 
 
 def get_urls(urls, batchfile, verbose):
@@ -96,9 +96,9 @@ def print_extractor_information(opts, urls):
         for ie in list_extractors(opts.age_limit):
             if not ie.working():
                 continue
-            desc = getattr(ie, 'IE_DESC', ie.IE_NAME)
-            if desc is False:
+            if ie.IE_DESC is False:
                 continue
+            desc = ie.IE_DESC or ie.IE_NAME
             if getattr(ie, 'SEARCH_KEY', None) is not None:
                 _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
                 _COUNTS = ('', '5', '10', 'all')
@@ -822,7 +822,7 @@ def _real_main(argv=None):
 
     # Dump user agent
     if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=get_std_headers()['User-Agent'])
+        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=make_std_headers()['User-Agent'])
         write_string(f'{ua}\n', out=sys.stdout)
         sys.exit(0)
 

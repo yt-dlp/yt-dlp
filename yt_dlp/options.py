@@ -338,10 +338,10 @@ def create_parser():
         action='callback', callback=_set_from_options_callback,
         callback_kwargs={
             'allowed_values': {
-                'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
+                'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
+                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
@@ -465,19 +465,18 @@ def create_parser():
         metavar='COUNT', dest='max_views', default=None, type=int,
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--match-filter',
-        metavar='FILTER', dest='match_filter', default=None,
+        '--match-filters',
+        metavar='FILTER', dest='match_filter', action='append',
         help=(
             'Generic video filter. Any field (see "OUTPUT TEMPLATE") can be compared with a '
             'number or a string using the operators defined in "Filtering formats". '
-            'You can also simply specify a field to match if the field is present '
-            'and "!field" to check if the field is not present. In addition, '
-            'Python style regular expression matching can be done using "~=", '
-            'and multiple filters can be checked with "&". '
-            'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
-            '"!is_live & like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
-            'matches only videos that are not live, has a like count more than 100 '
-            '(or the like field is not available), and also has a description '
+            'You can also simply specify a field to match if the field is present, '
+            'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
+            'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
+            'the filter matches if atleast one of the conditions are met. Eg: --match-filter '
+            '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
+            'matches only videos that are not live OR those that have a like count more than 100 '
+            '(or the like field is not available) and also has a description '
             'that contains the phrase "cats & dogs" (ignoring case)'))
     selection.add_option(
         '--no-match-filter',
@@ -1316,7 +1315,7 @@ def create_parser():
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality, insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help='Specify ffmpeg audio quality to use when converting the audio with -x. Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,

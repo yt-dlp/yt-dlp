@@ -24,10 +24,9 @@ def main():
     def gen_ies_md(ies):
         for ie in ies:
             ie_md = '**{0}**'.format(ie.IE_NAME)
-            ie_desc = getattr(ie, 'IE_DESC', None)
-            if ie_desc is False:
+            if ie.IE_DESC is False:
                 continue
-            if ie_desc is not None:
+            if ie.IE_DESC is not None:
                 ie_md += ': {0}'.format(ie.IE_DESC)
             search_key = getattr(ie, 'SEARCH_KEY', None)
             if search_key is not None:

@@ -211,7 +211,6 @@ class FC2LiveIE(InfoExtractor):
             'Accept': '*/*',
             'User-Agent': self.get_param('http_headers')['User-Agent'],
         })
-        ws.__enter__()
 
         self.write_debug('[debug] Sending HLS server request')
 

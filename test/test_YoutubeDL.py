@@ -818,6 +818,8 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id&foo)s.bar', 'foo.bar')
         test('%(title&foo)s.bar', 'NA.bar')
         test('%(title&foo|baz)s.bar', 'baz.bar')
+        test('%(x,id&foo|baz)s.bar', 'foo.bar')
+        test('%(x,title&foo|baz)s.bar', 'baz.bar')
 
         # Laziness
         def gen():
@@ -931,7 +933,7 @@ class TestYoutubeDL(unittest.TestCase):
         res = get_videos()
         self.assertEqual(res, ['1', '2'])
 
-        def f(v):
+        def f(v, incomplete):
             if v['id'] == '1':
                 return None
             else:

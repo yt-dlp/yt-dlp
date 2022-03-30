@@ -348,11 +348,13 @@ class HTTPHeaderStore(Message):
     """
     An object to store and access headers case-insensitively.
     Note: This allows multiple headers of the same key.
+    Accepts multiple dict-like instances in constructor, for easy merging
     """
-    def __init__(self, data=None):
+    def __init__(self, *data):
         super().__init__()
-        if data is not None:
-            self.add_headers(data)
+        for store in data:
+            if hasattr(store, 'items'):
+                self.add_headers(store)
 
     def add_headers(self, data):
         for k, v in data.items():
@@ -511,7 +513,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 cookie.discard = True
 
 
-# Use get_std_headers() to get a copy of these
+# Use make_std_headers() to get a copy of these
 _std_headers = UniqueHTTPHeaderStore({
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -520,12 +522,9 @@ _std_headers = UniqueHTTPHeaderStore({
 })
 
 
-def get_std_headers(supported_encodings=None):
-    headers = _std_headers.copy()
-    if supported_encodings:
-        headers.replace_header('accept-encoding', ', '.join(supported_encodings))
-    headers.replace_headers(std_headers)
-    return headers
+# Get a copy of std headers, while also retaining backwards compat with utils.std_headers
+def make_std_headers():
+    return UniqueHTTPHeaderStore(_std_headers, std_headers)
 
 
 class UnsupportedBackend(BackendAdapter):

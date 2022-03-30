@@ -44,6 +44,8 @@ from ..utils import (
     dict_get,
     error_to_compat_str,
     extract_attributes,
+    ExtractorError,
+    filter_dict,
     fix_xml_ampersands,
     float_or_none,
     format_field,
@@ -246,14 +248,14 @@ class InfoExtractor(object):
     license:        License name the video is licensed under.
     creator:        The creator of the video.
     timestamp:      UNIX timestamp of the moment the video was uploaded
-    upload_date:    Video upload date (YYYYMMDD).
+    upload_date:    Video upload date in UTC (YYYYMMDD).
                     If not explicitly set, calculated from timestamp
     release_timestamp: UNIX timestamp of the moment the video was released.
                     If it is not clear whether to use timestamp or this, use the former
-    release_date:   The date (YYYYMMDD) when the video was released.
+    release_date:   The date (YYYYMMDD) when the video was released in UTC.
                     If not explicitly set, calculated from release_timestamp
     modified_timestamp: UNIX timestamp of the moment the video was last modified.
-    modified_date:   The date (YYYYMMDD) when the video was last modified.
+    modified_date:   The date (YYYYMMDD) when the video was last modified in UTC.
                     If not explicitly set, calculated from modified_timestamp
     uploader_id:    Nickname or id of the video uploader.
     uploader_url:   Full URL to a personal webpage of the video uploader.
@@ -467,6 +469,7 @@ class InfoExtractor(object):
     _GEO_IP_BLOCKS = None
     _WORKING = True
     _NETRC_MACHINE = None
+    IE_DESC = None
 
     _LOGIN_HINTS = {
         'any': 'Use --cookies, --cookies-from-browser, --username and --password, or --netrc to provide account credentials',
@@ -1032,7 +1035,7 @@ class InfoExtractor(object):
         if transform_source:
             json_string = transform_source(json_string)
         try:
-            return json.loads(json_string)
+            return json.loads(json_string, strict=False)
         except ValueError as ve:
             errmsg = '%s: Failed to parse JSON ' % video_id
             if fatal:
@@ -1586,7 +1589,7 @@ class InfoExtractor(object):
                     break
         traverse_json_ld(json_ld)
 
-        return dict((k, v) for k, v in info.items() if v is not None)
+        return filter_dict(info)
 
     def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
         return self._parse_json(
