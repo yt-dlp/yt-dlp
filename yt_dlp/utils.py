@@ -73,12 +73,6 @@ from .compat import (
     compat_xpath, compat_urllib_request,
 )
 
-try:
-    import certifi
-    has_certifi = True
-except ImportError:
-    has_certifi = False
-
 std_headers = {}
 # This is not clearly defined otherwise
 compiled_regex_type = type(re.compile(''))

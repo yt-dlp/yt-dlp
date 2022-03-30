@@ -41,6 +41,7 @@ SUPPORTED_ENCODINGS = [
 if compat_brotli:
     SUPPORTED_ENCODINGS.append('br')
 
+
 def make_HTTPS_handler(params, **kwargs):
     return YoutubeDLHTTPSHandler(params, context=make_ssl_context(params), **kwargs)
 

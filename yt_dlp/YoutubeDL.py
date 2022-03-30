@@ -31,7 +31,6 @@ from enum import Enum
 from string import ascii_letters
 
 from .compat import (
-    compat_basestring,
     compat_brotli,
     compat_get_terminal_size,
     compat_kwargs,
@@ -50,6 +49,8 @@ from .networking.common import (
     get_std_headers,
     HEADRequest
 )
+
+from .networking.utils import has_certifi
 
 from .networking import network_handlers, UrllibBackendAdapter
 
@@ -79,7 +80,6 @@ from .utils import (
     formatSeconds,
     GeoRestrictedError,
     get_domain,
-    has_certifi,
     InAdvancePagedList,
     int_or_none,
     iri_to_uri,

@@ -7,13 +7,14 @@ import os
 import time
 import urllib.error
 
+from ..networking.common import Request
 from ..utils import (
     _configuration_args,
     encodeFilename,
     network_exceptions,
     PostProcessingError,
-    sanitized_Request,
     write_string,
+    HTTPError,
 )
 
 
@@ -194,10 +195,10 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         self.write_debug(f'{self.PP_NAME} query: {url}')
         for retries in itertools.count():
             try:
-                rsp = self._downloader.urlopen(sanitized_Request(url))
+                rsp = self._downloader.urlopen(Request(url))
                 return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
             except network_exceptions as e:
-                if isinstance(e, urllib.error.HTTPError) and e.code in expected_http_errors:
+                if isinstance(e, HTTPError) and e.code in expected_http_errors:
                     return None
                 if retries < max_retries:
                     self.report_warning(f'{e}. Retrying...')
