@@ -7,7 +7,9 @@ from ..compat import (
 )
 
 from ..utils import (
+    int_or_none,
     smuggle_url,
+    traverse_obj,
     urlencode_postdata
 )
 
@@ -19,7 +21,8 @@ class CybraryBaseIE(InfoExtractor):
     _ENDPOINTS = {
         'login': 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={}',
         'launch': 'https://app.cybrary.it/courses/api/catalog/{}/launch',
-        'vimeo_oembed': 'https://vimeo.com/api/oembed.json?url=https://vimeo.com/{}'
+        'vimeo_oembed': 'https://vimeo.com/api/oembed.json?url=https://vimeo.com/{}',
+        'enrollment': 'https://app.cybrary.it/courses/api/enrollment/{}'
     }
     _TOKEN = None
 
@@ -39,14 +42,14 @@ class CybraryBaseIE(InfoExtractor):
 
 
 class CybraryIE(CybraryBaseIE):
-    _VALID_URL = r'https?://app\.cybrary\.it.*/activity/(?P<id>[0-9]+)'
+    _VALID_URL = r'https?://app.cybrary.it/immersive/(?P<enrollment>[0-9]+)/activity/(?P<id>[0-9]+)'
     _TESTS = [{
         'url': 'https://app.cybrary.it/immersive/12487950/activity/63102',
         'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
         'info_dict': {
-            'id': '63102',
+            'id': '646609770',
             'ext': 'mp4',
-            'title': 'Browse, Career Paths & My Learning',
+            'title': 'Getting Started',
             # 'thumbnail': r're:^https?://.*\.jpg$',
             # TODO more properties, either as:
             # * A value
@@ -57,33 +60,20 @@ class CybraryIE(CybraryBaseIE):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        # vimeo_id = self._call_api('launch', video_id)['vendor_data'][0]['videoId']
-        vimeo_id = self._download_json(
-            'https://app.cybrary.it/courses/api/catalog/{}/launch'.format(video_id), video_id,
-            headers={'Authorization': f'Bearer {self._TOKEN}'})['vendor_data']['content'][0]['videoId']
+        activity_id, enrollment_id = self._match_valid_url(url).group('id', 'enrollment')
+        enrollment = self._call_api('enrollment', enrollment_id)
 
-        # print(vimeo_id)
-        # print(compat_urllib_parse_urlencode(self._ENDPOINTS['vimeo_oembed'].format(vimeo_id)))
+        course = enrollment['content']
+        course_info = course.get('content_description')
+        activity = course['learning_modules'][0]['activities'][0]
 
-        # return self.url_result(
-        #     smuggle_url('https://player.vimeo.com/video/{}'.format(vimeo_id), {'http_headers': {'Referer': 'https://api.cybrary.it/'}}),
-        #     ie='Vimeo',
-        #     video_id=vimeo_id)
+        vimeo_id = self._call_api('launch', activity_id)['vendor_data']['content'][0]['videoId']
 
-        return self.url_result(
-            smuggle_url('https://player.vimeo.com/video/{}'.format(vimeo_id), {'http_headers': {'Referer': 'https://api.cybrary.it/'}}),
-            video_id=video_id,
-            url_transparent=True
-        )
-
-        # TODO more code goes here, for example ...
-        # title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
-
-        # return {
-        #     'id': video_id,
-        #     'title': title,
-        #     'description': self._og_search_description(webpage),
-        #     'uploader': self._search_regex(r'<div[^>]+id="uploader"[^>]*>([^<]+)<', webpage, 'uploader', fatal=False),
-        #     # TODO more properties (see yt_dlp/extractor/common.py)
-        # }
+        return {
+            '_type': 'url_transparent',
+            'series': course_info.get('title'),
+            'series_id': int_or_none(course_info.get('id')),
+            'id': vimeo_id,
+            'title': activity.get('title'),
+            'url': smuggle_url('https://player.vimeo.com/video/{}'.format(vimeo_id), {'http_headers': {'Referer': 'https://api.cybrary.it'}})
+        }
