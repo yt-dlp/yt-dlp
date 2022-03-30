@@ -5,6 +5,11 @@ import re
 import json
 import uuid
 import random
+from urllib.parse import (
+    urlparse,
+    urlencode,
+    parse_qsl
+)
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -16,7 +21,6 @@ from ..utils import (
     smuggle_url,
     unsmuggle_url,
     url_or_none,
-    compat_urlparse,
 )
 
 
@@ -347,13 +351,13 @@ class ViuOTTIE(InfoExtractor):
 
             # bypass preview duration limit
             if duration_limit:
-                old_stream_url = compat_urlparse.urlparse(stream_url)
-                query = dict(compat_urlparse.parse_qsl(old_stream_url.query, keep_blank_values=True))
+                old_stream_url = urlparse(stream_url)
+                query = dict(parse_qsl(old_stream_url.query, keep_blank_values=True))
                 query.update({
                     'duration': video_data.get('time_duration') or '9999999',
                     'duration_start': '0',
                 })
-                stream_url = old_stream_url._replace(query=compat_urlparse.urlencode(query)).geturl()
+                stream_url = old_stream_url._replace(query=urlencode(query)).geturl()
 
             formats.append({
                 'format_id': vid_format,
