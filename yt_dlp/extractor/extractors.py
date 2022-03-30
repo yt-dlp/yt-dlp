@@ -344,6 +344,7 @@ from .curiositystream import (
     CuriosityStreamSeriesIE,
 )
 from .cwtv import CWTVIE
+from .cybrary import CybraryIE
 from .daftsex import DaftsexIE
 from .dailymail import DailyMailIE
 from .dailymotion import (
