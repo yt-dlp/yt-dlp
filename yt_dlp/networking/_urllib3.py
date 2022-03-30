@@ -8,10 +8,11 @@ from ..compat import (
 )
 
 from .common import (
-    get_std_headers,
+    make_std_headers,
     HTTPResponse,
     BackendAdapter,
-    Request
+    Request,
+    UniqueHTTPHeaderStore
 )
 from .socksproxy import (
     sockssocket,
@@ -157,12 +158,14 @@ class Urllib3BackendAdapter(BackendAdapter):
         retries = urllib3.Retry(
             remove_headers_on_redirect=request.unredirected_headers.keys(),
             raise_on_redirect=False, other=0, read=0, connect=0)
-        all_headers = get_std_headers(SUPPORTED_ENCODINGS)
-        all_headers.update(self.ydl.params.get('http_headers'))
-        all_headers.update(request.headers)
-        all_headers.update(request.unredirected_headers)
+        headers = UniqueHTTPHeaderStore(
+            make_std_headers(), self.ydl.params.get('http_headers'), request.headers, request.unredirected_headers)
+
+        if 'Accept-Encoding' not in headers:
+            headers['Accept-Encoding'] = ', '.join(SUPPORTED_ENCODINGS)
+
         if not request.compression:
-            del all_headers['accept-encoding']
+            del headers['accept-encoding']
 
         proxy = request.proxy
         if proxy:
@@ -176,7 +179,7 @@ class Urllib3BackendAdapter(BackendAdapter):
                     method=request.method,
                     url=request.url,
                     request_url=request.url,  # TODO: needed for redirect compat
-                    headers=dict(all_headers),
+                    headers=dict(headers),
                     body=request.data,
                     preload_content=False,
                     timeout=request.timeout,
