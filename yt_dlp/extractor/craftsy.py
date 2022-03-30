@@ -67,7 +67,6 @@ class CraftsyIE(InfoExtractor):
             for lesson in lessons:
                 video_id = lesson.get('video_id')
                 title = lesson.get('title')
-#               url = 'https://edge.api.brightcove.com/playback/v1/accounts/%s/videos/%s' % (account_id,video_id)
                 url = f'http://players.brightcove.net/{account_id}/default_default/index.html?videoId={video_id}'
                 entries.append(self.url_result(url, 'BrightcoveNew', video_id, title))
 
