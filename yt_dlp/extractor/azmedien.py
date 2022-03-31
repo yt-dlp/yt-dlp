@@ -11,8 +11,7 @@ class AZMedienIE(InfoExtractor):
     IE_DESC = 'AZ Medien videos'
     _VALID_URL = r'''(?x)
                     https?://
-                        (?:www\.)?
-                        (?:tv\.)?
+                        (?:www\.|tv\.)?
                         (?P<host>
                             telezueri\.ch|
                             telebaern\.tv|
