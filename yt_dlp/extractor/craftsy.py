@@ -67,8 +67,5 @@ class CraftsyIE(InfoExtractor):
                 for lesson in video_data['lessons']]
 
         return self.playlist_result(
-            entries,
-            video_id,
-            video_data.get('class_title'),
-            self._html_search_meta(['og:description', 'description'], webpage, default=None)
-        )
+            entries, video_id, video_data.get('class_title'),
+            self._html_search_meta(('og:description', 'description'), webpage, default=None))
