@@ -137,8 +137,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
         """
         data = self._download_json(
             '%s/zapi/vod/movies/%s' % (self._host_url(), ondemand_id),
-            ondemand_id, 'Downloading ondemand information'
-        )
+            ondemand_id, 'Downloading ondemand information')
         info_dict = {
             'id': ondemand_id,
             'title': data.get('title'),
