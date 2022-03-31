@@ -13,10 +13,10 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_duration,
+    parse_iso8601,
     str_or_none,
     try_get,
     urljoin,
-    unified_strdate,
     url_or_none,
 )
 
@@ -248,7 +248,7 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
-            'upload_date': unified_strdate(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str))
+            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str))
         }
 
         if is_series:
