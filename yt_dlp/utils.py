@@ -3096,15 +3096,19 @@ def dict_get(d, key_or_keys, default=None, skip_false_values=True):
     return d.get(key_or_keys, default)
 
 
-def try_get(src, getter, expected_type=None):
-    for get in variadic(getter):
+def try_call(*funcs, expected_type=None, args=[], kwargs={}):
+    for f in funcs:
         try:
-            v = get(src)
-        except (AttributeError, KeyError, TypeError, IndexError):
+            val = f(*args, **kwargs)
+        except (AttributeError, KeyError, TypeError, IndexError, ZeroDivisionError):
             pass
         else:
-            if expected_type is None or isinstance(v, expected_type):
-                return v
+            if expected_type is None or isinstance(val, expected_type):
+                return val
+
+
+def try_get(src, getter, expected_type=None):
+    return try_call(*variadic(getter), args=(src,), expected_type=expected_type)
 
 
 def filter_dict(dct, cndn=lambda _, v: v is not None):
