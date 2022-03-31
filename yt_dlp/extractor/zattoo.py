@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
+    parse_qs,
     try_get,
     url_or_none,
     urlencode_postdata,
@@ -257,16 +258,13 @@ class ZattooIE(ZattooPlatformBaseIE):
     _VALID_URL = r'''(?x)
         https?://(?:www\.)?zattoo.com/(?:
             (?:
-                vod/movies/([A-Za-z0-9]+)|
-                (?:program|watch)/([^/]+)/(\d+)|
-                live/([^/]+)
+                (?:program|watch)/[^/]+/(?P<vidid>\d+)|
+                vod/movies/(?P<vodid>[A-Za-z0-9]+)|
+                live/(?P<liveid>[^/]+)
             )|
-            [^?#]+\?(?:
-                recording=([0-9]+)|
-                movie_id=([A-Za-z0-9]+)|
-                channel=([^&]+)(?:&program=(\d+))?
-            )
+            [^?#]+\?
         )'''
+
     _TESTS = [{
         'url': 'https://zattoo.com/program/zdf/250380873',
         'info_dict': {
@@ -309,18 +307,26 @@ class ZattooIE(ZattooPlatformBaseIE):
     }]
 
     def _real_extract(self, url):
-        oid1, cid1, pid1, cid2, record_id, oid2, cid3, pid2 = self._match_valid_url(url).groups()
-        ondemand_id = oid1 or oid2
-        channel_id = cid1 or cid2 or cid3
-        program_id = pid1 or pid2
-        if record_id:
-            return self._extract_record(record_id)
-        elif ondemand_id:
-            return self._extract_ondemand(ondemand_id)
-        elif channel_id:
-            if program_id:
-                return self._extract_video(program_id)
-            return self._extract_live(channel_id)
+        mobj = self._match_valid_url(url)
+        vidid = mobj.group('vidid')
+        vodid = mobj.group('vodid')
+        liveid = mobj.group('liveid')
+
+        if not vidid and not vodid and not liveid:
+            qs = parse_qs(url)
+            vidid = qs.get('program', [None])[0]
+            vodid = qs.get('movie_id', [None])[0]
+            liveid = qs.get('channel', [None])[0]
+            recid = qs.get('recording', [None])[0]
+
+        if vidid:
+            return self._extract_video(vidid)
+        elif vodid:
+            return self._extract_ondemand(vodid)
+        elif liveid:
+            return self._extract_live(liveid)
+        elif recid:
+            return self._extract_record(recid)
         raise ExtractorError('An extractor error has occured.')
 
 
