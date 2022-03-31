@@ -128,6 +128,13 @@ class ZattooPlatformBaseIE(InfoExtractor):
         return cid, info_dict
 
     def _extract_ondemand_info(self, ondemand_id):
+        """
+        Returns a triple where the first element is the ondemand token (an
+        identifier for the video) and the second entry is the ondemand
+        type (e.g. 'Vod::Movie'). These two are needed to request the video
+        formats for an ondemand video. The third element contains the
+        information dictionary for the video.
+        """
         data = self._download_json(
             '%s/zapi/vod/movies/%s' % (self._host_url(), ondemand_id),
             ondemand_id, 'Downloading ondemand information'
