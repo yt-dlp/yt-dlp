@@ -3907,8 +3907,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         url = urljoin('https://youtube.com', traverse_obj(
             hashtag_tile_renderer, ('onTapCommand', 'commandMetadata', 'webCommandMetadata', 'url')))
         if url:
-            return self.url_result(url,
-                ie=YoutubeTabIE.ie_key(), title=self._get_text(hashtag_tile_renderer, 'hashtag'))
+            return self.url_result(
+                url, ie=YoutubeTabIE.ie_key(), title=self._get_text(hashtag_tile_renderer, 'hashtag'))
 
     def _post_thread_entries(self, post_thread_renderer):
         post_renderer = try_get(
