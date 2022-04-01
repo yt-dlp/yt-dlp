@@ -3,7 +3,6 @@ from .common import InfoExtractor
 
 from ..utils import (
     ExtractorError,
-    int_or_none,
     smuggle_url,
     str_or_none,
     traverse_obj,
@@ -12,22 +11,20 @@ from ..utils import (
 
 
 class CybraryBaseIE(InfoExtractor):
-    _NETRC_MACHINE = 'cybrary'
-
     _API_KEY = 'AIzaSyCX9ru6j70PX2My1Eq6Q1zoMAhuTdXlzSw'
     _ENDPOINTS = {
-        'login': 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={}',
-        'launch': 'https://app.cybrary.it/courses/api/catalog/{}/launch',
         'course': 'https://app.cybrary.it/courses/api/catalog/browse/course/{}',
-        'vimeo_oembed': 'https://vimeo.com/api/oembed.json?url=https://vimeo.com/{}',
+        'course_enrollment': 'https://app.cybrary.it/courses/api/catalog/{}/enrollment',
         'enrollment': 'https://app.cybrary.it/courses/api/enrollment/{}',
-        'enrollment2': 'https://app.cybrary.it/courses/api/catalog/{}/enrollment'
+        'launch': 'https://app.cybrary.it/courses/api/catalog/{}/launch',
+        'vimeo_oembed': 'https://vimeo.com/api/oembed.json?url=https://vimeo.com/{}',
     }
+    _NETRC_MACHINE = 'cybrary'
     _TOKEN = None
 
     def _perform_login(self, username, password):
         response = self._download_json(
-            self._ENDPOINTS['login'].format(self._API_KEY), None, note='Logging in',
+            f'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={self._API_KEY}', None, note='Logging in',
             data=urlencode_postdata({'email': username, 'password': password, 'returnSecureToken': True}))
 
         if response:
@@ -60,7 +57,7 @@ class CybraryIE(CybraryBaseIE):
             'id': '646609770',
             'ext': 'mp4',
             'title': 'Getting Started',
-            'thumbnail': r're:^https?://i.vimeocdn.com/*',
+            'thumbnail': 'https://i.vimeocdn.com/video/1301817996-76a268f0c56cff18a5cecbbdc44131eb9dda0c80eb0b3a036_1280',
             'series_id': '63111',
             'uploader_url': 'https://vimeo.com/user30867300',
             'duration': 88,
@@ -78,7 +75,7 @@ class CybraryIE(CybraryBaseIE):
             'id': '445638073',
             'ext': 'mp4',
             'title': 'Azure Virtual Network IP Addressing',
-            'thumbnail': r're:^https?://i.vimeocdn.com/*',
+            'thumbnail': 'https://i.vimeocdn.com/video/936667051-1647ace66c627d4a2382185e0dae8deb830309bfddd53f8b2367b2f91e92ed0e-d_1280',
             'series_id': '52733',
             'uploader_url': 'https://vimeo.com/user30867300',
             'duration': 426,
@@ -94,13 +91,15 @@ class CybraryIE(CybraryBaseIE):
     def _real_extract(self, url):
         activity_id, enrollment_id = self._match_valid_url(url).group('id', 'enrollment')
         course = self._call_api('enrollment', enrollment_id)['content']
+        activity = next((activity for activity in (traverse_obj(course, ('learning_modules', ..., 'activities', ...)) or [])
+                        if int(activity_id) == activity.get('id')), None)
 
-        activity = next((activity for activity in (traverse_obj(course, ('learning_modules', ..., 'activities', ...)) or []) if int(activity_id) == activity.get('id')), None)
-
-        if activity['type'] != 'Video Activity':
+        if activity.get('type') not in ['Video Activity', 'Lesson Activity']:
             raise ExtractorError('The activity is not a video')
 
-        module = next((m for m in course['learning_modules'] if int(activity_id) in traverse_obj(m, ('activities', ..., 'id'))))
+        module = next((m for m in traverse_obj(course, ('learning_modules')) or []
+                      if int(activity_id) in traverse_obj(m, ('activities', ..., 'id') or [])), None)
+
         vimeo_id = self._get_vimeo_id(activity_id)
 
         return {
@@ -111,7 +110,7 @@ class CybraryIE(CybraryBaseIE):
             'chapter': module.get('title'),
             'chapter_id': str_or_none(module.get('id')),
             'title': activity.get('title'),
-            'url': smuggle_url('https://player.vimeo.com/video/{}'.format(vimeo_id), {'http_headers': {'Referer': 'https://api.cybrary.it'}})
+            'url': smuggle_url(f'https://player.vimeo.com/video/{vimeo_id}', {'http_headers': {'Referer': 'https://api.cybrary.it'}})
         }
 
 
@@ -138,7 +137,7 @@ class CybraryCourseIE(CybraryBaseIE):
     def _real_extract(self, url):
         course_id = self._match_id(url)
         course = self._call_api('course', course_id)
-        enrollment_info = self._call_api('enrollment2', course['id'])
+        enrollment_info = self._call_api('course_enrollment', course['id'])
 
         entries = [self.url_result(
             f'https://app.cybrary.it/immersive/{enrollment_info["id"]}/activity/{activity["id"]}')
