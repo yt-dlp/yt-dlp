@@ -5535,7 +5535,6 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             'id': '#cats',
             'title': '#cats',
             'entries': [{
-                'id': 'cats',
                 'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
                 'title': '#cats',
             }],
