@@ -47,7 +47,9 @@ class TVerIE(InfoExtractor):
         if not re.search(self._NEW_URL_COMPONENT, url):
             webpage = self._download_webpage(
                 url, video_id, note='Resolving to new URL')
-            video_id = self._match_id(self._search_regex(r'canonical"\s*href="(https?://tver\.jp/.+?)"', webpage, 'url regex'))
+            video_id = self._match_id(self._search_regex(
+                (r'canonical"\s*href="(https?://tver\.jp/.+?)"', r'&link=(https?://tver\.jp/.+?)[?&]'),
+                webpage, 'url regex'))
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
             query={'v': '5'}, headers={
