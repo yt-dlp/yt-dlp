@@ -5533,15 +5533,13 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
         'playlist_mincount': 1,
         'info_dict': {
             'id': '#cats',
-            'title': '#cats'
-        },
-        'playlist': [{
-            'info_dict': {
-                'url': 'https://www.youtube.com/hashtag/cats',
+            'title': '#cats',
+            'entries': [{
+                'id': 'cats',
+                'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
                 'title': '#cats',
-                'id': 'cats'
-            }
-        }],
+            }],
+        },
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,
