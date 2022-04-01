@@ -1,6 +1,7 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -13,7 +14,8 @@ from ..utils import (
 
 class TVerIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?:lp|corner|series|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
-    _NEW_URL_COMPONENT = ('series', 'episodes')
+    # NOTE: episode/ is an old URL
+    _NEW_URL_COMPONENT = '|'.join(re.escape(f'/{x}/') for x in ('series', 'episodes'))
     _TESTS = [{
         'skip': 'videos are only available for 7 days',
         'url': 'https://tver.jp/episodes/ephss8yveb',
@@ -42,8 +44,7 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        if 'episodes' not in url:
-            # NOTE: episode/ is an old URL.
+        if not re.search(self._NEW_URL_COMPONENT, url):
             webpage = self._download_webpage(
                 url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(r'canonical"\s*href="(https?://tver\.jp/.+?)"', webpage, 'url regex'))
