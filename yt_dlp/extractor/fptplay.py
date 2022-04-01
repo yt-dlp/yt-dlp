@@ -14,7 +14,7 @@ from ..utils import (
 
 
 class FptplayIE(InfoExtractor):
-    _VALID_URL = r'https?://fptplay\.vn/xem-video/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>[^/]+)?/?(?:[?#]|$)|)'
+    _VALID_URL = r'https?://fptplay\.vn/xem-video/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>\d+)?/?(?:[?#]|$)|)'
     _GEO_COUNTRIES = ['VN']
     IE_NAME = 'fptplay'
     IE_DESC = 'fptplay.vn'
