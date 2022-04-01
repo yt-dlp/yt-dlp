@@ -2418,11 +2418,14 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s):
+def parse_resolution(s, *, lenient=False):
     if s is None:
         return {}
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
+    if lenient:
+        mobj = re.search(r'(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)', s)
+    else:
+        mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
     if mobj:
         return {
             'width': int(mobj.group('w')),

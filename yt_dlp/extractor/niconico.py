@@ -25,7 +25,10 @@ from ..utils import (
     parse_duration,
     parse_filesize,
     parse_iso8601,
+    parse_resolution,
+    qualities,
     remove_start,
+    str_or_none,
     traverse_obj,
     try_get,
     unescapeHTML,
@@ -430,18 +433,25 @@ class NiconicoIE(InfoExtractor):
             # find in json (logged in)
             tags = traverse_obj(api_data, ('tag', 'items', ..., 'name'))
 
+        thumb_prefs = qualities(['url', 'middleUrl', 'largeUrl', 'player', 'ogp'])
+
         return {
             'id': video_id,
             '_api_data': api_data,
             'title': get_video_info(('originalTitle', 'title')) or self._og_search_title(webpage, default=None),
             'formats': formats,
-            'thumbnail': get_video_info('thumbnail', 'url') or self._html_search_meta(
-                ('image', 'og:image'), webpage, 'thumbnail', default=None),
+            'thumbnails': [{
+                'id': key,
+                'url': url,
+                'ext': 'jpg',
+                'preference': thumb_prefs(key),
+                **parse_resolution(url, lenient=True),
+            } for key, url in (get_video_info('thumbnail') or {}).items() if url],
             'description': clean_html(get_video_info('description')),
-            'uploader': traverse_obj(api_data, ('owner', 'nickname')),
+            'uploader': traverse_obj(api_data, ('owner', 'nickname'), ('channel', 'name'), ('community', 'name')),
+            'uploader_id': str_or_none(traverse_obj(api_data, ('owner', 'id'), ('channel', 'id'), ('community', 'id'))),
             'timestamp': parse_iso8601(get_video_info('registeredAt')) or parse_iso8601(
                 self._html_search_meta('video:release_date', webpage, 'date published', default=None)),
-            'uploader_id': traverse_obj(api_data, ('owner', 'id')),
             'channel': traverse_obj(api_data, ('channel', 'name'), ('community', 'name')),
             'channel_id': traverse_obj(api_data, ('channel', 'id'), ('community', 'id')),
             'view_count': int_or_none(get_video_info('count', 'view')),
