@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 
 import re
-import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -76,7 +75,7 @@ class TVerIE(InfoExtractor):
             raise ExtractorError('Failed to extract reference ID for Brightcove')
         if not r_id.isdigit():
             r_id = f'ref:{r_id}'
-        
+
         additional_info = self._download_json(
             f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
             video_id,
