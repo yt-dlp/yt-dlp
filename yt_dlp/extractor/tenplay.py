@@ -6,7 +6,6 @@ import base64
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     HEADRequest,
     int_or_none,
     urlencode_postdata,
@@ -104,17 +103,9 @@ class TenPlayIE(InfoExtractor):
         formats = self._extract_m3u8_formats(m3u8_url, content_id, 'mp4')
         self._sort_formats(formats)
 
-        subtitles = {}
-        caption_url = data.get('captionUrl')
-        if caption_url:
-            subtitles.setdefault('en', []).append({
-                'url': caption_url,
-                'ext': determine_ext(caption_url, None),
-            })
-
         return {
             'formats': formats,
-            'subtitles': subtitles,
+            'subtitles': {'en': [{'url': data.get('captionUrl')}]} if data.get('captionUrl') else None,
             'id': data.get('altId') or content_id,
             'duration': data.get('duration'),
             'title': data.get('subtitle'),
