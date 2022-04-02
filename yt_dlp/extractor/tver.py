@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import re
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -41,6 +42,19 @@ class TVerIE(InfoExtractor):
         'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
+    _PLATFORM_UID = None
+    _PLATFORM_TOKEN = None
+
+    def _real_initialize(self):
+        create_response = self._download_json(
+            'https://platform-api.tver.jp/v2/api/platform_users/browser/create', None,
+            note='Creating session', data=b'device_type=pc', headers={
+                'Origin': 'https://s.tver.jp',
+                'Referer': 'https://s.tver.jp/',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            })
+        self._PLATFORM_UID = traverse_obj(create_response, ('result', 'platform_uid'))
+        self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -62,6 +76,16 @@ class TVerIE(InfoExtractor):
             raise ExtractorError('Failed to extract reference ID for Brightcove')
         if not r_id.isdigit():
             r_id = f'ref:{r_id}'
+        
+        additional_info = self._download_json(
+            f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
+            video_id,
+            query={
+                'platform_uid': self._PLATFORM_UID,
+                'platform_token': self._PLATFORM_TOKEN,
+            }, headers={
+                'x-tver-platform-type': 'web'
+            })
 
         return {
             '_type': 'url_transparent',
@@ -69,5 +93,8 @@ class TVerIE(InfoExtractor):
             'description': str_or_none(video_info.get('description')),
             'url': smuggle_url(
                 self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id), {'geo_countries': ['JP']}),
+            'series': traverse_obj(
+                additional_info, ('result', ('episode', 'series'), 'content', ('seriesTitle', 'title')),
+                get_all=False),
             'ie_key': 'BrightcoveNew',
         }
