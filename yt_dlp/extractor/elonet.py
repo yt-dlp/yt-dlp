@@ -1,11 +1,9 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
-import re
-
 from .common import InfoExtractor
 from ..utils import (
-    ExtractorError,
+    determine_ext,
     try_get,
 )
 from ..compat import compat_str
@@ -14,45 +12,45 @@ from ..compat import compat_str
 class ElonetIE(InfoExtractor):
     _VALID_URL = r'https?://elonet\.finna\.fi/Record/kavi\.elonet_elokuva_(?P<id>[0-9]+)'
     _TESTS = [{
-        # m3u8 with subtitles
         'url': 'https://elonet.finna.fi/Record/kavi.elonet_elokuva_107867',
-        'md5': '8efc954b96c543711707f87de757caea',
+        'md5': '17d2a9be862e88a8657a03253fe32636',
         'info_dict': {
             'id': '107867',
             'ext': 'mp4',
             'title': 'Valkoinen peura',
             'description': 'Valkoinen peura (1952) on Erik Blombergin ohjaama ja yhdessä Mirjami Kuosmasen kanssa käsikirjoittama tarunomainen kertomus valkoisen peuran hahmossa lii...',
-            'thumbnail': 'https://elonet.finna.fi/Cover/Show?id=kavi.elonet_elokuva_107867&index=0&size=large&source=Solr',
+            'thumbnail': r're:^https?://elonet\.finna\.fi/Cover/Show\?id=kavi\.elonet_elokuva_107867.+',
         },
-        'skip': 'Site no longer provides m3u8 streams',
+        'params': {
+            'skip_download': 'dash',
+        },
     }, {
         # DASH with subtitles
         'url': 'https://elonet.finna.fi/Record/kavi.elonet_elokuva_116539',
+        'md5': '17d2a9be862e88a8657a03253fe32636',
         'info_dict': {
             'id': '116539',
             'ext': 'mp4',
             'title': 'Minulla on tiikeri',
             'description': 'Pienellä pojalla, joka asuu kerrostalossa, on kotieläimenä tiikeri. Se on kuitenkin salaisuus. Kerrostalon räpätäti on Kotilaisen täti, joka on aina vali...',
-            'thumbnail': 'https://elonet.finna.fi/Cover/Show?id=kavi.elonet_elokuva_116539&index=0&size=large&source=Solr',
-            'manifest_stream_number': 5,
+            'thumbnail': r're:^https?://elonet\.finna\.fi/Cover/Show\?id=kavi\.elonet_elokuva_116539.+',
         },
         'params': {
-            # AssertionError: Expected test_Elonet_116539.mp4 to be at least 9.77KiB, but it's only 840.00B
-            'skip_download': True,
+            'skip_download': 'dash',
         },
     }, {
         # Page with multiple videos, download the main one
         'url': 'https://elonet.finna.fi/Record/kavi.elonet_elokuva_117396',
+        'md5': '17d2a9be862e88a8657a03253fe32636',
         'info_dict': {
             'id': '117396',
             'ext': 'mp4',
             'title': 'Sampo',
             'description': 'Aleksandr Ptushkon ohjaama, neuvostoliittolais-suomalainen yhteistuotanto Sampo (1959) on Kalevalan tarustoon pohjautuva fantasiaelokuva. Pohjolan emäntä...',
-            'thumbnail': 'https://elonet.finna.fi/Cover/Show?id=kavi.elonet_elokuva_117396&index=0&size=large&source=Solr',
-            'manifest_stream_number': 3,
+            'thumbnail': r're:^https?://elonet\.finna\.fi/Cover/Show\?id=kavi\.elonet_elokuva_117396.+',
         },
         'params': {
-            'skip_download': True,
+            'skip_download': 'dash',
         },
     }]
 
@@ -68,21 +66,21 @@ class ElonetIE(InfoExtractor):
             r'<meta .*property="og&#x3A;image" .*content="(.+?)"', webpage, 'thumbnail')
 
         json_s = self._html_search_regex(
-            r'id=\'video-data\'.+?data-video-sources="(.+?)"', webpage, 'json')
+            r'id=\'video-data\'[^>]+data-video-sources="(.+?)"', webpage, 'json')
         src = try_get(
             self._parse_json(json_s, video_id),
             lambda x: x[0]["src"], compat_str)
 
         formats = []
         subtitles = {}
-        if re.search(r'\.m3u8\??', src):
+
+        ext = determine_ext(src)
+        if ext == 'm3u8':
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(src, video_id, fatal=False)
-            for f in formats:
-                f['ext'] = 'mp4'
-        elif re.search(r'\.mpd\??', src):
+        elif ext == 'mpd':
             formats, subtitles = self._extract_mpd_formats_and_subtitles(src, video_id, fatal=False)
         else:
-            raise ExtractorError("Unknown streaming format")
+            self.report_warning('Unknown streaming format %s' % ext)
         self._sort_formats(formats)
 
         return {
