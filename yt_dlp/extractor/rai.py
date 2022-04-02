@@ -118,7 +118,7 @@ class RaiBaseIE(InfoExtractor):
         })
 
     def _create_http_urls(self, relinker_url, fmts):
-        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
+        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\w+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
         _MP4_TMPL = '%s&overrideUserAgentRule=mp4-%s'
         _QUALITY = {
             # tbr: w, h
