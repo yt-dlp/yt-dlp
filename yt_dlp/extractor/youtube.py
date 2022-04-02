@@ -3903,6 +3903,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if video_id:
             return self._extract_video(video_renderer)
 
+    def _hashtag_tile_entry(self, hashtag_tile_renderer):
+        url = urljoin('https://youtube.com', traverse_obj(
+            hashtag_tile_renderer, ('onTapCommand', 'commandMetadata', 'webCommandMetadata', 'url')))
+        if url:
+            return self.url_result(
+                url, ie=YoutubeTabIE.ie_key(), title=self._get_text(hashtag_tile_renderer, 'hashtag'))
+
     def _post_thread_entries(self, post_thread_renderer):
         post_renderer = try_get(
             post_thread_renderer, lambda x: x['post']['backstagePostRenderer'], dict)
@@ -3991,6 +3998,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                     'videoRenderer': lambda x: [self._video_entry(x)],
                     'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
                     'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
+                    'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)]
                 }
                 for key, renderer in isr_content.items():
                     if key not in known_renderers:
@@ -5520,7 +5528,17 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             'id': 'python',
             'title': 'python',
         }
-
+    }, {
+        'url': 'https://www.youtube.com/results?search_query=%23cats',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': '#cats',
+            'title': '#cats',
+            'entries': [{
+                'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
+                'title': '#cats',
+            }],
+        },
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,
