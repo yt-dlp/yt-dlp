@@ -55,7 +55,7 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        if type in {'episode', 'episodes', 'series'}:
+        if video_type not in {'series', 'episodes'}:
             webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
                 (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
