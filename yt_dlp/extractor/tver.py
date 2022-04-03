@@ -13,9 +13,7 @@ from ..utils import (
 
 
 class TVerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?:lp|corner|series|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
-    # NOTE: episode/ is an old URL
-    _NEW_URL_COMPONENT = '|'.join(re.escape(f'/{x}/') for x in ('series', 'episodes'))
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'skip': 'videos are only available for 7 days',
         'url': 'https://tver.jp/episodes/ephss8yveb',
@@ -56,12 +54,11 @@ class TVerIE(InfoExtractor):
         self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        if not re.search(self._NEW_URL_COMPONENT, url):
-            webpage = self._download_webpage(
-                url, video_id, note='Resolving to new URL')
+        video_id, video_type = self._match_valid_url(url).group('id', 'type')
+        if type in {'episode', 'episodes', 'series'}:
+            webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
-                (r'canonical"\s*href="(https?://tver\.jp/.+?)"', r'&link=(https?://tver\.jp/.+?)[?&]'),
+                (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
                 webpage, 'url regex'))
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
