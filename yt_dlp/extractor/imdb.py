@@ -8,9 +8,9 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     int_or_none,
-    js_to_json,
     mimetype2ext,
     qualities,
+    traverse_obj,
     try_get,
     url_or_none,
 )
@@ -63,20 +63,13 @@ class ImdbIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         webpage = self._download_webpage(f'https://www.imdb.com/video/vi{video_id}', video_id)
-
-        info = self._parse_json(
-            self._search_regex(r'(?s)<script\s+id=\"__NEXT_DATA__\"\s+type=\"application/json\"[^>]*>(.*?)\</script\>',
-                               webpage, 'json metadata'), video_id=video_id, transform_source=js_to_json)
-
-        video_info = try_get(info, lambda x: x['props']['pageProps']['videoPlaybackData']['video']) or {}
-
-        title = try_get(video_info, lambda x: x['name']['value']) or try_get(
-            video_info, lambda x: x['primaryTitle']['titleText']['text']) or self._html_search_meta(
-            ['og:title', 'twitter:title'], webpage) or self._html_search_regex(
-            r'<title>(.+?)</title>', webpage, 'title', default=None)
-
+        info = self._search_nextjs_data(webpage, video_id)
+        video_info = traverse_obj(info, ('props', 'pageProps', 'videoPlaybackData', 'video'), default={})
+        title = traverse_obj(video_info, ('name', 'value'), ('primaryTitle', 'titleText', 'text'))
+        if not title:
+            title = self._html_search_meta(['og:title', 'twitter:title'], webpage) or self._html_search_regex(
+                r'<title>(.+?)</title>', webpage, 'title', default=None)
         data = video_info.get('playbackURLs') or try_get(self._download_json(
             'https://www.imdb.com/ve/data/VIDEO_PLAYBACK_DATA', video_id,
             query={
@@ -86,7 +79,6 @@ class ImdbIE(InfoExtractor):
                     'id': 'vi%s' % video_id,
                 }).encode()).decode(),
             }), lambda x: x[0]['videoLegacyEncodings'])
-
         quality = qualities(('SD', '480p', '720p', '1080p'))
         formats, subtitles = [], {}
         for encoding in data:
@@ -104,7 +96,7 @@ class ImdbIE(InfoExtractor):
                 subtitles = self._merge_subtitles(subtitles, subs)
                 formats.extend(fmts)
                 continue
-            format_id = try_get(encoding, lambda x: x['displayName']['value']) or encoding.get('definition')
+            format_id = traverse_obj(encoding, ('displayName', 'value'), 'definition')
             formats.append({
                 'format_id': format_id,
                 'url': video_url,
