@@ -75,7 +75,7 @@ class TVerIE(InfoExtractor):
 
         additional_info = self._download_json(
             f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
-            video_id,
+            video_id, fatal=False,
             query={
                 'platform_uid': self._PLATFORM_UID,
                 'platform_token': self._PLATFORM_TOKEN,
