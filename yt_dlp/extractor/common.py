@@ -1297,8 +1297,8 @@ class InfoExtractor(object):
     @staticmethod
     def _og_regexes(prop):
         content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?))'
-        property_re = (r'(?:name|property)=(?:\'og[:-]%(prop)s\'|"og[:-]%(prop)s"|\s*og[:-]%(prop)s\b)'
-                       % {'prop': re.escape(prop)})
+        property_re = (r'(?:name|property)=(?:\'og%(sep)s%(prop)s\'|"og%(sep)s%(prop)s"|\s*og%(sep)s%(prop)s\b)'
+                       % {'prop': re.escape(prop), 'sep': '(?:&#x3A;|[:-])'})
         template = r'<meta[^>]+?%s[^>]+?%s'
         return [
             template % (property_re, content_re),
