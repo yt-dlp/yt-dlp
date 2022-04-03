@@ -1,14 +1,16 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import functools
 import re
 
 from .common import InfoExtractor
 from ..compat import compat_xpath
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     date_from_str,
     determine_ext,
-    ExtractorError,
     int_or_none,
     qualities,
     traverse_obj,
@@ -520,25 +522,21 @@ class AfreecaTVUserIE(InfoExtractor):
         },
         'playlist_count': 0,
     }]
-    PER_PAGE = 60
+    _PER_PAGE = 60
+
+    def _fetch_page(self, user_id, user_type, page):
+        page += 1
+        info = self._download_json(f'https://bjapi.afreecatv.com/api/{user_id}/vods/{user_type}',
+                                   video_id=user_id,
+                                   query={'page': page, 'per_page': self._PER_PAGE, 'orderby': 'reg_date'},
+                                   note=f'Download [{user_type}] video page {page} of {user_id}')
+        for item in info.get('data'):
+            if item:
+                yield self.url_result(f'https://vod.afreecatv.com/player/{item.get("title_no")}/',
+                                      AfreecaTVIE.ie_key(), item.get("title_no"))
 
     def _real_extract(self, url):
         user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
         user_type = user_type or 'all'
-
-        def entries():
-            page = 1
-            while True:
-                info = self._download_json(f'https://bjapi.afreecatv.com/api/{user_id}/vods/{user_type}',
-                                           video_id=user_id,
-                                           query={'page': page, 'per_page': self.PER_PAGE, 'orderby': 'reg_date'},
-                                           note=f'Download [{user_type}] video page {page} of {user_id}')
-                for item in info.get('data'):
-                    if item:
-                        yield self.url_result(f'https://vod.afreecatv.com/player/{item.get("title_no")}/',
-                                              AfreecaTVIE.ie_key(), item.get("title_no"))
-                if not traverse_obj(info, ('links', 'next')):
-                    break
-                page += 1
-
-        return self.playlist_result(entries(), playlist_id=user_id, playlist_title=f'{user_id} - {user_type}')
+        entries = OnDemandPagedList(functools.partial(self._fetch_page, user_id, user_type), self._PER_PAGE)
+        return self.playlist_result(entries, playlist_id=user_id, playlist_title=f'{user_id} - {user_type}')
