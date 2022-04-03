@@ -19,7 +19,7 @@ class TVerIE(InfoExtractor):
         'url': 'https://tver.jp/episodes/ephss8yveb',
         'info_dict': {
             'title': '#44　料理と値段と店主にびっくり　オモてなしすぎウマい店　2時間SP',
-            'description': '【宮城】極厚とんかつ定食５００円　マル秘女性歌手大ファン店主\n【福岡】学生感動パワー店主！！名物パワー定食って！？\n【埼玉】暴れん坊そば名人！！弟子５０人に！？師弟愛シーズン３',
+            'description': 'md5:4ae6bb0d8e9c860bf91bdb791e32356e8bd2d657a588e154f69b2cf6c6cbaf48',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
@@ -28,7 +28,7 @@ class TVerIE(InfoExtractor):
         'info_dict': {
             # sorry but this is "correct"
             'title': '4月11日(月)23時06分 ~ 放送予定',
-            'description': '吉祥寺の格安シェアハウスに引っ越して来た高校教師の安彦聡（増田貴久）や、元ファッション誌編集長の大庭桜（田中みな実）など6人。鍵が掛かった部屋に絶対入らないことが絶対ルール。奇妙な共同生活が今始まる！　テレビ東京にて4月11日(月)夜11時6分放送スタート！',
+            'description': 'md5:c8ed3a7507e9a087a922b144e79b93336da1b60ca1d867df438ee63e7b7093dc',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
