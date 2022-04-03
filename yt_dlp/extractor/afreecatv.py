@@ -482,3 +482,63 @@ class AfreecaTVLiveIE(AfreecaTVIE):
             'formats': formats,
             'is_live': True,
         }
+
+
+class AfreecaTVUserIE(InfoExtractor):
+    IE_NAME = 'afreecatv:user'
+    _VALID_URL = r'https?://bj\.afreeca(?:tv)?\.com/(?P<id>[^/]+)/vods/?(?P<slug_type>[^/]+)?'
+    _TESTS = [{
+        'url': 'https://bj.afreecatv.com/ryuryu24/vods/review',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ryuryu24',
+            'title': 'ryuryu24 - review',
+        },
+        'playlist_count': 218,
+    }, {
+        'url': 'https://bj.afreecatv.com/parang1995/vods/highlight',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'parang1995',
+            'title': 'parang1995 - highlight',
+        },
+        'playlist_count': 997,
+    }, {
+        'url': 'https://bj.afreecatv.com/ryuryu24/vods',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ryuryu24',
+            'title': 'ryuryu24 - all',
+        },
+        'playlist_count': 221,
+    }, {
+        'url': 'https://bj.afreecatv.com/ryuryu24/vods/balloonclip',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ryuryu24',
+            'title': 'ryuryu24 - balloonclip',
+        },
+        'playlist_count': 0,
+    }]
+    PER_PAGE = 60
+
+    def _real_extract(self, url):
+        user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
+        user_type = user_type or 'all'
+
+        def entries():
+            page = 1
+            while True:
+                info = self._download_json(f'https://bjapi.afreecatv.com/api/{user_id}/vods/{user_type}',
+                                           video_id=user_id,
+                                           query={'page': page, 'per_page': self.PER_PAGE, 'orderby': 'reg_date'},
+                                           note=f'Download [{user_type}] video page {page} of {user_id}')
+                for item in info.get('data'):
+                    if item:
+                        yield self.url_result(f'https://vod.afreecatv.com/player/{item.get("title_no")}/',
+                                              AfreecaTVIE.ie_key(), item.get("title_no"))
+                if not traverse_obj(info, ('links', 'next')):
+                    break
+                page += 1
+
+        return self.playlist_result(entries(), playlist_id=user_id, playlist_title=f'{user_id} - {user_type}')
