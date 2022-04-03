@@ -3777,7 +3777,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer
         known_basic_renderers = (
-            'playlistRenderer', 'videoRenderer', 'channelRenderer', 'showRenderer'
+            'playlistRenderer', 'videoRenderer', 'channelRenderer', 'showRenderer', 'reelItemRenderer'
         )
         for key, renderer in item.items():
             if not isinstance(renderer, dict):
@@ -3992,7 +3992,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 known_renderers = {
                     'playlistVideoListRenderer': self._playlist_entries,
                     'gridRenderer': self._grid_entries,
-                    'shelfRenderer': lambda x: self._shelf_entries(x),
+                    'reelShelfRenderer': self._grid_entries,
+                    'shelfRenderer': self._shelf_entries,
                     'musicResponsiveListItemRenderer': lambda x: [self._music_reponsive_list_entry(x)],
                     'backstagePostThreadRenderer': self._post_thread_entries,
                     'videoRenderer': lambda x: [self._video_entry(x)],
@@ -4170,7 +4171,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 })
 
         primary_thumbnails = self._extract_thumbnails(
-            primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail'))
+            primary_sidebar_renderer, ('thumbnailRenderer', ('playlistVideoThumbnailRenderer', 'playlistCustomThumbnailRenderer'), 'thumbnail'))
 
         if playlist_id is None:
             playlist_id = item_id
