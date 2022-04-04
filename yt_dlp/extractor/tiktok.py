@@ -263,7 +263,7 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': aweme_id,
-            'title': aweme_detail['desc'],
+            'title': aweme_detail.get('desc'),
             'description': aweme_detail['desc'],
             'view_count': int_or_none(stats_info.get('play_count')),
             'like_count': int_or_none(stats_info.get('digg_count')),
@@ -458,6 +458,30 @@ class TikTokIE(TikTokBaseIE):
         },
         'expected_warnings': ['Video not available']
     }, {
+        # Video without title and description
+        'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
+        'info_dict': {
+            'id': '7059698374567611694',
+            'ext': 'mp4',
+            'title': 'N/A',
+            'description': '',
+            'uploader': 'pokemonlife22',
+            'creator': 'Pokemon',
+            'uploader_id': '6820838815978423302',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAA0tF1nBwQVVMyrGu3CqttkNgM68Do1OXUFuCY0CRQk8fEtSVDj89HqoqvbSTmUP2W',
+            'track': 'original sound',
+            'timestamp': 1643714123,
+            'duration': 6,
+            'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
+            'upload_date': '20220201',
+            'artist': 'Pokemon',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+        'expected_warnings': ['Video not available']
+    }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
@@ -518,6 +542,15 @@ class TikTokUserIE(TikTokBaseIE):
         'info_dict': {
             'id': '6935371178089399301',
             'title': 'corgibobaa',
+            'thumbnail': r're:https://.+_1080x1080\.webp'
+        },
+        'expected_warnings': ['Retrying']
+    }, {
+        'url': 'https://www.tiktok.com/@6820838815978423302',
+        'playlist_mincount': 5,
+        'info_dict': {
+            'id': '6820838815978423302',
+            'title': '6820838815978423302',
             'thumbnail': r're:https://.+_1080x1080\.webp'
         },
         'expected_warnings': ['Retrying']
@@ -593,7 +626,7 @@ class TikTokUserIE(TikTokBaseIE):
         webpage = self._download_webpage(url, user_name, headers={
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
-        user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID')
+        user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID', default=None) or user_name
 
         videos = LazyList(self._video_entries_api(webpage, user_id, user_name))
         thumbnail = traverse_obj(videos, (0, 'author', 'avatar_larger', 'url_list', 0))
