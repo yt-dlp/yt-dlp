@@ -17,6 +17,7 @@ from ..compat import (
 )
 from ..utils import (
     determine_ext,
+    dict_get,
     ExtractorError,
     float_or_none,
     HEADRequest,
@@ -28,8 +29,10 @@ from ..utils import (
     mimetype2ext,
     orderedSet,
     parse_duration,
+    parse_resolution,
     sanitized_Request,
     smuggle_url,
+    str_or_none,
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
@@ -100,6 +103,9 @@ from .ustream import UstreamIE
 from .arte import ArteTVEmbedIE
 from .videopress import VideoPressIE
 from .rutube import RutubeIE
+from .glomex import GlomexEmbedIE
+from .megatvcom import MegaTVComEmbedIE
+from .ant1newsgr import Ant1NewsGrEmbedIE
 from .limelight import LimelightBaseIE
 from .anvato import AnvatoIE
 from .washingtonpost import WashingtonPostIE
@@ -112,6 +118,7 @@ from .channel9 import Channel9IE
 from .vshare import VShareIE
 from .mediasite import MediasiteIE
 from .springboardplatform import SpringboardPlatformIE
+from .ted import TedEmbedIE
 from .yapfiles import YapFilesIE
 from .vice import ViceIE
 from .xfileshare import XFileShareIE
@@ -135,16 +142,20 @@ from .arcpublishing import ArcPublishingIE
 from .medialaan import MedialaanIE
 from .simplecast import SimplecastIE
 from .wimtv import WimTVIE
+from .tvopengr import TVOpenGrEmbedIE
+from .ertgr import ERTWebtvEmbedIE
 from .tvp import TVPEmbedIE
 from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 from .gfycat import GfycatIE
+from .panopto import PanoptoBaseIE
 
 
 class GenericIE(InfoExtractor):
     IE_DESC = 'Generic downloader that works on some sites'
     _VALID_URL = r'.*'
     IE_NAME = 'generic'
+    _NETRC_MACHINE = False  # Supress username warning
     _TESTS = [
         # Direct link to a video
         {
@@ -207,7 +218,7 @@ class GenericIE(InfoExtractor):
         {
             'url': 'http://phihag.de/2014/youtube-dl/rss2.xml',
             'info_dict': {
-                'id': 'http://phihag.de/2014/youtube-dl/rss2.xml',
+                'id': 'https://phihag.de/2014/youtube-dl/rss2.xml',
                 'title': 'Zero Punctuation',
                 'description': 're:.*groundbreaking video review series.*'
             },
@@ -252,6 +263,9 @@ class GenericIE(InfoExtractor):
                     'episode_number': 1,
                     'season_number': 1,
                     'age_limit': 0,
+                    'season': 'Season 1',
+                    'direct': True,
+                    'episode': 'Episode 1',
                 },
             }],
             'params': {
@@ -267,6 +281,16 @@ class GenericIE(InfoExtractor):
                 'title': 'Hello Internet',
             },
             'playlist_mincount': 100,
+        },
+        # RSS feed with guid
+        {
+            'url': 'https://www.omnycontent.com/d/playlist/a7b4f8fe-59d9-4afc-a79a-a90101378abf/bf2c1d80-3656-4449-9d00-a903004e8f84/efbff746-e7c1-463a-9d80-a903004e8f8f/podcast.rss',
+            'info_dict': {
+                'id': 'https://www.omnycontent.com/d/playlist/a7b4f8fe-59d9-4afc-a79a-a90101378abf/bf2c1d80-3656-4449-9d00-a903004e8f84/efbff746-e7c1-463a-9d80-a903004e8f8f/podcast.rss',
+                'description': 'md5:be809a44b63b0c56fb485caf68685520',
+                'title': 'The Little Red Podcast',
+            },
+            'playlist_mincount': 76,
         },
         # SMIL from http://videolectures.net/promogram_igor_mekjavic_eng
         {
@@ -1450,24 +1474,6 @@ class GenericIE(InfoExtractor):
                 'duration': 45.115,
             },
         },
-        # 5min embed
-        {
-            'url': 'http://techcrunch.com/video/facebook-creates-on-this-day-crunch-report/518726732/',
-            'md5': '4c6f127a30736b59b3e2c19234ee2bf7',
-            'info_dict': {
-                'id': '518726732',
-                'ext': 'mp4',
-                'title': 'Facebook Creates "On This Day" | Crunch Report',
-                'description': 'Amazon updates Fire TV line, Tesla\'s Model X spotted in the wild',
-                'timestamp': 1427237531,
-                'uploader': 'Crunch Report',
-                'upload_date': '20150324',
-            },
-            'params': {
-                # m3u8 download
-                'skip_download': True,
-            },
-        },
         # Crooks and Liars embed
         {
             'url': 'http://crooksandliars.com/2015/04/fox-friends-says-protecting-atheists',
@@ -1872,6 +1878,62 @@ class GenericIE(InfoExtractor):
             'add_ie': [RutubeIE.ie_key()],
         },
         {
+            # glomex:embed
+            'url': 'https://www.skai.gr/news/world/iatrikos-syllogos-tourkias-to-turkovac-aplo-dialyma-erntogan-eiste-apateones-kai-pseytes',
+            'info_dict': {
+                'id': 'v-ch2nkhcirwc9-sf',
+                'ext': 'mp4',
+                'title': 'md5:786e1e24e06c55993cee965ef853a0c1',
+                'description': 'md5:8b517a61d577efe7e36fde72fd535995',
+                'timestamp': 1641885019,
+                'upload_date': '20220111',
+                'duration': 460000,
+                'thumbnail': 'https://i3thumbs.glomex.com/dC1idjJwdndiMjRzeGwvMjAyMi8wMS8xMS8wNy8xMF8zNV82MWRkMmQ2YmU5ZTgyLmpwZw==/profile:player-960x540',
+            },
+        },
+        {
+            # megatvcom:embed
+            'url': 'https://www.in.gr/2021/12/18/greece/apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize/',
+            'info_dict': {
+                'id': 'apokalypsi-mega-poios-parelave-tin-ereyna-tsiodra-ek-merous-tis-kyvernisis-o-prothypourgos-telika-gnorize',
+                'title': 'md5:5e569cf996ec111057c2764ec272848f',
+            },
+            'playlist': [{
+                'md5': '1afa26064ff00ccb91617957dbc73dc1',
+                'info_dict': {
+                    'ext': 'mp4',
+                    'id': '564916',
+                    'display_id': 'md5:6cdf22d3a2e7bacb274b7295089a1770',
+                    'title': 'md5:33b9dd39584685b62873043670eb52a6',
+                    'description': 'md5:c1db7310f390518ac36dd69d947ef1a1',
+                    'timestamp': 1639753145,
+                    'upload_date': '20211217',
+                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/prezerakos-1024x597.jpg',
+                },
+            }, {
+                'md5': '4a1c220695f1ef865a8b7966a53e2474',
+                'info_dict': {
+                    'ext': 'mp4',
+                    'id': '564905',
+                    'display_id': 'md5:ead15695e485e649aed2b81ebd699b88',
+                    'title': 'md5:2b71fd54249a3ca34609fe39ae31c47b',
+                    'description': 'md5:c42e12f638d0a97d6de4508e2c4df982',
+                    'timestamp': 1639753047,
+                    'upload_date': '20211217',
+                    'thumbnail': 'https://www.megatv.com/wp-content/uploads/2021/12/tsiodras-mitsotakis-1024x545.jpg',
+                },
+            }]
+        },
+        {
+            'url': 'https://www.ertnews.gr/video/manolis-goyalles-o-anthropos-piso-apo-ti-diadiktyaki-vasilopita/',
+            'info_dict': {
+                'id': '2022/tv/news-themata-ianouarios/20220114-apotis6-gouales-pita.mp4',
+                'ext': 'mp4',
+                'title': 'md5:df64f5b61c06d0e9556c0cdd5cf14464',
+                'thumbnail': 'https://www.ert.gr/themata/photos/2021/20220114-apotis6-gouales-pita.jpg',
+            },
+        },
+        {
             # ThePlatform embedded with whitespaces in URLs
             'url': 'http://www.golfchannel.com/topics/shows/golftalkcentral.htm',
             'only_matching': True,
@@ -2177,6 +2239,22 @@ class GenericIE(InfoExtractor):
             },
         },
         {
+            # tvopengr:embed
+            'url': 'https://www.ethnos.gr/World/article/190604/hparosiaxekinoynoisynomiliessthgeneyhmethskiatoypolemoypanoapothnoykrania',
+            'md5': 'eb0c3995d0a6f18f6538c8e057865d7d',
+            'info_dict': {
+                'id': '101119',
+                'ext': 'mp4',
+                'display_id': 'oikarpoitondiapragmateyseonhparosias',
+                'title': 'md5:b979f4d640c568617d6547035528a149',
+                'description': 'md5:e54fc1977c7159b01cc11cd7d9d85550',
+                'timestamp': 1641772800,
+                'upload_date': '20220110',
+                'thumbnail': 'https://opentv-static.siliconweb.com/imgHandler/1920/70bc39fa-895b-4918-a364-c39d2135fc6d.jpg',
+
+            }
+        },
+        {
             # blogger embed
             'url': 'https://blog.tomeuvizoso.net/2019/01/a-panfrost-milestone.html',
             'md5': 'f1bc19b6ea1b0fd1d81e84ca9ec467ac',
@@ -2424,6 +2502,15 @@ class GenericIE(InfoExtractor):
                 'id': '?vid=2295'
             },
             'playlist_count': 9
+        },
+        {
+            # Panopto embeds
+            'url': 'https://www.monash.edu/learning-teaching/teachhq/learning-technologies/panopto/how-to/insert-a-quiz-into-a-panopto-video',
+            'info_dict': {
+                'title': 'Insert a quiz into a Panopto video',
+                'id': 'insert-a-quiz-into-a-panopto-video'
+            },
+            'playlist_count': 1
         }
     ]
 
@@ -2457,6 +2544,9 @@ class GenericIE(InfoExtractor):
 
             if not next_url:
                 continue
+
+            if it.find('guid').text is not None:
+                next_url = smuggle_url(next_url, {'force_videoid': it.find('guid').text})
 
             def itunes(key):
                 return xpath_text(
@@ -3124,10 +3214,9 @@ class GenericIE(InfoExtractor):
             return self.url_result(mobj.group('url'), 'Tvigle')
 
         # Look for embedded TED player
-        mobj = re.search(
-            r'<iframe[^>]+?src=(["\'])(?P<url>https?://embed(?:-ssl)?\.ted\.com/.+?)\1', webpage)
-        if mobj is not None:
-            return self.url_result(mobj.group('url'), 'TED')
+        ted_urls = TedEmbedIE._extract_urls(webpage)
+        if ted_urls:
+            return self.playlist_from_matches(ted_urls, video_id, video_title, ie=TedEmbedIE.ie_key())
 
         # Look for embedded Ustream videos
         ustream_url = UstreamIE._extract_url(webpage)
@@ -3259,12 +3348,6 @@ class GenericIE(InfoExtractor):
             r'<script[^>]+data-config=(["\'])(?P<url>(?:https?:)?//config\.playwire\.com/.+?)\1', webpage)
         if mobj is not None:
             return self.url_result(mobj.group('url'))
-
-        # Look for 5min embeds
-        mobj = re.search(
-            r'<meta[^>]+property="og:video"[^>]+content="https?://embed\.5min\.com/(?P<id>[0-9]+)/?', webpage)
-        if mobj is not None:
-            return self.url_result('5min:%s' % mobj.group('id'), 'FiveMin')
 
         # Look for Crooks and Liars embeds
         mobj = re.search(
@@ -3463,6 +3546,24 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 rutube_urls, video_id, video_title, ie=RutubeIE.ie_key())
 
+        # Look for Glomex embeds
+        glomex_urls = list(GlomexEmbedIE._extract_urls(webpage, url))
+        if glomex_urls:
+            return self.playlist_from_matches(
+                glomex_urls, video_id, video_title, ie=GlomexEmbedIE.ie_key())
+
+        # Look for megatv.com embeds
+        megatvcom_urls = list(MegaTVComEmbedIE._extract_urls(webpage))
+        if megatvcom_urls:
+            return self.playlist_from_matches(
+                megatvcom_urls, video_id, video_title, ie=MegaTVComEmbedIE.ie_key())
+
+        # Look for ant1news.gr embeds
+        ant1newsgr_urls = list(Ant1NewsGrEmbedIE._extract_urls(webpage))
+        if ant1newsgr_urls:
+            return self.playlist_from_matches(
+                ant1newsgr_urls, video_id, video_title, ie=Ant1NewsGrEmbedIE.ie_key())
+
         # Look for WashingtonPost embeds
         wapo_urls = WashingtonPostIE._extract_urls(webpage)
         if wapo_urls:
@@ -3609,6 +3710,18 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(
                 rumble_urls, video_id, video_title, ie=RumbleEmbedIE.ie_key())
 
+        # Look for (tvopen|ethnos).gr embeds
+        tvopengr_urls = list(TVOpenGrEmbedIE._extract_urls(webpage))
+        if tvopengr_urls:
+            return self.playlist_from_matches(tvopengr_urls, video_id, video_title, ie=TVOpenGrEmbedIE.ie_key())
+
+        # Look for ert.gr webtv embeds
+        ertwebtv_urls = list(ERTWebtvEmbedIE._extract_urls(webpage))
+        if len(ertwebtv_urls) == 1:
+            return self.url_result(self._proto_relative_url(ertwebtv_urls[0]), video_title=video_title, url_transparent=True)
+        elif ertwebtv_urls:
+            return self.playlist_from_matches(ertwebtv_urls, video_id, video_title, ie=ERTWebtvEmbedIE.ie_key())
+
         tvp_urls = TVPEmbedIE._extract_urls(webpage)
         if tvp_urls:
             return self.playlist_from_matches(tvp_urls, video_id, video_title, ie=TVPEmbedIE.ie_key())
@@ -3623,6 +3736,9 @@ class GenericIE(InfoExtractor):
         if gfycat_urls:
             return self.playlist_from_matches(gfycat_urls, video_id, video_title, ie=GfycatIE.ie_key())
 
+        panopto_urls = PanoptoBaseIE._extract_urls(webpage)
+        if panopto_urls:
+            return self.playlist_from_matches(panopto_urls, video_id, video_title)
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:
@@ -3664,11 +3780,12 @@ class GenericIE(InfoExtractor):
 
         # Video.js embed
         mobj = re.search(
-            r'(?s)\bvideojs\s*\(.+?\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
+            r'(?s)\bvideojs\s*\(.+?([a-zA-Z0-9_$]+)\.src\s*\(\s*((?:\[.+?\]|{.+?}))\s*\)\s*;',
             webpage)
         if mobj is not None:
+            varname = mobj.group(1)
             sources = self._parse_json(
-                mobj.group(1), video_id, transform_source=js_to_json,
+                mobj.group(2), video_id, transform_source=js_to_json,
                 fatal=False) or []
             if not isinstance(sources, list):
                 sources = [sources]
@@ -3705,6 +3822,21 @@ class GenericIE(InfoExtractor):
                             'Referer': full_response.geturl(),
                         },
                     })
+            # https://docs.videojs.com/player#addRemoteTextTrack
+            # https://html.spec.whatwg.org/multipage/media.html#htmltrackelement
+            for sub_match in re.finditer(rf'(?s){re.escape(varname)}' r'\.addRemoteTextTrack\(({.+?})\s*,\s*(?:true|false)\)', webpage):
+                sub = self._parse_json(
+                    sub_match.group(1), video_id, transform_source=js_to_json, fatal=False) or {}
+                src = str_or_none(sub.get('src'))
+                if not src:
+                    continue
+                subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
+                    'url': compat_urlparse.urljoin(url, src),
+                    'name': sub.get('label'),
+                    'http_headers': {
+                        'Referer': full_response.geturl(),
+                    },
+                })
             if formats or subtitles:
                 self.report_detected('video.js embed')
                 self._sort_formats(formats)
@@ -3714,12 +3846,16 @@ class GenericIE(InfoExtractor):
 
         # Looking for http://schema.org/VideoObject
         json_ld = self._search_json_ld(webpage, video_id, default={})
-        if json_ld.get('url'):
+        if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
-            if determine_ext(json_ld.get('url')) == 'm3u8':
+            if determine_ext(json_ld['url']) == 'm3u8':
                 json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
                     json_ld['url'], video_id, 'mp4')
                 json_ld.pop('url')
+                self._sort_formats(json_ld['formats'])
+            else:
+                json_ld['_type'] = 'url_transparent'
+                json_ld['url'] = smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True})
             return merge_dicts(json_ld, info_dict)
 
         def check_video(vurl):
@@ -3774,20 +3910,21 @@ class GenericIE(InfoExtractor):
                     protocol, _, _ = url.partition('/')
                     thumbnail = protocol + thumbnail
 
+                url_keys = list(filter(re.compile(r'video_url|video_alt_url\d*').fullmatch, flashvars.keys()))
                 formats = []
-                for key in ('video_url', 'video_alt_url', 'video_alt_url2'):
-                    if key in flashvars and '/get_file/' in flashvars[key]:
-                        next_format = {
-                            'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
-                            'format_id': flashvars.get(key + '_text', key),
-                            'ext': 'mp4',
-                        }
-                        height = re.search(r'%s_(\d+)p\.mp4(?:/[?].*)?$' % flashvars['video_id'], flashvars[key])
-                        if height:
-                            next_format['height'] = int(height.group(1))
-                        else:
-                            next_format['quality'] = 1
-                        formats.append(next_format)
+                for key in url_keys:
+                    if '/get_file/' not in flashvars[key]:
+                        continue
+                    format_id = flashvars.get(f'{key}_text', key)
+                    formats.append({
+                        'url': self._kvs_getrealurl(flashvars[key], flashvars['license_code']),
+                        'format_id': format_id,
+                        'ext': 'mp4',
+                        **(parse_resolution(format_id) or parse_resolution(flashvars[key]))
+                    })
+                    if not formats[-1].get('height'):
+                        formats[-1]['quality'] = 1
+
                 self._sort_formats(formats)
 
                 return {
@@ -3893,12 +4030,16 @@ class GenericIE(InfoExtractor):
 
             # here's a fun little line of code for you:
             video_id = os.path.splitext(video_id)[0]
+            headers = {
+                'referer': full_response.geturl()
+            }
 
             entry_info_dict = {
                 'id': video_id,
                 'uploader': video_uploader,
                 'title': video_title,
                 'age_limit': age_limit,
+                'http_headers': headers,
             }
 
             if RtmpIE.suitable(video_url):
@@ -3916,11 +4057,11 @@ class GenericIE(InfoExtractor):
             elif ext == 'xspf':
                 return self.playlist_result(self._extract_xspf_playlist(video_url, video_id), video_id)
             elif ext == 'm3u8':
-                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4')
+                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_m3u8_formats_and_subtitles(video_url, video_id, ext='mp4', headers=headers)
             elif ext == 'mpd':
-                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id)
+                entry_info_dict['formats'], entry_info_dict['subtitles'] = self._extract_mpd_formats_and_subtitles(video_url, video_id, headers=headers)
             elif ext == 'f4m':
-                entry_info_dict['formats'] = self._extract_f4m_formats(video_url, video_id)
+                entry_info_dict['formats'] = self._extract_f4m_formats(video_url, video_id, headers=headers)
             elif re.search(r'(?i)\.(?:ism|smil)/manifest', video_url) and video_url != url:
                 # Just matching .ism/manifest is not enough to be reliably sure
                 # whether it's actually an ISM manifest or some other streaming

@@ -3,6 +3,8 @@
 
 from __future__ import unicode_literals
 
+import asyncio
+import atexit
 import base64
 import binascii
 import calendar
@@ -45,6 +47,7 @@ from .compat import (
     compat_HTMLParser,
     compat_HTTPError,
     compat_basestring,
+    compat_brotli,
     compat_chr,
     compat_cookiejar,
     compat_ctypes_WINFUNCTYPE,
@@ -73,6 +76,7 @@ from .compat import (
     compat_urllib_parse_unquote_plus,
     compat_urllib_request,
     compat_urlparse,
+    compat_websockets,
     compat_xpath,
 )
 
@@ -80,6 +84,12 @@ from .socks import (
     ProxyType,
     sockssocket,
 )
+
+try:
+    import certifi
+    has_certifi = True
+except ImportError:
+    has_certifi = False
 
 
 def register_socks_protocols():
@@ -140,11 +150,17 @@ def random_user_agent():
     return _USER_AGENT_TPL % random.choice(_CHROME_VERSIONS)
 
 
+SUPPORTED_ENCODINGS = [
+    'gzip', 'deflate'
+]
+if compat_brotli:
+    SUPPORTED_ENCODINGS.append('br')
+
 std_headers = {
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Encoding': 'gzip, deflate',
     'Accept-Language': 'en-us,en;q=0.5',
+    'Sec-Fetch-Mode': 'navigate',
 }
 
 
@@ -473,24 +489,23 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
     attribute in the passed HTML document
     """
 
+    value_quote_optional = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
+
     value = re.escape(value) if escape_value else value
 
-    retlist = []
-    for m in re.finditer(r'''(?xs)
+    partial_element_re = r'''(?x)
         <(?P<tag>[a-zA-Z0-9:._-]+)
-         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
-         \s+%(attribute)s(?:=%(value)s|\s*=\s*(?P<_q>['"]?)%(value)s(?P=_q))
-         (?:\s+[a-zA-Z0-9_:.-]+(?:=\S*?|\s*=\s*(?:"[^"]*"|'[^']*')|))*?
-        \s*>
-    ''' % {'attribute': re.escape(attribute), 'value': value}, html):
+         (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
+         \s%(attribute)s\s*=\s*(?P<_q>['"]%(vqo)s)(?-x:%(value)s)(?P=_q)
+        ''' % {'attribute': re.escape(attribute), 'value': value, 'vqo': value_quote_optional}
+
+    for m in re.finditer(partial_element_re, html):
         content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
 
-        retlist.append((
-            unescapeHTML(re.sub(r'(?s)^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content)),
-            whole,
-        ))
-
-    return retlist
+        yield (
+            unescapeHTML(re.sub(r'^(?P<q>["\'])(?P<content>.*)(?P=q)$', r'\g<content>', content, flags=re.DOTALL)),
+            whole
+        )
 
 
 class HTMLBreakOnClosingTagParser(compat_HTMLParser):
@@ -639,10 +654,9 @@ def clean_html(html):
     if html is None:  # Convenience for sanitizing descriptions etc.
         return html
 
-    # Newline vs <br />
-    html = html.replace('\n', ' ')
-    html = re.sub(r'(?u)\s*<\s*br\s*/?\s*>\s*', '\n', html)
-    html = re.sub(r'(?u)<\s*/\s*p\s*>\s*<\s*p[^>]*>', '\n', html)
+    html = re.sub(r'\s+', ' ', html)
+    html = re.sub(r'(?u)\s?<\s?br\s?/?\s?>\s?', '\n', html)
+    html = re.sub(r'(?u)<\s?/\s?p\s?>\s?<\s?p[^>]*>', '\n', html)
     # Strip html tags
     html = re.sub('<.*?>', '', html)
     # Replace html entities
@@ -666,7 +680,7 @@ def sanitize_open(filename, open_mode):
                 import msvcrt
                 msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
             return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
-        stream = open(encodeFilename(filename), open_mode)
+        stream = locked_file(filename, open_mode, block=False).open()
         return (stream, filename)
     except (IOError, OSError) as err:
         if err.errno in (errno.EACCES,):
@@ -678,7 +692,7 @@ def sanitize_open(filename, open_mode):
             raise
         else:
             # An exception here should be caught in the caller
-            stream = open(encodeFilename(alt_filename), open_mode)
+            stream = locked_file(filename, open_mode, block=False).open()
             return (stream, alt_filename)
 
 
@@ -691,36 +705,40 @@ def timeconvert(timestr):
     return timestamp
 
 
-def sanitize_filename(s, restricted=False, is_id=False):
+def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     """Sanitizes a string so it could be used as part of a filename.
-    If restricted is set, use a stricter subset of allowed characters.
-    Set is_id if this is not an arbitrary string, but an ID that should be kept
-    if possible.
+    @param restricted   Use a stricter subset of allowed characters
+    @param is_id        Whether this is an ID that should be kept unchanged if possible.
+                        If unset, yt-dlp's new sanitization rules are in effect
     """
+    if s == '':
+        return ''
+
     def replace_insane(char):
         if restricted and char in ACCENT_CHARS:
             return ACCENT_CHARS[char]
         elif not restricted and char == '\n':
-            return ' '
+            return '\0 '
         elif char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
         elif char == '"':
             return '' if restricted else '\''
         elif char == ':':
-            return '_-' if restricted else ' -'
+            return '\0_\0-' if restricted else '\0 \0-'
         elif char in '\\/|*<>':
-            return '_'
-        if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace()):
-            return '_'
-        if restricted and ord(char) > 127:
-            return '_'
+            return '\0_'
+        if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace() or ord(char) > 127):
+            return '\0_'
         return char
 
-    if s == '':
-        return ''
-    # Handle timestamps
-    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)
+    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
+    if is_id is NO_DEFAULT:
+        result = re.sub('(\0.)(?:(?=\\1)..)+', r'\1', result)  # Remove repeated substitute chars
+        STRIP_RE = '(?:\0.|[ _-])*'
+        result = re.sub(f'^\0.{STRIP_RE}|{STRIP_RE}\0.$', '', result)  # Remove substitute chars from start/end
+    result = result.replace('\0', '') or '_'
+
     if not is_id:
         while '__' in result:
             result = result.replace('__', '_')
@@ -997,33 +1015,34 @@ def make_HTTPS_handler(params, **kwargs):
     opts_check_certificate = not params.get('nocheckcertificate')
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = opts_check_certificate
+    if params.get('legacyserverconnect'):
+        context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
-        try:
-            context.load_default_certs()
-            # Work around the issue in load_default_certs when there are bad certificates. See:
-            # https://github.com/yt-dlp/yt-dlp/issues/1060,
-            # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-        except ssl.SSLError:
-            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                # Create a new context to discard any certificates that were already loaded
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
-                for storename in ('CA', 'ROOT'):
-                    _ssl_load_windows_store_certs(context, storename)
-            context.set_default_verify_paths()
+        if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
+            context.load_verify_locations(cafile=certifi.where())
+        else:
+            try:
+                context.load_default_certs()
+                # Work around the issue in load_default_certs when there are bad certificates. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/1060,
+                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+            except ssl.SSLError:
+                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                    # Create a new context to discard any certificates that were already loaded
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
+                    for storename in ('CA', 'ROOT'):
+                        _ssl_load_windows_store_certs(context, storename)
+                context.set_default_verify_paths()
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
 def bug_reports_message(before=';'):
-    if ytdl_is_updateable():
-        update_cmd = 'type  yt-dlp -U  to update'
-    else:
-        update_cmd = 'see  https://github.com/yt-dlp/yt-dlp  on how to update'
-    msg = 'please report this issue on  https://github.com/yt-dlp/yt-dlp .'
-    msg += ' Make sure you are using the latest version; %s.' % update_cmd
-    msg += ' Be sure to call yt-dlp with the --verbose flag and include its complete output.'
+    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
+           'filling out the appropriate issue template. '
+           'Confirm you are on the latest version using  yt-dlp -U')
 
     before = before.rstrip()
     if not before or before.endswith(('.', '!', '?')):
@@ -1060,7 +1079,7 @@ class ExtractorError(YoutubeDLError):
         if sys.exc_info()[0] in network_exceptions:
             expected = True
 
-        self.msg = str(msg)
+        self.orig_msg = str(msg)
         self.traceback = tb
         self.expected = expected
         self.cause = cause
@@ -1071,14 +1090,15 @@ class ExtractorError(YoutubeDLError):
         super(ExtractorError, self).__init__(''.join((
             format_field(ie, template='[%s] '),
             format_field(video_id, template='%s: '),
-            self.msg,
+            msg,
             format_field(cause, template=' (caused by %r)'),
             '' if expected else bug_reports_message())))
 
     def format_traceback(self):
-        if self.traceback is None:
-            return None
-        return ''.join(traceback.format_tb(self.traceback))
+        return join_nonempty(
+            self.traceback and ''.join(traceback.format_tb(self.traceback)),
+            self.cause and ''.join(traceback.format_exception(None, self.cause, self.cause.__traceback__)[1:]),
+            delim='\n') or None
 
 
 class UnsupportedError(ExtractorError):
@@ -1356,6 +1376,12 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         except zlib.error:
             return zlib.decompress(data)
 
+    @staticmethod
+    def brotli(data):
+        if not data:
+            return data
+        return compat_brotli.decompress(data)
+
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
         # always respected by websites, some tend to give out URLs with non percent-encoded
@@ -1372,11 +1398,14 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         if url != url_escaped:
             req = update_Request(req, url=url_escaped)
 
-        for h, v in std_headers.items():
+        for h, v in self._params.get('http_headers', std_headers).items():
             # Capitalize is needed because of Python bug 2275: http://bugs.python.org/issue2275
             # The dict keys are capitalized because of this bug by urllib
             if h.capitalize() not in req.headers:
                 req.add_header(h, v)
+
+        if 'Accept-encoding' not in req.headers:
+            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
 
         req.headers = handle_youtubedl_headers(req.headers)
 
@@ -1414,6 +1443,12 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
             resp = compat_urllib_request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
+            resp.msg = old_resp.msg
+            del resp.headers['Content-encoding']
+        # brotli
+        if resp.headers.get('Content-encoding', '') == 'br':
+            resp = compat_urllib_request.addinfourl(
+                io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # Percent-encode redirect URL of Location HTTP header to satisfy RFC 3986 (see
@@ -1835,7 +1870,7 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
 def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
 
     format: string date format used to return datetime object from
     precision: round the time portion of a datetime object.
@@ -1846,7 +1881,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if precision == 'auto':
         auto_precision = True
         precision = 'microsecond'
-    today = datetime_round(datetime.datetime.now(), precision)
+    today = datetime_round(datetime.datetime.utcnow(), precision)
     if date_str in ('now', 'today'):
         return today
     if date_str == 'yesterday':
@@ -1874,13 +1909,17 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     return datetime_round(datetime.datetime.strptime(date_str, format), precision)
 
 
-def date_from_str(date_str, format='%Y%m%d'):
+def date_from_str(date_str, format='%Y%m%d', strict=False):
     """
     Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+
+    If "strict", only (now|today)[+-][0-9](day|week|month|year)(s)? is allowed
 
     format: string date format used to return datetime object from
     """
+    if strict and not re.fullmatch(r'\d{8}|(now|today)[+-]\d+(day|week|month|year)(s)?', date_str):
+        raise ValueError(f'Invalid date format {date_str}')
     return datetime_from_str(date_str, precision='microsecond', format=format).date()
 
 
@@ -1927,11 +1966,11 @@ class DateRange(object):
     def __init__(self, start=None, end=None):
         """start and end must be strings in the format accepted by date"""
         if start is not None:
-            self.start = date_from_str(start)
+            self.start = date_from_str(start, strict=True)
         else:
             self.start = datetime.datetime.min.date()
         if end is not None:
-            self.end = date_from_str(end)
+            self.end = date_from_str(end, strict=True)
         else:
             self.end = datetime.datetime.max.date()
         if self.start > self.end:
@@ -2118,38 +2157,52 @@ if sys.platform == 'win32':
     whole_low = 0xffffffff
     whole_high = 0x7fffffff
 
-    def _lock_file(f, exclusive):
+    def _lock_file(f, exclusive, block):
         overlapped = OVERLAPPED()
         overlapped.Offset = 0
         overlapped.OffsetHigh = 0
         overlapped.hEvent = 0
         f._lock_file_overlapped_p = ctypes.pointer(overlapped)
-        handle = msvcrt.get_osfhandle(f.fileno())
-        if not LockFileEx(handle, 0x2 if exclusive else 0x0, 0,
-                          whole_low, whole_high, f._lock_file_overlapped_p):
-            raise OSError('Locking file failed: %r' % ctypes.FormatError())
+
+        if not LockFileEx(msvcrt.get_osfhandle(f.fileno()),
+                          (0x2 if exclusive else 0x0) | (0x0 if block else 0x1),
+                          0, whole_low, whole_high, f._lock_file_overlapped_p):
+            raise BlockingIOError('Locking file failed: %r' % ctypes.FormatError())
 
     def _unlock_file(f):
         assert f._lock_file_overlapped_p
         handle = msvcrt.get_osfhandle(f.fileno())
-        if not UnlockFileEx(handle, 0,
-                            whole_low, whole_high, f._lock_file_overlapped_p):
+        if not UnlockFileEx(handle, 0, whole_low, whole_high, f._lock_file_overlapped_p):
             raise OSError('Unlocking file failed: %r' % ctypes.FormatError())
 
 else:
-    # Some platforms, such as Jython, is missing fcntl
     try:
         import fcntl
 
-        def _lock_file(f, exclusive):
-            fcntl.flock(f, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+        def _lock_file(f, exclusive, block):
+            try:
+                fcntl.flock(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise
+            except OSError:  # AOSP does not have flock()
+                fcntl.lockf(f,
+                            fcntl.LOCK_SH if not exclusive
+                            else fcntl.LOCK_EX if block
+                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
 
         def _unlock_file(f):
-            fcntl.flock(f, fcntl.LOCK_UN)
+            try:
+                fcntl.flock(f, fcntl.LOCK_UN)
+            except OSError:
+                fcntl.lockf(f, fcntl.LOCK_UN)
+
     except ImportError:
         UNSUPPORTED_MSG = 'file locking is not supported on this platform'
 
-        def _lock_file(f, exclusive):
+        def _lock_file(f, exclusive, block):
             raise IOError(UNSUPPORTED_MSG)
 
         def _unlock_file(f):
@@ -2157,15 +2210,18 @@ else:
 
 
 class locked_file(object):
-    def __init__(self, filename, mode, encoding=None):
-        assert mode in ['r', 'a', 'w']
+    _closed = False
+
+    def __init__(self, filename, mode, block=True, encoding=None):
+        assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
         self.f = io.open(filename, mode, encoding=encoding)
         self.mode = mode
+        self.block = block
 
     def __enter__(self):
-        exclusive = self.mode != 'r'
+        exclusive = 'r' not in self.mode
         try:
-            _lock_file(self.f, exclusive)
+            _lock_file(self.f, exclusive, self.block)
         except IOError:
             self.f.close()
             raise
@@ -2173,9 +2229,11 @@ class locked_file(object):
 
     def __exit__(self, etype, value, traceback):
         try:
-            _unlock_file(self.f)
+            if not self._closed:
+                _unlock_file(self.f)
         finally:
             self.f.close()
+            self._closed = True
 
     def __iter__(self):
         return iter(self.f)
@@ -2185,6 +2243,15 @@ class locked_file(object):
 
     def read(self, *args):
         return self.f.read(*args)
+
+    def flush(self):
+        self.f.flush()
+
+    def open(self):
+        return self.__enter__()
+
+    def close(self, *args):
+        self.__exit__(self, *args, value=False, traceback=False)
 
 
 def get_filesystem_encoding():
@@ -2225,10 +2292,11 @@ def unsmuggle_url(smug_url, default=None):
 def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     """ Formats numbers with decimal sufixes like K, M, etc """
     num, factor = float_or_none(num), float(factor)
-    if num is None:
+    if num is None or num < 0:
         return None
-    exponent = 0 if num == 0 else int(math.log(num, factor))
-    suffix = ['', *'kMGTPEZY'][exponent]
+    POSSIBLE_SUFFIXES = 'kMGTPEZY'
+    exponent = 0 if num == 0 else min(int(math.log(num, factor)), len(POSSIBLE_SUFFIXES))
+    suffix = ['', *POSSIBLE_SUFFIXES][exponent]
     if factor == 1024:
         suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
     converted = num / (factor ** exponent)
@@ -2350,11 +2418,14 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s):
+def parse_resolution(s, *, lenient=False):
     if s is None:
         return {}
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
+    if lenient:
+        mobj = re.search(r'(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)', s)
+    else:
+        mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
     if mobj:
         return {
             'width': int(mobj.group('w')),
@@ -2537,6 +2608,13 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
+def request_to_url(req):
+    if isinstance(req, compat_urllib_request.Request):
+        return req.get_full_url()
+    else:
+        return req
+
+
 def strftime_or_none(timestamp, date_format, default=None):
     datetime_object = None
     try:
@@ -2557,30 +2635,35 @@ def parse_duration(s):
         return None
 
     days, hours, mins, secs, ms = [None] * 5
-    m = re.match(r'(?:(?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?(?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?Z?$', s)
+    m = re.match(r'''(?x)
+            (?P<before_secs>
+                (?:(?:(?P<days>[0-9]+):)?(?P<hours>[0-9]+):)?(?P<mins>[0-9]+):)?
+            (?P<secs>(?(before_secs)[0-9]{1,2}|[0-9]+))
+            (?P<ms>[.:][0-9]+)?Z?$
+        ''', s)
     if m:
-        days, hours, mins, secs, ms = m.groups()
+        days, hours, mins, secs, ms = m.group('days', 'hours', 'mins', 'secs', 'ms')
     else:
         m = re.match(
             r'''(?ix)(?:P?
                 (?:
-                    [0-9]+\s*y(?:ears?)?\s*
+                    [0-9]+\s*y(?:ears?)?,?\s*
                 )?
                 (?:
-                    [0-9]+\s*m(?:onths?)?\s*
+                    [0-9]+\s*m(?:onths?)?,?\s*
                 )?
                 (?:
-                    [0-9]+\s*w(?:eeks?)?\s*
+                    [0-9]+\s*w(?:eeks?)?,?\s*
                 )?
                 (?:
-                    (?P<days>[0-9]+)\s*d(?:ays?)?\s*
+                    (?P<days>[0-9]+)\s*d(?:ays?)?,?\s*
                 )?
                 T)?
                 (?:
-                    (?P<hours>[0-9]+)\s*h(?:ours?)?\s*
+                    (?P<hours>[0-9]+)\s*h(?:ours?)?,?\s*
                 )?
                 (?:
-                    (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?\s*
+                    (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?,?\s*
                 )?
                 (?:
                     (?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?\s*s(?:ec(?:ond)?s?)?\s*
@@ -2604,7 +2687,7 @@ def parse_duration(s):
     if days:
         duration += float(days) * 24 * 60 * 60
     if ms:
-        duration += float(ms)
+        duration += float(ms.replace(':', '.'))
     return duration
 
 
@@ -2633,7 +2716,9 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def _get_exe_version_output(exe, args):
+def _get_exe_version_output(exe, args, *, to_screen=None):
+    if to_screen:
+        to_screen(f'Checking exe version: {shell_quote([exe] + args)}')
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
@@ -2769,13 +2854,14 @@ class PagedList:
     def __init__(self, pagefunc, pagesize, use_cache=True):
         self._pagefunc = pagefunc
         self._pagesize = pagesize
+        self._pagecount = float('inf')
         self._use_cache = use_cache
         self._cache = {}
 
     def getpage(self, pagenum):
         page_results = self._cache.get(pagenum)
         if page_results is None:
-            page_results = list(self._pagefunc(pagenum))
+            page_results = [] if pagenum > self._pagecount else list(self._pagefunc(pagenum))
         if self._use_cache:
             self._cache[pagenum] = page_results
         return page_results
@@ -2787,7 +2873,7 @@ class PagedList:
         raise NotImplementedError('This method must be implemented by subclasses')
 
     def __getitem__(self, idx):
-        # NOTE: cache must be enabled if this is used
+        assert self._use_cache, 'Indexing PagedList requires cache'
         if not isinstance(idx, int) or idx < 0:
             raise TypeError('indices must be non-negative integers')
         entries = self.getslice(idx, idx + 1)
@@ -2813,7 +2899,11 @@ class OnDemandPagedList(PagedList):
                 if (end is not None and firstid <= end <= nextfirstid)
                 else None)
 
-            page_results = self.getpage(pagenum)
+            try:
+                page_results = self.getpage(pagenum)
+            except Exception:
+                self._pagecount = pagenum - 1
+                raise
             if startv != 0 or endv is not None:
                 page_results = page_results[startv:endv]
             yield from page_results
@@ -2833,13 +2923,12 @@ class OnDemandPagedList(PagedList):
 
 class InAdvancePagedList(PagedList):
     def __init__(self, pagefunc, pagecount, pagesize):
-        self._pagecount = pagecount
         PagedList.__init__(self, pagefunc, pagesize, True)
+        self._pagecount = pagecount
 
     def _getslice(self, start, end):
         start_page = start // self._pagesize
-        end_page = (
-            self._pagecount if end is None else (end // self._pagesize + 1))
+        end_page = self._pagecount if end is None else min(self._pagecount, end // self._pagesize + 1)
         skip_elems = start - start_page * self._pagesize
         only_more = None if end is None else end - start
         for pagenum in range(start_page, end_page):
@@ -3010,27 +3099,31 @@ def dict_get(d, key_or_keys, default=None, skip_false_values=True):
     return d.get(key_or_keys, default)
 
 
-def try_get(src, getter, expected_type=None):
-    for get in variadic(getter):
+def try_call(*funcs, expected_type=None, args=[], kwargs={}):
+    for f in funcs:
         try:
-            v = get(src)
-        except (AttributeError, KeyError, TypeError, IndexError):
+            val = f(*args, **kwargs)
+        except (AttributeError, KeyError, TypeError, IndexError, ZeroDivisionError):
             pass
         else:
-            if expected_type is None or isinstance(v, expected_type):
-                return v
+            if expected_type is None or isinstance(val, expected_type):
+                return val
+
+
+def try_get(src, getter, expected_type=None):
+    return try_call(*variadic(getter), args=(src,), expected_type=expected_type)
+
+
+def filter_dict(dct, cndn=lambda _, v: v is not None):
+    return {k: v for k, v in dct.items() if cndn(k, v)}
 
 
 def merge_dicts(*dicts):
     merged = {}
     for a_dict in dicts:
         for k, v in a_dict.items():
-            if v is None:
-                continue
-            if (k not in merged
-                    or (isinstance(v, compat_str) and v
-                        and isinstance(merged[k], compat_str)
-                        and not merged[k])):
+            if (v is not None and k not in merged
+                    or isinstance(v, str) and merged[k] == ''):
                 merged[k] = v
     return merged
 
@@ -3122,6 +3215,8 @@ def js_to_json(code, vars={}):
 
         return '"%s"' % v
 
+    code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
+
     return re.sub(r'''(?sx)
         "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
         '(?:[^'\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^'\\]*'|
@@ -3143,7 +3238,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = {'pre_process', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist'}
+POSTPROCESS_WHEN = {'pre_process', 'after_filter', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist'}
 
 
 DEFAULT_OUTTMPL = {
@@ -3158,6 +3253,7 @@ OUTTMPL_TYPES = {
     'annotation': 'annotations.xml',
     'infojson': 'info.json',
     'link': None,
+    'pl_video': None,
     'pl_thumbnail': None,
     'pl_description': 'description',
     'pl_infojson': 'info.json',
@@ -3423,19 +3519,18 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
         return [max(width(str(v)) for v in col) for col in zip(*table)]
 
     def filter_using_list(row, filterArray):
-        return [col for (take, col) in zip(filterArray, row) if take]
+        return [col for take, col in itertools.zip_longest(filterArray, row, fillvalue=True) if take]
 
-    if hide_empty:
-        max_lens = get_max_lens(data)
-        header_row = filter_using_list(header_row, max_lens)
-        data = [filter_using_list(row, max_lens) for row in data]
+    max_lens = get_max_lens(data) if hide_empty else []
+    header_row = filter_using_list(header_row, max_lens)
+    data = [filter_using_list(row, max_lens) for row in data]
 
     table = [header_row] + data
     max_lens = get_max_lens(table)
     extra_gap += 1
     if delim:
         table = [header_row, [delim * (ml + extra_gap) for ml in max_lens]] + data
-        table[1][-1] = table[1][-1][:-extra_gap]  # Remove extra_gap from end of delimiter
+        table[1][-1] = table[1][-1][:-extra_gap * len(delim)]  # Remove extra_gap from end of delimiter
     for row in table:
         for pos, text in enumerate(map(str, row)):
             if '\t' in text:
@@ -3462,6 +3557,11 @@ def _match_one(filter_part, dct, incomplete):
         '>': operator.gt,
         '=': operator.eq,
     }
+
+    if isinstance(incomplete, bool):
+        is_incomplete = lambda _: incomplete
+    else:
+        is_incomplete = lambda k: k in incomplete
 
     operator_rex = re.compile(r'''(?x)\s*
         (?P<key>[a-z_]+)
@@ -3501,7 +3601,7 @@ def _match_one(filter_part, dct, incomplete):
         if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
             raise ValueError('Operator %s only supports string values!' % m['op'])
         if actual_value is None:
-            return incomplete or m['none_inclusive']
+            return is_incomplete(m['key']) or m['none_inclusive']
         return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
 
     UNARY_OPERATORS = {
@@ -3516,7 +3616,7 @@ def _match_one(filter_part, dct, incomplete):
     if m:
         op = UNARY_OPERATORS[m.group('op')]
         actual_value = dct.get(m.group('key'))
-        if incomplete and actual_value is None:
+        if is_incomplete(m.group('key')) and actual_value is None:
             return True
         return op(actual_value)
 
@@ -3524,21 +3624,29 @@ def _match_one(filter_part, dct, incomplete):
 
 
 def match_str(filter_str, dct, incomplete=False):
-    """ Filter a dictionary with a simple string syntax. Returns True (=passes filter) or false
-        When incomplete, all conditions passes on missing fields
+    """ Filter a dictionary with a simple string syntax.
+    @returns           Whether the filter passes
+    @param incomplete  Set of keys that is expected to be missing from dct.
+                       Can be True/False to indicate all/none of the keys may be missing.
+                       All conditions on incomplete keys pass if the key is missing
     """
     return all(
         _match_one(filter_part.replace(r'\&', '&'), dct, incomplete)
         for filter_part in re.split(r'(?<!\\)&', filter_str))
 
 
-def match_filter_func(filter_str):
+def match_filter_func(filters):
+    if not filters:
+        return None
+    filters = variadic(filters)
+
     def _match_func(info_dict, *args, **kwargs):
-        if match_str(filter_str, info_dict, *args, **kwargs):
+        if any(match_str(f, info_dict, *args, **kwargs) for f in filters):
             return None
         else:
-            video_title = info_dict.get('title', info_dict.get('id', 'video'))
-            return '%s does not pass filter %s, skipping ..' % (video_title, filter_str)
+            video_title = info_dict.get('title') or info_dict.get('id') or 'video'
+            filter_str = ') | ('.join(map(str.strip, filters))
+            return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func
 
 
@@ -4967,13 +5075,10 @@ def to_high_limit_path(path):
 
 
 def format_field(obj, field=None, template='%s', ignore=(None, ''), default='', func=None):
-    if field is None:
-        val = obj if obj is not None else default
-    else:
-        val = obj.get(field, default)
-    if func and val not in ignore:
-        val = func(val)
-    return template % val if val not in ignore else default
+    val = traverse_obj(obj, *variadic(field))
+    if val in ignore:
+        return default
+    return template % (func(val) if func else val)
 
 
 def clean_podcast_url(url):
@@ -5050,8 +5155,8 @@ def traverse_obj(
     @param path_list        A list of paths which are checked one by one.
                             Each path is a list of keys where each key is a string,
                             a function, a tuple of strings/None or "...".
-                            When a fuction is given, it takes the key as argument and
-                            returns whether the key matches or not. When a tuple is given,
+                            When a fuction is given, it takes the key and value as arguments
+                            and returns whether the key matches or not. When a tuple is given,
                             all the keys given in the tuple are traversed, and
                             "..." traverses all the keys in the object
                             "None" returns the object without traversal
@@ -5096,7 +5201,7 @@ def traverse_obj(
                     obj = str(obj)
                 _current_depth += 1
                 depth = max(depth, _current_depth)
-                return [_traverse_obj(v, path[i + 1:], _current_depth) for k, v in obj if key(k)]
+                return [_traverse_obj(v, path[i + 1:], _current_depth) for k, v in obj if try_call(key, args=(k, v))]
             elif isinstance(obj, dict) and not (is_user_input and key == ':'):
                 obj = (obj.get(key) if casesense or (key in obj)
                        else next((v for k, v in obj.items() if _lower(k) == key), None))
@@ -5148,8 +5253,28 @@ def traverse_dict(dictn, keys, casesense=True):
     return traverse_obj(dictn, keys, casesense=casesense, is_user_input=True, traverse_string=True)
 
 
+def get_first(obj, keys, **kwargs):
+    return traverse_obj(obj, (..., *variadic(keys)), **kwargs, get_all=False)
+
+
 def variadic(x, allowed_types=(str, bytes, dict)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
+
+
+def decode_base(value, digits):
+    # This will convert given base-x string to scalar (long or int)
+    table = {char: index for index, char in enumerate(digits)}
+    result = 0
+    base = len(digits)
+    for chr in value:
+        result *= base
+        result += table[chr]
+    return result
+
+
+def time_seconds(**kwargs):
+    t = datetime.datetime.now(datetime.timezone(datetime.timedelta(**kwargs)))
+    return t.timestamp()
 
 
 # create a JSON Web Signature (jws) with HS256 algorithm
@@ -5208,6 +5333,38 @@ def join_nonempty(*values, delim='-', from_dict=None):
     return delim.join(map(str, filter(None, values)))
 
 
+def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
+    """
+    Find the largest format dimensions in terms of video width and, for each thumbnail:
+    * Modify the URL: Match the width with the provided regex and replace with the former width
+    * Update dimensions
+
+    This function is useful with video services that scale the provided thumbnails on demand
+    """
+    _keys = ('width', 'height')
+    max_dimensions = max(
+        [tuple(format.get(k) or 0 for k in _keys) for format in formats],
+        default=(0, 0))
+    if not max_dimensions[0]:
+        return thumbnails
+    return [
+        merge_dicts(
+            {'url': re.sub(url_width_re, str(max_dimensions[0]), thumbnail['url'])},
+            dict(zip(_keys, max_dimensions)), thumbnail)
+        for thumbnail in thumbnails
+    ]
+
+
+def parse_http_range(range):
+    """ Parse value of "Range" or "Content-Range" HTTP header into tuple. """
+    if not range:
+        return None, None, None
+    crg = re.search(r'bytes[ =](\d+)-(\d+)?(?:/(\d+))?', range)
+    if not crg:
+        return None, None, None
+    return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
+
+
 class Config:
     own_args = None
     filename = None
@@ -5219,8 +5376,10 @@ class Config:
 
     def init(self, args=None, filename=None):
         assert not self.__initialized
+        directory = ''
         if filename:
             location = os.path.realpath(filename)
+            directory = os.path.dirname(location)
             if location in self._loaded_paths:
                 return False
             self._loaded_paths.add(location)
@@ -5228,7 +5387,7 @@ class Config:
         self.__initialized = True
         self.own_args, self.filename = args, filename
         for location in self._parser.parse_args(args)[0].config_locations or []:
-            location = compat_expanduser(location)
+            location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
             if not os.path.exists(location):
@@ -5293,3 +5452,87 @@ class Config:
 
     def parse_args(self):
         return self._parser.parse_args(list(self.all_args))
+
+
+class WebSocketsWrapper():
+    """Wraps websockets module to use in non-async scopes"""
+
+    def __init__(self, url, headers=None, connect=True):
+        self.loop = asyncio.events.new_event_loop()
+        self.conn = compat_websockets.connect(
+            url, extra_headers=headers, ping_interval=None,
+            close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
+        if connect:
+            self.__enter__()
+        atexit.register(self.__exit__, None, None, None)
+
+    def __enter__(self):
+        if not self.pool:
+            self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
+        return self
+
+    def send(self, *args):
+        self.run_with_loop(self.pool.send(*args), self.loop)
+
+    def recv(self, *args):
+        return self.run_with_loop(self.pool.recv(*args), self.loop)
+
+    def __exit__(self, type, value, traceback):
+        try:
+            return self.run_with_loop(self.conn.__aexit__(type, value, traceback), self.loop)
+        finally:
+            self.loop.close()
+            self._cancel_all_tasks(self.loop)
+
+    # taken from https://github.com/python/cpython/blob/3.9/Lib/asyncio/runners.py with modifications
+    # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
+    @staticmethod
+    def run_with_loop(main, loop):
+        if not asyncio.coroutines.iscoroutine(main):
+            raise ValueError(f'a coroutine was expected, got {main!r}')
+
+        try:
+            return loop.run_until_complete(main)
+        finally:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            if hasattr(loop, 'shutdown_default_executor'):
+                loop.run_until_complete(loop.shutdown_default_executor())
+
+    @staticmethod
+    def _cancel_all_tasks(loop):
+        to_cancel = asyncio.tasks.all_tasks(loop)
+
+        if not to_cancel:
+            return
+
+        for task in to_cancel:
+            task.cancel()
+
+        loop.run_until_complete(
+            asyncio.tasks.gather(*to_cancel, loop=loop, return_exceptions=True))
+
+        for task in to_cancel:
+            if task.cancelled():
+                continue
+            if task.exception() is not None:
+                loop.call_exception_handler({
+                    'message': 'unhandled exception during asyncio.run() shutdown',
+                    'exception': task.exception(),
+                    'task': task,
+                })
+
+
+has_websockets = bool(compat_websockets)
+
+
+def merge_headers(*dicts):
+    """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
+    return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
+
+
+class classproperty:
+    def __init__(self, f):
+        self.f = f
+
+    def __get__(self, _, cls):
+        return self.f(cls)

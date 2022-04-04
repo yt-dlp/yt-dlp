@@ -81,9 +81,7 @@ class TV2IE(InfoExtractor):
                 elif ext == 'm3u8':
                     if not data.get('drmProtected'):
                         formats.extend(self._extract_m3u8_formats(
-                            video_url, video_id, 'mp4',
-                            'm3u8' if is_live else 'm3u8_native',
-                            m3u8_id=format_id, fatal=False))
+                            video_url, video_id, 'mp4', live=is_live, m3u8_id=format_id, fatal=False))
                 elif ext == 'mpd':
                     formats.extend(self._extract_mpd_formats(
                         video_url, video_id, format_id, fatal=False))
@@ -244,9 +242,7 @@ class KatsomoIE(InfoExtractor):
                 elif ext == 'm3u8':
                     if not data.get('drmProtected'):
                         formats.extend(self._extract_m3u8_formats(
-                            video_url, video_id, 'mp4',
-                            'm3u8' if is_live else 'm3u8_native',
-                            m3u8_id=format_id, fatal=False))
+                            video_url, video_id, 'mp4', live=is_live, m3u8_id=format_id, fatal=False))
                 elif ext == 'mpd':
                     formats.extend(self._extract_mpd_formats(
                         video_url, video_id, format_id, fatal=False))

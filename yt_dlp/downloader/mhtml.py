@@ -166,10 +166,15 @@ body > figure > img {
             if (i + 1) <= ctx['fragment_index']:
                 continue
 
-            fragment_url = urljoin(fragment_base_url, fragment['path'])
-            success, frag_content = self._download_fragment(ctx, fragment_url, info_dict)
+            fragment_url = fragment.get('url')
+            if not fragment_url:
+                assert fragment_base_url
+                fragment_url = urljoin(fragment_base_url, fragment['path'])
+
+            success = self._download_fragment(ctx, fragment_url, info_dict)
             if not success:
                 continue
+            frag_content = self._read_fragment(ctx)
 
             mime_type = b'image/jpeg'
             if frag_content.startswith(b'\x89PNG\r\n\x1a\n'):

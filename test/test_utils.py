@@ -160,10 +160,12 @@ class TestUtil(unittest.TestCase):
             sanitize_filename('New World record at 0:12:34'),
             'New World record at 0_12_34')
 
-        self.assertEqual(sanitize_filename('--gasdgf'), '_-gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf'), '--gasdgf')
         self.assertEqual(sanitize_filename('--gasdgf', is_id=True), '--gasdgf')
-        self.assertEqual(sanitize_filename('.gasdgf'), 'gasdgf')
+        self.assertEqual(sanitize_filename('--gasdgf', is_id=False), '_-gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf'), '.gasdgf')
         self.assertEqual(sanitize_filename('.gasdgf', is_id=True), '.gasdgf')
+        self.assertEqual(sanitize_filename('.gasdgf', is_id=False), 'gasdgf')
 
         forbidden = '"\0\\/'
         for fc in forbidden:
@@ -625,6 +627,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('3h 11m 53s'), 11513)
         self.assertEqual(parse_duration('3 hours 11 minutes 53 seconds'), 11513)
         self.assertEqual(parse_duration('3 hours 11 mins 53 secs'), 11513)
+        self.assertEqual(parse_duration('3 hours, 11 minutes, 53 seconds'), 11513)
+        self.assertEqual(parse_duration('3 hours, 11 mins, 53 secs'), 11513)
         self.assertEqual(parse_duration('62m45s'), 3765)
         self.assertEqual(parse_duration('6m59s'), 419)
         self.assertEqual(parse_duration('49s'), 49)
@@ -643,6 +647,8 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(parse_duration('PT1H0.040S'), 3600.04)
         self.assertEqual(parse_duration('PT00H03M30SZ'), 210)
         self.assertEqual(parse_duration('P0Y0M0DT0H4M20.880S'), 260.88)
+        self.assertEqual(parse_duration('01:02:03:050'), 3723.05)
+        self.assertEqual(parse_duration('103:050'), 103.05)
 
     def test_fix_xml_ampersands(self):
         self.assertEqual(
@@ -1131,7 +1137,7 @@ class TestUtil(unittest.TestCase):
 
     def test_clean_html(self):
         self.assertEqual(clean_html('a:\nb'), 'a: b')
-        self.assertEqual(clean_html('a:\n   "b"'), 'a:    "b"')
+        self.assertEqual(clean_html('a:\n   "b"'), 'a: "b"')
         self.assertEqual(clean_html('a<br>\xa0b'), 'a\nb')
 
     def test_intlist_to_bytes(self):
@@ -1659,10 +1665,10 @@ Line 1
         html = self.GET_ELEMENTS_BY_CLASS_TEST_STRING
 
         self.assertEqual(
-            get_elements_text_and_html_by_attribute('class', 'foo bar', html),
+            list(get_elements_text_and_html_by_attribute('class', 'foo bar', html)),
             list(zip(['nice', 'also nice'], self.GET_ELEMENTS_BY_CLASS_RES)))
-        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'foo', html), [])
-        self.assertEqual(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'foo', html)), [])
+        self.assertEqual(list(get_elements_text_and_html_by_attribute('class', 'no-such-foo', html)), [])
 
     GET_ELEMENT_BY_TAG_TEST_STRING = '''
     random text lorem ipsum</p>
@@ -1778,6 +1784,7 @@ Line 1
         self.assertEqual(format_bytes(1024**6), '1.00EiB')
         self.assertEqual(format_bytes(1024**7), '1.00ZiB')
         self.assertEqual(format_bytes(1024**8), '1.00YiB')
+        self.assertEqual(format_bytes(1024**9), '1024.00YiB')
 
     def test_hide_login_info(self):
         self.assertEqual(Config.hide_login_info(['-u', 'foo', '-p', 'bar']),

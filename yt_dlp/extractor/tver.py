@@ -5,15 +5,16 @@ from __future__ import unicode_literals
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    ExtractorError,
     int_or_none,
     remove_start,
     smuggle_url,
-    try_get,
+    traverse_obj,
 )
 
 
 class TVerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?P<path>(?:corner|episode|feature)/(?P<id>f?\d+))'
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?P<path>corner|episode|feature|lp|tokyo2020/video)/(?P<id>[fc]?\d+)'
     # videos are only available for 7 days
     _TESTS = [{
         'url': 'https://tver.jp/corner/f0062178',
@@ -28,6 +29,15 @@ class TVerIE(InfoExtractor):
         # subtitle = ' '
         'url': 'https://tver.jp/corner/f0068870',
         'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/lp/f0009694',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/lp/c0000239',
+        'only_matching': True,
+    }, {
+        'url': 'https://tver.jp/tokyo2020/video/6264525510001',
+        'only_matching': True,
     }]
     _TOKEN = None
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
@@ -38,13 +48,20 @@ class TVerIE(InfoExtractor):
 
     def _real_extract(self, url):
         path, video_id = self._match_valid_url(url).groups()
-        main = self._download_json(
-            'https://api.tver.jp/v4/' + path, video_id,
-            query={'token': self._TOKEN})['main']
-        p_id = main['publisher_id']
-        service = remove_start(main['service'], 'ts_')
+        if path == 'lp':
+            webpage = self._download_webpage(url, video_id)
+            redirect_path = self._search_regex(r'to_href="([^"]+)', webpage, 'redirect path')
+            path, video_id = self._match_valid_url(f'https://tver.jp{redirect_path}').groups()
+        api_response = self._download_json(f'https://api.tver.jp/v4/{path}/{video_id}', video_id, query={'token': self._TOKEN})
+        p_id = traverse_obj(api_response, ('main', 'publisher_id'))
+        if not p_id:
+            error_msg, expected = traverse_obj(api_response, ('episode', 0, 'textbar', 0, ('text', 'longer')), get_all=False), True
+            if not error_msg:
+                error_msg, expected = 'Failed to extract publisher ID', False
+            raise ExtractorError(error_msg, expected=expected)
+        service = remove_start(traverse_obj(api_response, ('main', 'service')), 'ts_')
 
-        r_id = main['reference_id']
+        r_id = traverse_obj(api_response, ('main', 'reference_id'))
         if service not in ('tx', 'russia2018', 'sebare2018live', 'gorin'):
             r_id = 'ref:' + r_id
         bc_url = smuggle_url(
@@ -53,8 +70,8 @@ class TVerIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'description': try_get(main, lambda x: x['note'][0]['text'], compat_str),
-            'episode_number': int_or_none(try_get(main, lambda x: x['ext']['episode_number'])),
+            'description': traverse_obj(api_response, ('main', 'note', 0, 'text'), expected_type=compat_str),
+            'episode_number': int_or_none(traverse_obj(api_response, ('main', 'ext', 'episode_number'), expected_type=compat_str)),
             'url': bc_url,
             'ie_key': 'BrightcoveNew',
         }

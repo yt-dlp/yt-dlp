@@ -26,13 +26,11 @@ class ZattooPlatformBaseIE(InfoExtractor):
     def _host_url(self):
         return 'https://%s' % (self._API_HOST if hasattr(self, '_API_HOST') else self._HOST)
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username or not password:
-            self.raise_login_required(
-                'A valid %s account is needed to access this media.'
-                % self._NETRC_MACHINE)
+    def _real_initialize(self):
+        if not self._power_guide_hash:
+            self.raise_login_required('An account is needed to access this media', method='password')
 
+    def _perform_login(self, username, password):
         try:
             data = self._download_json(
                 '%s/zapi/v2/account/login' % self._host_url(), None, 'Logging in',
@@ -53,7 +51,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
         self._power_guide_hash = data['session']['power_guide_hash']
 
-    def _real_initialize(self):
+    def _initialize_pre_login(self):
         session_token = self._download_json(
             f'{self._host_url()}/token.json', None, 'Downloading session token')['session_token']
 
@@ -67,8 +65,6 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 'format': 'json',
                 'client_app_token': session_token,
             }))
-
-        self._login()
 
     def _extract_video_id_from_recording(self, recid):
         playlist = self._download_json(

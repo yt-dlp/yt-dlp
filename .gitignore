@@ -14,13 +14,17 @@ cookies
 *.frag.urls
 *.info.json
 *.live_chat.json
+*.meta
 *.part*
+*.tmp
+*.temp
 *.unknown_video
 *.ytdl
 .cache/
 
 *.3gp
 *.ape
+*.ass
 *.avi
 *.desktop
 *.flac
@@ -89,7 +93,7 @@ README.txt
 *.tar.gz
 *.zsh
 *.spec
-test/testdata/player-*.js
+test/testdata/sigs/player-*.js
 
 # Binary
 /youtube-dl
@@ -103,6 +107,7 @@ yt-dlp.zip
 *.iml
 .vscode
 *.sublime-*
+*.code-workspace
 
 # Lazy extractors
 */extractor/lazy_extractors.py

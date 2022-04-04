@@ -13,8 +13,10 @@ from ..compat import (
 from ..utils import (
     dict_get,
     ExtractorError,
+    format_field,
     float_or_none,
     int_or_none,
+    traverse_obj,
     try_get,
     strip_or_none,
     unified_timestamp,
@@ -55,7 +57,7 @@ class TwitterBaseIE(InfoExtractor):
     def _extract_formats_from_vmap_url(self, vmap_url, video_id):
         vmap_url = url_or_none(vmap_url)
         if not vmap_url:
-            return []
+            return [], {}
         vmap_data = self._download_xml(vmap_url, video_id)
         formats = []
         subtitles = {}
@@ -88,6 +90,9 @@ class TwitterBaseIE(InfoExtractor):
         headers = {
             'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
         }
+        token = self._get_cookies(self._API_BASE).get('ct0')
+        if token:
+            headers['x-csrf-token'] = token.value
         if not self._GUEST_TOKEN:
             self._GUEST_TOKEN = self._download_json(
                 self._API_BASE + 'guest/activate.json', video_id,
@@ -468,7 +473,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': uploader,
             'timestamp': unified_timestamp(status.get('created_at')),
             'uploader_id': uploader_id,
-            'uploader_url': 'https://twitter.com/' + uploader_id if uploader_id else None,
+            'uploader_url': format_field(uploader_id, template='https://twitter.com/%s'),
             'like_count': int_or_none(status.get('favorite_count')),
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),
@@ -508,7 +513,7 @@ class TwitterIE(TwitterBaseIE):
                 'duration': float_or_none(video_info.get('duration_millis'), 1000),
             })
 
-        media = try_get(status, lambda x: x['extended_entities']['media'][0])
+        media = traverse_obj(status, ((None, 'quoted_status'), 'extended_entities', 'media', 0), get_all=False)
         if media and media.get('type') != 'photo':
             extract_from_video_info(media)
         else:

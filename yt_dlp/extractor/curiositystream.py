@@ -33,14 +33,11 @@ class CuriosityStreamBaseIE(InfoExtractor):
         self._handle_errors(result)
         return result['data']
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
+    def _perform_login(self, username, password):
         result = self._download_json(
             'https://api.curiositystream.com/v1/login', None,
             note='Logging in', data=urlencode_postdata({
-                'email': email,
+                'email': username,
                 'password': password,
             }))
         self._handle_errors(result)

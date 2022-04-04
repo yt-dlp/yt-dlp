@@ -414,11 +414,14 @@ class YahooGyaOIE(InfoExtractor):
     IE_NAME = 'yahoo:gyao'
     _VALID_URL = r'https?://(?:gyao\.yahoo\.co\.jp/(?:p|title(?:/[^/]+)?)|streaming\.yahoo\.co\.jp/p/y)/(?P<id>\d+/v\d+|[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
     _TESTS = [{
-        'url': 'https://gyao.yahoo.co.jp/p/00449/v03102/',
+        'url': 'https://gyao.yahoo.co.jp/title/%E3%82%BF%E3%82%A4%E3%83%A0%E3%83%9C%E3%82%AB%E3%83%B3%E3%82%B7%E3%83%AA%E3%83%BC%E3%82%BA%20%E3%83%A4%E3%83%83%E3%82%BF%E3%83%BC%E3%83%9E%E3%83%B3/5f60ceb3-6e5e-40ef-ba40-d68b598d067f',
         'info_dict': {
-            'id': '00449:v03102',
+            'id': '5f60ceb3-6e5e-40ef-ba40-d68b598d067f',
         },
-        'playlist_count': 2,
+        'playlist_mincount': 80,
+    }, {
+        'url': 'https://gyao.yahoo.co.jp/p/00449/v03102/',
+        'only_matching': True,
     }, {
         'url': 'https://streaming.yahoo.co.jp/p/y/01034/v00133/',
         'only_matching': True,
@@ -430,19 +433,30 @@ class YahooGyaOIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _entries(self, program_id):
+        page = 1
+        while True:
+            playlist = self._download_json(
+                f'https://gyao.yahoo.co.jp/api/programs/{program_id}/videos?page={page}', program_id,
+                note=f'Downloading JSON metadata page {page}')
+            if not playlist:
+                break
+            for video in playlist['videos']:
+                video_id = video.get('id')
+                if not video_id:
+                    continue
+                if video.get('streamingAvailability') == 'notYet':
+                    continue
+                yield self.url_result(
+                    'https://gyao.yahoo.co.jp/player/%s/' % video_id.replace(':', '/'),
+                    YahooGyaOPlayerIE.ie_key(), video_id)
+            if playlist.get('ended'):
+                break
+            page += 1
+
     def _real_extract(self, url):
         program_id = self._match_id(url).replace('/', ':')
-        videos = self._download_json(
-            'https://gyao.yahoo.co.jp/api/programs/%s/videos' % program_id, program_id)['videos']
-        entries = []
-        for video in videos:
-            video_id = video.get('id')
-            if not video_id:
-                continue
-            entries.append(self.url_result(
-                'https://gyao.yahoo.co.jp/player/%s/' % video_id.replace(':', '/'),
-                YahooGyaOPlayerIE.ie_key(), video_id))
-        return self.playlist_result(entries, program_id)
+        return self.playlist_result(self._entries(program_id), program_id)
 
 
 class YahooJapanNewsIE(InfoExtractor):
