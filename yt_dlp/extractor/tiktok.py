@@ -263,7 +263,7 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': aweme_id,
-            'title': aweme_detail.get('desc') or 'N/A',
+            'title': aweme_detail.get('desc'),
             'description': aweme_detail['desc'],
             'view_count': int_or_none(stats_info.get('play_count')),
             'like_count': int_or_none(stats_info.get('digg_count')),
@@ -339,7 +339,7 @@ class TikTokBaseIE(InfoExtractor):
 
         return {
             'id': traverse_obj(aweme_detail, 'id', 'awemeId', expected_type=str_or_none),
-            'title': aweme_detail.get('desc') or 'N/A',
+            'title': aweme_detail.get('desc'),
             'duration': try_get(aweme_detail, lambda x: x['video']['duration'], int),
             'view_count': int_or_none(stats_info.get('playCount')),
             'like_count': int_or_none(stats_info.get('diggCount')),
@@ -628,8 +628,7 @@ class TikTokUserIE(TikTokBaseIE):
         })
         user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID', default=None)
         if not user_id:
-            user_id = self._search_regex(r'\<meta\s+property=\"og:url\"\s+content=\"https?.+?\@(?P<user_id>\d+)\W',
-                                         webpage, 'user ID')
+            user_id = user_name
 
         videos = LazyList(self._video_entries_api(webpage, user_id, user_name))
         thumbnail = traverse_obj(videos, (0, 'author', 'avatar_larger', 'url_list', 0))
