@@ -149,6 +149,7 @@ from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 from .gfycat import GfycatIE
 from .panopto import PanoptoBaseIE
+from .ruutu import RuutuIE
 
 
 class GenericIE(InfoExtractor):
@@ -3737,6 +3738,12 @@ class GenericIE(InfoExtractor):
         panopto_urls = PanoptoBaseIE._extract_urls(webpage)
         if panopto_urls:
             return self.playlist_from_matches(panopto_urls, video_id, video_title)
+
+        # Look for Ruutu embeds
+        ruutu_url = RuutuIE._extract_url(webpage)
+        if ruutu_url:
+            return self.url_result(ruutu_url, RuutuIE)
+
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:
