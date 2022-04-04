@@ -17,7 +17,7 @@ class TVerIE(InfoExtractor):
         'url': 'https://tver.jp/episodes/ephss8yveb',
         'info_dict': {
             'title': '#44　料理と値段と店主にびっくり　オモてなしすぎウマい店　2時間SP',
-            'description': 'md5:4ae6bb0d8e9c860bf91bdb791e32356e8bd2d657a588e154f69b2cf6c6cbaf48',
+            'description': 'md5:66985373a66fed8ad3cd595a3cfebb13',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
@@ -26,7 +26,7 @@ class TVerIE(InfoExtractor):
         'info_dict': {
             # sorry but this is "correct"
             'title': '4月11日(月)23時06分 ~ 放送予定',
-            'description': 'md5:c8ed3a7507e9a087a922b144e79b93336da1b60ca1d867df438ee63e7b7093dc',
+            'description': 'md5:4029cc5f4b1e8090dfc5b7bd2bc5cd0b',
         },
         'add_ie': ['BrightcoveNew'],
     }, {
