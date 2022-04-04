@@ -626,9 +626,7 @@ class TikTokUserIE(TikTokBaseIE):
         webpage = self._download_webpage(url, user_name, headers={
             'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)'
         })
-        user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID', default=None)
-        if not user_id:
-            user_id = user_name
+        user_id = self._html_search_regex(r'snssdk\d*://user/profile/(\d+)', webpage, 'user ID', default=None) or user_name
 
         videos = LazyList(self._video_entries_api(webpage, user_id, user_name))
         thumbnail = traverse_obj(videos, (0, 'author', 'avatar_larger', 'url_list', 0))
