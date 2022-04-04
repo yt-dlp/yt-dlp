@@ -66,10 +66,9 @@ class ImdbIE(InfoExtractor):
         webpage = self._download_webpage(f'https://www.imdb.com/video/vi{video_id}', video_id)
         info = self._search_nextjs_data(webpage, video_id)
         video_info = traverse_obj(info, ('props', 'pageProps', 'videoPlaybackData', 'video'), default={})
-        title = traverse_obj(video_info, ('name', 'value'), ('primaryTitle', 'titleText', 'text'))
-        if not title:
-            title = self._html_search_meta(['og:title', 'twitter:title'], webpage) or self._html_search_regex(
-                r'<title>(.+?)</title>', webpage, 'title', default=None)
+        title = (traverse_obj(video_info, ('name', 'value'), ('primaryTitle', 'titleText', 'text'))
+                 or self._html_search_meta(('og:title', 'twitter:title'), webpage, default=None)
+                 or self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title'))
         data = video_info.get('playbackURLs') or try_get(self._download_json(
             'https://www.imdb.com/ve/data/VIDEO_PLAYBACK_DATA', video_id,
             query={
