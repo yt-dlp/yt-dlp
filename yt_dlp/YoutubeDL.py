@@ -2188,7 +2188,7 @@ class YoutubeDL(object):
                         yield merged_format
 
                 else:
-                    format_fallback, format_reverse, format_idx = False, True, 1
+                    format_fallback, seperate_fallback, format_reverse, format_idx = False, None, True, 1
                     mobj = re.match(
                         r'(?P<bw>best|worst|b|w)(?P<type>video|audio|v|a)?(?P<mod>\*)?(?:\.(?P<n>[1-9]\d*))?$',
                         format_spec)
@@ -2215,6 +2215,7 @@ class YoutubeDL(object):
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none'
                         elif format_spec in self._format_selection_exts['video']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none' and f.get('vcodec') != 'none'
+                            seperate_fallback = lambda f: f.get('ext') == format_spec and f.get('vcodec') != 'none'
                         elif format_spec in self._format_selection_exts['storyboards']:
                             filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') == 'none' and f.get('vcodec') == 'none'
                         else:
@@ -2223,11 +2224,15 @@ class YoutubeDL(object):
                     def selector_function(ctx):
                         formats = list(ctx['formats'])
                         matches = list(filter(filter_f, formats)) if filter_f is not None else formats
-                        if format_fallback and ctx['incomplete_formats'] and not matches:
-                            # for extractors with incomplete formats (audio only (soundcloud)
-                            # or video only (imgur)) best/worst will fallback to
-                            # best/worst {video,audio}-only format
-                            matches = formats
+                        if not matches:
+                            if format_fallback and ctx['incomplete_formats']:
+                                # for extractors with incomplete formats (audio only (soundcloud)
+                                # or video only (imgur)) best/worst will fallback to
+                                # best/worst {video,audio}-only format
+                                matches = formats
+                            elif seperate_fallback and not ctx['has_merged_format']:
+                                # for compatibility with youtube-dl when there is no pre-merged format
+                                matches = list(filter(seperate_fallback, formats))
                         matches = LazyList(_check_formats(matches[::-1 if format_reverse else 1]))
                         try:
                             yield matches[format_idx - 1]
@@ -2604,33 +2609,15 @@ class YoutubeDL(object):
                     self.report_error(err, tb=False, is_error=False)
                     continue
 
-            # While in format selection we may need to have an access to the original
-            # format set in order to calculate some metrics or do some processing.
-            # For now we need to be able to guess whether original formats provided
-            # by extractor are incomplete or not (i.e. whether extractor provides only
-            # video-only or audio-only formats) for proper formats selection for
-            # extractors with such incomplete formats (see
-            # https://github.com/ytdl-org/youtube-dl/pull/5556).
-            # Since formats may be filtered during format selection and may not match
-            # the original formats the results may be incorrect. Thus original formats
-            # or pre-calculated metrics should be passed to format selection routines
-            # as well.
-            # We will pass a context object containing all necessary additional data
-            # instead of just formats.
-            # This fixes incorrect format selection issue (see
-            # https://github.com/ytdl-org/youtube-dl/issues/10083).
-            incomplete_formats = (
-                # All formats are video-only or
-                all(f.get('vcodec') != 'none' and f.get('acodec') == 'none' for f in formats)
-                # all formats are audio-only
-                or all(f.get('vcodec') == 'none' and f.get('acodec') != 'none' for f in formats))
-
-            ctx = {
+            formats_to_download = list(format_selector({
                 'formats': formats,
-                'incomplete_formats': incomplete_formats,
-            }
-
-            formats_to_download = list(format_selector(ctx))
+                'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
+                'incomplete_formats': (
+                    # All formats are video-only or
+                    all(f.get('vcodec') != 'none' and f.get('acodec') == 'none' for f in formats)
+                    # all formats are audio-only
+                    or all(f.get('vcodec') == 'none' and f.get('acodec') != 'none' for f in formats)),
+            }))
             if interactive_format_selection and not formats_to_download:
                 self.report_error('Requested format is not available', tb=False, is_error=False)
                 continue
