@@ -115,7 +115,7 @@ class InfoQIE(BokeCCBaseIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        video_title = self._html_search_regex(r'<title>(.*?)</title>', webpage, 'title')
+        video_title = self._html_extract_title(webpage)
         video_description = self._html_search_meta('description', webpage, 'description')
 
         if '/cn/' in url:

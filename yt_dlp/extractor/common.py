@@ -1329,9 +1329,8 @@ class InfoExtractor(object):
     def _og_search_description(self, html, **kargs):
         return self._og_search_property('description', html, fatal=False, **kargs)
 
-    def _og_search_title(self, html, **kargs):
-        kargs.setdefault('fatal', False)
-        return self._og_search_property('title', html, **kargs)
+    def _og_search_title(self, html, *, fatal=False, **kargs):
+        return self._og_search_property('title', html, fatal=fatal, **kargs)
 
     def _og_search_video_url(self, html, name='video url', secure=True, **kargs):
         regexes = self._og_regexes('video') + self._og_regexes('video:url')
@@ -1342,9 +1341,8 @@ class InfoExtractor(object):
     def _og_search_url(self, html, **kargs):
         return self._og_search_property('url', html, **kargs)
 
-    def _html_extract_title(self, html, name, **kwargs):
-        return self._html_search_regex(
-            r'(?s)<title>(.*?)</title>', html, name, **kwargs)
+    def _html_extract_title(self, html, name='title', *, fatal=False, **kwargs):
+        return self._html_search_regex(r'(?s)<title>([^<]+)</title>', html, name, fatal=fatal, **kwargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
         name = variadic(name)

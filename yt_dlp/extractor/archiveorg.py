@@ -483,8 +483,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
              regex), webpage, name, default='{}'), video_id, fatal=False)
 
     def _extract_webpage_title(self, webpage):
-        page_title = self._html_search_regex(
-            r'<title>([^<]*)</title>', webpage, 'title', default='')
+        page_title = self._html_extract_title(webpage, default='')
         # YouTube video pages appear to always have either 'YouTube -' as prefix or '- YouTube' as suffix.
         return self._html_search_regex(
             r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',

@@ -73,8 +73,7 @@ class WeiboIE(InfoExtractor):
             webpage = self._download_webpage(
                 url, video_id, note='Revisiting webpage')
 
-        title = self._html_search_regex(
-            r'<title>(.+?)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
 
         video_formats = compat_parse_qs(self._search_regex(
             r'video-sources=\\\"(.+?)\"', webpage, 'video_sources'))

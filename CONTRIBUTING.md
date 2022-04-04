@@ -534,13 +534,13 @@ Extracting variables is acceptable for reducing code duplication and improving r
 Correct:
 
 ```python
-title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
+title = self._html_search_regex(r'<h1>([^<]+)</h1>', webpage, 'title')
 ```
 
 Incorrect:
 
 ```python
-TITLE_RE = r'<title>([^<]+)</title>'
+TITLE_RE = r'<h1>([^<]+)</h1>'
 # ...some lines of code...
 title = self._html_search_regex(TITLE_RE, webpage, 'title')
 ```

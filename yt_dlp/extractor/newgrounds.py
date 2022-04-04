@@ -106,8 +106,7 @@ class NewgroundsIE(InfoExtractor):
         uploader = None
         webpage = self._download_webpage(url, media_id)
 
-        title = self._html_search_regex(
-            r'<title>(.+?)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
 
         media_url_string = self._search_regex(
             r'"url"\s*:\s*("[^"]+"),', webpage, 'media url', default=None)
@@ -219,8 +218,7 @@ class NewgroundsPlaylistIE(InfoExtractor):
 
         webpage = self._download_webpage(url, playlist_id)
 
-        title = self._search_regex(
-            r'<title>([^>]+)</title>', webpage, 'title', default=None)
+        title = self._html_extract_title(webpage, default=None)
 
         # cut left menu
         webpage = self._search_regex(
