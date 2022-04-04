@@ -23,12 +23,14 @@ class CybraryBaseIE(InfoExtractor):
     _TOKEN = None
 
     def _perform_login(self, username, password):
-        response = self._download_json(
-            f'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={self._API_KEY}', None, note='Logging in',
-            data=urlencode_postdata({'email': username, 'password': password, 'returnSecureToken': True}))
+        CybraryBaseIE._TOKEN = self._download_json(
+            f'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={self._API_KEY}',
+            None, data=urlencode_postdata({'email': username, 'password': password, 'returnSecureToken': True}),
+            note='Logging in')['idToken']
 
-        if response:
-            self._TOKEN = response['idToken']
+    def _real_initialize(self):
+        if not self._TOKEN:
+            self.raise_login_required(method='password')
 
     def _call_api(self, endpoint, item_id):
         return self._download_json(
@@ -37,15 +39,11 @@ class CybraryBaseIE(InfoExtractor):
             headers={'Authorization': f'Bearer {self._TOKEN}'})
 
     def _get_vimeo_id(self, activity_id):
-        # Launch API is completely different depending on how old/new the course is.
         launch_api = self._call_api('launch', activity_id)
 
-        try:
-            vimeo_id = self._search_regex(r'https?://player.vimeo.com/video/(?P<vimeo_id>[0-9]+)', launch_api['url'], 'vimeo_id')
-        except KeyError:
-            vimeo_id = next((x for x in traverse_obj(launch_api, ('vendor_data', 'content', ..., 'videoId'))), None)
-
-        return vimeo_id
+        if launch_api.get('url'):
+            return self._search_regex(r'https?://player\.vimeo\.com/video/(?P<vimeo_id>[0-9]+)', launch_api['url'], 'vimeo_id')
+        return traverse_obj(launch_api, ('vendor_data', 'content', ..., 'videoId'), get_all=False)
 
 
 class CybraryIE(CybraryBaseIE):
@@ -91,13 +89,12 @@ class CybraryIE(CybraryBaseIE):
     def _real_extract(self, url):
         activity_id, enrollment_id = self._match_valid_url(url).group('id', 'enrollment')
         course = self._call_api('enrollment', enrollment_id)['content']
-        activity = next((activity for activity in (traverse_obj(course, ('learning_modules', ..., 'activities', ...)) or [])
-                        if int(activity_id) == activity.get('id')), None)
+        activity = traverse_obj(course, ('learning_modules', ..., 'activities', lambda _, v: int(activity_id) == v['id']), get_all=False)
 
         if activity.get('type') not in ['Video Activity', 'Lesson Activity']:
-            raise ExtractorError('The activity is not a video')
+            raise ExtractorError('The activity is not a video', expected=True)
 
-        module = next((m for m in traverse_obj(course, ('learning_modules')) or []
+        module = next((m for m in course.get('learning_modules') or []
                       if int(activity_id) in traverse_obj(m, ('activities', ..., 'id') or [])), None)
 
         vimeo_id = self._get_vimeo_id(activity_id)
@@ -144,4 +141,6 @@ class CybraryCourseIE(CybraryBaseIE):
             for activity in traverse_obj(course, ('content_item', 'learning_modules', ..., 'activities', ...))]
 
         return self.playlist_result(
-            entries, traverse_obj(course, ('content_item', 'id')), course.get('title'), course.get('short_description'))
+            entries,
+            traverse_obj(course, ('content_item', 'id'), expected_type=str_or_none),
+            course.get('title'), course.get('short_description'))
