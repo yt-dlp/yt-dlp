@@ -683,6 +683,10 @@ def sanitize_open(filename, open_mode):
     for attempt in range(2):
         try:
             try:
+                if sys.platform == 'win32':
+                    # FIXME: Windows only has mandatory locking which also locks the file from being read.
+                    # So for now, don't lock the file on windows. Ref: https://github.com/yt-dlp/yt-dlp/issues/3124
+                    raise LockingUnsupportedError()
                 stream = locked_file(filename, open_mode, block=False).__enter__()
             except LockingUnsupportedError:
                 stream = open(filename, open_mode)
