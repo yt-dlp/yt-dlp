@@ -12,6 +12,7 @@ from ..utils import (
     find_xpath_attr,
     int_or_none,
     traverse_obj,
+    try_call,
     unified_strdate,
     url_or_none,
     xpath_attr,
@@ -129,19 +130,12 @@ class RuutuIE(InfoExtractor):
 
     @classmethod
     def _extract_url(cls, webpage):
-        video_id = None
-        mo = re.search(r'jQuery.extend\(Drupal.settings, (.+?)\);', webpage)
-        if mo:
-            try:
-                jdict = json.loads(mo.group(1), strict=False)
-                video_id = traverse_obj(
-                    jdict,
-                    ("mediaCrossbowSettings", "file",
-                     "field_crossbow_video_id", "und", 0, "value"))
-            except ValueError:
-                pass
-
-        return "http://www.ruutu.fi/video/%s" % video_id if video_id else None
+        settings = try_call(
+            lambda: json.loads(re.search(
+                r'jQuery\.extend\(Drupal\.settings, ({.+?})\);', webpage).group(1), strict=False))
+        video_id = traverse_obj(settings, ('mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
+        if video_id:
+            return f'http://www.ruutu.fi/video/{video_id}'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
