@@ -154,7 +154,8 @@ class HttpFD(FileDownloader):
                             or content_len < range_end)
                         if accept_content_len:
                             ctx.content_len = content_len
-                            ctx.data_len = min(content_len, req_end or content_len) - (req_start or 0)
+                            if content_len or req_end:
+                                ctx.data_len = min(content_len or req_end, req_end or content_len) - (req_start or 0)
                             return
                     # Content-Range is either not present or invalid. Assuming remote webserver is
                     # trying to send the whole file, resume is not possible, so wiping the local file
