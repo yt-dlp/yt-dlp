@@ -632,11 +632,7 @@ def create_parser():
     video_format.add_option(
         '--check-formats',
         action='store_const', const='selected', dest='check_formats', default=None,
-        help=(
-            'Check that the selected formats are actually downloadable.'
-            'When used with a "best" format (e.g., --format bestvideo+bestaudio),'
-            'yt-dlp will download the next best format if the best format'
-            'is unavailable.'))
+        help='Make sure formats are selected only from those that are actually downloadable')
     video_format.add_option(
         '--check-all-formats',
         action='store_true', dest='check_formats',
