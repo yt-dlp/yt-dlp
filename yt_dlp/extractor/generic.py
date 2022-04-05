@@ -2512,7 +2512,24 @@ class GenericIE(InfoExtractor):
                 'id': 'insert-a-quiz-into-a-panopto-video'
             },
             'playlist_count': 1
-        }
+        },
+        {
+            # Ruutu embed
+            'url': 'https://www.nelonen.fi/ohjelmat/madventures-suomi/2160731-riku-ja-tunna-lahtevat-peurajahtiin-tv-sta-tutun-biologin-kanssa---metsastysreissu-huipentuu-kasvissyojan-painajaiseen',
+            'md5': 'a2513a98d3496099e6eced40f7e6a14b',
+            'info_dict': {
+                'id': '4044426',
+                'ext': 'mp4',
+                'title': 'Riku ja Tunna lähtevät peurajahtiin tv:stä tutun biologin kanssa – metsästysreissu huipentuu kasvissyöjän painajaiseen!',
+                'thumbnail': r're:^https?://.+\.jpg$',
+                'duration': 108,
+                'series' : 'Madventures Suomi',
+                'description': 'md5:aa55b44bd06a1e337a6f1d0b46507381',
+                'categories': ['Matkailu', 'Elämäntyyli'],
+                'age_limit': 0,
+                'upload_date': '20220308',
+            },
+        },
     ]
 
     def report_following_redirect(self, new_url):
