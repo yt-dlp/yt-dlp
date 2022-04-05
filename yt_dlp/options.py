@@ -163,6 +163,8 @@ def create_parser():
         values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
+            if not val:
+                raise optparse.OptionValueError(f'Invalid {option.metavar} for {opt_str}: {value}')
             if val == 'all':
                 current.update(allowed_values)
             elif val == '-all':
@@ -338,10 +340,10 @@ def create_parser():
         action='callback', callback=_set_from_options_callback,
         callback_kwargs={
             'allowed_values': {
-                'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
+                'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
+                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
@@ -465,19 +467,18 @@ def create_parser():
         metavar='COUNT', dest='max_views', default=None, type=int,
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--match-filter',
-        metavar='FILTER', dest='match_filter', default=None,
+        '--match-filters',
+        metavar='FILTER', dest='match_filter', action='append',
         help=(
             'Generic video filter. Any field (see "OUTPUT TEMPLATE") can be compared with a '
             'number or a string using the operators defined in "Filtering formats". '
-            'You can also simply specify a field to match if the field is present '
-            'and "!field" to check if the field is not present. In addition, '
-            'Python style regular expression matching can be done using "~=", '
-            'and multiple filters can be checked with "&". '
-            'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
-            '"!is_live & like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
-            'matches only videos that are not live, has a like count more than 100 '
-            '(or the like field is not available), and also has a description '
+            'You can also simply specify a field to match if the field is present, '
+            'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
+            'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
+            'the filter matches if atleast one of the conditions are met. Eg: --match-filter '
+            '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
+            'matches only videos that are not live OR those that have a like count more than 100 '
+            '(or the like field is not available) and also has a description '
             'that contains the phrase "cats & dogs" (ignoring case)'))
     selection.add_option(
         '--no-match-filter',
@@ -1312,11 +1313,11 @@ def create_parser():
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
             'Specify audio format to convert the audio to when -x is used. Currently supported formats are: '
-            'best (default) or one of %s' % '|'.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
+            'best (default) or one of %s' % ', '.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality, insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help='Specify ffmpeg audio quality to use when converting the audio with -x. Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
@@ -1324,7 +1325,7 @@ def create_parser():
             'Remux the video into another container if necessary (currently supported: %s). '
             'If target container does not support the video/audio codec, remuxing will fail. '
             'You can specify multiple rules; Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % '|'.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
+            'and anything else to mkv.' % ', '.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
@@ -1439,7 +1440,7 @@ def create_parser():
             '"multi_video" (default; only when the videos form a single show). '
             'All the video files must have same codecs and number of streams to be concatable. '
             'The "pl_video:" prefix can be used with "--paths" and "--output" to '
-            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
+            'set the output filename for the concatenated files. See "OUTPUT TEMPLATE" for details'))
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
@@ -1487,20 +1488,20 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--no-exec-before-download',
-        action='store_const', dest='exec_before_dl_cmd', const=[],
+        action='store_const', dest='exec_before_dl_cmd', const=None,
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
             'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % '|'.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
+            '(Alias: --convert-subtitles)' % ', '.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            '(currently supported: %s) ' % '|'.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
+            '(currently supported: %s) ' % ', '.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,

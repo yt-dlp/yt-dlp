@@ -122,6 +122,10 @@ from .awaan import (
 )
 from .azmedien import AZMedienIE
 from .baidu import BaiduVideoIE
+from .banbye import (
+    BanByeIE,
+    BanByeChannelIE,
+)
 from .bandaichannel import BandaiChannelIE
 from .bandcamp import (
     BandcampIE,
@@ -318,6 +322,7 @@ from .cpac import (
 from .cozytv import CozyTVIE
 from .cracked import CrackedIE
 from .crackle import CrackleIE
+from .craftsy import CraftsyIE
 from .crooksandliars import CrooksAndLiarsIE
 from .crowdbunker import (
     CrowdBunkerIE,
@@ -340,6 +345,10 @@ from .curiositystream import (
     CuriosityStreamSeriesIE,
 )
 from .cwtv import CWTVIE
+from .cybrary import (
+    CybraryIE,
+    CybraryCourseIE
+)
 from .daftsex import DaftsexIE
 from .dailymail import DailyMailIE
 from .dailymotion import (
@@ -674,6 +683,12 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
+
+from .itprotv import (
+    ITProTVIE,
+    ITProTVCourseIE
+)
+
 from .itv import (
     ITVIE,
     ITVBTCCIE,
@@ -730,6 +745,11 @@ from .laola1tv import (
     Laola1TvIE,
     EHFTVIE,
     ITTFIE,
+)
+from .lastfm import (
+    LastFMIE,
+    LastFMPlaylistIE,
+    LastFMUserIE,
 )
 from .lbry import (
     LBRYIE,
@@ -1961,6 +1981,11 @@ from .walla import WallaIE
 from .washingtonpost import (
     WashingtonPostIE,
     WashingtonPostArticleIE,
+)
+from .wasdtv import (
+    WASDTVStreamIE,
+    WASDTVRecordIE,
+    WASDTVClipIE,
 )
 from .wat import WatIE
 from .watchbox import WatchBoxIE

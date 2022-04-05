@@ -49,6 +49,7 @@ from ..utils import (
     error_to_compat_str,
     extract_attributes,
     ExtractorError,
+    filter_dict,
     fix_xml_ampersands,
     float_or_none,
     format_field,
@@ -138,6 +139,8 @@ class InfoExtractor(object):
                                    for HDS - URL of the F4M manifest,
                                    for DASH - URL of the MPD manifest,
                                    for MSS - URL of the ISM manifest.
+                    * manifest_stream_number  (For internal use only)
+                                 The index of the stream in the manifest file
                     * ext        Will be calculated from URL if missing
                     * format     A human-readable description of the format
                                  ("mp4 container with h264/opus").
@@ -214,7 +217,7 @@ class InfoExtractor(object):
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
                     * downloader_options  A dictionary of downloader options as
-                                 described in FileDownloader
+                                 described in FileDownloader (For internal use only)
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -248,14 +251,14 @@ class InfoExtractor(object):
     license:        License name the video is licensed under.
     creator:        The creator of the video.
     timestamp:      UNIX timestamp of the moment the video was uploaded
-    upload_date:    Video upload date (YYYYMMDD).
+    upload_date:    Video upload date in UTC (YYYYMMDD).
                     If not explicitly set, calculated from timestamp
     release_timestamp: UNIX timestamp of the moment the video was released.
                     If it is not clear whether to use timestamp or this, use the former
-    release_date:   The date (YYYYMMDD) when the video was released.
+    release_date:   The date (YYYYMMDD) when the video was released in UTC.
                     If not explicitly set, calculated from release_timestamp
     modified_timestamp: UNIX timestamp of the moment the video was last modified.
-    modified_date:   The date (YYYYMMDD) when the video was last modified.
+    modified_date:   The date (YYYYMMDD) when the video was last modified in UTC.
                     If not explicitly set, calculated from modified_timestamp
     uploader_id:    Nickname or id of the video uploader.
     uploader_url:   Full URL to a personal webpage of the video uploader.
@@ -469,6 +472,7 @@ class InfoExtractor(object):
     _GEO_IP_BLOCKS = None
     _WORKING = True
     _NETRC_MACHINE = None
+    IE_DESC = None
 
     _LOGIN_HINTS = {
         'any': 'Use --cookies, --cookies-from-browser, --username and --password, or --netrc to provide account credentials',
@@ -1033,7 +1037,7 @@ class InfoExtractor(object):
         if transform_source:
             json_string = transform_source(json_string)
         try:
-            return json.loads(json_string)
+            return json.loads(json_string, strict=False)
         except ValueError as ve:
             errmsg = '%s: Failed to parse JSON ' % video_id
             if fatal:
@@ -1295,8 +1299,8 @@ class InfoExtractor(object):
     @staticmethod
     def _og_regexes(prop):
         content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?))'
-        property_re = (r'(?:name|property)=(?:\'og[:-]%(prop)s\'|"og[:-]%(prop)s"|\s*og[:-]%(prop)s\b)'
-                       % {'prop': re.escape(prop)})
+        property_re = (r'(?:name|property)=(?:\'og%(sep)s%(prop)s\'|"og%(sep)s%(prop)s"|\s*og%(sep)s%(prop)s\b)'
+                       % {'prop': re.escape(prop), 'sep': '(?:&#x3A;|[:-])'})
         template = r'<meta[^>]+?%s[^>]+?%s'
         return [
             template % (property_re, content_re),
@@ -1327,9 +1331,8 @@ class InfoExtractor(object):
     def _og_search_description(self, html, **kargs):
         return self._og_search_property('description', html, fatal=False, **kargs)
 
-    def _og_search_title(self, html, **kargs):
-        kargs.setdefault('fatal', False)
-        return self._og_search_property('title', html, **kargs)
+    def _og_search_title(self, html, *, fatal=False, **kargs):
+        return self._og_search_property('title', html, fatal=fatal, **kargs)
 
     def _og_search_video_url(self, html, name='video url', secure=True, **kargs):
         regexes = self._og_regexes('video') + self._og_regexes('video:url')
@@ -1340,9 +1343,8 @@ class InfoExtractor(object):
     def _og_search_url(self, html, **kargs):
         return self._og_search_property('url', html, **kargs)
 
-    def _html_extract_title(self, html, name, **kwargs):
-        return self._html_search_regex(
-            r'(?s)<title>(.*?)</title>', html, name, **kwargs)
+    def _html_extract_title(self, html, name='title', *, fatal=False, **kwargs):
+        return self._html_search_regex(r'(?s)<title>([^<]+)</title>', html, name, fatal=fatal, **kwargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
         name = variadic(name)
@@ -1587,7 +1589,7 @@ class InfoExtractor(object):
                     break
         traverse_json_ld(json_ld)
 
-        return dict((k, v) for k, v in info.items() if v is not None)
+        return filter_dict(info)
 
     def _search_nextjs_data(self, webpage, video_id, *, transform_source=None, fatal=True, **kw):
         return self._parse_json(
@@ -3684,9 +3686,9 @@ class InfoExtractor(object):
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
         """ Merge subtitle items for one language. Items with duplicated URLs/data
         will be dropped. """
-        list1_data = set([item.get('url') or item['data'] for item in subtitle_list1])
+        list1_data = set((item.get('url'), item.get('data')) for item in subtitle_list1)
         ret = list(subtitle_list1)
-        ret.extend([item for item in subtitle_list2 if (item.get('url') or item['data']) not in list1_data])
+        ret.extend(item for item in subtitle_list2 if (item.get('url'), item.get('data')) not in list1_data)
         return ret
 
     @classmethod

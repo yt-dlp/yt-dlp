@@ -94,9 +94,9 @@ def print_extractor_information(opts, urls):
         for ie in list_extractors(opts.age_limit):
             if not ie.working():
                 continue
-            desc = getattr(ie, 'IE_DESC', ie.IE_NAME)
-            if desc is False:
+            if ie.IE_DESC is False:
                 continue
+            desc = ie.IE_DESC or ie.IE_NAME
             if getattr(ie, 'SEARCH_KEY', None) is not None:
                 _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
                 _COUNTS = ('', '5', '10', 'all')
@@ -379,7 +379,7 @@ def validate_options(opts):
             'To let yt-dlp download and merge the best available formats, simply do not pass any format selection',
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
 
-    # --(post-processor/downloader)-args without name
+    # --(postprocessor/downloader)-args without name
     def report_args_compat(name, value, key1, key2=None):
         if key1 in value and key2 not in value:
             warnings.append(f'{name} arguments given without specifying name. The arguments will be given to all {name}s')
