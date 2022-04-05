@@ -50,8 +50,7 @@ class VShareIE(InfoExtractor):
             'https://vshare.io/v/%s/width-650/height-430/1' % video_id,
             video_id, headers={'Referer': url})
 
-        title = self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
         title = title.split(' - ')[0]
 
         error = self._html_search_regex(

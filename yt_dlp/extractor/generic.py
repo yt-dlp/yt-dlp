@@ -149,6 +149,7 @@ from .blogger import BloggerIE
 from .mainstreaming import MainStreamingIE
 from .gfycat import GfycatIE
 from .panopto import PanoptoBaseIE
+from .ruutu import RuutuIE
 
 
 class GenericIE(InfoExtractor):
@@ -2511,7 +2512,24 @@ class GenericIE(InfoExtractor):
                 'id': 'insert-a-quiz-into-a-panopto-video'
             },
             'playlist_count': 1
-        }
+        },
+        {
+            # Ruutu embed
+            'url': 'https://www.nelonen.fi/ohjelmat/madventures-suomi/2160731-riku-ja-tunna-lahtevat-peurajahtiin-tv-sta-tutun-biologin-kanssa---metsastysreissu-huipentuu-kasvissyojan-painajaiseen',
+            'md5': 'a2513a98d3496099e6eced40f7e6a14b',
+            'info_dict': {
+                'id': '4044426',
+                'ext': 'mp4',
+                'title': 'Riku ja Tunna lähtevät peurajahtiin tv:stä tutun biologin kanssa – metsästysreissu huipentuu kasvissyöjän painajaiseen!',
+                'thumbnail': r're:^https?://.+\.jpg$',
+                'duration': 108,
+                'series': 'Madventures Suomi',
+                'description': 'md5:aa55b44bd06a1e337a6f1d0b46507381',
+                'categories': ['Matkailu', 'Elämäntyyli'],
+                'age_limit': 0,
+                'upload_date': '20220308',
+            },
+        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -2873,10 +2891,8 @@ class GenericIE(InfoExtractor):
         #   Site Name | Video Title
         #   Video Title - Tagline | Site Name
         # and so on and so forth; it's just not practical
-        video_title = self._og_search_title(
-            webpage, default=None) or self._html_search_regex(
-            r'(?s)<title>(.*?)</title>', webpage, 'video title',
-            default='video')
+        video_title = (self._og_search_title(webpage, default=None)
+                       or self._html_extract_title(webpage, 'video title', default='video'))
 
         # Try to detect age limit automatically
         age_limit = self._rta_search(webpage)
@@ -3739,6 +3755,12 @@ class GenericIE(InfoExtractor):
         panopto_urls = PanoptoBaseIE._extract_urls(webpage)
         if panopto_urls:
             return self.playlist_from_matches(panopto_urls, video_id, video_title)
+
+        # Look for Ruutu embeds
+        ruutu_url = RuutuIE._extract_url(webpage)
+        if ruutu_url:
+            return self.url_result(ruutu_url, RuutuIE)
+
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
         if entries:
@@ -3864,8 +3886,8 @@ class GenericIE(InfoExtractor):
             if RtmpIE.suitable(vurl):
                 return True
             vpath = compat_urlparse.urlparse(vurl).path
-            vext = determine_ext(vpath)
-            return '.' in vpath and vext not in ('swf', 'png', 'jpg', 'srt', 'sbv', 'sub', 'vtt', 'ttml', 'js', 'xml')
+            vext = determine_ext(vpath, None)
+            return vext not in (None, 'swf', 'png', 'jpg', 'srt', 'sbv', 'sub', 'vtt', 'ttml', 'js', 'xml')
 
         def filter_video(urls):
             return list(filter(check_video, urls))

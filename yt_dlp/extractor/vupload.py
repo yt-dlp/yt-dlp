@@ -28,7 +28,7 @@ class VuploadIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex(r'<title>(.+?)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
         video_json = self._parse_json(self._html_search_regex(r'sources:\s*(.+?]),', webpage, 'video'), video_id, transform_source=js_to_json)
         formats = []
         for source in video_json:
