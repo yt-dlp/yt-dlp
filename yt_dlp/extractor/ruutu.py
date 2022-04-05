@@ -133,7 +133,8 @@ class RuutuIE(InfoExtractor):
         settings = try_call(
             lambda: json.loads(re.search(
                 r'jQuery\.extend\(Drupal\.settings, ({.+?})\);', webpage).group(1), strict=False))
-        video_id = traverse_obj(settings, ('mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
+        video_id = traverse_obj(settings, (
+            'mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
         if video_id:
             return f'http://www.ruutu.fi/video/{video_id}'
 
