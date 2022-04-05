@@ -674,26 +674,25 @@ def sanitize_open(filename, open_mode):
 
     It returns the tuple (stream, definitive_file_name).
     """
-    try:
-        if filename == '-':
-            if sys.platform == 'win32':
-                import msvcrt
-                msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-            return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
-        stream = locked_file(filename, open_mode, block=False).open()
-        return (stream, filename)
-    except (IOError, OSError) as err:
-        if err.errno in (errno.EACCES,):
-            raise
+    if filename == '-':
+        if sys.platform == 'win32':
+            import msvcrt
+            msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+        return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
 
-        # In case of error, try to remove win32 forbidden chars
-        alt_filename = sanitize_path(filename)
-        if alt_filename == filename:
-            raise
-        else:
-            # An exception here should be caught in the caller
-            stream = locked_file(filename, open_mode, block=False).open()
-            return (stream, alt_filename)
+    for attempt in range(2):
+        try:
+            try:
+                stream = locked_file(filename, open_mode, block=False).__enter__()
+            except LockingUnsupportedError:
+                stream = open(filename, open_mode)
+            return (stream, filename)
+        except (IOError, OSError) as err:
+            if attempt or err.errno in (errno.EACCES,):
+                raise
+            old_filename, filename = filename, sanitize_path(filename)
+            if old_filename == filename:
+                raise
 
 
 def timeconvert(timestr):
@@ -2120,6 +2119,13 @@ def intlist_to_bytes(xs):
     return compat_struct_pack('%dB' % len(xs), *xs)
 
 
+class LockingUnsupportedError(IOError):
+    msg = 'File locking is not supported on this platform'
+
+    def __init__(self):
+        super().__init__(self.msg)
+
+
 # Cross-platform file locking
 if sys.platform == 'win32':
     import ctypes.wintypes
@@ -2200,21 +2206,20 @@ else:
                 fcntl.lockf(f, fcntl.LOCK_UN)
 
     except ImportError:
-        UNSUPPORTED_MSG = 'file locking is not supported on this platform'
 
         def _lock_file(f, exclusive, block):
-            raise IOError(UNSUPPORTED_MSG)
+            raise LockingUnsupportedError()
 
         def _unlock_file(f):
-            raise IOError(UNSUPPORTED_MSG)
+            raise LockingUnsupportedError()
 
 
 class locked_file(object):
-    _closed = False
+    locked = False
 
     def __init__(self, filename, mode, block=True, encoding=None):
-        assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
-        self.f = io.open(filename, mode, encoding=encoding)
+        assert mode in {'r', 'rb', 'a', 'ab', 'w', 'wb'}
+        self.f = open(filename, mode, encoding=encoding)
         self.mode = mode
         self.block = block
 
@@ -2222,36 +2227,34 @@ class locked_file(object):
         exclusive = 'r' not in self.mode
         try:
             _lock_file(self.f, exclusive, self.block)
+            self.locked = True
         except IOError:
             self.f.close()
             raise
         return self
 
-    def __exit__(self, etype, value, traceback):
+    def unlock(self):
+        if not self.locked:
+            return
         try:
-            if not self._closed:
-                _unlock_file(self.f)
+            _unlock_file(self.f)
+        finally:
+            self.locked = False
+
+    def __exit__(self, *_):
+        try:
+            self.unlock()
         finally:
             self.f.close()
-            self._closed = True
+
+    open = __enter__
+    close = __exit__
+
+    def __getattr__(self, attr):
+        return getattr(self.f, attr)
 
     def __iter__(self):
         return iter(self.f)
-
-    def write(self, *args):
-        return self.f.write(*args)
-
-    def read(self, *args):
-        return self.f.read(*args)
-
-    def flush(self):
-        self.f.flush()
-
-    def open(self):
-        return self.__enter__()
-
-    def close(self, *args):
-        self.__exit__(self, *args, value=False, traceback=False)
 
 
 def get_filesystem_encoding():
