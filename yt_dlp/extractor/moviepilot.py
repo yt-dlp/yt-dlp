@@ -5,6 +5,7 @@ from .dailymotion import DailymotionIE
 from .common import InfoExtractor
 from ..utils import (
     parse_iso8601,
+    try_get,
     unescapeHTML,
 )
 
@@ -23,7 +24,7 @@ class MoviepilotIE(InfoExtractor):
             'display_id': 'interstellar-2',
             'ext': 'mp4',
             'title': 'Interstellar',
-            'thumbnail': 'https://s1.dmcdn.net/v/SaXev1VvzitVZMFsR/x720',
+            'thumbnail': r're:https://.*\.dmcdn\.net/v/SaXev1VvzitVZMFsR/x720',
             'timestamp': 1400491705,
             'description': 'md5:7dfc5c1758e7322a7346934f1f0c489c',
             'uploader': 'Moviepilot',
@@ -48,7 +49,7 @@ class MoviepilotIE(InfoExtractor):
             'display_id': 'queen-slim',
             'title': 'Queen & Slim',
             'ext': 'mp4',
-            'thumbnail': 'https://s2.dmcdn.net/v/SbUM71WtomSjVmI_q/x720',
+            'thumbnail': r're:https://.*\.dmcdn\.net/v/SbUM71WtomSjVmI_q/x720',
             'timestamp': 1571838685,
             'description': 'md5:73058bcd030aa12d991e4280d65fbebe',
             'uploader': 'Moviepilot',
@@ -80,7 +81,7 @@ class MoviepilotIE(InfoExtractor):
             'age_limit': 0,
             'duration': 82,
             'upload_date': '20101020',
-            'thumbnail': 'https://s1.dmcdn.net/v/SaMes1WfAm1d6maq_/x720',
+            'thumbnail': r're:https://.*\.dmcdn\.net/v/SaMes1WfAm1d6maq_/x720',
             'uploader': 'Moviepilot',
             'like_count': int,
             'view_count': int,
@@ -89,31 +90,27 @@ class MoviepilotIE(InfoExtractor):
         },
     }]
 
-    def _get_property(self, name, webpage, fatal=True):
-        return self._search_regex(f'meta itemprop="{name}" content="(.*?)"', webpage, name, fatal=fatal)
-
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
         webpage = self._download_webpage(f'https://www.moviepilot.de/movies/{video_id}/trailer', video_id)
 
-        # oriented on parse_duration()
-        d = re.match(r'P(?P<hours>[0-9]+)H(?P<mins>[0-9]{2})M(?P<secs>[0-9]{2})S',
-                     self._get_property("duration", webpage, fatal=False))
-        if d:
-            hours, mins, secs = d.groups()
-            duration = float(hours) * 60 * 60 + float(mins) * 60 + float(secs)
-        else:
-            duration = None
+        duration = try_get(
+            re.match(r'P(?P<hours>\d+)H(?P<mins>\d+)M(?P<secs>\d+)S',
+                     self._html_search_meta('duration', webpage, fatal=False) or ''),
+            lambda mobj: sum(float(x) * y for x, y in zip(mobj.groups(), (3600, 60, 1))))
+        # _html_search_meta is not used since we don't want name=description to match
+        description = unescapeHTML(
+            self._search_regex(f'meta itemprop="description" content="(.*?)"', webpage, 'description', fatal=False))
 
         return {
             '_type': 'url_transparent',
             'ie_key': DailymotionIE.ie_key(),
             'display_id': video_id,
             'title': self._og_search_title(webpage),
-            'url': self._get_property('embedURL', webpage),
-            'thumbnail': self._get_property('thumbnailURL', webpage, fatal=False),
-            'description': unescapeHTML(self._get_property('description', webpage, fatal=False)),
+            'url': self._html_search_meta('embedURL', webpage),
+            'thumbnail': self._html_search_meta('thumbnailURL', webpage, fatal=False),
+            'description': description,
             'duration': duration,
-            'timestamp': parse_iso8601(self._get_property('uploadDate', webpage, fatal=False), delimiter=' ')
+            'timestamp': parse_iso8601(self._html_search_meta('uploadDate', webpage, fatal=False), delimiter=' ')
         }
