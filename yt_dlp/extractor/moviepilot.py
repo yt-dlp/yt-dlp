@@ -6,7 +6,6 @@ from .common import InfoExtractor
 from ..utils import (
     parse_iso8601,
     try_get,
-    unescapeHTML,
 )
 
 import re
@@ -24,7 +23,7 @@ class MoviepilotIE(InfoExtractor):
             'display_id': 'interstellar-2',
             'ext': 'mp4',
             'title': 'Interstellar',
-            'thumbnail': r're:https://.*\.dmcdn\.net/v/SaXev1VvzitVZMFsR/x720',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaXev1VvzitVZMFsR/x720',
             'timestamp': 1400491705,
             'description': 'md5:7dfc5c1758e7322a7346934f1f0c489c',
             'uploader': 'Moviepilot',
@@ -49,7 +48,7 @@ class MoviepilotIE(InfoExtractor):
             'display_id': 'queen-slim',
             'title': 'Queen & Slim',
             'ext': 'mp4',
-            'thumbnail': r're:https://.*\.dmcdn\.net/v/SbUM71WtomSjVmI_q/x720',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SbUM71WtomSjVmI_q/x720',
             'timestamp': 1571838685,
             'description': 'md5:73058bcd030aa12d991e4280d65fbebe',
             'uploader': 'Moviepilot',
@@ -81,7 +80,7 @@ class MoviepilotIE(InfoExtractor):
             'age_limit': 0,
             'duration': 82,
             'upload_date': '20101020',
-            'thumbnail': r're:https://.*\.dmcdn\.net/v/SaMes1WfAm1d6maq_/x720',
+            'thumbnail': r're:https://\w+\.dmcdn\.net/v/SaMes1WfAm1d6maq_/x720',
             'uploader': 'Moviepilot',
             'like_count': int,
             'view_count': int,
@@ -100,8 +99,8 @@ class MoviepilotIE(InfoExtractor):
                      self._html_search_meta('duration', webpage, fatal=False) or ''),
             lambda mobj: sum(float(x) * y for x, y in zip(mobj.groups(), (3600, 60, 1))))
         # _html_search_meta is not used since we don't want name=description to match
-        description = unescapeHTML(
-            self._search_regex(f'meta itemprop="description" content="(.*?)"', webpage, 'description', fatal=False))
+        description = self._html_search_regex(
+            '<meta[^>]+itemprop="description"[^>]+content="([^>"]+)"', webpage, 'description', fatal=False)
 
         return {
             '_type': 'url_transparent',
@@ -109,8 +108,8 @@ class MoviepilotIE(InfoExtractor):
             'display_id': video_id,
             'title': self._og_search_title(webpage),
             'url': self._html_search_meta('embedURL', webpage),
-            'thumbnail': self._html_search_meta('thumbnailURL', webpage, fatal=False),
+            'thumbnail': self._html_search_meta('thumbnailURL', webpage),
             'description': description,
             'duration': duration,
-            'timestamp': parse_iso8601(self._html_search_meta('uploadDate', webpage, fatal=False), delimiter=' ')
+            'timestamp': parse_iso8601(self._html_search_meta('uploadDate', webpage), delimiter=' ')
         }
