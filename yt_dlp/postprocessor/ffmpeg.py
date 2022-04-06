@@ -86,13 +86,18 @@ class FFmpegPostProcessor(PostProcessor):
 
     @staticmethod
     def get_versions(downloader=None):
-        return FFmpegPostProcessor.get_version_and_features(downloader)[0]
+        return FFmpegPostProcessor.get_versions_and_features(downloader)[0]
+
+    _version_cache, _features_cache = {}, {}
 
     def _determine_executables(self):
         programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
 
         def get_ffmpeg_version(path, prog):
-            out = _get_exe_version_output(path, ['-bsfs'])
+            if path in self._version_cache:
+                self._versions[prog], self._features = self._version_cache[path], self._features_cache.get(path, {})
+                return
+            out = _get_exe_version_output(path, ['-bsfs'], to_screen=self.write_debug)
             ver = detect_exe_version(out) if out else False
             if ver:
                 regexs = [
@@ -104,13 +109,13 @@ class FFmpegPostProcessor(PostProcessor):
                     mobj = re.match(regex, ver)
                     if mobj:
                         ver = mobj.group(1)
-            self._versions[prog] = ver
+            self._versions[prog] = self._version_cache[path] = ver
             if prog != 'ffmpeg' or not out:
                 return
 
             mobj = re.search(r'(?m)^\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
             lavf_runtime_version = mobj.group('runtime').replace(' ', '') if mobj else None
-            self._features = {
+            self._features = self._features_cache[path] = {
                 'fdk': '--enable-libfdk-aac' in out,
                 'setts': 'setts' in out.splitlines(),
                 'needs_adtstoasc': is_outdated_version(lavf_runtime_version, '57.56.100', False),
@@ -148,26 +153,15 @@ class FFmpegPostProcessor(PostProcessor):
                 self._paths[basename] = location
 
         self._versions = {}
-        for p in programs:
-            get_ffmpeg_version(self._paths[p], p)
-
+        executables = {'basename': ('ffmpeg', 'avconv'), 'probe_basename': ('ffprobe', 'avprobe')}
         if prefer_ffmpeg is False:
-            prefs = ('avconv', 'ffmpeg')
-        else:
-            prefs = ('ffmpeg', 'avconv')
-        for p in prefs:
-            if self._versions[p]:
-                self.basename = p
-                break
-
-        if prefer_ffmpeg is False:
-            prefs = ('avprobe', 'ffprobe')
-        else:
-            prefs = ('ffprobe', 'avprobe')
-        for p in prefs:
-            if self._versions[p]:
-                self.probe_basename = p
-                break
+            executables = {k: v[::-1] for k, v in executables.items()}
+        for var, prefs in executables.items():
+            for p in prefs:
+                get_ffmpeg_version(self._paths[p], p)
+                if self._versions[p]:
+                    setattr(self, var, p)
+                    break
 
         if self.basename == 'avconv':
             self.deprecation_warning(
@@ -506,6 +500,9 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         temp_path = new_path = prefix + sep + extension
 
         if new_path == path:
+            if acodec == 'copy':
+                self.to_screen(f'File is already in target format {self._preferredcodec}, skipping')
+                return [], information
             orig_path = prepend_extension(path, 'orig')
             temp_path = prepend_extension(path, 'temp')
         if (self._nopostoverwrites and os.path.exists(encodeFilename(new_path))
@@ -553,9 +550,9 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
 
     @staticmethod
     def _options(target_ext):
+        yield from FFmpegPostProcessor.stream_copy_opts(False)
         if target_ext == 'avi':
-            return ['-c:v', 'libxvid', '-vtag', 'XVID']
-        return []
+            yield from ('-c:v', 'libxvid', '-vtag', 'XVID')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
@@ -1128,15 +1125,21 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         self._only_multi_video = only_multi_video
         super().__init__(downloader)
 
+    def _get_codecs(self, file):
+        codecs = traverse_obj(self.get_metadata_object(file), ('streams', ..., 'codec_name'))
+        self.write_debug(f'Codecs = {", ".join(codecs)}')
+        return tuple(codecs)
+
     def concat_files(self, in_files, out_file):
+        if not self._downloader._ensure_dir_exists(out_file):
+            return
         if len(in_files) == 1:
             if os.path.realpath(in_files[0]) != os.path.realpath(out_file):
                 self.to_screen(f'Moving "{in_files[0]}" to "{out_file}"')
             os.replace(in_files[0], out_file)
             return []
 
-        codecs = [traverse_obj(self.get_metadata_object(file), ('streams', ..., 'codec_name')) for file in in_files]
-        if len(set(map(tuple, codecs))) > 1:
+        if len(set(map(self._get_codecs, in_files))) > 1:
             raise PostProcessingError(
                 'The files have different streams/codecs and cannot be concatenated. '
                 'Either select different formats or --recode-video them to a common format')
@@ -1150,7 +1153,7 @@ class FFmpegConcatPP(FFmpegPostProcessor):
         entries = info.get('entries') or []
         if not any(entries) or (self._only_multi_video and info['_type'] != 'multi_video'):
             return [], info
-        elif any(len(entry) > 1 for entry in traverse_obj(entries, (..., 'requested_downloads')) or []):
+        elif traverse_obj(entries, (..., 'requested_downloads', lambda _, v: len(v) > 1)):
             raise PostProcessingError('Concatenation is not supported when downloading multiple separate formats')
 
         in_files = traverse_obj(entries, (..., 'requested_downloads', 0, 'filepath')) or []

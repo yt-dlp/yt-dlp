@@ -333,7 +333,7 @@ class FunimationShowIE(FunimationBaseIE):
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
             % show_info.get('id'), display_id)
 
-        vod_items = traverse_obj(items_info, ('items', ..., re.compile('(?i)mostRecent[AS]vod').match, 'item'))
+        vod_items = traverse_obj(items_info, ('items', ..., lambda k, _: re.match(r'(?i)mostRecent[AS]vod', k), 'item'))
 
         return {
             '_type': 'playlist',

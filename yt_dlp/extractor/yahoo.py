@@ -533,7 +533,7 @@ class YahooJapanNewsIE(InfoExtractor):
 
         title = self._html_search_meta(
             ['og:title', 'twitter:title'], webpage, 'title', default=None
-        ) or self._html_search_regex('<title>([^<]+)</title>', webpage, 'title')
+        ) or self._html_extract_title(webpage)
 
         if display_id == host:
             # Headline page (w/ multiple BC playlists) ('news.yahoo.co.jp', 'headlines.yahoo.co.jp/videonews/', ...)
