@@ -4109,14 +4109,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if fatal:
                 raise ExtractorError('Unable to find selected tab')
 
-    @classmethod
-    def _extract_uploader(cls, data):
+    def _extract_uploader(self, data):
         uploader = {}
-        renderer = cls._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer') or {}
+        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer') or {}
         owner = try_get(
             renderer, lambda x: x['videoOwner']['videoOwnerRenderer']['title']['runs'][0], dict)
         if owner:
-            uploader['uploader'] = owner.get('text')
+            owner_text = owner.get('text')
+            uploader['uploader'] = self._search_regex(
+                r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text)
             uploader['uploader_id'] = try_get(
                 owner, lambda x: x['navigationEndpoint']['browseEndpoint']['browseId'], compat_str)
             uploader['uploader_url'] = urljoin(
@@ -5136,6 +5137,24 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'note': 'non-standard redirect to regional channel',
         'url': 'https://www.youtube.com/channel/UCwVVpHQ2Cs9iGJfpdFngePQ',
         'only_matching': True
+    }, {
+        'note': 'collaborative playlist (uploader name in the form "by <uploader> and x other(s)")',
+        'url': 'https://www.youtube.com/playlist?list=PLx-_-Kk4c89oOHEDQAojOXzEzemXxoqx6',
+        'info_dict': {
+            'id': 'PLx-_-Kk4c89oOHEDQAojOXzEzemXxoqx6',
+            'modified_date': '20220407',
+            'channel_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
+            'tags': [],
+            'uploader_id': 'UCKcqXmCcyqnhgpA5P0oHH_Q',
+            'uploader': 'pukkandan',
+            'availability': 'unlisted',
+            'channel_id': 'UCKcqXmCcyqnhgpA5P0oHH_Q',
+            'channel': 'pukkandan',
+            'description': 'Test for collaborative playlist',
+            'title': 'yt-dlp test - collaborative playlist',
+            'uploader_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
+        },
+        'playlist_mincount': 2
     }]
 
     @classmethod
