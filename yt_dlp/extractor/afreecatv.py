@@ -526,17 +526,15 @@ class AfreecaTVUserIE(InfoExtractor):
 
     def _fetch_page(self, user_id, user_type, page):
         page += 1
-        info = self._download_json(f'https://bjapi.afreecatv.com/api/{user_id}/vods/{user_type}',
-                                   video_id=user_id,
+        info = self._download_json(f'https://bjapi.afreecatv.com/api/{user_id}/vods/{user_type}', user_id,
                                    query={'page': page, 'per_page': self._PER_PAGE, 'orderby': 'reg_date'},
-                                   note=f'Download [{user_type}] video page {page} of {user_id}')
-        for item in info.get('data'):
-            if item:
-                yield self.url_result(f'https://vod.afreecatv.com/player/{item.get("title_no")}/',
-                                      AfreecaTVIE.ie_key(), item.get("title_no"))
+                                   note=f'Downloading {user_type} video page {page}')
+        for item in info['data']:
+            yield self.url_result(
+                f'https://vod.afreecatv.com/player/{item["title_no"]}/', AfreecaTVIE, item['title_no'])
 
     def _real_extract(self, url):
         user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
         user_type = user_type or 'all'
         entries = OnDemandPagedList(functools.partial(self._fetch_page, user_id, user_type), self._PER_PAGE)
-        return self.playlist_result(entries, playlist_id=user_id, playlist_title=f'{user_id} - {user_type}')
+        return self.playlist_result(entries, user_id, f'{user_id} - {user_type}')
