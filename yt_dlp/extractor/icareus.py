@@ -12,7 +12,6 @@ from ..utils import (
     parse_bitrate,
     parse_resolution,
     remove_end,
-    traverse_obj,
     urlencode_postdata,
     url_or_none,
 )
@@ -100,45 +99,44 @@ class IcareusIE(InfoExtractor):
             'unpublished-info-item future-event-title', page)
         metad = self._search_json_ld(page, video_id, default=None)
 
-        duration = None
-        thumbnail = None
+        info = {'id': video_id}
         if metad:
-            title = metad.get('title')
-            description = metad.get('description')
-            timestamp = metad.get('timestamp')
-            thumbnail = traverse_obj(metad, ('thumbnails', 0, 'url'))
+            info.update(metad)
         elif token2:
-            data = {
-                "version": "03",
-                "action": "getAsset",
-                "organizationId": organization_id,
-                "assetId": video_id,
-                "languageId": "en_US",
-                "userId": "0",
-                "token": token2,
-            }
             metad = self._download_json(
-                base_url + '/icareus-suite-api-portlet/publishing',
-                video_id, data=urlencode_postdata(data))
-            title = metad.get('name')
-            description = metad.get('description')
-            timestamp = int_or_none(metad.get('date'), scale=1000)
-            duration = int_or_none(metad.get('duration'))
-            thumbnail = url_or_none(metad.get('thumbnailMedium'))
+                f'{base_url}/icareus-suite-api-portlet/publishing',
+                video_id, fatal=False, data=urlencode_postdata({
+                    'version': '03',
+                    'action': 'getAsset',
+                    'organizationId': organization_id,
+                    'assetId': video_id,
+                    'languageId': 'en_US',
+                    'userId': '0',
+                    'token': token2,
+                }))
+            if metad:
+                info.update({
+                    'title': metad.get('name'),
+                    'description': metad.get('description'),
+                    'timestamp': int_or_none(metad.get('date'), scale=1000),
+                    'duration': int_or_none(metad.get('duration')),
+                    'thumbnail': url_or_none(metad.get('thumbnailMedium')),
+                })
         elif livestream_title:  # Recorded livestream
-            title = livestream_title
-            description = get_element_by_class(
-                'unpublished-info-item future-event-description', page)
-            timestamp = int_or_none(self._search_regex(
-                r"var startEvent\s*=\s*(\d+);", page, "uploadDate",
-                fatal=False), scale=1000)
-        else:
-            self.report_warning("Could not extract metadata", video_id)
-            description = None
-            timestamp = None
+            info.update({
+                'title': livestream_title,
+                'description': get_element_by_class(
+                    'unpublished-info-item future-event-description', page),
+                'timestamp': int_or_none(self._search_regex(
+                    r"var startEvent\s*=\s*(\d+);", page, "uploadDate",
+                    fatal=False), scale=1000),
+            })
 
-        title = title if title else video_id
-        description = clean_html(description)
+        if 'title' not in info.keys():
+            self.report_warning("Could not extract metadata", video_id)
+            info['title'] = video_id
+
+        info['description'] = clean_html(info.get('description'))
 
         data = {
             "version": "03",
@@ -150,8 +148,8 @@ class IcareusIE(InfoExtractor):
         jsond = self._download_json(
             api_base, video_id, data=urlencode_postdata(data))
 
-        if thumbnail is None:
-            thumbnail = url_or_none(jsond.get('thumbnail'))
+        if not any(x in info.keys() for x in ('thumbnail', 'thumbnails')):
+            info['thumbnail'] = url_or_none(jsond.get('thumbnail'))
 
         formats = []
         for item in jsond.get('urls') or []:
@@ -191,15 +189,9 @@ class IcareusIE(InfoExtractor):
             for scode, sdesc, surl in jsond.get('subtitles') or []
         }
 
-        info = {
-            'id': video_id,
-            'title': title,
-            'description': description,
-            'thumbnail': thumbnail,
-            'timestamp': timestamp,
+        info.update({
             'formats': formats,
-            'duration': duration,
             'subtitles': subtitles,
-        }
+        })
 
         return info
