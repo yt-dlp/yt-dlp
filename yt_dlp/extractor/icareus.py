@@ -12,7 +12,7 @@ from ..utils import (
     int_or_none,
     parse_bitrate,
     parse_resolution,
-    unified_timestamp,
+    traverse_obj,
     urlencode_postdata,
     url_or_none,
 )
@@ -87,32 +87,17 @@ class IcareusIE(InfoExtractor):
         token2 = self._search_regex(
             r"""data\s*:\s*{action:"getAsset".*?token:'([a-f0-9]+)'}""", page,
             "token2", default=None, fatal=False)
-        metajson = get_element_by_attribute('type', 'application/ld+json', page)
-
-        metad = None
-        if metajson:
-            # The description can contain newlines, HTML tags, quote chars etc.
-            # so we'll extract it manually
-            mo = re.match(
-                r'(.*",)\s*"description": "(.*?)",(\s*"thumbnailUrl":.*)',
-                metajson, flags=re.DOTALL)
-            if mo:
-                desc_text = mo.group(2)
-                metajson = mo.group(1) + mo.group(3)
-                metad = self._parse_json(metajson, video_id, fatal=False)
-            else:
-                self.report_warning("Could not fix metadata JSON", video_id)
-
         livestream_title = get_element_by_class(
             'unpublished-info-item future-event-title', page)
+        metad = self._search_json_ld(page, video_id, default=None)
 
         duration = None
         thumbnail = None
         if metad:
-            title = metad.get('name')
-            description = desc_text
-            timestamp = unified_timestamp(metad.get('uploadDate'))
-            thumbnail = url_or_none(metad.get('thumbnailUrl'))
+            title = metad.get('title')
+            description = metad.get('description')
+            timestamp = metad.get('timestamp')
+            thumbnail = traverse_obj(metad, ('thumbnails', 0, 'url'))
         elif token2:
             base_url = self._search_regex(r'(https?://[^/]+)/', url, 'base_url')
             data = {
