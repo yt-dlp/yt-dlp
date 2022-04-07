@@ -2229,7 +2229,9 @@ class locked_file(object):
         writable = any(f in mode for f in 'wax+')
         readable = any(f in mode for f in 'r+')
         flags = functools.reduce(operator.ior, (
-            getattr(os, 'O_CLOEXEC', 0) or os.O_BINARY,  # win32 does not have O_CLOEXEC, but needs O_BINARY
+            getattr(os, 'O_CLOEXEC', 0),  # win32 does not have O_CLOEXEC
+            getattr(os, 'O_BINARY', 0),  # UNIX don't have O_BINARY and O_NOINHERIT
+            getattr(os, 'O_NOINHERIT', 0),
             os.O_CREAT if writable else 0,  # do not pass O_TRUNC
             os.O_APPEND if 'a' in mode else 0,
             os.O_EXCL if 'x' in mode else 0,
