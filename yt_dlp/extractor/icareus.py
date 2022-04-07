@@ -7,11 +7,11 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     determine_ext,
-    get_element_by_attribute,
     get_element_by_class,
     int_or_none,
     parse_bitrate,
     parse_resolution,
+    remove_end,
     traverse_obj,
     urlencode_postdata,
     url_or_none,
@@ -184,12 +184,10 @@ class IcareusIE(InfoExtractor):
                 fd['abr'] = abr
             formats.append(fd)
 
-        subtitles = {}
-        for sub in jsond.get('subtitles', []):
-            scode, sdesc, surl = sub
-            lang = sdesc.split(' ')[0]
-            lang = lang[:-1] if lang.endswith(':') else lang
-            subtitles[lang] = [{"url": url_or_none(surl)}]
+        subtitles = {
+            remove_end(sdesc.split(' ')[0], ':'): [{"url": url_or_none(surl)}]
+            for scode, sdesc, surl in jsond.get('subtitles') or []
+        }
 
         info = {
             'id': video_id,
