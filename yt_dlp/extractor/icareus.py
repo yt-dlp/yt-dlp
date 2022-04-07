@@ -147,8 +147,8 @@ class IcareusIE(InfoExtractor):
             "assetId": video_id,
             "token": token,
         }
-        jsond = self._download_json(api_base, video_id,
-                                    data=urlencode_postdata(data))
+        jsond = self._download_json(
+            api_base, video_id, data=urlencode_postdata(data))
 
         if thumbnail is None:
             thumbnail = url_or_none(jsond.get('thumbnail'))
