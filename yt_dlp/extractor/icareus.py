@@ -85,16 +85,16 @@ class IcareusIE(InfoExtractor):
         base_url, maybe_id = self._match_valid_url(url).groups()
         page = self._download_webpage(url, maybe_id)
         video_id = self._search_regex(
-            r"_icareus\['itemId'\]\s*=\s*'(\d+)'", page, "video_id")
+            r"_icareus\['itemId'\]\s*=\s*'(\d+)'", page, 'video_id')
         api_base = self._search_regex(
-            r'var\s+publishingServiceURL\s*=\s*"(http[^"]+)";', page, "api_base")
+            r'var\s+publishingServiceURL\s*=\s*"(http[^"]+)";', page, 'api_base')
         organization_id = self._search_regex(
-            r"_icareus\['organizationId'\]\s*=\s*'(\d+)'", page, "organization_id")
+            r"_icareus\['organizationId'\]\s*=\s*'(\d+)'", page, 'organization_id')
         token = self._search_regex(
-            r"_icareus\['token'\]\s*=\s*'([a-f0-9]+)'", page, "token")
+            r"_icareus\['token'\]\s*=\s*'([a-f0-9]+)'", page, 'token')
         token2 = self._search_regex(
             r"""data\s*:\s*{action:"getAsset".*?token:'([a-f0-9]+)'}""", page,
-            "token2", default=None, fatal=False)
+            'token2', default=None, fatal=False)
         livestream_title = get_element_by_class(
             'unpublished-info-item future-event-title', page)
         metad = self._search_json_ld(page, video_id, default=None)
@@ -128,7 +128,7 @@ class IcareusIE(InfoExtractor):
                 'description': get_element_by_class(
                     'unpublished-info-item future-event-description', page),
                 'timestamp': int_or_none(self._search_regex(
-                    r"var startEvent\s*=\s*(\d+);", page, "uploadDate",
+                    r"var startEvent\s*=\s*(\d+);", page, 'uploadDate',
                     fatal=False), scale=1000),
             })
 
@@ -138,15 +138,14 @@ class IcareusIE(InfoExtractor):
 
         info['description'] = clean_html(info.get('description'))
 
-        data = {
-            "version": "03",
-            "action": "getAssetPlaybackUrls",
-            "organizationId": organization_id,
-            "assetId": video_id,
-            "token": token,
-        }
         jsond = self._download_json(
-            api_base, video_id, data=urlencode_postdata(data))
+            api_base, video_id, data=urlencode_postdata({
+                'version': '03',
+                'action': 'getAssetPlaybackUrls',
+                'organizationId': organization_id,
+                'assetId': video_id,
+                'token': token,
+            }))
 
         if not any(x in info.keys() for x in ('thumbnail', 'thumbnails')):
             info['thumbnail'] = url_or_none(jsond.get('thumbnail'))
@@ -185,7 +184,7 @@ class IcareusIE(InfoExtractor):
             if url_or_none(item.get('url')) is not None)
 
         subtitles = {
-            remove_end(sdesc.split(' ')[0], ':'): [{"url": url_or_none(surl)}]
+            remove_end(sdesc.split(' ')[0], ':'): [{'url': url_or_none(surl)}]
             for scode, sdesc, surl in jsond.get('subtitles') or []
         }
 
