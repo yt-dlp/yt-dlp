@@ -59,7 +59,7 @@ class JableIE(InfoExtractor):
             'formats': formats,
             'age_limit': 18,
             'upload_date': unified_strdate(
-                self._search_regex(r'class="inactive-color">\D+\s+(\d{4}-\d+-\d+)<', webpage, 'upload_date',
+                self._search_regex(r'class="inactive-color">\D+\s+(\d{4}-\d+-\d+)', webpage, 'upload_date',
                                    default=None)
             ),
             'view_count': int_or_none(
@@ -67,7 +67,7 @@ class JableIE(InfoExtractor):
                                    default='').replace(' ', '')
             ),
             'like_count': int_or_none(
-                self._search_regex(r'#icon-heart"></use></svg><span class="count">(\d+)</span>', webpage, 'link_count',
+                self._search_regex(r'#icon-heart"></use></svg><span class="count">(\d+)', webpage, 'link_count',
                                    default=None)
             ),
         }
