@@ -5505,6 +5505,112 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
             ie=YoutubeTabIE.ie_key())
 
 
+class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
+    IE_NAME = 'youtube:notifications'
+    IE_DESC = 'YouTube notification menu videos; ":ytnotif" keyword (requires cookies)'
+    _VALID_URL = r':ytnotif(?:ication)?s?(:(?P<max_pages>\d+))?'
+    _LOGIN_REQUIRED = True
+    _TESTS = [{
+        'url': ':ytnotif',
+        'only_matching': True,
+    }, {
+        'url': ':ytnotifications:2',
+        'only_matching': True,
+    }]
+
+    @staticmethod
+    def _extract_notification_menu(response, continuation_list):
+        notification_list = traverse_obj(
+            response, ('actions', 0, 'openPopupAction', 'popup', 'multiPageMenuRenderer', 'sections', 0, 'multiPageMenuNotificationSectionRenderer', 'items'), expected_type=list)
+        if not notification_list:
+            notification_list = traverse_obj(
+                response, ('actions', 0, 'appendContinuationItemsAction', 'continuationItems'), expected_type=list)
+        for item in notification_list:
+            for key in ('notificationRenderer', 'continuationItemRenderer'):
+                value = item.get(key)
+                if value:
+                    if key == 'notificationRenderer':
+                        yield value
+                        break
+                    elif key == 'continuationItemRenderer':
+                        continuation_list[0] = value
+                        return
+        continuation_list[0] = None
+
+    def _extract_notification(self, notification):
+        # notificationRenderer
+        video_id = traverse_obj(
+            notification, ('navigationEndpoint', 'watchEndpoint', 'videoId'), expected_type=str)
+        if not video_id:
+            return None
+        thumbnails = traverse_obj(notification, ('videoThumbnail', 'thumbnails'), expected_type=list)
+        status_text = traverse_obj(notification, ('shortMessage', 'simpleText'), expected_type=str)
+        uploader = traverse_obj(
+            notification, ('contextualMenu', 'menuRenderer', 'items', 1, 'menuServiceItemRenderer', 'text', 'runs', 1, 'text'), expected_type=str)
+        status_text = status_text.removeprefix(uploader + ' ')
+        split_text = status_text.split(': ', 2)
+        title = None
+        if len(split_text) == 2:
+            title = split_text[1]
+        extra_info = {
+            'thumbnails': thumbnails,
+            'uploader': uploader,
+        }
+        return self.url_result(
+            f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(),
+            video_id=video_id, video_title=title, **extra_info)
+
+    @classmethod
+    def _extract_next_notification_continuation_data(cls, renderer):
+        # continuationItemRenderer
+        ctoken = traverse_obj(
+            renderer, ('continuationEndpoint', 'getNotificationMenuEndpoint', 'ctoken'), expected_type=str)
+        if not ctoken:
+            return
+        return cls._build_notification_continuation_query(ctoken)
+
+    @staticmethod
+    def _build_notification_continuation_query(ctoken):
+        query = {
+            'ctoken': ctoken
+        }
+        return query
+
+    def _notification_menu_entries(self, headers, max_requests):
+        continuation_list = [None]
+        request_count = 0
+        entries = []
+        while request_count < max_requests:
+            query = {}
+            if continuation_list[0]:
+                query = self._extract_next_notification_continuation_data(continuation_list[0])
+            request_count += 1
+            response = self._extract_response(
+                note=f'Downloading API JSON (page {request_count})',
+                ep='notification/get_notification_menu', headers=headers,
+                check_get_keys=['responseContext', 'actions', 'trackingParams'],
+                item_id='notification_menu', query=query)
+            for notification in self._extract_notification_menu(response, continuation_list) or []:
+                entry = self._extract_notification(notification)
+                if entry:
+                    entries.append(entry)
+            if not continuation_list[0]:
+                break
+
+        return entries
+
+    def get_notifications(self, max_requests=1):
+        headers = self.generate_api_headers()
+
+        return self._notification_menu_entries(headers, max_requests)
+
+    def _real_extract(self, url):
+        max_pages = int(self._match_valid_url(url).group('max_pages') or 1)
+        self.write_debug(f'max_pages: {max_pages}')
+        return self.playlist_result(
+            entries=self.get_notifications(max_requests=max_pages), playlist_title='Notifications', ie=YoutubeTabIE.ie_key())
+
+
 class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
     IE_DESC = 'YouTube search'
     IE_NAME = 'youtube:search'
