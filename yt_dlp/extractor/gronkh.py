@@ -1,8 +1,14 @@
 # coding: utf-8
 from __future__ import unicode_literals
 
+import functools
+
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import (
+    OnDemandPagedList,
+    traverse_obj,
+    unified_strdate,
+)
 
 
 class GronkhIE(InfoExtractor):
@@ -44,3 +50,73 @@ class GronkhIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
         }
+
+
+class GronkhFeedIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/?(feed/?)?$'
+    IE_NAME = 'gronkh:feed'
+
+    _TESTS = [{
+        'url': 'https://gronkh.tv/feed',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'feed',
+            'title': 'feed',
+            'description': 'feed',
+        },
+        'playlist_count': 16,
+    }, {
+        'url': 'https://gronkh.tv',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'feed',
+            'title': 'feed',
+            'description': 'feed',
+        },
+        'playlist_count': 16,
+    }]
+
+    def _real_extract(self, url):
+        recent_info = traverse_obj(self._download_json('https://api.gronkh.tv/v1/video/discovery/recent', 'recent'),
+                                   'discovery', default=[])
+        views_info = traverse_obj(self._download_json('https://api.gronkh.tv/v1/video/discovery/views', 'views'),
+                                  'discovery', default=[])
+
+        def entries():
+            for item in recent_info + views_info:
+                if item:
+                    yield self.url_result(f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE,
+                                          item.get('title'))
+
+        return self.playlist_result(entries(), 'feed', 'feed', 'feed')
+
+
+class GronkhVodsIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/vods/streams/?$'
+    IE_NAME = 'gronkh:vods'
+
+    _TESTS = [{
+        'url': 'https://gronkh.tv/vods/streams',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'vods',
+            'title': 'vods',
+            'description': 'vods',
+        },
+        'playlist_mincount': 150,
+    }]
+    _PER_PAGE = 25
+
+    def _fetch_page(self, page):
+        items = traverse_obj(self._download_json(
+            f'https://api.gronkh.tv/v1/search?offset={self._PER_PAGE * page}&first={self._PER_PAGE}', 'vods',
+            note=f'Downloading stream video page {page + 1}'), ('results', 'videos'), default=[])
+        for item in items:
+            if item:
+                yield self.url_result(f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE,
+                                      item.get('title'))
+        page += 1
+
+    def _real_extract(self, url):
+        entries = OnDemandPagedList(functools.partial(self._fetch_page), self._PER_PAGE)
+        return self.playlist_result(entries, 'vods', 'vods', 'vods')
