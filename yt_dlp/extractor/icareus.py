@@ -196,10 +196,8 @@ class IcareusIE(InfoExtractor):
             'thumbnail': thumbnail,
             'timestamp': timestamp,
             'formats': formats,
+            'duration': duration,
+            'subtitles': subtitles,
         }
-        if duration:
-            info['duration'] = duration
-        if subtitles:
-            info['subtitles'] = subtitles
 
         return info
