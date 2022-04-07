@@ -77,16 +77,15 @@ class IcareusIE(InfoExtractor):
         maybe_id = self._match_id(url)
         page = self._download_webpage(url, maybe_id)
         video_id = self._search_regex(
-            r"_icareus\['itemId'\]='(\d+)'", page, "video_id")
+            r"_icareus\['itemId'\]\s*=\s*'(\d+)'", page, "video_id")
         api_base = self._search_regex(
-            r'var publishingServiceURL = "(http.*?)";', page, "api_base")
+            r'var\s+publishingServiceURL\s*=\s*"(http[^"]+)";', page, "api_base")
         organization_id = self._search_regex(
-            r"_icareus\['organizationId'\]='(\d+)'", page, "organization_id")
+            r"_icareus\['organizationId'\]\s*=\s*'(\d+)'", page, "organization_id")
         token = self._search_regex(
-            r"_icareus\['token'\]='([a-f0-9]+)'", page, "token")
-
+            r"_icareus\['token'\]\s*=\s*'([a-f0-9]+)'", page, "token")
         token2 = self._search_regex(
-            r'''data\s*:\s*{action:"getAsset".*?token:'([a-f0-9]+)'}''', page,
+            r"""data\s*:\s*{action:"getAsset".*?token:'([a-f0-9]+)'}""", page,
             "token2", default=None, fatal=False)
         metajson = get_element_by_attribute('type', 'application/ld+json', page)
 
