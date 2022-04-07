@@ -72,7 +72,6 @@ class IcareusIE(InfoExtractor):
         'url': 'https://videos.minifiddlers.org/web/international-minifiddlers/player/vod?assetId=1982759',
         'only_matching': True
     }]
-    _API2_PATH = '/icareus-suite-api-portlet/publishing'
 
     def _real_extract(self, url):
         maybe_id = self._match_id(url)
@@ -126,8 +125,9 @@ class IcareusIE(InfoExtractor):
                 "userId": "0",
                 "token": token2,
             }
-            metad = self._download_json(base_url + self._API2_PATH, video_id,
-                                        data=urlencode_postdata(data))
+            metad = self._download_json(
+                base_url + '/icareus-suite-api-portlet/publishing',
+                video_id, data=urlencode_postdata(data))
             title = metad.get('name')
             description = metad.get('description')
             timestamp = int_or_none(metad.get('date'), scale=1000)
