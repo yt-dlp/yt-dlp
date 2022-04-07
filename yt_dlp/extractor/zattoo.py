@@ -251,10 +251,13 @@ class ZattooBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'zattoo'
     _HOST = 'zattoo.com'
 
-    @classmethod
-    def _make_valid_url(cls, match, qs, base_re=None):
+    @staticmethod
+    def _create_valid_url(match, qs, base_re=None):
         match_base = fr'|{base_re}/(?P<vid1>{match})' if base_re else ''
-        return rf'https?://(?:www\.)?zattoo.com/(?:[^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match}){match_base})'
+        return rf'''https?://(?:www\.)?zattoo\.com/(?:
+            [^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match})
+            {match_base}
+        )'''
 
     def _real_extract(self, url):
         vid1, vid2 = self._match_valid_url(url).group('vid1', 'vid2')
@@ -262,7 +265,7 @@ class ZattooBaseIE(ZattooPlatformBaseIE):
 
 
 class ZattooIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._make_valid_url(r'\d+', 'program', '(?:program|watch)/[^/]+')
+    _VALID_URL = ZattooBaseIE._create_valid_url(r'\d+', 'program', '(?:program|watch)/[^/]+')
     _TYPE = 'video'
     _TESTS = [{
         'url': 'https://zattoo.com/program/zdf/250380873',
@@ -289,7 +292,7 @@ class ZattooIE(ZattooBaseIE):
 
 
 class ZattooLiveIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._make_valid_url(r'[^/?&#]+', 'channel', 'live')
+    _VALID_URL = ZattooBaseIE._create_valid_url(r'[^/?&#]+', 'channel', 'live')
     _TYPE = 'live'
     _TESTS = [{
         'url': 'https://zattoo.com/channels/german?channel=srf_zwei',
@@ -305,7 +308,7 @@ class ZattooLiveIE(ZattooBaseIE):
 
 
 class ZattooMoviesIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._make_valid_url(r'\w+', 'movie_id', 'vod/movies')
+    _VALID_URL = ZattooBaseIE._create_valid_url(r'\w+', 'movie_id', 'vod/movies')
     _TYPE = 'ondemand'
     _TESTS = [{
         'url': 'https://zattoo.com/vod/movies/7521',
@@ -316,8 +319,8 @@ class ZattooMoviesIE(ZattooBaseIE):
     }]
 
 
-class ZattooRecordIE(ZattooBaseIE):
-    _VALID_URL = ZattooBaseIE._make_valid_url(r'\d+', 'recording')
+class ZattooRecordingsIE(ZattooBaseIE):
+    _VALID_URL = ZattooBaseIE._create_valid_url(r'\d+', 'recording')
     _TYPE = 'record'
     _TESTS = [{
         'url': 'https://zattoo.com/recordings?recording=193615508',
