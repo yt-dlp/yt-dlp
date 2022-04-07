@@ -2222,33 +2222,21 @@ class locked_file(object):
     locked = False
 
     def __init__(self, filename, mode, block=True, encoding=None):
-        flags = 0
-        readable = False
-        writeable = False
         if mode not in {'r', 'rb', 'a', 'ab', 'w', 'wb'}:
             raise NotImplementedError(mode)
-        if 'r' in mode:
-            readable = True
-        if 'w' in mode:
-            flags = flags | os.O_CREAT  # do not pass O_TRUNC
-            writeable = True
-        if 'a' in mode:
-            flags = flags | os.O_APPEND | os.O_CREAT
-            writeable = True
-        if readable and writeable:
-            flags = flags | os.O_RDWR
-        elif readable and not writeable:
-            flags = flags | os.O_RDONLY
-        elif writeable and not readable:
-            flags = flags | os.O_WRONLY
+        self.mode, self.block = mode, block
 
-        try:
-            fd = os.open(filename, flags | os.O_CLOEXEC)
-        except AttributeError:  # win32 does not have O_CLOEXEC
-            fd = os.open(filename, flags)
-        self.f = os.fdopen(fd, mode, encoding=encoding)
-        self.mode = mode
-        self.block = block
+        writable = any(f in mode for f in 'wax+')
+        readable = any(f in mode for f in 'r+')
+        flags = functools.reduce(operator.ior, (
+            getattr(os, 'O_CLOEXEC', os.O_BINARY),  # win32 does not have O_CLOEXEC, but needs O_BINARY
+            os.O_CREAT if writable else 0,  # do not pass O_TRUNC
+            os.O_APPEND if 'a' in mode else 0,
+            os.O_EXCL if 'x' in mode else 0,
+            os.O_RDONLY if not writable else os.O_RDWR if readable else os.O_WRONLY,
+        ))
+
+        self.f = os.fdopen(os.open(filename, flags), mode, encoding=encoding)
 
     def __enter__(self):
         exclusive = 'r' not in self.mode
