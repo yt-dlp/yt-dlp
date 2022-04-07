@@ -53,6 +53,18 @@ class IcareusIE(InfoExtractor):
             'upload_date': '20201124',
             'timestamp': 1606206600,
         },
+    }, {  # Non-m3u8 stream
+        'url': 'https://suite.icareus.com/fi/web/westend-indians/player/vod?assetId=47567389',
+        'md5': '72fc04ee971bbedc44405cdf16c990b6',
+        'info_dict': {
+            'id': '47567389',
+            'ext': 'mp4',
+            'title': 'Omatoiminen harjoittelu - Laukominen',
+            'description': '',
+            'thumbnail': 'https://suite.icareus.com/image/image_gallery?img_id=47568162',
+            'upload_date': '20200319',
+            'timestamp': 1584658080,
+        },
     }, {
         'url': 'https://asahitv.fi/fi/web/asahi/player/vod?assetId=89415818',
         'only_matching': True
@@ -64,9 +76,6 @@ class IcareusIE(InfoExtractor):
         'only_matching': True
     }, {
         'url': 'https://www.permanto.fi/web/alfatv/player/vod?assetId=165743121',
-        'only_matching': True
-    }, {
-        'url': 'https://suite.icareus.com/fi/web/westend-indians/player/vod?assetId=47567389',
         'only_matching': True
     }, {
         'url': 'https://videos.minifiddlers.org/web/international-minifiddlers/player/vod?assetId=1982759',
