@@ -154,8 +154,10 @@ class IcareusIE(InfoExtractor):
             thumbnail = url_or_none(jsond.get('thumbnail'))
 
         formats = []
-        for item in jsond.get('urls', []):
+        for item in jsond.get('urls') or []:
             video_url = url_or_none(item.get('url'))
+            if video_url is None:
+                continue
             ext = determine_ext(video_url)
             if ext == 'm3u8':
                 formats.extend(self._extract_m3u8_formats(
@@ -163,20 +165,14 @@ class IcareusIE(InfoExtractor):
                     entry_protocol='m3u8_native', m3u8_id='hls',
                     fatal=False))
             else:
-                fd = {'url': video_url}
                 fmt = item.get('name')
-                if fmt:
-                    fd['format'] = fmt
-                    fd.update(parse_resolution(fmt))
-                    mo = re.search(r'\((\d+)\s*kbps\)\s*\+\s*(\d+)\s*kbps', fmt)
-                    if mo:
-                        fd['vbr'] = int_or_none(mo.group(1))
-                        fd['abr'] = int_or_none(mo.group(2))
-                    else:
-                        fd['tbr'] = parse_bitrate(fmt)
-                fmt_id = item.get('id')
-                if fmt_id:
-                    fd['format_id'] = str(fmt_id)
+                fd = {
+                    'url': video_url,
+                    'format': fmt,
+                    'tbr': parse_bitrate(fmt),
+                    'format_id': str(item.get('id', '')) or None,
+                }
+                fd.update(parse_resolution(fmt))
                 formats.append(fd)
 
         formats.extend({
