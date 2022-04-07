@@ -2179,7 +2179,8 @@ class YoutubeDL(object):
                         yield from _check_formats(ctx['formats'][::-1])
                 elif format_spec == 'mergeall':
                     def selector_function(ctx):
-                        formats = list(_check_formats(ctx['formats']))
+                        formats = list(_check_formats(
+                            f for f in ctx['formats'] if f.get('vcodec') != 'none' or f.get('acodec') != 'none'))
                         if not formats:
                             return
                         merged_format = formats[-1]
