@@ -56,6 +56,7 @@ from yt_dlp.utils import (
     is_html,
     js_to_json,
     limit_length,
+    locked_file,
     merge_dicts,
     mimetype2ext,
     month_by_name,
@@ -1794,6 +1795,36 @@ Line 1
                          ['-u', 'PRIVATE', '-u', 'PRIVATE'])
         self.assertEqual(Config.hide_login_info(['--username=foo']),
                          ['--username=PRIVATE'])
+
+    def test_locked_file(self):
+        TEXT = 'test_locked_file\n'
+        FILE = 'test_locked_file.ytdl'
+        MODES = 'war'  # Order is important
+
+        try:
+            for lock_mode in MODES:
+                with locked_file(FILE, lock_mode, False) as f:
+                    if lock_mode == 'r':
+                        self.assertEqual(f.read(), TEXT * 2, 'Wrong file content')
+                    else:
+                        f.write(TEXT)
+                    for test_mode in MODES:
+                        testing_write = test_mode != 'r'
+                        try:
+                            with locked_file(FILE, test_mode, False):
+                                pass
+                        except (BlockingIOError, PermissionError):
+                            if not testing_write:  # FIXME
+                                print(f'Known issue: Exclusive lock ({lock_mode}) blocks read access ({test_mode})')
+                                continue
+                            self.assertTrue(testing_write, f'{test_mode} is blocked by {lock_mode}')
+                        else:
+                            self.assertFalse(testing_write, f'{test_mode} is not blocked by {lock_mode}')
+        finally:
+            try:
+                os.remove(FILE)
+            except Exception:
+                pass
 
 
 if __name__ == '__main__':
