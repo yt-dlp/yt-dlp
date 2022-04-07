@@ -170,19 +170,16 @@ class IcareusIE(InfoExtractor):
                     fd['format_id'] = str(fmt_id)
                 formats.append(fd)
 
-        for item in jsond.get('audio_urls', []):
-            fmt = item.get('name')
-            mo = re.match(r'.*\((\d+)k\).*', fmt if fmt else '')
-            abr = int_or_none(mo.group(1)) if mo else None
-            fd = {
-                'format': fmt,
-                'format_id': 'audio',
-                'url': url_or_none(item.get('url')),
-                'vcodec': 'none',
-            }
-            if abr:
-                fd['abr'] = abr
-            formats.append(fd)
+        formats.extend({
+            'format': item.get('name'),
+            'format_id': 'audio',
+            'vcodec': 'none',
+            'url': url_or_none(item.get('url')),
+            'tbr': int_or_none(self._search_regex(
+                r"\((\d+)\s*k\)", item.get('name', ''), 'audio bitrate',
+                default=None)),
+        } for item in jsond.get('audio_urls') or []
+            if url_or_none(item.get('url')) is not None)
 
         subtitles = {
             remove_end(sdesc.split(' ')[0], ':'): [{"url": url_or_none(surl)}]
