@@ -19,18 +19,16 @@ from ..utils import (
 
 
 class IcareusIE(InfoExtractor):
-    _VALID_URL = r'''(?x)
-                    https?://(?:www\.)?
-                        (?:
-                            asahitv\.fi|
-                            helsinkikanava\.fi|
-                            hyvinvointitv\.fi|
-                            inez\.fi|
-                            permanto\.fi|
-                            suite.icareus.com|
-                            videos\.minifiddlers\.org
-                        )
-                        /.+/player/.*(?:assetId|eventId)=(?P<id>\d+).*'''
+    _DOMAINS = '|'.join(map(re.escape, (
+        'asahitv.fi',
+        'helsinkikanava.fi',
+        'hyvinvointitv.fi',
+        'inez.fi',
+        'permanto.fi',
+        'suite.icareus.com',
+        'videos.minifiddlers.org',
+    )))
+    _VALID_URL = rf'https?://(?:www\.)?(?:{_DOMAINS})/[^?#]+/player/[^?#]+\?(?:[^#]+&)?(?:assetId|eventId)=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.helsinkikanava.fi/fi_FI/web/helsinkikanava/player/vod?assetId=68021894',
         'md5': 'ca0b62ffc814a5411dfa6349cf5adb8a',
