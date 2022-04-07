@@ -28,7 +28,7 @@ class IcareusIE(InfoExtractor):
         'suite.icareus.com',
         'videos.minifiddlers.org',
     )))
-    _VALID_URL = rf'https?://(?:www\.)?(?:{_DOMAINS})/[^?#]+/player/[^?#]+\?(?:[^#]+&)?(?:assetId|eventId)=(?P<id>\d+)'
+    _VALID_URL = rf'(?P<base_url>https?://(?:www\.)?(?:{_DOMAINS}))/[^?#]+/player/[^?#]+\?(?:[^#]+&)?(?:assetId|eventId)=(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.helsinkikanava.fi/fi_FI/web/helsinkikanava/player/vod?assetId=68021894',
         'md5': 'ca0b62ffc814a5411dfa6349cf5adb8a',
@@ -74,7 +74,7 @@ class IcareusIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        maybe_id = self._match_id(url)
+        base_url, maybe_id = self._match_valid_url(url).groups()
         page = self._download_webpage(url, maybe_id)
         video_id = self._search_regex(
             r"_icareus\['itemId'\]\s*=\s*'(\d+)'", page, "video_id")
@@ -99,7 +99,6 @@ class IcareusIE(InfoExtractor):
             timestamp = metad.get('timestamp')
             thumbnail = traverse_obj(metad, ('thumbnails', 0, 'url'))
         elif token2:
-            base_url = self._search_regex(r'(https?://[^/]+)/', url, 'base_url')
             data = {
                 "version": "03",
                 "action": "getAsset",
