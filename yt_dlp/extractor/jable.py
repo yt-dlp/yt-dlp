@@ -58,18 +58,13 @@ class JableIE(InfoExtractor):
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'formats': formats,
             'age_limit': 18,
-            'upload_date': unified_strdate(
-                self._search_regex(r'class="inactive-color">\D+\s+(\d{4}-\d+-\d+)', webpage, 'upload_date',
-                                   default=None)
-            ),
-            'view_count': int_or_none(
-                self._search_regex(r'#icon-eye"></use></svg>\n*<span class="mr-3">([\d ]+)', webpage, 'view_count',
-                                   default='').replace(' ', '')
-            ),
-            'like_count': int_or_none(
-                self._search_regex(r'#icon-heart"></use></svg><span class="count">(\d+)', webpage, 'link_count',
-                                   default=None)
-            ),
+            'upload_date': unified_strdate(self._search_regex(
+                r'class="inactive-color">\D+\s+(\d{4}-\d+-\d+)', webpage, 'upload_date', default=None)),
+            'view_count': int_or_none(self._search_regex(
+                r'#icon-eye"></use></svg>\n*<span class="mr-3">([\d ]+)',
+                webpage, 'view_count', default='').replace(' ', '')),
+            'like_count': int_or_none(self._search_regex(
+                r'#icon-heart"></use></svg><span class="count">(\d+)', webpage, 'link_count', default=None)),
         }
 
 
@@ -96,30 +91,18 @@ class JablePlaylistIE(InfoExtractor):
 
         def page_func(page_num):
             return [
-                self.url_result(player_url, 'Jable')
-                for player_url in orderedSet(
-                    re.findall(
-                        r'href="(https://jable.tv/videos/[\w-]+/?)"',
-                        self._download_webpage(url, playlist_id, query={
-                            'mode': 'async',
-                            'from': page_num + 1,
-                            'function': 'get_block',
-                            'block_id': 'list_videos_common_videos_list',
-                        }, note=f'Downloading page {page_num + 1}')
-                    )
-                )
-            ]
+                self.url_result(player_url, JableIE)
+                for player_url in orderedSet(re.findall(
+                    r'href="(https://jable.tv/videos/[\w-]+/?)"',
+                    self._download_webpage(url, playlist_id, query={
+                        'mode': 'async',
+                        'from': page_num + 1,
+                        'function': 'get_block',
+                        'block_id': 'list_videos_common_videos_list',
+                    }, note=f'Downloading page {page_num + 1}')))]
 
         return self.playlist_result(
-            InAdvancePagedList(
-                page_func,
-                int_or_none(
-                    self._search_regex(r'from:(\d+)">[^<]+\s*&raquo;', webpage, 'last_page_number', default=1)
-                ),
-                24
-            ),
-            playlist_id=playlist_id,
-            playlist_title=self._search_regex(
-                r'<h2 class="h3-md mb-1">([^<]+)', webpage, 'playlist_title', default=None
-            ),
-        )
+            InAdvancePagedList(page_func, int_or_none(self._search_regex(
+                r'from:(\d+)">[^<]+\s*&raquo;', webpage, 'last page number', default=1)), 24),
+            playlist_id, self._search_regex(
+                r'<h2 class="h3-md mb-1">([^<]+)', webpage, 'playlist title', default=None))
