@@ -2121,6 +2121,9 @@ from .zattoo import (
     VTXTVIE,
     WalyTVIE,
     ZattooIE,
+    ZattooLiveIE,
+    ZattooMoviesIE,
+    ZattooRecordingsIE,
 )
 from .zdf import ZDFIE, ZDFChannelIE
 from .zee5 import (

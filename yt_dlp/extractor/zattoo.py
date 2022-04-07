@@ -13,7 +13,6 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     join_nonempty,
-    parse_qs,
     try_get,
     url_or_none,
     urlencode_postdata,
@@ -248,19 +247,23 @@ def _make_valid_url(host):
     return rf'https?://(?:www\.)?{re.escape(host)}/watch/[^/]+?/(?P<id>[0-9]+)[^/]+(?:/(?P<recid>[0-9]+))?'
 
 
-class ZattooIE(ZattooPlatformBaseIE):
+class ZattooBaseIE(ZattooPlatformBaseIE):
     _NETRC_MACHINE = 'zattoo'
     _HOST = 'zattoo.com'
-    _VALID_URL = r'''(?x)
-        https?://(?:www\.)?zattoo.com/(?:
-            (?:
-                (?:program|watch)/[^/]+/(?P<vidid>\d+)|
-                vod/movies/(?P<vodid>[A-Za-z0-9]+)|
-                live/(?P<liveid>[^/]+)
-            )|
-            [^?#]+\?
-        )'''
 
+    @classmethod
+    def _make_valid_url(cls, match, qs, base_re=None):
+        match_base = fr'|{base_re}/(?P<vid1>{match})' if base_re else ''
+        return rf'https?://(?:www\.)?zattoo.com/(?:[^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match}){match_base})'
+
+    def _real_extract(self, url):
+        vid1, vid2 = self._match_valid_url(url).group('vid1', 'vid2')
+        return getattr(self, f'_extract_{self._TYPE}')(vid1 or vid2)
+
+
+class ZattooIE(ZattooBaseIE):
+    _VALID_URL = ZattooBaseIE._make_valid_url(r'\d+', 'program', '(?:program|watch)/[^/]+')
+    _TYPE = 'video'
     _TESTS = [{
         'url': 'https://zattoo.com/program/zdf/250380873',
         'info_dict': {
@@ -277,53 +280,52 @@ class ZattooIE(ZattooPlatformBaseIE):
         },
         'params': {'skip_download': 'm3u8'}
     }, {
-        'url': 'https://zattoo.com/channels/german?channel=srf_zwei',
+        'url': 'https://zattoo.com/program/daserste/210177916',
         'only_matching': True,
     }, {
         'url': 'https://zattoo.com/guide/german?channel=srf1&program=169860555',
         'only_matching': True,
-    }, {
-        'url': 'https://zattoo.com/recordings?recording=193615508',
-        'only_matching': True,
-    }, {
-        'url': 'https://zattoo.com/tc/ptc_recordings_all_recordings?recording=193615420',
-        'only_matching': True,
-    }, {
-        'url': 'https://zattoo.com/vod/movies/7521',
-        'only_matching': True,
-    }, {
-        'url': 'https://zattoo.com/program/daserste/210177916',
-        'only_matching': True,
-    }, {
-        'url': 'https://zattoo.com/ondemand?movie_id=7521&term_token=9f00f43183269484edde',
+    }]
+
+
+class ZattooLiveIE(ZattooBaseIE):
+    _VALID_URL = ZattooBaseIE._make_valid_url(r'[^/?&#]+', 'channel', 'live')
+    _TYPE = 'live'
+    _TESTS = [{
+        'url': 'https://zattoo.com/channels/german?channel=srf_zwei',
         'only_matching': True,
     }, {
         'url': 'https://zattoo.com/live/srf1',
         'only_matching': True,
     }]
 
-    def _real_extract(self, url):
-        mobj = self._match_valid_url(url)
-        vidid = mobj.group('vidid')
-        vodid = mobj.group('vodid')
-        liveid = mobj.group('liveid')
+    @classmethod
+    def suitable(cls, url):
+        return False if ZattooIE.suitable(url) else super().suitable(url)
 
-        if not vidid and not vodid and not liveid:
-            qs = parse_qs(url)
-            vidid = qs.get('program', [None])[0]
-            vodid = qs.get('movie_id', [None])[0]
-            liveid = qs.get('channel', [None])[0]
-            recid = qs.get('recording', [None])[0]
 
-        if vidid:
-            return self._extract_video(vidid)
-        elif vodid:
-            return self._extract_ondemand(vodid)
-        elif liveid:
-            return self._extract_live(liveid)
-        elif recid:
-            return self._extract_record(recid)
-        raise ExtractorError('An extractor error has occured.')
+class ZattooMoviesIE(ZattooBaseIE):
+    _VALID_URL = ZattooBaseIE._make_valid_url(r'\w+', 'movie_id', 'vod/movies')
+    _TYPE = 'ondemand'
+    _TESTS = [{
+        'url': 'https://zattoo.com/vod/movies/7521',
+        'only_matching': True,
+    }, {
+        'url': 'https://zattoo.com/ondemand?movie_id=7521&term_token=9f00f43183269484edde',
+        'only_matching': True,
+    }]
+
+
+class ZattooRecordIE(ZattooBaseIE):
+    _VALID_URL = ZattooBaseIE._make_valid_url(r'\d+', 'recording')
+    _TYPE = 'record'
+    _TESTS = [{
+        'url': 'https://zattoo.com/recordings?recording=193615508',
+        'only_matching': True,
+    }, {
+        'url': 'https://zattoo.com/tc/ptc_recordings_all_recordings?recording=193615420',
+        'only_matching': True,
+    }]
 
 
 class NetPlusIE(ZattooPlatformBaseIE):
