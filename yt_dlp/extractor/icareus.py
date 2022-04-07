@@ -75,7 +75,7 @@ class IcareusIE(InfoExtractor):
         'url': 'https://inez.fi/fi/web/inez-media/player/vod?assetId=71328822',
         'only_matching': True
     }, {
-        'url': 'https://www.permanto.fi/web/alfatv/player/vod?assetId=165743121',
+        'url': 'https://www.permanto.fi/fi/web/alfatv/player/vod?assetId=135497515',
         'only_matching': True
     }, {
         'url': 'https://videos.minifiddlers.org/web/international-minifiddlers/player/vod?assetId=1982759',
