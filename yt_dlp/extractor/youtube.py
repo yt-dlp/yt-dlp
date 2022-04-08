@@ -5518,24 +5518,20 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_notification_menu(response, continuation_list):
+    def _extract_notification_menu(self, response, continuation_list):
         notification_list = traverse_obj(
-            response, ('actions', 0, 'openPopupAction', 'popup', 'multiPageMenuRenderer', 'sections', 0, 'multiPageMenuNotificationSectionRenderer', 'items'), expected_type=list)
-        if not notification_list:
-            notification_list = traverse_obj(
-                response, ('actions', 0, 'appendContinuationItemsAction', 'continuationItems'), expected_type=list)
-        for item in notification_list:
-            for key in ('notificationRenderer', 'continuationItemRenderer'):
-                value = item.get(key)
-                if value:
-                    if key == 'notificationRenderer':
-                        yield value
-                        break
-                    elif key == 'continuationItemRenderer':
-                        continuation_list[0] = value
-                        return
+            response,
+            ('actions', 0, 'openPopupAction', 'popup', 'multiPageMenuRenderer', 'sections', 0, 'multiPageMenuNotificationSectionRenderer', 'items'),
+            ('actions', 0, 'appendContinuationItemsAction', 'continuationItems'),
+            expected_type=list) or []
         continuation_list[0] = None
+        for item in notification_list:
+            renderer = item.get('notificationRenderer')
+            if renderer:
+                yield renderer
+            continuation = item.get('continuationItemRenderer')
+            if continuation:
+                continuation_list[0] = continuation
 
     def _extract_notification_renderer(self, notification):
         video_id = traverse_obj(
@@ -5551,28 +5547,16 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
         title = None
         if len(split_text) == 2:
             title = split_text[1]
-        extra_info = {
-            'thumbnails': thumbnails,
-            'uploader': uploader,
-        }
         return self.url_result(
-            f'https://www.youtube.com/watch?v={video_id}', ie=YoutubeIE.ie_key(),
-            video_id=video_id, video_title=title, **extra_info)
+            f'https://www.youtube.com/watch?v={video_id}', YoutubeIE,
+            video_id, title, thumbnails=thumbnails, uploader=uploader)
 
-    @classmethod
-    def _extract_next_notification_continuation_data(cls, renderer):
+    def _extract_next_notification_continuation_data(self, renderer):
         ctoken = traverse_obj(
             renderer, ('continuationEndpoint', 'getNotificationMenuEndpoint', 'ctoken'), expected_type=str)
-        if not ctoken:
-            return
-        return cls._build_notification_continuation_query(ctoken)
-
-    @staticmethod
-    def _build_notification_continuation_query(ctoken):
-        query = {
+        return {
             'ctoken': ctoken
-        }
-        return query
+        } if ctoken else None
 
     def _notification_menu_entries(self, headers):
         continuation_list = [None]
