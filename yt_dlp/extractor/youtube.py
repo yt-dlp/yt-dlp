@@ -5507,7 +5507,7 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
 
 class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:notifications'
-    IE_DESC = 'YouTube notification menu videos; ":ytnotif" keyword (requires cookies)'
+    IE_DESC = 'YouTube notifications; ":ytnotif" keyword (requires cookies)'
     _VALID_URL = r':ytnotif(?:ication)?s?(:(?P<max_pages>\d+))?'
     _LOGIN_REQUIRED = True
     _TESTS = [{
@@ -5537,8 +5537,7 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
                         return
         continuation_list[0] = None
 
-    def _extract_notification(self, notification):
-        # notificationRenderer
+    def _extract_notification_renderer(self, notification):
         video_id = traverse_obj(
             notification, ('navigationEndpoint', 'watchEndpoint', 'videoId'), expected_type=str)
         if not video_id:
@@ -5562,7 +5561,6 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
 
     @classmethod
     def _extract_next_notification_continuation_data(cls, renderer):
-        # continuationItemRenderer
         ctoken = traverse_obj(
             renderer, ('continuationEndpoint', 'getNotificationMenuEndpoint', 'ctoken'), expected_type=str)
         if not ctoken:
