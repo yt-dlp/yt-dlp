@@ -5526,9 +5526,9 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
             expected_type=list) or []
         continuation_list[0] = None
         for item in notification_list:
-            renderer = item.get('notificationRenderer')
-            if renderer:
-                yield renderer
+            entry = self._extract_notification_renderer(item.get('notificationRenderer'))
+            if entry:
+                yield entry
             continuation = item.get('continuationItemRenderer')
             if continuation:
                 continuation_list[0] = continuation
@@ -5569,10 +5569,7 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
                 ep='notification/get_notification_menu', headers=headers,
                 check_get_keys=['responseContext', 'actions', 'trackingParams'],
                 item_id='notification_menu', query=query)
-            for notification in self._extract_notification_menu(response, continuation_list):
-                entry = self._extract_notification_renderer(notification)
-                if entry:
-                    yield entry
+            yield from self._extract_notification_menu(response, continuation_list)
             if not continuation_list[0]:
                 break
 
