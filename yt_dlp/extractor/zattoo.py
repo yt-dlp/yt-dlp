@@ -235,11 +235,9 @@ class ZattooPlatformBaseIE(InfoExtractor):
 
     def _extract_ondemand(self, ondemand_id):
         ondemand_termtoken, ondemand_type, info_dict = self._extract_ondemand_info(ondemand_id)
-        formats, subtitles = self._extract_formats(
+        info_dict['formats'], info_dict['subtitles'] = self._extract_formats(
             None, ondemand_id, ondemand_id=ondemand_id,
             ondemand_termtoken=ondemand_termtoken, ondemand_type=ondemand_type)
-        info_dict['formats'] = formats
-        info_dict['subtitles'] = subtitles
         return info_dict
 
 
