@@ -27,7 +27,7 @@ class MastersIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': content_resp["title"],
+            'title': content_resp.get('title'),
             'formats': formats,
             'thumbnail': url_or_none(content_resp['images'][0]['large']),
         }
