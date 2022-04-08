@@ -29,5 +29,5 @@ class MastersIE(InfoExtractor):
             'id': video_id,
             'title': content_resp.get('title'),
             'formats': formats,
-            'thumbnail': url_or_none(content_resp['images'][0]['large']),
+            'thumbnail': traverse_obj(content_resp, ('images', 0, 'large'), expected_type=url_or_none),
         }
