@@ -2671,9 +2671,10 @@ class YoutubeDL(object):
 
     def process_subtitles(self, video_id, normal_subtitles, automatic_captions):
         """Select the requested subtitles and their format"""
-        available_subs = {}
+        available_subs, normal_sub_langs = {}, []
         if normal_subtitles and self.params.get('writesubtitles'):
             available_subs.update(normal_subtitles)
+            normal_sub_langs = tuple(normal_subtitles.keys())
         if automatic_captions and self.params.get('writeautomaticsub'):
             for lang, cap_info in automatic_captions.items():
                 if lang not in available_subs:
@@ -2684,7 +2685,7 @@ class YoutubeDL(object):
                 available_subs):
             return None
 
-        all_sub_langs = available_subs.keys()
+        all_sub_langs = tuple(available_subs.keys())
         if self.params.get('allsubtitles', False):
             requested_langs = all_sub_langs
         elif self.params.get('subtitleslangs', False):
@@ -2709,10 +2710,10 @@ class YoutubeDL(object):
                 else:
                     requested_langs.extend(current_langs)
             requested_langs = orderedSet(requested_langs)
-        elif 'en' in available_subs:
-            requested_langs = ['en']
+        elif normal_sub_langs:
+            requested_langs = ['en'] if 'en' in normal_sub_langs else normal_sub_langs[:1]
         else:
-            requested_langs = [list(all_sub_langs)[0]]
+            requested_langs = ['en'] if 'en' in all_sub_langs else all_sub_langs[:1]
         if requested_langs:
             self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
 
