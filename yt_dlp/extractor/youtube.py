@@ -5508,7 +5508,7 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
 class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:notifications'
     IE_DESC = 'YouTube notifications; ":ytnotif" keyword (requires cookies)'
-    _VALID_URL = r':ytnotif(?:ication)?s'
+    _VALID_URL = r':ytnotif(?:ication)?s?'
     _LOGIN_REQUIRED = True
     _TESTS = [{
         'url': ':ytnotif',
