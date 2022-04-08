@@ -5536,6 +5536,10 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
     def _extract_notification_renderer(self, notification):
         video_id = traverse_obj(
             notification, ('navigationEndpoint', 'watchEndpoint', 'videoId'), expected_type=str)
+        channel_id = traverse_obj(
+            notification, ('navigationEndpoint', 'browseEndpoint', 'browseId'), expected_type=str)
+        if channel_id:
+            self.write_debug(f'ignoring post from channel {channel_id}, videos may be missing')
         if not video_id:
             return None
         thumbnails = self._extract_thumbnails(notification, 'videoThumbnail')
