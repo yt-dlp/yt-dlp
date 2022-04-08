@@ -5536,11 +5536,17 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
     def _extract_notification_renderer(self, notification):
         video_id = traverse_obj(
             notification, ('navigationEndpoint', 'watchEndpoint', 'videoId'), expected_type=str)
-        channel_id = traverse_obj(
-            notification, ('navigationEndpoint', 'browseEndpoint', 'browseId'), expected_type=str)
-        if channel_id:
-            self.write_debug(f'ignoring post from channel {channel_id}, videos may be missing')
-        if not video_id:
+        browse_ep = traverse_obj(
+            notification, ('navigationEndpoint', 'browseEndpoint'), expected_type=dict)
+        channel_id = traverse_obj(browse_ep, 'browseId', expected_type=str)
+        post_id = self._search_regex(
+            r'/post/(.+)', traverse_obj(browse_ep, 'canonicalBaseUrl', expected_type=str) or None,
+            'post id', default=None, fatal=False)
+        url = f'https://www.youtube.com/watch?v={video_id}'
+        if channel_id and post_id:
+            # The direct /post url redirects to this in the browser
+            url = f'https://www.youtube.com/channel/{channel_id}/community?lb={post_id}'
+        elif not video_id:
             return None
         thumbnails = self._extract_thumbnails(notification, 'videoThumbnail')
         status_text = self._get_text(notification, 'shortMessage')
@@ -5548,13 +5554,23 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
             notification, ('contextualMenu', 'menuRenderer', 'items', 1, 'menuServiceItemRenderer', 'text', 'runs', 1, 'text'), expected_type=str)
         status_text = remove_start(status_text, uploader + ' ')
         title = self._search_regex(r'.*?: (.*)', status_text, 'status text', default=None, fatal=False)
+        if title:
+            title = title.replace('\xad', '')  # remove soft hyphens
         timestamp = self._extract_time_text(notification, 'sentTimeText')[0]
         upload_date = (strftime_or_none(timestamp, '%Y%m%d')
                        if self._configuration_arg('approximate_date', ie_key='youtubetab')
                        else None)
-        return self.url_result(
-            f'https://www.youtube.com/watch?v={video_id}', YoutubeIE,
-            video_id, title, thumbnails=thumbnails, uploader=uploader, upload_date=upload_date)
+        return {
+            '_type': 'url',
+            'url': url,
+            'ie_key': (YoutubeIE.ie_key() if video_id else YoutubeTabIE.ie_key()),
+            'video_id': video_id,
+            'title': title,
+            'thumbnails': thumbnails,
+            'uploader': uploader,
+            'channel_id': channel_id,
+            'upload_date': upload_date,
+        }
 
     def _extract_next_notification_continuation_data(self, renderer):
         ctoken = traverse_obj(
