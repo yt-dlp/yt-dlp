@@ -266,18 +266,18 @@ class ZattooIE(ZattooBaseIE):
     _VALID_URL = ZattooBaseIE._create_valid_url(r'\d+', 'program', '(?:program|watch)/[^/]+')
     _TYPE = 'video'
     _TESTS = [{
-        'url': 'https://zattoo.com/program/zdf/250380873',
+        'url': 'https://zattoo.com/program/zdf/250170418',
         'info_dict': {
-            'id': '250380873',
+            'id': '250170418',
             'ext': 'mp4',
-            'title': 'heute-show',
-            'description': 'md5:413cf29b7a2f157455a4581aced7a3e9',
-            'thumbnail': 'md5:62e70eb5cc3a2e203773b43be051196d',
+            'title': 'Markus Lanz',
+            'description': 'md5:e41cb1257de008ca62a73bb876ffa7fc',
+            'thumbnail': 're:http://images.zattic.com/cms/.+/format_480x360.jpg',
             'creator': 'ZDF HD',
             'release_year': 2022,
-            'episode': 'Folge 407',
+            'episode': 'Folge 1655',
             'categories': 'count:1',
-            'tags': 'count:1'
+            'tags': 'count:2'
         },
         'params': {'skip_download': 'm3u8'}
     }, {
