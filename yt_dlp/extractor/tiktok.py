@@ -896,3 +896,5 @@ class TikTokVMIE(InfoExtractor):
         for ie in (TikTokIE, TikTokSoundIE, TikTokTagIE, TikTokUserIE):
             if ie.suitable(target_url):
                 return self.url_result(target_url, ie)
+
+        return self.url_result(target_url)
