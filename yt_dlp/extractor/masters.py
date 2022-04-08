@@ -4,7 +4,7 @@ from ..utils import url_or_none
 
 
 class MastersIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?masters\.com/en_US/watch/[\d]{4}-[\d]{2}-[\d]{2}/(?P<id>[0-9]+)/(.*)\.html'
+    _VALID_URL = r'https?://(?:www\.)?masters\.com/en_US/watch/)?P<date>\d{4}-\d{2}-\d{2})/(?P<id>\d+)'
     _TESTS = [{
         'url': 'https://www.masters.com/en_US/watch/2022-04-07/16493755593805191/sungjae_im_thursday_interview_2022.html',
         'info_dict': {
