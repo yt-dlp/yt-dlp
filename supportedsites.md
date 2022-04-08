@@ -1504,7 +1504,6 @@
  - **YourUpload**
  - **youtube**: YouTube
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
- - **youtube:notifications**: YouTube notification-bell videos; ":ytnotif" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
  - **youtube:music:search_url**: YouTube music search URLs with selectable sections (Eg: #songs)
  - **youtube:playlist**: YouTube playlists
