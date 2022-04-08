@@ -253,7 +253,7 @@ class ZattooBaseIE(ZattooPlatformBaseIE):
 
     @staticmethod
     def _create_valid_url(match, qs, base_re=None):
-        match_base = fr'|{base_re}/(?P<vid1>{match})' if base_re else ''
+        match_base = fr'|{base_re}/(?P<vid1>{match})' if base_re else '(?P<vid1>)'
         return rf'''(?x)https?://(?:www\.)?zattoo\.com/(?:
             [^?#]+\?(?:[^#]+&)?{qs}=(?P<vid2>{match})
             {match_base}
