@@ -5508,13 +5508,13 @@ class YoutubeFavouritesIE(YoutubeBaseInfoExtractor):
 class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
     IE_NAME = 'youtube:notifications'
     IE_DESC = 'YouTube notifications; ":ytnotif" keyword (requires cookies)'
-    _VALID_URL = r':ytnotif(?:ication)?s?(:(?P<max_pages>\d+))?'
+    _VALID_URL = r':ytnotif(?:ication)?s'
     _LOGIN_REQUIRED = True
     _TESTS = [{
         'url': ':ytnotif',
         'only_matching': True,
     }, {
-        'url': ':ytnotifications:2',
+        'url': ':ytnotifications',
         'only_matching': True,
     }]
 
@@ -5574,36 +5574,28 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
         }
         return query
 
-    def _notification_menu_entries(self, headers, max_requests):
+    def _notification_menu_entries(self, headers):
         continuation_list = [None]
-        request_count = 0
-        entries = []
-        while request_count < max_requests:
+        for page in itertools.count(1):
             query = {}
             if continuation_list[0]:
                 query = self._extract_next_notification_continuation_data(continuation_list[0])
-            request_count += 1
             response = self._extract_response(
-                note=f'Downloading API JSON (page {request_count})',
+                note=f'Downloading API JSON (page {page})',
                 ep='notification/get_notification_menu', headers=headers,
                 check_get_keys=['responseContext', 'actions', 'trackingParams'],
                 item_id='notification_menu', query=query)
-            for notification in self._extract_notification_menu(response, continuation_list) or []:
-                entry = self._extract_notification(notification)
+            for notification in self._extract_notification_menu(response, continuation_list):
+                entry = self._extract_notification_renderer(notification)
                 if entry:
-                    entries.append(entry)
+                    yield entry
             if not continuation_list[0]:
                 break
-        return entries
-
-    def get_notifications(self, max_requests=1):
-        return self._notification_menu_entries(self.generate_api_headers(), max_requests)
 
     def _real_extract(self, url):
-        max_pages = int(self._match_valid_url(url).group('max_pages') or 1)
-        self.write_debug(f'max_pages: {max_pages}')
         return self.playlist_result(
-            entries=self.get_notifications(max_requests=max_pages), playlist_title='Notifications', ie=YoutubeTabIE.ie_key())
+            entries=self._notification_menu_entries(self.generate_api_headers()),
+            playlist_title='YouTube Notifications')
 
 
 class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
