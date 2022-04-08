@@ -99,7 +99,10 @@ class IcareusIE(InfoExtractor):
             'unpublished-info-item future-event-title', page)
         metad = self._search_json_ld(page, video_id, default=None)
 
-        info = {'id': video_id}
+        info = {
+            'id': video_id,
+            'title': None
+        }
         if metad:
             info.update(metad)
         elif token2:
@@ -132,9 +135,8 @@ class IcareusIE(InfoExtractor):
                     fatal=False), scale=1000),
             })
 
-        if 'title' not in info.keys():
+        if info['title'] is None:
             self.report_warning("Could not extract metadata", video_id)
-            info['title'] = video_id
 
         info['description'] = clean_html(info.get('description'))
 
