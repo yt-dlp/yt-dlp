@@ -187,11 +187,11 @@ class ZattooPlatformBaseIE(InfoExtractor):
                 audio_channel = watch.get('audio_channel')
                 preference = 1 if audio_channel == 'A' else None
                 format_id = join_nonempty(stream_type, watch.get('maxrate'), audio_channel)
-                if stream_type in ('dash', 'dash_widevine', 'dash_playready'):
+                if stream_type.startswith('dash'):
                     this_formats, subs = self._extract_mpd_formats_and_subtitles(
                         watch_url, video_id, mpd_id=format_id, fatal=False)
                     self._merge_subtitles(subs, target=subtitles)
-                elif stream_type in ('hls', 'hls5', 'hls7', 'hls5_fairplay'):
+                elif stream_type.startswith('hls'):
                     this_formats, subs = self._extract_m3u8_formats_and_subtitles(
                         watch_url, video_id, 'mp4',
                         entry_protocol='m3u8_native', m3u8_id=format_id,
