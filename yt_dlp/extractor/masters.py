@@ -19,7 +19,9 @@ class MastersIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        content_resp = self._download_json(self._CONTENT_API_URL.format(video_id=video_id), video_id)
+        content_resp = self._download_json(
+            f'https://www.masters.com/relatedcontent/rest/v2/masters_v1/en/content/masters_v1_{video_id}_en',
+            video_id)
         formats = self._extract_m3u8_formats(content_resp['media']['m3u8'], video_id, 'mp4')
         self._sort_formats(formats)
 
