@@ -890,5 +890,9 @@ class TikTokVMIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        return self.url_result(self._request_webpage(
-            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).geturl(), TikTokIE)
+        target_url = self._request_webpage(
+            HEADRequest(url), self._match_id(url), headers={'User-Agent': 'facebookexternalhit/1.1'}).geturl()
+
+        for ie in (TikTokIE, TikTokSoundIE, TikTokTagIE, TikTokUserIE):
+            if ie.suitable(target_url):
+                return self.url_result(target_url, ie)
