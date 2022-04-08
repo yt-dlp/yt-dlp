@@ -5596,13 +5596,10 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
                     entries.append(entry)
             if not continuation_list[0]:
                 break
-
         return entries
 
     def get_notifications(self, max_requests=1):
-        headers = self.generate_api_headers()
-
-        return self._notification_menu_entries(headers, max_requests)
+        return self._notification_menu_entries(self.generate_api_headers(), max_requests)
 
     def _real_extract(self, url):
         max_pages = int(self._match_valid_url(url).group('max_pages') or 1)
