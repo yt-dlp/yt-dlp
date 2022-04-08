@@ -5538,15 +5538,19 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
             notification, ('navigationEndpoint', 'watchEndpoint', 'videoId'), expected_type=str)
         if not video_id:
             return None
-        thumbnails = traverse_obj(notification, ('videoThumbnail', 'thumbnails'), expected_type=list)
-        status_text = traverse_obj(notification, ('shortMessage', 'simpleText'), expected_type=str)
+        thumbnails = self._extract_thumbnails(notification, 'videoThumbnail')
+        status_text = self._get_text(notification, 'shortMessage')
         uploader = traverse_obj(
             notification, ('contextualMenu', 'menuRenderer', 'items', 1, 'menuServiceItemRenderer', 'text', 'runs', 1, 'text'), expected_type=str)
         status_text = remove_start(status_text, uploader + ' ')
         title = self._search_regex(r'.*?: (.*)', status_text, 'status text', default=None, fatal=False)
+        timestamp = self._extract_time_text(notification, 'sentTimeText')[0]
+        upload_date = (strftime_or_none(timestamp, '%Y%m%d')
+                       if self._configuration_arg('approximate_date', ie_key='youtubetab')
+                       else None)
         return self.url_result(
             f'https://www.youtube.com/watch?v={video_id}', YoutubeIE,
-            video_id, title, thumbnails=thumbnails, uploader=uploader)
+            video_id, title, thumbnails=thumbnails, uploader=uploader, upload_date=upload_date)
 
     def _extract_next_notification_continuation_data(self, renderer):
         ctoken = traverse_obj(
@@ -5564,8 +5568,7 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
             response = self._extract_response(
                 note=f'Downloading API JSON (page {page})',
                 ep='notification/get_notification_menu', headers=headers,
-                check_get_keys=['responseContext', 'actions', 'trackingParams'],
-                item_id='notification_menu', query=query)
+                check_get_keys='actions', item_id='notification_menu', query=query)
             yield from self._extract_notification_menu(response, continuation_list)
             if not continuation_list[0]:
                 break
