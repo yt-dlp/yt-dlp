@@ -5542,11 +5542,8 @@ class YoutubeNotificationsIE(YoutubeBaseInfoExtractor):
         status_text = traverse_obj(notification, ('shortMessage', 'simpleText'), expected_type=str)
         uploader = traverse_obj(
             notification, ('contextualMenu', 'menuRenderer', 'items', 1, 'menuServiceItemRenderer', 'text', 'runs', 1, 'text'), expected_type=str)
-        status_text = status_text.removeprefix(uploader + ' ')
-        split_text = status_text.split(': ', 2)
-        title = None
-        if len(split_text) == 2:
-            title = split_text[1]
+        status_text = remove_start(status_text, uploader + ' ')
+        title = self._search_regex(r'.*?: (.*)', status_text, 'status text', default=None, fatal=False)
         return self.url_result(
             f'https://www.youtube.com/watch?v={video_id}', YoutubeIE,
             video_id, title, thumbnails=thumbnails, uploader=uploader)
