@@ -26,7 +26,6 @@ class JableIE(InfoExtractor):
             'age_limit': 18,
             'like_count': int,
             'view_count': int,
-            'upload_date': None,
         },
     }, {
         'url': 'https://jable.tv/videos/apak-220/',
@@ -35,7 +34,7 @@ class JableIE(InfoExtractor):
             'id': 'apak-220',
             'ext': 'mp4',
             'title': 'md5:5c3861b7cf80112a6e2b70bccf170824',
-            'description': None,
+            'description': '',
             'thumbnail': r're:^https?://.*\.jpg$',
             'age_limit': 18,
             'like_count': int,
@@ -53,8 +52,8 @@ class JableIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._og_search_title(webpage, default=None),
-            'description': self._og_search_description(webpage, default=None),
+            'title': self._og_search_title(webpage),
+            'description': self._og_search_description(webpage, default=''),
             'thumbnail': self._og_search_thumbnail(webpage, default=None),
             'formats': formats,
             'age_limit': 18,
