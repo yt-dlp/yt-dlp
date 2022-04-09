@@ -2926,7 +2926,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg, account_syncid=syncid, session_index=session_index, default_client=client)
 
-        yt_query = {'videoId': video_id}
+        yt_query = {'videoId': video_id, 'params': '8AEB'}
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3251,7 +3251,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             webpage = self._download_webpage(
-                webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+                webpage_url + '&bpctr=9999999999&has_verified=1&pp=8AEB', video_id, fatal=False)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
 
@@ -4217,7 +4217,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 self._extract_visitor_data(data, ytcfg)),
             **metadata)
 
-    def _extract_mix_playlist(self, playlist, playlist_id, data, ytcfg):
+    def _extract_inline_playlist(self, playlist, playlist_id, data, ytcfg):
         first_id = last_id = response = None
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
@@ -4227,9 +4227,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if start >= len(videos):
                 return
             for video in videos[start:]:
-                if video['id'] == first_id:
-                    self.to_screen('First video %s found again; Assuming end of Mix' % first_id)
-                    return
                 yield video
             first_id = first_id or videos[0]['id']
             last_id = videos[-1]['id']
@@ -4261,13 +4258,19 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         playlist_url = urljoin(url, try_get(
             playlist, lambda x: x['endpoint']['commandMetadata']['webCommandMetadata']['url'],
             compat_str))
-        if playlist_url and playlist_url != url:
+
+        # Some playlists are unviewable but YouTube still provides a link to the (broken) playlist page [1]
+        # [1] MLCT, RLTDwFCb4jeqaKWnciAYM-ZVHg
+        is_known_unviewable = self._search_regex(
+            r'^(MLCT|RLTD[A-Za-z0-9_-]{21}[AQgw])$', playlist_id, 'playlist id', default=False)
+
+        if playlist_url and playlist_url != url and not is_known_unviewable:
             return self.url_result(
                 playlist_url, ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
                 video_title=title)
 
         return self.playlist_result(
-            self._extract_mix_playlist(playlist, playlist_id, data, ytcfg),
+            self._extract_inline_playlist(playlist, playlist_id, data, ytcfg),
             playlist_id=playlist_id, playlist_title=title)
 
     def _extract_availability(self, data):
@@ -5697,6 +5700,22 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
         'url': ':ythistory',
         'only_matching': True,
     }]
+
+
+class YoutubeStoriesIE(InfoExtractor):
+    IE_DESC = 'YouTube channel stories; "youtube:stories:<channel id>'
+    IE_NAME = 'youtube:stories'
+    _VALID_URL = r'ytstories:(?:RLTD|UC)(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
+    _TESTS = [{
+        'url': 'ytstories:UCwFCb4jeqaKWnciAYM-ZVHg',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = f'RLTD{self._match_id(url)}'
+        return self.url_result(
+            f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1',
+            ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
 
 
 class YoutubeTruncatedURLIE(InfoExtractor):
