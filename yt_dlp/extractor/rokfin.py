@@ -400,7 +400,7 @@ class RokfinSearchIE(SearchInfoExtractor):
                 db_url = url_or_none(db_url + '/api/as/v1/engines/rokfin-search/search.json') if db_url else None
             if not db_access_key:
                 db_access_key = self._search_regex(
-                    r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]*)"', js_content,
+                    r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]+)"', js_content,
                     name='Search engine access key', default=None, fatal=False, group='key')
                 db_access_key = f'Bearer {db_access_key}' if db_access_key else None
             if db_url and db_access_key:
