@@ -384,6 +384,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _real_initialize(self):
         self._initialize_pref()
         self._initialize_consent()
+        self._check_login_required()
+
+    def _check_login_required(self):
         if (self._LOGIN_REQUIRED
                 and self.get_param('cookiefile') is None
                 and self.get_param('cookiesfrombrowser') is None):
@@ -571,7 +574,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         }.get(client)
         if not url:
             return {}
-        webpage = self._download_webpage(url, video_id, fatal=False, note='Downloading %s client config' % client.replace('_', ' ').strip())
+        webpage = self._download_webpage(
+            url, video_id, fatal=False, note='Downloading %s client config' % client.replace('_', ' ').strip())
         return self.extract_ytcfg(video_id, webpage) or {}
 
     @staticmethod
@@ -5577,7 +5581,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         if title:
             title = title.replace('\xad', '')  # remove soft hyphens
         upload_date = (strftime_or_none(self._extract_time_text(notification, 'sentTimeText')[0], '%Y%m%d')
-                       if self._configuration_arg('approximate_date', ie_key='youtubetab')
+                       if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE.ie_key())
                        else None)
         return {
             '_type': 'url',
@@ -5606,9 +5610,10 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
                 break
 
     def _real_extract(self, url):
-        ytcfg = self._download_ytcfg('web', 'notifications') if not self.skip_webpage else {}
+        display_id = 'notifications'
+        ytcfg = self._download_ytcfg('web', display_id) if not self.skip_webpage else {}
         self._report_playlist_authcheck(ytcfg)
-        return self.playlist_result(self._notification_menu_entries(ytcfg), 'notifications', 'notifications')
+        return self.playlist_result(self._notification_menu_entries(ytcfg), display_id, display_id)
 
 
 class YoutubeSearchIE(YoutubeTabBaseInfoExtractor, SearchInfoExtractor):
@@ -5740,7 +5745,9 @@ class YoutubeFeedsInfoExtractor(InfoExtractor):
     Subclasses must define the _FEED_NAME property.
     """
     _LOGIN_REQUIRED = True
-    _TESTS = []
+
+    def _real_initialize(self):
+        YoutubeBaseInfoExtractor._check_login_required(self)
 
     @property
     def IE_NAME(self):
