@@ -854,7 +854,7 @@ class NiconicoUserIE(InfoExtractor):
                 total_count = int_or_none(json_parsed['data'].get('totalCount'))
             for entry in json_parsed["data"]["items"]:
                 count += 1
-                yield self.url_result('https://www.nicovideo.jp/watch/%s' % entry['id'])
+                yield self.url_result('https://www.nicovideo.jp/watch/%s' % entry['id'], video_id=entry['id'])
             page_num += 1
 
     def _real_extract(self, url):
