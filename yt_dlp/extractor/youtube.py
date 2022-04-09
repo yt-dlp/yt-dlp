@@ -5714,7 +5714,7 @@ class YoutubeStoriesIE(InfoExtractor):
         playlist_id = f'RLTD{self._match_id(url)}'
         return self.url_result(
             f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1',
-            ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+            ie=YoutubeTabIE, video_id=playlist_id)
 
 
 class YoutubeTruncatedURLIE(InfoExtractor):
