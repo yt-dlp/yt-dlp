@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
 from .common import InfoExtractor
-from ..utils import unified_strdate
+from ..utils import (
+    unified_strdate,
+    traverse_obj,
+)
 
 
 class MastersIE(InfoExtractor):
@@ -23,10 +26,10 @@ class MastersIE(InfoExtractor):
         content_resp = self._download_json(
             f'https://www.masters.com/relatedcontent/rest/v2/masters_v1/en/content/masters_v1_{video_id}_en',
             video_id)
-        formats = self._extract_m3u8_formats(content_resp['media']['m3u8'], video_id, 'mp4')
+        formats = self._extract_m3u8_formats(traverse_obj(content_resp, ('media', 'm3u8')), video_id, 'mp4')
         self._sort_formats(formats)
 
-        thumbnail_data = content_resp['images'][0]
+        thumbnail_data = traverse_obj(content_resp, ('images', 0))
         thumbnails = [{
             'url': thumbnail_data.get(item)
         } for item in thumbnail_data or []]
