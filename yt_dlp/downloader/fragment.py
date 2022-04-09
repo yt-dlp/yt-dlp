@@ -204,6 +204,9 @@ class FragmentFD(FileDownloader):
             else:
                 self._write_ytdl_file(ctx)
                 assert ctx['fragment_index'] == 0
+                if resume_len and not ctx['live']:
+                    self.report_file_already_downloaded(ctx['filename'])
+                    ctx['fragment_index'] = ctx['total_frags']
 
         dest_stream, tmpfilename = self.sanitize_open(tmpfilename, open_mode)
 
