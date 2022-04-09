@@ -643,6 +643,11 @@ class YoutubeDL(object):
                 else:
                     raise
 
+        if auto_init:
+            if auto_init != 'no_verbose_header':
+                self.print_debug_header()
+            self.add_default_info_extractors()
+
         if (sys.platform != 'win32'
                 and sys.getfilesystemencoding() in ['ascii', 'ANSI_X3.4-1968']
                 and not self.params.get('restrictfilenames', False)):
@@ -664,13 +669,6 @@ class YoutubeDL(object):
         # Set http_headers defaults according to std_headers
         self.params['http_headers'] = merge_headers(std_headers, self.params.get('http_headers', {}))
 
-        self._setup_opener()
-
-        if auto_init:
-            if auto_init != 'no_verbose_header':
-                self.print_debug_header()
-            self.add_default_info_extractors()
-
         hooks = {
             'post_hooks': self.add_post_hook,
             'progress_hooks': self.add_progress_hook,
@@ -687,6 +685,7 @@ class YoutubeDL(object):
                 get_postprocessor(pp_def.pop('key'))(self, **compat_kwargs(pp_def)),
                 when=when)
 
+        self._setup_opener()
         register_socks_protocols()
 
         def preload_download_archive(fn):
@@ -2237,7 +2236,7 @@ class YoutubeDL(object):
                         matches = LazyList(_check_formats(matches[::-1 if format_reverse else 1]))
                         try:
                             yield matches[format_idx - 1]
-                        except IndexError:
+                        except LazyList.IndexError:
                             return
 
             filters = [self._build_format_filter(f) for f in selector.filters]
@@ -2671,9 +2670,10 @@ class YoutubeDL(object):
 
     def process_subtitles(self, video_id, normal_subtitles, automatic_captions):
         """Select the requested subtitles and their format"""
-        available_subs = {}
+        available_subs, normal_sub_langs = {}, []
         if normal_subtitles and self.params.get('writesubtitles'):
             available_subs.update(normal_subtitles)
+            normal_sub_langs = tuple(normal_subtitles.keys())
         if automatic_captions and self.params.get('writeautomaticsub'):
             for lang, cap_info in automatic_captions.items():
                 if lang not in available_subs:
@@ -2684,7 +2684,7 @@ class YoutubeDL(object):
                 available_subs):
             return None
 
-        all_sub_langs = available_subs.keys()
+        all_sub_langs = tuple(available_subs.keys())
         if self.params.get('allsubtitles', False):
             requested_langs = all_sub_langs
         elif self.params.get('subtitleslangs', False):
@@ -2709,10 +2709,10 @@ class YoutubeDL(object):
                 else:
                     requested_langs.extend(current_langs)
             requested_langs = orderedSet(requested_langs)
-        elif 'en' in available_subs:
-            requested_langs = ['en']
+        elif normal_sub_langs:
+            requested_langs = ['en'] if 'en' in normal_sub_langs else normal_sub_langs[:1]
         else:
-            requested_langs = [list(all_sub_langs)[0]]
+            requested_langs = ['en'] if 'en' in all_sub_langs else all_sub_langs[:1]
         if requested_langs:
             self.write_debug('Downloading subtitles: %s' % ', '.join(requested_langs))
 
@@ -3697,6 +3697,7 @@ class YoutubeDL(object):
             delim=', ') or 'none'
         write_debug('Optional libraries: %s' % lib_str)
 
+        self._setup_opener()
         proxy_map = {}
         for handler in self._opener.handlers:
             if hasattr(handler, 'proxies'):
@@ -3716,6 +3717,8 @@ class YoutubeDL(object):
                     latest_version)
 
     def _setup_opener(self):
+        if hasattr(self, '_opener'):
+            return
         timeout_val = self.params.get('socket_timeout')
         self._socket_timeout = 20 if timeout_val is None else float(timeout_val)
 

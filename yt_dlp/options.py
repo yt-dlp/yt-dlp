@@ -634,7 +634,7 @@ def create_parser():
     video_format.add_option(
         '--check-formats',
         action='store_const', const='selected', dest='check_formats', default=None,
-        help='Check that the selected formats are actually downloadable')
+        help='Make sure formats are selected only from those that are actually downloadable')
     video_format.add_option(
         '--check-all-formats',
         action='store_true', dest='check_formats',

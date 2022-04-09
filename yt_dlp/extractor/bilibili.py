@@ -51,7 +51,7 @@ class BiliBiliIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.bilibili.com/video/av1074402/',
-        'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
+        'md5': '7ac275ec84a99a6552c5d229659a0fe1',
         'info_dict': {
             'id': '1074402_part1',
             'ext': 'mp4',
@@ -61,6 +61,11 @@ class BiliBiliIE(InfoExtractor):
             'upload_date': '20140420',
             'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
             'timestamp': 1398012678,
+            'tags': ['顶上去报复社会', '该来的总会来的', '金克拉是检验歌曲的唯一标准', '坷垃教主', '金坷垃', '邓紫棋', '治愈系坷垃'],
+            'bv_id': 'BV11x411K7CN',
+            'cid': '1554319',
+            'thumbnail': 'http://i2.hdslb.com/bfs/archive/c79a8cf0347cd7a897c53a2f756e96aead128e8c.jpg',
+            'duration': 308.36,
         },
     }, {
         # Tested in BiliBiliBangumiIE
@@ -91,6 +96,11 @@ class BiliBiliIE(InfoExtractor):
             'timestamp': 1488382634,
             'uploader_id': '65880958',
             'uploader': '阿滴英文',
+            'thumbnail': 'http://i2.hdslb.com/bfs/archive/49267ce20bc246be6304bf369a3ded0256854c23.jpg',
+            'cid': '14694589',
+            'duration': 554.117,
+            'bv_id': 'BV13x41117TL',
+            'tags': ['人文', '英语', '文化', '公开课', '阿滴英文'],
         },
         'params': {
             'skip_download': True,
@@ -107,6 +117,27 @@ class BiliBiliIE(InfoExtractor):
             'title': '物语中的人物是如何吐槽自己的OP的'
         },
         'playlist_count': 17,
+    }, {
+        # Correct matching of single and double quotes in title
+        'url': 'https://www.bilibili.com/video/BV1NY411E7Rx/',
+        'info_dict': {
+            'id': '255513412_part1',
+            'ext': 'mp4',
+            'title': 'Vid"eo" Te\'st',
+            'cid': '570602418',
+            'thumbnail': 'http://i2.hdslb.com/bfs/archive/0c0de5a90b6d5b991b8dcc6cde0afbf71d564791.jpg',
+            'upload_date': '20220408',
+            'timestamp': 1649436552,
+            'description': 'Vid"eo" Te\'st',
+            'uploader_id': '1630758804',
+            'bv_id': 'BV1NY411E7Rx',
+            'duration': 60.394,
+            'uploader': 'bili_31244483705',
+            'tags': ['VLOG'],
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     _APP_KEY = 'iVGUTjsxvpLeuDCf'
@@ -258,7 +289,8 @@ class BiliBiliIE(InfoExtractor):
         self._sort_formats(formats)
 
         title = self._html_search_regex((
-            r'<h1[^>]+title=(["\'])(?P<content>[^"\']+)',
+            r'<h1[^>]+title=(["])(?P<content>[^"]+)',
+            r'<h1[^>]+title=([\'])(?P<content>[^\']+)',
             r'(?s)<h1[^>]*>(?P<content>.+?)</h1>',
             self._meta_regex('title')
         ), webpage, 'title', group='content', fatal=False)

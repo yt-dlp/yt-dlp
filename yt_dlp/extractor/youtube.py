@@ -575,7 +575,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not url:
             return {}
         webpage = self._download_webpage(
-            url, video_id, fatal=False, note='Downloading %s client config' % client.replace('_', ' ').strip())
+            url, video_id, fatal=False, note=f'Downloading {client.replace("_", " ").strip()} client config')
         return self.extract_ytcfg(video_id, webpage) or {}
 
     @staticmethod
@@ -4404,15 +4404,14 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         return webpage, data
 
     def _report_playlist_authcheck(self, ytcfg, fatal=True):
-        """
-        Use if fail to extract ytcfg (and data) from initial webpage
-        """
+        """Use if failed to extract ytcfg (and data) from initial webpage"""
         if not ytcfg and self.is_authenticated:
-            msg = 'Playlists that require authentication may not extract correctly without a successful webpage download.'
+            msg = 'Playlists that require authentication may not extract correctly without a successful webpage download'
             if 'authcheck' not in self._configuration_arg('skip', ie_key=YoutubeTabIE.ie_key()) and fatal:
                 raise ExtractorError(
-                    msg + ' If you are not downloading private content, or your cookies are only for the first account and channel,'
-                          ' pass "--extractor-args youtubetab:skip=authcheck" to skip this check',
+                    f'{msg}. If you are not downloading private content, or '
+                    'your cookies are only for the first account and channel,'
+                    ' pass "--extractor-args youtubetab:skip=authcheck" to skip this check',
                     expected=True)
             self.report_warning(msg, only_once=True)
 
@@ -4482,7 +4481,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             headers = self.generate_api_headers(
                 ytcfg=ytcfg, visitor_data=self._extract_visitor_data(search), default_client=default_client)
             search = self._extract_response(
-                item_id='%s page %s' % (display_id, page_num), ep='search', query=data,
+                item_id=f'{display_id} page {page_num}', ep='search', query=data,
                 default_client=default_client, check_get_keys=check_get_keys, ytcfg=ytcfg, headers=headers)
             slr_contents = traverse_obj(search, *content_keys)
             yield from self._extract_entries({'contents': list(variadic(slr_contents))}, continuation_list)
