@@ -76,8 +76,7 @@ class IwaraIE(InfoExtractor):
                 'age_limit': age_limit,
             }
 
-        title = remove_end(self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title'), ' | Iwara')
+        title = remove_end(self._html_extract_title(webpage), ' | Iwara')
 
         thumbnail = self._html_search_regex(
             r'poster=[\'"]([^\'"]+)', webpage, 'thumbnail', default=None)

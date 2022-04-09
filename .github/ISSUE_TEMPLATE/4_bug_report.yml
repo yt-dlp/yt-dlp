@@ -11,7 +11,7 @@ body:
       options:
         - label: I'm reporting a bug unrelated to a specific site
           required: true
-        - label: I've verified that I'm running yt-dlp version **2022.03.08.1**. ([update instructions](https://github.com/yt-dlp/yt-dlp#update))
+        - label: I've verified that I'm running yt-dlp version **2022.04.08** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true
         - label: I've checked that all provided URLs are alive and playable in a browser
           required: true
@@ -45,12 +45,12 @@ body:
         [debug] Portable config file: yt-dlp.conf
         [debug] Portable config: ['-i']
         [debug] Encodings: locale cp1252, fs utf-8, stdout utf-8, stderr utf-8, pref cp1252
-        [debug] yt-dlp version 2022.03.08.1 (exe)
+        [debug] yt-dlp version 2022.04.08 (exe)
         [debug] Python version 3.8.8 (CPython 64bit) - Windows-10-10.0.19041-SP0
         [debug] exe versions: ffmpeg 3.0.1, ffprobe 3.0.1
         [debug] Optional libraries: Cryptodome, keyring, mutagen, sqlite, websockets
         [debug] Proxy map: {}
-        yt-dlp is up to date (2022.03.08.1)
+        yt-dlp is up to date (2022.04.08)
         <more lines>
       render: shell
     validations:

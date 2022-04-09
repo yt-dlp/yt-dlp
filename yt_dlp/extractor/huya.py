@@ -66,8 +66,7 @@ class HuyaLiveIE(InfoExtractor):
         room_info = try_get(stream_data, lambda x: x['data'][0]['gameLiveInfo'])
         if not room_info:
             raise ExtractorError('Can not extract the room info', expected=True)
-        title = room_info.get('roomName') or room_info.get('introduction') or self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title')
+        title = room_info.get('roomName') or room_info.get('introduction') or self._html_extract_title(webpage)
         screen_type = room_info.get('screenType')
         live_source_type = room_info.get('liveSourceType')
         stream_info_list = stream_data['data'][0]['gameStreamInfoList']

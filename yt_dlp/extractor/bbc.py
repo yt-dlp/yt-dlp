@@ -906,9 +906,8 @@ class BBCIE(BBCCoUkIE):
 
         playlist_title = json_ld_info.get('title')
         if not playlist_title:
-            playlist_title = self._og_search_title(
-                webpage, default=None) or self._html_search_regex(
-                r'<title>(.+?)</title>', webpage, 'playlist title', default=None)
+            playlist_title = (self._og_search_title(webpage, default=None)
+                              or self._html_extract_title(webpage, 'playlist title', default=None))
             if playlist_title:
                 playlist_title = re.sub(r'(.+)\s*-\s*BBC.*?$', r'\1', playlist_title).strip()
 

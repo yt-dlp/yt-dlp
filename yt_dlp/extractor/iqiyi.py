@@ -626,8 +626,8 @@ class IqIE(InfoExtractor):
                 note=f'Downloading format data for {self._BID_TAGS[bid]}', errnote='Unable to download format data',
                 fatal=False), 'data', expected_type=dict)
 
-            video_format = next((video_format for video_format in traverse_obj(
-                format_data, ('program', 'video', ...), expected_type=dict, default=[]) if str(video_format['bid']) == bid), {})
+            video_format = traverse_obj(format_data, ('program', 'video', lambda _, v: str(v['bid']) == bid),
+                                        expected_type=dict, default=[], get_all=False) or {}
             extracted_formats = []
             if video_format.get('m3u8Url'):
                 extracted_formats.extend(self._extract_m3u8_formats(

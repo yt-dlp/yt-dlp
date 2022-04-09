@@ -837,17 +837,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         uploader = self._get_text(renderer, 'ownerText', 'shortBylineText')
         channel_id = traverse_obj(
-            renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'), expected_type=str, get_all=False)
+            renderer, ('shortBylineText', 'runs', ..., 'navigationEndpoint', 'browseEndpoint', 'browseId'),
+            expected_type=str, get_all=False)
         timestamp, time_text = self._extract_time_text(renderer, 'publishedTimeText')
         scheduled_timestamp = str_to_int(traverse_obj(renderer, ('upcomingEventData', 'startTime'), get_all=False))
         overlay_style = traverse_obj(
-            renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'), get_all=False, expected_type=str)
+            renderer, ('thumbnailOverlays', ..., 'thumbnailOverlayTimeStatusRenderer', 'style'),
+            get_all=False, expected_type=str)
         badges = self._extract_badges(renderer)
         thumbnails = self._extract_thumbnails(renderer, 'thumbnail')
         navigation_url = urljoin('https://www.youtube.com/', traverse_obj(
-            renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'), expected_type=str))
+            renderer, ('navigationEndpoint', 'commandMetadata', 'webCommandMetadata', 'url'),
+            expected_type=str)) or ''
         url = f'https://www.youtube.com/watch?v={video_id}'
-        if overlay_style == 'SHORTS' or (navigation_url and '/shorts/' in navigation_url):
+        if overlay_style == 'SHORTS' or '/shorts/' in navigation_url:
             url = f'https://www.youtube.com/shorts/{video_id}'
 
         return {
@@ -862,7 +865,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             'uploader': uploader,
             'channel_id': channel_id,
             'thumbnails': thumbnails,
-            'upload_date': strftime_or_none(timestamp, '%Y%m%d') if self._configuration_arg('approximate_date', ie_key='youtubetab') else None,
+            'upload_date': (strftime_or_none(timestamp, '%Y%m%d')
+                            if self._configuration_arg('approximate_date', ie_key='youtubetab')
+                            else None),
             'live_status': ('is_upcoming' if scheduled_timestamp is not None
                             else 'was_live' if 'streamed' in time_text.lower()
                             else 'is_live' if overlay_style is not None and overlay_style == 'LIVE' or 'live now' in badges
@@ -3777,7 +3782,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_basic_item_renderer(item):
         # Modified from _extract_grid_item_renderer
         known_basic_renderers = (
-            'playlistRenderer', 'videoRenderer', 'channelRenderer', 'showRenderer'
+            'playlistRenderer', 'videoRenderer', 'channelRenderer', 'showRenderer', 'reelItemRenderer'
         )
         for key, renderer in item.items():
             if not isinstance(renderer, dict):
@@ -3903,6 +3908,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if video_id:
             return self._extract_video(video_renderer)
 
+    def _hashtag_tile_entry(self, hashtag_tile_renderer):
+        url = urljoin('https://youtube.com', traverse_obj(
+            hashtag_tile_renderer, ('onTapCommand', 'commandMetadata', 'webCommandMetadata', 'url')))
+        if url:
+            return self.url_result(
+                url, ie=YoutubeTabIE.ie_key(), title=self._get_text(hashtag_tile_renderer, 'hashtag'))
+
     def _post_thread_entries(self, post_thread_renderer):
         post_renderer = try_get(
             post_thread_renderer, lambda x: x['post']['backstagePostRenderer'], dict)
@@ -3985,12 +3997,14 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 known_renderers = {
                     'playlistVideoListRenderer': self._playlist_entries,
                     'gridRenderer': self._grid_entries,
-                    'shelfRenderer': lambda x: self._shelf_entries(x),
+                    'reelShelfRenderer': self._grid_entries,
+                    'shelfRenderer': self._shelf_entries,
                     'musicResponsiveListItemRenderer': lambda x: [self._music_reponsive_list_entry(x)],
                     'backstagePostThreadRenderer': self._post_thread_entries,
                     'videoRenderer': lambda x: [self._video_entry(x)],
                     'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
                     'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
+                    'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)]
                 }
                 for key, renderer in isr_content.items():
                     if key not in known_renderers:
@@ -4095,14 +4109,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if fatal:
                 raise ExtractorError('Unable to find selected tab')
 
-    @classmethod
-    def _extract_uploader(cls, data):
+    def _extract_uploader(self, data):
         uploader = {}
-        renderer = cls._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer') or {}
+        renderer = self._extract_sidebar_info_renderer(data, 'playlistSidebarSecondaryInfoRenderer') or {}
         owner = try_get(
             renderer, lambda x: x['videoOwner']['videoOwnerRenderer']['title']['runs'][0], dict)
         if owner:
-            uploader['uploader'] = owner.get('text')
+            owner_text = owner.get('text')
+            uploader['uploader'] = self._search_regex(
+                r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text)
             uploader['uploader_id'] = try_get(
                 owner, lambda x: x['navigationEndpoint']['browseEndpoint']['browseId'], compat_str)
             uploader['uploader_url'] = urljoin(
@@ -4162,7 +4177,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 })
 
         primary_thumbnails = self._extract_thumbnails(
-            primary_sidebar_renderer, ('thumbnailRenderer', 'playlistVideoThumbnailRenderer', 'thumbnail'))
+            primary_sidebar_renderer, ('thumbnailRenderer', ('playlistVideoThumbnailRenderer', 'playlistCustomThumbnailRenderer'), 'thumbnail'))
 
         if playlist_id is None:
             playlist_id = item_id
@@ -5122,6 +5137,24 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
         'note': 'non-standard redirect to regional channel',
         'url': 'https://www.youtube.com/channel/UCwVVpHQ2Cs9iGJfpdFngePQ',
         'only_matching': True
+    }, {
+        'note': 'collaborative playlist (uploader name in the form "by <uploader> and x other(s)")',
+        'url': 'https://www.youtube.com/playlist?list=PLx-_-Kk4c89oOHEDQAojOXzEzemXxoqx6',
+        'info_dict': {
+            'id': 'PLx-_-Kk4c89oOHEDQAojOXzEzemXxoqx6',
+            'modified_date': '20220407',
+            'channel_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
+            'tags': [],
+            'uploader_id': 'UCKcqXmCcyqnhgpA5P0oHH_Q',
+            'uploader': 'pukkandan',
+            'availability': 'unlisted',
+            'channel_id': 'UCKcqXmCcyqnhgpA5P0oHH_Q',
+            'channel': 'pukkandan',
+            'description': 'Test for collaborative playlist',
+            'title': 'yt-dlp test - collaborative playlist',
+            'uploader_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
+        },
+        'playlist_mincount': 2
     }]
 
     @classmethod
@@ -5520,7 +5553,17 @@ class YoutubeSearchURLIE(YoutubeTabBaseInfoExtractor):
             'id': 'python',
             'title': 'python',
         }
-
+    }, {
+        'url': 'https://www.youtube.com/results?search_query=%23cats',
+        'playlist_mincount': 1,
+        'info_dict': {
+            'id': '#cats',
+            'title': '#cats',
+            'entries': [{
+                'url': r're:https://(www\.)?youtube\.com/hashtag/cats',
+                'title': '#cats',
+            }],
+        },
     }, {
         'url': 'https://www.youtube.com/results?q=test&sp=EgQIBBgB',
         'only_matching': True,

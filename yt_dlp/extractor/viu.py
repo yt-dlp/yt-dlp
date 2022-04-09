@@ -329,7 +329,8 @@ class ViuOTTIE(InfoExtractor):
             if token is not None:
                 query['identity'] = token
             else:
-                # preview is limited to 3min for non-members. But we can try to bypass it
+                # The content is Preview or for VIP only.
+                # We can try to bypass the duration which is limited to 3mins only
                 duration_limit, query['duration'] = True, '180'
             try:
                 stream_data = download_playback()
@@ -346,13 +347,13 @@ class ViuOTTIE(InfoExtractor):
 
             # bypass preview duration limit
             if duration_limit:
-                stream_url = urllib.parse.urlparse(stream_url)
+                old_stream_url = urllib.parse.urlparse(stream_url)
+                query = dict(urllib.parse.parse_qsl(old_stream_url.query, keep_blank_values=True))
                 query.update({
                     'duration': video_data.get('time_duration') or '9999999',
                     'duration_start': '0',
                 })
-                stream_url = stream_url._replace(query=urllib.parse.urlencode(dict(
-                    urllib.parse.parse_qsl(stream_url.query, keep_blank_values=True)))).geturl()
+                stream_url = old_stream_url._replace(query=urllib.parse.urlencode(query)).geturl()
 
             formats.append({
                 'format_id': vid_format,

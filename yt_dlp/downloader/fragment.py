@@ -403,7 +403,7 @@ class FragmentFD(FileDownloader):
                 pass
 
         if compat_os_name == 'nt':
-            def bindoj_result(future):
+            def future_result(future):
                 while True:
                     try:
                         return future.result(0.1)
@@ -412,7 +412,7 @@ class FragmentFD(FileDownloader):
                     except concurrent.futures.TimeoutError:
                         continue
         else:
-            def bindoj_result(future):
+            def future_result(future):
                 return future.result()
 
         def interrupt_trigger_iter(fg):
@@ -430,7 +430,7 @@ class FragmentFD(FileDownloader):
         result = True
         for tpe, job in spins:
             try:
-                result = result and bindoj_result(job)
+                result = result and future_result(job)
             except KeyboardInterrupt:
                 interrupt_trigger[0] = False
             finally:
@@ -494,16 +494,14 @@ class FragmentFD(FileDownloader):
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)
 
         def append_fragment(frag_content, frag_index, ctx):
-            if not frag_content:
-                if not is_fatal(frag_index - 1):
-                    self.report_skip_fragment(frag_index, 'fragment not found')
-                    return True
-                else:
-                    ctx['dest_stream'].close()
-                    self.report_error(
-                        'fragment %s not found, unable to continue' % frag_index)
-                    return False
-            self._append_fragment(ctx, pack_func(frag_content, frag_index))
+            if frag_content:
+                self._append_fragment(ctx, pack_func(frag_content, frag_index))
+            elif not is_fatal(frag_index - 1):
+                self.report_skip_fragment(frag_index, 'fragment not found')
+            else:
+                ctx['dest_stream'].close()
+                self.report_error(f'fragment {frag_index} not found, unable to continue')
+                return False
             return True
 
         decrypt_fragment = self.decrypter(info_dict)

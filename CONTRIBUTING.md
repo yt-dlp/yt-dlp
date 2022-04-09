@@ -534,13 +534,13 @@ Extracting variables is acceptable for reducing code duplication and improving r
 Correct:
 
 ```python
-title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
+title = self._html_search_regex(r'<h1>([^<]+)</h1>', webpage, 'title')
 ```
 
 Incorrect:
 
 ```python
-TITLE_RE = r'<title>([^<]+)</title>'
+TITLE_RE = r'<h1>([^<]+)</h1>'
 # ...some lines of code...
 title = self._html_search_regex(TITLE_RE, webpage, 'title')
 ```
@@ -643,7 +643,7 @@ Wrap all extracted numeric data into safe functions from [`yt_dlp/utils.py`](yt_
 
 Use `url_or_none` for safe URL processing.
 
-Use `try_get`, `dict_get` and `traverse_obj` for safe metadata extraction from parsed JSON.
+Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
 
 Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
 

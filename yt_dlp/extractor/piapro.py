@@ -27,6 +27,18 @@ class PiaproIE(InfoExtractor):
             'title': '裏表ラバーズ',
             'thumbnail': r're:^https?://.*\.jpg$',
         }
+    }, {
+        'note': 'There are break lines in description, mandating (?s) flag',
+        'url': 'https://piapro.jp/t/9cSd',
+        'md5': '952bb6d1e8de95050206408a87790676',
+        'info_dict': {
+            'id': '9cSd',
+            'ext': 'mp3',
+            'title': '青に溶けた風船 / 初音ミク',
+            'description': 'md5:d395a9bd151447631a5a1460bc7f9132',
+            'uploader': 'シアン・キノ',
+            'uploader_id': 'cyankino',
+        }
     }]
 
     _login_status = False
@@ -81,7 +93,7 @@ class PiaproIE(InfoExtractor):
         return {
             'id': video_id,
             'title': self._html_search_regex(r'<h1\s+class="cd_works-title">(.+?)</h1>', webpage, 'title', fatal=False),
-            'description': self._html_search_regex(r'<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description', fatal=False),
+            'description': self._html_search_regex(r'(?s)<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description', fatal=False),
             'uploader': uploader,
             'uploader_id': uploader_id,
             'timestamp': unified_timestamp(create_date, False),
