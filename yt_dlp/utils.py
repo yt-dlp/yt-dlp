@@ -2236,7 +2236,7 @@ class locked_file(object):
             os.O_RDONLY if not writable else os.O_RDWR if readable else os.O_WRONLY,
         ))
 
-        self.f = os.fdopen(os.open(filename, flags), mode, encoding=encoding)
+        self.f = os.fdopen(os.open(filename, flags, 0o666), mode, encoding=encoding)
 
     def __enter__(self):
         exclusive = 'r' not in self.mode
