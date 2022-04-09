@@ -2237,7 +2237,7 @@ class YoutubeDL(object):
                         matches = LazyList(_check_formats(matches[::-1 if format_reverse else 1]))
                         try:
                             yield matches[format_idx - 1]
-                        except IndexError:
+                        except LazyList.IndexError:
                             return
 
             filters = [self._build_format_filter(f) for f in selector.filters]

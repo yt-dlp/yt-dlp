@@ -778,7 +778,7 @@ def sanitize_path(s, force=False):
         for path_part in norm_path]
     if drive_or_unc:
         sanitized_path.insert(0, drive_or_unc + os.path.sep)
-    elif force and s[0] == os.path.sep:
+    elif force and s and s[0] == os.path.sep:
         sanitized_path.insert(0, os.path.sep)
     return os.path.join(*sanitized_path)
 
