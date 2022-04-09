@@ -457,7 +457,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
     _OLDEST_CAPTURE_DATE = 20050214000000
     _NEWEST_CAPTURE_DATE = 20500101000000
 
-    def _call_cdx_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note='Downloading CDX API JSON'):
+    def _call_cdx_api(self, item_id, url, filters: list = None, collapse: list = None, query: dict = None, note=None, fatal=False):
         # CDX docs: https://github.com/internetarchive/wayback/blob/master/wayback-cdx-server/README.md
         query = {
             'url': url,
@@ -468,7 +468,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
             'collapse': collapse or [],
             **(query or {})
         }
-        res = self._download_json('https://web.archive.org/cdx/search/cdx', item_id, note, query=query)
+        res = self._download_json(
+            'https://web.archive.org/cdx/search/cdx', item_id,
+            note or 'Downloading CDX API JSON', query=query, fatal=fatal)
         if isinstance(res, list) and len(res) >= 2:
             # format response to make it easier to use
             return list(dict(zip(res[0], v)) for v in res[1:])
@@ -481,8 +483,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
              regex), webpage, name, default='{}'), video_id, fatal=False)
 
     def _extract_webpage_title(self, webpage):
-        page_title = self._html_search_regex(
-            r'<title>([^<]*)</title>', webpage, 'title', default='')
+        page_title = self._html_extract_title(webpage, default='')
         # YouTube video pages appear to always have either 'YouTube -' as prefix or '- YouTube' as suffix.
         return self._html_search_regex(
             r'(?:YouTube\s*-\s*(.*)$)|(?:(.*)\s*-\s*YouTube$)',

@@ -86,7 +86,7 @@ class NebulaBaseIE(InfoExtractor):
             # if 401 or 403, attempt credential re-auth and retry
             if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
                 self.to_screen(f'Reauthenticating to Nebula and retrying, because last {auth_type} call resulted in error {exc.cause.code}')
-                self._login()
+                self._perform_login()
                 return inner_call()
             else:
                 raise

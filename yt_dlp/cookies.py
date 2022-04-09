@@ -21,6 +21,7 @@ from .compat import (
     compat_cookiejar_Cookie,
 )
 from .utils import (
+    error_to_str,
     expand_path,
     Popen,
     YoutubeDLCookieJar,
@@ -721,7 +722,7 @@ def _get_kwallet_network_wallet(logger):
             network_wallet = stdout.decode('utf-8').strip()
             logger.debug('NetworkWallet = "{}"'.format(network_wallet))
             return network_wallet
-    except BaseException as e:
+    except Exception as e:
         logger.warning('exception while obtaining NetworkWallet: {}'.format(e))
         return default_wallet
 
@@ -766,8 +767,8 @@ def _get_kwallet_password(browser_keyring_name, logger):
                 if stdout[-1:] == b'\n':
                     stdout = stdout[:-1]
                 return stdout
-    except BaseException as e:
-        logger.warning(f'exception running kwallet-query: {type(e).__name__}({e})')
+    except Exception as e:
+        logger.warning(f'exception running kwallet-query: {error_to_str(e)}')
         return b''
 
 
@@ -823,8 +824,8 @@ def _get_mac_keyring_password(browser_keyring_name, logger):
         if stdout[-1:] == b'\n':
             stdout = stdout[:-1]
         return stdout
-    except BaseException as e:
-        logger.warning(f'exception running find-generic-password: {type(e).__name__}({e})')
+    except Exception as e:
+        logger.warning(f'exception running find-generic-password: {error_to_str(e)}')
         return None
 
 

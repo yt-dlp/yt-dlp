@@ -118,7 +118,7 @@ class RaiBaseIE(InfoExtractor):
         })
 
     def _create_http_urls(self, relinker_url, fmts):
-        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
+        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\w+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
         _MP4_TMPL = '%s&overrideUserAgentRule=mp4-%s'
         _QUALITY = {
             # tbr: w, h
@@ -340,6 +340,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
+            'release_year': traverse_obj(media, ('track_info', 'edit_year')),
         }
 
         info.update(relinker_info)

@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     int_or_none,
     parse_duration,
+    parse_iso8601,
     str_or_none,
     try_get,
     urljoin,
@@ -247,6 +248,7 @@ class NRKIE(NRKBaseIE):
             'age_limit': age_limit,
             'formats': formats,
             'subtitles': subtitles,
+            'timestamp': parse_iso8601(try_get(manifest, lambda x: x['availability']['onDemand']['from'], str))
         }
 
         if is_series:
@@ -797,7 +799,7 @@ class NRKPlaylistBaseIE(InfoExtractor):
             for video_id in re.findall(self._ITEM_RE, webpage)
         ]
 
-        playlist_title = self. _extract_title(webpage)
+        playlist_title = self._extract_title(webpage)
         playlist_description = self._extract_description(webpage)
 
         return self.playlist_result(

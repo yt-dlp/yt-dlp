@@ -23,6 +23,7 @@ from ..compat import (
     compat_getpass,
     compat_http_client,
     compat_os_name,
+    compat_Pattern,
     compat_str,
     compat_urllib_error,
     compat_urllib_parse_unquote,
@@ -41,7 +42,6 @@ from ..utils import (
     base_url,
     bug_reports_message,
     clean_html,
-    compiled_regex_type,
     determine_ext,
     determine_protocol,
     dict_get,
@@ -139,6 +139,8 @@ class InfoExtractor(object):
                                    for HDS - URL of the F4M manifest,
                                    for DASH - URL of the MPD manifest,
                                    for MSS - URL of the ISM manifest.
+                    * manifest_stream_number  (For internal use only)
+                                 The index of the stream in the manifest file
                     * ext        Will be calculated from URL if missing
                     * format     A human-readable description of the format
                                  ("mp4 container with h264/opus").
@@ -215,7 +217,7 @@ class InfoExtractor(object):
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
                     * downloader_options  A dictionary of downloader options as
-                                 described in FileDownloader
+                                 described in FileDownloader (For internal use only)
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -1201,7 +1203,9 @@ class InfoExtractor(object):
         In case of failure return a default value or raise a WARNING or a
         RegexNotFoundError, depending on fatal, specifying the field name.
         """
-        if isinstance(pattern, (str, compat_str, compiled_regex_type)):
+        if string is None:
+            mobj = None
+        elif isinstance(pattern, (str, compat_Pattern)):
             mobj = re.search(pattern, string, flags)
         else:
             for p in pattern:
@@ -1297,8 +1301,8 @@ class InfoExtractor(object):
     @staticmethod
     def _og_regexes(prop):
         content_re = r'content=(?:"([^"]+?)"|\'([^\']+?)\'|\s*([^\s"\'=<>`]+?))'
-        property_re = (r'(?:name|property)=(?:\'og[:-]%(prop)s\'|"og[:-]%(prop)s"|\s*og[:-]%(prop)s\b)'
-                       % {'prop': re.escape(prop)})
+        property_re = (r'(?:name|property)=(?:\'og%(sep)s%(prop)s\'|"og%(sep)s%(prop)s"|\s*og%(sep)s%(prop)s\b)'
+                       % {'prop': re.escape(prop), 'sep': '(?:&#x3A;|[:-])'})
         template = r'<meta[^>]+?%s[^>]+?%s'
         return [
             template % (property_re, content_re),
@@ -1329,9 +1333,8 @@ class InfoExtractor(object):
     def _og_search_description(self, html, **kargs):
         return self._og_search_property('description', html, fatal=False, **kargs)
 
-    def _og_search_title(self, html, **kargs):
-        kargs.setdefault('fatal', False)
-        return self._og_search_property('title', html, **kargs)
+    def _og_search_title(self, html, *, fatal=False, **kargs):
+        return self._og_search_property('title', html, fatal=fatal, **kargs)
 
     def _og_search_video_url(self, html, name='video url', secure=True, **kargs):
         regexes = self._og_regexes('video') + self._og_regexes('video:url')
@@ -1342,9 +1345,8 @@ class InfoExtractor(object):
     def _og_search_url(self, html, **kargs):
         return self._og_search_property('url', html, **kargs)
 
-    def _html_extract_title(self, html, name, **kwargs):
-        return self._html_search_regex(
-            r'(?s)<title>(.*?)</title>', html, name, **kwargs)
+    def _html_extract_title(self, html, name='title', *, fatal=False, **kwargs):
+        return self._html_search_regex(r'(?s)<title>([^<]+)</title>', html, name, fatal=fatal, **kwargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
         name = variadic(name)
@@ -3686,9 +3688,9 @@ class InfoExtractor(object):
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
         """ Merge subtitle items for one language. Items with duplicated URLs/data
         will be dropped. """
-        list1_data = set([item.get('url') or item['data'] for item in subtitle_list1])
+        list1_data = set((item.get('url'), item.get('data')) for item in subtitle_list1)
         ret = list(subtitle_list1)
-        ret.extend([item for item in subtitle_list2 if (item.get('url') or item['data']) not in list1_data])
+        ret.extend(item for item in subtitle_list2 if (item.get('url'), item.get('data')) not in list1_data)
         return ret
 
     @classmethod

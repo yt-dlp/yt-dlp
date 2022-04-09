@@ -75,8 +75,7 @@ class FiveTVIE(InfoExtractor):
              r'<a[^>]+?href="([^"]+)"[^>]+?class="videoplayer"'],
             webpage, 'video url')
 
-        title = self._og_search_title(webpage, default=None) or self._search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title')
+        title = self._og_search_title(webpage, default=None) or self._html_extract_title(webpage)
         duration = int_or_none(self._og_search_property(
             'video:duration', webpage, 'duration', default=None))
 

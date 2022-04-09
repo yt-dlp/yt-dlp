@@ -14,6 +14,7 @@ from ..utils import (
     float_or_none,
     mimetype2ext,
     str_or_none,
+    try_call,
     try_get,
     unescapeHTML,
     unsmuggle_url,
@@ -145,11 +146,11 @@ class MediasiteIE(InfoExtractor):
                             'duration': slide['Time'] / 1000,
                         })
 
-            next_time = try_get(None, [
-                lambda _: Stream['Slides'][i + 1]['Time'],
-                lambda _: duration,
-                lambda _: slide['Time'],
-            ], expected_type=(int, float))
+            next_time = try_call(
+                lambda: Stream['Slides'][i + 1]['Time'],
+                lambda: duration,
+                lambda: slide['Time'],
+                expected_type=(int, float))
 
             fragments.append({
                 'path': fname_template.format(slide.get('Number', i + 1)),
