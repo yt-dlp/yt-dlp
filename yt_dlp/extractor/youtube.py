@@ -4261,8 +4261,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         # Some playlists are unviewable but YouTube still provides a link to the (broken) playlist page [1]
         # [1] MLCT, RLTDwFCb4jeqaKWnciAYM-ZVHg
-        is_known_unviewable = self._search_regex(
-            r'^(MLCT|RLTD[A-Za-z0-9_-]{21}[AQgw])$', playlist_id, 'playlist id', default=False)
+        is_known_unviewable = re.fullmatch(r'MLCT|RLTD[\w-]{22}', playlist_id)
 
         if playlist_url and playlist_url != url and not is_known_unviewable:
             return self.url_result(
