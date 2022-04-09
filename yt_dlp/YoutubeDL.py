@@ -643,6 +643,11 @@ class YoutubeDL(object):
                 else:
                     raise
 
+        if auto_init:
+            if auto_init != 'no_verbose_header':
+                self.print_debug_header()
+            self.add_default_info_extractors()
+
         if (sys.platform != 'win32'
                 and sys.getfilesystemencoding() in ['ascii', 'ANSI_X3.4-1968']
                 and not self.params.get('restrictfilenames', False)):
@@ -664,13 +669,6 @@ class YoutubeDL(object):
         # Set http_headers defaults according to std_headers
         self.params['http_headers'] = merge_headers(std_headers, self.params.get('http_headers', {}))
 
-        self._setup_opener()
-
-        if auto_init:
-            if auto_init != 'no_verbose_header':
-                self.print_debug_header()
-            self.add_default_info_extractors()
-
         hooks = {
             'post_hooks': self.add_post_hook,
             'progress_hooks': self.add_progress_hook,
@@ -687,6 +685,7 @@ class YoutubeDL(object):
                 get_postprocessor(pp_def.pop('key'))(self, **compat_kwargs(pp_def)),
                 when=when)
 
+        self._setup_opener()
         register_socks_protocols()
 
         def preload_download_archive(fn):
@@ -3698,6 +3697,7 @@ class YoutubeDL(object):
             delim=', ') or 'none'
         write_debug('Optional libraries: %s' % lib_str)
 
+        self._setup_opener()
         proxy_map = {}
         for handler in self._opener.handlers:
             if hasattr(handler, 'proxies'):
@@ -3717,6 +3717,8 @@ class YoutubeDL(object):
                     latest_version)
 
     def _setup_opener(self):
+        if hasattr(self, '_opener'):
+            return
         timeout_val = self.params.get('socket_timeout')
         self._socket_timeout = 20 if timeout_val is None else float(timeout_val)
 

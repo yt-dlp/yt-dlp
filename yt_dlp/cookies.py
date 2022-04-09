@@ -20,6 +20,7 @@ from .compat import (
     compat_b64decode,
     compat_cookiejar_Cookie,
 )
+from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import (
     error_to_str,
     expand_path,
@@ -73,6 +74,32 @@ class YDLLogger:
         if self._ydl:
             self._ydl.report_error(message)
 
+    def progress_bar(self):
+        """Return a context manager with a print method. (Optional)"""
+        # Do not print to files/pipes, loggers, or when --no-progress is used
+        if not self._ydl or self._ydl.params.get('noprogress') or self._ydl.params.get('logger'):
+            return
+        file = self._ydl._out_files['error']
+        try:
+            if not file.isatty():
+                return
+        except BaseException:
+            return
+
+        printer = MultilinePrinter(file, preserve_output=False)
+        printer.print = lambda message: printer.print_at_line(f'[Cookies] {message}', 0)
+        return printer
+
+
+def _create_progress_bar(logger):
+    if hasattr(logger, 'progress_bar'):
+        printer = logger.progress_bar()
+        if printer:
+            return printer
+    printer = QuietMultilinePrinter()
+    printer.print = lambda _: None
+    return printer
+
 
 def load_cookies(cookie_file, browser_specification, ydl):
     cookie_jars = []
@@ -115,7 +142,7 @@ def _extract_firefox_cookies(profile, logger):
     else:
         search_root = os.path.join(_firefox_browser_dir(), profile)
 
-    cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite')
+    cookie_database_path = _find_most_recently_used_file(search_root, 'cookies.sqlite', logger)
     if cookie_database_path is None:
         raise FileNotFoundError('could not find firefox cookies database in {}'.format(search_root))
     logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
@@ -126,13 +153,17 @@ def _extract_firefox_cookies(profile, logger):
             cursor = _open_database_copy(cookie_database_path, tmpdir)
             cursor.execute('SELECT host, name, value, path, expiry, isSecure FROM moz_cookies')
             jar = YoutubeDLCookieJar()
-            for host, name, value, path, expiry, is_secure in cursor.fetchall():
-                cookie = compat_cookiejar_Cookie(
-                    version=0, name=name, value=value, port=None, port_specified=False,
-                    domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
-                    path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
-                    comment=None, comment_url=None, rest={})
-                jar.set_cookie(cookie)
+            with _create_progress_bar(logger) as progress_bar:
+                table = cursor.fetchall()
+                total_cookie_count = len(table)
+                for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
+                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    cookie = compat_cookiejar_Cookie(
+                        version=0, name=name, value=value, port=None, port_specified=False,
+                        domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
+                        path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
+                        comment=None, comment_url=None, rest={})
+                    jar.set_cookie(cookie)
             logger.info('Extracted {} cookies from firefox'.format(len(jar)))
             return jar
         finally:
@@ -232,7 +263,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             logger.error('{} does not support profiles'.format(browser_name))
             search_root = config['browser_dir']
 
-    cookie_database_path = _find_most_recently_used_file(search_root, 'Cookies')
+    cookie_database_path = _find_most_recently_used_file(search_root, 'Cookies', logger)
     if cookie_database_path is None:
         raise FileNotFoundError('could not find {} cookies database in "{}"'.format(browser_name, search_root))
     logger.debug('Extracting cookies from: "{}"'.format(cookie_database_path))
@@ -251,26 +282,18 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             jar = YoutubeDLCookieJar()
             failed_cookies = 0
             unencrypted_cookies = 0
-            for host_key, name, value, encrypted_value, path, expires_utc, is_secure in cursor.fetchall():
-                host_key = host_key.decode('utf-8')
-                name = name.decode('utf-8')
-                value = value.decode('utf-8')
-                path = path.decode('utf-8')
-
-                if not value and encrypted_value:
-                    value = decryptor.decrypt(encrypted_value)
-                    if value is None:
+            with _create_progress_bar(logger) as progress_bar:
+                table = cursor.fetchall()
+                total_cookie_count = len(table)
+                for i, line in enumerate(table):
+                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    is_encrypted, cookie = _process_chrome_cookie(decryptor, *line)
+                    if not cookie:
                         failed_cookies += 1
                         continue
-                else:
-                    unencrypted_cookies += 1
-
-                cookie = compat_cookiejar_Cookie(
-                    version=0, name=name, value=value, port=None, port_specified=False,
-                    domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
-                    path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
-                    comment=None, comment_url=None, rest={})
-                jar.set_cookie(cookie)
+                    elif not is_encrypted:
+                        unencrypted_cookies += 1
+                    jar.set_cookie(cookie)
             if failed_cookies > 0:
                 failed_message = ' ({} could not be decrypted)'.format(failed_cookies)
             else:
@@ -283,6 +306,25 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
         finally:
             if cursor is not None:
                 cursor.connection.close()
+
+
+def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, path, expires_utc, is_secure):
+    host_key = host_key.decode('utf-8')
+    name = name.decode('utf-8')
+    value = value.decode('utf-8')
+    path = path.decode('utf-8')
+    is_encrypted = not value and encrypted_value
+
+    if is_encrypted:
+        value = decryptor.decrypt(encrypted_value)
+        if value is None:
+            return is_encrypted, None
+
+    return is_encrypted, compat_cookiejar_Cookie(
+        version=0, name=name, value=value, port=None, port_specified=False,
+        domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
+        path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
+        comment=None, comment_url=None, rest={})
 
 
 class ChromeCookieDecryptor:
@@ -547,10 +589,12 @@ def _parse_safari_cookies_page(data, jar, logger):
 
     p.skip_to(record_offsets[0], 'unknown page header field')
 
-    for record_offset in record_offsets:
-        p.skip_to(record_offset, 'space between records')
-        record_length = _parse_safari_cookies_record(data[record_offset:], jar, logger)
-        p.read_bytes(record_length)
+    with _create_progress_bar(logger) as progress_bar:
+        for i, record_offset in enumerate(record_offsets):
+            progress_bar.print(f'Loading cookie {i: 6d}/{number_of_cookies: 6d}')
+            p.skip_to(record_offset, 'space between records')
+            record_length = _parse_safari_cookies_record(data[record_offset:], jar, logger)
+            p.read_bytes(record_length)
     p.skip_to_end('space in between pages')
 
 
@@ -830,10 +874,11 @@ def _get_mac_keyring_password(browser_keyring_name, logger):
 
 
 def _get_windows_v10_key(browser_root, logger):
-    path = _find_most_recently_used_file(browser_root, 'Local State')
+    path = _find_most_recently_used_file(browser_root, 'Local State', logger)
     if path is None:
         logger.error('could not find local state file')
         return None
+    logger.debug(f'Found local state file at "{path}"')
     with open(path, 'r', encoding='utf8') as f:
         data = json.load(f)
     try:
@@ -925,13 +970,16 @@ def _get_column_names(cursor, table_name):
     return [row[1].decode('utf-8') for row in table_info]
 
 
-def _find_most_recently_used_file(root, filename):
+def _find_most_recently_used_file(root, filename, logger):
     # if there are multiple browser profiles, take the most recently used one
-    paths = []
-    for root, dirs, files in os.walk(root):
-        for file in files:
-            if file == filename:
-                paths.append(os.path.join(root, file))
+    i, paths = 0, []
+    with _create_progress_bar(logger) as progress_bar:
+        for curr_root, dirs, files in os.walk(root):
+            for file in files:
+                i += 1
+                progress_bar.print(f'Searching for "{filename}": {i: 6d} files searched')
+                if file == filename:
+                    paths.append(os.path.join(curr_root, file))
     return None if not paths else max(paths, key=lambda path: os.lstat(path).st_mtime)
 
 
