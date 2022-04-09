@@ -196,8 +196,6 @@ class RokfinIE(InfoExtractor):
             data=urlencode_postdata(
                 {'code': get_authorization_code(), 'grant_type': 'authorization_code', 'client_id': 'web',
                  'redirect_uri': 'https://rokfin.com/silent-check-sso.html'}))
-        if self._configuration_arg('print_user_info'):
-            self.to_screen(self._download_json_using_access_token('https://prod-api-v2.production.rokfin.com/api/v2/user/me', None))
 
     def _authentication_active(self):
         return not ({'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'} - set([cookie.name for cookie in self._downloader.cookiejar]))
