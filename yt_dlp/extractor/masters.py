@@ -29,8 +29,7 @@ class MastersIE(InfoExtractor):
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(content_resp, ('media', 'm3u8')), video_id, 'mp4')
         self._sort_formats(formats)
 
-        thumbnail_data = traverse_obj(content_resp, ('images', 0))
-        thumbnails = [{'id': name, 'url': thumbnail_data.get(name)} for name in thumbnail_data or []]
+        thumbnails = [{'id': name, 'url': url} for name, url in traverse_obj(content_resp, ('images', 0), default={}).items()]
 
         return {
             'id': video_id,
