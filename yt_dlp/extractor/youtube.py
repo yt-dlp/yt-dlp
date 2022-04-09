@@ -5703,7 +5703,7 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
 
 
 class YoutubeStoriesIE(InfoExtractor):
-    IE_DESC = 'YouTube channel stories; "youtube:stories:<channel id>'
+    IE_DESC = 'YouTube channel stories; "ytstories:<channel id>'
     IE_NAME = 'youtube:stories'
     _VALID_URL = r'ytstories:(?:RLTD|UC)(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
     _TESTS = [{
