@@ -459,6 +459,11 @@ from .epicon import (
     EpiconIE,
     EpiconSeriesIE,
 )
+from .epix import (
+    EpixExtraIE,
+    EpixTrailerSeasonIE,
+    EpixTrailerMovieIE,
+)
 from .eporner import EpornerIE
 from .eroprofile import (
     EroProfileIE,
