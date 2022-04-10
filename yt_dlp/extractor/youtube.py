@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import base64
 import calendar
 import copy
 import datetime
@@ -32,6 +33,7 @@ from ..compat import (
 from ..jsinterp import JSInterpreter
 from ..utils import (
     bug_reports_message,
+    bytes_to_intlist,
     clean_html,
     datetime_from_str,
     dict_get,
@@ -41,6 +43,7 @@ from ..utils import (
     format_field,
     get_first,
     int_or_none,
+    intlist_to_bytes,
     is_html,
     join_nonempty,
     js_to_json,
@@ -2839,10 +2842,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         continuation = self._extract_continuation(root_continuation_data)
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
         if message and not parent:
-            self.report_warning(message, video_id=video_id)
+            self.report_warning(message, video_id=video_id, only_once=True)
 
         response = None
+        is_forced_continuation = False
         is_first_continuation = parent is None
+        if is_first_continuation and not continuation:
+            # Sometimes you can get comments by generating the continuation yourself,
+            # even if YouTube initially reports them being disabled - e.g. stories comments.
+            # Note: if the comment section is actually disabled, YouTube may return a response with
+            # required check_get_keys missing. So we will disable that check initially in this case.
+            continuation = self._build_api_continuation_query(self._generate_comment_continuation(video_id))
+            is_forced_continuation = True
 
         for page_num in itertools.count(0):
             if not continuation:
@@ -2863,8 +2874,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             response = self._extract_response(
                 item_id=None, query=continuation,
                 ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                check_get_keys='onResponseReceivedEndpoints')
-
+                check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+            is_forced_continuation = False
             continuation_contents = traverse_obj(
                 response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
 
@@ -2888,6 +2899,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continuation = self._extract_continuation({'contents': continuation_items})
                 if continuation:
                     break
+
+    @staticmethod
+    def _generate_comment_continuation(video_id):
+        """
+        Generates initial comment section continuation token from given video id
+        """
+        b64_vid_id = base64.b64encode(bytes(video_id.encode('utf-8')))
+        parts = ('Eg0SCw==', b64_vid_id, 'GAYyJyIRIgs=', b64_vid_id, 'MAB4AjAAQhBjb21tZW50cy1zZWN0aW9u')
+        new_continuation_intlist = list(itertools.chain.from_iterable(
+            [bytes_to_intlist(base64.b64decode(part)) for part in parts]))
+        return base64.b64encode(intlist_to_bytes(new_continuation_intlist)).decode('utf-8')
 
     def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
@@ -2942,7 +2964,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg, account_syncid=syncid, session_index=session_index, default_client=client)
 
-        yt_query = {'videoId': video_id, 'params': '8AEB'}
+        yt_query = {
+            'videoId': video_id,
+            'params': '8AEB'  # enable stories
+        }
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
