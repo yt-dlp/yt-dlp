@@ -70,7 +70,7 @@ class GofileIE(InfoExtractor):
                 continue
 
             found_files = True
-            file_url = file.get('directLink')
+            file_url = file.get('link')
             if file_url:
                 yield {
                     'id': file['id'],
