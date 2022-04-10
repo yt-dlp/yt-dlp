@@ -178,4 +178,4 @@ class MultilinePrinter(MultilinePrinterBase):
                 *text, CONTROL_SEQUENCES['ERASE_LINE'],
                 f'{CONTROL_SEQUENCES["UP"]}{CONTROL_SEQUENCES["ERASE_LINE"]}' * self.maximum)
         else:
-            self.write(*text, ' ' * self._lastlength)
+            self.write('\r', ' ' * self._lastlength, '\r')

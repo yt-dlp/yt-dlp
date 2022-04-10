@@ -101,7 +101,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         success = True
         if info['ext'] == 'mp3':
             options = [
-                '-c', 'copy', '-map', '0:0', '-map', '1:0', '-id3v2_version', '3',
+                '-c', 'copy', '-map', '0:0', '-map', '1:0', '-write_id3v1', '1', '-id3v2_version', '3',
                 '-metadata:s:v', 'title="Album cover"', '-metadata:s:v', 'comment="Cover (front)"']
 
             self._report_run('ffmpeg', filename)
