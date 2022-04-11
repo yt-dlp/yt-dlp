@@ -70,7 +70,8 @@ from .socks import ProxyType, sockssocket
 
 try:
     import certifi
-    has_certifi = True
+    # The certificate may not be bundled in executable
+    has_certifi = os.path.exists(certifi.where())
 except ImportError:
     has_certifi = False
 
