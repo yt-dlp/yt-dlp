@@ -11,11 +11,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import io
 import re
 import string
+import urllib.request
 
 from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.jsinterp import JSInterpreter
-from yt_dlp.compat import compat_str, compat_urlretrieve
+from yt_dlp.compat import compat_str
 
 _SIG_TESTS = [
     (
@@ -147,7 +148,7 @@ def t_factory(name, sig_func, url_pattern):
             fn = os.path.join(self.TESTDATA_DIR, basename)
 
             if not os.path.exists(fn):
-                compat_urlretrieve(url, fn)
+                urllib.request.urlretrieve(url, fn)
             with io.open(fn, encoding='utf-8') as testf:
                 jscode = testf.read()
             self.assertEqual(sig_func(jscode, sig_input), expected_sig)

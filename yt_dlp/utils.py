@@ -41,12 +41,13 @@ import traceback
 import xml.etree.ElementTree
 import zlib
 import mimetypes
+import urllib.parse
+import shlex
 
 from .compat import (
     compat_HTMLParseError,
     compat_HTMLParser,
     compat_HTTPError,
-    compat_basestring,
     compat_brotli,
     compat_chr,
     compat_cookiejar,
@@ -55,28 +56,19 @@ from .compat import (
     compat_html_entities,
     compat_html_entities_html5,
     compat_http_client,
-    compat_integer_types,
-    compat_numeric_types,
-    compat_kwargs,
     compat_os_name,
     compat_parse_qs,
-    compat_shlex_split,
     compat_shlex_quote,
     compat_str,
     compat_struct_pack,
     compat_struct_unpack,
     compat_urllib_error,
-    compat_urllib_parse,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
-    compat_urllib_parse_urlunparse,
-    compat_urllib_parse_quote,
-    compat_urllib_parse_quote_plus,
     compat_urllib_parse_unquote_plus,
     compat_urllib_request,
     compat_urlparse,
     compat_websockets,
-    compat_xpath,
 )
 
 from .socks import (
@@ -340,7 +332,7 @@ def xpath_with_ns(path, ns_map):
 
 def xpath_element(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
     def _find_xpath(xpath):
-        return node.find(compat_xpath(xpath))
+        return node.find(xpath)
 
     if isinstance(xpath, (str, compat_str)):
         n = _find_xpath(xpath)
@@ -1193,7 +1185,7 @@ class XAttrUnavailableError(YoutubeDLError):
 
 
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
-    hc = http_class(*args, **compat_kwargs(kwargs))
+    hc = http_class(*args, **kwargs)
     source_address = ydl_handler._params.get('source_address')
 
     if source_address is not None:
@@ -2401,7 +2393,7 @@ def str_or_none(v, default=None):
 
 def str_to_int(int_str):
     """ A more relaxed version of int_or_none """
-    if isinstance(int_str, compat_integer_types):
+    if isinstance(int_str, int):
         return int_str
     elif isinstance(int_str, compat_str):
         int_str = re.sub(r'[,\.\+]', '', int_str)
@@ -2442,7 +2434,7 @@ def request_to_url(req):
 def strftime_or_none(timestamp, date_format, default=None):
     datetime_object = None
     try:
-        if isinstance(timestamp, compat_numeric_types):  # unix timestamp
+        if isinstance(timestamp, (int, float)):  # unix timestamp
             datetime_object = datetime.datetime.utcfromtimestamp(timestamp)
         elif isinstance(timestamp, compat_str):  # assume YYYYMMDD
             datetime_object = datetime.datetime.strptime(timestamp, '%Y%m%d')
@@ -2452,7 +2444,7 @@ def strftime_or_none(timestamp, date_format, default=None):
 
 
 def parse_duration(s):
-    if not isinstance(s, compat_basestring):
+    if not isinstance(s, str):
         return None
     s = s.strip()
     if not s:
@@ -2789,7 +2781,7 @@ def lowercase_escape(s):
 
 def escape_rfc3986(s):
     """Escape non-ASCII characters as suggested by RFC 3986"""
-    return compat_urllib_parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
+    return urllib.parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
 
 
 def escape_url(url):
@@ -2975,7 +2967,7 @@ TV_PARENTAL_GUIDELINES = {
 def parse_age_limit(s):
     if type(s) == int:
         return s if 0 <= s <= 21 else None
-    if not isinstance(s, compat_basestring):
+    if not isinstance(s, str):
         return None
     m = re.match(r'^(?P<age>\d{1,2})\+?$', s)
     if m:
@@ -3405,7 +3397,7 @@ def _match_one(filter_part, dct, incomplete):
             comparison_value = comparison_value.replace(r'\%s' % m['quote'], m['quote'])
         actual_value = dct.get(m['key'])
         numeric_comparison = None
-        if isinstance(actual_value, compat_numeric_types):
+        if isinstance(actual_value, (int, float)):
             # If the original field is a string and matching comparisonvalue is
             # a number we should respect the origin of the original field
             # and process comparison value as a string (see
@@ -4859,9 +4851,9 @@ def iri_to_uri(iri):
 
     net_location = ''
     if iri_parts.username:
-        net_location += compat_urllib_parse_quote(iri_parts.username, safe=r"!$%&'()*+,~")
+        net_location += urllib.parse.quote(iri_parts.username, safe=r"!$%&'()*+,~")
         if iri_parts.password is not None:
-            net_location += ':' + compat_urllib_parse_quote(iri_parts.password, safe=r"!$%&'()*+,~")
+            net_location += ':' + urllib.parse.quote(iri_parts.password, safe=r"!$%&'()*+,~")
         net_location += '@'
 
     net_location += iri_parts.hostname.encode('idna').decode('utf-8')  # Punycode for Unicode hostnames.
@@ -4869,19 +4861,19 @@ def iri_to_uri(iri):
     if iri_parts.port is not None and iri_parts.port != 80:
         net_location += ':' + str(iri_parts.port)
 
-    return compat_urllib_parse_urlunparse(
+    return urllib.parse.urlunparse(
         (iri_parts.scheme,
             net_location,
 
-            compat_urllib_parse_quote_plus(iri_parts.path, safe=r"!$%&'()*+,/:;=@|~"),
+            urllib.parse.quote_plus(iri_parts.path, safe=r"!$%&'()*+,/:;=@|~"),
 
             # Unsure about the `safe` argument, since this is a legacy way of handling parameters.
-            compat_urllib_parse_quote_plus(iri_parts.params, safe=r"!$%&'()*+,/:;=@|~"),
+            urllib.parse.quote_plus(iri_parts.params, safe=r"!$%&'()*+,/:;=@|~"),
 
             # Not totally sure about the `safe` argument, since the source does not explicitly mention the query URI component.
-            compat_urllib_parse_quote_plus(iri_parts.query, safe=r"!$%&'()*+,/:;=?@{|}~"),
+            urllib.parse.quote_plus(iri_parts.query, safe=r"!$%&'()*+,/:;=?@{|}~"),
 
-            compat_urllib_parse_quote_plus(iri_parts.fragment, safe=r"!#$%&'()*+,/:;=?@{|}~")))
+            urllib.parse.quote_plus(iri_parts.fragment, safe=r"!#$%&'()*+,/:;=?@{|}~")))
 
     # Source for `safe` arguments: https://url.spec.whatwg.org/#percent-encoded-bytes.
 
@@ -5233,7 +5225,7 @@ class Config:
         try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read()
-            res = compat_shlex_split(contents, comments=True)
+            res = shlex.split(contents, comments=True)
         finally:
             optionf.close()
         return res

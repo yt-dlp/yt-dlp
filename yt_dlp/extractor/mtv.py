@@ -6,7 +6,6 @@ import re
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_xpath,
 )
 from ..utils import (
     ExtractorError,
@@ -167,9 +166,9 @@ class MTVServicesInfoExtractor(InfoExtractor):
                 itemdoc, './/{http://search.yahoo.com/mrss/}category',
                 'scheme', 'urn:mtvn:video_title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//{http://search.yahoo.com/mrss/}title'))
+            title_el = itemdoc.find('.//{http://search.yahoo.com/mrss/}title')
         if title_el is None:
-            title_el = itemdoc.find(compat_xpath('.//title'))
+            title_el = itemdoc.find('.//title')
             if title_el.text is None:
                 title_el = None
 

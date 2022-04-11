@@ -1,9 +1,9 @@
 from __future__ import unicode_literals
 import os
+import shlex
 import subprocess
 
 from .common import PostProcessor
-from ..compat import compat_shlex_split
 from ..utils import (
     check_executable,
     cli_option,
@@ -79,7 +79,7 @@ class SponSkrubPP(PostProcessor):
         if not self.cutout:
             cmd += ['-chapter']
         cmd += cli_option(self._downloader.params, '-proxy', 'proxy')
-        cmd += compat_shlex_split(self.args)  # For backward compatibility
+        cmd += shlex.split(self.args)  # For backward compatibility
         cmd += self._configuration_args(self._exe_name, use_compat=False)
         cmd += ['--', information['id'], filename, temp_filename]
         cmd = [encodeArgument(i) for i in cmd]

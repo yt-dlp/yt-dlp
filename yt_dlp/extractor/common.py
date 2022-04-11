@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import base64
 import collections
+import xml.etree.ElementTree
 import hashlib
 import itertools
 import json
@@ -17,7 +18,6 @@ import math
 from ..compat import (
     compat_cookiejar_Cookie,
     compat_cookies_SimpleCookie,
-    compat_etree_Element,
     compat_etree_fromstring,
     compat_expanduser,
     compat_getpass,
@@ -30,7 +30,6 @@ from ..compat import (
     compat_urllib_parse_urlencode,
     compat_urllib_request,
     compat_urlparse,
-    compat_xml_parse_error,
 )
 from ..downloader import FileDownloader
 from ..downloader.f4m import (
@@ -951,7 +950,7 @@ class InfoExtractor(object):
             fatal=True, encoding=None, data=None, headers={}, query={},
             expected_status=None):
         """
-        Return a tuple (xml as an compat_etree_Element, URL handle).
+        Return a tuple (xml as an xml.etree.ElementTree.Element, URL handle).
 
         See _download_webpage docstring for arguments specification.
         """
@@ -972,7 +971,7 @@ class InfoExtractor(object):
             transform_source=None, fatal=True, encoding=None,
             data=None, headers={}, query={}, expected_status=None):
         """
-        Return the xml as an compat_etree_Element.
+        Return the xml as an xml.etree.ElementTree.Element.
 
         See _download_webpage docstring for arguments specification.
         """
@@ -988,7 +987,7 @@ class InfoExtractor(object):
             xml_string = transform_source(xml_string)
         try:
             return compat_etree_fromstring(xml_string.encode('utf-8'))
-        except compat_xml_parse_error as ve:
+        except xml.etree.ElementTree.ParseError as ve:
             errmsg = '%s: Failed to parse XML ' % video_id
             if fatal:
                 raise ExtractorError(errmsg, cause=ve)
@@ -2008,7 +2007,7 @@ class InfoExtractor(object):
     def _parse_f4m_formats(self, manifest, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                            transform_source=lambda s: fix_xml_ampersands(s).strip(),
                            fatal=True, m3u8_id=None):
-        if not isinstance(manifest, compat_etree_Element) and not fatal:
+        if not isinstance(manifest, xml.etree.ElementTree.Element) and not fatal:
             return []
 
         # currently yt-dlp cannot decode the playerVerificationChallenge as Akamai uses Adobe Alchemy

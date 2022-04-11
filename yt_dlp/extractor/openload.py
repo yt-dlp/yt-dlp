@@ -8,7 +8,6 @@ import tempfile
 
 from ..compat import (
     compat_urlparse,
-    compat_kwargs,
 )
 from ..utils import (
     check_executable,
@@ -158,7 +157,7 @@ class PhantomJSwrapper(object):
                 cookie['rest'] = {'httpOnly': None}
             if 'expiry' in cookie:
                 cookie['expire_time'] = cookie['expiry']
-            self.extractor._set_cookie(**compat_kwargs(cookie))
+            self.extractor._set_cookie(**cookie)
 
     def get(self, url, html=None, video_id=None, note=None, note2='Executing JS on webpage', headers={}, jscode='saveAndExit();'):
         """

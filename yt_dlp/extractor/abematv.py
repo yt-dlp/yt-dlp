@@ -5,13 +5,14 @@ import hashlib
 import hmac
 import re
 import struct
+import urllib.response
+import uuid
 from base64 import urlsafe_b64encode
 from binascii import unhexlify
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..compat import (
-    compat_urllib_response,
     compat_urllib_parse_urlparse,
     compat_urllib_request,
 )
@@ -19,7 +20,6 @@ from ..utils import (
     ExtractorError,
     decode_base,
     int_or_none,
-    random_uuidv4,
     request_to_url,
     time_seconds,
     update_url_query,
@@ -141,7 +141,7 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
         url = request_to_url(url)
         ticket = compat_urllib_parse_urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
-        return compat_urllib_response.addinfourl(io.BytesIO(response_data), headers={
+        return urllib.response.addinfourl(io.BytesIO(response_data), headers={
             'Content-Length': len(response_data),
         }, url=url, code=200)
 
@@ -253,7 +253,7 @@ class AbemaTVIE(AbemaTVBaseIE):
         if self._USERTOKEN:
             return self._USERTOKEN
 
-        self._DEVICE_ID = random_uuidv4()
+        self._DEVICE_ID = str(uuid.uuid4())
         aks = self._generate_aks(self._DEVICE_ID)
         user_data = self._download_json(
             'https://api.abema.io/v1/users', None, note='Authorizing',

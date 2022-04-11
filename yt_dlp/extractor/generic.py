@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 
 import os
 import re
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
 from .youtube import YoutubeIE
@@ -12,7 +13,6 @@ from ..compat import (
     compat_str,
     compat_urllib_parse_unquote,
     compat_urlparse,
-    compat_xml_parse_error,
 )
 from ..utils import (
     determine_ext,
@@ -2827,7 +2827,7 @@ class GenericIE(InfoExtractor):
         try:
             try:
                 doc = compat_etree_fromstring(webpage)
-            except compat_xml_parse_error:
+            except xml.etree.ElementTree.ParseError:
                 doc = compat_etree_fromstring(webpage.encode('utf-8'))
             if doc.tag == 'rss':
                 self.report_detected('RSS feed')
@@ -2862,7 +2862,7 @@ class GenericIE(InfoExtractor):
                 self.report_detected('F4M manifest')
                 self._sort_formats(info_dict['formats'])
                 return info_dict
-        except compat_xml_parse_error:
+        except xml.etree.ElementTree.ParseError:
             pass
 
         # Is it a Camtasia project?

@@ -15,7 +15,6 @@ import re
 import io
 from .utils import int_or_none, timetuple_from_msec
 from .compat import (
-    compat_str as str,
     compat_Pattern,
     compat_Match,
 )

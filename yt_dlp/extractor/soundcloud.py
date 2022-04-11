@@ -12,7 +12,6 @@ from .common import (
 )
 from ..compat import (
     compat_HTTPError,
-    compat_kwargs,
     compat_str,
 )
 from ..utils import (
@@ -96,7 +95,7 @@ class SoundcloudBaseIE(InfoExtractor):
             query['client_id'] = self._CLIENT_ID
             kwargs['query'] = query
             try:
-                return super()._download_json(*args, **compat_kwargs(kwargs))
+                return super()._download_json(*args, **kwargs)
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
                     self._store_client_id(None)

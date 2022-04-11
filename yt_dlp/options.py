@@ -3,14 +3,13 @@ from __future__ import unicode_literals
 import os.path
 import optparse
 import re
+import shlex
 import sys
 
 from .compat import (
     compat_expanduser,
     compat_get_terminal_size,
     compat_getenv,
-    compat_kwargs,
-    compat_shlex_split,
 )
 from .utils import (
     Config,
@@ -223,14 +222,12 @@ def create_parser():
     fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
     fmt.format_option_strings = _format_option_string
 
-    kw = {
-        'version': __version__,
-        'formatter': fmt,
-        'usage': '%prog [OPTIONS] URL [URL...]',
-        'conflict_handler': 'resolve',
-    }
-
-    parser = _YoutubeDLOptionParser(**compat_kwargs(kw))
+    parser = _YoutubeDLOptionParser(
+        version=__version__,
+        formatter=fmt,
+        usage='%prog [OPTIONS] URL [URL...]',
+        conflict_handler='resolve'
+    )
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -833,7 +830,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
             'default_key': 'default',
-            'process': compat_shlex_split
+            'process': shlex.split
         }, help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
@@ -1339,7 +1336,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'\w+(?:\+\w+)?',
             'default_key': 'default-compat',
-            'process': compat_shlex_split,
+            'process': shlex.split,
             'multiple_keys': False
         }, help=(
             'Give these arguments to the postprocessors. '
