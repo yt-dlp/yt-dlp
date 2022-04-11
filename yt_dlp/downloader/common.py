@@ -5,6 +5,7 @@ import re
 import time
 import random
 import errno
+import contextlib
 
 from ..utils import (
     decodeArgument,
@@ -23,6 +24,7 @@ from ..minicurses import (
     QuietMultilinePrinter,
     BreaklineStatusPrinter
 )
+from .augment import AUGMENT_MAP
 
 
 class FileDownloader(object):
@@ -454,7 +456,8 @@ class FileDownloader(object):
                     '[download] Sleeping %s seconds ...' % (
                         sleep_interval_sub))
                 time.sleep(sleep_interval_sub)
-        ret = self.real_download(filename, info_dict)
+        with self._enter_augmented(info_dict):
+            ret = self.real_download(filename, info_dict)
         self._finish_multiline_status()
         return ret, True
 
@@ -487,3 +490,13 @@ class FileDownloader(object):
             exe = os.path.basename(str_args[0])
 
         self.write_debug('%s command line: %s' % (exe, shell_quote(str_args)))
+
+    def _enter_augmented(self, info_dict):
+        augmentation = info_dict.get('augments') or []
+        es = contextlib.ExitStack()
+        if not augmentation:
+            return es
+        for a in augmentation:
+            # TODO: add contitional activation
+            es.enter_context(AUGMENT_MAP[a['key']](self, info_dict, a))
+        return es

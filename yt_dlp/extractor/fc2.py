@@ -260,11 +260,6 @@ class FC2LiveIE(InfoExtractor):
                         }))
 
         self._sort_formats(formats)
-        for fmt in formats:
-            fmt.update({
-                'protocol': 'fc2_live',
-                'ws': ws,
-            })
 
         title = self._html_search_meta(('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
         if not title:
@@ -284,6 +279,17 @@ class FC2LiveIE(InfoExtractor):
             live_info_view = re.sub(r'\$\(.+?\)[^,]+,', '"",', live_info_view)
             live_info_view = self._parse_json(js_to_json(live_info_view), video_id)
 
+        counter, prev_aug = 1, None
+
+        def ping(aug):
+            nonlocal counter, prev_aug
+            # sanity check
+            if prev_aug and aug != prev_aug:
+                raise ExtractorError("Download instances can't be reused")
+            prev_aug = aug
+            counter += 1
+            ws.send('{"name":"heartbeat","arguments":{},"id":%d}' % counter)
+
         return {
             'id': video_id,
             'title': title or traverse_obj(live_info_view, 'title'),
@@ -295,4 +301,10 @@ class FC2LiveIE(InfoExtractor):
             'uploader_id': video_id,
             'thumbnail': traverse_obj(live_info_view, 'thumb'),
             'is_live': True,
+
+            'augments': [{
+                'key': 'heartbeat',
+                'callback': ping,
+                'interval': 30,
+            }]
         }
