@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import math
 import re
 
 from .common import InfoExtractor
@@ -8,8 +9,11 @@ from ..utils import (
     clean_html,
     determine_ext,
     ExtractorError,
+    InAdvancePagedList,
     int_or_none,
     parse_duration,
+    strip_or_none,
+    traverse_obj,
 )
 
 
@@ -161,3 +165,95 @@ class XVideosIE(InfoExtractor):
             'thumbnails': thumbnails,
             'age_limit': 18,
         }
+
+
+class XVideosUserIE(InfoExtractor):
+    _VALID_URL = r'''(?x)
+        https?://(?:.+?\.)?xvideos\.(?:com|es)/
+        (?P<id>(?:channels|amateur-channels|model-channels|pornstar-channels|profiles)/[^/?#&]+)'''
+    _TESTS = [{
+        # channels profile and # in url
+        'url': 'https://www.xvideos.com/channels/college_girls_gone_bad#_tabVideos,videos-best',
+        'info_dict': {
+            'id': 'channels/college_girls_gone_bad',
+            'title': 'College Girls Gone Bad',
+            'description': 'Hot college girls in real sorority hazing acts!',
+        },
+        'playlist_mincount': 109,
+    }, {
+        # model-channels profile and # in url
+        'url': 'https://www.xvideos.com/model-channels/shonariver#_tabVideos,videos-best',
+        'info_dict': {
+            'id': 'model-channels/shonariver',
+            'title': 'Shona River',
+            'description': 'md5:4c695588123b2fb3d39f4d0dbf1da9a0',
+        },
+        'playlist_mincount': 198,
+    }, {
+        # amateur-channels profile
+        'url': 'https://www.xvideos.com/amateur-channels/queanfuckingcucking',
+        'info_dict': {
+            'id': 'amateur-channels/queanfuckingcucking',
+            'title': 'Queanfuckingcucking',
+            'description': 'md5:bf4514baf23bc7d0525727deeaea96a9',
+        },
+        'playlist_mincount': 8,
+    }, {
+        # /profiles/***
+        'url': 'https://www.xvideos.com/profiles/jacobsy',
+        'info_dict': {
+            'id': 'profiles/jacobsy',
+            'title': 'Jacobsy',
+            'description': 'fetishist and bdsm lover...',
+        },
+        'playlist_mincount': 84,
+    }, {
+        # no description
+        'url': 'https://www.xvideos.com/profiles/espoder',
+        'info_dict': {
+            'id': 'profiles/espoder',
+            'title': 'Espoder',
+        },
+        'playlist_mincount': 13,
+    }]
+    _PAGE_SIZE = 36
+
+    def _entries(self, json):
+        for video in json.get('videos'):
+            slug = self._search_regex(r'.*/([^/]+)$', video.get('u'), 'slug')
+
+            yield self.url_result(
+                'https://www.xvideos.com/video%s/%s' % (video.get('id'), slug),
+                ie=XVideosIE.ie_key())
+
+    def _real_extract(self, url):
+        user_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, user_id, 'Downloading page')
+
+        video_count = int_or_none(re.sub('[^0-9]', '', self._search_regex(
+            r'<a[^>]+id="tab-videos"[^>]*>.*<span[^>]+>(.*)</span>.*?</a>',
+            webpage, 'video_count', default='0', fatal=False)), default=0)
+
+        page_count = int(math.ceil(video_count / self._PAGE_SIZE))
+
+        title = strip_or_none(traverse_obj(self._parse_json(self._search_regex(
+            r'<script>.*window\.xv\.conf=(.*);</script>',
+            webpage, 'json', default='{}', fatal=False), user_id),
+            ('data', 'user', 'display')))
+
+        description = strip_or_none(self._search_regex(
+            r'<div[^>]+id="header-about-me"[^>]*>([^<]+?)<',
+            webpage, 'description', default=None, fatal=False))
+
+        def _get_page(idx):
+            page_url = 'https://www.xvideos.com/%s/videos/new/%s' % (user_id, idx)
+
+            json = self._download_json(
+                page_url, user_id, 'Downloading page %d/%d' % (idx + 1, page_count))
+
+            return self._entries(json)
+
+        return self.playlist_result(
+            InAdvancePagedList(_get_page, page_count, self._PAGE_SIZE),
+            user_id, title, description)
