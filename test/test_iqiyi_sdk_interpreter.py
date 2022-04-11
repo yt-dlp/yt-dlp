@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -12,7 +9,7 @@ from test.helper import FakeYDL, is_download_test
 from yt_dlp.extractor import IqiyiIE
 
 
-class WarningLogger(object):
+class WarningLogger:
     def __init__(self):
         self.messages = []
 

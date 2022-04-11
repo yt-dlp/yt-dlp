@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -81,11 +78,11 @@ class TestAllURLsMatching(unittest.TestCase):
             url = tc['url']
             for ie in ies:
                 if type(ie).__name__ in ('GenericIE', tc['name'] + 'IE'):
-                    self.assertTrue(ie.suitable(url), '%s should match URL %r' % (type(ie).__name__, url))
+                    self.assertTrue(ie.suitable(url), f'{type(ie).__name__} should match URL {url!r}')
                 else:
                     self.assertFalse(
                         ie.suitable(url),
-                        '%s should not match URL %r . That URL belongs to %s.' % (type(ie).__name__, url, tc['name']))
+                        f'{type(ie).__name__} should not match URL {url!r} . That URL belongs to {tc["name"]}.')
 
     def test_keywords(self):
         self.assertMatch(':ytsubs', ['youtube:subscriptions'])
@@ -120,7 +117,7 @@ class TestAllURLsMatching(unittest.TestCase):
         for (ie_name, ie_list) in name_accu.items():
             self.assertEqual(
                 len(ie_list), 1,
-                'Multiple extractors with the same IE_NAME "%s" (%s)' % (ie_name, ', '.join(ie_list)))
+                f'Multiple extractors with the same IE_NAME "{ie_name}" ({", ".join(ie_list)})')
 
 
 if __name__ == '__main__':

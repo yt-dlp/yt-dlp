@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -41,7 +38,7 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             assert False
 
 
-class FakeLogger(object):
+class FakeLogger:
     def debug(self, msg):
         pass
 
@@ -117,23 +114,23 @@ class TestProxy(unittest.TestCase):
         self.geo_proxy_thread.start()
 
     def test_proxy(self):
-        geo_proxy = '127.0.0.1:{0}'.format(self.geo_port)
+        geo_proxy = f'127.0.0.1:{self.geo_port}'
         ydl = YoutubeDL({
-            'proxy': '127.0.0.1:{0}'.format(self.port),
+            'proxy': f'127.0.0.1:{self.port}',
             'geo_verification_proxy': geo_proxy,
         })
         url = 'http://foo.com/bar'
         response = ydl.urlopen(url).read().decode('utf-8')
-        self.assertEqual(response, 'normal: {0}'.format(url))
+        self.assertEqual(response, f'normal: {url}')
 
         req = compat_urllib_request.Request(url)
         req.add_header('Ytdl-request-proxy', geo_proxy)
         response = ydl.urlopen(req).read().decode('utf-8')
-        self.assertEqual(response, 'geo: {0}'.format(url))
+        self.assertEqual(response, f'geo: {url}')
 
     def test_proxy_with_idn(self):
         ydl = YoutubeDL({
-            'proxy': '127.0.0.1:{0}'.format(self.port),
+            'proxy': f'127.0.0.1:{self.port}',
         })
         url = 'http://中文.tw/'
         response = ydl.urlopen(url).read().decode('utf-8')

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import os.path
 import optparse
 import re
@@ -124,7 +122,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         try:
             return super()._match_long_opt(opt)
         except optparse.AmbiguousOptionError as e:
-            if len(set(self._long_opt[p] for p in e.possibilities)) == 1:
+            if len({self._long_opt[p] for p in e.possibilities}) == 1:
                 return e.possibilities[0]
             raise
 
@@ -189,9 +187,9 @@ def create_parser():
         out_dict = dict(getattr(parser.values, option.dest))
         multiple_args = not isinstance(value, str)
         if multiple_keys:
-            allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
+            allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter),
+            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
@@ -201,7 +199,7 @@ def create_parser():
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
-                'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
+                f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
         try:
             keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val

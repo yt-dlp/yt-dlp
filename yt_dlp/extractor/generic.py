@@ -1,7 +1,3 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 import os
 import re
 import xml.etree.ElementTree
@@ -2628,7 +2624,7 @@ class GenericIE(InfoExtractor):
 
             entries.append({
                 'id': os.path.splitext(url_n.text.rpartition('/')[2])[0],
-                'title': '%s - %s' % (title, n.tag),
+                'title': f'{title} - {n.tag}',
                 'url': compat_urlparse.urljoin(url, url_n.text),
                 'duration': float_or_none(n.find('./duration').text),
             })
@@ -2650,7 +2646,7 @@ class GenericIE(InfoExtractor):
 
         for o in range(len(newmagic) - 1, -1, -1):
             new = ''
-            l = (o + sum([int(n) for n in license[o:]])) % 32
+            l = (o + sum(int(n) for n in license[o:])) % 32
 
             for i in range(0, len(newmagic)):
                 if i == o:
@@ -3772,7 +3768,7 @@ class GenericIE(InfoExtractor):
             else:
                 for num, entry in enumerate(entries, start=1):
                     entry.update({
-                        'id': '%s-%s' % (video_id, num),
+                        'id': f'{video_id}-{num}',
                         'title': '%s (%d)' % (video_title, num),
                     })
             for entry in entries:

@@ -1,7 +1,4 @@
-from __future__ import unicode_literals
-
 import collections
-import io
 import itertools
 import os
 import subprocess
@@ -73,11 +70,9 @@ class FFmpegPostProcessor(PostProcessor):
             raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
 
         required_version = '10-0' if self.basename == 'avconv' else '1.0'
-        if is_outdated_version(
-                self._versions[self.basename], required_version):
-            warning = 'Your copy of %s is outdated, update %s to version %s or newer if you encounter any errors.' % (
-                self.basename, self.basename, required_version)
-            self.report_warning(warning)
+        if is_outdated_version(self._versions[self.basename], required_version):
+            self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
+                                f'to version {required_version} or newer if you encounter any errors')
 
     @staticmethod
     def get_versions_and_features(downloader=None):
@@ -147,8 +142,8 @@ class FFmpegPostProcessor(PostProcessor):
                 if basename in ('ffmpeg', 'ffprobe'):
                     prefer_ffmpeg = True
 
-            self._paths = dict(
-                (p, os.path.join(dirname, p)) for p in programs)
+            self._paths = {
+                p: os.path.join(dirname, p) for p in programs}
             if basename:
                 self._paths[basename] = location
 
@@ -211,13 +206,13 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeFilename(self.executable, True),
                     encodeArgument('-i')]
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
-            self.write_debug('%s command line: %s' % (self.basename, shell_quote(cmd)))
+            self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
             handle = Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout_data, stderr_data = handle.communicate_or_kill()
             expected_ret = 0 if self.probe_available else 1
             if handle.wait() != expected_ret:
                 return None
-        except (IOError, OSError):
+        except OSError:
             return None
         output = (stdout_data if self.probe_available else stderr_data).decode('ascii', 'ignore')
         if self.probe_available:
@@ -539,7 +534,7 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
     _ACTION = 'converting'
 
     def __init__(self, downloader=None, preferedformat=None):
-        super(FFmpegVideoConvertorPP, self).__init__(downloader)
+        super().__init__(downloader)
         self._preferedformats = preferedformat.lower().split('/')
 
     def _target_ext(self, source_ext):
@@ -585,7 +580,7 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
     def __init__(self, downloader=None, already_have_subtitle=False):
-        super(FFmpegEmbedSubtitlePP, self).__init__(downloader)
+        super().__init__(downloader)
         self._already_have_subtitle = already_have_subtitle
 
     @PostProcessor._restrict_to(images=False)
@@ -713,7 +708,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
 
     @staticmethod
     def _get_chapter_opts(chapters, metadata_filename):
-        with io.open(metadata_filename, 'wt', encoding='utf-8') as f:
+        with open(metadata_filename, 'wt', encoding='utf-8') as f:
             def ffmpeg_escape(text):
                 return re.sub(r'([\\=;#\n])', r'\\\1', text)
 
@@ -899,7 +894,7 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
 
     def __init__(self, downloader=None, trim=0.001):
         # "trim" should be used when the video contains unintended packets
-        super(FFmpegFixupTimestampPP, self).__init__(downloader)
+        super().__init__(downloader)
         assert isinstance(trim, (int, float))
         self.trim = str(trim)
 
@@ -937,7 +932,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = ('srt', 'vtt', 'ass', 'lrc')
 
     def __init__(self, downloader=None, format=None):
-        super(FFmpegSubtitlesConvertorPP, self).__init__(downloader)
+        super().__init__(downloader)
         self.format = format
 
     def run(self, info):
@@ -979,7 +974,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
                 with open(dfxp_file, 'rb') as f:
                     srt_data = dfxp2srt(f.read())
 
-                with io.open(srt_file, 'wt', encoding='utf-8') as f:
+                with open(srt_file, 'wt', encoding='utf-8') as f:
                     f.write(srt_data)
                 old_file = srt_file
 
@@ -996,7 +991,7 @@ class FFmpegSubtitlesConvertorPP(FFmpegPostProcessor):
 
             self.run_ffmpeg(old_file, new_file, ['-f', new_format])
 
-            with io.open(new_file, 'rt', encoding='utf-8') as f:
+            with open(new_file, encoding='utf-8') as f:
                 subs[lang] = {
                     'ext': new_ext,
                     'data': f.read(),
@@ -1059,7 +1054,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = ('jpg', 'png', 'webp')
 
     def __init__(self, downloader=None, format=None):
-        super(FFmpegThumbnailsConvertorPP, self).__init__(downloader)
+        super().__init__(downloader)
         self.format = format
 
     @staticmethod
@@ -1090,7 +1085,7 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
     def convert_thumbnail(self, thumbnail_filename, target_ext):
         thumbnail_conv_filename = replace_extension(thumbnail_filename, target_ext)
 
-        self.to_screen('Converting thumbnail "%s" to %s' % (thumbnail_filename, target_ext))
+        self.to_screen(f'Converting thumbnail "{thumbnail_filename}" to {target_ext}')
         self.real_run_ffmpeg(
             [(thumbnail_filename, ['-f', 'image2', '-pattern_type', 'none'])],
             [(thumbnail_conv_filename.replace('%', '%%'), self._options(target_ext))])

@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 import json
 import os
 import re
@@ -27,7 +25,7 @@ tarball_file = next(x for x in pypi_release['urls'] if x['filename'].endswith('.
 sha256sum = tarball_file['digests']['sha256']
 url = tarball_file['url']
 
-with open(filename, 'r') as r:
+with open(filename) as r:
     formulae_text = r.read()
 
 formulae_text = re.sub(r'sha256 "[0-9a-f]*?"', 'sha256 "%s"' % sha256sum, formulae_text)

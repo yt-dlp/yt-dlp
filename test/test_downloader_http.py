@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import re
@@ -66,7 +63,7 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             assert False
 
 
-class FakeLogger(object):
+class FakeLogger:
     def debug(self, msg):
         pass
 

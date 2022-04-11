@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import functools
 import itertools
 import json
@@ -73,7 +71,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     def to_screen(self, text, prefix=True, *args, **kwargs):
         tag = '[%s] ' % self.PP_NAME if prefix else ''
         if self._downloader:
-            return self._downloader.to_screen('%s%s' % (tag, text), *args, **kwargs)
+            return self._downloader.to_screen(f'{tag}{text}', *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
         if self._downloader:

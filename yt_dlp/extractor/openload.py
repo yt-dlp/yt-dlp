@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import os
 import subprocess
@@ -50,7 +47,7 @@ def cookie_jar_to_list(cookie_jar):
     return [cookie_to_dict(cookie) for cookie in cookie_jar]
 
 
-class PhantomJSwrapper(object):
+class PhantomJSwrapper:
     """PhantomJS wrapper class
 
     This class is experimental.
@@ -136,7 +133,7 @@ class PhantomJSwrapper(object):
         for name in self._TMP_FILE_NAMES:
             try:
                 os.remove(self._TMP_FILES[name].name)
-            except (IOError, OSError, KeyError):
+            except (OSError, KeyError):
                 pass
 
     def _save_cookies(self, url):
@@ -217,9 +214,9 @@ class PhantomJSwrapper(object):
             f.write(self._TEMPLATE.format(**replaces).encode('utf-8'))
 
         if video_id is None:
-            self.extractor.to_screen('%s' % (note2,))
+            self.extractor.to_screen(f'{note2}')
         else:
-            self.extractor.to_screen('%s: %s' % (video_id, note2))
+            self.extractor.to_screen(f'{video_id}: {note2}')
 
         p = Popen(
             [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name],

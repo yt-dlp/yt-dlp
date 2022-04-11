@@ -4,7 +4,7 @@ import sys
 import subprocess
 
 
-with open('yt_dlp/version.py', 'rt') as f:
+with open('yt_dlp/version.py') as f:
     exec(compile(f.read(), 'yt_dlp/version.py', 'exec'))
 old_version = locals()['__version__']
 

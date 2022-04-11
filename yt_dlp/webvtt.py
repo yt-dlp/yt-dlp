@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals, print_function, division
-
 """
 A partial parser for WebVTT segments. Interprets enough of the WebVTT stream
 to be able to assemble a single stand-alone subtitle file, suitably adjusting
@@ -20,7 +17,7 @@ from .compat import (
 )
 
 
-class _MatchParser(object):
+class _MatchParser:
     """
     An object that maintains the current parsing position and allows
     conveniently advancing it as syntax elements are successfully parsed.
@@ -69,7 +66,7 @@ class _MatchChildParser(_MatchParser):
     """
 
     def __init__(self, parent):
-        super(_MatchChildParser, self).__init__(parent._data)
+        super().__init__(parent._data)
         self.__parent = parent
         self._pos = parent._pos
 
@@ -83,7 +80,7 @@ class _MatchChildParser(_MatchParser):
 
 class ParseError(Exception):
     def __init__(self, parser):
-        super(ParseError, self).__init__("Parse error at position %u (near %r)" % (
+        super().__init__("Parse error at position %u (near %r)" % (
             parser._pos, parser._data[parser._pos:parser._pos + 20]
         ))
 
@@ -126,7 +123,7 @@ def _format_ts(ts):
     return '%02u:%02u:%02u.%03u' % timetuple_from_msec(int((ts + 45) // 90))
 
 
-class Block(object):
+class Block:
     """
     An abstract WebVTT block.
     """

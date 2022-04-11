@@ -1,5 +1,3 @@
-# coding: utf-8
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,

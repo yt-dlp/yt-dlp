@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 import io
 import binascii
@@ -102,8 +100,7 @@ class HlsFD(FragmentFD):
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:
-            self.to_screen(
-                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
+            self.to_screen(f'[{self.FD_NAME}] Fragment downloads will be delegated to {real_downloader.get_basename()}')
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s

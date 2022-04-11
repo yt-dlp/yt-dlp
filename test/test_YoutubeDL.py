@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -25,7 +21,7 @@ TEST_URL = 'http://localhost/sample.mp4'
 
 class YDL(FakeYDL):
     def __init__(self, *args, **kwargs):
-        super(YDL, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.downloaded_info_dicts = []
         self.msgs = []
 
@@ -551,11 +547,11 @@ class TestYoutubeDL(unittest.TestCase):
         def s_formats(lang, autocaption=False):
             return [{
                 'ext': ext,
-                'url': 'http://localhost/video.%s.%s' % (lang, ext),
+                'url': f'http://localhost/video.{lang}.{ext}',
                 '_auto': autocaption,
             } for ext in ['vtt', 'srt', 'ass']]
-        subtitles = dict((l, s_formats(l)) for l in ['en', 'fr', 'es'])
-        auto_captions = dict((l, s_formats(l, True)) for l in ['it', 'pt', 'es'])
+        subtitles = {l: s_formats(l) for l in ['en', 'fr', 'es']}
+        auto_captions = {l: s_formats(l, True) for l in ['it', 'pt', 'es']}
         info_dict = {
             'id': 'test',
             'title': 'Test',
@@ -580,7 +576,7 @@ class TestYoutubeDL(unittest.TestCase):
         result = get_info({'writesubtitles': True})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['en']))
+        self.assertEqual(set(subs.keys()), {'en'})
         self.assertTrue(subs['en'].get('data') is None)
         self.assertEqual(subs['en']['ext'], 'ass')
 
@@ -591,39 +587,39 @@ class TestYoutubeDL(unittest.TestCase):
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['es', 'fr', 'it']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'fr']))
+        self.assertEqual(set(subs.keys()), {'es', 'fr'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['all', '-en']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'fr']))
+        self.assertEqual(set(subs.keys()), {'es', 'fr'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['en', 'fr', '-en']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['fr']))
+        self.assertEqual(set(subs.keys()), {'fr'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['-en', 'en']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['en']))
+        self.assertEqual(set(subs.keys()), {'en'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['e.+']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'en']))
+        self.assertEqual(set(subs.keys()), {'es', 'en'})
 
         result = get_info({'writesubtitles': True, 'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'pt']))
+        self.assertEqual(set(subs.keys()), {'es', 'pt'})
         self.assertFalse(subs['es']['_auto'])
         self.assertTrue(subs['pt']['_auto'])
 
         result = get_info({'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'pt']))
+        self.assertEqual(set(subs.keys()), {'es', 'pt'})
         self.assertTrue(subs['es']['_auto'])
         self.assertTrue(subs['pt']['_auto'])
 
@@ -1082,7 +1078,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         class _YDL(YDL):
             def __init__(self, *args, **kwargs):
-                super(_YDL, self).__init__(*args, **kwargs)
+                super().__init__(*args, **kwargs)
 
             def trouble(self, s, tb=None):
                 pass

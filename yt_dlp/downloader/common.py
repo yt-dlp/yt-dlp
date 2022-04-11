@@ -1,5 +1,3 @@
-from __future__ import division, unicode_literals
-
 import os
 import re
 import time
@@ -25,7 +23,7 @@ from ..minicurses import (
 )
 
 
-class FileDownloader(object):
+class FileDownloader:
     """File Downloader class.
 
     File downloader objects are the ones responsible of downloading the
@@ -219,7 +217,7 @@ class FileDownloader(object):
                 while True:
                     try:
                         return func(self, *args, **kwargs)
-                    except (IOError, OSError) as err:
+                    except OSError as err:
                         retry = retry + 1
                         if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
                             if not fatal:
@@ -486,4 +484,4 @@ class FileDownloader(object):
         if exe is None:
             exe = os.path.basename(str_args[0])
 
-        self.write_debug('%s command line: %s' % (exe, shell_quote(str_args)))
+        self.write_debug(f'{exe} command line: {shell_quote(str_args)}')

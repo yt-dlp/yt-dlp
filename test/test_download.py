@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -21,7 +18,6 @@ from test.helper import (
 
 
 import hashlib
-import io
 import json
 import socket
 
@@ -46,7 +42,7 @@ class YoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, *args, **kwargs):
         self.to_stderr = self.to_screen
         self.processed_info_dicts = []
-        super(YoutubeDL, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def report_warning(self, message):
         # Don't accept warnings during tests
@@ -54,7 +50,7 @@ class YoutubeDL(yt_dlp.YoutubeDL):
 
     def process_info(self, info_dict):
         self.processed_info_dicts.append(info_dict.copy())
-        return super(YoutubeDL, self).process_info(info_dict)
+        return super().process_info(info_dict)
 
 
 def _file_md5(fn):
@@ -80,7 +76,7 @@ class TestDownload(unittest.TestCase):
 
         def strclass(cls):
             """From 2.7's unittest; 2.6 had _strclass so we can't import it."""
-            return '%s.%s' % (cls.__module__, cls.__name__)
+            return f'{cls.__module__}.{cls.__name__}'
 
         add_ie = getattr(self, self._testMethodName).add_ie
         return '%s (%s)%s:' % (self._testMethodName,
@@ -179,7 +175,7 @@ def generator(test_case, tname):
                         report_warning('%s failed due to network errors, skipping...' % tname)
                         return
 
-                    print('Retrying: {0} failed tries\n\n##########\n\n'.format(try_num))
+                    print(f'Retrying: {try_num} failed tries\n\n##########\n\n')
 
                     try_num += 1
                 else:
@@ -245,7 +241,7 @@ def generator(test_case, tname):
                 self.assertTrue(
                     os.path.exists(info_json_fn),
                     'Missing info file %s' % info_json_fn)
-                with io.open(info_json_fn, encoding='utf-8') as infof:
+                with open(info_json_fn, encoding='utf-8') as infof:
                     info_dict = json.load(infof)
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))
         finally:

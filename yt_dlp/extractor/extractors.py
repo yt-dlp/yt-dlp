@@ -1,6 +1,4 @@
 # flake8: noqa
-from __future__ import unicode_literals
-
 from .abc import (
     ABCIE,
     ABCIViewIE,

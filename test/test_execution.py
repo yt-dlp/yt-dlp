@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 import unittest
 
 import sys
@@ -45,7 +41,7 @@ class TestExecution(unittest.TestCase):
         finally:
             try:
                 os.remove('yt_dlp/extractor/lazy_extractors.py')
-            except (IOError, OSError):
+            except OSError:
                 pass
 
 

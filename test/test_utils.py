@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -266,7 +262,7 @@ class TestUtil(unittest.TestCase):
 
     def test_expand_path(self):
         def env(var):
-            return '%{0}%'.format(var) if sys.platform == 'win32' else '${0}'.format(var)
+            return f'%{var}%' if sys.platform == 'win32' else f'${var}'
 
         compat_setenv('yt_dlp_EXPATH_PATH', 'expanded')
         self.assertEqual(expand_path(env('yt_dlp_EXPATH_PATH')), 'expanded')
@@ -666,8 +662,7 @@ class TestUtil(unittest.TestCase):
             def get_page(pagenum):
                 firstid = pagenum * pagesize
                 upto = min(size, pagenum * pagesize + pagesize)
-                for i in range(firstid, upto):
-                    yield i
+                yield from range(firstid, upto)
 
             pl = OnDemandPagedList(get_page, pagesize)
             got = pl.getslice(*sliceargs)
@@ -736,7 +731,7 @@ class TestUtil(unittest.TestCase):
             multipart_encode({b'field': b'value'}, boundary='AAAAAA')[0],
             b'--AAAAAA\r\nContent-Disposition: form-data; name="field"\r\n\r\nvalue\r\n--AAAAAA--\r\n')
         self.assertEqual(
-            multipart_encode({'欄位'.encode('utf-8'): '值'.encode('utf-8')}, boundary='AAAAAA')[0],
+            multipart_encode({'欄位'.encode(): '值'.encode()}, boundary='AAAAAA')[0],
             b'--AAAAAA\r\nContent-Disposition: form-data; name="\xe6\xac\x84\xe4\xbd\x8d"\r\n\r\n\xe5\x80\xbc\r\n--AAAAAA--\r\n')
         self.assertRaises(
             ValueError, multipart_encode, {b'field': b'value'}, boundary='value')
@@ -1397,7 +1392,7 @@ ffmpeg version 2.4.4 Copyright (c) 2000-2014 the FFmpeg ...'''), '2.4.4')
                     <p begin="3" dur="-1">Ignored, three</p>
                 </div>
             </body>
-            </tt>'''.encode('utf-8')
+            </tt>'''.encode()
         srt_data = '''1
 00:00:00,000 --> 00:00:01,000
 The following line contains Chinese characters and special symbols
@@ -1415,14 +1410,14 @@ Line
 '''
         self.assertEqual(dfxp2srt(dfxp_data), srt_data)
 
-        dfxp_data_no_default_namespace = '''<?xml version="1.0" encoding="UTF-8"?>
+        dfxp_data_no_default_namespace = b'''<?xml version="1.0" encoding="UTF-8"?>
             <tt xml:lang="en" xmlns:tts="http://www.w3.org/ns/ttml#parameter">
             <body>
                 <div xml:lang="en">
                     <p begin="0" end="1">The first line</p>
                 </div>
             </body>
-            </tt>'''.encode('utf-8')
+            </tt>'''
         srt_data = '''1
 00:00:00,000 --> 00:00:01,000
 The first line
@@ -1430,7 +1425,7 @@ The first line
 '''
         self.assertEqual(dfxp2srt(dfxp_data_no_default_namespace), srt_data)
 
-        dfxp_data_with_style = '''<?xml version="1.0" encoding="utf-8"?>
+        dfxp_data_with_style = b'''<?xml version="1.0" encoding="utf-8"?>
 <tt xmlns="http://www.w3.org/2006/10/ttaf1" xmlns:ttp="http://www.w3.org/2006/10/ttaf1#parameter" ttp:timeBase="media" xmlns:tts="http://www.w3.org/2006/10/ttaf1#style" xml:lang="en" xmlns:ttm="http://www.w3.org/2006/10/ttaf1#metadata">
   <head>
     <styling>
@@ -1448,7 +1443,7 @@ The first line
       <p style="s1" tts:textDecoration="underline" begin="00:00:09.56" id="p2" end="00:00:12.36"><span style="s2" tts:color="lime">inner<br /> </span>style</p>
     </div>
   </body>
-</tt>'''.encode('utf-8')
+</tt>'''
         srt_data = '''1
 00:00:02,080 --> 00:00:05,840
 <font color="white" face="sansSerif" size="16">default style<font color="red">custom style</font></font>

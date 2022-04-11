@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
 f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
-import io
 import itertools
 import os
 import random
@@ -67,13 +64,12 @@ def get_urls(urls, batchfile, verbose):
                     'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
                 batchfd = sys.stdin
             else:
-                batchfd = io.open(
-                    expand_path(batchfile),
-                    'r', encoding='utf-8', errors='ignore')
+                batchfd = open(
+                    expand_path(batchfile), encoding='utf-8', errors='ignore')
             batch_urls = read_batch_urls(batchfd)
             if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
-        except IOError:
+        except OSError:
             sys.exit('ERROR: batch file %s could not be read' % batchfile)
     _enc = preferredencoding()
     return [

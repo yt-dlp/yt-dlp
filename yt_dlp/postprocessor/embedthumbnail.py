@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import imghdr
 import os
@@ -61,7 +58,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         return int(mobj.group('w')), int(mobj.group('h'))
 
     def _report_run(self, exe, filename):
-        self.to_screen('%s: Adding thumbnail to "%s"' % (exe, filename))
+        self.to_screen(f'{exe}: Adding thumbnail to "{filename}"')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):

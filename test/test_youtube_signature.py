@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import io
 import re
 import string
 import urllib.request
@@ -149,7 +145,7 @@ def t_factory(name, sig_func, url_pattern):
 
             if not os.path.exists(fn):
                 urllib.request.urlretrieve(url, fn)
-            with io.open(fn, encoding='utf-8') as testf:
+            with open(fn, encoding='utf-8') as testf:
                 jscode = testf.read()
             self.assertEqual(sig_func(jscode, sig_input), expected_sig)
 

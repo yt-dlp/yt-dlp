@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -48,7 +44,7 @@ class TestCompat(unittest.TestCase):
         all_names = yt_dlp.compat.__all__
         present_names = set(filter(
             lambda c: '_' in c and not c.startswith('_'),
-            dir(yt_dlp.compat))) - set(['unicode_literals'])
+            dir(yt_dlp.compat))) - {'unicode_literals'}
         self.assertEqual(all_names, sorted(present_names))
 
     def test_compat_urllib_parse_unquote(self):
