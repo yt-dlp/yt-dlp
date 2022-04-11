@@ -1523,11 +1523,11 @@ $ yt-dlp -S "ext"
 $ yt-dlp -f "bv*[height<=480]+ba/b[height<=480] / wv*+ba/w"
 
 # Download the best video available with the largest height but no better than 480p,
-# or the best video with the smallest resolution if there is no video under 480p
+# or the best video with the smaller resolution if there is no video under 480p
 $ yt-dlp -S "height:480"
 
 # Download the best video available with the largest resolution but no better than 480p,
-# or the best video with the smallest resolution if there is no video under 480p
+# or the best video with the smaller resolution if there is no video under 480p
 # Resolution is determined by using the smallest dimension.
 # So this works correctly for vertical videos as well
 $ yt-dlp -S "res:480"
