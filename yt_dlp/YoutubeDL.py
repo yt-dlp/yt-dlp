@@ -95,6 +95,7 @@ from .utils import (
     YoutubeDLRedirectHandler,
     age_restricted,
     args_to_str,
+    bug_reports_message,
     date_from_str,
     determine_ext,
     determine_protocol,
@@ -522,6 +523,8 @@ class YoutubeDL:
         if params is None:
             params = {}
         self.params = params
+        self.in_cli = os.environ.get('YTDLP_IN_CLI') == '1'
+
         self._ies = {}
         self._ies_instances = {}
         self._pps = {k: [] for k in POSTPROCESS_WHEN}
@@ -578,7 +581,7 @@ class YoutubeDL:
         for msg in self.params.get('_warnings', []):
             self.report_warning(msg)
         for msg in self.params.get('_deprecation_warnings', []):
-            self.deprecation_warning(msg)
+            self.deprecation_warning(msg, to_user=True)
 
         if 'list-formats' in self.params.get('compat_opts', []):
             self.params['listformats_table'] = False
@@ -917,9 +920,15 @@ class YoutubeDL:
                 return
             self.to_stderr(f'{self._format_err("WARNING:", self.Styles.WARNING)} {message}', only_once)
 
-    def deprecation_warning(self, message):
-        import warnings
-        warnings.warn(DeprecationWarning(message), stacklevel=2)
+    def deprecation_warning(self, message, *, to_user=False, stacklevel=2):
+        if not self.in_cli:
+            import warnings
+            type_ = FutureWarning if to_user else DeprecationWarning
+            warnings.warn(type_(message), stacklevel=stacklevel)
+        elif to_user:
+            self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
+        else:
+            self.report_error(f'{message}{bug_reports_message()}', is_error=False)
 
     def report_error(self, message, *args, **kwargs):
         '''

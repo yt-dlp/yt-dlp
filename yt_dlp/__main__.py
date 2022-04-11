@@ -2,6 +2,7 @@
 # Execute with
 # $ python -m yt_dlp
 
+import os
 import sys
 
 if __package__ is None and not hasattr(sys, 'frozen'):
@@ -13,4 +14,5 @@ if __package__ is None and not hasattr(sys, 'frozen'):
 import yt_dlp
 
 if __name__ == '__main__':
+    os.environ['YTDLP_IN_CLI'] = '1'
     yt_dlp.main()

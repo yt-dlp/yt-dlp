@@ -76,7 +76,9 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         if self._downloader:
             return self._downloader.report_warning(text, *args, **kwargs)
 
-    def deprecation_warning(self, text):
+    def deprecation_warning(self, text, **kwargs):
+        if self._downloader:
+            return self._downloader.deprecation_warning(text, stacklevel=3, **kwargs)
         import warnings
         warnings.warn(DeprecationWarning(text), stacklevel=2)
 
