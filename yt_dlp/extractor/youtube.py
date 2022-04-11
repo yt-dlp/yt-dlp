@@ -33,7 +33,6 @@ from ..compat import (
 from ..jsinterp import JSInterpreter
 from ..utils import (
     bug_reports_message,
-    bytes_to_intlist,
     clean_html,
     datetime_from_str,
     dict_get,
@@ -43,7 +42,6 @@ from ..utils import (
     format_field,
     get_first,
     int_or_none,
-    intlist_to_bytes,
     is_html,
     join_nonempty,
     js_to_json,
