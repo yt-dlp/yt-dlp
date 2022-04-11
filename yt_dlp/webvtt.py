@@ -8,13 +8,11 @@ Regular expressions based on the W3C WebVTT specification
 in RFC 8216 §3.5 <https://tools.ietf.org/html/rfc8216#section-3.5>.
 """
 
-import re
 import io
+import re
+
+from .compat import compat_Match, compat_Pattern
 from .utils import int_or_none, timetuple_from_msec
-from .compat import (
-    compat_Pattern,
-    compat_Match,
-)
 
 
 class _MatchParser:

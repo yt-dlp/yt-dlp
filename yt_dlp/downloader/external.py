@@ -5,23 +5,20 @@ import sys
 import time
 
 from .fragment import FragmentFD
-from ..compat import (
-    compat_setenv,
-    compat_str,
-)
-from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
+from ..compat import compat_setenv, compat_str
+from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
+    Popen,
+    _configuration_args,
+    check_executable,
     classproperty,
+    cli_bool_option,
     cli_option,
     cli_valueless_option,
-    cli_bool_option,
-    _configuration_args,
     determine_ext,
-    encodeFilename,
     encodeArgument,
+    encodeFilename,
     handle_youtubedl_headers,
-    check_executable,
-    Popen,
     remove_end,
 )
 

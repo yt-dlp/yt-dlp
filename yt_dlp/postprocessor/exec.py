@@ -2,11 +2,7 @@ import subprocess
 
 from .common import PostProcessor
 from ..compat import compat_shlex_quote
-from ..utils import (
-    encodeArgument,
-    PostProcessingError,
-    variadic,
-)
+from ..utils import PostProcessingError, encodeArgument, variadic
 
 
 class ExecPP(PostProcessor):

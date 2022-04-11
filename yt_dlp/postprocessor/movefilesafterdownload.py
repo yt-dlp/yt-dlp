@@ -3,10 +3,10 @@ import shutil
 
 from .common import PostProcessor
 from ..utils import (
+    PostProcessingError,
     decodeFilename,
     encodeFilename,
     make_dir,
-    PostProcessingError,
 )
 
 

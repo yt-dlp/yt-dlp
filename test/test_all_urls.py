@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 # Allow direct execution
+import collections
 import os
 import sys
 import unittest
-import collections
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from test.helper import gettestcases
 
-from yt_dlp.extractor import (
-    FacebookIE,
-    gen_extractors,
-    YoutubeIE,
-)
+from yt_dlp.extractor import FacebookIE, YoutubeIE, gen_extractors
 
 
 class TestAllURLsMatching(unittest.TestCase):

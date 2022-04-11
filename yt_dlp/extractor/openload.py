@@ -3,16 +3,14 @@ import os
 import subprocess
 import tempfile
 
-from ..compat import (
-    compat_urlparse,
-)
+from ..compat import compat_urlparse
 from ..utils import (
+    ExtractorError,
+    Popen,
     check_executable,
     encodeArgument,
-    ExtractorError,
     get_exe_version,
     is_outdated_version,
-    Popen,
 )
 
 

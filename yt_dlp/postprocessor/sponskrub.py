@@ -4,15 +4,15 @@ import subprocess
 
 from .common import PostProcessor
 from ..utils import (
+    Popen,
+    PostProcessingError,
     check_executable,
     cli_option,
     encodeArgument,
     encodeFilename,
+    prepend_extension,
     shell_quote,
     str_or_none,
-    Popen,
-    PostProcessingError,
-    prepend_extension,
 )
 
 

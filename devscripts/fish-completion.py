@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import optparse
 import os
-from os.path import dirname as dirn
 import sys
+from os.path import dirname as dirn
 
 sys.path.insert(0, dirn(dirn(os.path.abspath(__file__))))
 import yt_dlp

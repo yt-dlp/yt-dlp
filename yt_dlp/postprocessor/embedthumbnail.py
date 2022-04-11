@@ -1,11 +1,11 @@
 import base64
 import imghdr
 import os
-import subprocess
 import re
+import subprocess
 
 try:
-    from mutagen.flac import Picture, FLAC
+    from mutagen.flac import FLAC, Picture
     from mutagen.mp4 import MP4, MP4Cover
     from mutagen.oggopus import OggOpus
     from mutagen.oggvorbis import OggVorbis
@@ -14,17 +14,14 @@ except ImportError:
     has_mutagen = False
 
 from .common import PostProcessor
-from .ffmpeg import (
-    FFmpegPostProcessor,
-    FFmpegThumbnailsConvertorPP,
-)
+from .ffmpeg import FFmpegPostProcessor, FFmpegThumbnailsConvertorPP
 from ..utils import (
+    Popen,
+    PostProcessingError,
     check_executable,
     encodeArgument,
     encodeFilename,
     error_to_compat_str,
-    Popen,
-    PostProcessingError,
     prepend_extension,
     shell_quote,
 )

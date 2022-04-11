@@ -3,7 +3,6 @@ import optparse
 import os
 import sys
 
-
 # Import yt_dlp
 ROOT_DIR = os.path.join(os.path.dirname(__file__), '..')
 sys.path.insert(0, ROOT_DIR)

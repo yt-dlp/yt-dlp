@@ -13,7 +13,7 @@ from yt_dlp.postprocessor import (
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
     MetadataParserPP,
-    ModifyChaptersPP
+    ModifyChaptersPP,
 )
 
 

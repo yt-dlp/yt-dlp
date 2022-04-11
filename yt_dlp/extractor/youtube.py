@@ -10,9 +10,9 @@ import os.path
 import random
 import re
 import sys
+import threading
 import time
 import traceback
-import threading
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
@@ -27,12 +27,13 @@ from ..compat import (
 )
 from ..jsinterp import JSInterpreter
 from ..utils import (
+    NO_DEFAULT,
+    ExtractorError,
     bug_reports_message,
     clean_html,
     datetime_from_str,
     dict_get,
     error_to_compat_str,
-    ExtractorError,
     float_or_none,
     format_field,
     get_first,
@@ -42,7 +43,6 @@ from ..utils import (
     js_to_json,
     mimetype2ext,
     network_exceptions,
-    NO_DEFAULT,
     orderedSet,
     parse_codecs,
     parse_count,
@@ -67,7 +67,6 @@ from ..utils import (
     urljoin,
     variadic,
 )
-
 
 # any clients starting with _ cannot be explicity requested by the user
 INNERTUBE_CLIENTS = {

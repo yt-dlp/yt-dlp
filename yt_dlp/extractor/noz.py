@@ -1,13 +1,11 @@
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-)
 from ..utils import (
     int_or_none,
     find_xpath_attr,
     xpath_text,
     update_url_query,
 )
+from ..compat import compat_urllib_parse_unquote
 
 
 class NozIE(InfoExtractor):

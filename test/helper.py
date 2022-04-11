@@ -3,21 +3,14 @@ import hashlib
 import json
 import os.path
 import re
-import types
 import ssl
 import sys
+import types
 
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import (
-    compat_os_name,
-    compat_str,
-)
-from yt_dlp.utils import (
-    preferredencoding,
-    write_string,
-)
-
+from yt_dlp.compat import compat_os_name, compat_str
+from yt_dlp.utils import preferredencoding, write_string
 
 if 'pytest' in sys.modules:
     import pytest

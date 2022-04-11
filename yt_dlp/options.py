@@ -1,26 +1,11 @@
-import os.path
 import optparse
+import os.path
 import re
 import shlex
 import sys
 
-from .compat import (
-    compat_expanduser,
-    compat_get_terminal_size,
-    compat_getenv,
-)
-from .utils import (
-    Config,
-    expand_path,
-    get_executable_path,
-    OUTTMPL_TYPES,
-    POSTPROCESS_WHEN,
-    remove_end,
-    write_string,
-)
+from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .version import __version__
-
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -30,6 +15,16 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
+from .utils import (
+    OUTTMPL_TYPES,
+    POSTPROCESS_WHEN,
+    Config,
+    expand_path,
+    get_executable_path,
+    remove_end,
+    write_string,
+)
+from .version import __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):

@@ -9,11 +9,7 @@
 import collections
 import socket
 
-from .compat import (
-    compat_ord,
-    compat_struct_pack,
-    compat_struct_unpack,
-)
+from .compat import compat_ord, compat_struct_pack, compat_struct_unpack
 
 __author__ = 'Timo Schmid <coding@timoschmid.de>'
 

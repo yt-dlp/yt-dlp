@@ -1,16 +1,16 @@
 import base64
 import collections
-import xml.etree.ElementTree
 import hashlib
 import itertools
 import json
+import math
 import netrc
 import os
 import random
 import re
 import sys
 import time
-import math
+import xml.etree.ElementTree
 
 from ..compat import (
     compat_cookiejar_Cookie,
@@ -29,11 +29,15 @@ from ..compat import (
     compat_urlparse,
 )
 from ..downloader import FileDownloader
-from ..downloader.f4m import (
-    get_base_url,
-    remove_encrypted_media,
-)
+from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
+    JSON_LD_RE,
+    NO_DEFAULT,
+    ExtractorError,
+    GeoRestrictedError,
+    GeoUtils,
+    RegexNotFoundError,
+    UnsupportedError,
     age_restricted,
     base_url,
     bug_reports_message,
@@ -44,20 +48,15 @@ from ..utils import (
     encode_data_uri,
     error_to_compat_str,
     extract_attributes,
-    ExtractorError,
     filter_dict,
     fix_xml_ampersands,
     float_or_none,
     format_field,
-    GeoRestrictedError,
-    GeoUtils,
     int_or_none,
     join_nonempty,
     js_to_json,
-    JSON_LD_RE,
     mimetype2ext,
     network_exceptions,
-    NO_DEFAULT,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -65,7 +64,6 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
-    RegexNotFoundError,
     sanitize_filename,
     sanitized_Request,
     str_or_none,
@@ -74,7 +72,6 @@ from ..utils import (
     traverse_obj,
     try_get,
     unescapeHTML,
-    UnsupportedError,
     unified_strdate,
     unified_timestamp,
     update_Request,

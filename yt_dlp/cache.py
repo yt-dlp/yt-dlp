@@ -6,10 +6,7 @@ import shutil
 import traceback
 
 from .compat import compat_getenv
-from .utils import (
-    expand_path,
-    write_json_file,
-)
+from .utils import expand_path, write_json_file
 
 
 class Cache:

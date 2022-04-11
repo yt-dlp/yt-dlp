@@ -2,10 +2,7 @@ import os
 import subprocess
 
 from .common import FileDownloader
-from ..utils import (
-    check_executable,
-    encodeFilename,
-)
+from ..utils import check_executable, encodeFilename
 
 
 class RtspFD(FileDownloader):

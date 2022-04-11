@@ -1,27 +1,26 @@
 import collections
 import itertools
+import json
 import os
+import re
 import subprocess
 import time
-import re
-import json
 
 from .common import AudioConversionError, PostProcessor
-
 from ..compat import compat_str
 from ..utils import (
+    ISO639Utils,
+    Popen,
+    PostProcessingError,
+    _get_exe_version_output,
+    detect_exe_version,
     determine_ext,
     dfxp2srt,
     encodeArgument,
     encodeFilename,
     float_or_none,
-    _get_exe_version_output,
-    detect_exe_version,
     is_outdated_version,
-    ISO639Utils,
     orderedSet,
-    Popen,
-    PostProcessingError,
     prepend_extension,
     replace_extension,
     shell_quote,
@@ -29,7 +28,6 @@ from ..utils import (
     variadic,
     write_json_file,
 )
-
 
 EXT_TO_OUT_FORMATS = {
     'aac': 'adts',

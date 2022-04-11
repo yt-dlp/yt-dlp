@@ -9,8 +9,8 @@ import collections
 import contextlib
 import ctypes
 import datetime
-import email.utils
 import email.header
+import email.utils
 import errno
 import functools
 import gzip
@@ -22,11 +22,13 @@ import itertools
 import json
 import locale
 import math
+import mimetypes
 import operator
 import os
 import platform
 import random
 import re
+import shlex
 import socket
 import ssl
 import subprocess
@@ -34,16 +36,11 @@ import sys
 import tempfile
 import time
 import traceback
+import urllib.parse
 import xml.etree.ElementTree
 import zlib
-import mimetypes
-import urllib.parse
-import shlex
 
 from .compat import (
-    compat_HTMLParseError,
-    compat_HTMLParser,
-    compat_HTTPError,
     compat_brotli,
     compat_chr,
     compat_cookiejar,
@@ -51,7 +48,10 @@ from .compat import (
     compat_expanduser,
     compat_html_entities,
     compat_html_entities_html5,
+    compat_HTMLParseError,
+    compat_HTMLParser,
     compat_http_client,
+    compat_HTTPError,
     compat_os_name,
     compat_parse_qs,
     compat_shlex_quote,
@@ -59,18 +59,14 @@ from .compat import (
     compat_struct_pack,
     compat_struct_unpack,
     compat_urllib_error,
+    compat_urllib_parse_unquote_plus,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
-    compat_urllib_parse_unquote_plus,
     compat_urllib_request,
     compat_urlparse,
     compat_websockets,
 )
-
-from .socks import (
-    ProxyType,
-    sockssocket,
-)
+from .socks import ProxyType, sockssocket
 
 try:
     import certifi

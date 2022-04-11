@@ -1,12 +1,9 @@
-from collections.abc import MutableMapping
 import json
 import operator
 import re
+from collections.abc import MutableMapping
 
-from .utils import (
-    ExtractorError,
-    remove_quotes,
-)
+from .utils import ExtractorError, remove_quotes
 
 _OPERATORS = [
     ('|', operator.or_),

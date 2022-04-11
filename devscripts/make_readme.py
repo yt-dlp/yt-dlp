@@ -2,8 +2,8 @@
 
 # yt-dlp --help | make_readme.py
 # This must be run in a console of correct width
-import sys
 import re
+import sys
 
 README_FILE = 'README.md'
 helptext = sys.stdin.read()

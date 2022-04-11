@@ -12,6 +12,7 @@ import locale
 import operator
 import os
 import platform
+import random
 import re
 import shutil
 import subprocess
@@ -20,13 +21,12 @@ import tempfile
 import time
 import tokenize
 import traceback
-import random
 import unicodedata
 import urllib.request
-
 from enum import Enum
 from string import ascii_letters
 
+from .cache import Cache
 from .compat import (
     compat_brotli,
     compat_get_terminal_size,
@@ -39,109 +39,15 @@ from .compat import (
     windows_enable_vt_mode,
 )
 from .cookies import load_cookies
-from .utils import (
-    age_restricted,
-    args_to_str,
-    ContentTooShortError,
-    date_from_str,
-    DateRange,
-    DEFAULT_OUTTMPL,
-    determine_ext,
-    determine_protocol,
-    DownloadCancelled,
-    DownloadError,
-    encode_compat_str,
-    encodeFilename,
-    EntryNotInPlaylist,
-    error_to_compat_str,
-    ExistingVideoReached,
-    expand_path,
-    ExtractorError,
-    filter_dict,
-    float_or_none,
-    format_bytes,
-    format_field,
-    format_decimal_suffix,
-    formatSeconds,
-    GeoRestrictedError,
-    get_domain,
-    has_certifi,
-    HEADRequest,
-    InAdvancePagedList,
-    int_or_none,
-    iri_to_uri,
-    ISO3166Utils,
-    join_nonempty,
-    LazyList,
-    LINK_TEMPLATES,
-    locked_file,
-    make_dir,
-    make_HTTPS_handler,
-    MaxDownloadsReached,
-    merge_headers,
-    network_exceptions,
-    NO_DEFAULT,
-    number_of_digits,
-    orderedSet,
-    OUTTMPL_TYPES,
-    PagedList,
-    parse_filesize,
-    PerRequestProxyHandler,
-    platform_name,
-    Popen,
-    POSTPROCESS_WHEN,
-    PostProcessingError,
-    preferredencoding,
-    prepend_extension,
-    ReExtractInfo,
-    register_socks_protocols,
-    RejectedVideoReached,
-    remove_terminal_sequences,
-    render_table,
-    replace_extension,
-    SameFileError,
-    sanitize_filename,
-    sanitize_path,
-    sanitize_url,
-    sanitized_Request,
-    std_headers,
-    STR_FORMAT_RE_TMPL,
-    STR_FORMAT_TYPES,
-    str_or_none,
-    strftime_or_none,
-    subtitles_filename,
-    supports_terminal_sequences,
-    timetuple_from_msec,
-    to_high_limit_path,
-    traverse_obj,
-    try_get,
-    UnavailableVideoError,
-    url_basename,
-    variadic,
-    version_tuple,
-    write_json_file,
-    write_string,
-    YoutubeDLCookieProcessor,
-    YoutubeDLHandler,
-    YoutubeDLRedirectHandler,
-)
-from .cache import Cache
-from .minicurses import format_text
-from .extractor import (
-    gen_extractor_classes,
-    get_info_extractor,
-    _LAZY_LOADER,
-    _PLUGIN_CLASSES as plugin_extractors
-)
-from .extractor.openload import PhantomJSwrapper
-from .downloader import (
-    FFmpegFD,
-    get_suitable_downloader,
-    shorten_protocol_name
-)
+from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
+from .extractor import _LAZY_LOADER
+from .extractor import _PLUGIN_CLASSES as plugin_extractors
+from .extractor import gen_extractor_classes, get_info_extractor
+from .extractor.openload import PhantomJSwrapper
+from .minicurses import format_text
+from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
-    get_postprocessor,
     EmbedThumbnailPP,
     FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
@@ -152,10 +58,96 @@ from .postprocessor import (
     FFmpegMergerPP,
     FFmpegPostProcessor,
     MoveFilesAfterDownloadPP,
-    _PLUGIN_CLASSES as plugin_postprocessors
+    get_postprocessor,
 )
 from .update import detect_variant
-from .version import __version__, RELEASE_GIT_HEAD
+from .utils import (
+    DEFAULT_OUTTMPL,
+    LINK_TEMPLATES,
+    NO_DEFAULT,
+    OUTTMPL_TYPES,
+    POSTPROCESS_WHEN,
+    STR_FORMAT_RE_TMPL,
+    STR_FORMAT_TYPES,
+    ContentTooShortError,
+    DateRange,
+    DownloadCancelled,
+    DownloadError,
+    EntryNotInPlaylist,
+    ExistingVideoReached,
+    ExtractorError,
+    GeoRestrictedError,
+    HEADRequest,
+    InAdvancePagedList,
+    ISO3166Utils,
+    LazyList,
+    MaxDownloadsReached,
+    PagedList,
+    PerRequestProxyHandler,
+    Popen,
+    PostProcessingError,
+    ReExtractInfo,
+    RejectedVideoReached,
+    SameFileError,
+    UnavailableVideoError,
+    YoutubeDLCookieProcessor,
+    YoutubeDLHandler,
+    YoutubeDLRedirectHandler,
+    age_restricted,
+    args_to_str,
+    date_from_str,
+    determine_ext,
+    determine_protocol,
+    encode_compat_str,
+    encodeFilename,
+    error_to_compat_str,
+    expand_path,
+    filter_dict,
+    float_or_none,
+    format_bytes,
+    format_decimal_suffix,
+    format_field,
+    formatSeconds,
+    get_domain,
+    has_certifi,
+    int_or_none,
+    iri_to_uri,
+    join_nonempty,
+    locked_file,
+    make_dir,
+    make_HTTPS_handler,
+    merge_headers,
+    network_exceptions,
+    number_of_digits,
+    orderedSet,
+    parse_filesize,
+    platform_name,
+    preferredencoding,
+    prepend_extension,
+    register_socks_protocols,
+    remove_terminal_sequences,
+    render_table,
+    replace_extension,
+    sanitize_filename,
+    sanitize_path,
+    sanitize_url,
+    sanitized_Request,
+    std_headers,
+    str_or_none,
+    strftime_or_none,
+    subtitles_filename,
+    supports_terminal_sequences,
+    timetuple_from_msec,
+    to_high_limit_path,
+    traverse_obj,
+    try_get,
+    url_basename,
+    variadic,
+    version_tuple,
+    write_json_file,
+    write_string,
+)
+from .version import RELEASE_GIT_HEAD, __version__
 
 if compat_os_name == 'nt':
     import ctypes
@@ -3666,9 +3658,9 @@ class YoutubeDL:
         ) or 'none'
         write_debug('exe versions: %s' % exe_str)
 
+        from .cookies import SECRETSTORAGE_AVAILABLE, SQLITE_AVAILABLE
         from .downloader.websocket import has_websockets
         from .postprocessor.embedthumbnail import has_mutagen
-        from .cookies import SQLITE_AVAILABLE, SECRETSTORAGE_AVAILABLE
 
         lib_str = join_nonempty(
             compat_brotli and compat_brotli.__name__,

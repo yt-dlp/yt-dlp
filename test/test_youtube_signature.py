@@ -3,16 +3,17 @@
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import re
 import string
 import urllib.request
-
 from test.helper import FakeYDL, is_download_test
+
+from yt_dlp.compat import compat_str
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.jsinterp import JSInterpreter
-from yt_dlp.compat import compat_str
 
 _SIG_TESTS = [
     (

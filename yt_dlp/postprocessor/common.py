@@ -6,10 +6,10 @@ import time
 import urllib.error
 
 from ..utils import (
+    PostProcessingError,
     _configuration_args,
     encodeFilename,
     network_exceptions,
-    PostProcessingError,
     sanitized_Request,
     write_string,
 )

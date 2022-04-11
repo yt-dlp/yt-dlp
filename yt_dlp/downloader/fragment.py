@@ -13,15 +13,11 @@ except ImportError:
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import (
-    compat_os_name,
-    compat_urllib_error,
-    compat_struct_pack,
-)
+from ..compat import compat_os_name, compat_struct_pack, compat_urllib_error
 from ..utils import (
     DownloadError,
-    error_to_compat_str,
     encodeFilename,
+    error_to_compat_str,
     sanitized_Request,
     traverse_obj,
 )

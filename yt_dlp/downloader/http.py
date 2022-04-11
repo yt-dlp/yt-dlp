@@ -1,24 +1,21 @@
 import os
+import random
 import ssl
 import time
-import random
 
 from .common import FileDownloader
-from ..compat import (
-    compat_urllib_error,
-    compat_http_client
-)
+from ..compat import compat_http_client, compat_urllib_error
 from ..utils import (
     ContentTooShortError,
+    ThrottledDownload,
+    XAttrMetadataError,
+    XAttrUnavailableError,
     encodeFilename,
     int_or_none,
     parse_http_range,
     sanitized_Request,
-    ThrottledDownload,
     try_call,
     write_xattr,
-    XAttrMetadataError,
-    XAttrUnavailableError,
 )
 
 RESPONSE_READ_EXCEPTIONS = (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException)

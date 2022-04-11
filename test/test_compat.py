@@ -3,14 +3,15 @@
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from yt_dlp.compat import (
-    compat_getenv,
-    compat_setenv,
     compat_etree_fromstring,
     compat_expanduser,
+    compat_getenv,
+    compat_setenv,
     compat_str,
     compat_struct_unpack,
     compat_urllib_parse_unquote,

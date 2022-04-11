@@ -1,21 +1,13 @@
-import re
-import io
 import binascii
+import io
+import re
 
-from ..downloader import get_suitable_downloader
-from .fragment import FragmentFD
 from .external import FFmpegFD
-
-from ..compat import (
-    compat_pycrypto_AES,
-    compat_urlparse,
-)
-from ..utils import (
-    parse_m3u8_attributes,
-    update_url_query,
-    bug_reports_message,
-)
+from .fragment import FragmentFD
 from .. import webvtt
+from ..compat import compat_pycrypto_AES, compat_urlparse
+from ..downloader import get_suitable_downloader
+from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
 
 class HlsFD(FragmentFD):

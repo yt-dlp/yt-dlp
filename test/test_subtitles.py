@@ -3,29 +3,29 @@
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import FakeYDL, md5, is_download_test
-
+from test.helper import FakeYDL, is_download_test, md5
 
 from yt_dlp.extractor import (
-    YoutubeIE,
+    NPOIE,
+    NRKTVIE,
+    PBSIE,
+    CeskaTelevizeIE,
+    ComedyCentralIE,
     DailymotionIE,
+    DemocracynowIE,
+    LyndaIE,
+    RaiPlayIE,
+    RTVEALaCartaIE,
     TedTalkIE,
+    ThePlatformFeedIE,
+    ThePlatformIE,
+    VikiIE,
     VimeoIE,
     WallaIE,
-    CeskaTelevizeIE,
-    LyndaIE,
-    NPOIE,
-    PBSIE,
-    ComedyCentralIE,
-    NRKTVIE,
-    RaiPlayIE,
-    VikiIE,
-    ThePlatformIE,
-    ThePlatformFeedIE,
-    RTVEALaCartaIE,
-    DemocracynowIE,
+    YoutubeIE,
 )
 
 

@@ -16,17 +16,9 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import (
-    compat_b64decode,
-    compat_cookiejar_Cookie,
-)
+from .compat import compat_b64decode, compat_cookiejar_Cookie
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import (
-    error_to_str,
-    expand_path,
-    Popen,
-    YoutubeDLCookieJar,
-)
+from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path
 
 try:
     import sqlite3

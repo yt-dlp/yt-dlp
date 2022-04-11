@@ -1,6 +1,6 @@
-from hashlib import sha256
 import json
 import re
+from hashlib import sha256
 
 from .ffmpeg import FFmpegPostProcessor
 from ..compat import compat_urllib_parse_urlencode

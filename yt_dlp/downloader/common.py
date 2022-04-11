@@ -1,25 +1,25 @@
+import errno
 import os
+import random
 import re
 import time
-import random
-import errno
 
+from ..minicurses import (
+    BreaklineStatusPrinter,
+    MultilineLogger,
+    MultilinePrinter,
+    QuietMultilinePrinter,
+)
 from ..utils import (
+    LockingUnsupportedError,
     decodeArgument,
     encodeFilename,
     error_to_compat_str,
     format_bytes,
-    LockingUnsupportedError,
     sanitize_open,
     shell_quote,
     timeconvert,
     timetuple_from_msec,
-)
-from ..minicurses import (
-    MultilineLogger,
-    MultilinePrinter,
-    QuietMultilinePrinter,
-    BreaklineStatusPrinter
 )
 
 

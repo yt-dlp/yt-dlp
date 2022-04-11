@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 # Allow direct execution
+import hashlib
+import json
 import os
+import socket
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import (
@@ -16,24 +20,19 @@ from test.helper import (
     try_rm,
 )
 
-
-import hashlib
-import json
-import socket
-
 import yt_dlp.YoutubeDL
 from yt_dlp.compat import (
     compat_http_client,
-    compat_urllib_error,
     compat_HTTPError,
+    compat_urllib_error,
 )
+from yt_dlp.extractor import get_info_extractor
 from yt_dlp.utils import (
     DownloadError,
     ExtractorError,
-    format_bytes,
     UnavailableVideoError,
+    format_bytes,
 )
-from yt_dlp.extractor import get_info_extractor
 
 RETRIES = 3
 

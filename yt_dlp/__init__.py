@@ -9,39 +9,13 @@ import random
 import re
 import sys
 
-from .options import parseOpts
-from .compat import (
-    compat_getpass,
-    compat_os_name,
-    compat_shlex_quote,
-)
+from .compat import compat_getpass, compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .utils import (
-    DateRange,
-    decodeOption,
-    DownloadCancelled,
-    DownloadError,
-    expand_path,
-    float_or_none,
-    GeoUtils,
-    int_or_none,
-    match_filter_func,
-    NO_DEFAULT,
-    parse_duration,
-    preferredencoding,
-    read_batch_urls,
-    render_table,
-    SameFileError,
-    setproctitle,
-    std_headers,
-    traverse_obj,
-    write_string,
-)
-from .update import run_update
 from .downloader import FileDownloader
 from .extractor import gen_extractors, list_extractors
-from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
+from .extractor.common import InfoExtractor
+from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegSubtitlesConvertorPP,
@@ -50,6 +24,28 @@ from .postprocessor import (
     FFmpegVideoRemuxerPP,
     MetadataFromFieldPP,
     MetadataParserPP,
+)
+from .update import run_update
+from .utils import (
+    NO_DEFAULT,
+    DateRange,
+    DownloadCancelled,
+    DownloadError,
+    GeoUtils,
+    SameFileError,
+    decodeOption,
+    expand_path,
+    float_or_none,
+    int_or_none,
+    match_filter_func,
+    parse_duration,
+    preferredencoding,
+    read_batch_urls,
+    render_table,
+    setproctitle,
+    std_headers,
+    traverse_obj,
+    write_string,
 )
 from .YoutubeDL import YoutubeDL
 

@@ -3,13 +3,8 @@ import time
 
 from .fragment import FragmentFD
 from ..compat import compat_urllib_error
-from ..utils import (
-    try_get,
-    dict_get,
-    int_or_none,
-    RegexNotFoundError,
-)
 from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
+from ..utils import RegexNotFoundError, dict_get, int_or_none, try_get
 
 
 class YoutubeLiveChatFD(FragmentFD):

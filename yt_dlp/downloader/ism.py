@@ -1,13 +1,10 @@
-import time
 import binascii
 import io
 import struct
+import time
 
 from .fragment import FragmentFD
-from ..compat import (
-    compat_urllib_error,
-)
-
+from ..compat import compat_urllib_error
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')

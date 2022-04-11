@@ -8,8 +8,7 @@ import traceback
 from zipimport import zipimporter
 
 from .compat import compat_realpath
-from .utils import encode_compat_str, Popen, write_string
-
+from .utils import Popen, encode_compat_str, write_string
 from .version import __version__
 
 
