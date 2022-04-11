@@ -577,14 +577,16 @@ class FFmpegVideoRemuxerPP(FFmpegVideoConvertorPP):
 
 
 class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
+    SUPPORTED_EXTS = ('mp4', 'mov', 'm4a', 'webm', 'mkv', 'mka')
+
     def __init__(self, downloader=None, already_have_subtitle=False):
         super().__init__(downloader)
         self._already_have_subtitle = already_have_subtitle
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        if info['ext'] not in ('mp4', 'webm', 'mkv'):
-            self.to_screen('Subtitles can only be embedded in mp4, webm or mkv files')
+        if info['ext'] not in self.SUPPORTED_EXTS:
+            self.to_screen(f'Subtitles can only be embedded in {", ".join(self.SUPPORTED_EXTS)} files')
             return [], info
         subtitles = info.get('requested_subtitles')
         if not subtitles:
