@@ -2838,9 +2838,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             lambda p: int_or_none(p, default=sys.maxsize), self._configuration_arg('max_comments', ) + [''] * 4)
 
         continuation = self._extract_continuation(root_continuation_data)
-        message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
-        if message and not parent:
-            self.report_warning(message, video_id=video_id, only_once=True)
 
         response = None
         is_forced_continuation = False
@@ -2897,6 +2894,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continuation = self._extract_continuation({'contents': continuation_items})
                 if continuation:
                     break
+
+        message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
+        if message and not parent and tracker['running_total'] == 0:
+            self.report_warning(f'Youtube said: {message}', video_id=video_id, only_once=True)
 
     @staticmethod
     def _generate_comment_continuation(video_id):
