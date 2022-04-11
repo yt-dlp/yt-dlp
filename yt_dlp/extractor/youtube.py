@@ -2905,11 +2905,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         """
         Generates initial comment section continuation token from given video id
         """
-        b64_vid_id = base64.b64encode(bytes(video_id.encode('utf-8')))
-        parts = ('Eg0SCw==', b64_vid_id, 'GAYyJyIRIgs=', b64_vid_id, 'MAB4AjAAQhBjb21tZW50cy1zZWN0aW9u')
-        new_continuation_intlist = list(itertools.chain.from_iterable(
-            [bytes_to_intlist(base64.b64decode(part)) for part in parts]))
-        return base64.b64encode(intlist_to_bytes(new_continuation_intlist)).decode('utf-8')
+        token = f'\x12\r\x12\x0b{video_id}\x18\x062\'"\x11"\x0b{video_id}0\x00x\x020\x00B\x10comments-section'
+        return base64.b64encode(token.encode()).decode()
 
     def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
