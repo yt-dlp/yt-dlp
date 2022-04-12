@@ -338,11 +338,11 @@ class RokfinSearchIE(SearchInfoExtractor):
         'stack': (('content_id', 'raw'), 'stack'),
     }
     _TESTS = [{
-        'url': 'rkfnsearch5:\"zelenko\"',  # The quotes are intentional.
+        'url': 'rkfnsearch5:"zelenko"',
         'playlist_count': 5,
         'info_dict': {
-            'id': '\"zelenko\"',
-            'title': '\"zelenko\"',
+            'id': '"zelenko"',
+            'title': '"zelenko"',
         }
     }]
     _BASE_URL = 'https://rokfin.com'
