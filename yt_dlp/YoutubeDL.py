@@ -888,6 +888,7 @@ class YoutubeDL:
         SUPPRESS = 'light black'
 
     def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
+        text = str(text)
         if test_encoding:
             original_text = text
             # handle.encoding can be None. See https://github.com/yt-dlp/yt-dlp/issues/2711
@@ -895,7 +896,7 @@ class YoutubeDL:
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
-        if isinstance(f, self.Styles):
+        if isinstance(f, Enum):
             f = f.value
         return format_text(text, f) if allow_colors else text if fallback is None else fallback
 
@@ -1708,6 +1709,7 @@ class YoutubeDL:
             entries.append(entry)
             try:
                 if entry is not None:
+                    # TODO: Add auto-generated fields
                     self._match_entry(entry, incomplete=True, silent=True)
             except (ExistingVideoReached, RejectedVideoReached):
                 broken = True

@@ -2,9 +2,9 @@
 import optparse
 import os
 import sys
-from os.path import dirname as dirn
 
-sys.path.insert(0, dirn(dirn(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import yt_dlp
 from yt_dlp.utils import shell_quote
 

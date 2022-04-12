@@ -1,6 +1,6 @@
+import hashlib
 import json
 import re
-from hashlib import sha256
 
 from .ffmpeg import FFmpegPostProcessor
 from ..compat import compat_urllib_parse_urlencode
@@ -84,7 +84,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
         return sponsor_chapters
 
     def _get_sponsor_segments(self, video_id, service):
-        hash = sha256(video_id.encode('ascii')).hexdigest()
+        hash = hashlib.sha256(video_id.encode('ascii')).hexdigest()
         # SponsorBlock API recommends using first 4 hash characters.
         url = f'{self._API_URL}/api/skipSegments/{hash[:4]}?' + compat_urllib_parse_urlencode({
             'service': service,

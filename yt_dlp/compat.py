@@ -196,7 +196,7 @@ compat_urllib_request = urllib.request
 compat_urlparse = compat_urllib_parse = urllib.parse
 
 
-# To be removed
+# To be removed - Do not use
 
 compat_basestring = str
 compat_collections_abc = collections.abc

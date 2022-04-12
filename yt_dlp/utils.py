@@ -4793,12 +4793,12 @@ def random_birthday(year_field, month_field, day_field):
 
 
 # Templates for internet shortcut files, which are plain text files.
-DOT_URL_LINK_TEMPLATE = '''
+DOT_URL_LINK_TEMPLATE = '''\
 [InternetShortcut]
 URL=%(url)s
-'''.lstrip()
+'''
 
-DOT_WEBLOC_LINK_TEMPLATE = '''
+DOT_WEBLOC_LINK_TEMPLATE = '''\
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -4807,16 +4807,16 @@ DOT_WEBLOC_LINK_TEMPLATE = '''
 \t<string>%(url)s</string>
 </dict>
 </plist>
-'''.lstrip()
+'''
 
-DOT_DESKTOP_LINK_TEMPLATE = '''
+DOT_DESKTOP_LINK_TEMPLATE = '''\
 [Desktop Entry]
 Encoding=UTF-8
 Name=%(filename)s
 Type=Link
 URL=%(url)s
 Icon=text-html
-'''.lstrip()
+'''
 
 LINK_TEMPLATES = {
     'url': DOT_URL_LINK_TEMPLATE,
@@ -4872,7 +4872,7 @@ def iri_to_uri(iri):
 def to_high_limit_path(path):
     if sys.platform in ['win32', 'cygwin']:
         # Work around MAX_PATH limitation on Windows. The maximum allowed length for the individual path segments may still be quite limited.
-        return r'\\?\ '.rstrip() + os.path.abspath(path)
+        return '\\\\?\\' + os.path.abspath(path)
 
     return path
 

@@ -2,9 +2,8 @@
 import os
 import sys
 from inspect import getsource
-from os.path import dirname as dirn
 
-sys.path.insert(0, dirn(dirn(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 lazy_extractors_filename = sys.argv[1] if len(sys.argv) > 1 else 'yt_dlp/extractor/lazy_extractors.py'
 if os.path.exists(lazy_extractors_filename):

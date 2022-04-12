@@ -28,6 +28,7 @@ from ..utils import (
 
 # NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
+
 def add_opener(ydl, handler):
     ''' Add a handler for opening URLs, like _download_webpage '''
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
