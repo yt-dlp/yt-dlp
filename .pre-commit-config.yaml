@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/pycqa/isort
+    rev: 5.10.1
+    hooks:
+      - id: isort
+        args: [-m=VERTICAL_HANGING_INDENT, --py=36, -l=80, --rr, -n, --tc]
+  - repo: https://github.com/pre-commit/mirrors-autopep8
+    rev: v1.6.0
+    hooks:
+      - id: autopep8
+#  - repo: https://github.com/PyCQA/flake8
+#    rev: 4.0.1
+#    hooks:
+#      - id: flake8
+#  - repo: https://github.com/asottile/pyupgrade
+#    rev: v2.32.0
+#    hooks:
+#      - id: pyupgrade
+#        args: [--py36-plus, --keep-percent-format]

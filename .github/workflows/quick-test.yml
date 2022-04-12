@@ -31,3 +31,17 @@ jobs:
       run: python devscripts/make_lazy_extractors.py
     - name: Run flake8
       run: flake8 .
+  precommit:
+    name: Pre-commit CI
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'ci skip all')"
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Run pre-commit
+      uses: pre-commit/action@v2.0.3
+      with:
+        extra_args:
