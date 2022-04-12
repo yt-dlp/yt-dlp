@@ -996,3 +996,115 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
             self._entries(series_id), series_id, series_info.get('title'), series_info.get('description'),
             categories=traverse_obj(series_info, ('styles', ..., 'title'), expected_type=str_or_none),
             thumbnail=url_or_none(series_info.get('horizontal_cover')), view_count=parse_count(series_info.get('view')))
+
+
+class BiliLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://live.bilibili.com/(?P<room_id>\d+)'
+
+    _TESTS = [
+        {
+            'url': 'https://live.bilibili.com/196',
+            'info_dict': {
+                'id': '196',
+                'ext': 'flv',
+            },
+            'params': {
+                'skip_download': True,
+            },
+            'skip': 'extractor won\'t work while stream is not live'
+        }, {
+            'url': 'https://live.bilibili.com/196?broadcast_type=0&is_room_feed=1?spm_id_from=333.999.space_home.strengthen_live_card.click',
+            'only_matching': True
+        }
+    ]
+
+    def _call_api_base(self, path, video_id):
+        json = self._download_json('https://api.live.bilibili.com' + path, video_id)
+        if json.get('code') != 0:
+            if json.get('message'):
+                raise ExtractorError(json.get('message'))
+            else:
+                raise ExtractorError('Unable to download JSON metadata')
+        return json.get('data')
+
+    def _call_api_info(self, room_id):
+        json = self._call_api_base(f'/room/v1/Room/get_info?id={room_id}', room_id)
+        if json.get('live_status') == 0:
+            raise ExtractorError('Streamer is not live')
+        return json
+
+    def _call_api_stream(self, room_id, qn):
+        json = self._call_api_base(f'/xlive/web-room/v2/index/getRoomPlayInfo?room_id={room_id}&no_playurl=0&mask=0&qn={qn}&platform=web&protocol=0,1&format=0,2&codec=0,1',
+                                   room_id)
+        return json
+
+    def _real_extract(self, url):
+        room_id = self._match_valid_url(url).group('room_id')
+        room_data = self._call_api_info(room_id)
+        formats = []
+        qns = [
+            {
+                'qn': 80,
+                'desc': '流畅',
+                'quality': -5,
+            }, {
+                'qn': 150,
+                'desc': '高清',
+                'quality': -4,
+            }, {
+                'qn': 250,
+                'desc': '超清',
+                'quality': -3,
+            }, {
+                'qn': 400,
+                'desc': '蓝光',
+                'quality': -2,
+            }, {
+                'qn': 10000,
+                'desc': '原画',
+                'quality': -1,
+            }, {
+                'qn': 20000,
+                'desc': '4K',
+                'quality': 0,
+            }, {
+                'qn': 30000,
+                'desc': '杜比',
+                'quality': 1,
+            },
+        ]
+
+        for qn in qns:
+            stream_data = self._call_api_stream(room_id, qn.get('qn'))
+            if stream_data.get('playurl_info'):
+                for stream in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream')):
+                    for format in stream.get('format'):
+                        for codec in reversed(format.get('codec')):
+                            if codec.get('current_qn') != qn.get('qn'):
+                                continue
+                            base_url = codec.get('base_url')
+                            for url_info in codec.get('url_info'):
+                                host = url_info.get('host')
+                                extra = url_info.get('extra')
+                                protocol = stream_data.get('protocol_name')
+                                formats.append({
+                                    'url': f'{host}{base_url}{extra}',
+                                    'ext': format.get('format_name'),
+                                    'format': qn.get('desc'),
+                                    'format_id': f'{qn.get("desc")}-{qn.get("qn")}',
+                                    'vcodec': codec.get('codec_name'),
+                                    'protocol': 'http' if protocol == 'http_stream' else protocol,
+                                    'quality': qn.get('quality'),
+                                    'http_headers': {
+                                        'Referer': url,
+                                    },
+                                })
+
+        return {
+            'id': room_id,
+            'title': room_data.get('title'),
+            'description': room_data.get('description'),
+            'thumbnail': room_data.get('user_cover'),
+            'timestamp': stream_data.get('live_time'),
+            'formats': formats
+        }
