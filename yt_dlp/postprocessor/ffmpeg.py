@@ -187,8 +187,7 @@ class FFmpegPostProcessor(PostProcessor):
         yield from ('-dn', '-ignore_unknown')
         if copy:
             yield from ('-c', 'copy')
-        # For some reason, '-c copy -map 0' is not enough to copy subtitles
-        if ext in ('mp4', 'mov'):
+        if ext in ('mp4', 'mov', 'm4a'):
             yield from ('-c:s', 'mov_text')
 
     def get_audio_codec(self, path):
