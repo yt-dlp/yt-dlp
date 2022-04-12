@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import collections
 import contextlib
+import collections
 import datetime
 import errno
 import fileinput
