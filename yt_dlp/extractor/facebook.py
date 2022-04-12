@@ -549,7 +549,8 @@ class FacebookIE(InfoExtractor):
                     if media.get('__typename') == 'Video':
                         return parse_graphql_video(media)
 
-                nodes = variadic(traverse_obj(data, 'nodes', 'node') or traverse_obj(data, 'page', 'timeline_feed_units', 'edges', ..., 'node') or [])
+                nodes = variadic(traverse_obj(data, 'nodes', 'node')
+                                 or traverse_obj(data, 'page', 'timeline_feed_units', 'edges', ..., 'node') or [])
                 attachments = traverse_obj(nodes, (
                     ..., 'comet_sections', 'content', 'story', (None, 'attached_story'), 'attachments',
                     ..., ('styles', 'style_type_renderer'), 'attachment'), expected_type=dict) or []
