@@ -525,7 +525,8 @@ class FacebookIE(InfoExtractor):
                     info = {
                         'id': v_id,
                         'formats': formats,
-                        'thumbnail': try_get(video, lambda x: x['thumbnailImage']['uri']),
+                        'thumbnail': traverse_obj(
+                            video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
                         'uploader_id': try_get(video, lambda x: x['owner']['id']),
                         'timestamp': int_or_none(video.get('publish_time')),
                         'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),
