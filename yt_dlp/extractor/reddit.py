@@ -36,6 +36,24 @@ class RedditIE(InfoExtractor):
             'skip_download': True,
         },
     }, {
+        # gif
+        'url': 'https://www.reddit.com/r/FinalDestinationShit/comments/ks2fjy/im_never_driving_again/',
+        'info_dict': {
+            'id': 'lh5qybef3o961',
+            'ext': 'mp4',
+            'title': 'I\'m never driving again',
+            'display_id': 'ks2fjy',
+            'thumbnail': r're:^https?://.*\.(?:jpg|gif)',
+            'thumbnails': 'count:4',
+            'timestamp': 1609983156,
+            'upload_date': '20210107',
+            'uploader': 'IvanKaramazov28',
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 0,
+        },
+    }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
         'only_matching': True,
     }, {
@@ -127,7 +145,7 @@ class RedditIE(InfoExtractor):
             'age_limit': age_limit,
         }
 
-        # Check if media is hosted on reddit:
+        # Check if media is hosted on reddit as a video:
         reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
         if reddit_video:
             playlist_urls = [
@@ -157,6 +175,34 @@ class RedditIE(InfoExtractor):
                 'display_id': display_id,
                 'formats': formats,
                 'duration': int_or_none(reddit_video.get('duration')),
+            }
+
+        # Check if media is hosted on reddit as an image (but also available as video):
+        reddit_video = traverse_obj(data, ('preview', 'images', 0, 'variants', 'mp4'))
+        if reddit_video:
+            display_id = video_id
+            video_id = self._search_regex(
+                r'https?://i\.redd\.it/(?P<id>[^\.]+)', video_url, 'video_id', default=display_id)
+
+            formats = [
+                {
+                    'url': unescapeHTML(x['url']),
+                    'width': int_or_none(x.get('width')),
+                    'height': int_or_none(x.get('height')),
+                    'ext': 'mp4'
+                }
+                for x in filter(
+                    lambda x: isinstance(x, dict),
+                    [reddit_video.get('source')] + traverse_obj(
+                        reddit_video, 'resolutions', expected_type=list, default=[]))
+            ]
+            self._sort_formats(formats)
+
+            return {
+                **info,
+                'id': video_id,
+                'display_id': display_id,
+                'formats': formats,
             }
 
         # Not hosted on reddit, must continue extraction
