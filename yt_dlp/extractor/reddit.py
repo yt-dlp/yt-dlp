@@ -22,7 +22,7 @@ class RedditIE(InfoExtractor):
             'title': 'That small heart attack.',
             'display_id': '6rrwyj',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
-            'thumbnails': 'count:4',
+            'thumbnails': 'count:5',
             'timestamp': 1501941939,
             'upload_date': '20170805',
             'uploader': 'Antw87',
@@ -44,7 +44,7 @@ class RedditIE(InfoExtractor):
             'title': 'I\'m never driving again',
             'display_id': 'ks2fjy',
             'thumbnail': r're:^https?://.*\.(?:jpg|gif)',
-            'thumbnails': 'count:4',
+            'thumbnails': 'count:5',
             'timestamp': 1609983156,
             'upload_date': '20210107',
             'uploader': 'IvanKaramazov28',
@@ -125,6 +125,11 @@ class RedditIE(InfoExtractor):
                 'height': int_or_none(src.get('height')),
             })
 
+        add_thumbnail({
+            'url': data.get('thumbnail'),
+            'width': data.get('thumbnail_width'),
+            'height': data.get('thumbnail_height')
+        })
         for image in try_get(data, lambda x: x['preview']['images']) or []:
             if not isinstance(image, dict):
                 continue
