@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import asyncio
 import base64
 import collections
@@ -13,7 +11,6 @@ import http.cookiejar
 import http.cookies
 import http.server
 import itertools
-import optparse
 import os
 import re
 import shlex
@@ -80,32 +77,6 @@ if compat_os_name == 'nt' and sys.version_info < (3, 8):
         return path
 else:
     compat_realpath = os.path.realpath
-
-
-def compat_print(s):
-    assert isinstance(s, compat_str)
-    print(s)
-
-
-# Fix https://github.com/ytdl-org/youtube-dl/issues/4223
-# See http://bugs.python.org/issue9161 for what is broken
-def workaround_optparse_bug9161():
-    op = optparse.OptionParser()
-    og = optparse.OptionGroup(op, 'foo')
-    try:
-        og.add_option('-t')
-    except TypeError:
-        real_add_option = optparse.OptionGroup.add_option
-
-        def _compat_add_option(self, *args, **kwargs):
-            enc = lambda v: (
-                v.encode('ascii', 'replace') if isinstance(v, compat_str)
-                else v)
-            bargs = [enc(a) for a in args]
-            bkwargs = dict(
-                (k, enc(v)) for k, v in kwargs.items())
-            return real_add_option(self, *bargs, **bkwargs)
-        optparse.OptionGroup.add_option = _compat_add_option
 
 
 try:
@@ -196,60 +167,64 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
 
 #  Deprecated
 
-compat_basestring = str
+compat_b64decode = base64.b64decode
 compat_chr = chr
+compat_cookiejar = http.cookiejar
+compat_cookiejar_Cookie = http.cookiejar.Cookie
+compat_cookies_SimpleCookie = http.cookies.SimpleCookie
+compat_get_terminal_size = shutil.get_terminal_size
+compat_getenv = os.getenv
+compat_getpass = getpass.getpass
+compat_html_entities = html.entities
+compat_html_entities_html5 = html.entities.html5
+compat_HTMLParser = html.parser.HTMLParser
+compat_http_client = http.client
+compat_http_server = http.server
+compat_HTTPError = urllib.error.HTTPError
+compat_itertools_count = itertools.count
+compat_parse_qs = urllib.parse.parse_qs
+compat_str = str
+compat_struct_pack = struct.pack
+compat_struct_unpack = struct.unpack
+compat_tokenize_tokenize = tokenize.tokenize
+compat_urllib_error = urllib.error
+compat_urllib_parse_unquote = urllib.parse.unquote
+compat_urllib_parse_unquote_plus = urllib.parse.unquote_plus
+compat_urllib_parse_urlencode = urllib.parse.urlencode
+compat_urllib_parse_urlparse = urllib.parse.urlparse
+compat_urllib_request = urllib.request
+compat_urlparse = compat_urllib_parse = urllib.parse
+
+
+# To be removed - Do not use
+
+compat_basestring = str
+compat_collections_abc = collections.abc
+compat_cookies = http.cookies
+compat_etree_Element = etree.Element
+compat_etree_register_namespace = etree.register_namespace
 compat_filter = filter
 compat_input = input
 compat_integer_types = (int, )
 compat_kwargs = lambda kwargs: kwargs
 compat_map = map
 compat_numeric_types = (int, float, complex)
-compat_str = str
-compat_xpath = lambda xpath: xpath
-compat_zip = zip
-
-compat_collections_abc = collections.abc
-compat_HTMLParser = html.parser.HTMLParser
-compat_HTTPError = urllib.error.HTTPError
-compat_Struct = struct.Struct
-compat_b64decode = base64.b64decode
-compat_cookiejar = http.cookiejar
-compat_cookiejar_Cookie = compat_cookiejar.Cookie
-compat_cookies = http.cookies
-compat_cookies_SimpleCookie = compat_cookies.SimpleCookie
-compat_etree_Element = etree.Element
-compat_etree_register_namespace = etree.register_namespace
-compat_get_terminal_size = shutil.get_terminal_size
-compat_getenv = os.getenv
-compat_getpass = getpass.getpass
-compat_html_entities = html.entities
-compat_html_entities_html5 = compat_html_entities.html5
-compat_http_client = http.client
-compat_http_server = http.server
-compat_itertools_count = itertools.count
-compat_parse_qs = urllib.parse.parse_qs
+compat_print = print
 compat_shlex_split = shlex.split
 compat_socket_create_connection = socket.create_connection
-compat_struct_pack = struct.pack
-compat_struct_unpack = struct.unpack
+compat_Struct = struct.Struct
 compat_subprocess_get_DEVNULL = lambda: DEVNULL
-compat_tokenize_tokenize = tokenize.tokenize
-compat_urllib_error = urllib.error
-compat_urllib_parse = urllib.parse
 compat_urllib_parse_quote = urllib.parse.quote
 compat_urllib_parse_quote_plus = urllib.parse.quote_plus
-compat_urllib_parse_unquote = urllib.parse.unquote
-compat_urllib_parse_unquote_plus = urllib.parse.unquote_plus
 compat_urllib_parse_unquote_to_bytes = urllib.parse.unquote_to_bytes
-compat_urllib_parse_urlencode = urllib.parse.urlencode
-compat_urllib_parse_urlparse = urllib.parse.urlparse
 compat_urllib_parse_urlunparse = urllib.parse.urlunparse
-compat_urllib_request = urllib.request
 compat_urllib_request_DataHandler = urllib.request.DataHandler
 compat_urllib_response = urllib.response
-compat_urlparse = urllib.parse
 compat_urlretrieve = urllib.request.urlretrieve
 compat_xml_parse_error = etree.ParseError
+compat_xpath = lambda xpath: xpath
+compat_zip = zip
+workaround_optparse_bug9161 = lambda: None
 
 
 # Set public objects

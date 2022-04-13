@@ -3,17 +3,9 @@ import heapq
 import os
 
 from .common import PostProcessor
-from .ffmpeg import (
-    FFmpegPostProcessor,
-    FFmpegSubtitlesConvertorPP
-)
+from .ffmpeg import FFmpegPostProcessor, FFmpegSubtitlesConvertorPP
 from .sponsorblock import SponsorBlockPP
-from ..utils import (
-    orderedSet,
-    PostProcessingError,
-    prepend_extension,
-)
-
+from ..utils import PostProcessingError, orderedSet, prepend_extension
 
 _TINY_CHAPTER_DURATION = 1
 DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'

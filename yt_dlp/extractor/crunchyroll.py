@@ -1,18 +1,15 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import re
 import json
 import zlib
 
+import xml.etree.ElementTree
 from hashlib import sha1
 from math import pow, sqrt, floor
 from .common import InfoExtractor
 from .vrv import VRVBaseIE
 from ..compat import (
     compat_b64decode,
-    compat_etree_Element,
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_urlencode,
@@ -395,7 +392,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 'Downloading subtitles for ' + sub_name, data={
                     'subtitle_script_id': sub_id,
                 })
-            if not isinstance(sub_doc, compat_etree_Element):
+            if not isinstance(sub_doc, xml.etree.ElementTree.Element):
                 continue
             sid = sub_doc.get('id')
             iv = xpath_text(sub_doc, 'iv', 'subtitle iv')
@@ -525,7 +522,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         'video_quality': stream_quality,
                         'current_page': url,
                     })
-                if isinstance(streamdata, compat_etree_Element):
+                if isinstance(streamdata, xml.etree.ElementTree.Element):
                     stream_info = streamdata.find('./{default}preload/stream_info')
                     if stream_info is not None:
                         stream_infos.append(stream_info)
@@ -536,7 +533,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                         'video_format': stream_format,
                         'video_encode_quality': stream_quality,
                     })
-                if isinstance(stream_info, compat_etree_Element):
+                if isinstance(stream_info, xml.etree.ElementTree.Element):
                     stream_infos.append(stream_info)
                 for stream_info in stream_infos:
                     video_encode_id = xpath_text(stream_info, './video_encode_id')
@@ -611,7 +608,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
         season = episode = episode_number = duration = None
 
-        if isinstance(metadata, compat_etree_Element):
+        if isinstance(metadata, xml.etree.ElementTree.Element):
             season = xpath_text(metadata, 'series_title')
             episode = xpath_text(metadata, 'episode_title')
             episode_number = int_or_none(xpath_text(metadata, 'episode_number'))

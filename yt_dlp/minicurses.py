@@ -1,7 +1,7 @@
 import functools
 from threading import Lock
-from .utils import supports_terminal_sequences, write_string
 
+from .utils import supports_terminal_sequences, write_string
 
 CONTROL_SEQUENCES = {
     'DOWN': '\n',
@@ -178,4 +178,4 @@ class MultilinePrinter(MultilinePrinterBase):
                 *text, CONTROL_SEQUENCES['ERASE_LINE'],
                 f'{CONTROL_SEQUENCES["UP"]}{CONTROL_SEQUENCES["ERASE_LINE"]}' * self.maximum)
         else:
-            self.write(*text, ' ' * self._lastlength)
+            self.write('\r', ' ' * self._lastlength, '\r')

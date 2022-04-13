@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import functools
 import re
@@ -8,7 +5,6 @@ import itertools
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_kwargs,
     compat_HTTPError,
     compat_str,
     compat_urlparse,
@@ -109,7 +105,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _extract_vimeo_config(self, webpage, video_id, *args, **kwargs):
         vimeo_config = self._search_regex(
             r'vimeo\.config\s*=\s*(?:({.+?})|_extend\([^,]+,\s+({.+?})\));',
-            webpage, 'vimeo config', *args, **compat_kwargs(kwargs))
+            webpage, 'vimeo config', *args, **kwargs)
         if vimeo_config:
             return self._parse_json(vimeo_config, video_id)
 

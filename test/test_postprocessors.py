@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
@@ -16,7 +13,7 @@ from yt_dlp.postprocessor import (
     FFmpegThumbnailsConvertorPP,
     MetadataFromFieldPP,
     MetadataParserPP,
-    ModifyChaptersPP
+    ModifyChaptersPP,
 )
 
 

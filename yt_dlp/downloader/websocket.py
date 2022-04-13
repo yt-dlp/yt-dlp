@@ -1,6 +1,6 @@
+import asyncio
 import os
 import signal
-import asyncio
 import threading
 
 try:

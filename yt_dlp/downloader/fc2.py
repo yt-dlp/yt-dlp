@@ -1,5 +1,3 @@
-from __future__ import division, unicode_literals
-
 import threading
 
 from .common import FileDownloader

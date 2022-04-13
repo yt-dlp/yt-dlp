@@ -1,11 +1,8 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..compat import (
     compat_HTTPError,
-    compat_kwargs,
     compat_str,
     compat_urllib_request,
     compat_urlparse,
@@ -132,7 +129,7 @@ class UdemyIE(InfoExtractor):
         headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.109 Safari/537.36'
         kwargs['headers'] = headers
         ret = super(UdemyIE, self)._download_webpage_handle(
-            *args, **compat_kwargs(kwargs))
+            *args, **kwargs)
         if not ret:
             return ret
         webpage, _ = ret

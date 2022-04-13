@@ -1,13 +1,11 @@
-from __future__ import unicode_literals
-
 from .common import PostProcessor
 from ..compat import compat_os_name
 from ..utils import (
-    hyphenate_date,
-    write_xattr,
     PostProcessingError,
     XAttrMetadataError,
     XAttrUnavailableError,
+    hyphenate_date,
+    write_xattr,
 )
 
 
