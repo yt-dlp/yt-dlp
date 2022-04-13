@@ -999,7 +999,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
 
 
 class BiliLiveIE(InfoExtractor):
-    _VALID_URL = r'https?://live.bilibili.com/(?P<room_id>\d+)'
+    _VALID_URL = r'https?://live.bilibili.com/(?P<id>\d+)'
 
     _TESTS = [
         {
@@ -1018,83 +1018,72 @@ class BiliLiveIE(InfoExtractor):
         }
     ]
 
-    def _call_api_base(self, path, video_id):
-        json = self._download_json('https://api.live.bilibili.com' + path, video_id)
-        if json.get('code') != 0:
-            if json.get('message'):
-                raise ExtractorError(json.get('message'))
-            else:
-                raise ExtractorError('Unable to download JSON metadata')
-        return json.get('data')
-
-    def _call_api_info(self, room_id):
-        json = self._call_api_base(f'/room/v1/Room/get_info?id={room_id}', room_id)
-        if json.get('live_status') == 0:
-            raise ExtractorError('Streamer is not live')
-        return json
-
-    def _call_api_stream(self, room_id, qn):
-        json = self._call_api_base(f'/xlive/web-room/v2/index/getRoomPlayInfo?room_id={room_id}&no_playurl=0&mask=0&qn={qn}&platform=web&protocol=0,1&format=0,2&codec=0,1',
-                                   room_id)
-        return json
+    def _call_api(self, path, room_id):
+        api_result = self._download_json(f'https://api.live.bilibili.com{path}', room_id)
+        if api_result.get('code') != 0:
+            raise ExtractorError(api_result.get('message') or 'Unable to download JSON metadata')
+        return api_result.get('data')
 
     def _real_extract(self, url):
-        room_id = self._match_valid_url(url).group('room_id')
-        room_data = self._call_api_info(room_id)
+        room_id = self._match_id(url)
+        room_data = self._call_api(f'/room/v1/Room/get_info?id={room_id}', room_id)
+        if room_data.get('live_status') == 0:
+            raise ExtractorError('Streamer is not live', expected=True)
         formats = []
-        qns = [
-            {
-                'qn': 80,
-                'desc': '流畅',
-                'quality': -5,
-            }, {
-                'qn': 150,
-                'desc': '高清',
-                'quality': -4,
-            }, {
-                'qn': 250,
-                'desc': '超清',
-                'quality': -3,
-            }, {
-                'qn': 400,
-                'desc': '蓝光',
-                'quality': -2,
-            }, {
-                'qn': 10000,
-                'desc': '原画',
-                'quality': -1,
-            }, {
-                'qn': 20000,
-                'desc': '4K',
-                'quality': 0,
-            }, {
-                'qn': 30000,
-                'desc': '杜比',
-                'quality': 1,
-            },
-        ]
+        qn_formats = {
+            # translated name for non-cjk users
+            # actual resolution depends on streamer's original res, no such info is provided by api unless downloaded
+            80: 'low',
+            150: 'high_res',
+            250: 'ultra_high_res',
+            400: 'blue_ray',
+            10000: 'source',
+            20000: '4K',
+            30000: 'dolby',
+        }
+        qn_descs = {
+            80: '流畅',
+            150: '高清',
+            250: '超清',
+            400: '蓝光',
+            10000: '原画',
+            20000: '4K',
+            30000: '杜比',
+        }
+        qualities = {
+            80: -5,
+            150: -4,
+            250: -3,
+            400: -2,
+            10000: -1,
+            20000: 0,
+            30000: 1,
+        }
 
-        for qn in qns:
-            stream_data = self._call_api_stream(room_id, qn.get('qn'))
+        for qn, qn_format in qn_formats.items():
+            stream_data = self._call_api(f'/xlive/web-room/v2/index/getRoomPlayInfo?room_id={room_id}&no_playurl=0&mask=0&qn={qn}&platform=web&protocol=0,1&format=0,2&codec=0,1',
+                                         room_id)
             if stream_data.get('playurl_info'):
-                for stream in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream')):
-                    for format in stream.get('format'):
-                        for codec in reversed(format.get('codec')):
-                            if codec.get('current_qn') != qn.get('qn'):
+                protocol = stream_data.get('protocol_name')
+                for stream in stream_data['playurl_info']['playurl']['stream']:
+                    for format in stream['format']:
+                        for codec in reversed(format['codec']):
+                            # api might return other qualities
+                            if codec.get('current_qn') != qn:
                                 continue
-                            base_url = codec.get('base_url')
-                            for url_info in codec.get('url_info'):
-                                host = url_info.get('host')
-                                extra = url_info.get('extra')
-                                protocol = stream_data.get('protocol_name')
+                            base_url = codec['base_url']
+                            for url_info in codec['url_info']:
+                                host = url_info['host']
+                                extra = url_info['extra']
                                 formats.append({
                                     'url': f'{host}{base_url}{extra}',
                                     'ext': format.get('format_name'),
-                                    'format': qn.get('desc'),
-                                    'format_id': f'{qn.get("desc")}-{qn.get("qn")}',
+                                    'format': qn_format,
+                                    'format_id': f'{qn}',
+                                    'format_note': qn_descs[qn],
                                     'vcodec': codec.get('codec_name'),
                                     'protocol': 'http' if protocol == 'http_stream' else protocol,
-                                    'quality': qn.get('quality'),
+                                    'quality': qualities[qn],
                                     'http_headers': {
                                         'Referer': url,
                                     },
