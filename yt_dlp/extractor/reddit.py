@@ -20,6 +20,7 @@ class RedditIE(InfoExtractor):
             'id': 'zv89llsvexdz',
             'ext': 'mp4',
             'title': 'That small heart attack.',
+            'display_id': '6rrwyj',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:4',
             'timestamp': 1501941939,
