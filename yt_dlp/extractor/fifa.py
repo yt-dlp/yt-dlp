@@ -96,11 +96,11 @@ class FifaIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': json_data['title'],
+            'title': json_data.get('title'),
             'description': json_data.get('description'),
             'duration': int_or_none(json_data.get('duration')),
             'release_timestamp': unified_timestamp(video_details.get('dateOfRelease')),
-            'categories': traverse_obj(video_details, (('videoCategory', 'videoSubcategory'))),
+            'categories': traverse_obj(video_details, (('videoCategory', 'videoSubcategory'),)),
             'thumbnail': traverse_obj(video_details, ('backgroundImage', 'src')),
             'formats': formats,
         }
