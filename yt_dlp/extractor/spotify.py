@@ -19,7 +19,7 @@ class SpotifyBaseIE(InfoExtractor):
         'MinimalShow': '13ee079672fad3f858ea45a55eb109553b4fb0969ed793185b2e34cbb6ee7cc0',
         'ShowEpisodes': 'e0e5ce27bd7748d2c59b4d44ba245a8992a05be75d6fabc3b20753fc8857444d',
     }
-    _VALID_URL_TEMPL = r'https?://open\.spotify\.com/%s/(?P<id>[^/?&#]+)'
+    _VALID_URL_TEMPL = r'https?://open\.spotify\.com/(?:embed-podcast/|embed/|)%s/(?P<id>[^/?&#]+)'
 
     def _real_initialize(self):
         self._ACCESS_TOKEN = self._download_json(
@@ -93,11 +93,17 @@ class SpotifyBaseIE(InfoExtractor):
             'series': series,
         }
 
+    @classmethod
+    def _extract_embed_urls(cls, webpage):
+        return re.findall(
+            r'<iframe[^>]+src="(https?://open\.spotify.com/embed/[^"]+)"',
+            webpage)
+
 
 class SpotifyIE(SpotifyBaseIE):
     IE_NAME = 'spotify'
     _VALID_URL = SpotifyBaseIE._VALID_URL_TEMPL % 'episode'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://open.spotify.com/episode/4Z7GAJ50bgctf6uclHlWKo',
         'md5': '74010a1e3fa4d9e1ab3aa7ad14e42d3b',
         'info_dict': {
@@ -109,7 +115,10 @@ class SpotifyIE(SpotifyBaseIE):
             'release_date': '20201217',
             'series': "The Guardian's Audio Long Reads",
         }
-    }
+    }, {
+        'url': 'https://open.spotify.com/embed/episode/4TvCsKKs2thXmarHigWvXE?si=7eatS8AbQb6RxqO2raIuWA',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         episode_id = self._match_id(url)
