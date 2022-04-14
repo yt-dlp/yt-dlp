@@ -92,21 +92,17 @@ class RokfinIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-
         metadata = self._download_json_using_access_token(f'{_API_BASE_URL}{video_id}', video_id)
-
         scheduled = unified_timestamp(metadata.get('scheduledAt'))
         live_status = ('was_live' if metadata.get('stoppedAt')
                        else 'is_upcoming' if scheduled
                        else 'is_live' if video_type == 'stream'
                        else 'not_live')
-
         video_url = traverse_obj(metadata, 'url', ('content', 'contentUrl'), expected_type=url_or_none)
         formats, subtitles = [{'url': video_url}] if video_url else [], {}
         if determine_ext(video_url) == 'm3u8':
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 video_url, video_id, fatal=False, live=live_status == 'is_live')
-
         if not formats:
             if traverse_obj(metadata, 'premiumPlan', 'premium'):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
@@ -115,7 +111,6 @@ class RokfinIE(InfoExtractor):
                     f'Stream is offline; sheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
                     video_id=video_id, expected=True)
         self._sort_formats(formats)
-
         uploader = traverse_obj(metadata, ('createdBy', 'username'), ('creator', 'username'))
         timestamp = (scheduled or float_or_none(metadata.get('postedAtMilli'), 1000)
                      or unified_timestamp(metadata.get('creationDateTime')))
@@ -174,28 +169,36 @@ class RokfinIE(InfoExtractor):
 
         # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1)
         login_page = self._download_webpage(LOGIN_PAGE_URL, None, note='loading login page', errnote='error loading login page')
-        authentication_point_url = unescapeHTML(re.search(AUTHENTICATION_URL_REGEX_STEP_1, login_page).group('authentication_point_url'))
+        authentication_point_url = unescapeHTML(self._search_regex(
+            AUTHENTICATION_URL_REGEX_STEP_1, login_page, name='Authentication URL (step 1)', group='authentication_point_url'))
         resp_body = self._download_webpage(
             authentication_point_url, None, note='logging in', fatal=False, expected_status=404,
             data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''}))
         if not self._authentication_active():
-            raise ExtractorError('login failed' + (': invalid username and/or password.' if type(resp_body) is str and re.search(r'invalid\s+username\s+or\s+password', resp_body, re.IGNORECASE) else ''), expected=True)
+            expected = type(resp_body) is str and bool(self._search_regex(
+                r'(invalid\s+username\s+or\s+password)', resp_body,
+                name='Login failure expected flag', default=False, flags=re.IGNORECASE))
+            raise ExtractorError('login failed' + (': invalid username and/or password.' if expected else ''), expected=expected)
 
         def get_authorization_code():
             urlh = self._request_webpage(
                 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth', None,
                 note='granting user authorization', errnote='user authorization rejected by Rokfin',
-                query={'client_id': 'web', 'redirect_uri': 'https://rokfin.com/silent-check-sso.html',
-                       'response_mode': 'fragment', 'response_type': 'code', 'scope': 'openid',
-                       'prompt': 'none'})
+                query={
+                    'client_id': 'web', 'redirect_uri': 'https://rokfin.com/silent-check-sso.html',
+                    'response_mode': 'fragment', 'response_type': 'code', 'scope': 'openid',
+                    'prompt': 'none'
+                })
             return urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.geturl()).fragment).get('code')[0]
         # Steps 6 & 7 request and acquire ID Token & Access Token:
         self._access_mgmt_tokens = self._download_json(
             self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, None,
             note='getting access credentials', errnote='error getting access credentials',
             data=urlencode_postdata(
-                {'code': get_authorization_code(), 'grant_type': 'authorization_code', 'client_id': 'web',
-                 'redirect_uri': 'https://rokfin.com/silent-check-sso.html'}))
+                {
+                    'code': get_authorization_code(), 'grant_type': 'authorization_code', 'client_id': 'web',
+                    'redirect_uri': 'https://rokfin.com/silent-check-sso.html'
+                }))
 
     def _authentication_active(self):
         return not ({'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'} - set([cookie.name for cookie in self._downloader.cookiejar]))
@@ -214,18 +217,18 @@ class RokfinIE(InfoExtractor):
             headers=headers, query=query, expected_status=401)
         if not authorization_hdr_val or urlh.code != 401 or self._access_mgmt_tokens.get('refresh_token') is None:
             return self._parse_json(json_string, video_id)
-        del headers['authorization']
-        del self._access_mgmt_tokens['access_token']
-        del self._access_mgmt_tokens['token_type']
-        self._access_mgmt_tokens.update(
-            self._download_json(
-                self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, video_id, note='Restoring lost authorization',
-                errnote='Failed to restore authorization', fatal=False,
-                data=urlencode_postdata({'grant_type': 'refresh_token', 'refresh_token': self._access_mgmt_tokens.get('refresh_token'), 'client_id': 'web'})))
-        self.write_debug(f'Updated tokens: {self._access_mgmt_tokens.keys()}')
-        authorization_hdr_val = get_authorization_hdr_val()
-        if authorization_hdr_val:
-            headers['authorization'] = authorization_hdr_val
+        self._access_mgmt_tokens['access_token'] = self._access_mgmt_tokens['token_type'] = None
+        self._access_mgmt_tokens.update(self._download_json(
+            self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, video_id,
+            note='User authorization expired or canceled by Rokfin. Re-authorizing ...', errnote='Failed to re-authorize',
+            data=urlencode_postdata({
+                'grant_type': 'refresh_token',
+                'refresh_token': self._access_mgmt_tokens.get('refresh_token'),
+                'client_id': 'web'
+            })))
+        headers['authorization'] = get_authorization_hdr_val()
+        if headers['authorization'] is None:
+            raise ExtractorError('User authorization lost', expected=True)
         return self._download_json(url_or_request, video_id, headers=headers, query=query)
 
 
@@ -333,7 +336,7 @@ class RokfinSearchIE(SearchInfoExtractor):
     _TYPES = {
         'video': (('id', 'raw'), 'post'),
         'audio': (('id', 'raw'), 'post'),
-        'stream': (("content_id", 'raw'), 'stream'),
+        'stream': (('content_id', 'raw'), 'stream'),
         'dead_stream': (('content_id', 'raw'), 'stream'),
         'stack': (('content_id', 'raw'), 'stack'),
     }
@@ -345,7 +348,6 @@ class RokfinSearchIE(SearchInfoExtractor):
             'title': '"zelenko"',
         }
     }]
-    _BASE_URL = 'https://rokfin.com'
     _db_url = None
     _db_access_key = None
 
@@ -360,7 +362,7 @@ class RokfinSearchIE(SearchInfoExtractor):
                 video_id = traverse_obj(search_result, video_id_key, expected_type=int_or_none)
                 if not video_id or not video_type:
                     continue
-                yield self.url_result(url=f'{self._BASE_URL}/{video_type}/{video_id}')
+                yield self.url_result(url=f'https://rokfin.com/{video_type}/{video_id}')
         total_pages = None
         for page_number in itertools.count(1):
             search_results = self._run_search_query(
@@ -381,7 +383,6 @@ class RokfinSearchIE(SearchInfoExtractor):
             if search_results:
                 return search_results
             self.write_debug('updating access credentials')
-            self._db_url = self._db_access_key = None
             self._downloader.cache.store(self.ie_key(), 'auth', None)
             self._db_url, self._db_access_key = self._get_db_access_credentials()
 
@@ -391,7 +392,7 @@ class RokfinSearchIE(SearchInfoExtractor):
         db_url = db_access_key = None
         for js_file_path in re.finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', notfound_err_page):
             js_content += self._download_webpage(
-                self._BASE_URL + js_file_path.group('path'), self._SEARCH_KEY,
+                'https://rokfin.com' + js_file_path.group('path'), self._SEARCH_KEY,
                 note='Downloading JavaScript file', fatal=False) or ''
             if not db_url:
                 db_url = self._search_regex(
@@ -401,8 +402,8 @@ class RokfinSearchIE(SearchInfoExtractor):
             if not db_access_key:
                 db_access_key = self._search_regex(
                     r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]+)"', js_content,
-                    name='Search engine access key', default=None, fatal=False, group='key')
+                    name='Search engine access key', default=None, group='key')
                 db_access_key = f'Bearer {db_access_key}' if db_access_key else None
             if db_url and db_access_key:
                 self._downloader.cache.store(self.ie_key(), 'auth', (db_url, db_access_key))
-                return (db_url, db_access_key)
+                return db_url, db_access_key
