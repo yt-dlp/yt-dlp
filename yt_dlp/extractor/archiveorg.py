@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import json
 from .common import InfoExtractor
@@ -479,7 +476,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
 
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
-            (r'%s\s*%s' % (regex, self._YT_INITIAL_BOUNDARY_RE),
+            (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
              regex), webpage, name, default='{}'), video_id, fatal=False)
 
     def _extract_webpage_title(self, webpage):
@@ -597,7 +594,7 @@ class YoutubeWebArchiveIE(InfoExtractor):
         response = self._call_cdx_api(
             video_id, f'https://www.youtube.com/watch?v={video_id}',
             filters=['mimetype:text/html'], collapse=['timestamp:6', 'digest'], query={'matchType': 'prefix'}) or []
-        all_captures = sorted([int_or_none(r['timestamp']) for r in response if int_or_none(r['timestamp']) is not None])
+        all_captures = sorted(int_or_none(r['timestamp']) for r in response if int_or_none(r['timestamp']) is not None)
 
         # Prefer the new polymer UI captures as we support extracting more metadata from them
         # WBM captures seem to all switch to this layout ~July 2020

@@ -1,13 +1,12 @@
-from __future__ import unicode_literals
 import os
 import shutil
 
 from .common import PostProcessor
 from ..utils import (
+    PostProcessingError,
     decodeFilename,
     encodeFilename,
     make_dir,
-    PostProcessingError,
 )
 
 
@@ -47,7 +46,7 @@ class MoveFilesAfterDownloadPP(PostProcessor):
                         % (oldfile, newfile))
                     continue
             make_dir(newfile, PostProcessingError)
-            self.to_screen('Moving file "%s" to "%s"' % (oldfile, newfile))
+            self.to_screen(f'Moving file "{oldfile}" to "{newfile}"')
             shutil.move(oldfile, newfile)  # os.rename cannot move between volumes
 
         info['filepath'] = finalpath

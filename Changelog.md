@@ -15,7 +15,7 @@
 
 * Use certificates from `certifi` if installed by [coletdjnz](https://github.com/coletdjnz)
 * Treat multiple `--match-filters` as OR
-* File locking improvevemnts:
+* File locking improvements:
     * Do not lock downloading file on Windows
     * Do not prevent download if locking is unsupported
     * Do not truncate files before locking by [jakeogh](https://github.com/jakeogh), [pukkandan](https://github.com/pukkandan)

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .theplatform import ThePlatformFeedIE
 from ..utils import (
     ExtractorError,

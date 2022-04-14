@@ -1,12 +1,9 @@
-from collections.abc import MutableMapping
 import json
 import operator
 import re
+from collections.abc import MutableMapping
 
-from .utils import (
-    ExtractorError,
-    remove_quotes,
-)
+from .utils import ExtractorError, remove_quotes
 
 _OPERATORS = [
     ('|', operator.or_),
@@ -71,7 +68,7 @@ class LocalNameSpace(MutableMapping):
         return f'LocalNameSpace{self.stack}'
 
 
-class JSInterpreter(object):
+class JSInterpreter:
     def __init__(self, code, objects=None):
         if objects is None:
             objects = {}
@@ -232,7 +229,7 @@ class JSInterpreter(object):
             for default in (False, True):
                 matched = False
                 for item in items:
-                    case, stmt = [i.strip() for i in self._separate(item, ':', 1)]
+                    case, stmt = (i.strip() for i in self._separate(item, ':', 1))
                     if default:
                         matched = matched or case == 'default'
                     elif not matched:
@@ -268,10 +265,10 @@ class JSInterpreter(object):
             expr = expr[:start] + json.dumps(ret) + expr[end:]
 
         for op, opfunc in _ASSIGN_OPERATORS:
-            m = re.match(r'''(?x)
-                (?P<out>%s)(?:\[(?P<index>[^\]]+?)\])?
-                \s*%s
-                (?P<expr>.*)$''' % (_NAME_RE, re.escape(op)), expr)
+            m = re.match(rf'''(?x)
+                (?P<out>{_NAME_RE})(?:\[(?P<index>[^\]]+?)\])?
+                \s*{re.escape(op)}
+                (?P<expr>.*)$''', expr)
             if not m:
                 continue
             right_val = self.interpret_expression(m.group('expr'), local_vars, allow_recursion)
@@ -451,9 +448,9 @@ class JSInterpreter(object):
         m = re.match(r'^(?P<func>%s)\((?P<args>[a-zA-Z0-9_$,]*)\)$' % _NAME_RE, expr)
         if m:
             fname = m.group('func')
-            argvals = tuple([
+            argvals = tuple(
                 int(v) if v.isdigit() else local_vars[v]
-                for v in self._separate(m.group('args'))])
+                for v in self._separate(m.group('args')))
             if fname in local_vars:
                 return local_vars[fname](argvals)
             elif fname not in self._functions:

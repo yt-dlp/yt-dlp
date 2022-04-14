@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (

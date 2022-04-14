@@ -1,5 +1,3 @@
-from __future__ import division, unicode_literals
-
 import http.client
 import json
 import math
@@ -15,15 +13,11 @@ except ImportError:
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import (
-    compat_os_name,
-    compat_urllib_error,
-    compat_struct_pack,
-)
+from ..compat import compat_os_name, compat_struct_pack, compat_urllib_error
 from ..utils import (
     DownloadError,
-    error_to_compat_str,
     encodeFilename,
+    error_to_compat_str,
     sanitized_Request,
     traverse_obj,
 )
@@ -172,8 +166,7 @@ class FragmentFD(FileDownloader):
                 total_frags_str += ' (not including %d ad)' % ad_frags
         else:
             total_frags_str = 'unknown (live)'
-        self.to_screen(
-            '[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
+        self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
         dl = HttpQuietDownloader(
             self.ydl,
@@ -342,8 +335,7 @@ class FragmentFD(FileDownloader):
                 total_frags_str += ' (not including %d ad)' % ad_frags
         else:
             total_frags_str = 'unknown (live)'
-        self.to_screen(
-            '[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
+        self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
 
         tmpfilename = self.temp_name(ctx['filename'])
 

@@ -1,6 +1,4 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
+import xml.etree.ElementTree
 import functools
 import itertools
 import json
@@ -8,7 +6,6 @@ import re
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_etree_Element,
     compat_HTTPError,
     compat_str,
     compat_urllib_error,
@@ -318,7 +315,7 @@ class BBCCoUkIE(InfoExtractor):
                 continue
             captions = self._download_xml(
                 cc_url, programme_id, 'Downloading captions', fatal=False)
-            if not isinstance(captions, compat_etree_Element):
+            if not isinstance(captions, xml.etree.ElementTree.Element):
                 continue
             subtitles['en'] = [
                 {

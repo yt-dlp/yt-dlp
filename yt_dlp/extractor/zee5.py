@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -96,14 +93,14 @@ class Zee5IE(InfoExtractor):
     def _perform_login(self, username, password):
         if len(username) == 10 and username.isdigit() and self._USER_TOKEN is None:
             self.report_login()
-            otp_request_json = self._download_json('https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{}'.format(username),
+            otp_request_json = self._download_json(f'https://b2bapi.zee5.com/device/sendotp_v1.php?phoneno=91{username}',
                                                    None, note='Sending OTP')
             if otp_request_json['code'] == 0:
                 self.to_screen(otp_request_json['message'])
             else:
                 raise ExtractorError(otp_request_json['message'], expected=True)
             otp_code = self._get_tfa_info('OTP')
-            otp_verify_json = self._download_json('https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{}&otp={}&guest_token={}&platform=web'.format(username, otp_code, self._DEVICE_ID),
+            otp_verify_json = self._download_json(f'https://b2bapi.zee5.com/device/verifyotp_v1.php?phoneno=91{username}&otp={otp_code}&guest_token={self._DEVICE_ID}&platform=web',
                                                   None, note='Verifying OTP', fatal=False)
             if not otp_verify_json:
                 raise ExtractorError('Unable to verify OTP.', expected=True)
@@ -227,13 +224,13 @@ class Zee5SeriesIE(InfoExtractor):
             'X-Access-Token': access_token_request['token'],
             'Referer': 'https://www.zee5.com/',
         }
-        show_url = 'https://gwapi.zee5.com/content/tvshow/{}?translation=en&country=IN'.format(show_id)
+        show_url = f'https://gwapi.zee5.com/content/tvshow/{show_id}?translation=en&country=IN'
 
         page_num = 0
         show_json = self._download_json(show_url, video_id=show_id, headers=headers)
         for season in show_json.get('seasons') or []:
             season_id = try_get(season, lambda x: x['id'], compat_str)
-            next_url = 'https://gwapi.zee5.com/content/tvshow/?season_id={}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'.format(season_id)
+            next_url = f'https://gwapi.zee5.com/content/tvshow/?season_id={season_id}&type=episode&translation=en&country=IN&on_air=false&asset_subtype=tvshow&page=1&limit=100'
             while next_url:
                 page_num += 1
                 episodes_json = self._download_json(

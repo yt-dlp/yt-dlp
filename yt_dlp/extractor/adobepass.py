@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 import time
@@ -8,7 +5,6 @@ import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_kwargs,
     compat_urlparse,
     compat_getpass
 )
@@ -1365,7 +1361,7 @@ class AdobePassIE(InfoExtractor):
         headers.update(kwargs.get('headers', {}))
         kwargs['headers'] = headers
         return super(AdobePassIE, self)._download_webpage_handle(
-            *args, **compat_kwargs(kwargs))
+            *args, **kwargs)
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):
