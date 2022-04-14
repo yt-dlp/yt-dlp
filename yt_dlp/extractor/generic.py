@@ -1,30 +1,125 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 import os
 import re
-import sys
+import xml.etree.ElementTree
 
+from .ant1newsgr import Ant1NewsGrEmbedIE
+from .anvato import AnvatoIE
+from .apa import APAIE
+from .arcpublishing import ArcPublishingIE
+from .arkena import ArkenaIE
+from .arte import ArteTVEmbedIE
+from .bitchute import BitChuteIE
+from .blogger import BloggerIE
+from .brightcove import BrightcoveLegacyIE, BrightcoveNewIE
+from .channel9 import Channel9IE
+from .cloudflarestream import CloudflareStreamIE
 from .common import InfoExtractor
+from .commonprotocols import RtmpIE
+from .condenast import CondeNastIE
+from .dailymail import DailyMailIE
+from .dailymotion import DailymotionIE
+from .dbtv import DBTVIE
+from .digiteka import DigitekaIE
+from .drtuber import DrTuberIE
+from .eagleplatform import EaglePlatformIE
+from .ertgr import ERTWebtvEmbedIE
+from .expressen import ExpressenIE
+from .facebook import FacebookIE
+from .foxnews import FoxNewsIE
+from .gedidigital import GediDigitalIE
+from .gfycat import GfycatIE
+from .glomex import GlomexEmbedIE
+from .googledrive import GoogleDriveIE
+from .indavideo import IndavideoEmbedIE
+from .instagram import InstagramIE
+from .joj import JojIE
+from .jwplatform import JWPlatformIE
+from .kaltura import KalturaIE
+from .kinja import KinjaEmbedIE
+from .limelight import LimelightBaseIE
+from .mainstreaming import MainStreamingIE
+from .medialaan import MedialaanIE
+from .mediaset import MediasetIE
+from .mediasite import MediasiteIE
+from .megaphone import MegaphoneIE
+from .megatvcom import MegaTVComEmbedIE
+from .mofosex import MofosexEmbedIE
+from .mtv import MTVServicesEmbeddedIE
+from .myvi import MyviIE
+from .nbc import NBCSportsVPlayerIE
+from .nexx import NexxEmbedIE, NexxIE
+from .odnoklassniki import OdnoklassnikiIE
+from .onionstudios import OnionStudiosIE
+from .ooyala import OoyalaIE
+from .panopto import PanoptoBaseIE
+from .peertube import PeerTubeIE
+from .piksel import PikselIE
+from .pladform import PladformIE
+from .pornhub import PornHubIE
+from .rcs import RCSEmbedsIE
+from .redtube import RedTubeIE
+from .rumble import RumbleEmbedIE
+from .rutube import RutubeIE
+from .rutv import RUTVIE
+from .ruutu import RuutuIE
+from .senategov import SenateISVPIE
+from .simplecast import SimplecastIE
+from .soundcloud import SoundcloudEmbedIE
+from .spankwire import SpankwireIE
+from .sportbox import SportBoxIE
+from .springboardplatform import SpringboardPlatformIE
+from .svt import SVTIE
+from .teachable import TeachableIE
+from .ted import TedEmbedIE
+from .theplatform import ThePlatformIE
+from .threeqsdn import ThreeQSDNIE
+from .tnaflix import TNAFlixNetworkEmbedIE
+from .tube8 import Tube8IE
+from .tunein import TuneInBaseIE
+from .tvc import TVCIE
+from .tvopengr import TVOpenGrEmbedIE
+from .tvp import TVPEmbedIE
+from .twentymin import TwentyMinutenIE
+from .udn import UDNEmbedIE
+from .ustream import UstreamIE
+from .vbox7 import Vbox7IE
+from .vice import ViceIE
+from .videa import VideaIE
+from .videomore import VideomoreIE
+from .videopress import VideoPressIE
+from .viewlift import ViewLiftEmbedIE
+from .vimeo import VHXEmbedIE, VimeoIE
+from .viqeo import ViqeoIE
+from .vk import VKIE
+from .vshare import VShareIE
+from .vzaar import VzaarIE
+from .washingtonpost import WashingtonPostIE
+from .webcaster import WebcasterFeedIE
+from .wimtv import WimTVIE
+from .wistia import WistiaIE
+from .xfileshare import XFileShareIE
+from .xhamster import XHamsterEmbedIE
+from .yapfiles import YapFilesIE
+from .youporn import YouPornIE
 from .youtube import YoutubeIE
+from .zype import ZypeIE
 from ..compat import (
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_unquote,
     compat_urlparse,
-    compat_xml_parse_error,
 )
 from ..utils import (
+    KNOWN_EXTENSIONS,
+    ExtractorError,
+    HEADRequest,
+    UnsupportedError,
     determine_ext,
     dict_get,
-    ExtractorError,
     float_or_none,
-    HEADRequest,
     int_or_none,
     is_html,
     js_to_json,
-    KNOWN_EXTENSIONS,
     merge_dicts,
     mimetype2ext,
     orderedSet,
@@ -36,120 +131,11 @@ from ..utils import (
     unescapeHTML,
     unified_timestamp,
     unsmuggle_url,
-    UnsupportedError,
     url_or_none,
     xpath_attr,
     xpath_text,
     xpath_with_ns,
 )
-from .commonprotocols import RtmpIE
-from .brightcove import (
-    BrightcoveLegacyIE,
-    BrightcoveNewIE,
-)
-from .nexx import (
-    NexxIE,
-    NexxEmbedIE,
-)
-from .nbc import NBCSportsVPlayerIE
-from .ooyala import OoyalaIE
-from .rutv import RUTVIE
-from .tvc import TVCIE
-from .sportbox import SportBoxIE
-from .myvi import MyviIE
-from .condenast import CondeNastIE
-from .udn import UDNEmbedIE
-from .senategov import SenateISVPIE
-from .svt import SVTIE
-from .pornhub import PornHubIE
-from .xhamster import XHamsterEmbedIE
-from .tnaflix import TNAFlixNetworkEmbedIE
-from .drtuber import DrTuberIE
-from .redtube import RedTubeIE
-from .tube8 import Tube8IE
-from .mofosex import MofosexEmbedIE
-from .spankwire import SpankwireIE
-from .youporn import YouPornIE
-from .vimeo import (
-    VimeoIE,
-    VHXEmbedIE,
-)
-from .dailymotion import DailymotionIE
-from .dailymail import DailyMailIE
-from .onionstudios import OnionStudiosIE
-from .viewlift import ViewLiftEmbedIE
-from .mtv import MTVServicesEmbeddedIE
-from .pladform import PladformIE
-from .videomore import VideomoreIE
-from .webcaster import WebcasterFeedIE
-from .googledrive import GoogleDriveIE
-from .jwplatform import JWPlatformIE
-from .digiteka import DigitekaIE
-from .arkena import ArkenaIE
-from .instagram import InstagramIE
-from .threeqsdn import ThreeQSDNIE
-from .theplatform import ThePlatformIE
-from .kaltura import KalturaIE
-from .eagleplatform import EaglePlatformIE
-from .facebook import FacebookIE
-from .soundcloud import SoundcloudEmbedIE
-from .tunein import TuneInBaseIE
-from .vbox7 import Vbox7IE
-from .dbtv import DBTVIE
-from .piksel import PikselIE
-from .videa import VideaIE
-from .twentymin import TwentyMinutenIE
-from .ustream import UstreamIE
-from .arte import ArteTVEmbedIE
-from .videopress import VideoPressIE
-from .rutube import RutubeIE
-from .glomex import GlomexEmbedIE
-from .megatvcom import MegaTVComEmbedIE
-from .ant1newsgr import Ant1NewsGrEmbedIE
-from .limelight import LimelightBaseIE
-from .anvato import AnvatoIE
-from .washingtonpost import WashingtonPostIE
-from .wistia import WistiaIE
-from .mediaset import MediasetIE
-from .joj import JojIE
-from .megaphone import MegaphoneIE
-from .vzaar import VzaarIE
-from .channel9 import Channel9IE
-from .vshare import VShareIE
-from .mediasite import MediasiteIE
-from .springboardplatform import SpringboardPlatformIE
-from .ted import TedEmbedIE
-from .yapfiles import YapFilesIE
-from .vice import ViceIE
-from .xfileshare import XFileShareIE
-from .cloudflarestream import CloudflareStreamIE
-from .peertube import PeerTubeIE
-from .teachable import TeachableIE
-from .indavideo import IndavideoEmbedIE
-from .apa import APAIE
-from .foxnews import FoxNewsIE
-from .viqeo import ViqeoIE
-from .expressen import ExpressenIE
-from .zype import ZypeIE
-from .odnoklassniki import OdnoklassnikiIE
-from .vk import VKIE
-from .kinja import KinjaEmbedIE
-from .gedidigital import GediDigitalIE
-from .rcs import RCSEmbedsIE
-from .bitchute import BitChuteIE
-from .rumble import RumbleEmbedIE
-from .arcpublishing import ArcPublishingIE
-from .medialaan import MedialaanIE
-from .simplecast import SimplecastIE
-from .wimtv import WimTVIE
-from .tvopengr import TVOpenGrEmbedIE
-from .ertgr import ERTWebtvEmbedIE
-from .tvp import TVPEmbedIE
-from .blogger import BloggerIE
-from .mainstreaming import MainStreamingIE
-from .gfycat import GfycatIE
-from .panopto import PanoptoBaseIE
-from .ruutu import RuutuIE
 
 
 class GenericIE(InfoExtractor):
@@ -2629,7 +2615,7 @@ class GenericIE(InfoExtractor):
 
             entries.append({
                 'id': os.path.splitext(url_n.text.rpartition('/')[2])[0],
-                'title': '%s - %s' % (title, n.tag),
+                'title': f'{title} - {n.tag}',
                 'url': compat_urlparse.urljoin(url, url_n.text),
                 'duration': float_or_none(n.find('./duration').text),
             })
@@ -2651,7 +2637,7 @@ class GenericIE(InfoExtractor):
 
         for o in range(len(newmagic) - 1, -1, -1):
             new = ''
-            l = (o + sum([int(n) for n in license[o:]])) % 32
+            l = (o + sum(int(n) for n in license[o:])) % 32
 
             for i in range(0, len(newmagic)):
                 if i == o:
@@ -2828,7 +2814,7 @@ class GenericIE(InfoExtractor):
         try:
             try:
                 doc = compat_etree_fromstring(webpage)
-            except compat_xml_parse_error:
+            except xml.etree.ElementTree.ParseError:
                 doc = compat_etree_fromstring(webpage.encode('utf-8'))
             if doc.tag == 'rss':
                 self.report_detected('RSS feed')
@@ -2863,7 +2849,7 @@ class GenericIE(InfoExtractor):
                 self.report_detected('F4M manifest')
                 self._sort_formats(info_dict['formats'])
                 return info_dict
-        except compat_xml_parse_error:
+        except xml.etree.ElementTree.ParseError:
             pass
 
         # Is it a Camtasia project?
@@ -3773,7 +3759,7 @@ class GenericIE(InfoExtractor):
             else:
                 for num, entry in enumerate(entries, start=1):
                     entry.update({
-                        'id': '%s-%s' % (video_id, num),
+                        'id': f'{video_id}-{num}',
                         'title': '%s (%d)' % (video_title, num),
                     })
             for entry in entries:
@@ -4011,9 +3997,6 @@ class GenericIE(InfoExtractor):
                 # Look also in Refresh HTTP header
                 refresh_header = head_response.headers.get('Refresh')
                 if refresh_header:
-                    # In python 2 response HTTP headers are bytestrings
-                    if sys.version_info < (3, 0) and isinstance(refresh_header, str):
-                        refresh_header = refresh_header.decode('iso-8859-1')
                     found = re.search(REDIRECT_REGEX, refresh_header)
             if found:
                 new_url = compat_urlparse.urljoin(url, unescapeHTML(found.group(1)))

@@ -1,23 +1,20 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import collections
 import hashlib
 import itertools
 import json
+import math
 import netrc
 import os
 import random
 import re
 import sys
 import time
-import math
+import xml.etree.ElementTree
 
 from ..compat import (
     compat_cookiejar_Cookie,
     compat_cookies_SimpleCookie,
-    compat_etree_Element,
     compat_etree_fromstring,
     compat_expanduser,
     compat_getpass,
@@ -30,14 +27,17 @@ from ..compat import (
     compat_urllib_parse_urlencode,
     compat_urllib_request,
     compat_urlparse,
-    compat_xml_parse_error,
 )
 from ..downloader import FileDownloader
-from ..downloader.f4m import (
-    get_base_url,
-    remove_encrypted_media,
-)
+from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
+    JSON_LD_RE,
+    NO_DEFAULT,
+    ExtractorError,
+    GeoRestrictedError,
+    GeoUtils,
+    RegexNotFoundError,
+    UnsupportedError,
     age_restricted,
     base_url,
     bug_reports_message,
@@ -48,20 +48,15 @@ from ..utils import (
     encode_data_uri,
     error_to_compat_str,
     extract_attributes,
-    ExtractorError,
     filter_dict,
     fix_xml_ampersands,
     float_or_none,
     format_field,
-    GeoRestrictedError,
-    GeoUtils,
     int_or_none,
     join_nonempty,
     js_to_json,
-    JSON_LD_RE,
     mimetype2ext,
     network_exceptions,
-    NO_DEFAULT,
     orderedSet,
     parse_bitrate,
     parse_codecs,
@@ -69,7 +64,6 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
-    RegexNotFoundError,
     sanitize_filename,
     sanitized_Request,
     str_or_none,
@@ -78,7 +72,6 @@ from ..utils import (
     traverse_obj,
     try_get,
     unescapeHTML,
-    UnsupportedError,
     unified_strdate,
     unified_timestamp,
     update_Request,
@@ -93,7 +86,7 @@ from ..utils import (
 )
 
 
-class InfoExtractor(object):
+class InfoExtractor:
     """Information Extractor class.
 
     Information extractors are the classes that, given a URL, extract
@@ -629,7 +622,7 @@ class InfoExtractor(object):
             if country:
                 self._x_forwarded_for_ip = GeoUtils.random_ipv4(country)
                 self._downloader.write_debug(
-                    'Using fake IP %s (%s) as X-Forwarded-For' % (self._x_forwarded_for_ip, country.upper()))
+                    f'Using fake IP {self._x_forwarded_for_ip} ({country.upper()}) as X-Forwarded-For')
 
     def extract(self, url):
         """Extracts URL information and returns it in list of dicts."""
@@ -742,9 +735,9 @@ class InfoExtractor(object):
             self.report_download_webpage(video_id)
         elif note is not False:
             if video_id is None:
-                self.to_screen('%s' % (note,))
+                self.to_screen(str(note))
             else:
-                self.to_screen('%s: %s' % (video_id, note))
+                self.to_screen(f'{video_id}: {note}')
 
         # Some sites check X-Forwarded-For HTTP header in order to figure out
         # the origin of the client behind proxy. This allows bypassing geo
@@ -780,7 +773,7 @@ class InfoExtractor(object):
             if errnote is None:
                 errnote = 'Unable to download webpage'
 
-            errmsg = '%s: %s' % (errnote, error_to_compat_str(err))
+            errmsg = f'{errnote}: {error_to_compat_str(err)}'
             if fatal:
                 raise ExtractorError(errmsg, cause=err)
             else:
@@ -861,7 +854,7 @@ class InfoExtractor(object):
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages', False):
-            basen = '%s_%s' % (video_id, urlh.geturl())
+            basen = f'{video_id}_{urlh.geturl()}'
             trim_length = self.get_param('trim_file_name') or 240
             if len(basen) > trim_length:
                 h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
@@ -951,7 +944,7 @@ class InfoExtractor(object):
             fatal=True, encoding=None, data=None, headers={}, query={},
             expected_status=None):
         """
-        Return a tuple (xml as an compat_etree_Element, URL handle).
+        Return a tuple (xml as an xml.etree.ElementTree.Element, URL handle).
 
         See _download_webpage docstring for arguments specification.
         """
@@ -972,7 +965,7 @@ class InfoExtractor(object):
             transform_source=None, fatal=True, encoding=None,
             data=None, headers={}, query={}, expected_status=None):
         """
-        Return the xml as an compat_etree_Element.
+        Return the xml as an xml.etree.ElementTree.Element.
 
         See _download_webpage docstring for arguments specification.
         """
@@ -988,7 +981,7 @@ class InfoExtractor(object):
             xml_string = transform_source(xml_string)
         try:
             return compat_etree_fromstring(xml_string.encode('utf-8'))
-        except compat_xml_parse_error as ve:
+        except xml.etree.ElementTree.ParseError as ve:
             errmsg = '%s: Failed to parse XML ' % video_id
             if fatal:
                 raise ExtractorError(errmsg, cause=ve)
@@ -1099,10 +1092,10 @@ class InfoExtractor(object):
 
     def to_screen(self, msg, *args, **kwargs):
         """Print msg to screen, prefixing it with '[ie_name]'"""
-        self._downloader.to_screen('[%s] %s' % (self.IE_NAME, msg), *args, **kwargs)
+        self._downloader.to_screen(f'[{self.IE_NAME}] {msg}', *args, **kwargs)
 
     def write_debug(self, msg, *args, **kwargs):
-        self._downloader.write_debug('[%s] %s' % (self.IE_NAME, msg), *args, **kwargs)
+        self._downloader.write_debug(f'[{self.IE_NAME}] {msg}', *args, **kwargs)
 
     def get_param(self, name, default=None, *args, **kwargs):
         if self._downloader:
@@ -1139,7 +1132,7 @@ class InfoExtractor(object):
             method = 'any' if self.supports_login() else 'cookies'
         if method is not None:
             assert method in self._LOGIN_HINTS, 'Invalid login method'
-            msg = '%s. %s' % (msg, self._LOGIN_HINTS[method])
+            msg = f'{msg}. {self._LOGIN_HINTS[method]}'
         raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
@@ -1258,7 +1251,7 @@ class InfoExtractor(object):
                 else:
                     raise netrc.NetrcParseError(
                         'No authenticators for %s' % netrc_machine)
-            except (IOError, netrc.NetrcParseError) as err:
+            except (OSError, netrc.NetrcParseError) as err:
                 self.report_warning(
                     'parsing .netrc: %s' % error_to_compat_str(err))
 
@@ -2008,7 +2001,7 @@ class InfoExtractor(object):
     def _parse_f4m_formats(self, manifest, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                            transform_source=lambda s: fix_xml_ampersands(s).strip(),
                            fatal=True, m3u8_id=None):
-        if not isinstance(manifest, compat_etree_Element) and not fatal:
+        if not isinstance(manifest, xml.etree.ElementTree.Element) and not fatal:
             return []
 
         # currently yt-dlp cannot decode the playerVerificationChallenge as Akamai uses Adobe Alchemy
@@ -3334,7 +3327,7 @@ class InfoExtractor(object):
                             http_f = f.copy()
                             del http_f['manifest_url']
                             http_url = re.sub(
-                                REPL_REGEX, protocol + r'://%s/\g<1>%s\3' % (http_host, qualities[i]), f['url'])
+                                REPL_REGEX, protocol + fr'://{http_host}/\g<1>{qualities[i]}\3', f['url'])
                             http_f.update({
                                 'format_id': http_f['format_id'].replace('hls-', protocol + '-'),
                                 'url': http_url,
@@ -3355,7 +3348,7 @@ class InfoExtractor(object):
         formats = []
 
         def manifest_url(manifest):
-            m_url = '%s/%s' % (http_base_url, manifest)
+            m_url = f'{http_base_url}/{manifest}'
             if query:
                 m_url += '?%s' % query
             return m_url
@@ -3392,7 +3385,7 @@ class InfoExtractor(object):
             for protocol in ('rtmp', 'rtsp'):
                 if protocol not in skip_protocols:
                     formats.append({
-                        'url': '%s:%s' % (protocol, url_base),
+                        'url': f'{protocol}:{url_base}',
                         'format_id': protocol,
                         'protocol': protocol,
                     })
@@ -3558,7 +3551,7 @@ class InfoExtractor(object):
     def _int(self, v, name, fatal=False, **kwargs):
         res = int_or_none(v, **kwargs)
         if res is None:
-            msg = 'Failed to extract %s: Could not parse value %r' % (name, v)
+            msg = f'Failed to extract {name}: Could not parse value {v!r}'
             if fatal:
                 raise ExtractorError(msg)
             else:
@@ -3568,7 +3561,7 @@ class InfoExtractor(object):
     def _float(self, v, name, fatal=False, **kwargs):
         res = float_or_none(v, **kwargs)
         if res is None:
-            msg = 'Failed to extract %s: Could not parse value %r' % (name, v)
+            msg = f'Failed to extract {name}: Could not parse value {v!r}'
             if fatal:
                 raise ExtractorError(msg)
             else:
@@ -3606,9 +3599,7 @@ class InfoExtractor(object):
         for header, cookies in url_handle.headers.items():
             if header.lower() != 'set-cookie':
                 continue
-            if sys.version_info[0] >= 3:
-                cookies = cookies.encode('iso-8859-1')
-            cookies = cookies.decode('utf-8')
+            cookies = cookies.encode('iso-8859-1').decode('utf-8')
             cookie_value = re.search(
                 r'%s=(.+?);.*?\b[Dd]omain=(.+?)(?:[,;]|$)' % cookie, cookies)
             if cookie_value:
@@ -3688,7 +3679,7 @@ class InfoExtractor(object):
     def _merge_subtitle_items(subtitle_list1, subtitle_list2):
         """ Merge subtitle items for one language. Items with duplicated URLs/data
         will be dropped. """
-        list1_data = set((item.get('url'), item.get('data')) for item in subtitle_list1)
+        list1_data = {(item.get('url'), item.get('data')) for item in subtitle_list1}
         ret = list(subtitle_list1)
         ret.extend(item for item in subtitle_list2 if (item.get('url'), item.get('data')) not in list1_data)
         return ret
@@ -3801,7 +3792,7 @@ class SearchInfoExtractor(InfoExtractor):
         else:
             n = int(prefix)
             if n <= 0:
-                raise ExtractorError('invalid download number %s for query "%s"' % (n, query))
+                raise ExtractorError(f'invalid download number {n} for query "{query}"')
             elif n > self._MAX_RESULTS:
                 self.report_warning('%s returns max %i results (you requested %i)' % (self._SEARCH_KEY, self._MAX_RESULTS, n))
                 n = self._MAX_RESULTS

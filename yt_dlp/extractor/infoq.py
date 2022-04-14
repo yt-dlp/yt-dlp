@@ -1,7 +1,3 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 from ..compat import (
     compat_b64decode,
     compat_urllib_parse_unquote,

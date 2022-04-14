@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .telecinco import TelecincoIE
 from ..utils import (
     int_or_none,

@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -19,22 +18,25 @@ class GofileIE(InfoExtractor):
                 'id': 'de571ac1-5edc-42e2-8ec2-bdac83ad4a31',
                 'filesize': 928116,
                 'ext': 'mp4',
-                'title': 'nuuh'
+                'title': 'nuuh',
+                'release_timestamp': 1638338704,
+                'release_date': '20211201',
             }
         }]
-    }, {  # URL to test mixed file types
-        'url': 'https://gofile.io/d/avt34h',
+    }, {
+        'url': 'https://gofile.io/d/is8lKr',
         'info_dict': {
-            'id': 'avt34h',
-        },
-        'playlist_mincount': 1,
-    }, {  # URL to test no video/audio error
-        'url': 'https://gofile.io/d/aB03lZ',
-        'info_dict': {
-            'id': 'aB03lZ',
+            'id': 'TMjXd9',
+            'ext': 'mp4',
         },
         'playlist_count': 0,
         'skip': 'No video/audio found at provided URL.',
+    }, {
+        'url': 'https://gofile.io/d/TMjXd9',
+        'info_dict': {
+            'id': 'TMjXd9',
+        },
+        'playlist_count': 1,
     }]
     _TOKEN = None
 
@@ -50,9 +52,11 @@ class GofileIE(InfoExtractor):
         self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
-        files = self._download_json(
-            f'https://api.gofile.io/getContent?contentId={file_id}&token={self._TOKEN}&websiteToken=websiteToken&cache=true',
-            'Gofile', note='Getting filelist')
+        files = self._download_json('https://api.gofile.io/getContent', 'Gofile', note='Getting filelist', query={
+            'contentId': file_id,
+            'token': self._TOKEN,
+            'websiteToken': 12345,
+        })
 
         status = files['status']
         if status != 'ok':
@@ -65,7 +69,7 @@ class GofileIE(InfoExtractor):
                 continue
 
             found_files = True
-            file_url = file.get('directLink')
+            file_url = file.get('link')
             if file_url:
                 yield {
                     'id': file['id'],
