@@ -67,6 +67,7 @@ from .simplecast import SimplecastIE
 from .soundcloud import SoundcloudEmbedIE
 from .spankwire import SpankwireIE
 from .sportbox import SportBoxIE
+from .spotify import SpotifyBaseIE
 from .springboardplatform import SpringboardPlatformIE
 from .svt import SVTIE
 from .teachable import TeachableIE
@@ -3163,6 +3164,11 @@ class GenericIE(InfoExtractor):
         sportbox_urls = SportBoxIE._extract_urls(webpage)
         if sportbox_urls:
             return self.playlist_from_matches(sportbox_urls, video_id, video_title, ie=SportBoxIE.ie_key())
+
+        # Look for embedded Spotify player
+        spotify_urls = SpotifyBaseIE._extract_embed_urls(webpage)
+        if spotify_urls:
+            return self.playlist_from_matches(spotify_urls, video_id, video_title)
 
         # Look for embedded XHamster player
         xhamster_urls = XHamsterEmbedIE._extract_urls(webpage)

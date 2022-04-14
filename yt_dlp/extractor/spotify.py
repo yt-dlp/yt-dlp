@@ -93,6 +93,12 @@ class SpotifyBaseIE(InfoExtractor):
             'series': series,
         }
 
+    @classmethod
+    def _extract_embed_urls(cls, webpage):
+        return re.findall(
+            r'<iframe[^>]+src="(https?://open\.spotify.com/embed/[^"]+)"',
+            webpage)
+
 
 class SpotifyIE(SpotifyBaseIE):
     IE_NAME = 'spotify'
