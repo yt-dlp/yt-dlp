@@ -183,24 +183,27 @@ class RedditIE(InfoExtractor):
             }
 
         # Check if media is hosted on reddit as an image (but also available as video):
-        reddit_video = traverse_obj(data, ('preview', 'images', 0, 'variants', 'mp4'))
-        if reddit_video:
+        reddit_video = traverse_obj(data, ('preview', 'images', 0, 'variants'))
+        if isinstance(reddit_video, dict):
             display_id = video_id
             video_id = self._search_regex(
                 r'https?://i\.redd\.it/(?P<id>[^\.]+)', video_url, 'video_id', default=display_id)
 
-            formats = [
-                {
-                    'url': unescapeHTML(x['url']),
-                    'width': int_or_none(x.get('width')),
-                    'height': int_or_none(x.get('height')),
-                    'ext': 'mp4'
-                }
-                for x in filter(
-                    lambda x: isinstance(x, dict),
-                    [reddit_video.get('source')] + traverse_obj(
-                        reddit_video, 'resolutions', expected_type=list, default=[]))
-            ]
+            formats = []
+            for ext, ext_data in reddit_video.items():
+                formats.extend([
+                    {
+                        'url': unescapeHTML(x['url']),
+                        'width': int_or_none(x.get('width')),
+                        'height': int_or_none(x.get('height')),
+                        'acodec': 'none',
+                        'ext': ext
+                    }
+                    for x in filter(
+                        lambda x: isinstance(x, dict),
+                        [ext_data.get('source')] + traverse_obj(
+                            ext_data, 'resolutions', expected_type=list, default=[]))
+                ])
             self._sort_formats(formats)
 
             return {
