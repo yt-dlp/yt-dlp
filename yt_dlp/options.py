@@ -1,29 +1,11 @@
-from __future__ import unicode_literals
-
-import os.path
 import optparse
+import os.path
 import re
+import shlex
 import sys
 
-from .compat import (
-    compat_expanduser,
-    compat_get_terminal_size,
-    compat_getenv,
-    compat_kwargs,
-    compat_shlex_split,
-)
-from .utils import (
-    Config,
-    expand_path,
-    get_executable_path,
-    OUTTMPL_TYPES,
-    POSTPROCESS_WHEN,
-    remove_end,
-    write_string,
-)
+from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .version import __version__
-
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -33,6 +15,16 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
+from .utils import (
+    OUTTMPL_TYPES,
+    POSTPROCESS_WHEN,
+    Config,
+    expand_path,
+    get_executable_path,
+    remove_end,
+    write_string,
+)
+from .version import __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
@@ -125,7 +117,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         try:
             return super()._match_long_opt(opt)
         except optparse.AmbiguousOptionError as e:
-            if len(set(self._long_opt[p] for p in e.possibilities)) == 1:
+            if len({self._long_opt[p] for p in e.possibilities}) == 1:
                 return e.possibilities[0]
             raise
 
@@ -190,9 +182,9 @@ def create_parser():
         out_dict = dict(getattr(parser.values, option.dest))
         multiple_args = not isinstance(value, str)
         if multiple_keys:
-            allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
+            allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter),
+            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
@@ -202,7 +194,7 @@ def create_parser():
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
-                'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
+                f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
         try:
             keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val
@@ -223,14 +215,12 @@ def create_parser():
     fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
     fmt.format_option_strings = _format_option_string
 
-    kw = {
-        'version': __version__,
-        'formatter': fmt,
-        'usage': '%prog [OPTIONS] URL [URL...]',
-        'conflict_handler': 'resolve',
-    }
-
-    parser = _YoutubeDLOptionParser(**compat_kwargs(kw))
+    parser = _YoutubeDLOptionParser(
+        version=__version__,
+        formatter=fmt,
+        usage='%prog [OPTIONS] URL [URL...]',
+        conflict_handler='resolve'
+    )
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -833,7 +823,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
             'default_key': 'default',
-            'process': compat_shlex_split
+            'process': shlex.split
         }, help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
@@ -1339,7 +1329,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'\w+(?:\+\w+)?',
             'default_key': 'default-compat',
-            'process': compat_shlex_split,
+            'process': shlex.split,
             'multiple_keys': False
         }, help=(
             'Give these arguments to the postprocessors. '

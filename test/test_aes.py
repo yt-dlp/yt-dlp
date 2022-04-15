@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import base64
+
 from yt_dlp.aes import (
-    aes_decrypt,
-    aes_encrypt,
-    aes_ecb_encrypt,
-    aes_ecb_decrypt,
+    BLOCK_SIZE_BYTES,
     aes_cbc_decrypt,
     aes_cbc_decrypt_bytes,
     aes_cbc_encrypt,
     aes_ctr_decrypt,
     aes_ctr_encrypt,
+    aes_decrypt,
+    aes_decrypt_text,
+    aes_ecb_decrypt,
+    aes_ecb_encrypt,
+    aes_encrypt,
     aes_gcm_decrypt_and_verify,
     aes_gcm_decrypt_and_verify_bytes,
-    aes_decrypt_text,
-    BLOCK_SIZE_BYTES,
 )
 from yt_dlp.compat import compat_pycrypto_AES
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
-import base64
 
 # the encrypted data can be generate with 'devscripts/generate_aes_testdata.py'
 

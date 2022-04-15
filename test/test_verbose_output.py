@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
-import unittest
-
-import sys
 import os
 import subprocess
+import sys
+import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 rootDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

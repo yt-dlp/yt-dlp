@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-# coding: utf-8
 import os
 import platform
 import sys
-from PyInstaller.utils.hooks import collect_submodules
 
+from PyInstaller.utils.hooks import collect_submodules
 
 OS_NAME = platform.system()
 if OS_NAME == 'Windows':
     from PyInstaller.utils.win32.versioninfo import (
-        VarStruct, VarFileInfo, StringStruct, StringTable,
-        StringFileInfo, FixedFileInfo, VSVersionInfo, SetVersion,
+        FixedFileInfo,
+        SetVersion,
+        StringFileInfo,
+        StringStruct,
+        StringTable,
+        VarFileInfo,
+        VarStruct,
+        VSVersionInfo,
     )
 elif OS_NAME == 'Darwin':
     pass

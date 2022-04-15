@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from hashlib import md5
 from base64 import b64encode
 from datetime import datetime

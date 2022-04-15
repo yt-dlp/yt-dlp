@@ -1,8 +1,6 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import json
+import uuid
 
 from .common import InfoExtractor
 from ..utils import (
@@ -11,7 +9,6 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     OnDemandPagedList,
-    random_uuidv4,
     traverse_obj,
 )
 
@@ -21,7 +18,7 @@ class MildomBaseIE(InfoExtractor):
 
     def _call_api(self, url, video_id, query=None, note='Downloading JSON metadata', body=None):
         if not self._GUEST_ID:
-            self._GUEST_ID = f'pc-gp-{random_uuidv4()}'
+            self._GUEST_ID = f'pc-gp-{str(uuid.uuid4())}'
 
         content = self._download_json(
             url, video_id, note=note, data=json.dumps(body).encode() if body else None,

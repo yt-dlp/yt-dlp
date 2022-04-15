@@ -1,14 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import imghdr
 import os
-import subprocess
 import re
+import subprocess
 
 try:
-    from mutagen.flac import Picture, FLAC
+    from mutagen.flac import FLAC, Picture
     from mutagen.mp4 import MP4, MP4Cover
     from mutagen.oggopus import OggOpus
     from mutagen.oggvorbis import OggVorbis
@@ -17,17 +14,14 @@ except ImportError:
     has_mutagen = False
 
 from .common import PostProcessor
-from .ffmpeg import (
-    FFmpegPostProcessor,
-    FFmpegThumbnailsConvertorPP,
-)
+from .ffmpeg import FFmpegPostProcessor, FFmpegThumbnailsConvertorPP
 from ..utils import (
+    Popen,
+    PostProcessingError,
     check_executable,
     encodeArgument,
     encodeFilename,
     error_to_compat_str,
-    Popen,
-    PostProcessingError,
     prepend_extension,
     shell_quote,
 )
@@ -61,7 +55,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         return int(mobj.group('w')), int(mobj.group('h'))
 
     def _report_run(self, exe, filename):
-        self.to_screen('%s: Adding thumbnail to "%s"' % (exe, filename))
+        self.to_screen(f'{exe}: Adding thumbnail to "{filename}"')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):

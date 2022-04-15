@@ -1,52 +1,21 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
 f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
-import codecs
-import io
 import itertools
 import os
 import random
 import re
 import sys
 
-from .options import parseOpts
-from .compat import (
-    compat_getpass,
-    compat_os_name,
-    compat_shlex_quote,
-    workaround_optparse_bug9161,
-)
+from .compat import compat_getpass, compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .utils import (
-    DateRange,
-    decodeOption,
-    DownloadCancelled,
-    DownloadError,
-    expand_path,
-    float_or_none,
-    GeoUtils,
-    int_or_none,
-    match_filter_func,
-    NO_DEFAULT,
-    parse_duration,
-    preferredencoding,
-    read_batch_urls,
-    render_table,
-    SameFileError,
-    setproctitle,
-    std_headers,
-    traverse_obj,
-    write_string,
-)
-from .update import run_update
 from .downloader import FileDownloader
 from .extractor import gen_extractors, list_extractors
-from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
+from .extractor.common import InfoExtractor
+from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegSubtitlesConvertorPP,
@@ -55,6 +24,28 @@ from .postprocessor import (
     FFmpegVideoRemuxerPP,
     MetadataFromFieldPP,
     MetadataParserPP,
+)
+from .update import run_update
+from .utils import (
+    NO_DEFAULT,
+    DateRange,
+    DownloadCancelled,
+    DownloadError,
+    GeoUtils,
+    SameFileError,
+    decodeOption,
+    expand_path,
+    float_or_none,
+    int_or_none,
+    match_filter_func,
+    parse_duration,
+    preferredencoding,
+    read_batch_urls,
+    render_table,
+    setproctitle,
+    std_headers,
+    traverse_obj,
+    write_string,
 )
 from .YoutubeDL import YoutubeDL
 
@@ -69,13 +60,12 @@ def get_urls(urls, batchfile, verbose):
                     'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
                 batchfd = sys.stdin
             else:
-                batchfd = io.open(
-                    expand_path(batchfile),
-                    'r', encoding='utf-8', errors='ignore')
+                batchfd = open(
+                    expand_path(batchfile), encoding='utf-8', errors='ignore')
             batch_urls = read_batch_urls(batchfd)
             if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
-        except IOError:
+        except OSError:
             sys.exit('ERROR: batch file %s could not be read' % batchfile)
     _enc = preferredencoding()
     return [
@@ -807,13 +797,6 @@ def parse_options(argv=None):
 
 
 def _real_main(argv=None):
-    # Compatibility fixes for Windows
-    if sys.platform == 'win32':
-        # https://github.com/ytdl-org/youtube-dl/issues/820
-        codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
-
-    workaround_optparse_bug9161()
-
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)

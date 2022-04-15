@@ -1,7 +1,7 @@
 import functools
 from threading import Lock
-from .utils import supports_terminal_sequences, write_string
 
+from .utils import supports_terminal_sequences, write_string
 
 CONTROL_SEQUENCES = {
     'DOWN': '\n',

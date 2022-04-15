@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import FakeYDL, is_download_test
 
-from yt_dlp.extractor import (
-    YoutubeIE,
-    YoutubeTabIE,
-)
+from yt_dlp.extractor import YoutubeIE, YoutubeTabIE
 
 
 @is_download_test

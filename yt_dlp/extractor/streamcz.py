@@ -1,4 +1,3 @@
-# coding: utf-8
 import json
 
 from .common import InfoExtractor

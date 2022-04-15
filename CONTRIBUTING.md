@@ -178,7 +178,6 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
     ```python
-    # coding: utf-8
     from .common import InfoExtractor
     
     

@@ -1,17 +1,7 @@
-from __future__ import unicode_literals
-
 from math import ceil
 
-from .compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_pycrypto_AES,
-)
-from .utils import (
-    bytes_to_intlist,
-    intlist_to_bytes,
-)
-
+from .compat import compat_b64decode, compat_ord, compat_pycrypto_AES
+from .utils import bytes_to_intlist, intlist_to_bytes
 
 if compat_pycrypto_AES:
     def aes_cbc_decrypt_bytes(data, key, iv):
