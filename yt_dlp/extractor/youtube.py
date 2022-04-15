@@ -3618,7 +3618,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         lambda x: x['superTitleIcon']['iconType']) == 'LOCATION_PIN':
                     info['location'] = stl
                 else:
-                    mobj = re.search(r'(.+?)\s*S(\d+)\s*•\s*E(\d+)', stl)
+                    mobj = re.search(r'(.+?)\s*S(\d+)\s*•?\s*E(\d+)', stl)
                     if mobj:
                         info.update({
                             'series': mobj.group(1),
