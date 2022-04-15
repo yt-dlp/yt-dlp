@@ -3717,7 +3717,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
         if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
-            upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
+            upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d') or upload_date
         info['upload_date'] = upload_date
 
         for to, frm in fallbacks.items():
