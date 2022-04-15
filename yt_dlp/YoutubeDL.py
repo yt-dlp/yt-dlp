@@ -324,7 +324,7 @@ class YoutubeDL:
     certificate:        Path to client certificate file in PEM format. May include the private key.
     certificatekey:     Path to private key file for client certificate
     certificatekeypass: Password for certificate private key, if encrypted.
-                        If not provided and the key file is encrypted, yt-dlp will ask interactively
+                        If not provided and the key is encrypted, yt-dlp will ask interactively
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
     http_headers:      A dictionary of custom headers to be used for all requests

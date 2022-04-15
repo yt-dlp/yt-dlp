@@ -580,7 +580,7 @@ def create_parser():
         '--certificate-key-pass',
         dest='certificatekeypass', metavar='PASSWORD', default=False,
         help='Password for certificate private key, if encrypted. '
-             'If not provided and the key file is encrypted, yt-dlp will ask interactively')
+             'If not provided and the key is encrypted, yt-dlp will ask interactively')
 
     video_format = optparse.OptionGroup(parser, 'Video Format Options')
     video_format.add_option(
