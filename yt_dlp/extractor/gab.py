@@ -1,13 +1,14 @@
 import re
 
 from .common import InfoExtractor
+from ..compat import compat_urlparse
 from ..utils import (
     clean_html,
     int_or_none,
+    js_to_json,
     parse_codecs,
     parse_duration,
-    str_to_int,
-    unified_timestamp
+    unified_timestamp,
 )
 
 
@@ -22,38 +23,42 @@ class GabTVIE(InfoExtractor):
             'description': None,
             'uploader': 'Wurzelroot',
             'uploader_id': '608fb0a85738fd1974984f7d',
-            'thumbnail': 'https://tv.gab.com/image/61217eacea5665de450d0488',
+            'thumbnail': 'https://tv.gab.com/image/61217eca90b0355f10c99383',
+        }
+    }, {
+        'url': 'https://tv.gab.com/channel/americanflavored/view/downhill-go-kart-race-no-engines-6254b9eaf1b75c149c703b7f',
+        'info_dict': {
+            'id': '6254b9eaf1b75c149c703b7f',
+            'ext': 'mp4',
+            'title': 'Downhill Go Kart Race- No Engines',
+            'description': None,
+            'uploader': 'AmericanFlavored',
+            'uploader_id': '62454a53299da61b33305901',
+            'thumbnail': 'https://tv.gab.com/image/6254b9f31e03ac67731b035a',
         }
     }]
+    _DOMAIN = 'https://tv.gab.com/'
 
     def _real_extract(self, url):
         id = self._match_id(url).split('-')[-1]
         webpage = self._download_webpage(url, id)
         channel_id = self._search_regex(r'data-channel-id=\"(?P<channel_id>[^\"]+)', webpage, 'channel_id')
-        channel_name = self._search_regex(r'data-channel-name=\"(?P<channel_id>[^\"]+)', webpage, 'channel_name')
-        title = self._search_regex(r'data-episode-title=\"(?P<channel_id>[^\"]+)', webpage, 'title')
-        view_key = self._search_regex(r'data-view-key=\"(?P<channel_id>[^\"]+)', webpage, 'view_key')
+        video_info = self._parse_json(self._search_regex(r'(?s)mediaMetadata\:\s+(\{.+?\})', webpage, 'video_info'),
+                                      video_id=id, transform_source=js_to_json)
+        title = video_info.get('title')
         description = clean_html(
             self._html_search_regex(self._meta_regex('description'), webpage, 'description', group='content')) or None
-        available_resolutions = re.findall(r'<a\ data-episode-id=\"%s\"\ data-resolution=\"(?P<resolution>[^\"]+)' % id,
-                                           webpage)
-
         formats = []
-        for resolution in available_resolutions:
-            frmt = {
-                'url': f'https://tv.gab.com/media/{id}?viewKey={view_key}&r={resolution}',
-                'format_id': resolution,
-                'vcodec': 'h264',
-                'acodec': 'aac',
-                'ext': 'mp4'
-            }
-            if 'audio-' in resolution:
-                frmt['abr'] = str_to_int(resolution.replace('audio-', ''))
-                frmt['height'] = 144
-                frmt['quality'] = -10
-            else:
-                frmt['height'] = str_to_int(resolution.replace('p', ''))
-            formats.append(frmt)
+        sources = re.findall(r'<source.*?src=\"(?P<src>[^\"]+).+?size=\"(?P<quality>\d+)\"', webpage)
+        for source in sources:
+            if not source:
+                continue
+            formats.append({
+                'format_id': source[1],
+                'quality': source[1],
+                'ext': 'mp4',
+                'url': compat_urlparse.urljoin(self._DOMAIN, source[0]),
+            })
         self._sort_formats(formats)
 
         return {
@@ -61,9 +66,9 @@ class GabTVIE(InfoExtractor):
             'title': title,
             'formats': formats,
             'description': description,
-            'uploader': channel_name,
+            'uploader': video_info.get('artist'),
             'uploader_id': channel_id,
-            'thumbnail': f'https://tv.gab.com/image/{id}',
+            'thumbnail': compat_urlparse.urljoin(self._DOMAIN, self._search_regex(r'data-poster=\"(?P<data_poster>[^\"]+)', webpage, 'data_poster')),
         }
 
 
