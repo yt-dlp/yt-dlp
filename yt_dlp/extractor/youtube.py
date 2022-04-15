@@ -5824,7 +5824,7 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
 class YoutubeStoriesIE(InfoExtractor):
     IE_DESC = 'YouTube channel stories; "ytstories:" prefix'
     IE_NAME = 'youtube:stories'
-    _VALID_URL = r'ytstories:(?:RLTD|UC)(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
+    _VALID_URL = r'ytstories:UC(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
     _TESTS = [{
         'url': 'ytstories:UCwFCb4jeqaKWnciAYM-ZVHg',
         'only_matching': True,
