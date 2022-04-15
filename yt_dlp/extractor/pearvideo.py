@@ -38,19 +38,13 @@ class PearVideoIE(InfoExtractor):
             r'(?P<id>[a-zA-Z]+)Url\s*=\s*(["\'])(?P<url>(?:https?:)?//.+?)\2',
             webpage)]
         if not formats:
-            formats = []
-            info = self._download_json('https://www.pearvideo.com/videoStatus.jsp', video_id=video_id, query={
-                'contId': video_id,
-            }, headers={'Referer': url})
-            videos = traverse_obj(info, ('videoInfo', 'videos'), default={})
-            system_time = info.get('systemTime')
-            for k, v in videos.items():
-                if not v:
-                    continue
-                formats.append({
-                    'format_id': k,
-                    'url': v.replace(system_time, f'cont-{video_id}') if k == 'srcUrl' else v
-                })
+            info = self._download_json(
+                'https://www.pearvideo.com/videoStatus.jsp', video_id=video_id,
+                query={'contId': video_id}, headers={'Referer': url})
+            formats = [{
+                'format_id': k,
+                'url': v.replace(info['systemTime'], f'cont-{video_id}') if k == 'srcUrl' else v
+            } for k, v in traverse_obj(info, ('videoInfo', 'videos'), default={}).items() if v]
         self._sort_formats(formats)
         title = self._search_regex(
             (r'<h1[^>]+\bclass=(["\'])video-tt\1[^>]*>(?P<value>[^<]+)',
