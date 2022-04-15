@@ -134,6 +134,8 @@ class FragmentFD(FileDownloader):
         return True
 
     def _read_fragment(self, ctx):
+        if not ctx.get('fragment_filename_sanitized'):
+            return None
         try:
             down, frag_sanitized = self.sanitize_open(ctx['fragment_filename_sanitized'], 'rb')
         except FileNotFoundError:
