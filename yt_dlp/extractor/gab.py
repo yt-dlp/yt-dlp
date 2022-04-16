@@ -1,7 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_urlparse
+import urllib.parse
 from ..utils import (
     clean_html,
     int_or_none,
@@ -48,17 +48,12 @@ class GabTVIE(InfoExtractor):
         title = video_info.get('title')
         description = clean_html(
             self._html_search_regex(self._meta_regex('description'), webpage, 'description', group='content')) or None
-        formats = []
-        sources = re.findall(r'<source.*?src=\"(?P<src>[^\"]+).+?size=\"(?P<quality>\d+)\"', webpage)
-        for source in sources:
-            if not source:
-                continue
-            formats.append({
-                'format_id': source[1],
-                'quality': source[1],
-                'ext': 'mp4',
-                'url': compat_urlparse.urljoin(self._DOMAIN, source[0]),
-            })
+        formats = [{
+            'format_id': q,
+            'quality': q,
+            'ext': 'mp4',
+            'url': urllib.parse.urljoin(self._DOMAIN, src),
+        } for src, q in re.findall(r'<source[^>]+src="(?P<src>[^"]+)"[^>]*\ssize="(?P<quality>\d+)"', webpage)]
         self._sort_formats(formats)
 
         return {
@@ -68,7 +63,7 @@ class GabTVIE(InfoExtractor):
             'description': description,
             'uploader': video_info.get('artist'),
             'uploader_id': channel_id,
-            'thumbnail': compat_urlparse.urljoin(self._DOMAIN, self._search_regex(r'data-poster=\"(?P<data_poster>[^\"]+)', webpage, 'data_poster')),
+            'thumbnail': urllib.parse.urljoin(self._DOMAIN, self._search_regex(r'data-poster=\"(?P<data_poster>[^\"]+)', webpage, 'data_poster', fatal=False)),
         }
 
 
