@@ -46,6 +46,7 @@ class PearVideoIE(InfoExtractor):
                 'url': v.replace(info['systemTime'], f'cont-{video_id}') if k == 'srcUrl' else v
             } for k, v in traverse_obj(info, ('videoInfo', 'videos'), default={}).items() if v]
         self._sort_formats(formats)
+
         title = self._search_regex(
             (r'<h1[^>]+\bclass=(["\'])video-tt\1[^>]*>(?P<value>[^<]+)',
              r'<[^>]+\bdata-title=(["\'])(?P<value>(?:(?!\1).)+)\1'),
