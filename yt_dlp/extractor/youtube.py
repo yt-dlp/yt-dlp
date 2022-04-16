@@ -25,6 +25,8 @@ from ..compat import (
     compat_urllib_parse_urlparse,
     compat_urlparse,
 )
+
+from collections.abc import Generator
 from ..jsinterp import JSInterpreter
 from ..utils import (
     NO_DEFAULT,
@@ -585,6 +587,29 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             query['clickTracking'] = {'clickTrackingParams': ctp}
         return query
 
+    @staticmethod
+    def _build_continuation(token, endpoint=None, ctp=None):
+        """
+        @param token: continuation token
+        @param endpoint: endpoint for continuation to be used in
+        @param ctp clickTrackingParams
+        @returns query, endpoint
+        Note: if endpoint is None, then the endpoint should be assumed
+              to be the same as the one this continuation appeared in.
+              if there is no token, return None
+        """
+        if not token:
+            return
+        query = {
+            'continuation': token
+        }
+        # TODO: Inconsistency with clickTrackingParams.
+        # Currently we have a fixed ctp contained within context (from ytcfg)
+        # and a ctp in root query for continuation.
+        if ctp:
+            query['clickTracking'] = {'clickTrackingParams': ctp}
+        return query, endpoint
+
     @classmethod
     def _extract_next_continuation_data(cls, renderer):
         next_continuation = try_get(
@@ -596,7 +621,17 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if not continuation:
             return
         ctp = next_continuation.get('clickTrackingParams')
-        return cls._build_api_continuation_query(continuation, ctp)
+        return cls._build_continuation(continuation, ctp=ctp)
+
+    _CONTINUATION_REQUEST_TYPE_EP_MAPPING = {
+        'CONTINUATION_REQUEST_TYPE_BROWSE': 'browse',
+        'CONTINUATION_REQUEST_TYPE_SEARCH': 'search',
+        'CONTINUATION_REQUEST_TYPE_WATCH_NEXT': 'next',
+        'CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST': '??',
+        'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU': '??',
+        'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES': '??',
+        'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE': 'reel/reel_watch_sequence',
+    }
 
     @classmethod
     def _extract_continuation_ep_data(cls, continuation_ep: dict):
@@ -608,26 +643,67 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             ctp = continuation_ep.get('clickTrackingParams')
             return cls._build_api_continuation_query(continuation, ctp)
 
-    @classmethod
-    def _extract_continuation(cls, renderer):
-        next_continuation = cls._extract_next_continuation_data(renderer)
-        if next_continuation:
-            return next_continuation
+    def _extract_command_metadata(self, cm: dict):
+        """
+        commandMetadata:
+                webCommandMetadata:
+                    apiUrl:
+                    url:
 
-        contents = []
-        for key in ('contents', 'items'):
-            contents.extend(try_get(renderer, lambda x: x[key], list) or [])
+        This provides info on the endpoint/url to use
+        @returns innertube endpoint, url endpoint
+        """
+        web_command_metadata = traverse_obj(cm, 'webCommandMetadata')
+        innertube_endpoint = self._search_regex(
+            r'youtubei/v1/([\w/]+)', traverse_obj(web_command_metadata, 'apiUrl'),
+            'innertube endpoint', default=None)
 
-        for content in contents:
-            if not isinstance(content, dict):
-                continue
-            continuation_ep = try_get(
-                content, (lambda x: x['continuationItemRenderer']['continuationEndpoint'],
-                          lambda x: x['continuationItemRenderer']['button']['buttonRenderer']['command']),
-                dict)
-            continuation = cls._extract_continuation_ep_data(continuation_ep)
-            if continuation:
-                return continuation
+        return innertube_endpoint, traverse_obj(web_command_metadata, 'url')
+
+    def _extract_continuation_ep(self, continuation_ep: dict):
+        """
+        endpoint:
+            commandMetadata:
+                webCommandMetadata:
+                    apiUrl:
+            continuationCommand:
+                token:
+                request:
+
+            getNotificationMenuEndpoint
+
+        """
+        if not isinstance(continuation_ep, dict):
+            return
+
+        continuation_command = continuation_ep.get('continuationCommand') or {}
+        token = continuation_command.get('token')
+
+        endpoint, _ = self._extract_command_metadata(continuation_ep.get('commandMetadata'))
+        if not endpoint:
+            endpoint = self._CONTINUATION_REQUEST_TYPE_EP_MAPPING.get(continuation_command.get('request'))
+
+        return self._build_continuation(token, endpoint, continuation_ep.get('clickTrackingParams'))
+
+    def _extract_continuation(self, renderer):
+        """
+        Returns query, continuation
+        If there is no continuation token, returns None.
+
+        """
+        next_continuation_data = self._extract_next_continuation_data(renderer)
+        if next_continuation_data is not None:
+            return next_continuation_data
+        contents = traverse_obj(renderer, 'items', 'contents', expected_type=list, default = [renderer])
+        continuation_eps = traverse_obj(
+            contents, (..., 'continuationItemRenderer', ['continuationEndpoint', ('button', 'buttonRenderer', 'command')]), default=[], expected_type=dict)
+
+        continuation_eps.append(renderer)  # if renderer is a continuationEndpoint
+
+        for continuation_ep in continuation_eps:
+            continuation_ep_data = self._extract_continuation_ep(continuation_ep)
+            if continuation_ep_data:
+                return continuation_ep_data
 
     @classmethod
     def _extract_alerts(cls, data):
@@ -2751,7 +2827,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         get_single_config_arg = lambda c: self._configuration_arg(c, [''])[0]
 
         def extract_header(contents):
-            _continuation = None
+            _continuation_data = None
             for content in contents:
                 comments_header_renderer = traverse_obj(content, 'commentsHeaderRenderer')
                 expected_comment_count = self._get_count(
@@ -2767,8 +2843,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     lambda x: x['sortMenu']['sortFilterSubMenuRenderer']['subMenuItems'][comment_sort_index], dict) or {}
                 sort_continuation_ep = sort_menu_item.get('serviceEndpoint') or {}
 
-                _continuation = self._extract_continuation_ep_data(sort_continuation_ep) or self._extract_continuation(sort_menu_item)
-                if not _continuation:
+                _continuation_data = self._extract_continuation(sort_continuation_ep) or self._extract_continuation(sort_menu_item)
+                if not _continuation_data:
                     continue
 
                 sort_text = str_or_none(sort_menu_item.get('title'))
@@ -2776,7 +2852,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     sort_text = 'top comments' if comment_sort_index == 0 else 'newest first'
                 self.to_screen('Sorting comments by %s' % sort_text.lower())
                 break
-            return _continuation
+            return _continuation_data
 
         def extract_thread(contents):
             if not parent:
@@ -2830,7 +2906,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         max_comments, max_parents, max_replies, max_replies_per_thread, *_ = map(
             lambda p: int_or_none(p, default=sys.maxsize), self._configuration_arg('max_comments', ) + [''] * 4)
 
-        continuation = self._extract_continuation(root_continuation_data)
+        continuation_data = self._extract_continuation(root_continuation_data)
         message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
         if message and not parent:
             self.report_warning(message, video_id=video_id)
@@ -2839,7 +2915,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         is_first_continuation = parent is None
 
         for page_num in itertools.count(0):
-            if not continuation:
+            if not continuation_data:
                 break
             headers = self.generate_api_headers(ytcfg=ytcfg, visitor_data=self._extract_visitor_data(response))
             comment_prog_str = f"({tracker['running_total']}/{tracker['est_total']})"
@@ -2855,23 +2931,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     page_num, comment_prog_str)
 
             response = self._extract_response(
-                item_id=None, query=continuation,
-                ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
+                item_id=None, query=continuation_data[0],
+                ep=continuation_data[1] or 'next', ytcfg=ytcfg, headers=headers, note=note_prefix,
                 check_get_keys='onResponseReceivedEndpoints')
 
             continuation_contents = traverse_obj(
                 response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
 
-            continuation = None
+            continuation_data = None
             for continuation_section in continuation_contents:
                 continuation_items = traverse_obj(
                     continuation_section,
                     (('reloadContinuationItemsCommand', 'appendContinuationItemsAction'), 'continuationItems'),
                     get_all=False, expected_type=list) or []
                 if is_first_continuation:
-                    continuation = extract_header(continuation_items)
+                    continuation_data = extract_header(continuation_items)
                     is_first_continuation = False
-                    if continuation:
+                    if continuation_data:
                         break
                     continue
 
@@ -2879,8 +2955,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     if not entry:
                         return
                     yield entry
-                continuation = self._extract_continuation({'contents': continuation_items})
-                if continuation:
+                continuation_data = self._extract_continuation({'contents': continuation_items})
+                if continuation_data:
                     break
 
     def _get_comments(self, ytcfg, video_id, contents, webpage):
@@ -4018,7 +4094,113 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not continuation_list[0]:
             continuation_list[0] = self._extract_continuation(parent_renderer)
 
+
+    def _continuation_renderer_entry(self, continuation_list, renderer):
+        continuation_data = self._extract_continuation_ep(traverse_obj(renderer, 'continuationEndpoint'))
+        if continuation_data:
+            continuation_list[0] = continuation_data
+
+    def _continuation_contents_renderer(self, continuation_list, mapping, renderer):
+        next_continuation_data = self._extract_next_continuation_data(renderer)
+        if next_continuation_data:
+            continuation_list[0] = next_continuation_data
+
+        yield from self._iterate_renderer_entries(
+            traverse_obj(renderer, 'contents', 'items', expected_type=list, default=[]), mapping)
+
+    def _get_basic_renderer_mapping(self):
+
+        return {
+            'videoRenderer': self._extract_video,  # for membership tab
+           # 'gridPlaylistRenderer': self._grid_entries,
+            'gridVideoRenderer': self._extract_video,
+           # 'gridChannelRenderer': self._grid_entries,
+          #  'playlistVideoRenderer': self._playlist_entries,
+            # 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
+        }
+
+    def _iterate_renderer_entries(self, entries, mapping=None):
+        if not mapping:
+            mapping = self._get_basic_renderer_mapping()
+
+        if isinstance(entries, dict):
+            entries = [entries]
+
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            for key, renderer in entry.items():
+                if key not in mapping:
+                    continue
+                result = mapping[key](renderer)
+                if isinstance(result, Generator):
+                    yield from result
+                elif isinstance(result, dict):
+                    yield result
+
+    def _renderer_entries(self, renderer, item_id, endpoint, ytcfg):
+        """
+        renderer is in the form:
+        {
+            'contents/items' []
+            'continuation (optional, old):
+        }
+        """
+        entries = traverse_obj(renderer, 'contents', 'items', expected_type=list, default = [])
+        if not entries:
+            return
+        last_endpoint = endpoint
+        continuation_list = [None]
+
+        mapping = {**self._get_basic_renderer_mapping()}
+
+        # Old nextContinuation style
+        for continuation_key in ('backstagePostThreadRenderer', 'playlistVideoListContinuation',
+                                 'gridContinuation', 'itemSectionContinuation'):
+            mapping[continuation_key] = functools.partial(self._continuation_contents_renderer, continuation_list, mapping)
+
+        mapping.update({
+            'gridRenderer': lambda x: self._renderer_entries(x, item_id, last_endpoint, ytcfg),
+            'itemSectionRenderer': lambda x: self._renderer_entries(x, item_id, last_endpoint, ytcfg),
+            'continuationItemRenderer': lambda x: self._continuation_renderer_entry(continuation_list, x),
+        })
+
+        check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints')
+
+        yield from self._iterate_renderer_entries(entries, mapping)
+        if not continuation_list[0]:
+            continuation_list[0] = self._extract_next_continuation_data(renderer) or continuation_list[0]
+
+        response = None
+        for page_num in itertools.count(1):
+            continuation_data = continuation_list[0]
+            if not continuation_data:
+                break
+            last_endpoint = continuation_data[1] or last_endpoint
+            query = continuation_data[0]
+            headers = self.generate_api_headers(ytcfg=ytcfg,  visitor_data=self._extract_visitor_data(response))
+
+            response = self._extract_response(
+                item_id=f'{item_id} page {page_num}', ep=last_endpoint,
+                query=query, headers=headers, ytcfg=ytcfg,
+                check_get_keys=check_get_keys)
+            continuation_list[:] = [None]
+            if not response:
+                break
+
+            continuation_items = traverse_obj(
+                response, (['onResponseReceivedActions', 'onResponseReceivedEndpoints'], ..., 'appendContinuationItemsAction', 'continuationItems'), 'continuationContents',
+                expected_type=list, default=[], get_all=False)
+            yield from self._iterate_renderer_entries(continuation_items, mapping)
+
+
+        # do while
+        # iterate through entries, using mapping
+        # if continuation -> get next page, continue
+
     def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
+
+
         continuation_list = [None]
         extract_entries = lambda x: self._extract_entries(x, continuation_list)
         tab_content = try_get(tab, lambda x: x['content'], dict)
@@ -4027,18 +4209,22 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         parent_renderer = (
             try_get(tab_content, lambda x: x['sectionListRenderer'], dict)
             or try_get(tab_content, lambda x: x['richGridRenderer'], dict) or {})
+
+        yield from self._renderer_entries(parent_renderer, item_id,'browse', ytcfg)
+        return
         yield from extract_entries(parent_renderer)
-        continuation = continuation_list[0]
+        continuation_data = continuation_list[0]
 
         for page_num in itertools.count(1):
-            if not continuation:
+            if not continuation_data:
                 break
             headers = self.generate_api_headers(
                 ytcfg=ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
             response = self._extract_response(
-                item_id=f'{item_id} page {page_num}',
-                query=continuation, headers=headers, ytcfg=ytcfg,
+                item_id=f'{item_id} page {page_num}', ep=continuation_data[1] or 'browse',  # TODO: if unknown, should be last endpoint data came from
+                query=continuation_data[0], headers=headers, ytcfg=ytcfg,
                 check_get_keys=('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints'))
+
 
             if not response:
                 break
@@ -4061,7 +4247,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 continuation_renderer = value
                 continuation_list = [None]
                 yield from known_continuation_renderers[key](continuation_renderer)
-                continuation = continuation_list[0] or self._extract_continuation(continuation_renderer)
+                continuation_data = continuation_list[0] or self._extract_continuation(continuation_renderer)
                 break
             if continuation_renderer:
                 continue
@@ -4087,7 +4273,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 video_items_renderer = {known_renderers[key][1]: continuation_items}
                 continuation_list = [None]
                 yield from known_renderers[key][0](video_items_renderer)
-                continuation = continuation_list[0] or self._extract_continuation(video_items_renderer)
+                continuation_data = continuation_list[0] or self._extract_continuation(video_items_renderer)
                 break
             if video_items_renderer:
                 continue
