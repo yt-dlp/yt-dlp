@@ -4055,65 +4055,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 continue
             yield from self._post_thread_entries(renderer)
 
-    r''' # unused
-    def _rich_grid_entries(self, contents):
-        for content in contents:
-            video_renderer = try_get(content, lambda x: x['richItemRenderer']['content']['videoRenderer'], dict)
-            if video_renderer:
-                entry = self._video_entry(video_renderer)
-                if entry:
-                    yield entry
-    '''
-
-    def _extract_entries(self, parent_renderer, continuation_list):
-        # continuation_list is modified in-place with continuation_list = [continuation_token]
-        continuation_list[:] = [None]
-        contents = try_get(parent_renderer, lambda x: x['contents'], list) or []
-        for content in contents:
-            if not isinstance(content, dict):
-                continue
-            is_renderer = traverse_obj(
-                content, 'itemSectionRenderer', 'musicShelfRenderer', 'musicShelfContinuation',
-                expected_type=dict)
-            if not is_renderer:
-                renderer = content.get('richItemRenderer')
-                if renderer:
-                    for entry in self._rich_entries(renderer):
-                        yield entry
-                    continuation_list[0] = self._extract_continuation(parent_renderer)
-                continue
-            isr_contents = try_get(is_renderer, lambda x: x['contents'], list) or []
-            for isr_content in isr_contents:
-                if not isinstance(isr_content, dict):
-                    continue
-
-                known_renderers = {
-                    'playlistVideoListRenderer': self._playlist_entries,
-                    'gridRenderer': self._grid_entries,
-                    'reelShelfRenderer': self._grid_entries,
-                    'shelfRenderer': self._shelf_entries,
-                    'musicResponsiveListItemRenderer': lambda x: [self._music_reponsive_list_entry(x)],
-                    'backstagePostThreadRenderer': self._post_thread_entries,
-                    'videoRenderer': lambda x: [self._video_entry(x)],
-                    'playlistRenderer': lambda x: self._grid_entries({'items': [{'playlistRenderer': x}]}),
-                    'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
-                    'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)]
-                }
-                for key, renderer in isr_content.items():
-                    if key not in known_renderers:
-                        continue
-                    for entry in known_renderers[key](renderer):
-                        if entry:
-                            yield entry
-                    continuation_list[0] = self._extract_continuation(renderer)
-                    break
-
-            if not continuation_list[0]:
-                continuation_list[0] = self._extract_continuation(is_renderer)
-
-        if not continuation_list[0]:
-            continuation_list[0] = self._extract_continuation(parent_renderer)
-
     def _continuation_renderer_entry(self, continuation_list, renderer, ctx=None):
         continuation_data = self._extract_continuation_ep(traverse_obj(renderer, 'continuationEndpoint'))
         if continuation_data:
@@ -4134,10 +4075,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         reverse_map = {
             self._extract_video: [lambda x: x.lower().endswith('videorenderer')],
             self._shelf_entries: ['shelfRenderer', 'reelShelfRenderer', 'musicShelfRenderer'],
-            self._basic_item_entry: [
+            self._basic_item_entry: [  # TODO: lol
                 lambda x: x.lower().endswith('playlistrenderer'), lambda x: x.lower().endswith('channelrenderer'),
                 lambda x: x.lower().endswith('showrenderer'), lambda x: x.lower().endswith('reelitemrenderer'),
-                lambda x: x.lower().endswith('radioRenderer')],
+                lambda x: x.lower().endswith('radiorenderer')],
             self._post_thread_entries: ['backstagePostThreadRenderer'],
             self.resolve_contents: [
                 'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'richItemRenderer',
@@ -4152,26 +4093,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 mapping[item] = key
 
         return mapping
-
-        # return {
-        #     'videoRenderer': self._extract_video,  # for membership tab
-        #    # 'gridPlaylistRenderer': self._grid_entries,
-        #     'gridVideoRenderer': self._extract_video,
-        #     'playlistVideoRenderer': self._extract_video,
-        #    # 'gridChannelRenderer': self._grid_entries,
-        #   #  'playlistVideoRenderer': self._playlist_entries,
-        #      'richItemRenderer': lambda x: self._iterate_renderer_entries(traverse_obj(x, 'content')),  # for hashtag # TODO: may this ever include continuation stuff?,
-        #                 'playlistVideoListRenderer': self._playlist_entries,
-        #     'gridRenderer': self._grid_entries,
-        #     'reelShelfRenderer': self._grid_entries,
-        #
-        #     'musicResponsiveListItemRenderer': lambda x: [self._music_reponsive_list_entry(x)],
-        #     'backstagePostThreadRenderer': self._post_thread_entries,
-        #
-        #     'playlistRenderer': lambda x: self._grid_entries({'itemRs': [{'playlistRenderer': x}]}),
-        #     'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
-        #     'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)]
-        # }
 
     def _iterate_renderer_entries(self, entries, mapping=None, ctx=None):
         if not mapping:
@@ -4212,7 +4133,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             assert entries
             yield from self._iterate_renderer_entries(entries)
 
-    def _renderer_entries(self, renderer, ctx=None):
+    def _renderer_entries(self, renderer, ctx):
         """
         renderer is in the form:
         {
