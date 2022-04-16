@@ -4134,7 +4134,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             self._shelf_entries: ['shelfRenderer'],
             self._basic_item_entry: [
                 lambda x: x.endswith('laylistRenderer'), lambda x: x.endswith('hannelRenderer'),
-                lambda x: x.endswith('howRenderer'), lambda x: x.endswith('eelItemRenderer')],
+                lambda x: x.endswith('howRenderer'), lambda x: x.endswith('eelItemRenderer'),
+                lambda x: x.endswith('adioRenderer')],
             self._post_thread_entries: ['backstagePostThreadRenderer'],
             self.resolve_contents: [
                 'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'richItemRenderer',
@@ -4200,7 +4201,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         return contents
 
     def resolve_contents(self, renderer, ctx=None):
-        if isinstance(ctx, dict) and all(v in ctx for v in ('item_id', 'endpoint', 'ytcfg')):
+        if isinstance(ctx, dict) and all(v in ctx for v in ('item_id', 'endpoint', 'ytcfg', 'visitor_data')):
             yield from self._renderer_entries(renderer, ctx=ctx)
         else:
             entries = self._extract_contents_list(renderer)  # TODO: what about renderers that do not contain a list?
@@ -4247,7 +4248,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 break
             ctx['endpoint'] = continuation_data[1] or ctx['endpoint']
             query = continuation_data[0]
-            headers = self.generate_api_headers(ytcfg=ctx['ytcfg'],  visitor_data=self._extract_visitor_data(response))
+            headers = self.generate_api_headers(ytcfg=ctx['ytcfg'],  visitor_data=ctx['visitor_data'])
 
             response = self._extract_response(
                 item_id=f'%s page %s' % (ctx['item_id'], page_num), ep=ctx['endpoint'],
@@ -4256,7 +4257,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             continuation_list[:] = [None]
             if not response:
                 break
-
+            ctx['visitor_data'] = self._extract_visitor_data(response) or ctx['visitor_data']
             continuation_items = traverse_obj(
                 response, (['onResponseReceivedActions', 'onResponseReceivedEndpoints'], ..., 'appendContinuationItemsAction', 'continuationItems'), 'continuationContents',
                 expected_type=list, default=[], get_all=False)
@@ -4266,12 +4267,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         # do while
         # iterate through entries, using mapping
         # if continuation -> get next page, continue
-    def _make_entries_ctx(self, item_id, endpoint, ytcfg):
-        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg}
+    def _make_entries_ctx(self, item_id, endpoint, ytcfg, visitor_data):
+        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg, 'visitor_data': visitor_data}
 
 
     def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
-        yield from self.resolve_contents(tab, ctx=self._make_entries_ctx(item_id, 'browse', ytcfg))
+        yield from self.resolve_contents(tab, ctx=self._make_entries_ctx(item_id, 'browse', ytcfg, visitor_data))
 
     @staticmethod
     def _extract_selected_tab(tabs, fatal=True):
