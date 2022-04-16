@@ -3868,7 +3868,41 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             elif key.startswith('grid') and key.endswith('Renderer'):
                 return renderer
 
+    def _basic_item_entry(self, renderer, ctx=None):
+        if not isinstance(renderer, dict):
+            return
+        title = self._get_text(renderer, 'title')
+
+        # playlist
+        playlist_id = renderer.get('playlistId')
+        if playlist_id:
+            return self.url_result(
+                'https://www.youtube.com/playlist?list=%s' % playlist_id,
+                ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
+                video_title=title)
+
+        # video
+        video_id = renderer.get('videoId')
+        if video_id:
+            return self._extract_video(renderer)
+        # channel
+        channel_id = renderer.get('channelId')
+        if channel_id:
+            return self.url_result(
+                'https://www.youtube.com/channel/%s' % channel_id,
+                ie=YoutubeTabIE.ie_key(), video_title=title)
+        # generic endpoint URL support
+        ep_url = urljoin('https://www.youtube.com/', try_get(
+            renderer, lambda x: x['navigationEndpoint']['commandMetadata']['webCommandMetadata']['url'],
+            compat_str))
+        if ep_url:
+            for ie in (YoutubeTabIE, YoutubePlaylistIE, YoutubeIE):
+                if ie.suitable(ep_url):
+                    return self.url_result(
+                        ep_url, ie=ie.ie_key(), video_id=ie._match_id(ep_url), video_title=title)
+
     def _grid_entries(self, grid_renderer):
+        self.report_warning('grid entries is deprecated')
         for item in grid_renderer['items']:
             if not isinstance(item, dict):
                 continue
@@ -3985,41 +4019,29 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             return self.url_result(
                 url, ie=YoutubeTabIE.ie_key(), title=self._get_text(hashtag_tile_renderer, 'hashtag'))
 
-    def _post_thread_entries(self, post_thread_renderer):
+    def _post_thread_entries(self, post_thread_renderer, ctx=None):
         post_renderer = try_get(
             post_thread_renderer, lambda x: x['post']['backstagePostRenderer'], dict)
         if not post_renderer:
             return
-        # video attachment
-        video_renderer = try_get(
-            post_renderer, lambda x: x['backstageAttachment']['videoRenderer'], dict) or {}
-        video_id = video_renderer.get('videoId')
-        if video_id:
-            entry = self._extract_video(video_renderer)
-            if entry:
-                yield entry
-        # playlist attachment
-        playlist_id = try_get(
-            post_renderer, lambda x: x['backstageAttachment']['playlistRenderer']['playlistId'], compat_str)
-        if playlist_id:
-            yield self.url_result(
-                'https://www.youtube.com/playlist?list=%s' % playlist_id,
-                ie=YoutubeTabIE.ie_key(), video_id=playlist_id)
+        # Attachment
+        yield from self.resolve_contents({'content': post_renderer.get('backstageAttachment')}, ctx=ctx)
+
         # inline video links
-        runs = try_get(post_renderer, lambda x: x['contentText']['runs'], list) or []
-        for run in runs:
-            if not isinstance(run, dict):
-                continue
-            ep_url = try_get(
-                run, lambda x: x['navigationEndpoint']['urlEndpoint']['url'], compat_str)
-            if not ep_url:
-                continue
-            if not YoutubeIE.suitable(ep_url):
-                continue
-            ep_video_id = YoutubeIE._match_id(ep_url)
-            if video_id == ep_video_id:
-                continue
-            yield self.url_result(ep_url, ie=YoutubeIE.ie_key(), video_id=ep_video_id)
+        # runs = try_get(post_renderer, lambda x: x['contentText']['runs'], list) or []
+        # for run in runs:
+        #     if not isinstance(run, dict):
+        #         continue
+        #     ep_url = try_get(
+        #         run, lambda x: x['navigationEndpoint']['urlEndpoint']['url'], compat_str)
+        #     if not ep_url:
+        #         continue
+        #     if not YoutubeIE.suitable(ep_url):
+        #         continue
+        #     ep_video_id = YoutubeIE._match_id(ep_url)
+        #     #if video_id == ep_video_id:  # TODO
+        #     #    continue
+        #     yield self.url_result(ep_url, ie=YoutubeIE.ie_key(), video_id=ep_video_id)
 
     def _post_thread_continuation_entries(self, post_thread_continuation):
         contents = post_thread_continuation.get('contents')
@@ -4095,7 +4117,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if continuation_data:
             continuation_list[0] = continuation_data
 
-    def _continuation_contents_renderer(self, continuation_list, mapping, ctx, renderer):
+    def _continuation_contents_renderer(self, continuation_list, renderer, ctx=None):
         next_continuation_data = self._extract_next_continuation_data(renderer)
         if next_continuation_data:
             continuation_list[0] = next_continuation_data
@@ -4108,8 +4130,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         renderer, ctx=None
         """
         reverse_map = {
-            self._extract_video: ['videoRenderer', 'gridVideoRenderer', 'playlistVideoRenderer'],
+            self._extract_video: [lambda x: x.endswith('ideoRenderer')],
             self._shelf_entries: ['shelfRenderer'],
+            self._basic_item_entry: [
+                lambda x: x.endswith('laylistRenderer'), lambda x: x.endswith('hannelRenderer'),
+                lambda x: x.endswith('howRenderer'), lambda x: x.endswith('eelItemRenderer')],
+            self._post_thread_entries: ['backstagePostThreadRenderer'],
             self.resolve_contents: [
                 'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'richItemRenderer',
                 'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer']
@@ -4153,9 +4179,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if not isinstance(entry, dict):
                 continue
             for key, renderer in entry.items():
-                if key not in mapping:
-                    continue
-                result = mapping[key](renderer, ctx=ctx)
+                result = None
+                for mapping_key, func in mapping.items():
+                    if (callable(mapping_key) and mapping_key(key)) or mapping_key == key:
+                        result = func(renderer, ctx=ctx)
+                        break
+
                 if isinstance(result, Generator):
                     yield from result
                 elif isinstance(result, dict):
@@ -4197,9 +4226,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         mapping = {**self._get_basic_renderer_mapping()}
 
         # Old nextContinuation style
-        for continuation_key in ('backstagePostThreadRenderer', 'playlistVideoListContinuation',
+        for continuation_key in ('playlistVideoListContinuation',
                                  'gridContinuation', 'itemSectionContinuation'):
-            mapping[continuation_key] = functools.partial(self._continuation_contents_renderer, continuation_list, mapping)
+            mapping[continuation_key] = functools.partial(self._continuation_contents_renderer, continuation_list)
 
         mapping.update({
             'continuationItemRenderer': functools.partial(self._continuation_renderer_entry, continuation_list),
