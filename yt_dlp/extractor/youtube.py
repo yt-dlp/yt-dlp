@@ -3942,7 +3942,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                             ep_url, ie=ie.ie_key(), video_id=ie._match_id(ep_url), video_title=title)
                         break
 
-    def _music_reponsive_list_entry(self, renderer):
+    def _music_reponsive_list_entry(self, renderer, ctx=None):
         video_id = traverse_obj(renderer, ('playlistItemData', 'videoId'))
         if video_id:
             return self.url_result(f'https://music.youtube.com/watch?v={video_id}',
@@ -4027,6 +4027,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         # Attachment
         yield from self.resolve_contents({'content': post_renderer.get('backstageAttachment')}, ctx=ctx)
 
+        # TODO: sometimes may have an image but there is a link in the post
+        # e.g. https://www.youtube.com/post/Ugkx-Ic7tmOGjdYKqICrnxN3EuIQa2XOoYiP
         # inline video links
         # runs = try_get(post_renderer, lambda x: x['contentText']['runs'], list) or []
         # for run in runs:
@@ -4130,16 +4132,18 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         renderer, ctx=None
         """
         reverse_map = {
-            self._extract_video: [lambda x: x.endswith('ideoRenderer')],
-            self._shelf_entries: ['shelfRenderer'],
+            self._extract_video: [lambda x: x.lower().endswith('videorenderer')],
+            self._shelf_entries: ['shelfRenderer', 'reelShelfRenderer', 'musicShelfRenderer'],
             self._basic_item_entry: [
-                lambda x: x.endswith('laylistRenderer'), lambda x: x.endswith('hannelRenderer'),
-                lambda x: x.endswith('howRenderer'), lambda x: x.endswith('eelItemRenderer'),
-                lambda x: x.endswith('adioRenderer')],
+                lambda x: x.lower().endswith('playlistrenderer'), lambda x: x.lower().endswith('channelrenderer'),
+                lambda x: x.lower().endswith('showrenderer'), lambda x: x.lower().endswith('reelitemrenderer'),
+                lambda x: x.lower().endswith('radioRenderer')],
             self._post_thread_entries: ['backstagePostThreadRenderer'],
             self.resolve_contents: [
                 'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'richItemRenderer',
-                'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer']
+                'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer'],
+            self._hashtag_tile_entry: ['hashtagTileRenderer'],
+            self._music_reponsive_list_entry: ['musicResponsiveListItemRenderer']
 
         }
         mapping = {}
@@ -4201,7 +4205,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         return contents
 
     def resolve_contents(self, renderer, ctx=None):
-        if isinstance(ctx, dict) and all(v in ctx for v in ('item_id', 'endpoint', 'ytcfg', 'visitor_data')):
+        if isinstance(ctx, dict) and all(v in ctx for v in ('item_id', 'endpoint', 'ytcfg', 'visitor_data', 'client')):
             yield from self._renderer_entries(renderer, ctx=ctx)
         else:
             entries = self._extract_contents_list(renderer)  # TODO: what about renderers that do not contain a list?
@@ -4212,7 +4216,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         """
         renderer is in the form:
         {
-            'contents/items' []
+            'contents/items': []
+            'content: someRenderer
             'continuation (optional, old):
         }
         """
@@ -4227,7 +4232,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         mapping = {**self._get_basic_renderer_mapping()}
 
         # Old nextContinuation style
-        for continuation_key in ('playlistVideoListContinuation',
+        for continuation_key in ('playlistVideoListContinuation', 'musicShelfContinuation',
                                  'gridContinuation', 'itemSectionContinuation'):
             mapping[continuation_key] = functools.partial(self._continuation_contents_renderer, continuation_list)
 
@@ -4235,41 +4240,36 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'continuationItemRenderer': functools.partial(self._continuation_renderer_entry, continuation_list),
         })
 
-        check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints')
+        check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands')
 
         yield from self._iterate_renderer_entries(entries, mapping=mapping, ctx=ctx)
         if not continuation_list[0]:
             continuation_list[0] = self._extract_next_continuation_data(renderer) or continuation_list[0]
 
-        response = None
         for page_num in itertools.count(1):
             continuation_data = continuation_list[0]
             if not continuation_data:
                 break
             ctx['endpoint'] = continuation_data[1] or ctx['endpoint']
             query = continuation_data[0]
-            headers = self.generate_api_headers(ytcfg=ctx['ytcfg'],  visitor_data=ctx['visitor_data'])
+            headers = self.generate_api_headers(ytcfg=ctx['ytcfg'],  visitor_data=ctx['visitor_data'], default_client=ctx['client'])
 
             response = self._extract_response(
                 item_id=f'%s page %s' % (ctx['item_id'], page_num), ep=ctx['endpoint'],
                 query=query, headers=headers, ytcfg=ctx['ytcfg'],
-                check_get_keys=check_get_keys)
+                check_get_keys=check_get_keys, default_client=ctx['client'])
             continuation_list[:] = [None]
             if not response:
                 break
             ctx['visitor_data'] = self._extract_visitor_data(response) or ctx['visitor_data']
             continuation_items = traverse_obj(
-                response, (['onResponseReceivedActions', 'onResponseReceivedEndpoints'], ..., 'appendContinuationItemsAction', 'continuationItems'), 'continuationContents',
-                expected_type=list, default=[], get_all=False)
+                response, (['onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands'], ..., 'appendContinuationItemsAction', 'continuationItems'),
+                'continuationContents', default=[], get_all=False)
             yield from self._iterate_renderer_entries(continuation_items, mapping=mapping, ctx=ctx)
 
-
-        # do while
-        # iterate through entries, using mapping
-        # if continuation -> get next page, continue
-    def _make_entries_ctx(self, item_id, endpoint, ytcfg, visitor_data):
-        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg, 'visitor_data': visitor_data}
-
+    # TODO: make this cleaner lol
+    def _make_entries_ctx(self, item_id, endpoint, ytcfg, visitor_data, client=None):
+        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg, 'visitor_data': visitor_data, 'client': client or 'web'}
 
     def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
         yield from self.resolve_contents(tab, ctx=self._make_entries_ctx(item_id, 'browse', ytcfg, visitor_data))
@@ -4633,29 +4633,23 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         content_keys = (
             ('contents', 'twoColumnSearchResultsRenderer', 'primaryContents', 'sectionListRenderer', 'contents'),
-            ('onResponseReceivedCommands', 0, 'appendContinuationItemsAction', 'continuationItems'),
             # ytmusic search
-            ('contents', 'tabbedSearchResultsRenderer', 'tabs', 0, 'tabRenderer', 'content', 'sectionListRenderer', 'contents'),
-            ('continuationContents', ),
+            ('contents', 'tabbedSearchResultsRenderer', 'tabs', 0, 'tabRenderer', 'content', 'sectionListRenderer', 'contents')
         )
         display_id = f'query "{query}"'
         check_get_keys = tuple({keys[0] for keys in content_keys})
         ytcfg = self._download_ytcfg(default_client, display_id) if not self.skip_webpage else {}
         self._report_playlist_authcheck(ytcfg, fatal=False)
 
-        continuation_list = [None]
-        search = None
-        for page_num in itertools.count(1):
-            data.update(continuation_list[0] or {})
-            headers = self.generate_api_headers(
-                ytcfg=ytcfg, visitor_data=self._extract_visitor_data(search), default_client=default_client)
-            search = self._extract_response(
-                item_id=f'{display_id} page {page_num}', ep='search', query=data,
-                default_client=default_client, check_get_keys=check_get_keys, ytcfg=ytcfg, headers=headers)
-            slr_contents = traverse_obj(search, *content_keys)
-            yield from self._extract_entries({'contents': list(variadic(slr_contents))}, continuation_list)
-            if not continuation_list[0]:
-                break
+        headers = self.generate_api_headers(
+            ytcfg=ytcfg, default_client=default_client)
+        search = self._extract_response(
+            item_id=f'{display_id}', ep='search', query=data,
+            default_client=default_client, check_get_keys=check_get_keys, ytcfg=ytcfg, headers=headers)
+        slr_contents = traverse_obj(search, *content_keys)
+
+        yield from self.resolve_contents({'contents': slr_contents},
+            self._make_entries_ctx(display_id, 'search', ytcfg, self._extract_visitor_data(search), default_client))
 
 
 class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
