@@ -908,7 +908,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def is_music_url(url):
         return re.match(r'https?://music\.youtube\.com/', url) is not None
 
-    def _extract_video(self, renderer):
+    def _extract_video(self, renderer, **kwargs):
         video_id = renderer.get('videoId')
         title = self._get_text(renderer, 'title')
         description = self._get_text(renderer, 'descriptionSnippet')
@@ -3941,21 +3941,17 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # TODO
             pass
 
-    def _shelf_entries(self, shelf_renderer, skip_channels=False):
+    def _shelf_entries(self, shelf_renderer, ctx=None):
         ep = try_get(
             shelf_renderer, lambda x: x['endpoint']['commandMetadata']['webCommandMetadata']['url'],
             compat_str)
         shelf_url = urljoin('https://www.youtube.com', ep)
         if shelf_url:
-            # Skipping links to another channels, note that checking for
-            # endpoint.commandMetadata.webCommandMetadata.webPageTypwebPageType == WEB_PAGE_TYPE_CHANNEL
-            # will not work
-            if skip_channels and '/channels?' in shelf_url:
-                return
             title = self._get_text(shelf_renderer, 'title')
             yield self.url_result(shelf_url, video_title=title)
         # Shelf may not contain shelf URL, fallback to extraction from content
-        yield from self._shelf_entries_from_content(shelf_renderer)
+        # TODO:
+        yield from self.resolve_contents(shelf_renderer, ctx=ctx)
 
     def _playlist_entries(self, video_list_renderer):
         for content in video_list_renderer['contents']:
@@ -4094,32 +4090,59 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not continuation_list[0]:
             continuation_list[0] = self._extract_continuation(parent_renderer)
 
-
-    def _continuation_renderer_entry(self, continuation_list, renderer):
+    def _continuation_renderer_entry(self, continuation_list, renderer, ctx=None):
         continuation_data = self._extract_continuation_ep(traverse_obj(renderer, 'continuationEndpoint'))
         if continuation_data:
             continuation_list[0] = continuation_data
 
-    def _continuation_contents_renderer(self, continuation_list, mapping, renderer):
+    def _continuation_contents_renderer(self, continuation_list, mapping, ctx, renderer):
         next_continuation_data = self._extract_next_continuation_data(renderer)
         if next_continuation_data:
             continuation_list[0] = next_continuation_data
 
-        yield from self._iterate_renderer_entries(
-            traverse_obj(renderer, 'contents', 'items', expected_type=list, default=[]), mapping)
+        yield from self._iterate_renderer_entries(self._extract_contents_list(renderer))
 
     def _get_basic_renderer_mapping(self):
+        """
+        All resolvers must have signature
+        renderer, ctx=None
+        """
+        reverse_map = {
+            self._extract_video: ['videoRenderer', 'gridVideoRenderer', 'playlistVideoRenderer'],
+            self._shelf_entries: ['shelfRenderer'],
+            self.resolve_contents: [
+                'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'richItemRenderer',
+                'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer']
 
-        return {
-            'videoRenderer': self._extract_video,  # for membership tab
-           # 'gridPlaylistRenderer': self._grid_entries,
-            'gridVideoRenderer': self._extract_video,
-           # 'gridChannelRenderer': self._grid_entries,
-          #  'playlistVideoRenderer': self._playlist_entries,
-            # 'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
         }
+        mapping = {}
+        for key, items in reverse_map.items():
+            for item in items:
+                mapping[item] = key
 
-    def _iterate_renderer_entries(self, entries, mapping=None):
+        return mapping
+
+        # return {
+        #     'videoRenderer': self._extract_video,  # for membership tab
+        #    # 'gridPlaylistRenderer': self._grid_entries,
+        #     'gridVideoRenderer': self._extract_video,
+        #     'playlistVideoRenderer': self._extract_video,
+        #    # 'gridChannelRenderer': self._grid_entries,
+        #   #  'playlistVideoRenderer': self._playlist_entries,
+        #      'richItemRenderer': lambda x: self._iterate_renderer_entries(traverse_obj(x, 'content')),  # for hashtag # TODO: may this ever include continuation stuff?,
+        #                 'playlistVideoListRenderer': self._playlist_entries,
+        #     'gridRenderer': self._grid_entries,
+        #     'reelShelfRenderer': self._grid_entries,
+        #
+        #     'musicResponsiveListItemRenderer': lambda x: [self._music_reponsive_list_entry(x)],
+        #     'backstagePostThreadRenderer': self._post_thread_entries,
+        #
+        #     'playlistRenderer': lambda x: self._grid_entries({'itemRs': [{'playlistRenderer': x}]}),
+        #     'channelRenderer': lambda x: self._grid_entries({'items': [{'channelRenderer': x}]}),
+        #     'hashtagTileRenderer': lambda x: [self._hashtag_tile_entry(x)]
+        # }
+
+    def _iterate_renderer_entries(self, entries, mapping=None, ctx=None):
         if not mapping:
             mapping = self._get_basic_renderer_mapping()
 
@@ -4132,13 +4155,30 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             for key, renderer in entry.items():
                 if key not in mapping:
                     continue
-                result = mapping[key](renderer)
+                result = mapping[key](renderer, ctx=ctx)
                 if isinstance(result, Generator):
                     yield from result
                 elif isinstance(result, dict):
                     yield result
 
-    def _renderer_entries(self, renderer, item_id, endpoint, ytcfg):
+    @staticmethod
+    def _extract_contents_list(renderer):
+        contents = traverse_obj(renderer, 'contents', 'items', expected_type=list, default=[])
+        if not contents:
+            content = traverse_obj(renderer, 'content', expected_type=dict)
+            if content:
+                contents.append(content)
+        return contents
+
+    def resolve_contents(self, renderer, ctx=None):
+        if isinstance(ctx, dict) and all(v in ctx for v in ('item_id', 'endpoint', 'ytcfg')):
+            yield from self._renderer_entries(renderer, ctx=ctx)
+        else:
+            entries = self._extract_contents_list(renderer)  # TODO: what about renderers that do not contain a list?
+            assert entries
+            yield from self._iterate_renderer_entries(entries)
+
+    def _renderer_entries(self, renderer, ctx=None):
         """
         renderer is in the form:
         {
@@ -4146,10 +4186,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'continuation (optional, old):
         }
         """
-        entries = traverse_obj(renderer, 'contents', 'items', expected_type=list, default = [])
+        entries = self._extract_contents_list(renderer)
         if not entries:
             return
-        last_endpoint = endpoint
+        if not isinstance(ctx, dict):
+            return
+        ctx = ctx.copy()
         continuation_list = [None]
 
         mapping = {**self._get_basic_renderer_mapping()}
@@ -4160,14 +4202,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             mapping[continuation_key] = functools.partial(self._continuation_contents_renderer, continuation_list, mapping)
 
         mapping.update({
-            'gridRenderer': lambda x: self._renderer_entries(x, item_id, last_endpoint, ytcfg),
-            'itemSectionRenderer': lambda x: self._renderer_entries(x, item_id, last_endpoint, ytcfg),
-            'continuationItemRenderer': lambda x: self._continuation_renderer_entry(continuation_list, x),
+            'continuationItemRenderer': functools.partial(self._continuation_renderer_entry, continuation_list),
         })
 
         check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints')
 
-        yield from self._iterate_renderer_entries(entries, mapping)
+        yield from self._iterate_renderer_entries(entries, mapping=mapping, ctx=ctx)
         if not continuation_list[0]:
             continuation_list[0] = self._extract_next_continuation_data(renderer) or continuation_list[0]
 
@@ -4176,13 +4216,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             continuation_data = continuation_list[0]
             if not continuation_data:
                 break
-            last_endpoint = continuation_data[1] or last_endpoint
+            ctx['endpoint'] = continuation_data[1] or ctx['endpoint']
             query = continuation_data[0]
-            headers = self.generate_api_headers(ytcfg=ytcfg,  visitor_data=self._extract_visitor_data(response))
+            headers = self.generate_api_headers(ytcfg=ctx['ytcfg'],  visitor_data=self._extract_visitor_data(response))
 
             response = self._extract_response(
-                item_id=f'{item_id} page {page_num}', ep=last_endpoint,
-                query=query, headers=headers, ytcfg=ytcfg,
+                item_id=f'%s page %s' % (ctx['item_id'], page_num), ep=ctx['endpoint'],
+                query=query, headers=headers, ytcfg=ctx['ytcfg'],
                 check_get_keys=check_get_keys)
             continuation_list[:] = [None]
             if not response:
@@ -4191,93 +4231,18 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             continuation_items = traverse_obj(
                 response, (['onResponseReceivedActions', 'onResponseReceivedEndpoints'], ..., 'appendContinuationItemsAction', 'continuationItems'), 'continuationContents',
                 expected_type=list, default=[], get_all=False)
-            yield from self._iterate_renderer_entries(continuation_items, mapping)
+            yield from self._iterate_renderer_entries(continuation_items, mapping=mapping, ctx=ctx)
 
 
         # do while
         # iterate through entries, using mapping
         # if continuation -> get next page, continue
+    def _make_entries_ctx(self, item_id, endpoint, ytcfg):
+        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg}
+
 
     def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
-
-
-        continuation_list = [None]
-        extract_entries = lambda x: self._extract_entries(x, continuation_list)
-        tab_content = try_get(tab, lambda x: x['content'], dict)
-        if not tab_content:
-            return
-        parent_renderer = (
-            try_get(tab_content, lambda x: x['sectionListRenderer'], dict)
-            or try_get(tab_content, lambda x: x['richGridRenderer'], dict) or {})
-
-        yield from self._renderer_entries(parent_renderer, item_id,'browse', ytcfg)
-        return
-        yield from extract_entries(parent_renderer)
-        continuation_data = continuation_list[0]
-
-        for page_num in itertools.count(1):
-            if not continuation_data:
-                break
-            headers = self.generate_api_headers(
-                ytcfg=ytcfg, account_syncid=account_syncid, visitor_data=visitor_data)
-            response = self._extract_response(
-                item_id=f'{item_id} page {page_num}', ep=continuation_data[1] or 'browse',  # TODO: if unknown, should be last endpoint data came from
-                query=continuation_data[0], headers=headers, ytcfg=ytcfg,
-                check_get_keys=('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints'))
-
-
-            if not response:
-                break
-            # Extracting updated visitor data is required to prevent an infinite extraction loop in some cases
-            # See: https://github.com/ytdl-org/youtube-dl/issues/28702
-            visitor_data = self._extract_visitor_data(response) or visitor_data
-
-            known_continuation_renderers = {
-                'playlistVideoListContinuation': self._playlist_entries,
-                'gridContinuation': self._grid_entries,
-                'itemSectionContinuation': self._post_thread_continuation_entries,
-                'sectionListContinuation': extract_entries,  # for feeds
-            }
-            continuation_contents = try_get(
-                response, lambda x: x['continuationContents'], dict) or {}
-            continuation_renderer = None
-            for key, value in continuation_contents.items():
-                if key not in known_continuation_renderers:
-                    continue
-                continuation_renderer = value
-                continuation_list = [None]
-                yield from known_continuation_renderers[key](continuation_renderer)
-                continuation_data = continuation_list[0] or self._extract_continuation(continuation_renderer)
-                break
-            if continuation_renderer:
-                continue
-
-            known_renderers = {
-                'videoRenderer': (self._grid_entries, 'items'),  # for membership tab
-                'gridPlaylistRenderer': (self._grid_entries, 'items'),
-                'gridVideoRenderer': (self._grid_entries, 'items'),
-                'gridChannelRenderer': (self._grid_entries, 'items'),
-                'playlistVideoRenderer': (self._playlist_entries, 'contents'),
-                'itemSectionRenderer': (extract_entries, 'contents'),  # for feeds
-                'richItemRenderer': (extract_entries, 'contents'),  # for hashtag
-                'backstagePostThreadRenderer': (self._post_thread_continuation_entries, 'contents')
-            }
-            on_response_received = dict_get(response, ('onResponseReceivedActions', 'onResponseReceivedEndpoints'))
-            continuation_items = try_get(
-                on_response_received, lambda x: x[0]['appendContinuationItemsAction']['continuationItems'], list)
-            continuation_item = try_get(continuation_items, lambda x: x[0], dict) or {}
-            video_items_renderer = None
-            for key, value in continuation_item.items():
-                if key not in known_renderers:
-                    continue
-                video_items_renderer = {known_renderers[key][1]: continuation_items}
-                continuation_list = [None]
-                yield from known_renderers[key][0](video_items_renderer)
-                continuation_data = continuation_list[0] or self._extract_continuation(video_items_renderer)
-                break
-            if video_items_renderer:
-                continue
-            break
+        yield from self.resolve_contents(tab, ctx=self._make_entries_ctx(item_id, 'browse', ytcfg))
 
     @staticmethod
     def _extract_selected_tab(tabs, fatal=True):
