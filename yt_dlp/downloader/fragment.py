@@ -521,8 +521,13 @@ class FragmentFD(FileDownloader):
             for fragment in fragments:
                 if not interrupt_trigger[0]:
                     break
-                download_fragment(fragment, ctx)
-                result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
+                try:
+                    download_fragment(fragment, ctx)
+                    result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
+                except KeyboardInterrupt:
+                    if info_dict.get('is_live'):
+                        break
+                    raise
                 if not result:
                     return False
 
