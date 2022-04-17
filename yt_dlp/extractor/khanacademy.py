@@ -25,15 +25,14 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        component_props = self._parse_json(self._download_json(
-            'https://www.khanacademy.org/api/internal/graphql',
-            display_id, query={
-                'hash': 1604303425,
-                'variables': json.dumps({
-                    'path': display_id,
-                    'queryParams': '',
-                }),
-            })['data']['contentJson'], display_id)['componentProps']
+        api_url = (
+            "https://www.khanacademy.org/api/internal/graphql/FetchContentData?fastly_cacheable=persist_until_publish&hash=4134764944&lang=en&variables=%7B%22path%22%3A%22"
+            + display_id
+            + "%22%2C%22queryParams%22%3A%22lang%3Den%22%2C%22isModal%22%3Afalse%2C%22followRedirects%22%3Atrue%2C%22countryCode%22%3A%22NL%22%7D"
+        ) 
+        component_props = self._parse_json(
+            self._download_json(api_url, display_id)["data"]["contentJson"], display_id
+        )["componentProps"] 
         return self._parse_component_props(component_props)
 
 
