@@ -865,6 +865,7 @@ def _real_main(argv=None):
                 'You must provide at least one URL.\n'
                 'Type yt-dlp --help to see a list of all options.')
 
+        parser.destroy()
         try:
             if opts.load_info_filename is not None:
                 return ydl.download_with_info_file(expand_path(opts.load_info_filename))

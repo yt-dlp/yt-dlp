@@ -3,7 +3,6 @@ import time
 
 from .fragment import FragmentFD
 from ..compat import compat_urllib_error
-from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
 from ..utils import RegexNotFoundError, dict_get, int_or_none, try_get
 
 
@@ -26,7 +25,9 @@ class YoutubeLiveChatFD(FragmentFD):
             'total_frags': None,
         }
 
-        ie = YT_BaseIE(self.ydl)
+        from ..extractor.youtube import YoutubeBaseInfoExtractor
+
+        ie = YoutubeBaseInfoExtractor(self.ydl)
 
         start_time = int(time.time() * 1000)
 

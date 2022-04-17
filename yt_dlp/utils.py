@@ -38,7 +38,7 @@ import urllib.parse
 import xml.etree.ElementTree
 import zlib
 
-from .compat import asyncio, functools  # Modules
+from .compat import asyncio, functools  # isort: split
 from .compat import (
     compat_chr,
     compat_cookiejar,
@@ -362,14 +362,14 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
     return n.attrib[key]
 
 
-def get_element_by_id(id, html):
+def get_element_by_id(id, html, **kwargs):
     """Return the content of the tag with the specified ID in the passed HTML document"""
-    return get_element_by_attribute('id', id, html)
+    return get_element_by_attribute('id', id, html, **kwargs)
 
 
-def get_element_html_by_id(id, html):
+def get_element_html_by_id(id, html, **kwargs):
     """Return the html of the tag with the specified ID in the passed HTML document"""
-    return get_element_html_by_attribute('id', id, html)
+    return get_element_html_by_attribute('id', id, html, **kwargs)
 
 
 def get_element_by_class(class_name, html):
@@ -384,17 +384,17 @@ def get_element_html_by_class(class_name, html):
     return retval[0] if retval else None
 
 
-def get_element_by_attribute(attribute, value, html, escape_value=True):
-    retval = get_elements_by_attribute(attribute, value, html, escape_value)
+def get_element_by_attribute(attribute, value, html, **kwargs):
+    retval = get_elements_by_attribute(attribute, value, html, **kwargs)
     return retval[0] if retval else None
 
 
-def get_element_html_by_attribute(attribute, value, html, escape_value=True):
-    retval = get_elements_html_by_attribute(attribute, value, html, escape_value)
+def get_element_html_by_attribute(attribute, value, html, **kargs):
+    retval = get_elements_html_by_attribute(attribute, value, html, **kargs)
     return retval[0] if retval else None
 
 
-def get_elements_by_class(class_name, html):
+def get_elements_by_class(class_name, html, **kargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_by_attribute(
         'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
@@ -1899,15 +1899,14 @@ def write_string(s, out=None, encoding=None):
     if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
+    enc = None
     if 'b' in getattr(out, 'mode', ''):
-        byt = s.encode(encoding or preferredencoding(), 'ignore')
-        out.write(byt)
+        enc = encoding or preferredencoding()
     elif hasattr(out, 'buffer'):
+        out = out.buffer
         enc = encoding or getattr(out, 'encoding', None) or preferredencoding()
-        byt = s.encode(enc, 'ignore')
-        out.buffer.write(byt)
-    else:
-        out.write(s)
+
+    out.write(s.encode(enc, 'ignore') if enc else s)
     out.flush()
 
 
@@ -2970,7 +2969,7 @@ TV_PARENTAL_GUIDELINES = {
 
 def parse_age_limit(s):
     # isinstance(False, int) is True. So type() must be used instead
-    if type(s) is int:
+    if type(s) is int:  # noqa: E721
         return s if 0 <= s <= 21 else None
     elif not isinstance(s, str):
         return None
@@ -3656,26 +3655,21 @@ def dfxp2srt(dfxp_data):
     return ''.join(out)
 
 
-def cli_option(params, command_option, param):
+def cli_option(params, command_option, param, separator=None):
     param = params.get(param)
-    if param:
-        param = compat_str(param)
-    return [command_option, param] if param is not None else []
+    return ([] if param is None
+            else [command_option, str(param)] if separator is None
+            else [f'{command_option}{separator}{param}'])
 
 
 def cli_bool_option(params, command_option, param, true_value='true', false_value='false', separator=None):
     param = params.get(param)
-    if param is None:
-        return []
-    assert isinstance(param, bool)
-    if separator:
-        return [command_option + separator + (true_value if param else false_value)]
-    return [command_option, true_value if param else false_value]
+    assert param in (True, False, None)
+    return cli_option({True: true_value, False: false_value}, command_option, param, separator)
 
 
 def cli_valueless_option(params, command_option, param, expected_value=True):
-    param = params.get(param)
-    return [command_option] if param == expected_value else []
+    return [command_option] if params.get(param) == expected_value else []
 
 
 def cli_configuration_args(argdict, keys, default=[], use_compat=True):
@@ -4910,14 +4904,9 @@ def make_dir(path, to_screen=None):
 
 
 def get_executable_path():
-    from zipimport import zipimporter
-    if hasattr(sys, 'frozen'):  # Running from PyInstaller
-        path = os.path.dirname(sys.executable)
-    elif isinstance(__loader__, zipimporter):  # Running from ZIP
-        path = os.path.join(os.path.dirname(__file__), '../..')
-    else:
-        path = os.path.join(os.path.dirname(__file__), '..')
-    return os.path.abspath(path)
+    from .update import get_variant_and_executable_path
+
+    return os.path.abspath(get_variant_and_executable_path()[1])
 
 
 def load_plugins(name, suffix, namespace):
@@ -5344,12 +5333,14 @@ def merge_headers(*dicts):
 
 
 class classproperty:
-    def __init__(self, f):
-        functools.update_wrapper(self, f)
-        self.f = f
+    """classmethod(property(func)) that works in py < 3.9"""
+
+    def __init__(self, func):
+        functools.update_wrapper(self, func)
+        self.func = func
 
     def __get__(self, _, cls):
-        return self.f(cls)
+        return self.func(cls)
 
 
 class Namespace:

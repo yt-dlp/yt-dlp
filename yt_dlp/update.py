@@ -13,19 +13,27 @@ from .version import __version__
 
 
 @functools.cache
-def detect_variant():
+def get_variant_and_executable_path():
+    """@returns (variant, executable_path)"""
     if hasattr(sys, 'frozen'):
+        path = sys.executable
         prefix = 'mac' if sys.platform == 'darwin' else 'win'
         if getattr(sys, '_MEIPASS', None):
             if sys._MEIPASS == os.path.dirname(sys.executable):
-                return f'{prefix}_dir'
-            return f'{prefix}_exe'
-        return 'py2exe'
-    elif isinstance(__loader__, zipimporter):
-        return 'zip'
+                return f'{prefix}_dir', path
+            return f'{prefix}_exe', path
+        return 'py2exe', path
+
+    path = os.path.join(os.path.dirname(__file__), '..')
+    if isinstance(__loader__, zipimporter):
+        return 'zip', os.path.join(path, '..')
     elif os.path.basename(sys.argv[0]) == '__main__.py':
-        return 'source'
-    return 'unknown'
+        return 'source', path
+    return 'unknown', path
+
+
+def detect_variant():
+    return get_variant_and_executable_path()[0]
 
 
 _NON_UPDATEABLE_REASONS = {
@@ -53,7 +61,7 @@ def run_update(ydl):
     JSON_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest'
 
     def report_error(msg, expected=False):
-        ydl.report_error(msg, tb='' if expected else None)
+        ydl.report_error(msg, tb=False if expected else None)
 
     def report_unable(action, expected=False):
         report_error(f'Unable to {action}', expected)
@@ -93,10 +101,9 @@ def run_update(ydl):
     if err:
         return report_error(err, True)
 
-    # sys.executable is set to the full pathname of the exe-file for py2exe
-    # though symlinks are not followed so that we need to do this manually
-    # with help of realpath
-    filename = compat_realpath(sys.executable if hasattr(sys, 'frozen') else sys.argv[0])
+    variant, filename = get_variant_and_executable_path()
+    filename = compat_realpath(filename)  # Absolute path, following symlinks
+
     ydl.to_screen(f'Current Build Hash {calc_sha256sum(filename)}')
     ydl.to_screen(f'Updating to version {version_id} ...')
 
@@ -125,8 +132,6 @@ def run_update(ydl):
     if not os.access(filename, os.W_OK):
         return report_permission_error(filename)
 
-    # PyInstaller
-    variant = detect_variant()
     if variant in ('win_exe', 'py2exe'):
         directory = os.path.dirname(filename)
         if not os.access(directory, os.W_OK):
