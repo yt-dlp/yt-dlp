@@ -60,6 +60,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
 * [EMBEDDING YT-DLP](#embedding-yt-dlp)
+    * [Embedding examples](#embedding-examples)
 * [DEPRECATED OPTIONS](#deprecated-options)
 * [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
     * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
@@ -1755,11 +1756,11 @@ with YoutubeDL() as ydl:
 
 Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L181).
 
-**Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the example above
+**Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the [example below](#extracting-information)
 
 ## Embedding examples
 
-### Extracting information
+#### Extracting information
 
 ```python
 import json
@@ -1775,7 +1776,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     # ℹ️ ydl.sanitize_info makes the info json-serializable
     print(json.dumps(ydl.sanitize_info(info)))
 ```
-### Download from info-json
+#### Download using an info-json
 
 ```python
 import yt_dlp
@@ -1789,7 +1790,7 @@ print('Some videos failed to download' if error_code
       else 'All videos successfully downloaded')
 ```
 
-### Extract audio
+#### Extract audio
 
 ```python
 import yt_dlp
@@ -1808,7 +1809,7 @@ ydl_opts = {
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     error_code = ydl.download(URLS)
 ```
-### Adding logger and progress hook
+#### Adding logger and progress hook
 
 ```python
 import yt_dlp
@@ -1849,7 +1850,7 @@ with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     ydl.download(URLS)
 ```
 
-### Add a custom PostProcessor
+#### Add a custom PostProcessor
 
 ```python
 import yt_dlp
@@ -1869,7 +1870,7 @@ with yt_dlp.YoutubeDL() as ydl:
 ```
 
 
-### Use a custom format selector
+#### Use a custom format selector
 
 ```python
 import yt_dlp

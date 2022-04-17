@@ -431,7 +431,7 @@ class FileDownloader:
         else:
             min_sleep_interval = self.params.get('sleep_interval') or 0
             sleep_interval = random.uniform(
-                min_sleep_interval, self.params.get('max_sleep_interval', min_sleep_interval))
+                min_sleep_interval, self.params.get('max_sleep_interval') or min_sleep_interval)
         if sleep_interval > 0:
             self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds ...')
             time.sleep(sleep_interval)
