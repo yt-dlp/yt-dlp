@@ -83,7 +83,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         write_string(f'DeprecationWarning: {text}')
 
     def report_error(self, text, *args, **kwargs):
-        # Exists only for compatibility. Do not use
+        self.deprecation_warning('"yt_dlp.postprocessor.PostProcessor.report_error" is deprecated. '
+                                 'raise "yt_dlp.utils.PostProcessingError" instead')
         if self._downloader:
             return self._downloader.report_error(text, *args, **kwargs)
 

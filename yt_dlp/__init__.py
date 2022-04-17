@@ -397,7 +397,8 @@ def validate_options(opts):
     # Conflicting options
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
-    report_conflict('--exec-before-download', 'exec_before_dl_cmd', '"--exec before_dl:"', 'exec_cmd', opts.exec_cmd.get('before_dl'))
+    report_conflict('--exec-before-download', 'exec_before_dl_cmd',
+                    '"--exec before_dl:"', 'exec_cmd', val2=opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
     report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
@@ -412,7 +413,7 @@ def validate_options(opts):
     report_conflict('--embed-subs', 'embedsubtitles')
     report_conflict('--embed-thumbnail', 'embedthumbnail')
     report_conflict('--extract-audio', 'extractaudio')
-    report_conflict('--fixup', 'fixup', val1=(opts.fixup or '').lower() in ('', 'never', 'ignore'), default='never')
+    report_conflict('--fixup', 'fixup', val1=opts.fixup not in (None, 'never', 'ignore'), default='never')
     report_conflict('--recode-video', 'recodevideo')
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
