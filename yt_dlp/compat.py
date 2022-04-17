@@ -159,7 +159,7 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
     startupinfo = subprocess.STARTUPINFO()
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     try:
-        subprocess.Popen('', shell=True, startupinfo=startupinfo)
+        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
         WINDOWS_VT_MODE = True
     except Exception:
         pass
