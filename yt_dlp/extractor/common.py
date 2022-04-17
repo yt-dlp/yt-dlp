@@ -1503,6 +1503,7 @@ class InfoExtractor:
             author = e.get('author')
             info.update({
                 'url': url_or_none(e.get('contentUrl')),
+                'embedUrl': url_or_none(e.get('embedUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': [{'url': url_or_none(url)}
@@ -1569,6 +1570,8 @@ class InfoExtractor:
                     })
                     if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
                         extract_video_object(e['video'][0])
+                    if traverse_obj(e, ('subjectOf', 0, '@type')) == 'VideoObject':
+                        extract_video_object(e['subjectOf'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
                     if expected_type is None:
