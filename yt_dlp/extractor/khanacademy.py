@@ -1,5 +1,3 @@
-import json
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -9,7 +7,9 @@ from ..utils import (
 
 
 class KhanAcademyBaseIE(InfoExtractor):
-    _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
+    _VALID_URL_TEMPL = (
+        r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
+    )
 
     def _parse_video(self, video):
         return {
@@ -25,15 +25,39 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        component_props = self._parse_json(self._download_json(
-            'https://www.khanacademy.org/api/internal/graphql',
-            display_id, query={
-                'hash': 1604303425,
-                'variables': json.dumps({
-                    'path': display_id,
-                    'queryParams': '',
-                }),
-            })['data']['contentJson'], display_id)['componentProps']
+        fastly_cacheable = 'persist_until_publish'
+        query_hash = 4134764944
+        query_lang = 'en'
+        query_params = 'lang=en'
+        is_modal = 'false'
+        follow_redirects = 'true'
+        country_code = 'US'
+        query_url = (
+            'https://www.khanacademy.org/api/internal/graphql/FetchContentData?fastly_cacheable='
+            + fastly_cacheable
+            + '&hash='
+            + str(query_hash)
+            + '&lang='
+            + query_lang
+            + '&variables=%7B%22path%22%3A%22'
+            + display_id
+            + '%22%2C%22queryParams%22%3A%22'
+            + query_params
+            + '%22%2C%22isModal%22%3A'
+            + is_modal
+            + '%2C%22followRedirects%22%3A'
+            + follow_redirects
+            + '%2C%22countryCode%22%3A%22'
+            + country_code
+            + '%22%7D'
+        )
+
+        component_props = self._parse_json(
+            self._download_json(query_url, display_id,)[
+                'data'
+            ]['contentJson'],
+            display_id,
+        )['componentProps']
         return self._parse_component_props(component_props)
 
 
@@ -62,11 +86,13 @@ class KhanAcademyIE(KhanAcademyBaseIE):
         video = component_props['tutorialPageData']['contentModel']
         info = self._parse_video(video)
         author_names = video.get('authorNames')
-        info.update({
-            'uploader': ', '.join(author_names) if author_names else None,
-            'timestamp': parse_iso8601(video.get('dateAdded')),
-            'license': video.get('kaUserLicense'),
-        })
+        info.update(
+            {
+                'uploader': ', '.join(author_names) if author_names else None,
+                'timestamp': parse_iso8601(video.get('dateAdded')),
+                'license': video.get('kaUserLicense'),
+            }
+        )
         return info
 
 
@@ -87,19 +113,25 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
         curation = component_props['curation']
 
         entries = []
-        tutorials = try_get(curation, lambda x: x['tabs'][0]['modules'][0]['tutorials'], list) or []
+        tutorials = (
+            try_get(curation, lambda x: x['tabs'][0]['modules'][0]['tutorials'], list)
+            or []
+        )
         for tutorial_number, tutorial in enumerate(tutorials, 1):
             chapter_info = {
                 'chapter': tutorial.get('title'),
                 'chapter_number': tutorial_number,
                 'chapter_id': tutorial.get('id'),
             }
-            for content_item in (tutorial.get('contentItems') or []):
+            for content_item in tutorial.get('contentItems') or []:
                 if content_item.get('kind') == 'Video':
                     info = self._parse_video(content_item)
                     info.update(chapter_info)
                     entries.append(info)
 
         return self.playlist_result(
-            entries, curation.get('unit'), curation.get('title'),
-            curation.get('description'))
+            entries,
+            curation.get('unit'),
+            curation.get('title'),
+            curation.get('description'),
+        )
