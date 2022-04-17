@@ -212,7 +212,7 @@ class NiconicoIE(InfoExtractor):
 
     def _get_heartbeat_info(self, info_dict):
         video_id, video_src_id, audio_src_id = info_dict['url'].split(':')[1].split('/')
-        dmc_protocol = info_dict['_expected_protocol']
+        dmc_protocol = info_dict['expected_protocol']
 
         api_data = (
             info_dict.get('_api_data')
@@ -366,7 +366,7 @@ class NiconicoIE(InfoExtractor):
             'width': traverse_obj(video_quality, ('metadata', 'resolution', 'width')),
             'quality': -2 if 'low' in video_quality['id'] else None,
             'protocol': 'niconico_dmc',
-            '_expected_protocol': dmc_protocol,
+            'expected_protocol': dmc_protocol,  # XXX: This is not a documented field
             'http_headers': {
                 'Origin': 'https://www.nicovideo.jp',
                 'Referer': 'https://www.nicovideo.jp/watch/' + video_id,
