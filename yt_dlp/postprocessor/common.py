@@ -69,8 +69,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         return name[6:] if name[:6].lower() == 'ffmpeg' else name
 
     def to_screen(self, text, prefix=True, *args, **kwargs):
-        tag = '[%s] ' % self.PP_NAME if prefix else ''
         if self._downloader:
+            tag = '[%s] ' % self.PP_NAME if prefix else ''
             return self._downloader.to_screen(f'{tag}{text}', *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):

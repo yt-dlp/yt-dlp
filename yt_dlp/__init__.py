@@ -404,7 +404,8 @@ def validate_options(opts):
     report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
-    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters', val1=opts.sponskrub and opts.sponskrub_cut)
+    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
+                    val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--add-metadata', 'addmetadata')

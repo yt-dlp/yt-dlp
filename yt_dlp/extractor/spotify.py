@@ -102,6 +102,7 @@ class SpotifyBaseIE(InfoExtractor):
 
 class SpotifyIE(SpotifyBaseIE):
     IE_NAME = 'spotify'
+    IE_DESC = 'Spotify episodes'
     _VALID_URL = SpotifyBaseIE._VALID_URL_TEMPL % 'episode'
     _TESTS = [{
         'url': 'https://open.spotify.com/episode/4Z7GAJ50bgctf6uclHlWKo',
@@ -131,6 +132,7 @@ class SpotifyIE(SpotifyBaseIE):
 
 class SpotifyShowIE(SpotifyBaseIE):
     IE_NAME = 'spotify:show'
+    IE_DESC = 'Spotify shows'
     _VALID_URL = SpotifyBaseIE._VALID_URL_TEMPL % 'show'
     _TEST = {
         'url': 'https://open.spotify.com/show/4PM9Ke6l66IRNpottHKV9M',

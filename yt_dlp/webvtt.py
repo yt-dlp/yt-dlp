@@ -103,14 +103,8 @@ def _parse_ts(ts):
     Convert a parsed WebVTT timestamp (a re.Match obtained from _REGEX_TS)
     into an MPEG PES timestamp: a tick counter at 90 kHz resolution.
     """
-
-    h, min, s, ms = ts.groups()
-    return 90 * (
-        int(h or 0) * 3600000 +  # noqa: W504,E221,E222
-        int(min)    *   60000 +  # noqa: W504,E221,E222
-        int(s)      *    1000 +  # noqa: W504,E221,E222
-        int(ms)                  # noqa: W504,E221,E222
-    )
+    return 90 * sum(
+        int(part or 0) * mult for part, mult in zip(ts.groups(), (3600_000, 60_000, 1000, 1)))
 
 
 def _format_ts(ts):

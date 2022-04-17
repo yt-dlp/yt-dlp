@@ -23,7 +23,6 @@ import tokenize
 import traceback
 import unicodedata
 import urllib.request
-from enum import Enum
 from string import ascii_letters
 
 from .cache import Cache
@@ -82,6 +81,7 @@ from .utils import (
     ISO3166Utils,
     LazyList,
     MaxDownloadsReached,
+    Namespace,
     PagedList,
     PerRequestProxyHandler,
     Popen,
@@ -878,14 +878,15 @@ class YoutubeDL:
             raise DownloadError(message, exc_info)
         self._download_retcode = 1
 
-    class Styles(Enum):
-        HEADERS = 'yellow'
-        EMPHASIS = 'light blue'
-        ID = 'green'
-        DELIM = 'blue'
-        ERROR = 'red'
-        WARNING = 'yellow'
-        SUPPRESS = 'light black'
+    Styles = Namespace(
+        HEADERS='yellow',
+        EMPHASIS='light blue',
+        ID='green',
+        DELIM='blue',
+        ERROR='red',
+        WARNING='yellow',
+        SUPPRESS='light black',
+    )
 
     def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
         text = str(text)
@@ -896,8 +897,6 @@ class YoutubeDL:
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
-        if isinstance(f, Enum):
-            f = f.value
         return format_text(text, f) if allow_colors else text if fallback is None else fallback
 
     def _format_screen(self, *args, **kwargs):
@@ -1760,7 +1759,8 @@ class YoutubeDL:
             playlist_index, entry = entry_tuple
             if 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
-            self.to_screen(f'[download] Downloading video {i} of {n_entries}')
+            self.to_screen('[download] Downloading video %s of %s' % (
+                self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
             if x_forwarded_for:
@@ -2337,11 +2337,9 @@ class YoutubeDL:
             if info_dict.get(date_key) is None and info_dict.get(ts_key) is not None:
                 # Working around out-of-range timestamp values (e.g. negative ones on Windows,
                 # see http://bugs.python.org/issue1646728)
-                try:
+                with contextlib.suppress(ValueError, OverflowError, OSError):
                     upload_date = datetime.datetime.utcfromtimestamp(info_dict[ts_key])
                     info_dict[date_key] = upload_date.strftime('%Y%m%d')
-                except (ValueError, OverflowError, OSError):
-                    pass
 
         live_keys = ('is_live', 'was_live')
         live_status = info_dict.get('live_status')
@@ -3631,10 +3629,8 @@ class YoutubeDL:
                 if re.match('[0-9a-f]+', out):
                     write_debug('Git HEAD: %s' % out)
             except Exception:
-                try:
+                with contextlib.suppress(Exception):
                     sys.exc_clear()
-                except Exception:
-                    pass
 
         def python_implementation():
             impl_name = platform.python_implementation()
@@ -3651,7 +3647,7 @@ class YoutubeDL:
         exe_versions, ffmpeg_features = FFmpegPostProcessor.get_versions_and_features(self)
         ffmpeg_features = {key for key, val in ffmpeg_features.items() if val}
         if ffmpeg_features:
-            exe_versions['ffmpeg'] += ' (%s)' % ','.join(ffmpeg_features)
+            exe_versions['ffmpeg'] += ' (%s)' % ','.join(sorted(ffmpeg_features))
 
         exe_versions['rtmpdump'] = rtmpdump_version()
         exe_versions['phantomjs'] = PhantomJSwrapper._version()

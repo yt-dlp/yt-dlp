@@ -3586,17 +3586,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 headers=self.generate_api_headers(ytcfg=master_ytcfg),
                 note='Downloading initial data API JSON')
 
-        try:
-            # This will error if there is no livechat
+        try:  # This will error if there is no livechat
             initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
+        except (KeyError, IndexError, TypeError):
+            pass
+        else:
             info.setdefault('subtitles', {})['live_chat'] = [{
-                'url': 'https://www.youtube.com/watch?v=%s' % video_id,  # url is needed to set cookies
+                'url': f'https://www.youtube.com/watch?v={video_id}',  # url is needed to set cookies
                 'video_id': video_id,
                 'ext': 'json',
                 'protocol': 'youtube_live_chat' if is_live or is_upcoming else 'youtube_live_chat_replay',
             }]
-        except (KeyError, IndexError, TypeError):
-            pass
 
         if initial_data:
             info['chapters'] = (

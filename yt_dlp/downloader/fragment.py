@@ -1,3 +1,4 @@
+import contextlib
 import http.client
 import json
 import math
@@ -310,10 +311,8 @@ class FragmentFD(FileDownloader):
             if self.params.get('updatetime', True):
                 filetime = ctx.get('fragment_filetime')
                 if filetime:
-                    try:
+                    with contextlib.suppress(Exception):
                         os.utime(ctx['filename'], (time.time(), filetime))
-                    except Exception:
-                        pass
             downloaded_bytes = os.path.getsize(encodeFilename(ctx['filename']))
 
         self._hook_progress({
@@ -523,7 +522,8 @@ class FragmentFD(FileDownloader):
                     break
                 try:
                     download_fragment(fragment, ctx)
-                    result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
+                    result = append_fragment(
+                        decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
                 except KeyboardInterrupt:
                     if info_dict.get('is_live'):
                         break

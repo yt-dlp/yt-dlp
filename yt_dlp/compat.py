@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import collections
+import contextlib
 import ctypes
 import getpass
 import html
@@ -54,14 +55,11 @@ if compat_os_name == 'nt':
     def compat_shlex_quote(s):
         return s if re.match(r'^[-_\w./]+$', s) else '"%s"' % s.replace('"', '\\"')
 else:
-    from shlex import quote as compat_shlex_quote
+    from shlex import quote as compat_shlex_quote  # noqa: F401
 
 
 def compat_ord(c):
-    if type(c) is int:
-        return c
-    else:
-        return ord(c)
+    return c if isinstance(c, int) else ord(c)
 
 
 def compat_setenv(key, value, env=os.environ):
@@ -118,16 +116,17 @@ except ImportError:
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
 # See https://github.com/yt-dlp/yt-dlp/issues/792
 # https://docs.python.org/3/library/os.path.html#os.path.expanduser
-if compat_os_name in ('nt', 'ce') and 'HOME' in os.environ:
-    _userhome = os.environ['HOME']
-
+if compat_os_name in ('nt', 'ce'):
     def compat_expanduser(path):
-        if not path.startswith('~'):
+        HOME = os.environ.get('HOME')
+        if not HOME:
+            return os.path.expanduser(path)
+        elif not path.startswith('~'):
             return path
         i = path.replace('\\', '/', 1).find('/')  # ~user
         if i < 0:
             i = len(path)
-        userhome = os.path.join(os.path.dirname(_userhome), path[1:i]) if i > 1 else _userhome
+        userhome = os.path.join(os.path.dirname(HOME), path[1:i]) if i > 1 else HOME
         return userhome + path[i:]
 else:
     compat_expanduser = os.path.expanduser
@@ -158,11 +157,9 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
     global WINDOWS_VT_MODE
     startupinfo = subprocess.STARTUPINFO()
     startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    try:
+    with contextlib.suppress(Exception):
         subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
         WINDOWS_VT_MODE = True
-    except Exception:
-        pass
 
 
 #  Deprecated
