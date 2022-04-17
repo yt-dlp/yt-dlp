@@ -65,6 +65,14 @@ class NprIE(InfoExtractor):
             })['list']['story'][0]
         playlist_title = story.get('title', {}).get('$text')
 
+        # Fetch the JSON-LD from the npr page.
+        json_ld = self._search_json_ld(
+            self._download_webpage(url, playlist_id),
+            playlist_id,
+            'NewsArticle',
+            fatal=False
+        )
+
         KNOWN_FORMATS = ('threegp', 'm3u8', 'smil', 'mp4', 'mp3')
         quality = qualities(KNOWN_FORMATS)
 
@@ -110,6 +118,13 @@ class NprIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     stream_url, stream_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
+
+            if len(formats) == 0 and json_ld.get('embedUrl', None) is not None:
+                # Add the embedUrl as a stream.
+                formats.extend(self._extract_m3u8_formats(
+                    json_ld.get('embedUrl'), 'hlsUrl', 'mp4', 'm3u8_native',
+                    m3u8_id='hls', fatal=False))
+
             self._sort_formats(formats)
 
             entries.append({
