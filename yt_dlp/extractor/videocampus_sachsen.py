@@ -40,7 +40,7 @@ class VideocampusSachsenIE(InfoExtractor):
         video_id, tmp_id, display_id = self._match_valid_url(url).group('id', 'tmp_id', 'display_id')
         webpage = self._download_webpage(url, video_id or tmp_id, fatal=False) or ''
 
-        if not tmp_id:
+        if not video_id:
             video_id = self._html_search_regex(
                 r'src="https?://videocampus\.sachsen\.de/media/embed\?key=([0-9a-f]+)&',
                 webpage, 'video_id')
