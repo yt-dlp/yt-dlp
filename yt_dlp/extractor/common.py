@@ -11,7 +11,7 @@ import sys
 import time
 import xml.etree.ElementTree
 
-from ..compat import functools, re
+from ..compat import functools, re  # isort: split
 from ..compat import (
     compat_cookiejar_Cookie,
     compat_cookies_SimpleCookie,
@@ -3602,9 +3602,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a compat_cookies_SimpleCookie with the cookies for the url """
-        req = sanitized_Request(url)
-        self._downloader.cookiejar.add_cookie_header(req)
-        return compat_cookies_SimpleCookie(req.get_header('Cookie'))
+        return compat_cookies_SimpleCookie(self._downloader._calc_cookies(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
