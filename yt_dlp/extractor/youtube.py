@@ -4099,6 +4099,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             }))
         ctx['mapping'] = {**mapping, **(ctx.get('mapping') or {})}
 
+        # TODO: allow the check_get_keys check to be similar to that of resolve_renderer key comparison.
+        # Then we should be safe with doing check_get_keys = mapping.keys()
         check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands', 'actions')
 
         yield from self._resolve_entries(entries, ctx=ctx)
