@@ -627,9 +627,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'CONTINUATION_REQUEST_TYPE_BROWSE': 'browse',
         'CONTINUATION_REQUEST_TYPE_SEARCH': 'search',
         'CONTINUATION_REQUEST_TYPE_WATCH_NEXT': 'next',
-        'CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST': '??',
-        'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU': '??',
-        'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES': '??',
+      #  'CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST': '??',
+      #  'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU': '??',
+      #  'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES': '??',
         'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE': 'reel/reel_watch_sequence',
     }
 
@@ -3999,7 +3999,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer'],
             self._hashtag_tile_entry: 'hashtagTileRenderer',
             self._music_reponsive_list_entry: 'musicResponsiveListItemRenderer',
-            self.resolve_renderer: ['content', 'richItemRenderer', 'richSectionRenderer', 'channelFeaturedContentRenderer']
+            self.resolve_renderer: ['content', 'richItemRenderer', 'richSectionRenderer', 'channelFeaturedContentRenderer', 'horizontalListRenderer']
         })
 
     def resolve_renderer(self, renderer, ctx=None):
