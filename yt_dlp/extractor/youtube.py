@@ -3989,6 +3989,21 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         return mapping
 
     def resolve_renderer(self, renderer, ctx=None):
+        """
+        Resolves a given renderer.
+        Can be in the format
+        {
+            "someInnerRenderer": <data>,
+            "someInnerRenderer2": <data>
+        }
+        contents/items are supported as well.
+
+        To allow continuation pages to be extracted, a context (ctx)
+        containing item_id, endpoint and client is required.
+
+        ctx can contain a "mapping" key containing mappings.
+        otherwise the default will be used.
+        """
         if not isinstance(renderer, dict):
             return
         if ctx is None:
@@ -4009,19 +4024,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 yield from result
             elif isinstance(result, dict):
                 yield result
-
-        """
-
-        {
-            'someRenderer':...
-            'someRenderer2':...
-        }
-        will resolve all renderers that match in the dict
-
-        if we hit a renderer with 'contents' -> sent to resolve_contents. which sends to iterate entries directly or indirectly (via renderer entries)
-        mapping should be stored in ctx.mapping, otherwise will use default.
-        'content' is picked up by this renderer
-        """
 
     @staticmethod
     def _extract_contents_list(renderer):
