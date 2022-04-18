@@ -3917,19 +3917,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         # Shelf may not contain shelf URL, fallback to extraction from content
         yield from self.resolve_renderer(shelf_renderer, ctx=ctx)
 
-    # TODO should be able to merge this into new extraction
-    def _playlist_entries(self, video_list_renderer):
-        for content in video_list_renderer['contents']:
-            if not isinstance(content, dict):
-                continue
-            renderer = content.get('playlistVideoRenderer') or content.get('playlistPanelVideoRenderer')
-            if not isinstance(renderer, dict):
-                continue
-            video_id = renderer.get('videoId')
-            if not video_id:
-                continue
-            yield self._extract_video(renderer)
-
     def _video_entry(self, video_renderer, ctx=None):
         video_id = video_renderer.get('videoId')
         if video_id:
@@ -4260,7 +4247,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_mix_playlist(self, playlist, playlist_id, data, ytcfg):
         first_id = last_id = response = None
         for page_num in itertools.count(1):
-            videos = list(self._playlist_entries(playlist))
+            videos = list(self.resolve_renderer(playlist))
             if not videos:
                 return
             start = next((i for i, v in enumerate(videos) if v['id'] == last_id), -1) + 1
