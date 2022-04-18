@@ -1064,7 +1064,6 @@ class BiliLiveIE(InfoExtractor):
             stream_data = self._call_api(f'/xlive/web-room/v2/index/getRoomPlayInfo?room_id={room_id}&no_playurl=0&mask=0&qn={qn}&platform=web&protocol=0,1&format=0,2&codec=0,1',
                                          room_id)
             if stream_data.get('playurl_info'):
-                protocol = stream_data.get('protocol_name')
                 for stream in stream_data['playurl_info']['playurl']['stream']:
                     for format in stream['format']:
                         for codec in reversed(format['codec']):
@@ -1082,7 +1081,6 @@ class BiliLiveIE(InfoExtractor):
                                     'format_id': f'{qn}',
                                     'format_note': qn_descs[qn],
                                     'vcodec': codec.get('codec_name'),
-                                    'protocol': 'http' if protocol == 'http_stream' else protocol,
                                     'quality': qualities[qn],
                                     'http_headers': {
                                         'Referer': url,
