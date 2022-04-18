@@ -3913,6 +3913,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if shelf_url:
             title = self._get_text(shelf_renderer, 'title')
             yield self.url_result(shelf_url, video_title=title)
+            return
         # Shelf may not contain shelf URL, fallback to extraction from content
         yield from self.resolve_renderer(shelf_renderer, ctx=ctx)
 
