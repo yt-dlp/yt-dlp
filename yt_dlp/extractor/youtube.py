@@ -4073,7 +4073,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             ctx = {}
         ctx = ctx.copy()
         continuation_list = [None]
-        mapping = (ctx.get('mapping') or {}).copy()
+        mapping = {}
         if not mapping:
             mapping = self._get_basic_renderer_mapping()
 
@@ -4086,7 +4086,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
             mapping.update({
                 'continuationItemRenderer': functools.partial(self._continuation_renderer_entry, continuation_list),
+                lambda x: x.startswith('onResponseReceived'): self._resolve_entries,
+                'appendContinuationItemsAction': self.resolve_renderer,
+                'continuationItems': self._resolve_entries,
+                'continuationContents': self.resolve_renderer
             })
+        ctx['mapping'] = {**mapping, **(ctx.get('mapping') or {})}
 
         ctx['mapping'] = mapping
 
@@ -4112,18 +4117,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if not response:
                 break
             ctx['visitor_data'] = self._extract_visitor_data(response) or ctx['visitor_data']
-            continuation_entries = traverse_obj(
-                response, (['onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands'], ..., 'appendContinuationItemsAction', 'continuationItems'),
-                default=[], get_all=False)
-            continuation_contents = traverse_obj(response, 'continuationContents')
-            if continuation_contents:
-                continuation_entries.append(continuation_contents)
-
-            yield from self._resolve_entries(continuation_entries, ctx=ctx)
+            yield from self.resolve_renderer(response, ctx)
 
     # TODO: make this cleaner lol
-    def _make_entries_ctx(self, item_id, endpoint, ytcfg, visitor_data, client=None):
-        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg, 'visitor_data': visitor_data, 'client': client or 'web'}
+    def _make_entries_ctx(self, item_id, endpoint, ytcfg, visitor_data, client=None, mapping=None):
+        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg, 'visitor_data': visitor_data, 'client': client or 'web', 'mapping': mapping or {}}
 
     def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
         yield from self.resolve_renderer(tab, ctx=self._make_entries_ctx(item_id, 'browse', ytcfg, visitor_data))
