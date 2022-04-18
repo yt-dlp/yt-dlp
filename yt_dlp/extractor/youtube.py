@@ -3991,7 +3991,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer'],
             self._hashtag_tile_entry: ['hashtagTileRenderer'],
             self._music_reponsive_list_entry: ['musicResponsiveListItemRenderer'],
-            self.resolve_renderer: ['content', 'richItemRenderer', 'richSectionRenderer']
+            self.resolve_renderer: ['content', 'richItemRenderer', 'richSectionRenderer', 'channelFeaturedContentRenderer']
 
         }
         mapping = {}
