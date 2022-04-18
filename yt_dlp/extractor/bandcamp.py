@@ -439,7 +439,7 @@ class BandcampUserIE(InfoExtractor):
         uploader = self._match_id(url)
         webpage = self._download_webpage(url, uploader)
 
-        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?!.*/merch)([^"\']+)', webpage)
+        discography_data = (re.findall(r'<li data-item-id=["\'][^>]+>\s*<a href=["\'](?![^"\'/]*?/merch)([^"\']+)', webpage)
                             or re.findall(r'<div[^>]+trackTitle["\'][^"\']+["\']([^"\']+)', webpage))
 
         return self.playlist_from_matches(
