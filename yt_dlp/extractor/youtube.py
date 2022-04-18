@@ -4074,8 +4074,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         ctx = ctx.copy()
         continuation_list = [None]
         mapping = {}
-        if not mapping:
-            mapping = self._get_basic_renderer_mapping()
 
         # required for continuation
         if all(ctx.get(key) for key in ('item_id', 'endpoint', 'client')):
