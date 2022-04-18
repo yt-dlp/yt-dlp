@@ -3972,15 +3972,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if continuation_data:
             continuation_list[0] = continuation_data
 
-    def _continuation_contents_renderer(self, continuation_list, renderer, ctx=None):
-        next_continuation_data = self._extract_next_continuation_data(renderer)
-        if next_continuation_data:
-            continuation_list[0] = next_continuation_data
-
-        # don't want to request resolve_contents on this renderer as it'll pick up the continuation
-        # but want to pass context so renderer restrictions will remain
-        yield from self._iterate_renderer_entries(self._extract_contents_list(renderer), ctx=ctx)
-
     def _get_basic_renderer_mapping(self):
         """
         All resolvers must have signature
@@ -4008,15 +3999,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 mapping[item] = key
 
         return mapping
-
-    def _iterate_renderer_entries(self, entries, ctx=None):
-
-        if isinstance(entries, dict):
-            self.report_warning('entries should be a list!')
-            entries = [entries]
-
-        for entry in entries:
-            yield from self.resolve_renderer(entry, ctx)
 
     def resolve_renderer(self, renderer, ctx=None):
         if not isinstance(renderer, dict):
@@ -4057,16 +4039,35 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _extract_contents_list(renderer):
         return traverse_obj(renderer, 'contents', 'items', expected_type=list, default=[])
 
-    def resolve_contents(self, renderer, ctx=None):
-        if isinstance(ctx, dict) and all(v in ctx for v in ('item_id', 'endpoint', 'ytcfg', 'visitor_data', 'client')):
-            yield from self._renderer_entries(renderer, ctx=ctx)
-        else:
-            self.report_warning('resolving contents without ctx is unsupported for now')
-            # entries = self._extract_contents_list(renderer)  # TODO: what about renderers that do not contain a list?
-            # assert entries
-            # yield from self._iterate_renderer_entries(entries)
+    def _resolve_entries(self, entries, ctx=None):
+        """
+        Resolve renderers in a list
+        For internal use; you should use resolve_contents if you need continuation handling.
+        """
+        # TODO: remove
+        if isinstance(entries, dict):
+            self.report_warning('entries should be a list!')
+            entries = [entries]
+        for entry in entries:
+            yield from self.resolve_renderer(entry, ctx)
 
-    def _renderer_entries(self, renderer, ctx):
+    def _continuation_contents_entry(self, continuation_list, renderer, ctx=None):
+        """
+        Hack for old-style continuation that is not included in content entries.
+        {
+            'contents/items': [<renderers>]
+            'continuation': ...
+        }
+        """
+        next_continuation_data = self._extract_next_continuation_data(renderer)
+        if next_continuation_data:
+            continuation_list[0] = next_continuation_data
+
+        # don't want to request resolve_contents on this renderer as it'll pick up the continuation
+        # but want to pass context so renderer restrictions will remain
+        yield from self._resolve_entries(self._extract_contents_list(renderer), ctx=ctx)
+
+    def resolve_contents(self, renderer, ctx=None):
         """
         renderer is in the form:
         {
@@ -4074,31 +4075,34 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             'continuation (optional, old):
         }
         """
+
         entries = self._extract_contents_list(renderer)
         if not entries:
             return
         if not isinstance(ctx, dict):
-            return
+            ctx = {}
         ctx = ctx.copy()
         continuation_list = [None]
         mapping = (ctx.get('mapping') or {}).copy()
         if not mapping:
             mapping = self._get_basic_renderer_mapping()
 
-        # Old nextContinuation style
-        for continuation_key in ('playlistVideoListContinuation', 'musicShelfContinuation',
-                                 'gridContinuation', 'itemSectionContinuation'):
-            mapping[continuation_key] = functools.partial(self._continuation_contents_renderer, continuation_list)
+        # required for continuation
+        if all(ctx.get(key) for key in ('item_id', 'endpoint', 'client')):
+            # Old nextContinuation style
+            for continuation_key in ('playlistVideoListContinuation', 'musicShelfContinuation',
+                                     'gridContinuation', 'itemSectionContinuation'):
+                mapping[continuation_key] = functools.partial(self._continuation_contents_entry, continuation_list)
 
-        mapping.update({
-            'continuationItemRenderer': functools.partial(self._continuation_renderer_entry, continuation_list),
-        })
+            mapping.update({
+                'continuationItemRenderer': functools.partial(self._continuation_renderer_entry, continuation_list),
+            })
 
         ctx['mapping'] = mapping
 
         check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands')
 
-        yield from self._iterate_renderer_entries(entries, ctx=ctx)
+        yield from self._resolve_entries(entries, ctx=ctx)
         if not continuation_list[0]:
             continuation_list[0] = self._extract_next_continuation_data(renderer) or continuation_list[0]
 
@@ -4118,12 +4122,14 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if not response:
                 break
             ctx['visitor_data'] = self._extract_visitor_data(response) or ctx['visitor_data']
-            continuation_items = traverse_obj(
+            continuation_entries = traverse_obj(
                 response, (['onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands'], ..., 'appendContinuationItemsAction', 'continuationItems'),
                 default=[], get_all=False)
-            yield from self._iterate_renderer_entries(continuation_items, ctx=ctx)
             continuation_contents = traverse_obj(response, 'continuationContents')
-            yield from self.resolve_renderer(continuation_contents, ctx=ctx) # TODO
+            if continuation_contents:
+                continuation_entries.append(continuation_contents)
+
+            yield from self._resolve_entries(continuation_entries, ctx=ctx)
 
     # TODO: make this cleaner lol
     def _make_entries_ctx(self, item_id, endpoint, ytcfg, visitor_data, client=None):
