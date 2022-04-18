@@ -3960,33 +3960,47 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if continuation_data:
             continuation_list[0] = continuation_data
 
+    @staticmethod
+    def reverse_dict(d: dict):
+        """
+        take a dict like
+        {
+            value: [key1, key2]
+        }
+        and expand it like
+        {
+            key1: value,
+            key2: value
+        }
+        """
+        mapping = {}
+        for key, value in d.items():
+            if isinstance(value, list):
+                for item in value:
+                    mapping[item] = key
+            else:
+                mapping[value] = key
+        return mapping
+
     def _get_basic_renderer_mapping(self):
         """
         All resolvers must have signature
         renderer, ctx=None
         """
-        reverse_map = {
-            self._video_entry: [lambda x: x.lower().endswith('videorenderer')],
+        return self.reverse_dict({
+            self._video_entry: lambda x: x.lower().endswith('videorenderer'),
             self._shelf_entry: ['shelfRenderer', 'reelShelfRenderer', 'musicShelfRenderer'],
-            self._basic_item_entry: [  # TODO: lol
-                lambda x: x.lower().endswith('playlistrenderer'), lambda x: x.lower().endswith('channelrenderer'),
-                lambda x: x.lower().endswith('showrenderer'), lambda x: x.lower().endswith('reelitemrenderer'),
-                lambda x: x.lower().endswith('radiorenderer')],  # TODO: no support unviewable playlist extraction
-            self._post_thread_entry: ['backstagePostThreadRenderer'],
+            self._basic_item_entry:
+                lambda x: x.lower().endswith(
+                    ('playlistrenderer', 'channelrenderer', 'showrenderer', 'reelitemrenderer', 'radiorenderer')), # TODO: no support unviewable playlist extraction
+            self._post_thread_entry: 'backstagePostThreadRenderer',
             self.resolve_contents: [  # TODO: we could point these to resolve_renderer and let it detect contents and pass onto resolve_contents
                 'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer',
                 'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer'],
-            self._hashtag_tile_entry: ['hashtagTileRenderer'],
-            self._music_reponsive_list_entry: ['musicResponsiveListItemRenderer'],
+            self._hashtag_tile_entry: 'hashtagTileRenderer',
+            self._music_reponsive_list_entry: 'musicResponsiveListItemRenderer',
             self.resolve_renderer: ['content', 'richItemRenderer', 'richSectionRenderer', 'channelFeaturedContentRenderer']
-
-        }
-        mapping = {}
-        for key, items in reverse_map.items():
-            for item in items:
-                mapping[item] = key
-
-        return mapping
+        })
 
     def resolve_renderer(self, renderer, ctx=None):
         """
@@ -4077,18 +4091,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
         # required for continuation
         if all(ctx.get(key) for key in ('item_id', 'endpoint', 'client')):
-            # Old nextContinuation style
-            for continuation_key in ('playlistVideoListContinuation', 'musicShelfContinuation',
-                                     'gridContinuation', 'itemSectionContinuation'):
-                mapping[continuation_key] = functools.partial(self._continuation_contents_entry, continuation_list)
-
-            mapping.update({
-                'continuationItemRenderer': functools.partial(self._continuation_renderer_entry, continuation_list),
-                lambda x: x.startswith('onResponseReceived'): self._resolve_entries,
-                'appendContinuationItemsAction': self.resolve_renderer,
-                'continuationItems': self._resolve_entries,
-                'continuationContents': self.resolve_renderer
-            })
+            mapping.update(self.reverse_dict({
+                functools.partial(self._continuation_renderer_entry, continuation_list): 'continuationItemRenderer',
+                functools.partial(self._continuation_contents_entry, continuation_list): lambda x: x.endswith('Continuation'),  # Old nextContinuation style
+                self._resolve_entries: [lambda x: x.startswith('onResponseReceived'), 'continuationItems'],
+                self.resolve_renderer: ['appendContinuationItemsAction', 'continuationContents']
+            }))
         ctx['mapping'] = {**mapping, **(ctx.get('mapping') or {})}
 
         check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands', 'actions')
