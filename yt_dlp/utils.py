@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import asyncio
 import atexit
 import base64
 import binascii
@@ -41,6 +40,7 @@ import xml.etree.ElementTree
 import zlib
 
 from .compat import (
+    asyncio,
     compat_brotli,
     compat_chr,
     compat_cookiejar,
