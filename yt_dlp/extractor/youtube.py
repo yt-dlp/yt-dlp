@@ -5204,6 +5204,19 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
             'uploader_url': 'https://www.youtube.com/channel/UCKcqXmCcyqnhgpA5P0oHH_Q',
         },
         'playlist_mincount': 2
+    }, {
+        'note': 'channel with nested continuations within shelf renderers',
+        'url': 'https://www.youtube.com/channel/UC_vVy4OI86F0amXqFN_zTMg',
+        'info_dict': {
+            'id': 'UC_vVy4OI86F0amXqFN_zTMg',
+            'title': 'UC_vVy4OI86F0amXqFN_zTMg - Home',
+            'tags': [],
+        },
+        'playlist_mincount': 500,
+        # yt seems to choke on its own continuations when given the /featured tab directly
+        'expected_warnings': [
+            'the playlist redirect gave error',
+        ],
     }]
 
     @classmethod
