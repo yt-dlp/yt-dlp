@@ -352,7 +352,7 @@ class RokfinSearchIE(SearchInfoExtractor):
 
     def _real_initialize(self):
         self._db_url, self._db_access_key = self._downloader.cache.load(
-            self.ie_key(), 'auth') or self._get_db_access_credentials()
+            self.ie_key(), 'auth') or self._get_db_access_credentials(None)
 
     def _search_results(self, query):
         def get_video_data(metadata):
@@ -383,15 +383,15 @@ class RokfinSearchIE(SearchInfoExtractor):
                 return search_results
             self.write_debug('updating access credentials')
             self._downloader.cache.store(self.ie_key(), 'auth', None)
-            self._db_url, self._db_access_key = self._get_db_access_credentials()
+            self._db_url, self._db_access_key = self._get_db_access_credentials(self._SEARCH_KEY)
 
-    def _get_db_access_credentials(self):
-        notfound_err_page = self._download_webpage('https://rokfin.com/discover', self._SEARCH_KEY, expected_status=404)
+    def _get_db_access_credentials(self, video_id):
+        notfound_err_page = self._download_webpage('https://rokfin.com/discover', video_id, expected_status=404)
         js_content = ''
         db_url = db_access_key = None
-        for js_file_path in re.finditer(r'<script\s+[^>]*?src\s*=\s*"(?P<path>/static/js/[^">]*)"[^>]*>', notfound_err_page):
+        for js_file_path in re.finditer(r'<script\s[^>]*\ssrc\s*=\s*"(?P<path>/static/js/[^">]+)"', notfound_err_page):
             js_content += self._download_webpage(
-                'https://rokfin.com' + js_file_path.group('path'), self._SEARCH_KEY,
+                'https://rokfin.com' + js_file_path.group('path'), video_id,
                 note='Downloading JavaScript file', fatal=False) or ''
             if not db_url:
                 db_url = self._search_regex(
