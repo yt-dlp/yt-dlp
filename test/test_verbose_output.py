@@ -13,7 +13,8 @@ class TestVerboseOutput(unittest.TestCase):
     def test_private_info_arg(self):
         outp = subprocess.Popen(
             [
-                sys.executable, 'yt_dlp/__main__.py', '-v',
+                sys.executable, 'yt_dlp/__main__.py',
+                '-v', '--ignore-config',
                 '--username', 'johnsmith@gmail.com',
                 '--password', 'my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -26,7 +27,8 @@ class TestVerboseOutput(unittest.TestCase):
     def test_private_info_shortarg(self):
         outp = subprocess.Popen(
             [
-                sys.executable, 'yt_dlp/__main__.py', '-v',
+                sys.executable, 'yt_dlp/__main__.py',
+                '-v', '--ignore-config',
                 '-u', 'johnsmith@gmail.com',
                 '-p', 'my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -39,7 +41,8 @@ class TestVerboseOutput(unittest.TestCase):
     def test_private_info_eq(self):
         outp = subprocess.Popen(
             [
-                sys.executable, 'yt_dlp/__main__.py', '-v',
+                sys.executable, 'yt_dlp/__main__.py',
+                '-v', '--ignore-config',
                 '--username=johnsmith@gmail.com',
                 '--password=my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -52,7 +55,8 @@ class TestVerboseOutput(unittest.TestCase):
     def test_private_info_shortarg_eq(self):
         outp = subprocess.Popen(
             [
-                sys.executable, 'yt_dlp/__main__.py', '-v',
+                sys.executable, 'yt_dlp/__main__.py',
+                '-v', '--ignore-config',
                 '-u=johnsmith@gmail.com',
                 '-p=my_secret_password',
             ], cwd=rootDir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -21,6 +21,7 @@ from .utils import (
     Config,
     expand_path,
     get_executable_path,
+    join_nonempty,
     remove_end,
     write_string,
 )
@@ -109,8 +110,42 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     return parser, opts, args
 
 
+class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
+    def __init__(self):
+        # No need to wrap help messages if we're on a wide console
+        max_width = compat_get_terminal_size().columns or 80
+        # 47% is chosen because that is how README.md is currently formatted
+        # and moving help text even further to the right is undesirable.
+        # This can be reduced in the future to get a prettier output
+        super().__init__(width=max_width, max_help_position=int(0.47 * max_width))
+
+    @staticmethod
+    def format_option_strings(option):
+        """ ('-o', '--option') -> -o, --format METAVAR """
+        opts = join_nonempty(
+            option._short_opts and option._short_opts[0],
+            option._long_opts and option._long_opts[0],
+            delim=', ')
+        if option.takes_value():
+            opts += f' {option.metavar}'
+        return opts
+
+
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+
+    def __init__(self):
+        super().__init__(
+            prog='yt-dlp',
+            version=__version__,
+            usage='%prog [OPTIONS] URL [URL...]',
+            epilog='See full documentation at  https://github.com/yt-dlp/yt-dlp#readme',
+            formatter=_YoutubeDLHelpFormatter(),
+            conflict_handler='resolve',
+        )
+
+    def _get_args(self, args):
+        return sys.argv[1:] if args is None else list(args)
 
     def _match_long_opt(self, opt):
         """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
@@ -123,23 +158,6 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
 
 
 def create_parser():
-    def _format_option_string(option):
-        ''' ('-o', '--option') -> -o, --format METAVAR'''
-
-        opts = []
-
-        if option._short_opts:
-            opts.append(option._short_opts[0])
-        if option._long_opts:
-            opts.append(option._long_opts[0])
-        if len(opts) > 1:
-            opts.insert(1, ', ')
-
-        if option.takes_value():
-            opts.append(' %s' % option.metavar)
-
-        return ''.join(opts)
-
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = list(getattr(parser.values, option.dest)) if append else []
@@ -204,23 +222,7 @@ def create_parser():
             out_dict[key] = out_dict.get(key, []) + [val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
-    # No need to wrap help messages if we're on a wide console
-    columns = compat_get_terminal_size().columns
-    max_width = columns if columns else 80
-    # 47% is chosen because that is how README.md is currently formatted
-    # and moving help text even further to the right is undesirable.
-    # This can be reduced in the future to get a prettier output
-    max_help_position = int(0.47 * max_width)
-
-    fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
-    fmt.format_option_strings = _format_option_string
-
-    parser = _YoutubeDLOptionParser(
-        version=__version__,
-        formatter=fmt,
-        usage='%prog [OPTIONS] URL [URL...]',
-        conflict_handler='resolve'
-    )
+    parser = _YoutubeDLOptionParser()
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -1048,7 +1050,7 @@ def create_parser():
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        # help='[Broken] Contact the yt-dlp server for debugging')
+        # help='Contact the yt-dlp server for debugging')
         help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--no-call-home',

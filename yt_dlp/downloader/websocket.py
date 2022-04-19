@@ -1,4 +1,4 @@
-import asyncio
+import contextlib
 import os
 import signal
 import threading
@@ -14,6 +14,7 @@ else:
 
 from .common import FileDownloader
 from .external import FFmpegFD
+from ..compat import asyncio
 
 
 class FFmpegSinkFD(FileDownloader):
@@ -29,11 +30,9 @@ class FFmpegSinkFD(FileDownloader):
             except (BrokenPipeError, OSError):
                 pass
             finally:
-                try:
+                with contextlib.suppress(OSError):
                     stdin.flush()
                     stdin.close()
-                except OSError:
-                    pass
                 os.kill(os.getpid(), signal.SIGINT)
 
         class FFmpegStdinFD(FFmpegFD):

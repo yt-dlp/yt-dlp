@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 import subprocess
@@ -31,13 +32,11 @@ def cookie_to_dict(cookie):
         cookie_dict['secure'] = cookie.secure
     if cookie.discard is not None:
         cookie_dict['discard'] = cookie.discard
-    try:
+    with contextlib.suppress(TypeError):
         if (cookie.has_nonstandard_attr('httpOnly')
                 or cookie.has_nonstandard_attr('httponly')
                 or cookie.has_nonstandard_attr('HttpOnly')):
             cookie_dict['httponly'] = True
-    except TypeError:
-        pass
     return cookie_dict
 
 
@@ -129,10 +128,8 @@ class PhantomJSwrapper:
 
     def __del__(self):
         for name in self._TMP_FILE_NAMES:
-            try:
+            with contextlib.suppress(OSError, KeyError):
                 os.remove(self._TMP_FILES[name].name)
-            except (OSError, KeyError):
-                pass
 
     def _save_cookies(self, url):
         cookies = cookie_jar_to_list(self.extractor._downloader.cookiejar)

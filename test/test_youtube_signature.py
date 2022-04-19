@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Allow direct execution
+import contextlib
 import os
 import sys
 import unittest
@@ -127,11 +128,9 @@ class TestSignature(unittest.TestCase):
             os.mkdir(self.TESTDATA_DIR)
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(OSError):
             for f in os.listdir(self.TESTDATA_DIR):
                 os.remove(f)
-        except OSError:
-            pass
 
 
 def t_factory(name, sig_func, url_pattern):
