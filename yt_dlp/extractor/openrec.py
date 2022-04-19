@@ -35,8 +35,8 @@ class OpenRecBaseIE(InfoExtractor):
             raise ExtractorError(f'Failed to extract {name} info')
 
         formats = list(self._expand_media(video_id, get_first(movie_stores, 'media')))
-        if not formats and is_live:
-            # archived livestreams
+        if not formats:
+            # archived livestreams or subscriber-only videos
             cookies = self._get_cookies('https://www.openrec.tv/')
             detail = self._download_json(
                 f'https://apiv5.openrec.tv/api/v5/movies/{video_id}/detail', video_id,
