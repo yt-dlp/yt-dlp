@@ -3994,12 +3994,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 lambda x: x.lower().endswith(
                     ('playlistrenderer', 'channelrenderer', 'showrenderer', 'reelitemrenderer', 'radiorenderer')), # TODO: no support unviewable playlist extraction
             self._post_thread_entry: 'backstagePostThreadRenderer',
-            self.resolve_contents: [  # TODO: we could point these to resolve_renderer and let it detect contents and pass onto resolve_contents
-                'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer',
-                'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer'],
             self._hashtag_tile_entry: 'hashtagTileRenderer',
             self._music_reponsive_list_entry: 'musicResponsiveListItemRenderer',
-            self.resolve_renderer: ['content', 'richItemRenderer', 'richSectionRenderer', 'channelFeaturedContentRenderer', 'horizontalListRenderer']
+            self.resolve_renderer: [
+                'content', 'richItemRenderer', 'richSectionRenderer', 'channelFeaturedContentRenderer', 'horizontalListRenderer',
+                'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer']
         })
 
     def resolve_renderer(self, renderer, ctx=None):
