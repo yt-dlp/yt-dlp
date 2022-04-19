@@ -394,10 +394,8 @@ class FacebookIE(InfoExtractor):
                 r'handleWithCustomApplyEach\(\s*ScheduledApplyEach\s*,\s*(\{.+?\})\s*\);', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
-            media = traverse_obj(
-                post,
-                (..., 'attachments', ..., 'media', lambda _, m: str(m['id']) == video_id and m['__typename'] == 'Video'),
-                expected_type=dict)
+            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
             title = get_first(media, ('title', 'text'))
             description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
             uploader_data = get_first(media, 'owner') or get_first(post, ('node', 'actors', ...)) or {}

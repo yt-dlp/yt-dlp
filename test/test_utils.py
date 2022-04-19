@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Allow direct execution
+import contextlib
 import os
 import sys
 import unittest
@@ -267,11 +268,18 @@ class TestUtil(unittest.TestCase):
 
         compat_setenv('yt_dlp_EXPATH_PATH', 'expanded')
         self.assertEqual(expand_path(env('yt_dlp_EXPATH_PATH')), 'expanded')
-        self.assertEqual(expand_path(env('HOME')), compat_getenv('HOME'))
-        self.assertEqual(expand_path('~'), compat_getenv('HOME'))
-        self.assertEqual(
-            expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
-            '%s/expanded' % compat_getenv('HOME'))
+
+        old_home = os.environ.get('HOME')
+        test_str = R'C:\Documents and Settings\тест\Application Data'
+        try:
+            compat_setenv('HOME', test_str)
+            self.assertEqual(expand_path(env('HOME')), compat_getenv('HOME'))
+            self.assertEqual(expand_path('~'), compat_getenv('HOME'))
+            self.assertEqual(
+                expand_path('~/%s' % env('yt_dlp_EXPATH_PATH')),
+                '%s/expanded' % compat_getenv('HOME'))
+        finally:
+            compat_setenv('HOME', old_home or '')
 
     def test_prepend_extension(self):
         self.assertEqual(prepend_extension('abc.ext', 'temp'), 'abc.temp.ext')
@@ -1814,10 +1822,8 @@ Line 1
                         else:
                             self.assertFalse(testing_write, f'{test_mode} is not blocked by {lock_mode}')
         finally:
-            try:
+            with contextlib.suppress(OSError):
                 os.remove(FILE)
-            except Exception:
-                pass
 
 
 if __name__ == '__main__':
