@@ -4024,9 +4024,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if not ctx.get('mapping'):
             ctx['mapping'] = self._get_basic_renderer_mapping()
 
-        if self._extract_contents_list(renderer):
-            yield from self.resolve_contents(renderer, ctx=ctx)
-
         for key, entry in renderer.items():
             result = None
             for mapping_key, func in ctx['mapping'].items():
@@ -4038,6 +4035,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             elif isinstance(result, dict):
                 yield result
 
+        # TODO: merge in with normal mapping, or add some way to easily append to this
+        # These keys send the entire parent renderer
+        if self._extract_contents_list(renderer):
+            yield from self._resolve_contents(renderer, ctx=ctx)
+
     @staticmethod
     def _extract_contents_list(renderer):
         return traverse_obj(renderer, 'contents', 'items', expected_type=list, default=[])
@@ -4045,8 +4047,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _resolve_entries(self, entries, ctx=None):
         """
         Resolve renderers in a list
-        For internal use; you should use resolve_contents if you need continuation handling.
         """
+        # TODO: could possibly merge this into resolve_renderer
         # TODO: remove
         if isinstance(entries, dict):
             self.report_warning('entries should be a list!')
@@ -4066,15 +4068,17 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if next_continuation_data:
             continuation_list[0] = next_continuation_data
 
-        # don't want to request resolve_contents on this renderer as it'll pick up the continuation
-        # but want to pass context so renderer restrictions will remain
         yield from self._resolve_entries(self._extract_contents_list(renderer), ctx=ctx)
 
-    def resolve_contents(self, renderer, ctx=None):
+    def _resolve_contents(self, renderer, ctx=None):
         """
-        renderer is in the form:
+        Resolves a renderer containing contents/items.
+        If item_id, endpoint and client are provided in ctx,
+        will create a continuation context and extract all continuation pages.
+
+        Renderer is in the form:
         {
-            'contents/items': []
+            '<contents/items>': []
             'continuation (optional, old):
         }
         """
@@ -4102,9 +4106,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         # Then we should be safe with doing check_get_keys = mapping.keys()
         check_get_keys = ('continuationContents', 'onResponseReceivedActions', 'onResponseReceivedEndpoints', 'onResponseReceivedCommands', 'actions')
 
-        yield from self._resolve_entries(entries, ctx=ctx)
-        if not continuation_list[0]:
-            continuation_list[0] = self._extract_next_continuation_data(renderer) or continuation_list[0]
+        yield from self._continuation_contents_entry(continuation_list, renderer, ctx=ctx)
 
         for page_num in itertools.count(1):
             continuation_data = continuation_list[0]
@@ -4124,12 +4126,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             ctx['visitor_data'] = self._extract_visitor_data(response) or ctx['visitor_data']
             yield from self.resolve_renderer(response, ctx)
 
-    # TODO: make this cleaner lol
-    def _make_entries_ctx(self, item_id, endpoint, ytcfg, visitor_data, client=None, mapping=None):
+    def make_resolver_context(self, item_id, endpoint, ytcfg, visitor_data, client=None, mapping=None):
         return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg, 'visitor_data': visitor_data, 'client': client or 'web', 'mapping': mapping or {}}
 
     def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
-        yield from self.resolve_renderer(tab, ctx=self._make_entries_ctx(item_id, 'browse', ytcfg, visitor_data))
+        yield from self.resolve_renderer(tab, ctx=self.make_resolver_context(item_id, 'browse', ytcfg, visitor_data))
 
     @staticmethod
     def _extract_selected_tab(tabs, fatal=True):
@@ -4506,7 +4507,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         renderer = traverse_obj(search, *content_keys)
 
         yield from self.resolve_renderer(renderer,
-            self._make_entries_ctx(display_id, 'search', ytcfg, self._extract_visitor_data(search), default_client))
+                                         self.make_resolver_context(display_id, 'search', ytcfg, self._extract_visitor_data(search), default_client))
 
 
 class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
@@ -5647,7 +5648,7 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
             'notificationRenderer': self._notification_entry,
             'actions': self._resolve_entries,
         }
-        ctx = self._make_entries_ctx(
+        ctx = self.make_resolver_context(
             display_id, 'notification/get_notification_menu', ytcfg, self._extract_visitor_data(response), mapping=mapping)
 
         nsr = traverse_obj(response, ('actions', ...,
