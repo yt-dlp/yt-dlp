@@ -58,7 +58,7 @@ else:
         ('share/bash-completion/completions', ['completions/bash/yt-dlp']),
         ('share/zsh/site-functions', ['completions/zsh/_yt-dlp']),
         ('share/fish/vendor_completions.d', ['completions/fish/yt-dlp.fish']),
-        ('share/doc/yt_dlp', ['README.txt']),
+        ('share/doc/yt-dlp', ['README.txt']),
         ('share/man/man1', ['yt-dlp.1'])
     ]
     root = os.path.dirname(os.path.abspath(__file__))
