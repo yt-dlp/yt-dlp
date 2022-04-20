@@ -1,18 +1,17 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import hashlib
 import time
 import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
+    clean_html,
     join_nonempty,
+    strip_or_none,
 )
 
 
 class FptplayIE(InfoExtractor):
-    _VALID_URL = r'https?://fptplay\.vn/(?P<type>xem-video)/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>[^/]+)?/?(?:[?#]|$)|)'
+    _VALID_URL = r'https?://fptplay\.vn/xem-video/[^/]+\-(?P<id>\w+)(?:/tap-(?P<episode>\d+)?/?(?:[?#]|$)|)'
     _GEO_COUNTRIES = ['VN']
     IE_NAME = 'fptplay'
     IE_DESC = 'fptplay.vn'
@@ -22,7 +21,7 @@ class FptplayIE(InfoExtractor):
         'info_dict': {
             'id': '621a123016f369ebbde55945',
             'ext': 'mp4',
-            'title': 'Nhân Duyên Đại Nhân Xin Dừng Bước - Ms. Cupid In Love',
+            'title': 'Nhân Duyên Đại Nhân Xin Dừng Bước - Tập 1A',
             'description': 'md5:23cf7d1ce0ade8e21e76ae482e6a8c6c',
         },
     }, {
@@ -31,8 +30,17 @@ class FptplayIE(InfoExtractor):
         'info_dict': {
             'id': '61f3aa8a6b3b1d2e73c60eb5',
             'ext': 'mp4',
-            'title': 'Má Tôi Là Đại Gia - 3',
+            'title': 'Má Tôi Là Đại Gia - Tập 3',
             'description': 'md5:ff8ba62fb6e98ef8875c42edff641d1c',
+        },
+    }, {
+        'url': 'https://fptplay.vn/xem-video/lap-toi-do-giam-under-the-skin-6222d9684ec7230fa6e627a2/tap-4',
+        'md5': 'bcb06c55ec14786d7d4eda07fa1ccbb9',
+        'info_dict': {
+            'id': '6222d9684ec7230fa6e627a2',
+            'ext': 'mp4',
+            'title': 'Lạp Tội Đồ Giám - Tập 2B',
+            'description': 'md5:e5a47e9d35fbf7e9479ca8a77204908b',
         },
     }, {
         'url': 'https://fptplay.vn/xem-video/nha-co-chuyen-hi-alls-well-ends-well-1997-6218995f6af792ee370459f0',
@@ -40,16 +48,24 @@ class FptplayIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        type_url, video_id, episode = self._match_valid_url(url).group('type', 'id', 'episode')
-        webpage = self._download_webpage(url, video_id=video_id, fatal=False)
-        info = self._download_json(self.get_api_with_st_token(video_id, episode or 0), video_id)
+        video_id, slug_episode = self._match_valid_url(url).group('id', 'episode')
+        webpage = self._download_webpage(url, video_id=video_id, fatal=False) or ''
+        title = self._search_regex(
+            r'(?s)<h4\s+class="mb-1 text-2xl text-white"[^>]*>(.+)</h4>', webpage, 'title', fatal=False)
+        real_episode = slug_episode if not title else self._search_regex(
+            r'<p.+title="(?P<episode>[^">]+)"\s+class="epi-title active"', webpage, 'episode', fatal=False)
+        title = strip_or_none(title) or self._html_search_meta(('og:title', 'twitter:title'), webpage)
+
+        info = self._download_json(
+            self.get_api_with_st_token(video_id, int(slug_episode) - 1 if slug_episode else 0), video_id)
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(info['data']['url'], video_id, 'mp4')
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': join_nonempty(
-                self._html_search_meta(('og:title', 'twitter:title'), webpage), episode, delim=' - '),
-            'description': self._html_search_meta(['og:description', 'twitter:description'], webpage),
+            'title': join_nonempty(title, real_episode, delim=' - '),
+            'description': (
+                clean_html(self._search_regex(r'<p\s+class="overflow-hidden"[^>]*>(.+)</p>', webpage, 'description'))
+                or self._html_search_meta(('og:description', 'twitter:description'), webpage)),
             'formats': formats,
             'subtitles': subtitles,
         }

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import os.path
 import re
 import subprocess
@@ -7,23 +5,20 @@ import sys
 import time
 
 from .fragment import FragmentFD
-from ..compat import (
-    compat_setenv,
-    compat_str,
-)
-from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
+from ..compat import compat_setenv, compat_str
+from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
+    Popen,
+    _configuration_args,
+    check_executable,
     classproperty,
+    cli_bool_option,
     cli_option,
     cli_valueless_option,
-    cli_bool_option,
-    _configuration_args,
     determine_ext,
-    encodeFilename,
     encodeArgument,
+    encodeFilename,
     handle_youtubedl_headers,
-    check_executable,
-    Popen,
     remove_end,
 )
 
@@ -56,7 +51,7 @@ class ExternalFD(FragmentFD):
             }
             if filename != '-':
                 fsize = os.path.getsize(encodeFilename(tmpfilename))
-                self.to_screen('\r[%s] Downloaded %s bytes' % (self.get_basename(), fsize))
+                self.to_screen(f'\r[{self.get_basename()}] Downloaded {fsize} bytes')
                 self.try_rename(tmpfilename, filename)
                 status.update({
                     'downloaded_bytes': fsize,
@@ -157,7 +152,7 @@ class ExternalFD(FragmentFD):
             fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
             try:
                 src, _ = self.sanitize_open(fragment_filename, 'rb')
-            except IOError as err:
+            except OSError as err:
                 if skip_unavailable_fragments and frag_index > 1:
                     self.report_skip_fragment(frag_index, err)
                     continue
@@ -179,7 +174,7 @@ class CurlFD(ExternalFD):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', '%s: %s' % (key, val)]
+                cmd += ['--header', f'{key}: {val}']
 
         cmd += self._bool_option('--continue-at', 'continuedl', '-', '0')
         cmd += self._valueless_option('--silent', 'noprogress')
@@ -216,7 +211,7 @@ class AxelFD(ExternalFD):
         cmd = [self.exe, '-o', tmpfilename]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['-H', '%s: %s' % (key, val)]
+                cmd += ['-H', f'{key}: {val}']
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
@@ -229,7 +224,7 @@ class WgetFD(ExternalFD):
         cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies', '--compression=auto']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', '%s: %s' % (key, val)]
+                cmd += ['--header', f'{key}: {val}']
         cmd += self._option('--limit-rate', 'ratelimit')
         retry = self._option('--tries', 'retries')
         if len(retry) == 2:
@@ -240,7 +235,7 @@ class WgetFD(ExternalFD):
         proxy = self.params.get('proxy')
         if proxy:
             for var in ('http_proxy', 'https_proxy'):
-                cmd += ['--execute', '%s=%s' % (var, proxy)]
+                cmd += ['--execute', f'{var}={proxy}']
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
@@ -271,7 +266,7 @@ class Aria2cFD(ExternalFD):
 
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', '%s: %s' % (key, val)]
+                cmd += ['--header', f'{key}: {val}']
         cmd += self._option('--max-overall-download-limit', 'ratelimit')
         cmd += self._option('--interface', 'source_address')
         cmd += self._option('--all-proxy', 'proxy')
@@ -289,10 +284,10 @@ class Aria2cFD(ExternalFD):
         dn = os.path.dirname(tmpfilename)
         if dn:
             if not os.path.isabs(dn):
-                dn = '.%s%s' % (os.path.sep, dn)
+                dn = f'.{os.path.sep}{dn}'
             cmd += ['--dir', dn + os.path.sep]
         if 'fragments' not in info_dict:
-            cmd += ['--out', '.%s%s' % (os.path.sep, os.path.basename(tmpfilename))]
+            cmd += ['--out', f'.{os.path.sep}{os.path.basename(tmpfilename)}']
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
@@ -320,7 +315,7 @@ class HttpieFD(ExternalFD):
 
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['%s:%s' % (key, val)]
+                cmd += [f'{key}:{val}']
         return cmd
 
 
@@ -393,7 +388,7 @@ class FFmpegFD(ExternalFD):
             headers = handle_youtubedl_headers(info_dict['http_headers'])
             args += [
                 '-headers',
-                ''.join('%s: %s\r\n' % (key, val) for key, val in headers.items())]
+                ''.join(f'{key}: {val}\r\n' for key, val in headers.items())]
 
         env = None
         proxy = self.params.get('proxy')

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .dplay import DPlayIE
 from ..compat import compat_urlparse
 from ..utils import (

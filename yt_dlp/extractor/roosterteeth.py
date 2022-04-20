@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (

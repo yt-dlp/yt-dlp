@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 import os
-from os.path import dirname as dirn
 import sys
 
-sys.path.insert(0, dirn(dirn((os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import yt_dlp
 
 BASH_COMPLETION_FILE = "completions/bash/yt-dlp"

@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 import os
-from os.path import join
 import subprocess
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import is_download_test, try_rm
 
-
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-download_file = join(root_dir, 'test.webm')
+download_file = os.path.join(root_dir, 'test.webm')
 
 
 @is_download_test
@@ -46,7 +43,7 @@ class TestOverwrites(unittest.TestCase):
         self.assertTrue(os.path.getsize(download_file) > 1)
 
     def tearDown(self):
-        try_rm(join(root_dir, 'test.webm'))
+        try_rm(os.path.join(root_dir, 'test.webm'))
 
 
 if __name__ == '__main__':

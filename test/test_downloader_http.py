@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-# coding: utf-8
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import re
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import threading
 from test.helper import http_server_port, try_rm
+
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_http_server
 from yt_dlp.downloader.http import HttpFD
 from yt_dlp.utils import encodeFilename
-import threading
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -66,7 +65,7 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             assert False
 
 
-class FakeLogger(object):
+class FakeLogger:
     def debug(self, msg):
         pass
 

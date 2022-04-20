@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import hashlib
 import json
 import os
@@ -10,25 +8,8 @@ import traceback
 from zipimport import zipimporter
 
 from .compat import compat_realpath
-from .utils import encode_compat_str, Popen, write_string
-
+from .utils import Popen, encode_compat_str, write_string
 from .version import __version__
-
-
-'''  # Not signed
-def rsa_verify(message, signature, key):
-    from hashlib import sha256
-    assert isinstance(message, bytes)
-    byte_size = (len(bin(key[0])) - 2 + 8 - 1) // 8
-    signature = ('%x' % pow(int(signature, 16), key[1], key[0])).encode()
-    signature = (byte_size * 2 - len(signature)) * b'0' + signature
-    asn1 = b'3031300d060960864801650304020105000420'
-    asn1 += sha256(message).hexdigest().encode()
-    if byte_size < len(asn1) // 2 + 11:
-        return False
-    expected = b'0001' + (byte_size - len(asn1) // 2 - 3) * b'ff' + b'00' + asn1
-    return expected == signature
-'''
 
 
 def detect_variant():
@@ -39,7 +20,7 @@ def detect_variant():
                 return f'{prefix}_dir'
             return f'{prefix}_exe'
         return 'py2exe'
-    elif isinstance(globals().get('__loader__'), zipimporter):
+    elif isinstance(__loader__, zipimporter):
         return 'zip'
     elif os.path.basename(sys.argv[0]) == '__main__.py':
         return 'source'
@@ -127,11 +108,11 @@ def run_update(ydl):
     }
 
     def get_bin_info(bin_or_exe, version):
-        label = version_labels['%s_%s' % (bin_or_exe, version)]
+        label = version_labels[f'{bin_or_exe}_{version}']
         return next((i for i in version_info['assets'] if i['name'] == 'yt-dlp%s' % label), {})
 
     def get_sha256sum(bin_or_exe, version):
-        filename = 'yt-dlp%s' % version_labels['%s_%s' % (bin_or_exe, version)]
+        filename = 'yt-dlp%s' % version_labels[f'{bin_or_exe}_{version}']
         urlh = next(
             (i for i in version_info['assets'] if i['name'] in ('SHA2-256SUMS')),
             {}).get('browser_download_url')
@@ -152,7 +133,7 @@ def run_update(ydl):
         try:
             if os.path.exists(filename + '.old'):
                 os.remove(filename + '.old')
-        except (IOError, OSError):
+        except OSError:
             return report_unable('remove the old version')
 
         try:
@@ -163,13 +144,13 @@ def run_update(ydl):
             urlh = ydl._opener.open(url)
             newcontent = urlh.read()
             urlh.close()
-        except (IOError, OSError):
+        except OSError:
             return report_network_error('download latest version')
 
         try:
             with open(filename + '.new', 'wb') as outf:
                 outf.write(newcontent)
-        except (IOError, OSError):
+        except OSError:
             return report_permission_error(f'{filename}.new')
 
         expected_sum = get_sha256sum(variant, arch)
@@ -184,11 +165,11 @@ def run_update(ydl):
 
         try:
             os.rename(filename, filename + '.old')
-        except (IOError, OSError):
+        except OSError:
             return report_unable('move current version')
         try:
             os.rename(filename + '.new', filename)
-        except (IOError, OSError):
+        except OSError:
             report_unable('overwrite current version')
             os.rename(filename + '.old', filename)
             return
@@ -211,7 +192,7 @@ def run_update(ydl):
             urlh = ydl._opener.open(url)
             newcontent = urlh.read()
             urlh.close()
-        except (IOError, OSError):
+        except OSError:
             return report_network_error('download the latest version')
 
         expected_sum = get_sha256sum(variant, pack_type)
@@ -223,31 +204,13 @@ def run_update(ydl):
         try:
             with open(filename, 'wb') as outf:
                 outf.write(newcontent)
-        except (IOError, OSError):
+        except OSError:
             return report_unable('overwrite current version')
 
         ydl.to_screen('Updated yt-dlp to version %s; Restart yt-dlp to use the new version' % version_id)
         return
 
     assert False, f'Unhandled variant: {variant}'
-
-
-'''  # UNUSED
-def get_notes(versions, fromVersion):
-    notes = []
-    for v, vdata in sorted(versions.items()):
-        if v > fromVersion:
-            notes.extend(vdata.get('notes', []))
-    return notes
-
-
-def print_notes(to_screen, versions, fromVersion=__version__):
-    notes = get_notes(versions, fromVersion)
-    if notes:
-        to_screen('PLEASE NOTE:')
-        for note in notes:
-            to_screen(note)
-'''
 
 
 # Deprecated

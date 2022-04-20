@@ -1,5 +1,4 @@
-# flake8: noqa
-from __future__ import unicode_literals
+# flake8: noqa: F401
 
 from .abc import (
     ABCIE,
@@ -44,6 +43,7 @@ from .aenetworks import (
 from .afreecatv import (
     AfreecaTVIE,
     AfreecaTVLiveIE,
+    AfreecaTVUserIE,
 )
 from .airmozilla import AirMozillaIE
 from .aljazeera import AlJazeeraIE
@@ -700,6 +700,10 @@ from .ivi import (
 from .ivideon import IvideonIE
 from .iwara import IwaraIE
 from .izlesene import IzleseneIE
+from .jable import (
+    JableIE,
+    JablePlaylistIE,
+)
 from .jamendo import (
     JamendoIE,
     JamendoAlbumIE,
@@ -915,6 +919,7 @@ from .motherless import (
 )
 from .motorsport import MotorsportIE
 from .movieclips import MovieClipsIE
+from .moviepilot import MoviepilotIE
 from .moviezine import MoviezineIE
 from .movingimage import MovingImageIE
 from .msn import MSNIE
@@ -2094,6 +2099,7 @@ from .youtube import (
     YoutubeIE,
     YoutubeClipIE,
     YoutubeFavouritesIE,
+    YoutubeNotificationsIE,
     YoutubeHistoryIE,
     YoutubeTabIE,
     YoutubeLivestreamEmbedIE,
@@ -2117,18 +2123,17 @@ from .zattoo import (
     EWETVIE,
     GlattvisionTVIE,
     MNetTVIE,
-    MyVisionTVIE,
     NetPlusIE,
     OsnatelTVIE,
     QuantumTVIE,
-    QuicklineIE,
-    QuicklineLiveIE,
     SaltTVIE,
     SAKTVIE,
     VTXTVIE,
     WalyTVIE,
     ZattooIE,
     ZattooLiveIE,
+    ZattooMoviesIE,
+    ZattooRecordingsIE,
 )
 from .zdf import ZDFIE, ZDFChannelIE
 from .zee5 import (

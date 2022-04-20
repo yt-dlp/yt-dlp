@@ -1,14 +1,12 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
+import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_xpath
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     date_from_str,
     determine_ext,
-    ExtractorError,
     int_or_none,
     qualities,
     traverse_obj,
@@ -280,7 +278,7 @@ class AfreecaTVIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to download video info')
 
-        video_element = video_xml.findall(compat_xpath('./track/video'))[-1]
+        video_element = video_xml.findall('./track/video')[-1]
         if video_element is None or video_element.text is None:
             raise ExtractorError(
                 'Video %s does not exist' % video_id, expected=True)
@@ -310,7 +308,7 @@ class AfreecaTVIE(InfoExtractor):
 
         if not video_url:
             entries = []
-            file_elements = video_element.findall(compat_xpath('./file'))
+            file_elements = video_element.findall('./file')
             one = len(file_elements) == 1
             for file_num, file_element in enumerate(file_elements, start=1):
                 file_url = url_or_none(file_element.text)
@@ -482,3 +480,57 @@ class AfreecaTVLiveIE(AfreecaTVIE):
             'formats': formats,
             'is_live': True,
         }
+
+
+class AfreecaTVUserIE(InfoExtractor):
+    IE_NAME = 'afreecatv:user'
+    _VALID_URL = r'https?://bj\.afreeca(?:tv)?\.com/(?P<id>[^/]+)/vods/?(?P<slug_type>[^/]+)?'
+    _TESTS = [{
+        'url': 'https://bj.afreecatv.com/ryuryu24/vods/review',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ryuryu24',
+            'title': 'ryuryu24 - review',
+        },
+        'playlist_count': 218,
+    }, {
+        'url': 'https://bj.afreecatv.com/parang1995/vods/highlight',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'parang1995',
+            'title': 'parang1995 - highlight',
+        },
+        'playlist_count': 997,
+    }, {
+        'url': 'https://bj.afreecatv.com/ryuryu24/vods',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ryuryu24',
+            'title': 'ryuryu24 - all',
+        },
+        'playlist_count': 221,
+    }, {
+        'url': 'https://bj.afreecatv.com/ryuryu24/vods/balloonclip',
+        'info_dict': {
+            '_type': 'playlist',
+            'id': 'ryuryu24',
+            'title': 'ryuryu24 - balloonclip',
+        },
+        'playlist_count': 0,
+    }]
+    _PER_PAGE = 60
+
+    def _fetch_page(self, user_id, user_type, page):
+        page += 1
+        info = self._download_json(f'https://bjapi.afreecatv.com/api/{user_id}/vods/{user_type}', user_id,
+                                   query={'page': page, 'per_page': self._PER_PAGE, 'orderby': 'reg_date'},
+                                   note=f'Downloading {user_type} video page {page}')
+        for item in info['data']:
+            yield self.url_result(
+                f'https://vod.afreecatv.com/player/{item["title_no"]}/', AfreecaTVIE, item['title_no'])
+
+    def _real_extract(self, url):
+        user_id, user_type = self._match_valid_url(url).group('id', 'slug_type')
+        user_type = user_type or 'all'
+        entries = OnDemandPagedList(functools.partial(self._fetch_page, user_id, user_type), self._PER_PAGE)
+        return self.playlist_result(entries, user_id, f'{user_id} - {user_type}')

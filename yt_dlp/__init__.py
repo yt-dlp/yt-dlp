@@ -1,52 +1,21 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
 f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
-import codecs
-import io
 import itertools
 import os
 import random
 import re
 import sys
 
-from .options import parseOpts
-from .compat import (
-    compat_getpass,
-    compat_os_name,
-    compat_shlex_quote,
-    workaround_optparse_bug9161,
-)
+from .compat import compat_getpass, compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .utils import (
-    DateRange,
-    decodeOption,
-    DownloadCancelled,
-    DownloadError,
-    expand_path,
-    float_or_none,
-    GeoUtils,
-    int_or_none,
-    match_filter_func,
-    NO_DEFAULT,
-    parse_duration,
-    preferredencoding,
-    read_batch_urls,
-    render_table,
-    SameFileError,
-    setproctitle,
-    std_headers,
-    traverse_obj,
-    write_string,
-)
-from .update import run_update
 from .downloader import FileDownloader
 from .extractor import gen_extractors, list_extractors
-from .extractor.common import InfoExtractor
 from .extractor.adobepass import MSO_INFO
+from .extractor.common import InfoExtractor
+from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegSubtitlesConvertorPP,
@@ -55,6 +24,29 @@ from .postprocessor import (
     FFmpegVideoRemuxerPP,
     MetadataFromFieldPP,
     MetadataParserPP,
+)
+from .update import run_update
+from .utils import (
+    NO_DEFAULT,
+    POSTPROCESS_WHEN,
+    DateRange,
+    DownloadCancelled,
+    DownloadError,
+    GeoUtils,
+    SameFileError,
+    decodeOption,
+    expand_path,
+    float_or_none,
+    int_or_none,
+    match_filter_func,
+    parse_duration,
+    preferredencoding,
+    read_batch_urls,
+    render_table,
+    setproctitle,
+    std_headers,
+    traverse_obj,
+    write_string,
 )
 from .YoutubeDL import YoutubeDL
 
@@ -69,13 +61,12 @@ def get_urls(urls, batchfile, verbose):
                     'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
                 batchfd = sys.stdin
             else:
-                batchfd = io.open(
-                    expand_path(batchfile),
-                    'r', encoding='utf-8', errors='ignore')
+                batchfd = open(
+                    expand_path(batchfile), encoding='utf-8', errors='ignore')
             batch_urls = read_batch_urls(batchfd)
             if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
-        except IOError:
+        except OSError:
             sys.exit('ERROR: batch file %s could not be read' % batchfile)
     _enc = preferredencoding()
     return [
@@ -407,13 +398,15 @@ def validate_options(opts):
     # Conflicting options
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
-    report_conflict('--exec-before-download', 'exec_before_dl_cmd', '"--exec before_dl:"', 'exec_cmd', opts.exec_cmd.get('before_dl'))
+    report_conflict('--exec-before-download', 'exec_before_dl_cmd',
+                    '"--exec before_dl:"', 'exec_cmd', val2=opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
     report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
-    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters', val1=opts.sponskrub and opts.sponskrub_cut)
+    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
+                    val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--add-metadata', 'addmetadata')
@@ -422,7 +415,7 @@ def validate_options(opts):
     report_conflict('--embed-subs', 'embedsubtitles')
     report_conflict('--embed-thumbnail', 'embedthumbnail')
     report_conflict('--extract-audio', 'extractaudio')
-    report_conflict('--fixup', 'fixup', val1=(opts.fixup or '').lower() in ('', 'never', 'ignore'), default='never')
+    report_conflict('--fixup', 'fixup', val1=opts.fixup not in (None, 'never', 'ignore'), default='never')
     report_conflict('--recode-video', 'recodevideo')
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
@@ -626,11 +619,11 @@ def parse_options(argv=None):
 
     postprocessors = list(get_postprocessors(opts))
 
-    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
-                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
-                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
-
-    any_printing = opts.print_json
+    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[2:])
+    any_getting = any(getattr(opts, k) for k in (
+        'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+    ))
 
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
@@ -648,7 +641,7 @@ def parse_options(argv=None):
         'ap_mso': opts.ap_mso,
         'ap_username': opts.ap_username,
         'ap_password': opts.ap_password,
-        'quiet': (opts.quiet or any_getting or any_printing),
+        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
         'no_warnings': opts.no_warnings,
         'forceurl': opts.geturl,
         'forcetitle': opts.gettitle,
@@ -663,7 +656,7 @@ def parse_options(argv=None):
         'forcejson': opts.dumpjson or opts.print_json,
         'dump_single_json': opts.dump_single_json,
         'force_write_download_archive': opts.force_write_download_archive,
-        'simulate': (any_getting or None) if opts.simulate is None else opts.simulate,
+        'simulate': (print_only or any_getting or None) if opts.simulate is None else opts.simulate,
         'skip_download': opts.skip_download,
         'format': opts.format,
         'allow_unplayable_formats': opts.allow_unplayable_formats,
@@ -807,13 +800,6 @@ def parse_options(argv=None):
 
 
 def _real_main(argv=None):
-    # Compatibility fixes for Windows
-    if sys.platform == 'win32':
-        # https://github.com/ytdl-org/youtube-dl/issues/820
-        codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
-
-    workaround_optparse_bug9161()
-
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
