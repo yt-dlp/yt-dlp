@@ -4524,7 +4524,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         renderer = traverse_obj(search, *content_keys)
 
         yield from self.resolve_renderer(renderer,
-                                         self.make_resolver_context(display_id, 'search', ytcfg, self._extract_visitor_data(search), default_client))
+                                         self.make_resolver_context(display_id, 'search', ytcfg=ytcfg, visitor_data=self._extract_visitor_data(search), client=default_client))
 
 
 class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
