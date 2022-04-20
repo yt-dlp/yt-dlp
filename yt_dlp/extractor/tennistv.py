@@ -87,18 +87,15 @@ class TennisTVIE(InfoExtractor):
                 'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html'
             })
 
-    def _cookie_login(self):
-
+    def _check_login(self):
         if self.ACCESS_TOKEN and self.REFRESH_TOKEN:
             return
 
         cookies = self._get_cookies('https://www.tennistv.com/')
-        if cookies.get('access_token') and cookies.get('refresh_token'):
-            self.ACCESS_TOKEN = cookies['access_token'].value
-            self.REFRESH_TOKEN = cookies['refresh_token'].value
-
-        else:
+        if not cookies.get('access_token') or not cookies.get('refresh_token'):
             self.raise_login_required()
+            
+        self.ACCESS_TOKEN, self.REFRESH_TOKEN = cookies['access_token'].value, cookies['refresh_token'].value
 
     def get_token(self, video_id, payload):
         res = self._download_json('https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect/token',
