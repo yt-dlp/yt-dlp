@@ -69,7 +69,7 @@ class TennisTVIE(InfoExtractor):
             if 'Your username or password was incorrect' in temp_page:
                 raise ExtractorError('Your username or password was incorrect', expected=True)
 
-            handle = self._request_webpage(BASE_URL, query={
+            handle = self._request_webpage(BASE_URL, None, headers=self.headers, query={
                 'client_id': 'tennis-tv-web',
                 'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
                 'state': random_uuidv4(),
@@ -77,8 +77,8 @@ class TennisTVIE(InfoExtractor):
                 'response_type': 'code',
                 'scope': 'openid',
                 'nonce': random_uuidv4(),
-                'prompt': 'none'},
-                video_id='', headers=self.headers)
+                'prompt': 'none'
+            })
 
             self.get_token(None, {
                 'code': urllib.parse.parse_qs(handle.geturl()).get('code')[-1],
