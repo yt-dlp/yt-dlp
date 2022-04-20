@@ -19,14 +19,15 @@ class SafariBaseIE(InfoExtractor):
 
     LOGGED_IN = False
 
-    def _perform_login(self, username, password):
-        def is_logged():
-            result = self._download_json_handle(
-                'https://api.oreilly.com/api/v2/me/', None, 'Checking if logged in',
-                fatal=False, headers={'Accept': 'application/json'})
-            return result is not False
+    def is_logged(self, urlh=None):
+        result = self._download_json_handle(
+            'https://api.oreilly.com/api/v2/me/', None, 'Checking if logged in',
+            fatal=False, headers={'Accept': 'application/json'})
+        return result is not False
 
-        self.LOGGED_IN = is_logged()
+    def _perform_login(self, username, password):
+
+        self.LOGGED_IN = self.is_logged()
         if self.LOGGED_IN:
             return
 
@@ -50,7 +51,7 @@ class SafariBaseIE(InfoExtractor):
         for cookie in ('groot_sessionid', 'orm-jwt', 'orm-rt'):
             self._apply_first_set_cookie_header(urlh, cookie)
 
-        self.LOGGED_IN = is_logged()
+        self.LOGGED_IN = self.is_logged()
         if self.LOGGED_IN:
             return
 
