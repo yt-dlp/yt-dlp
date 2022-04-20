@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -138,6 +135,7 @@ class ArteTVIE(ArteTVBaseIE):
                     break
             else:
                 lang_pref = -1
+            format_note = '%s, %s' % (f.get('versionCode'), f.get('versionLibelle'))
 
             media_type = f.get('mediaType')
             if media_type == 'hls':
@@ -145,14 +143,17 @@ class ArteTVIE(ArteTVBaseIE):
                     format_url, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id=format_id, fatal=False)
                 for m3u8_format in m3u8_formats:
-                    m3u8_format['language_preference'] = lang_pref
+                    m3u8_format.update({
+                        'language_preference': lang_pref,
+                        'format_note': format_note,
+                    })
                 formats.extend(m3u8_formats)
                 continue
 
             format = {
                 'format_id': format_id,
                 'language_preference': lang_pref,
-                'format_note': '%s, %s' % (f.get('versionCode'), f.get('versionLibelle')),
+                'format_note': format_note,
                 'width': int_or_none(f.get('width')),
                 'height': int_or_none(f.get('height')),
                 'tbr': int_or_none(f.get('bitrate')),

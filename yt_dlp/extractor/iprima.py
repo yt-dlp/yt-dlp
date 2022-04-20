@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import time
 
@@ -65,11 +62,9 @@ class IPrimaIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _login(self):
-        username, password = self._get_login_info()
-
-        if username is None or password is None:
-            self.raise_login_required('Login is required to access any iPrima content', method='password')
+    def _perform_login(self, username, password):
+        if self.access_token:
+            return
 
         login_page = self._download_webpage(
             self._LOGIN_URL, None, note='Downloading login page',
@@ -105,15 +100,15 @@ class IPrimaIE(InfoExtractor):
         if self.access_token is None:
             raise ExtractorError('Getting token failed', expected=True)
 
+    def _real_initialize(self):
+        if not self.access_token:
+            self.raise_login_required('Login is required to access any iPrima content', method='password')
+
     def _raise_access_error(self, error_code):
         if error_code == 'PLAY_GEOIP_DENIED':
             self.raise_geo_restricted(countries=['CZ'], metadata_available=True)
         elif error_code is not None:
             self.raise_no_formats('Access to stream infos forbidden', expected=True)
-
-    def _real_initialize(self):
-        if not self.access_token:
-            self._login()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

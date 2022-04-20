@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
-import io
 import optparse
 import os.path
 import re
@@ -32,14 +29,14 @@ def main():
 
     outfile, = args
 
-    with io.open(README_FILE, encoding='utf-8') as f:
+    with open(README_FILE, encoding='utf-8') as f:
         readme = f.read()
 
     readme = filter_excluded_sections(readme)
     readme = move_sections(readme)
     readme = filter_options(readme)
 
-    with io.open(outfile, 'w', encoding='utf-8') as outf:
+    with open(outfile, 'w', encoding='utf-8') as outf:
         outf.write(PREFIX + readme)
 
 
@@ -75,7 +72,11 @@ def filter_options(readme):
     section = re.search(r'(?sm)^# USAGE AND OPTIONS\n.+?(?=^# )', readme).group(0)
     options = '# OPTIONS\n'
     for line in section.split('\n')[1:]:
-        mobj = re.fullmatch(r'\s{4}(?P<opt>-(?:,\s|[^\s])+)(?:\s(?P<meta>([^\s]|\s(?!\s))+))?(\s{2,}(?P<desc>.+))?', line)
+        mobj = re.fullmatch(r'''(?x)
+                \s{4}(?P<opt>-(?:,\s|[^\s])+)
+                (?:\s(?P<meta>(?:[^\s]|\s(?!\s))+))?
+                (\s{2,}(?P<desc>.+))?
+            ''', line)
         if not mobj:
             options += f'{line.lstrip()}\n'
             continue

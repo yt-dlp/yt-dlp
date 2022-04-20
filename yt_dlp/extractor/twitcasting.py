@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import re
 
 from .common import InfoExtractor
-from ..downloader.websocket import has_websockets
+from ..dependencies import websockets
 from ..utils import (
     clean_html,
     ExtractorError,
@@ -164,7 +161,7 @@ class TwitCastingIE(InfoExtractor):
                     note='Downloading source quality m3u8',
                     headers=self._M3U8_HEADERS, fatal=False))
 
-            if has_websockets:
+            if websockets:
                 qq = qualities(['base', 'mobilesource', 'main'])
                 streams = traverse_obj(stream_server_data, ('llfmp4', 'streams')) or {}
                 for mode, ws_url in streams.items():
@@ -182,6 +179,14 @@ class TwitCastingIE(InfoExtractor):
 
             infodict = {
                 'formats': formats
+            }
+        elif len(m3u8_urls) == 1:
+            formats = self._extract_m3u8_formats(
+                m3u8_urls[0], video_id, 'mp4', headers=self._M3U8_HEADERS)
+            self._sort_formats(formats)
+            infodict = {
+                # No problem here since there's only one manifest
+                'formats': formats,
             }
         else:
             infodict = {

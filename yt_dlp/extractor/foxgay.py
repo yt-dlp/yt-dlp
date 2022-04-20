@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import itertools
 
 from .common import InfoExtractor
@@ -29,8 +27,7 @@ class FoxgayIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = remove_end(self._html_search_regex(
-            r'<title>([^<]+)</title>', webpage, 'title'), ' - Foxgay.com')
+        title = remove_end(self._html_extract_title(webpage), ' - Foxgay.com')
         description = get_element_by_id('inf_tit', webpage)
 
         # The default user-agent with foxgay cookies leads to pages without videos

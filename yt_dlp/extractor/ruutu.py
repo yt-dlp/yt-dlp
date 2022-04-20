@@ -1,5 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import json
+import re
 
 from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlparse
@@ -8,6 +8,8 @@ from ..utils import (
     ExtractorError,
     find_xpath_attr,
     int_or_none,
+    traverse_obj,
+    try_call,
     unified_strdate,
     url_or_none,
     xpath_attr,
@@ -122,6 +124,16 @@ class RuutuIE(InfoExtractor):
         },
     ]
     _API_BASE = 'https://gatling.nelonenmedia.fi'
+
+    @classmethod
+    def _extract_url(cls, webpage):
+        settings = try_call(
+            lambda: json.loads(re.search(
+                r'jQuery\.extend\(Drupal\.settings, ({.+?})\);', webpage).group(1), strict=False))
+        video_id = traverse_obj(settings, (
+            'mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
+        if video_id:
+            return f'http://www.ruutu.fi/video/{video_id}'
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

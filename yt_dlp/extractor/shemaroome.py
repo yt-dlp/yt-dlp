@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt, unpad_pkcs7
 from ..compat import (

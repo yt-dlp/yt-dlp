@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import itertools
 import hashlib
 import json
@@ -29,9 +27,8 @@ class InstagramBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'instagram'
     _IS_LOGGED_IN = False
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None or self._IS_LOGGED_IN:
+    def _perform_login(self, username, password):
+        if self._IS_LOGGED_IN:
             return
 
         login_webpage = self._download_webpage(
@@ -71,9 +68,6 @@ class InstagramBaseIE(InfoExtractor):
                 raise ExtractorError('Unable to login: The username you entered doesn\'t belong to an account. Please check your username and try again.', expected=True)
             raise ExtractorError('Unable to login')
         InstagramBaseIE._IS_LOGGED_IN = True
-
-    def _real_initialize(self):
-        self._login()
 
     def _get_count(self, media, kind, *keys):
         return traverse_obj(

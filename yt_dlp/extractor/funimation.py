@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import random
 import re
 import string
@@ -36,9 +33,8 @@ class FunimationBaseIE(InfoExtractor):
                 note='Checking geo-location', errnote='Unable to fetch geo-location information'),
             'region') or 'US'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
+    def _perform_login(self, username, password):
+        if self._TOKEN:
             return
         try:
             data = self._download_json(
@@ -47,7 +43,7 @@ class FunimationBaseIE(InfoExtractor):
                     'username': username,
                     'password': password,
                 }))
-            return data['token']
+            FunimationBaseIE._TOKEN = data['token']
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
                 error = self._parse_json(e.cause.read().decode(), None)['error']
@@ -90,8 +86,6 @@ class FunimationPageIE(FunimationBaseIE):
     def _real_initialize(self):
         if not self._REGION:
             FunimationBaseIE._REGION = self._get_region()
-        if not self._TOKEN:
-            FunimationBaseIE._TOKEN = self._login()
 
     def _real_extract(self, url):
         locale, show, episode = self._match_valid_url(url).group('lang', 'show', 'episode')
@@ -153,10 +147,6 @@ class FunimationIE(FunimationBaseIE):
             'compat_opts': ['seperate-video-versions'],
         },
     }]
-
-    def _real_initialize(self):
-        if not self._TOKEN:
-            FunimationBaseIE._TOKEN = self._login()
 
     @staticmethod
     def _get_experiences(episode):
@@ -340,7 +330,7 @@ class FunimationShowIE(FunimationBaseIE):
             'https://prod-api-funimationnow.dadcdigital.com/api/funimation/episodes/?limit=99999&title_id=%s'
             % show_info.get('id'), display_id)
 
-        vod_items = traverse_obj(items_info, ('items', ..., re.compile('(?i)mostRecent[AS]vod').match, 'item'))
+        vod_items = traverse_obj(items_info, ('items', ..., lambda k, _: re.match(r'(?i)mostRecent[AS]vod', k), 'item'))
 
         return {
             '_type': 'playlist',

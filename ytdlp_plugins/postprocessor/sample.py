@@ -1,5 +1,3 @@
-# coding: utf-8
-
 # ⚠ Don't use relative imports
 from yt_dlp.postprocessor.common import PostProcessor
 

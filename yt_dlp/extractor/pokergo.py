@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 
 from .common import InfoExtractor
@@ -15,11 +12,9 @@ class PokerGoBaseIE(InfoExtractor):
     _AUTH_TOKEN = None
     _PROPERTY_ID = '1dfb3940-7d53-4980-b0b0-f28b369a000d'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username:
-            self.raise_login_required(method='password')
-
+    def _perform_login(self, username, password):
+        if self._AUTH_TOKEN:
+            return
         self.report_login()
         PokerGoBaseIE._AUTH_TOKEN = self._download_json(
             f'https://subscription.pokergo.com/properties/{self._PROPERTY_ID}/sign-in', None,
@@ -30,7 +25,7 @@ class PokerGoBaseIE(InfoExtractor):
 
     def _real_initialize(self):
         if not self._AUTH_TOKEN:
-            self._login()
+            self.raise_login_required(method='password')
 
 
 class PokerGoIE(PokerGoBaseIE):

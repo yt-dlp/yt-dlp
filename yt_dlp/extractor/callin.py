@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
@@ -54,7 +53,7 @@ class CallinIE(InfoExtractor):
         id = episode['id']
         title = (episode.get('title')
                  or self._og_search_title(webpage, fatal=False)
-                 or self._html_search_regex('<title>(.*?)</title>', webpage, 'title'))
+                 or self._html_extract_title(webpage))
         url = episode['m3u8']
         formats = self._extract_m3u8_formats(url, display_id, ext='ts')
         self._sort_formats(formats)

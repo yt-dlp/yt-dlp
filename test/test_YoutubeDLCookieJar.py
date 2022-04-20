@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 import os
 import re
 import sys
 import tempfile
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from yt_dlp.utils import YoutubeDLCookieJar

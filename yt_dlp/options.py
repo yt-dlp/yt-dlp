@@ -1,29 +1,11 @@
-from __future__ import unicode_literals
-
-import os.path
 import optparse
+import os.path
 import re
+import shlex
 import sys
 
-from .compat import (
-    compat_expanduser,
-    compat_get_terminal_size,
-    compat_getenv,
-    compat_kwargs,
-    compat_shlex_split,
-)
-from .utils import (
-    Config,
-    expand_path,
-    get_executable_path,
-    OUTTMPL_TYPES,
-    POSTPROCESS_WHEN,
-    remove_end,
-    write_string,
-)
+from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .version import __version__
-
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -33,6 +15,17 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
+from .utils import (
+    OUTTMPL_TYPES,
+    POSTPROCESS_WHEN,
+    Config,
+    expand_path,
+    get_executable_path,
+    join_nonempty,
+    remove_end,
+    write_string,
+)
+from .version import __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
@@ -117,37 +110,54 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     return parser, opts, args
 
 
+class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
+    def __init__(self):
+        # No need to wrap help messages if we're on a wide console
+        max_width = compat_get_terminal_size().columns or 80
+        # 47% is chosen because that is how README.md is currently formatted
+        # and moving help text even further to the right is undesirable.
+        # This can be reduced in the future to get a prettier output
+        super().__init__(width=max_width, max_help_position=int(0.47 * max_width))
+
+    @staticmethod
+    def format_option_strings(option):
+        """ ('-o', '--option') -> -o, --format METAVAR """
+        opts = join_nonempty(
+            option._short_opts and option._short_opts[0],
+            option._long_opts and option._long_opts[0],
+            delim=', ')
+        if option.takes_value():
+            opts += f' {option.metavar}'
+        return opts
+
+
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+
+    def __init__(self):
+        super().__init__(
+            prog='yt-dlp',
+            version=__version__,
+            usage='%prog [OPTIONS] URL [URL...]',
+            epilog='See full documentation at  https://github.com/yt-dlp/yt-dlp#readme',
+            formatter=_YoutubeDLHelpFormatter(),
+            conflict_handler='resolve',
+        )
+
+    def _get_args(self, args):
+        return sys.argv[1:] if args is None else list(args)
 
     def _match_long_opt(self, opt):
         """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
         try:
             return super()._match_long_opt(opt)
         except optparse.AmbiguousOptionError as e:
-            if len(set(self._long_opt[p] for p in e.possibilities)) == 1:
+            if len({self._long_opt[p] for p in e.possibilities}) == 1:
                 return e.possibilities[0]
             raise
 
 
 def create_parser():
-    def _format_option_string(option):
-        ''' ('-o', '--option') -> -o, --format METAVAR'''
-
-        opts = []
-
-        if option._short_opts:
-            opts.append(option._short_opts[0])
-        if option._long_opts:
-            opts.append(option._long_opts[0])
-        if len(opts) > 1:
-            opts.insert(1, ', ')
-
-        if option.takes_value():
-            opts.append(' %s' % option.metavar)
-
-        return ''.join(opts)
-
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = list(getattr(parser.values, option.dest)) if append else []
@@ -163,6 +173,8 @@ def create_parser():
         values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
+            if not val:
+                raise optparse.OptionValueError(f'Invalid {option.metavar} for {opt_str}: {value}')
             if val == 'all':
                 current.update(allowed_values)
             elif val == '-all':
@@ -188,9 +200,9 @@ def create_parser():
         out_dict = dict(getattr(parser.values, option.dest))
         multiple_args = not isinstance(value, str)
         if multiple_keys:
-            allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
+            allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
         mobj = re.match(
-            r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter),
+            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
             value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
@@ -200,7 +212,7 @@ def create_parser():
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
-                'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
+                f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
         try:
             keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val
@@ -210,25 +222,7 @@ def create_parser():
             out_dict[key] = out_dict.get(key, []) + [val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
-    # No need to wrap help messages if we're on a wide console
-    columns = compat_get_terminal_size().columns
-    max_width = columns if columns else 80
-    # 47% is chosen because that is how README.md is currently formatted
-    # and moving help text even further to the right is undesirable.
-    # This can be reduced in the future to get a prettier output
-    max_help_position = int(0.47 * max_width)
-
-    fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
-    fmt.format_option_strings = _format_option_string
-
-    kw = {
-        'version': __version__,
-        'formatter': fmt,
-        'usage': '%prog [OPTIONS] URL [URL...]',
-        'conflict_handler': 'resolve',
-    }
-
-    parser = _YoutubeDLOptionParser(**compat_kwargs(kw))
+    parser = _YoutubeDLOptionParser()
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -323,7 +317,7 @@ def create_parser():
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
+        help='Mark videos watched (even with --simulate)')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -338,10 +332,10 @@ def create_parser():
         action='callback', callback=_set_from_options_callback,
         callback_kwargs={
             'allowed_values': {
-                'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
+                'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
+                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
@@ -465,19 +459,18 @@ def create_parser():
         metavar='COUNT', dest='max_views', default=None, type=int,
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--match-filter',
-        metavar='FILTER', dest='match_filter', default=None,
+        '--match-filters',
+        metavar='FILTER', dest='match_filter', action='append',
         help=(
             'Generic video filter. Any field (see "OUTPUT TEMPLATE") can be compared with a '
             'number or a string using the operators defined in "Filtering formats". '
-            'You can also simply specify a field to match if the field is present '
-            'and "!field" to check if the field is not present. In addition, '
-            'Python style regular expression matching can be done using "~=", '
-            'and multiple filters can be checked with "&". '
-            'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
-            '"!is_live & like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
-            'matches only videos that are not live, has a like count more than 100 '
-            '(or the like field is not available), and also has a description '
+            'You can also simply specify a field to match if the field is present, '
+            'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
+            'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
+            'the filter matches if atleast one of the conditions are met. Eg: --match-filter '
+            '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
+            'matches only videos that are not live OR those that have a like count more than 100 '
+            '(or the like field is not available) and also has a description '
             'that contains the phrase "cats & dogs" (ignoring case)'))
     selection.add_option(
         '--no-match-filter',
@@ -633,7 +626,7 @@ def create_parser():
     video_format.add_option(
         '--check-formats',
         action='store_const', const='selected', dest='check_formats', default=None,
-        help='Check that the selected formats are actually downloadable')
+        help='Make sure formats are selected only from those that are actually downloadable')
     video_format.add_option(
         '--check-all-formats',
         action='store_true', dest='check_formats',
@@ -832,7 +825,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
             'default_key': 'default',
-            'process': compat_shlex_split
+            'process': shlex.split
         }, help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
@@ -939,7 +932,8 @@ def create_parser():
         }, help=(
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
-            'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
+            'Implies --quiet. Implies --simulate unless --no-simulate or later stages of WHEN are used. '
+            'This option can be used multiple times'))
     verbosity.add_option(
         '--print-to-file',
         metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
@@ -1057,7 +1051,7 @@ def create_parser():
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        # help='[Broken] Contact the yt-dlp server for debugging')
+        # help='Contact the yt-dlp server for debugging')
         help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--no-call-home',
@@ -1182,7 +1176,7 @@ def create_parser():
         help='Do not write video description (default)')
     filesystem.add_option(
         '--write-info-json',
-        action='store_true', dest='writeinfojson', default=False,
+        action='store_true', dest='writeinfojson', default=None,
         help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',
@@ -1312,11 +1306,11 @@ def create_parser():
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
             'Specify audio format to convert the audio to when -x is used. Currently supported formats are: '
-            'best (default) or one of %s' % '|'.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
+            'best (default) or one of %s' % ', '.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality, insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help='Specify ffmpeg audio quality to use when converting the audio with -x. Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
@@ -1324,7 +1318,7 @@ def create_parser():
             'Remux the video into another container if necessary (currently supported: %s). '
             'If target container does not support the video/audio codec, remuxing will fail. '
             'You can specify multiple rules; Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % '|'.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
+            'and anything else to mkv.' % ', '.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
@@ -1338,7 +1332,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'\w+(?:\+\w+)?',
             'default_key': 'default-compat',
-            'process': compat_shlex_split,
+            'process': shlex.split,
             'multiple_keys': False
         }, help=(
             'Give these arguments to the postprocessors. '
@@ -1439,7 +1433,7 @@ def create_parser():
             '"multi_video" (default; only when the videos form a single show). '
             'All the video files must have same codecs and number of streams to be concatable. '
             'The "pl_video:" prefix can be used with "--paths" and "--output" to '
-            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
+            'set the output filename for the concatenated files. See "OUTPUT TEMPLATE" for details'))
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
@@ -1487,20 +1481,20 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--no-exec-before-download',
-        action='store_const', dest='exec_before_dl_cmd', const=[],
+        action='store_const', dest='exec_before_dl_cmd', const=None,
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
             'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % '|'.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
+            '(Alias: --convert-subtitles)' % ', '.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            '(currently supported: %s) ' % '|'.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
+            '(currently supported: %s) ' % ', '.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,

@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import get_params, try_rm, is_download_test
+from test.helper import get_params, is_download_test, try_rm
+
 import yt_dlp.YoutubeDL
 from yt_dlp.utils import DownloadError
 
 
 class YoutubeDL(yt_dlp.YoutubeDL):
     def __init__(self, *args, **kwargs):
-        super(YoutubeDL, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.to_stderr = self.to_screen
 
 

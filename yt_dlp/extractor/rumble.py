@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import re
 
@@ -11,6 +8,7 @@ from ..utils import (
     int_or_none,
     parse_iso8601,
     try_get,
+    unescapeHTML,
     ExtractorError,
 )
 
@@ -26,6 +24,20 @@ class RumbleEmbedIE(InfoExtractor):
             'title': 'WMAR 2 News Latest Headlines | October 20, 6pm',
             'timestamp': 1571611968,
             'upload_date': '20191020',
+        }
+    }, {
+        'url': 'https://rumble.com/embed/vslb7v',
+        'md5': '7418035de1a30a178b8af34dc2b6a52b',
+        'info_dict': {
+            'id': 'vslb7v',
+            'ext': 'mp4',
+            'title': 'Defense Sec. says US Commitment to NATO Defense \'Ironclad\'',
+            'timestamp': 1645142135,
+            'upload_date': '20220217',
+            'channel_url': 'https://rumble.com/c/CyberTechNews',
+            'channel': 'CTNews',
+            'thumbnail': 'https://sp.rmbl.ws/s8/6/7/i/9/h/7i9hd.OvCc.jpg',
+            'duration': 901,
         }
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
@@ -45,7 +57,7 @@ class RumbleEmbedIE(InfoExtractor):
         video = self._download_json(
             'https://rumble.com/embedJS/', video_id,
             query={'request': 'video', 'v': video_id})
-        title = video['title']
+        title = unescapeHTML(video['title'])
 
         formats = []
         for height, ua in (video.get('ua') or {}).items():

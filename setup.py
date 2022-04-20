@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# coding: utf-8
 import os.path
-import warnings
 import sys
+import warnings
 
 try:
-    from setuptools import setup, Command, find_packages
+    from setuptools import Command, find_packages, setup
     setuptools_available = True
 except ImportError:
-    from distutils.core import setup, Command
+    from distutils.core import Command, setup
     setuptools_available = False
 from distutils.spawn import spawn
 
@@ -21,9 +20,9 @@ DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
-    open('README.md', 'r', encoding='utf-8').read()))
+    open('README.md', encoding='utf-8').read()))
 
-REQUIREMENTS = ['mutagen', 'pycryptodomex', 'websockets']
+REQUIREMENTS = open('requirements.txt', encoding='utf-8').read().splitlines()
 
 
 if sys.argv[1:2] == ['py2exe']:

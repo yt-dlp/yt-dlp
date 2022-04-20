@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -54,8 +51,7 @@ class CloserToTruthIE(InfoExtractor):
             r'<script[^>]+src=["\'].*?\b(?:partner_id|p)/(\d+)',
             webpage, 'kaltura partner_id')
 
-        title = self._search_regex(
-            r'<title>(.+?)\s*\|\s*.+?</title>', webpage, 'video title')
+        title = self._html_extract_title(webpage, 'video title')
 
         select = self._search_regex(
             r'(?s)<select[^>]+id="select-version"[^>]*>(.+?)</select>',

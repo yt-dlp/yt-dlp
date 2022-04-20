@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -30,11 +27,9 @@ class TennisTVIE(InfoExtractor):
         'skip': 'Requires email and password of a subscribed account',
     }
     _NETRC_MACHINE = 'tennistv'
+    _session_token = None
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username or not password:
-            raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
+    def _perform_login(self, username, password):
 
         login_form = {
             'Email': username,
@@ -63,7 +58,8 @@ class TennisTVIE(InfoExtractor):
         self._session_token = login_result['sessionToken']
 
     def _real_initialize(self):
-        self._login()
+        if not self._session_token:
+            raise self.raise_login_required('Login info is needed for this website', method='password')
 
     def _real_extract(self, url):
         video_id = self._match_id(url)

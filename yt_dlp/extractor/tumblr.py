@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -247,11 +243,7 @@ class TumblrIE(InfoExtractor):
 
     _ACCESS_TOKEN = None
 
-    def _real_initialize(self):
-        self.get_access_token()
-        self._login()
-
-    def get_access_token(self):
+    def _initialize_pre_login(self):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page', fatal=False)
         if login_page:
@@ -260,11 +252,7 @@ class TumblrIE(InfoExtractor):
         if not self._ACCESS_TOKEN:
             self.report_warning('Failed to get access token; metadata will be missing and some videos may not work')
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username:
-            return
-
+    def _perform_login(self, username, password):
         if not self._ACCESS_TOKEN:
             return
 

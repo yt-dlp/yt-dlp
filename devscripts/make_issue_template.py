@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 import io
 import optparse
 
@@ -13,7 +11,7 @@ def main():
 
     infile, outfile = args
 
-    with io.open(infile, encoding='utf-8') as inf:
+    with open(infile, encoding='utf-8') as inf:
         issue_template_tmpl = inf.read()
 
     # Get the version from yt_dlp/version.py without importing the package
@@ -22,8 +20,9 @@ def main():
 
     out = issue_template_tmpl % {'version': locals()['__version__']}
 
-    with io.open(outfile, 'w', encoding='utf-8') as outf:
+    with open(outfile, 'w', encoding='utf-8') as outf:
         outf.write(out)
+
 
 if __name__ == '__main__':
     main()

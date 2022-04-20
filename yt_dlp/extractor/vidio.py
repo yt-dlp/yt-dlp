@@ -1,7 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
@@ -23,11 +19,7 @@ class VidioBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://www.vidio.com/users/login'
     _NETRC_MACHINE = 'vidio'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         def is_logged_in():
             res = self._download_json(
                 'https://www.vidio.com/interactions.json', None, 'Checking if logged in', fatal=False) or {}
@@ -63,10 +55,9 @@ class VidioBaseIE(InfoExtractor):
                     'Unable to log in: %s. %s' % (reason, clean_html(subreason)), expected=True)
             raise ExtractorError('Unable to log in')
 
-    def _real_initialize(self):
+    def _initialize_pre_login(self):
         self._api_key = self._download_json(
             'https://www.vidio.com/auth', None, data=b'')['api_key']
-        self._login()
 
     def _call_api(self, url, video_id, note=None):
         return self._download_json(url, video_id, note=note, headers={

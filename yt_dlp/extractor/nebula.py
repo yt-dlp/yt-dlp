@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import json
 import time
@@ -86,7 +83,7 @@ class NebulaBaseIE(InfoExtractor):
             # if 401 or 403, attempt credential re-auth and retry
             if exc.cause and isinstance(exc.cause, urllib.error.HTTPError) and exc.cause.code in (401, 403):
                 self.to_screen(f'Reauthenticating to Nebula and retrying, because last {auth_type} call resulted in error {exc.cause.code}')
-                self._login()
+                self._perform_login()
                 return inner_call()
             else:
                 raise
@@ -148,13 +145,11 @@ class NebulaBaseIE(InfoExtractor):
             'creator': episode['channel_title'],
         }
 
-    def _login(self):
+    def _perform_login(self, username=None, password=None):
+        # FIXME: username should be passed from here to inner functions
         self._nebula_api_token = self._retrieve_nebula_api_token()
         self._nebula_bearer_token = self._fetch_nebula_bearer_token()
         self._zype_access_token = self._fetch_zype_access_token()
-
-    def _real_initialize(self):
-        self._login()
 
 
 class NebulaIE(NebulaBaseIE):

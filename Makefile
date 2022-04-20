@@ -16,7 +16,7 @@ pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites com
 clean-test:
 	rm -rf test/testdata/sigs/player-*.js tmp/ *.annotations.xml *.aria2 *.description *.dump *.frag \
 	*.frag.aria2 *.frag.urls *.info.json *.live_chat.json *.meta *.part* *.tmp *.temp *.unknown_video *.ytdl \
-	*.3gp *.ape *.avi *.desktop *.flac *.flv *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 \
+	*.3gp *.ape *.ass *.avi *.desktop *.flac *.flv *.jpeg *.jpg *.m4a *.m4v *.mhtml *.mkv *.mov *.mp3 \
 	*.mp4 *.ogg *.opus *.png *.sbv *.srt *.swf *.swp *.ttml *.url *.vtt *.wav *.webloc *.webm *.webp
 clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
@@ -59,15 +59,18 @@ test:
 offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
+# XXX: This is hard to maintain
+CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat \
+               yt_dlp/compat/asyncio yt_dlp/extractor/anvato_token_generator
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
-	for d in yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor ; do \
+	for d in $(CODE_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
 	  cp -pPR $$d/*.py zip/$$d/ ;\
 	done
-	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py
+	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py zip/yt_dlp/*/*/*.py
 	mv zip/yt_dlp/__main__.py zip/
-	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py __main__.py
+	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py yt_dlp/*/*/*.py __main__.py
 	rm -rf zip
 	echo '#!$(PYTHON)' > yt-dlp
 	cat yt-dlp.zip >> yt-dlp

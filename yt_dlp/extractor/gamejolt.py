@@ -1,4 +1,3 @@
-# coding: utf-8
 import itertools
 import json
 import math

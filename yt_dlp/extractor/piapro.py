@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_urlparse
 from ..utils import (
@@ -27,15 +24,23 @@ class PiaproIE(InfoExtractor):
             'title': '裏表ラバーズ',
             'thumbnail': r're:^https?://.*\.jpg$',
         }
+    }, {
+        'note': 'There are break lines in description, mandating (?s) flag',
+        'url': 'https://piapro.jp/t/9cSd',
+        'md5': '952bb6d1e8de95050206408a87790676',
+        'info_dict': {
+            'id': '9cSd',
+            'ext': 'mp3',
+            'title': '青に溶けた風船 / 初音ミク',
+            'description': 'md5:d395a9bd151447631a5a1460bc7f9132',
+            'uploader': 'シアン・キノ',
+            'uploader_id': 'cyankino',
+        }
     }]
 
-    def _real_initialize(self):
-        self._login_status = self._login()
+    _login_status = False
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username:
-            return False
+    def _perform_login(self, username, password):
         login_ok = True
         login_form_strs = {
             '_username': username,
@@ -57,7 +62,7 @@ class PiaproIE(InfoExtractor):
         if not login_ok:
             self.report_warning(
                 'unable to log in: bad username or password')
-        return login_ok
+        self._login_status = login_ok
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -85,7 +90,7 @@ class PiaproIE(InfoExtractor):
         return {
             'id': video_id,
             'title': self._html_search_regex(r'<h1\s+class="cd_works-title">(.+?)</h1>', webpage, 'title', fatal=False),
-            'description': self._html_search_regex(r'<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description', fatal=False),
+            'description': self._html_search_regex(r'(?s)<p\s+class="cd_dtl_cap">(.+?)</p>\s*<div', webpage, 'description', fatal=False),
             'uploader': uploader,
             'uploader_id': uploader_id,
             'timestamp': unified_timestamp(create_date, False),

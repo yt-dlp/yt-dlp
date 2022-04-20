@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import json
 import re
@@ -94,10 +91,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:embed|swf|\#)/)?video|swf)|
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
-                        /(?P<id>[^/?_]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                        [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
     IE_NAME = 'dailymotion'
     _TESTS = [{
@@ -115,6 +112,25 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'uploader_id': 'x1xm8ri',
             'age_limit': 0,
         },
+    }, {
+        'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
+        'md5': 'e2f9717c6604773f963f069ca53a07f8',
+        'info_dict': {
+            'id': 'x89eyek',
+            'ext': 'mp4',
+            'title': "En quête d'esprit du 27/03/2022",
+            'description': 'md5:66542b9f4df2eb23f314fc097488e553',
+            'duration': 2756,
+            'timestamp': 1648383669,
+            'upload_date': '20220327',
+            'uploader': 'CNEWS',
+            'uploader_id': 'x24vth',
+            'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+            'tags': ['en_quete_d_esprit'],
+            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+        }
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
         'md5': '2137c41a8e78554bb09225b8eb322406',
