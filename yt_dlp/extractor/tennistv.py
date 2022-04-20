@@ -105,8 +105,8 @@ class TennisTVIE(InfoExtractor):
                                   video_id, 'Fetching tokens', 'Unable to fetch tokens',
                                   headers=self.headers, data=urlencode_postdata(payload))
 
-        self.ACCESS_TOKEN = res.get('access_token')
-        self.REFRESH_TOKEN = res.get('refresh_token')
+        self.ACCESS_TOKEN = res.get('access_token') or self.ACCESS_TOKEN
+        self.REFRESH_TOKEN = res.get('refresh_token') or self.REFRESH_TOKEN
 
     def _real_initialize(self):
         self._check_login()
