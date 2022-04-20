@@ -4,17 +4,9 @@ import os
 import re
 import subprocess
 
-try:
-    from mutagen.flac import FLAC, Picture
-    from mutagen.mp4 import MP4, MP4Cover
-    from mutagen.oggopus import OggOpus
-    from mutagen.oggvorbis import OggVorbis
-    has_mutagen = True
-except ImportError:
-    has_mutagen = False
-
 from .common import PostProcessor
 from .ffmpeg import FFmpegPostProcessor, FFmpegThumbnailsConvertorPP
+from ..dependencies import mutagen
 from ..utils import (
     Popen,
     PostProcessingError,
@@ -25,6 +17,12 @@ from ..utils import (
     prepend_extension,
     shell_quote,
 )
+
+if mutagen:
+    from mutagen.flac import FLAC, Picture
+    from mutagen.mp4 import MP4, MP4Cover
+    from mutagen.oggopus import OggOpus
+    from mutagen.oggvorbis import OggVorbis
 
 
 class EmbedThumbnailPPError(PostProcessingError):
@@ -121,7 +119,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         elif info['ext'] in ['m4a', 'mp4', 'mov']:
             prefer_atomicparsley = 'embed-thumbnail-atomicparsley' in self.get_param('compat_opts', [])
             # Method 1: Use mutagen
-            if not has_mutagen or prefer_atomicparsley:
+            if not mutagen or prefer_atomicparsley:
                 success = False
             else:
                 try:
@@ -194,7 +192,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
                     raise EmbedThumbnailPPError(f'Unable to embed using ffprobe & ffmpeg; {err}')
 
         elif info['ext'] in ['ogg', 'opus', 'flac']:
-            if not has_mutagen:
+            if not mutagen:
                 raise EmbedThumbnailPPError('module mutagen was not found. Please install using `python -m pip install mutagen`')
 
             self._report_run('mutagen', filename)
