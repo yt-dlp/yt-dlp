@@ -109,7 +109,7 @@ class TennisTVIE(InfoExtractor):
         self.REFRESH_TOKEN = res.get('refresh_token')
 
     def _real_initialize(self):
-        self._cookie_login()
+        self._check_login()
 
     def _download_session_json(self, video_id, entryid,):
         return self._download_json(
