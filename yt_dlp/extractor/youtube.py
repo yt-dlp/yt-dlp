@@ -3988,17 +3988,15 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         renderer, ctx=None
         """
         return self.reverse_dict({
-            self._video_entry: lambda x: x.lower().endswith('videorenderer'),
+            self._video_entry: r're:[A-Za-z]*[Vv]ideoRenderer$',
             self._shelf_entry: ['shelfRenderer', 'reelShelfRenderer', 'musicShelfRenderer'],
-            self._basic_item_entry:
-                lambda x: x.lower().endswith(
-                    ('playlistrenderer', 'channelrenderer', 'showrenderer', 'reelitemrenderer', 'radiorenderer')), # TODO: no support unviewable playlist extraction
+            self._basic_item_entry: r're:(?i)^[A-Za-z]*(?:playlist|channel|show|reelitem|radio)renderer$',  # TODO: radioRenderer: no support unviewable playlist extraction
             self._post_thread_entry: 'backstagePostThreadRenderer',
             self._hashtag_tile_entry: 'hashtagTileRenderer',
             self._music_reponsive_list_entry: 'musicResponsiveListItemRenderer',
             self.resolve_renderer: [
                 'content', 'richItemRenderer', 'richSectionRenderer', 'channelFeaturedContentRenderer', 'horizontalListRenderer',
-                'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer']
+                'playlistVideoListRenderer', 'gridRenderer', 'itemSectionRenderer', 'expandedShelfContentsRenderer', 'sectionListRenderer', 'richGridRenderer'],
         })
 
     def resolve_renderer(self, renderer, ctx=None):
@@ -4027,7 +4025,9 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         for key, entry in renderer.items():
             result = None
             for mapping_key, func in ctx['mapping'].items():
-                if (callable(mapping_key) and mapping_key(key)) or mapping_key == key:
+                if not isinstance(mapping_key, str):
+                    continue
+                if (mapping_key.startswith('re:') and re.match(mapping_key[len('re:'):], key)) or mapping_key == key:
                     result = func(entry, ctx=ctx)
                     break
             if isinstance(result, Generator):
@@ -4096,11 +4096,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if all(ctx.get(key) for key in ('item_id', 'endpoint', 'client')):
             mapping.update(self.reverse_dict({
                 functools.partial(self._continuation_renderer_entry, continuation_list): 'continuationItemRenderer',
-                functools.partial(self._continuation_contents_entry, continuation_list): lambda x: x.endswith('Continuation'),  # Old nextContinuation style
-                self._resolve_entries: [lambda x: x.startswith('onResponseReceived'), 'continuationItems'],
-                self.resolve_renderer: ['appendContinuationItemsAction', 'continuationContents']
+                functools.partial(self._continuation_contents_entry, continuation_list): r're:[A-Za-z]+Continuation$',  # Old nextContinuation style
+                self._resolve_entries: [r're:^onResponseReceived[A-Za-z]+', 'continuationItems'],
+                self.resolve_renderer: ['appendContinuationItemsAction', 'continuationContents', 'reloadContinuationItemsCommand']
             }))
-        ctx['mapping'] = {**mapping, **(ctx.get('mapping') or {})}
+
+        ctx['mapping'] = {**(ctx.get('mapping') or {}), **mapping}
 
         # TODO: allow the check_get_keys check to be similar to that of resolve_renderer key comparison.
         # Then we should be safe with doing check_get_keys = mapping.keys()
