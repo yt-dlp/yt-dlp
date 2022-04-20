@@ -46,46 +46,43 @@ class TennisTVIE(InfoExtractor):
     def _perform_login(self, username, password):
 
         BASE_URL = 'https://sso.tennistv.com/auth/realms/TennisTV/protocol/openid-connect/auth'
-        if password:
+        login_form = {
+            'username': username,
+            'password': password,
+            'submitAction': 'Log In'
+        }
 
-            login_form = {
-                'username': username,
-                'password': password,
-                'submitAction': 'Log In'
-            }
+        login_page = self._download_webpage(BASE_URL, None, query={
+            'client_id': 'tennis-tv-web',
+            'redirect_uri': 'https://tennistv.com',
+            'response_mode': 'fragment',
+            'response_type': 'code',
+            'scope': 'openid'
+        })
+        post_url = self._html_search_regex(r'action=["\'](.+?)["\']\s+?method=["\']post["\']', login_page, None)
 
-            login_page = self._download_webpage(BASE_URL, None, query={
-                'client_id': 'tennis-tv-web',
-                'redirect_uri': 'https://tennistv.com',
-                'response_mode': 'fragment',
-                'response_type': 'code',
-                'scope': 'openid'
-            })
-            post_url = self._html_search_regex(r'action=["\'](.+?)["\']\s+?method=["\']post["\']', login_page, None)
+        temp_page = self._download_webpage(post_url, None, 'Sending login data', 'Unable to send login data',
+                                           data=urlencode_postdata(login_form), headers=self.headers)
 
-            temp_page = self._download_webpage(post_url, None, 'Sending login data', 'Unable to send login data',
-                                               data=urlencode_postdata(login_form), headers=self.headers)
+        if 'Your username or password was incorrect' in temp_page:
+            raise ExtractorError('Your username or password was incorrect', expected=True)
+        handle = self._request_webpage(BASE_URL, None, headers=self.headers, query={
+            'client_id': 'tennis-tv-web',
+            'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
+            'state': random_uuidv4(),
+            'response_mode': 'fragment',
+            'response_type': 'code',
+            'scope': 'openid',
+            'nonce': random_uuidv4(),
+            'prompt': 'none'
+        })
 
-            if 'Your username or password was incorrect' in temp_page:
-                raise ExtractorError('Your username or password was incorrect', expected=True)
-
-            handle = self._request_webpage(BASE_URL, None, headers=self.headers, query={
-                'client_id': 'tennis-tv-web',
-                'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html',
-                'state': random_uuidv4(),
-                'response_mode': 'fragment',
-                'response_type': 'code',
-                'scope': 'openid',
-                'nonce': random_uuidv4(),
-                'prompt': 'none'
-            })
-
-            self.get_token(None, {
-                'code': urllib.parse.parse_qs(handle.geturl()).get('code')[-1],
-                'grant_type': 'authorization_code',
-                'client_id': 'tennis-tv-web',
-                'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html'
-            })
+        self.get_token(None, {
+            'code': urllib.parse.parse_qs(handle.geturl()).get('code')[-1],
+            'grant_type': 'authorization_code',
+            'client_id': 'tennis-tv-web',
+            'redirect_uri': 'https://www.tennistv.com/resources/v1.1.10/html/silent-check-sso.html'
+        })
 
     def _check_login(self):
         if self.ACCESS_TOKEN and self.REFRESH_TOKEN:
@@ -148,7 +145,8 @@ class TennisTVIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._html_search_regex((r'<title>(.+?)</title>', *self._og_regexes('title')),
+                webpage, 'Title', fatal=False),
             'description': self._html_search_regex(
                 (r'<span itemprop="description" content=["\']([^"\']+)["\']>', *self._og_regexes('description')),
                 webpage, 'description', fatal=False),
