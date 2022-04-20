@@ -627,9 +627,9 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'CONTINUATION_REQUEST_TYPE_BROWSE': 'browse',
         'CONTINUATION_REQUEST_TYPE_SEARCH': 'search',
         'CONTINUATION_REQUEST_TYPE_WATCH_NEXT': 'next',
-      #  'CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST': '??',
-      #  'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU': '??',
-      #  'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES': '??',
+        # 'CONTINUATION_REQUEST_TYPE_ACCOUNTS_LIST': '??',
+        # 'CONTINUATION_REQUEST_TYPE_COMMENTS_NOTIFICATION_MENU': '??',
+        # 'CONTINUATION_REQUEST_TYPE_COMMENT_REPLIES': '??',
         'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE': 'reel/reel_watch_sequence',
     }
 
@@ -694,7 +694,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         next_continuation_data = self._extract_next_continuation_data(renderer)
         if next_continuation_data is not None:
             return next_continuation_data
-        contents = traverse_obj(renderer, 'items', 'contents', expected_type=list, default = [renderer])
+        contents = traverse_obj(renderer, 'items', 'contents', expected_type=list, default=[renderer])
         continuation_eps = traverse_obj(
             contents, (..., 'continuationItemRenderer', ['continuationEndpoint', ('button', 'buttonRenderer', 'command')]), default=[], expected_type=dict)
 
@@ -4119,11 +4119,11 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             ctx['endpoint'] = continuation_data[1] or ctx['endpoint']
             query = continuation_data[0]
             headers = self.generate_api_headers(
-                ytcfg=ctx.get('ytcfg'),  visitor_data=ctx.get('visitor_data'), default_client=ctx.get('client'),
+                ytcfg=ctx.get('ytcfg'), visitor_data=ctx.get('visitor_data'), default_client=ctx.get('client'),
                 account_syncid=ctx.get('account_syncid'))
 
             response = self._extract_response(
-                item_id=f'%s page %s' % (ctx['item_id'], page_num), ep=ctx['endpoint'],
+                item_id='%s page %s' % (ctx['item_id'], page_num), ep=ctx['endpoint'],
                 query=query, headers=headers, ytcfg=ctx.get('ytcfg'),
                 check_get_keys=check_get_keys, default_client=ctx['client'])
             continuation_list[:] = [None]
@@ -5657,7 +5657,8 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         ytcfg = self._download_ytcfg('web', display_id) if not self.skip_webpage else {}
         self._report_playlist_authcheck(ytcfg)
 
-        response = self._extract_response(item_id=display_id, query={}, ytcfg=ytcfg,
+        response = self._extract_response(
+            item_id=display_id, query={}, ytcfg=ytcfg,
             ep='notification/get_notification_menu', check_get_keys='actions',
             headers=self.generate_api_headers(ytcfg=ytcfg))
 
@@ -5668,8 +5669,8 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         ctx = self.make_resolver_context(
             display_id, 'notification/get_notification_menu', ytcfg, self._extract_visitor_data(response), mapping=mapping)
 
-        nsr = traverse_obj(response, ('actions', ...,
-        'openPopupAction', 'popup', 'multiPageMenuRenderer', 'sections', ..., 'multiPageMenuNotificationSectionRenderer'), get_all=False)
+        nsr = traverse_obj(
+            response, ('actions', ..., 'openPopupAction', 'popup', 'multiPageMenuRenderer', 'sections', ..., 'multiPageMenuNotificationSectionRenderer'), get_all=False)
         return self.playlist_result(self.resolve_renderer(nsr, ctx=ctx), display_id, display_id)
 
 
