@@ -1196,7 +1196,7 @@ class InfoExtractor:
         In case of failure return a default value or raise a WARNING or a
         RegexNotFoundError, depending on fatal, specifying the field name.
         """
-        if not isinstance(string, str):
+        if string is None:
             mobj = None
         elif isinstance(pattern, (str, compat_Pattern)):
             mobj = re.search(pattern, string, flags)
