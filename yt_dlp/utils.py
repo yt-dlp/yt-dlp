@@ -601,7 +601,7 @@ def clean_html(html):
     return html.strip()
 
 
-def sanitize_open(filename, open_mode):
+def sanitize_open(filename, open_mode, encoding=None, newline=None):
     """Try to open the given filename, and slightly tweak it if this fails.
 
     Attempts to open the given filename. If this fails, it tries to change
@@ -627,7 +627,7 @@ def sanitize_open(filename, open_mode):
                     raise LockingUnsupportedError()
                 stream = locked_file(filename, open_mode, block=False).__enter__()
             except LockingUnsupportedError:
-                stream = open(filename, open_mode)
+                stream = open(filename, open_mode, encoding=encoding, newline=newline)
             return (stream, filename)
         except OSError as err:
             if attempt or err.errno in (errno.EACCES,):
@@ -1711,6 +1711,10 @@ def determine_ext(url, default_ext='unknown_video'):
 
 
 def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
+    # User requested stdout
+    if filename == '-':
+        return filename
+
     return replace_extension(filename, sub_lang + '.' + sub_format, expected_real_ext)
 
 

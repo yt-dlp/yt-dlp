@@ -129,6 +129,7 @@ from .utils import (
     render_table,
     replace_extension,
     sanitize_filename,
+    sanitize_open,
     sanitize_path,
     sanitize_url,
     sanitized_Request,
@@ -2821,7 +2822,7 @@ class YoutubeDL:
         return fd.download(name, new_info, subtitle)
 
     def existing_file(self, filepaths, *, default_overwrite=True):
-        existing_files = list(filter(os.path.exists, orderedSet(filepaths)))
+        existing_files = list(filter(lambda fn: fn != '-' and os.path.exists(fn), orderedSet(filepaths)))
         if existing_files and not self.params.get('overwrites', default_overwrite):
             return existing_files[0]
 
@@ -3832,7 +3833,7 @@ class YoutubeDL:
                 try:
                     # Use newline='' to prevent conversion of newline characters
                     # See https://github.com/ytdl-org/youtube-dl/issues/10268
-                    with open(sub_filename, 'w', encoding='utf-8', newline='') as subfile:
+                    with sanitize_open(sub_filename, 'w', encoding='utf-8', newline='')[0] as subfile:
                         subfile.write(sub_info['data'])
                     sub_info['filepath'] = sub_filename
                     ret.append((sub_filename, sub_filename_final))
@@ -3854,7 +3855,7 @@ class YoutubeDL:
                         self.report_error(msg)
                     raise DownloadError(msg)
                 self.report_warning(msg)
-        return ret
+        return list(filter(lambda e: e[0] != '_', ret))
 
     def _write_thumbnails(self, label, info_dict, filename, thumb_filename_base=None):
         ''' Write thumbnails to file and return list of (thumb_filename, final_thumb_filename) '''
