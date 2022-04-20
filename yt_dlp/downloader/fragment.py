@@ -255,6 +255,9 @@ class FragmentFD(FileDownloader):
             if s['status'] not in ('downloading', 'finished'):
                 return
 
+            if not total_frags and ctx.get('fragment_count_tmp'):
+                state['fragment_count'] = ctx['fragment_count_tmp']
+
             if ctx_id is not None and s.get('ctx_id') != ctx_id:
                 return
 
@@ -463,6 +466,7 @@ class FragmentFD(FileDownloader):
             fatal, count = is_fatal(fragment.get('index') or (frag_index - 1)), 0
             while count <= fragment_retries:
                 try:
+                    ctx['fragment_count_tmp'] = fragment.get('fragment_count_tmp')
                     if self._download_fragment(ctx, fragment['url'], info_dict, headers):
                         break
                     return
