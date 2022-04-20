@@ -47,7 +47,7 @@ class FacebookIE(InfoExtractor):
                                 video/embed|
                                 story\.php|
                                 watch(?:/live)?/?
-                            )\?(?:.*?)(?:v|video_id|story_fbid(.*?)?)=|
+                            )\?(?:.*?)(?:v|video_id|story_fbid.*?)=|
                             [^/]+/videos/(?:[^/]+/)?|
                             [^/]+/posts/|
                             groups/[^/]+/permalink/|
