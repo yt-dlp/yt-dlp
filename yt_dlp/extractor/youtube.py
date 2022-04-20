@@ -4034,15 +4034,20 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 yield from result
             elif isinstance(result, dict):
                 yield result
-
-        # TODO: merge in with normal mapping, or add some way to easily append to this
-        # These keys send the entire parent renderer
-        if self._extract_contents_list(renderer):
+        if self._extract_contents_list(renderer, keys=traverse_obj(ctx, 'contents_keys')):
             yield from self._resolve_contents(renderer, ctx=ctx)
 
-    @staticmethod
-    def _extract_contents_list(renderer):
-        return traverse_obj(renderer, 'contents', 'items', expected_type=list, default=[])
+    _DEFAULT_CONTENTS_KEYS = ('contents', 'items')
+
+    def _extract_contents_list(self, renderer, keys=None):
+        """
+        Extracts a single contents list.
+        Keys is a list of keys to look for.
+        If keys is None, _DEFAULT_CONTENTS_KEYS is used.
+        """
+        if not keys:
+            keys = self._DEFAULT_CONTENTS_KEYS
+        return traverse_obj(renderer, *keys, expected_type=list, default=[])
 
     def _resolve_entries(self, entries, ctx=None):
         """
@@ -4068,7 +4073,8 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         if next_continuation_data:
             continuation_list[0] = next_continuation_data
 
-        yield from self._resolve_entries(self._extract_contents_list(renderer), ctx=ctx)
+        yield from self._resolve_entries(
+            self._extract_contents_list(renderer, keys=traverse_obj(ctx, 'contents_keys')), ctx=ctx)
 
     def _resolve_contents(self, renderer, ctx=None):
         """
@@ -4083,9 +4089,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         }
         """
 
-        entries = self._extract_contents_list(renderer)
-        if not entries:
-            return
         if not isinstance(ctx, dict):
             ctx = {}
         ctx = ctx.copy()
@@ -4115,23 +4118,36 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 break
             ctx['endpoint'] = continuation_data[1] or ctx['endpoint']
             query = continuation_data[0]
-            headers = self.generate_api_headers(ytcfg=ctx['ytcfg'],  visitor_data=ctx['visitor_data'], default_client=ctx['client'])
+            headers = self.generate_api_headers(
+                ytcfg=ctx.get('ytcfg'),  visitor_data=ctx.get('visitor_data'), default_client=ctx.get('client'),
+                account_syncid=ctx.get('account_syncid'))
 
             response = self._extract_response(
                 item_id=f'%s page %s' % (ctx['item_id'], page_num), ep=ctx['endpoint'],
-                query=query, headers=headers, ytcfg=ctx['ytcfg'],
+                query=query, headers=headers, ytcfg=ctx.get('ytcfg'),
                 check_get_keys=check_get_keys, default_client=ctx['client'])
             continuation_list[:] = [None]
             if not response:
                 break
-            ctx['visitor_data'] = self._extract_visitor_data(response) or ctx['visitor_data']
+            ctx['visitor_data'] = self._extract_visitor_data(response) or ctx.get('visitor_data')
             yield from self.resolve_renderer(response, ctx)
 
-    def make_resolver_context(self, item_id, endpoint, ytcfg, visitor_data, client=None, mapping=None):
-        return {'item_id': item_id, 'endpoint': endpoint, 'ytcfg': ytcfg, 'visitor_data': visitor_data, 'client': client or 'web', 'mapping': mapping or {}}
+    # TODO ?
+    def make_resolver_context(self, item_id, endpoint, **kwargs):
+        return {
+            'item_id': item_id,
+            'endpoint': endpoint,
+            'ytcfg': kwargs.get('ytcfg'),
+            'visitor_data': kwargs.get('visitor_data'),
+            'account_syncid': kwargs.get('account_syncid'),
+            'client': kwargs.get('client') or 'web',
+            'mapping': kwargs.get('mapping') or {},
+            'contents_keys': kwargs.get('contents_keys')
+        }
 
     def _entries(self, tab, item_id, ytcfg, account_syncid, visitor_data):
-        yield from self.resolve_renderer(tab, ctx=self.make_resolver_context(item_id, 'browse', ytcfg, visitor_data))
+        yield from self.resolve_renderer(tab, ctx=self.make_resolver_context(
+            item_id, 'browse', ytcfg=ytcfg, visitor_data=visitor_data, account_syncid=account_syncid))
 
     @staticmethod
     def _extract_selected_tab(tabs, fatal=True):
