@@ -886,7 +886,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def is_music_url(url):
         return re.match(r'https?://music\.youtube\.com/', url) is not None
 
-    def _extract_video(self, renderer, **kwargs):
+    def _extract_video(self, renderer):
         video_id = renderer.get('videoId')
         title = self._get_text(renderer, 'title')
         description = self._get_text(renderer, 'descriptionSnippet')
@@ -3962,8 +3962,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _get_basic_renderer_mapping(self):
         """
-        All resolvers must have signature
-        renderer, ctx=None
+        All resolvers must be able to take (renderer, ctx)
         """
         return self.reverse_dict({
             self._video_entry: r're:[A-Za-z]*[Vv]ideoRenderer$',
