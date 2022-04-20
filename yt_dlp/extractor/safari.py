@@ -22,19 +22,20 @@ class SafariBaseIE(InfoExtractor):
 
     LOGGED_IN = False
 
+    def is_logged(self, urlh=None):
+        if urlh is None:
+            _, self.urlh = self._download_webpage_handle(
+                'https://learning.oreilly.com/accounts/login-check/', None,
+                'Downloading login page')
+        return 'learning.oreilly.com/home/' in self.urlh.geturl()
+
     def _perform_login(self, username, password):
-        _, urlh = self._download_webpage_handle(
-            'https://learning.oreilly.com/accounts/login-check/', None,
-            'Downloading login page')
 
-        def is_logged(urlh):
-            return 'learning.oreilly.com/home/' in urlh.geturl()
-
-        if is_logged(urlh):
+        if self.is_logged():
             self.LOGGED_IN = True
             return
 
-        redirect_url = urlh.geturl()
+        redirect_url = self.urlh.geturl()
         parsed_url = compat_urlparse.urlparse(redirect_url)
         qs = compat_parse_qs(parsed_url.query)
         next_uri = compat_urlparse.urljoin(
@@ -65,7 +66,7 @@ class SafariBaseIE(InfoExtractor):
         _, urlh = self._download_webpage_handle(
             auth.get('redirect_uri') or next_uri, None, 'Completing login',)
 
-        if is_logged(urlh):
+        if self.is_logged(urlh):
             self.LOGGED_IN = True
             return
 
@@ -149,6 +150,10 @@ class SafariIE(SafariBaseIE):
             'uiconf_id': ui_id,
             'flashvars[referenceId]': reference_id,
         }
+
+        if not self.LOGGED_IN:
+            if self.is_logged():
+                self.LOGGED_IN = True
 
         if self.LOGGED_IN:
             kaltura_session = self._download_json(
