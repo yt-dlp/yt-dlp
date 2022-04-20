@@ -633,16 +633,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         'CONTINUATION_REQUEST_TYPE_REEL_WATCH_SEQUENCE': 'reel/reel_watch_sequence',
     }
 
-    @classmethod
-    def _extract_continuation_ep_data(cls, continuation_ep: dict):
-        if isinstance(continuation_ep, dict):
-            continuation = try_get(
-                continuation_ep, lambda x: x['continuationCommand']['token'], compat_str)
-            if not continuation:
-                return
-            ctp = continuation_ep.get('clickTrackingParams')
-            return cls._build_api_continuation_query(continuation, ctp)
-
     def _extract_command_metadata(self, cm: dict):
         """
         commandMetadata:
@@ -655,24 +645,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         """
         web_command_metadata = traverse_obj(cm, 'webCommandMetadata')
         innertube_endpoint = self._search_regex(
-            r'youtubei/v1/([\w/]+)', traverse_obj(web_command_metadata, 'apiUrl'),
+            r'youtubei/v1/([\w/]+)', traverse_obj(web_command_metadata, 'apiUrl', expected_type=str),
             'innertube endpoint', default=None)
 
         return innertube_endpoint, traverse_obj(web_command_metadata, 'url')
 
     def _extract_continuation_ep(self, continuation_ep: dict):
-        """
-        endpoint:
-            commandMetadata:
-                webCommandMetadata:
-                    apiUrl:
-            continuationCommand:
-                token:
-                request:
-
-            getNotificationMenuEndpoint
-
-        """
         if not isinstance(continuation_ep, dict):
             return
 
@@ -686,24 +664,24 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._build_continuation(token, endpoint, continuation_ep.get('clickTrackingParams'))
 
     def _extract_continuation(self, renderer):
-        """
-        Returns query, continuation
-        If there is no continuation token, returns None.
+        next_continuation = self._extract_next_continuation_data(renderer)
+        if next_continuation:
+            return next_continuation
 
-        """
-        next_continuation_data = self._extract_next_continuation_data(renderer)
-        if next_continuation_data is not None:
-            return next_continuation_data
-        contents = traverse_obj(renderer, 'items', 'contents', expected_type=list, default=[renderer])
-        continuation_eps = traverse_obj(
-            contents, (..., 'continuationItemRenderer', ['continuationEndpoint', ('button', 'buttonRenderer', 'command')]), default=[], expected_type=dict)
+        contents = []
+        for key in ('contents', 'items'):
+            contents.extend(try_get(renderer, lambda x: x[key], list) or [])
 
-        continuation_eps.append(renderer)  # if renderer is a continuationEndpoint
-
-        for continuation_ep in continuation_eps:
-            continuation_ep_data = self._extract_continuation_ep(continuation_ep)
-            if continuation_ep_data:
-                return continuation_ep_data
+        for content in contents:
+            if not isinstance(content, dict):
+                continue
+            continuation_ep = try_get(
+                content, (lambda x: x['continuationItemRenderer']['continuationEndpoint'],
+                          lambda x: x['continuationItemRenderer']['button']['buttonRenderer']['command']),
+                dict)
+            continuation = self._extract_continuation_ep(continuation_ep)
+            if continuation:
+                return continuation
 
     @classmethod
     def _extract_alerts(cls, data):
@@ -2843,7 +2821,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     lambda x: x['sortMenu']['sortFilterSubMenuRenderer']['subMenuItems'][comment_sort_index], dict) or {}
                 sort_continuation_ep = sort_menu_item.get('serviceEndpoint') or {}
 
-                _continuation_data = self._extract_continuation(sort_continuation_ep) or self._extract_continuation(sort_menu_item)
+                _continuation_data = self._extract_continuation_ep(sort_continuation_ep) or self._extract_continuation(sort_menu_item)
                 if not _continuation_data:
                     continue
 
