@@ -20,6 +20,7 @@ _COLORS = {
     'PURPLE': '5',
     'CYAN': '6',
     'WHITE': '7',
+    'DEFAULT': '9'
 }
 
 
@@ -58,13 +59,15 @@ def format_text(text, fmt):
 
     if not tokens:
         fg_color = ''
-    elif tokens[-1] not in _COLORS:
-        raise SyntaxError(f'{tokens[-1]} in {fmt!r} must be a color')
+    elif tokens[-1] not in _COLORS and tokens[-1] not in _TEXT_STYLES:
+        raise SyntaxError(f'{tokens[-1]} in {fmt!r} must be a color or style')
     else:
-        fg_color = f'3{_COLORS[tokens.pop()]}'
-        if tokens and tokens[-1] == 'LIGHT':
-            fg_color = f'9{fg_color[1:]}'
-            tokens.pop()
+        fg_color = f'3{_COLORS["DEFAULT"]}'
+        if tokens[-1] in _COLORS:
+            fg_color = f'3{_COLORS[tokens.pop()]}'
+            if tokens and tokens[-1] == 'LIGHT':
+                fg_color = f'9{fg_color[1:]}'
+                tokens.pop()
         fg_style = tokens.pop() if tokens and tokens[-1] in _TEXT_STYLES else 'NORMAL'
         fg_color = f'\033[{_TEXT_STYLES[fg_style]};{fg_color}m'
         if tokens:
