@@ -886,6 +886,7 @@ class YoutubeDL:
         OPTION='bold',
         EMPHASIS='light blue',
         REQUIREMENT='light blue',
+        FILENAME='green',
         KEY='green',
         ID='green',
         DELIM='blue',
