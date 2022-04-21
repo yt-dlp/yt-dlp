@@ -133,6 +133,13 @@ class TrovoVodIE(TrovoBaseIE):
         vod_info = vod_detail_info['vodInfo']
         title = vod_info['title']
 
+        if vod_info['playbackRights']['playbackRights'] != 'Normal':
+            playback_rights_setting = vod_info['playbackRights']['playbackRightsSetting']
+            if playback_rights_setting == 'SubscriberOnly':
+                raise ExtractorError('This video is only available for subscribers', expected=True)
+            else:
+                raise ExtractorError(f'This video is not available ({playback_rights_setting})', expected=True)
+
         language = vod_info.get('languageName')
         formats = []
         for play_info in (vod_info.get('playInfos') or []):
