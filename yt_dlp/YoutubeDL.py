@@ -705,8 +705,8 @@ class YoutubeDL:
             )
             self.report_warning(
                 'Long argument string detected. '
-                'Use -- to separate parameters and URLs, like this:\n%s' %
-                args_to_str(correct_argv))
+                f'Use {self._format_err("--", self.Styles.EMPHASIS)} to separate parameters and URLs, like this:\n'
+                f'{args_to_str(correct_argv)}')
 
     def add_info_extractor(self, ie):
         """Add an InfoExtractor object to the end of the list."""
