@@ -2,6 +2,10 @@ import hashlib
 import itertools
 import re
 import time
+import os
+
+from urllib.parse import urlparse
+from pathlib import Path
 
 from .common import InfoExtractor
 from ..compat import (
@@ -454,11 +458,12 @@ class IqIE(InfoExtractor):
             var tvid = "%(tvid)s"; var vid = "%(vid)s"; var src = "%(src)s";
             var uid = "%(uid)s"; var dfp = "%(dfp)s"; var mode = "%(mode)s"; var lang = "%(lang)s";
             var bid_list = %(bid_list)s; var ut_list = %(ut_list)s; var tm = new Date().getTime();
+            var lid_list = %(lid_list)s;
             var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
             var authKey = cmd5x(cmd5x('') + tm + '' + tvid);
             var k_uid = Array.apply(null, Array(32)).map(function() {return Math.floor(Math.random() * 15).toString(16)}).join('');
-            var dash_paths = {};
-            bid_list.forEach(function(bid) {
+
+            var getDashPath = function(lid, bid, dash_paths) {
                 var query = {
                     'tvid': tvid,
                     'bid': bid,
@@ -474,7 +479,7 @@ class IqIE(InfoExtractor):
                     'pt': 0,
                     'd': 0,
                     's': '',
-                    'lid': '',
+                    'lid': lid,
                     'slid': 0,
                     'cf': '',
                     'ct': '',
@@ -513,8 +518,28 @@ class IqIE(InfoExtractor):
                     enc_params.push('ut=' + ut);
                 })
                 var dash_path = '/dash?' + enc_params.join('&'); dash_path += '&vf=' + cmd5x(dash_path);
-                dash_paths[bid] = dash_path;
+                
+                if (lid === 0)
+                    dash_paths[bid] = dash_path;
+                else
+                    dash_paths[lid] = dash_path;
+                return dash_paths;
+            };
+
+            var dash_bid_paths = {};
+            bid_list.forEach(function(bid) {
+                dash_bid_paths = getDashPath(0, bid, dash_bid_paths);
             });
+
+            var dash_lid_paths = {};
+            lid_list.forEach(function(lid) {
+                dash_lid_paths = getDashPath(lid, 'undefined', dash_lid_paths);
+            });
+
+            var dash_paths = {
+                'bid_paths': dash_bid_paths,
+                'lid_paths': dash_lid_paths 
+            };
             return JSON.stringify(dash_paths);
         }));
         saveAndExit();
@@ -542,6 +567,10 @@ class IqIE(InfoExtractor):
         return self._search_regex(r',\s*(function\s*\([^\)]*\)\s*{\s*var _qda.+_qdc\(\)\s*})\s*,',
                                   self._extract_vms_player_js(webpage, video_id), 'signature function')
 
+    def _extract_audio_sign_function(self, webpage, video_id):
+        return self._search_regex(r"\s*(function P\(e, t\) {\s*var n = q \+ '\/\/data.video.iq.com\/videos' \+ t,.+\s*return n })\s*",
+                                  self._extract_vms_player_js(webpage, video_id), 'audio sign function')
+
     def _update_bid_tags(self, webpage, video_id):
         extracted_bid_tags = self._parse_json(
             self._search_regex(
@@ -558,6 +587,43 @@ class IqIE(InfoExtractor):
     def _get_cookie(self, name, default=None):
         cookie = self._get_cookies('https://iq.com/').get(name)
         return cookie.value if cookie else default
+
+    def _sign_audio_fs(self, url, video_info, webpage, video_id, format_data, audioFormat):
+        # The javascript version of this function can be found by searching for:
+        # var n = q + '//data.video.iq.com/videos'
+
+        if audioFormat.get('fs'):
+            # I'm attempting to port it to python here:
+            runCmd5xCode = '''
+                console.log(page.evaluate(function() {
+                    var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
+                    return cmd5x("%(cmd5xInput)s");
+                }));
+                saveAndExit();
+            '''
+
+            # Loop through each fs and complete the url.
+            fs = audioFormat['fs']
+            for f in fs:
+                path = 'https://data.video.iq.com/videos' + f['l'] # the (incomplete) audio fragment request url
+                filename = Path(os.path.basename(urlparse(path).path)).stem
+
+                # The cmd5x signature function is used if vip is enabled. (seems like this works regardless of whether or not you are using VIP?)
+                #if isVip:
+                bossDataT = traverse_obj(format_data, ('boss_ts', 'data', 't'), expected_type=str_or_none, default='')
+                bossDataU = traverse_obj(format_data, ('boss_ts', 'data', 'u'), expected_type=str_or_none)
+
+                cmd5xSignature = PhantomJSwrapper(self, timeout=1).get(url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code for audio.', jscode=runCmd5xCode % {
+                    'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
+                    'cmd5xInput': bossDataT + filename
+                })[1].strip()
+
+                previewTime = traverse_obj(format_data, ('boss_ts', 'data', 'ptime'), expected_type=int_or_none)
+
+                f['dpl'] = path + '&t=' + bossDataT + '&vid' + video_info['vid'] + '&ibt=' + cmd5xSignature + '&cid=afbe8fd3d73448c9&ib=4&ptime=' + str(previewTime) + '&QY00001=' + bossDataU
+
+        return audioFormat
+
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -598,13 +664,16 @@ class IqIE(InfoExtractor):
                 'mode': self._get_cookie('mod', 'intl'),
                 'lang': self._get_cookie('lang', 'en_us'),
                 'bid_list': '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']',
+                'lid_list': '[' + ','.join(['0', *self._LID_TAGS.keys()]) + ']',
                 'ut_list': '[' + ','.join(ut_list) + ']',
                 'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
             })[1].strip(), video_id)
-
+        bid_paths = dash_paths['bid_paths']
+        lid_paths = dash_paths['lid_paths']
+        
         formats, subtitles = [], {}
         initial_format_data = self._download_json(
-            urljoin('https://cache-video.iq.com', dash_paths['0']), video_id,
+            urljoin('https://cache-video.iq.com', bid_paths['0']), video_id,
             note='Downloading initial video format info', errnote='Unable to download initial video format info')['data']
 
         preview_time = traverse_obj(
@@ -612,7 +681,55 @@ class IqIE(InfoExtractor):
         if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
             self.report_warning('This preview video is limited%s' % format_field(preview_time, template=' to %s seconds'))
 
-        # TODO: Extract audio-only formats
+        # Audio formats
+        for audio in traverse_obj(initial_format_data, ('program', 'audio'), default=[]):
+            lid = str(audio['lid'])
+            dash_path = lid_paths.get(lid)
+            if not dash_path:
+                self.report_warning(f'Unknown format id: {audio["lid"]}. It is currently not being extracted')
+                continue
+            format_data = traverse_obj(self._download_json(
+                urljoin('https://cache-video.iq.com', dash_path), video_id,
+                note=f'Downloading format data for', errnote='Unable to download format data',
+                fatal=False), 'data', expected_type=dict)
+
+            audio_format = traverse_obj(format_data, ('program', 'audio', lambda _, v: v['aid'] == audio['aid']),
+                                        expected_type=dict, default=[], get_all=False) or {}
+
+            # Get signed links for the audio.
+            audio_format = self._sign_audio_fs(url, video_info, webpage, video_id, format_data, audio_format)
+
+            extracted_formats = []          
+            if audio_format.get('fs'):
+                # Create a m3u8 playlist out of all the sections.
+                m3u8Data = '#EXTM3U\n'
+                m3u8Data = '#EXT-X-TARGETDURATION:10\n'
+                for f in audio_format['fs']:
+                    audio_fragment = traverse_obj(self._download_json(f['dpl'], video_id, errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str)
+                    m3u8Data += '#EXTINF:10,\n'
+                    m3u8Data += audio_fragment + '\n'
+
+                # Create the format.
+                m3u8_formats, _ = self._parse_m3u8_formats_and_subtitles(
+                    m3u8Data, ext='amp4', m3u8_id=lid, fatal=False)
+                extracted_formats.extend(m3u8_formats)
+
+            if not extracted_formats:
+                if audio_format.get('s'):
+                    self.report_warning(f'format is restricted')
+                else:
+                    self.report_warning(f'Unable to extract format')
+            for f in extracted_formats:
+                f.update({
+                    'quality': qualities(list(self._BID_TAGS.keys()))(audio['bid']),
+                    'format_note': self._LID_TAGS[lid],
+                    **parse_resolution(audio_format.get('scrsz'))
+                })
+            formats.extend(extracted_formats)
+
+        self._sort_formats(formats)                                 
+
+        # Video formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
             dash_path = dash_paths.get(bid)
             if not dash_path:
