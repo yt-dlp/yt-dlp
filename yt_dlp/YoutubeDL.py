@@ -555,7 +555,7 @@ class YoutubeDL:
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
-                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be '
+                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.PROMINENT)} formats to be '
                 'listed/downloaded. This is a developer option intended for debugging.\n'
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
@@ -623,9 +623,9 @@ class YoutubeDL:
                     self.report_warning(
                         'Could not find %(fribidi)s executable, ignoring %(workaround)s. Make sure that %(fribidi)s is '
                         'an executable file in one of the directories in your %(path)s.' % {
-                            'fribidi': self._format_err("fribidi", self.Styles.EMPHASIS),
+                            'fribidi': self._format_err("fribidi", self.Styles.PROMINENT),
                             'workaround': self._format_err("--bidi-workaround", self.Styles.EMPHASIS),
-                            'path': self._format_err("$PATH", self.Styles.EMPHASIS)})
+                            'path': self._format_err("$PATH", self.Styles.PROMINENT)})
                 else:
                     raise
 
