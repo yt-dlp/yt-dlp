@@ -1264,9 +1264,13 @@ class YoutubeDL:
             if not self.params.get('paths'):
                 pass
             elif filename == '-':
-                self.report_warning('--paths is ignored when outputting to stdout', only_once=True)
+                self.report_warning(f'{self._format_err("--paths", self.Styles.EMPHASIS)} is ignored when '
+                                    f'outputting to {self._format_err("stdout", self.Styles.PROMINENT)}',
+                                    only_once=True)
             elif os.path.isabs(filename):
-                self.report_warning('--paths is ignored since an absolute path is given in output template', only_once=True)
+                self.report_warning(f'{self._format_err("--paths", self.Styles.EMPHASIS)} is ignored since '
+                                    'an absolute path is given in output template',
+                                    only_once=True)
         if filename == '-' or not filename:
             return filename
 
