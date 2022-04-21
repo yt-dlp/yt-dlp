@@ -49,7 +49,8 @@ class Cache:
             write_json_file(data, fn)
         except Exception:
             tb = traceback.format_exc()
-            self._ydl.report_warning(f'Writing cache to {fn!r} failed: {tb}')
+            self._ydl.report_warning(f'Writing cache to {self._ydl._format_err(f"{fn!r}", self._ydl.Styles.EMPHASIS)}'
+                                     f' failed: {tb}')
 
     def load(self, section, key, dtype='json', default=None):
         assert dtype in ('json',)
