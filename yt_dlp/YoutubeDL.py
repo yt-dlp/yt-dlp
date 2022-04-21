@@ -891,7 +891,7 @@ class YoutubeDL:
         SUPPRESS='light black',
     )
 
-    def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
+    def _format_text(self, handle, allow_colors, text, fmt, fallback=None, *, test_encoding=False):
         text = str(text)
         if test_encoding:
             original_text = text
@@ -900,7 +900,7 @@ class YoutubeDL:
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
-        return format_text(text, f) if allow_colors else text if fallback is None else fallback
+        return format_text(text, fmt) if allow_colors else text if fallback is None else fallback
 
     def _format_screen(self, *args, **kwargs):
         return self._format_text(
