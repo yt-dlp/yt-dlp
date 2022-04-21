@@ -247,7 +247,7 @@ class TrovoChannelBaseIE(TrovoBaseIE):
                 },
             },
         })
-        uid = live_info['streamerInfo']['uid']
+        uid = str(live_info['streamerInfo']['uid'])
         return self.playlist_result(self._entries(uid), playlist_id=uid)
 
 
@@ -259,7 +259,7 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
         'url': 'trovovod:OneTappedYou',
         'playlist_mincount': 24,
         'info_dict': {
-            'id': 100719456,
+            'id': '100719456',
         },
     }]
 
@@ -270,7 +270,7 @@ class TrovoChannelVodIE(TrovoChannelBaseIE):
             'operationName': 'getChannelLtvVideoInfos',
             'variables': {
                 'params': {
-                    'channelID': uid,
+                    'channelID': int(uid),
                     'pageSize': 99,
                     'currPage': page,
                 },
@@ -292,7 +292,7 @@ class TrovoChannelClipIE(TrovoChannelBaseIE):
         'url': 'trovoclip:OneTappedYou',
         'playlist_mincount': 29,
         'info_dict': {
-            'id': 100719456,
+            'id': '100719456',
         },
     }]
 
@@ -303,7 +303,7 @@ class TrovoChannelClipIE(TrovoChannelBaseIE):
             'operationName': 'getChannelClipVideoInfos',
             'variables': {
                 'params': {
-                    'channelID': uid,
+                    'channelID': int(uid),
                     'pageSize': 99,
                     'currPage': page,
                 },
