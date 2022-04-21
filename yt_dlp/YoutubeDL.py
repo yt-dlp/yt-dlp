@@ -550,20 +550,18 @@ class YoutubeDL:
 
         if sys.version_info < (3, 6):
             self.report_warning(
-                f'Python version {self._format_err("%d.%d" % sys.version_info[:2], self.Styles.EMPHASIS)} is not '
-                'supported! Please update to Python 3.6 or above')
+                'Python version %d.%d is not supported! Please update to Python 3.6 or above' % sys.version_info[:2])
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
-                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be '
-                'listed/downloaded. This is a developer option intended for debugging.\n'
+                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be listed/downloaded. '
+                'This is a developer option intended for debugging. \n'
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
-                self.report_warning(f'{self._format_err(option, self.Styles.EMPHASIS)} is deprecated. '
-                                    f'Use {self._format_err(suggestion, self.Styles.EMPHASIS)} instead')
+                self.report_warning(f'{option} is deprecated. Use {suggestion} instead')
                 return True
             return False
 
@@ -621,11 +619,8 @@ class YoutubeDL:
             except OSError as ose:
                 if ose.errno == errno.ENOENT:
                     self.report_warning(
-                        'Could not find %(fribidi)s executable, ignoring %(workaround)s. Make sure that %(fribidi)s is '
-                        'an executable file in one of the directories in your %(path)s.' % {
-                            'fribidi': self._format_err("fribidi", self.Styles.EMPHASIS),
-                            'workaround': self._format_err("--bidi-workaround", self.Styles.EMPHASIS),
-                            'path': self._format_err("$PATH", self.Styles.EMPHASIS)})
+                        'Could not find fribidi executable, ignoring --bidi-workaround. '
+                        'Make sure that  fribidi  is an executable file in one of the directories in your $PATH.')
                 else:
                     raise
 
@@ -882,8 +877,7 @@ class YoutubeDL:
 
     Styles = Namespace(
         HEADERS='yellow',
-        EMPHASIS='bold',
-        PROMINENT='light blue',
+        EMPHASIS='light blue',
         ID='green',
         DELIM='blue',
         ERROR='red',
@@ -891,7 +885,7 @@ class YoutubeDL:
         SUPPRESS='light black',
     )
 
-    def _format_text(self, handle, allow_colors, text, fmt, fallback=None, *, test_encoding=False):
+    def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
         text = str(text)
         if test_encoding:
             original_text = text
@@ -900,7 +894,7 @@ class YoutubeDL:
             text = text.encode(encoding, 'ignore').decode(encoding)
             if fallback is not None and text != original_text:
                 text = fallback
-        return format_text(text, fmt) if allow_colors else text if fallback is None else fallback
+        return format_text(text, f) if allow_colors else text if fallback is None else fallback
 
     def _format_screen(self, *args, **kwargs):
         return self._format_text(
@@ -911,10 +905,10 @@ class YoutubeDL:
             self._out_files['error'], self._allow_colors['error'], *args, **kwargs)
 
     def report_warning(self, message, only_once=False):
-        """
+        '''
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
-        """
+        '''
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
         else:
@@ -929,14 +923,14 @@ class YoutubeDL:
             self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
 
     def report_error(self, message, *args, **kwargs):
-        """
+        '''
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
-        """
+        '''
         self.trouble(f'{self._format_err("ERROR:", self.Styles.ERROR)} {message}', *args, **kwargs)
 
     def write_debug(self, message, only_once=False):
-        """Log debug message or Print message to stderr"""
+        '''Log debug message or Print message to stderr'''
         if not self.params.get('verbose', False):
             return
         message = '[debug] %s' % message
@@ -1441,8 +1435,7 @@ class YoutubeDL:
                 if diff <= 0:
                     progress('')
                     raise ReExtractInfo('[wait] Wait period ended', expected=True)
-                progress(f'[wait] Remaining time until next attempt: '
-                         f'{self._format_screen(format_dur(diff), self.Styles.PROMINENT)}')
+                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
                 time.sleep(1)
         except KeyboardInterrupt:
             progress('')
@@ -1764,7 +1757,7 @@ class YoutubeDL:
             if 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
             self.to_screen('[download] Downloading video %s of %s' % (
-                self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.PROMINENT)))
+                self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
             if x_forwarded_for:
