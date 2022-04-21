@@ -555,8 +555,8 @@ class YoutubeDL:
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
-                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be listed/downloaded. '
-                'This is a developer option intended for debugging. \n'
+                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be '
+                'listed/downloaded. This is a developer option intended for debugging.\n'
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
 
@@ -911,10 +911,10 @@ class YoutubeDL:
             self._out_files['error'], self._allow_colors['error'], *args, **kwargs)
 
     def report_warning(self, message, only_once=False):
-        '''
+        """
         Print the message to stderr, it will be prefixed with 'WARNING:'
         If stderr is a tty file the 'WARNING:' will be colored
-        '''
+        """
         if self.params.get('logger') is not None:
             self.params['logger'].warning(message)
         else:
@@ -929,14 +929,14 @@ class YoutubeDL:
             self.to_stderr(f'{self._format_err("DeprecationWarning:", self.Styles.ERROR)} {message}', True)
 
     def report_error(self, message, *args, **kwargs):
-        '''
+        """
         Do the same as trouble, but prefixes the message with 'ERROR:', colored
         in red if stderr is a tty file.
-        '''
+        """
         self.trouble(f'{self._format_err("ERROR:", self.Styles.ERROR)} {message}', *args, **kwargs)
 
     def write_debug(self, message, only_once=False):
-        '''Log debug message or Print message to stderr'''
+        """Log debug message or Print message to stderr"""
         if not self.params.get('verbose', False):
             return
         message = '[debug] %s' % message
