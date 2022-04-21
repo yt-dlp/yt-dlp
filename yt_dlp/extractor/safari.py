@@ -129,7 +129,7 @@ class SafariIE(SafariBaseIE):
                         r'data-reference-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                         webpage, 'kaltura reference id', group='id')
                 except RegexNotFoundError as e:
-                    self.report_warning(e.orig_msg)
+                    self.write_debug(e.orig_msg)
                     query['entry_id'] = self._search_regex(
                         r'data-entry-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                         webpage, 'kaltura entry id', group='id')
