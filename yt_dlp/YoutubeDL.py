@@ -984,7 +984,9 @@ class YoutubeDL:
             if outtmpl_dict.get(k) is None})
         for _, val in outtmpl_dict.items():
             if isinstance(val, bytes):
-                self.report_warning('Parameter outtmpl is bytes, but should be a unicode string')
+                self.report_warning(f'Parameter {self._format_err("outtmpl", self.Styles.EMPHASIS)} '
+                                    f'is {self._format_err("bytes", self.Styles.PROMINENT)}, '
+                                    f'but should be a {self._format_err("unicode string", self.Styles.PROMINENT)}')
         return outtmpl_dict
 
     def get_output_path(self, dir_type='', filename=None):
