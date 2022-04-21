@@ -639,9 +639,9 @@ class YoutubeDL:
                 and not self.params.get('restrictfilenames', False)):
             # Unicode filesystem API will throw errors (#1474, #13027)
             self.report_warning(
-                'Assuming --restrict-filenames since file system encoding '
+                f'Assuming {self._format_err("--restrict-filenames", self.Styles.EMPHASIS)} since file system encoding '
                 'cannot encode all characters. '
-                'Set the LC_ALL environment variable to fix this.')
+                f'Set the {self._format_err("LC_ALL", self.Styles.PROMINENT)} environment variable to fix this.')
             self.params['restrictfilenames'] = True
 
         self.outtmpl_dict = self.parse_outtmpl()
