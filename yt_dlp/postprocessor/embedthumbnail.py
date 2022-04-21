@@ -79,12 +79,10 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         original_thumbnail = thumbnail_filename = info['thumbnails'][idx]['filepath']
 
-        # Convert unsupported thumbnail formats to PNG (see #25687, #25717)
-        # Original behavior was to convert to JPG, but since JPG is a lossy
-        # format, there will be some additional data loss.
-        # PNG, on the other hand, is lossless.
         thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
-        if thumbnail_ext not in ('jpg', 'jpeg', 'png'):
+        # Convert unsupported thumbnail formats (see #25687, #25717)
+        # PNG is preferred since JPEG is lossy
+        if info['ext'] not in ('mkv', 'mka') and thumbnail_ext not in ('jpg', 'jpeg', 'png'):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
 
@@ -102,7 +100,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         elif info['ext'] in ['mkv', 'mka']:
             options = list(self.stream_copy_opts())
 
-            mimetype = 'image/%s' % ('png' if thumbnail_ext == 'png' else 'jpeg')
+            mimetype = 'image/%s' % ('jpeg' if thumbnail_ext in ('jpg', 'jpeg') else thumbnail_ext)
             old_stream, new_stream = self.get_stream_number(
                 filename, ('tags', 'mimetype'), mimetype)
             if old_stream is not None:
