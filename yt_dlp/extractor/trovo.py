@@ -87,6 +87,7 @@ class TrovoVodIE(TrovoBaseIE):
     _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video)/(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://trovo.live/clip/lc-5285890818705062210?ltab=videos',
+        'params': {'getcomments': True},
         'info_dict': {
             'id': 'lc-5285890818705062210',
             'ext': 'mp4',
@@ -163,6 +164,23 @@ class TrovoVodIE(TrovoBaseIE):
         category = vod_info.get('categoryName')
         get_count = lambda x: int_or_none(vod_info.get(x + 'Num'))
 
+        info = {
+            'id': vid,
+            'title': title,
+            'formats': formats,
+            'thumbnail': vod_info.get('coverUrl'),
+            'timestamp': int_or_none(vod_info.get('publishTs')),
+            'duration': int_or_none(vod_info.get('duration')),
+            'view_count': get_count('watch'),
+            'like_count': get_count('like'),
+            'comment_count': get_count('comment'),
+            'categories': [category] if category else None,
+            '__post_extractor': self.extract_comments(vid),
+        }
+        info.update(self._extract_streamer_info(vod_detail_info))
+        return info
+
+    def _get_comments(self, vid):
         comment_list = []
         for page in itertools.count(1):
             comments_json = self._call_api(vid, data={
@@ -188,37 +206,20 @@ class TrovoVodIE(TrovoBaseIE):
             if comments_json['lastPage']:
                 break
 
-        comments = []
         for comment in comment_list:
             content = comment.get('content')
             if not content:
                 continue
             author = comment.get('author') or {}
             parent = comment.get('parentID')
-            comments.append({
+            yield {
                 'author': author.get('nickName'),
                 'author_id': str_or_none(author.get('uid')),
                 'id': str_or_none(comment.get('commentID')),
                 'text': content,
                 'timestamp': int_or_none(comment.get('createdAt')),
                 'parent': 'root' if parent == 0 else str_or_none(parent),
-            })
-
-        info = {
-            'id': vid,
-            'title': title,
-            'formats': formats,
-            'thumbnail': vod_info.get('coverUrl'),
-            'timestamp': int_or_none(vod_info.get('publishTs')),
-            'duration': int_or_none(vod_info.get('duration')),
-            'view_count': get_count('watch'),
-            'like_count': get_count('like'),
-            'comment_count': get_count('comment'),
-            'comments': comments,
-            'categories': [category] if category else None,
-        }
-        info.update(self._extract_streamer_info(vod_detail_info))
-        return info
+            }
 
 
 class TrovoChannelBaseIE(TrovoBaseIE):
