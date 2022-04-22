@@ -1909,7 +1909,8 @@ class YoutubeDL:
                     try:
                         os.remove(temp_file.name)
                     except OSError:
-                        self.report_warning('Unable to delete temporary file "%s"' % temp_file.name)
+                        self.report_warning('Unable to delete temporary file '
+                                            f'"{self._format_err(temp_file.name, self.Styles.DEMAND)}"')
             if success:
                 yield f
             else:
