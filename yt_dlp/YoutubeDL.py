@@ -2414,7 +2414,8 @@ class YoutubeDL:
         sanitize_string_field(info_dict, 'id')
         sanitize_numeric_fields(info_dict)
         if (info_dict.get('duration') or 0) <= 0 and info_dict.pop('duration', None):
-            self.report_warning('"duration" field is negative, there is an error in extractor')
+            self.report_warning(f'"{self._format_err("duration", self.Styles.ID)}" field is negative, '
+                                f'{self._format_err("there is an error in extractor", self.Styles.WARNING)}')
 
         if 'playlist' not in info_dict:
             # It isn't part of a playlist
