@@ -623,7 +623,7 @@ class YoutubeDL:
                     self.report_warning(
                         'Could not find %(fribidi)s executable, ignoring %(workaround)s. Make sure that %(fribidi)s is '
                         'an executable file in one of the directories in your %(path)s.' % {
-                            'fribidi': self._format_err("fribidi", self.Styles.EMPHASIS),
+                            'fribidi': self._format_err("fribidi", self.Styles.REQUIREMENT),
                             'workaround': self._format_err("--bidi-workaround", self.Styles.OPTION),
                             'path': self._format_err("$PATH", self.Styles.EMPHASIS)})
                 else:
