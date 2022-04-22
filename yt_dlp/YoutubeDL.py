@@ -1397,10 +1397,10 @@ class YoutubeDL:
                     raise
                 except ReExtractInfo as e:
                     if e.expected:
-                        self.to_screen(f'{e}; Re-extracting data')
+                        self.to_screen(f'{e}; {self._format_screen("Re-extracting data", self.Style.EMPHASIS)}')
                     else:
                         self.to_stderr('\r')
-                        self.report_warning(f'{e}; Re-extracting data')
+                        self.report_warning(f'{e}; {self._format_err("Re-extracting data", self.Style.WARNING)}')
                     continue
                 except GeoRestrictedError as e:
                     msg = e.msg
