@@ -1605,8 +1605,9 @@ class YoutubeDL:
                     self._playlist_urls.clear()
         elif result_type == 'compat_list':
             self.report_warning(
-                'Extractor %s returned a compat_list result. '
-                'It needs to be updated.' % ie_result.get('extractor'))
+                f'Extractor {self._format_err(ie_result.get("extractor"), self.Styles.ID)} returned '
+                f'a {self._format_err("compat_list", self.Styles.EMPHASIS)} result. '
+                f'{self._format_err("It needs to be updated.", self.Styles.WARNING)}')
 
             def _fixup(r):
                 self.add_extra_info(r, {
