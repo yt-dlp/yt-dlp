@@ -2940,8 +2940,8 @@ class YoutubeDL:
         def _write_link_file(link_type):
             url = try_get(info_dict['webpage_url'], iri_to_uri)
             if not url:
-                self.report_warning(
-                    f'Cannot write internet shortcut file because the actual URL of "{info_dict["webpage_url"]}" is unknown')
+                self.report_warning('Cannot write internet shortcut file because the actual URL of '
+                                    f'"{self._format_err(info_dict["webpage_url"], self.Styles.EMPHASIS)}" is unknown')
                 return True
             linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
             if not self._ensure_dir_exists(encodeFilename(linkfn)):
