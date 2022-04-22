@@ -2718,7 +2718,8 @@ class YoutubeDL:
         for lang in requested_langs:
             formats = available_subs.get(lang)
             if formats is None:
-                self.report_warning(f'{lang} subtitles not available for {video_id}')
+                self.report_warning(f'{self._format_err(lang, self.Styles.EMPHASIS)} subtitles not available for '
+                                    f'{self._format_err(video_id, self.Styles.ID)}')
                 continue
             for ext in formats_preference:
                 if ext == 'best':
