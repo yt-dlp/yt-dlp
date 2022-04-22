@@ -2484,8 +2484,9 @@ class YoutubeDL:
             url = f.get('url')
             if not url:
                 self.report_warning(
-                    '"url" field is missing or empty - skipping format, '
-                    'there is an error in extractor')
+                    f'"{self._format_err("url", self.Styles.ID)}" field is missing or empty - '
+                    f'{self._format_err("skipping format, there is an error in extractor", self.Styles.WARNING)}'
+                )
                 return False
             if isinstance(url, bytes):
                 sanitize_string_field(f, 'url')
