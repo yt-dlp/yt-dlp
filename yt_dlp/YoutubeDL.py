@@ -2732,8 +2732,9 @@ class YoutubeDL:
             else:
                 f = formats[-1]
                 self.report_warning(
-                    'No subtitle format found matching "%s" for language %s, '
-                    'using %s' % (formats_query, lang, f['ext']))
+                    f'No subtitle format found matching "{self._format_err(formats_query, self.Styles.EMPHASIS)}" for '
+                    f'language {self._format_err(lang, self.Styles.ID)}, '
+                    f'using {self._format_err(f["ext"], self.Styles.EMPHASIS)}')
             subs[lang] = f
         return subs
 
