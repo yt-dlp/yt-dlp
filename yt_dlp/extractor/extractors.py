@@ -616,6 +616,7 @@ from .hitrecord import HitRecordIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
+    HotStarPrefixIE,
     HotStarPlaylistIE,
     HotStarSeriesIE,
 )
