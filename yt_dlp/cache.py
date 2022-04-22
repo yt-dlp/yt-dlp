@@ -49,7 +49,7 @@ class Cache:
             write_json_file(data, fn)
         except Exception:
             tb = traceback.format_exc()
-            self._ydl.report_warning(f'Writing cache to {self._ydl._format_err(f"{fn!r}", self._ydl.Styles.FILENAME)}'
+            self._ydl.report_warning(f'Writing cache to {self._ydl._format_err(f"{fn!r}", self._ydl.Styles.DEMAND)}'
                                      f' failed: {tb}')
 
     def load(self, section, key, dtype='json', default=None):
@@ -70,7 +70,7 @@ class Cache:
                 except OSError as oe:
                     file_size = str(oe)
                 self._ydl.report_warning('Cache retrieval from '
-                                         f'{self._ydl._format_err(cache_fn, self._ydl.Styles.FILENAME)} failed '
+                                         f'{self._ydl._format_err(cache_fn, self._ydl.Styles.DEMAND)} failed '
                                          f'({self._ydl._format_err(file_size, self._ydl.Styles.EMPHASIS)})')
 
         return default
