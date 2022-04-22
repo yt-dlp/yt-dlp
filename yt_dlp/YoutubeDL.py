@@ -2464,8 +2464,8 @@ class YoutubeDL:
             if info_dict['__has_drm'] and all(
                     f.get('acodec') == f.get('vcodec') == 'none' for f in formats):
                 self.report_warning(
-                    'This video is DRM protected and only images are available for download. '
-                    'Use --list-formats to see them')
+                    f'This video is {self._format_err("DRM protected", self.Styles.ERROR)} and only images are '
+                    f'available for download. Use {self._format_err("--list-formats", self.Styles.OPTION)} to see them')
 
         get_from_start = not info_dict.get('is_live') or bool(self.params.get('live_from_start'))
         if not get_from_start:
