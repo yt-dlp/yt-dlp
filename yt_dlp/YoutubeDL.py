@@ -2390,9 +2390,11 @@ class YoutubeDL:
             raise ExtractorError('Extractor failed to obtain "id"', ie=info_dict['extractor'])
 
         def report_force_conversion(field, field_not, conversion):
-            self.report_warning(
-                '"%s" field is not %s - forcing %s conversion, there is an error in extractor'
-                % (field, field_not, conversion))
+            self.report_warning('"%s" field is not %s - %s' %
+                                (self._format_err(field, self.Styles.ID),
+                                 self._format_err(field_not, self.Styles.EMPHASIS),
+                                 self._format_err('forcing %s conversion, there is an error in extractor' % conversion,
+                                                  self.Styles.WARNING)))
 
         def sanitize_string_field(info, string_field):
             field = info.get(string_field)
