@@ -550,20 +550,20 @@ class YoutubeDL:
 
         if sys.version_info < (3, 6):
             self.report_warning(
-                f'Python version {self._format_err("%d.%d" % sys.version_info[:2], self.Styles.EMPHASIS)} is not '
+                f'Python version {self._format_err("%d.%d" % sys.version_info[:2], self.Styles.DEMAND)} is not '
                 'supported! Please update to Python 3.6 or above')
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
-                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.PROMINENT)} formats to be '
+                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be '
                 'listed/downloaded. This is a developer option intended for debugging.\n'
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
 
         def check_deprecated(param, option, suggestion):
             if self.params.get(param) is not None:
-                self.report_warning(f'{self._format_err(option, self.Styles.EMPHASIS)} is deprecated. '
-                                    f'Use {self._format_err(suggestion, self.Styles.EMPHASIS)} instead')
+                self.report_warning(f'{self._format_err(option, self.Styles.DEMAND)} is deprecated. '
+                                    f'Use {self._format_err(suggestion, self.Styles.DEMAND)} instead')
                 return True
             return False
 
@@ -623,9 +623,9 @@ class YoutubeDL:
                     self.report_warning(
                         'Could not find %(fribidi)s executable, ignoring %(workaround)s. Make sure that %(fribidi)s is '
                         'an executable file in one of the directories in your %(path)s.' % {
-                            'fribidi': self._format_err("fribidi", self.Styles.PROMINENT),
-                            'workaround': self._format_err("--bidi-workaround", self.Styles.EMPHASIS),
-                            'path': self._format_err("$PATH", self.Styles.PROMINENT)})
+                            'fribidi': self._format_err("fribidi", self.Styles.EMPHASIS),
+                            'workaround': self._format_err("--bidi-workaround", self.Styles.OPTION),
+                            'path': self._format_err("$PATH", self.Styles.EMPHASIS)})
                 else:
                     raise
 
@@ -639,9 +639,9 @@ class YoutubeDL:
                 and not self.params.get('restrictfilenames', False)):
             # Unicode filesystem API will throw errors (#1474, #13027)
             self.report_warning(
-                f'Assuming {self._format_err("--restrict-filenames", self.Styles.EMPHASIS)} since file system encoding '
+                f'Assuming {self._format_err("--restrict-filenames", self.Styles.OPTION)} since file system encoding '
                 'cannot encode all characters. '
-                f'Set the {self._format_err("LC_ALL", self.Styles.PROMINENT)} environment variable to fix this.')
+                f'Set the {self._format_err("LC_ALL", self.Styles.EMPHASIS)} environment variable to fix this.')
             self.params['restrictfilenames'] = True
 
         self.outtmpl_dict = self.parse_outtmpl()
@@ -705,7 +705,7 @@ class YoutubeDL:
             )
             self.report_warning(
                 'Long argument string detected. '
-                f'Use {self._format_err("--", self.Styles.EMPHASIS)} to separate parameters and URLs, like this:\n'
+                f'Use {self._format_err("--", self.Styles.DEMAND)} to separate parameters and URLs, like this:\n'
                 f'{args_to_str(correct_argv)}')
 
     def add_info_extractor(self, ie):
@@ -882,8 +882,9 @@ class YoutubeDL:
 
     Styles = Namespace(
         HEADERS='yellow',
-        EMPHASIS='bold',
-        PROMINENT='light blue',
+        DEMAND='bold',
+        OPTION='bold',
+        EMPHASIS='light blue',
         ID='green',
         DELIM='blue',
         ERROR='red',
@@ -984,9 +985,9 @@ class YoutubeDL:
             if outtmpl_dict.get(k) is None})
         for _, val in outtmpl_dict.items():
             if isinstance(val, bytes):
-                self.report_warning(f'Parameter {self._format_err("outtmpl", self.Styles.EMPHASIS)} '
-                                    f'is {self._format_err("bytes", self.Styles.PROMINENT)}, '
-                                    f'but should be a {self._format_err("unicode string", self.Styles.PROMINENT)}')
+                self.report_warning(f'Parameter {self._format_err("outtmpl", self.Styles.DEMAND)} '
+                                    f'is {self._format_err("bytes", self.Styles.EMPHASIS)}, '
+                                    f'but should be a {self._format_err("unicode string", self.Styles.EMPHASIS)}')
         return outtmpl_dict
 
     def get_output_path(self, dir_type='', filename=None):
@@ -1264,11 +1265,11 @@ class YoutubeDL:
             if not self.params.get('paths'):
                 pass
             elif filename == '-':
-                self.report_warning(f'{self._format_err("--paths", self.Styles.EMPHASIS)} is ignored when '
-                                    f'outputting to {self._format_err("stdout", self.Styles.PROMINENT)}',
+                self.report_warning(f'{self._format_err("--paths", self.Styles.OPTION)} is ignored when '
+                                    f'outputting to {self._format_err("stdout", self.Styles.EMPHASIS)}',
                                     only_once=True)
             elif os.path.isabs(filename):
-                self.report_warning(f'{self._format_err("--paths", self.Styles.EMPHASIS)} is ignored since '
+                self.report_warning(f'{self._format_err("--paths", self.Styles.OPTION)} is ignored since '
                                     'an absolute path is given in output template',
                                     only_once=True)
         if filename == '-' or not filename:
@@ -1449,7 +1450,7 @@ class YoutubeDL:
                     progress('')
                     raise ReExtractInfo('[wait] Wait period ended', expected=True)
                 progress(f'[wait] Remaining time until next attempt: '
-                         f'{self._format_screen(format_dur(diff), self.Styles.PROMINENT)}')
+                         f'{self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
                 time.sleep(1)
         except KeyboardInterrupt:
             progress('')
@@ -1771,7 +1772,7 @@ class YoutubeDL:
             if 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
             self.to_screen('[download] Downloading video %s of %s' % (
-                self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.PROMINENT)))
+                self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
             if x_forwarded_for:
@@ -2590,7 +2591,7 @@ class YoutubeDL:
         while True:
             if interactive_format_selection:
                 req_format = input(
-                    self._format_screen('\nEnter format selector: ', self.Styles.EMPHASIS))
+                    self._format_screen('\nEnter format selector: ', self.Styles.DEMAND))
                 try:
                     format_selector = self.build_format_selector(req_format)
                 except SyntaxError as err:
