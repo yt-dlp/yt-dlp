@@ -27,7 +27,7 @@ class RokfinIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>(?P<type>post|stream)/\d+)'
     _NETRC_MACHINE = 'rokfin'
     _TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7 = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/token'
-    _access_mgmt_tokens = None  # OAuth 2.0: RFC 6749, Sec. 1.4-5
+    _access_mgmt_tokens = {}  # OAuth 2.0: RFC 6749, Sec. 1.4-5
     _TESTS = [{
         'url': 'https://www.rokfin.com/post/57548/Mitt-Romneys-Crazy-Solution-To-Climate-Change',
         'info_dict': {
@@ -359,58 +359,51 @@ class RokfinSearchIE(SearchInfoExtractor):
     _db_access_key = None
 
     def _real_initialize(self):
-        self._db_url, self._db_access_key = self._downloader.cache.load(
-            self.ie_key(), 'auth') or self._get_db_access_credentials(None)
+        self._db_url, self._db_access_key = self._downloader.cache.load(self.ie_key(), 'auth', default=(None, None))
+        if not self._db_url:
+            self._get_db_access_credentials()
 
     def _search_results(self, query):
-        def get_video_data(metadata):
-            for search_result in metadata.get('results') or []:
-                video_id_key, video_type = self._TYPES.get(traverse_obj(search_result, ('content_type', 'raw')), (None, None))
-                video_id = traverse_obj(search_result, video_id_key, expected_type=int_or_none)
-                if not video_id or not video_type:
-                    continue
-                yield self.url_result(url=f'https://rokfin.com/{video_type}/{video_id}')
         total_pages = None
         for page_number in itertools.count(1):
             search_results = self._run_search_query(
-                data={'query': query, 'page': {'size': 100, 'current': page_number}},
-                note='Downloading search results page %d%s' % (page_number, f' of ~{total_pages}' if total_pages and total_pages >= page_number else ''),
-                errnote='Failed to download search results page %d%s' % (page_number, f' of ~{total_pages}' if total_pages and total_pages >= page_number else ''))
+                query, data={'query': query, 'page': {'size': 100, 'current': page_number}},
+                note=f'Downloading page {page_number}{format_field(total_pages, template=" of ~%s")}')
             total_pages = traverse_obj(search_results, ('meta', 'page', 'total_pages'), expected_type=int_or_none)
-            yield from get_video_data(search_results)
+
+            for result in search_results.get('results') or []:
+                video_id_key, video_type = self._TYPES.get(traverse_obj(result, ('content_type', 'raw')), (None, None))
+                video_id = traverse_obj(result, video_id_key, expected_type=int_or_none)
+                if video_id and video_type:
+                    yield self.url_result(url=f'https://rokfin.com/{video_type}/{video_id}')
             if not search_results.get('results'):
                 return
 
-    def _run_search_query(self, data, note, errnote):
-        data_bytes = json.dumps(data).encode()
+    def _run_search_query(self, video_id, data, **kwargs):
+        data = json.dumps(data).encode()
         for attempt in range(2):
             search_results = self._download_json(
-                self._db_url, self._SEARCH_KEY, note=note, errnote=errnote, fatal=(attempt == 1),
-                data=data_bytes, headers={'authorization': self._db_access_key})
+                self._db_url, video_id, data=data, fatal=(attempt == 1),
+                headers={'authorization': self._db_access_key}, **kwargs)
             if search_results:
                 return search_results
-            self.write_debug('updating access credentials')
-            self._downloader.cache.store(self.ie_key(), 'auth', None)
-            self._db_url, self._db_access_key = self._get_db_access_credentials(self._SEARCH_KEY)
+            self.write_debug('Updating access credentials')
+            self._get_db_access_credentials(video_id)
 
-    def _get_db_access_credentials(self, video_id):
-        notfound_err_page = self._download_webpage('https://rokfin.com/discover', video_id, expected_status=404)
-        js_content = ''
-        db_url = db_access_key = None
-        for js_file_path in re.finditer(r'<script\s[^>]*\ssrc\s*=\s*"(?P<path>/static/js/[^">]+)"', notfound_err_page):
-            js_content += self._download_webpage(
-                'https://rokfin.com' + js_file_path.group('path'), video_id,
-                note='Downloading JavaScript file', fatal=False) or ''
-            if not db_url:
-                db_url = self._search_regex(
-                    r'REACT_APP_ENDPOINT_BASE\s*:\s*"(?P<url>[^"]+)"', js_content,
-                    name='Search engine URL', default=None, group='url')
-                db_url = url_or_none(f'{db_url}/api/as/v1/engines/rokfin-search/search.json')
-            if not db_access_key:
-                db_access_key = self._search_regex(
-                    r'REACT_APP_SEARCH_KEY\s*:\s*"(?P<key>[^"]+)"', js_content,
-                    name='Search engine access key', default=None, group='key')
-                db_access_key = f'Bearer {db_access_key}' if db_access_key else None
-            if db_url and db_access_key:
-                self._downloader.cache.store(self.ie_key(), 'auth', (db_url, db_access_key))
-                return db_url, db_access_key
+    def _get_db_access_credentials(self, video_id=None):
+        auth_data = {'SEARCH_KEY': None, 'ENDPOINT_BASE': None}
+        notfound_err_page = self._download_webpage(
+            'https://rokfin.com/discover', video_id, expected_status=404, note='Downloading home page')
+        for js_file_path in re.findall(r'<script\b[^>]*\ssrc\s*=\s*"(/static/js/[^">]+)"', notfound_err_page):
+            js_content = self._download_webpage(
+                f'https://rokfin.com{js_file_path}', video_id, note='Downloading JavaScript file', fatal=False)
+            auth_data.update(re.findall(
+                rf'REACT_APP_({"|".join(auth_data.keys())})\s*:\s*"([^"]+)"', js_content or ''))
+            if not all(auth_data.values()):
+                continue
+
+            self._db_url = url_or_none(f'{auth_data["ENDPOINT_BASE"]}/api/as/v1/engines/rokfin-search/search.json')
+            self._db_access_key = f'Bearer {auth_data["SEARCH_KEY"]}'
+            self._downloader.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
+            return
+        raise ExtractorError('Unable to extract access credentials')
