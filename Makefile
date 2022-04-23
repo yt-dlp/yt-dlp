@@ -43,11 +43,16 @@ SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then ech
 MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
-	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)/yt-dlp
-	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1/yt-dlp.1
-	install -Dm644 completions/bash/yt-dlp $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
-	install -Dm644 completions/zsh/_yt-dlp $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
-	install -Dm644 completions/fish/yt-dlp.fish $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
+	mkdir -p $(DESTDIR)$(BINDIR)
+	install -m755 yt-dlp $(DESTDIR)$(BINDIR)/yt-dlp
+	mkdir -p $(DESTDIR)$(MANDIR)/man1
+	install -m644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1/yt-dlp.1
+	mkdir -p $(DESTDIR)$(SHAREDIR)/bash-completion/completions
+	install -m644 completions/bash/yt-dlp $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
+	mkdir -p $(DESTDIR)$(SHAREDIR)/zsh/site-functions
+	install -m644 completions/zsh/_yt-dlp $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
+	mkdir -p $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d
+	install -m644 completions/fish/yt-dlp.fish $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
 
 codetest:
 	flake8 .
