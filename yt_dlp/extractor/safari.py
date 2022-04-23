@@ -3,10 +3,6 @@ import re
 
 from .common import InfoExtractor
 
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-)
 from ..utils import (
     ExtractorError,
     update_url_query,
@@ -23,32 +19,22 @@ class SafariBaseIE(InfoExtractor):
     LOGGED_IN = False
 
     def _perform_login(self, username, password):
-        _, urlh = self._download_webpage_handle(
-            'https://learning.oreilly.com/accounts/login-check/', None,
-            'Downloading login page')
+        def is_logged():
+            result = self._download_json_handle('https://api.oreilly.com/api/v2/me/', None,
+                                                'Checking if logged in', fatal=False, headers={'Accept': '*/*'})
+            return result is not False
 
-        def is_logged(urlh):
-            return 'learning.oreilly.com/home/' in urlh.geturl()
-
-        if is_logged(urlh):
+        if is_logged():
             self.LOGGED_IN = True
             return
 
-        redirect_url = urlh.geturl()
-        parsed_url = compat_urlparse.urlparse(redirect_url)
-        qs = compat_parse_qs(parsed_url.query)
-        next_uri = compat_urlparse.urljoin(
-            'https://api.oreilly.com', qs['next'][0])
-
-        auth, urlh = self._download_json_handle(
+        auth, url_handle = self._download_json_handle(
             'https://www.oreilly.com/member/auth/login/', None, 'Logging in',
             data=json.dumps({
                 'email': username,
-                'password': password,
-                'redirect_uri': next_uri,
+                'password': password
             }).encode(), headers={
-                'Content-Type': 'application/json',
-                'Referer': redirect_url,
+                'Content-Type': 'application/json'
             }, expected_status=400)
 
         credentials = auth.get('credentials')
@@ -60,12 +46,9 @@ class SafariBaseIE(InfoExtractor):
         # oreilly serves two same instances of the following cookies
         # in Set-Cookie header and expects first one to be actually set
         for cookie in ('groot_sessionid', 'orm-jwt', 'orm-rt'):
-            self._apply_first_set_cookie_header(urlh, cookie)
+            self._apply_first_set_cookie_header(url_handle, cookie)
 
-        _, urlh = self._download_webpage_handle(
-            auth.get('redirect_uri') or next_uri, None, 'Completing login',)
-
-        if is_logged(urlh):
+        if is_logged():
             self.LOGGED_IN = True
             return
 
