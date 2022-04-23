@@ -38,7 +38,7 @@ class SponsorBlockPP(FFmpegPostProcessor):
             return [], info
 
         self.to_screen('Fetching SponsorBlock segments')
-        info['sponsorblock_chapters'] = self._get_sponsor_chapters(info, info['duration'])
+        info['sponsorblock_chapters'] = self._get_sponsor_chapters(info, info.get('duration'))
         return [], info
 
     def _get_sponsor_chapters(self, info, duration):
