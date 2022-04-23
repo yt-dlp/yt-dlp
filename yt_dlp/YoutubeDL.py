@@ -886,6 +886,7 @@ class YoutubeDL:
         OPTION='bold',
         EMPHASIS='light blue',
         REQUIREMENT='light blue',
+        KEY='green',
         ID='green',
         DELIM='blue',
         ERROR='red',
@@ -2391,7 +2392,7 @@ class YoutubeDL:
 
         def report_force_conversion(field, field_not, conversion):
             self.report_warning('"%s" field is not %s - %s' %
-                                (self._format_err(field, self.Styles.ID),
+                                (self._format_err(field, self.Styles.KEY),
                                  self._format_err(field_not, self.Styles.EMPHASIS),
                                  self._format_err('forcing %s conversion, there is an error in extractor' % conversion,
                                                   self.Styles.WARNING)))
@@ -2414,7 +2415,7 @@ class YoutubeDL:
         sanitize_string_field(info_dict, 'id')
         sanitize_numeric_fields(info_dict)
         if (info_dict.get('duration') or 0) <= 0 and info_dict.pop('duration', None):
-            self.report_warning(f'"{self._format_err("duration", self.Styles.ID)}" field is negative, '
+            self.report_warning(f'"{self._format_err("duration", self.Styles.KEY)}" field is negative, '
                                 f'{self._format_err("there is an error in extractor", self.Styles.WARNING)}')
 
         if 'playlist' not in info_dict:
@@ -2484,7 +2485,7 @@ class YoutubeDL:
             url = f.get('url')
             if not url:
                 self.report_warning(
-                    f'"{self._format_err("url", self.Styles.ID)}" field is missing or empty - '
+                    f'"{self._format_err("url", self.Styles.KEY)}" field is missing or empty - '
                     f'{self._format_err("skipping format, there is an error in extractor", self.Styles.WARNING)}'
                 )
                 return False
