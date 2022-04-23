@@ -3039,8 +3039,8 @@ class YoutubeDL:
                     if self.params.get('merge_output_format') is None:
                         if not compatible_formats(requested_formats):
                             info_dict['ext'] = 'mkv'
-                            self.report_warning(
-                                'Requested formats are incompatible for merge and will be merged into mkv')
+                            self.report_warning('Requested formats are incompatible for merge and will be merged into '
+                                                f'{self._format_err("mkv", self.Styles.EPHASIS)}')
                         if (info_dict['ext'] == 'webm'
                                 and info_dict.get('thumbnails')
                                 # check with type instead of pp_key, __name__, or isinstance
