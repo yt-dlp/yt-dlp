@@ -17,6 +17,9 @@ from subprocess import DEVNULL
 from .asyncio import run as compat_asyncio_run  # noqa: F401
 from .re import Pattern as compat_Pattern  # noqa: F401
 from .re import match as compat_Match  # noqa: F401
+from ..dependencies import Cryptodome_AES as compat_pycrypto_AES  # noqa: F401
+from ..dependencies import brotli as compat_brotli  # noqa: F401
+from ..dependencies import websockets as compat_websockets  # noqa: F401
 
 
 # compat_ctypes_WINFUNCTYPE = ctypes.WINFUNCTYPE

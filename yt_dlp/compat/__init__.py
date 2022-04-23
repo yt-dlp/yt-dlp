@@ -54,11 +54,6 @@ else:
     compat_realpath = os.path.realpath
 
 
-try:
-    import websockets as compat_websockets
-except ImportError:
-    compat_websockets = None
-
 # Python 3.8+ does not honor %HOME% on windows, but this breaks compatibility with youtube-dl
 # See https://github.com/yt-dlp/yt-dlp/issues/792
 # https://docs.python.org/3/library/os.path.html#os.path.expanduser
@@ -77,22 +72,6 @@ if compat_os_name in ('nt', 'ce'):
 else:
     compat_expanduser = os.path.expanduser
 
-
-try:
-    from Cryptodome.Cipher import AES as compat_pycrypto_AES
-except ImportError:
-    try:
-        from Crypto.Cipher import AES as compat_pycrypto_AES
-    except ImportError:
-        compat_pycrypto_AES = None
-
-try:
-    import brotlicffi as compat_brotli
-except ImportError:
-    try:
-        import brotli as compat_brotli
-    except ImportError:
-        compat_brotli = None
 
 WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 

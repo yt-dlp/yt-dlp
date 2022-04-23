@@ -59,15 +59,18 @@ test:
 offlinetest: codetest
 	$(PYTHON) -m pytest -k "not download"
 
+# XXX: This is hard to maintain
+CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat \
+               yt_dlp/compat/asyncio yt_dlp/extractor/anvato_token_generator
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
-	for d in yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor ; do \
+	for d in $(CODE_FOLDERS) ; do \
 	  mkdir -p zip/$$d ;\
 	  cp -pPR $$d/*.py zip/$$d/ ;\
 	done
-	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py
+	touch -t 200001010101 zip/yt_dlp/*.py zip/yt_dlp/*/*.py zip/yt_dlp/*/*/*.py
 	mv zip/yt_dlp/__main__.py zip/
-	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py __main__.py
+	cd zip ; zip -q ../yt-dlp yt_dlp/*.py yt_dlp/*/*.py yt_dlp/*/*/*.py __main__.py
 	rm -rf zip
 	echo '#!$(PYTHON)' > yt-dlp
 	cat yt-dlp.zip >> yt-dlp

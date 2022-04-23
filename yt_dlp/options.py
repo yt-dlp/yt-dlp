@@ -932,7 +932,8 @@ def create_parser():
         }, help=(
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
-            'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
+            'Implies --quiet. Implies --simulate unless --no-simulate or later stages of WHEN are used. '
+            'This option can be used multiple times'))
     verbosity.add_option(
         '--print-to-file',
         metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,

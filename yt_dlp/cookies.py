@@ -17,30 +17,13 @@ from .aes import (
     unpad_pkcs7,
 )
 from .compat import compat_b64decode, compat_cookiejar_Cookie
+from .dependencies import (
+    _SECRETSTORAGE_UNAVAILABLE_REASON,
+    secretstorage,
+    sqlite3,
+)
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path
-
-try:
-    import sqlite3
-    SQLITE_AVAILABLE = True
-except ImportError:
-    # although sqlite3 is part of the standard library, it is possible to compile python without
-    # sqlite support. See: https://github.com/yt-dlp/yt-dlp/issues/544
-    SQLITE_AVAILABLE = False
-
-
-try:
-    import secretstorage
-    SECRETSTORAGE_AVAILABLE = True
-except ImportError:
-    SECRETSTORAGE_AVAILABLE = False
-    SECRETSTORAGE_UNAVAILABLE_REASON = (
-        'as the `secretstorage` module is not installed. '
-        'Please install by running `python3 -m pip install secretstorage`.')
-except Exception as _err:
-    SECRETSTORAGE_AVAILABLE = False
-    SECRETSTORAGE_UNAVAILABLE_REASON = f'as the `secretstorage` module could not be initialized. {_err}'
-
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -122,7 +105,7 @@ def extract_cookies_from_browser(browser_name, profile=None, logger=YDLLogger(),
 
 def _extract_firefox_cookies(profile, logger):
     logger.info('Extracting cookies from firefox')
-    if not SQLITE_AVAILABLE:
+    if not sqlite3:
         logger.warning('Cannot extract cookies from firefox without sqlite3 support. '
                        'Please use a python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
@@ -236,7 +219,7 @@ def _get_chromium_based_browser_settings(browser_name):
 def _extract_chrome_cookies(browser_name, profile, keyring, logger):
     logger.info(f'Extracting cookies from {browser_name}')
 
-    if not SQLITE_AVAILABLE:
+    if not sqlite3:
         logger.warning(f'Cannot extract cookies from {browser_name} without sqlite3 support. '
                        'Please use a python interpreter compiled with sqlite3 support')
         return YoutubeDLCookieJar()
@@ -806,8 +789,8 @@ def _get_kwallet_password(browser_keyring_name, logger):
 
 
 def _get_gnome_keyring_password(browser_keyring_name, logger):
-    if not SECRETSTORAGE_AVAILABLE:
-        logger.error(f'secretstorage not available {SECRETSTORAGE_UNAVAILABLE_REASON}')
+    if not secretstorage:
+        logger.error(f'secretstorage not available {_SECRETSTORAGE_UNAVAILABLE_REASON}')
         return b''
     # the Gnome keyring does not seem to organise keys in the same way as KWallet,
     # using `dbus-monitor` during startup, it can be observed that chromium lists all keys

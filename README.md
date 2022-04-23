@@ -690,9 +690,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      print it, separated by a ":". Supported
                                      values of "WHEN" are the same as that of
                                      --use-postprocessor, and "video" (default).
-                                     Implies --quiet and --simulate (unless
-                                     --no-simulate is used). This option can be
-                                     used multiple times
+                                     Implies --quiet. Implies --simulate unless
+                                     --no-simulate or later stages of WHEN are
+                                     used. This option can be used multiple
+                                     times
     --print-to-file [WHEN:]TEMPLATE FILE
                                      Append given template to the file. The
                                      values of WHEN and TEMPLATE are same as
