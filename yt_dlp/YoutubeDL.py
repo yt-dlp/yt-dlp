@@ -3088,8 +3088,12 @@ class YoutubeDL:
                         if self.params.get('allow_unplayable_formats'):
                             self.report_warning(
                                 'You have requested merging of multiple formats '
-                                'while also allowing unplayable formats to be downloaded. '
-                                'The formats won\'t be merged to prevent data corruption.')
+                                'while also allowing %(unplayable)s formats to be downloaded. %(be-warned)s' %
+                                {'unplayable': self._format_err('unplayable', self.Styles.EPHASIS),
+                                 'be-warned': self._format_err(
+                                     'The formats won\'t be merged to prevent data corruption.', self.Styles.WARNNING)
+                                 }
+                            )
                         elif not merger.available:
                             msg = 'You have requested merging of multiple formats but ffmpeg is not installed'
                             if not self.params.get('ignoreerrors'):
