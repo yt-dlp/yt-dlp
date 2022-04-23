@@ -3095,11 +3095,15 @@ class YoutubeDL:
                                  }
                             )
                         elif not merger.available:
-                            msg = 'You have requested merging of multiple formats but ffmpeg is not installed'
+                            msg = 'You have requested merging of multiple formats but %s is not installed' % \
+                                self._format_err('ffmpeg', self.Styles.REQUIREMENT)
                             if not self.params.get('ignoreerrors'):
-                                self.report_error(f'{msg}. Aborting due to --abort-on-error')
+                                self.report_error(
+                                    f'{msg}. Aborting due to {self._format_err("--abort-on-error", self.Styles.OPTION)}'
+                                )
                                 return
-                            self.report_warning(f'{msg}. The formats won\'t be merged')
+                            warn = 'The formats won\'t be merged'
+                            self.report_warning(f'{msg}. {self._format_err(warn, self.Styles.WARNING)}')
 
                         if temp_filename == '-':
                             reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict, self.params)
