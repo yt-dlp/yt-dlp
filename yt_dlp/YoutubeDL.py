@@ -3048,7 +3048,9 @@ class YoutubeDL:
                                 and any(type(pp) == EmbedThumbnailPP for pp in self._pps['post_process'])):
                             info_dict['ext'] = 'mkv'
                             self.report_warning(
-                                'webm doesn\'t support embedding a thumbnail, mkv will be used')
+                                f'{self._format_err("webm", self.Styles.EPHASIS)} doesn\'t support embedding a '
+                                f'thumbnail, {self._format_err("mkv", self.Styles.EPHASIS)} will be used'
+                            )
                     new_ext = info_dict['ext']
 
                     def correct_ext(filename, ext=new_ext):
