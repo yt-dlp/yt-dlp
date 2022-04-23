@@ -522,24 +522,17 @@ class IqIE(InfoExtractor):
                 if (lid === 0)
                     dash_paths[bid] = dash_path;
                 else
-                    dash_paths[lid] = dash_path;
+                    dash_paths[bid + '-' + lid] = dash_path;
                 return dash_paths;
             };
 
-            var dash_bid_paths = {};
+            var dash_paths = {};
             bid_list.forEach(function(bid) {
-                dash_bid_paths = getDashPath(0, bid, dash_bid_paths);
+                lid_list.forEach(function(lid) {
+                    dash_paths = getDashPath(lid, bid, dash_paths);
+                });
             });
 
-            var dash_lid_paths = {};
-            lid_list.forEach(function(lid) {
-                dash_lid_paths = getDashPath(lid, 'undefined', dash_lid_paths);
-            });
-
-            var dash_paths = {
-                'bid_paths': dash_bid_paths,
-                'lid_paths': dash_lid_paths 
-            };
             return JSON.stringify(dash_paths);
         }));
         saveAndExit();
@@ -566,10 +559,6 @@ class IqIE(InfoExtractor):
     def _extract_cmd5x_function(self, webpage, video_id):
         return self._search_regex(r',\s*(function\s*\([^\)]*\)\s*{\s*var _qda.+_qdc\(\)\s*})\s*,',
                                   self._extract_vms_player_js(webpage, video_id), 'signature function')
-
-    def _extract_audio_sign_function(self, webpage, video_id):
-        return self._search_regex(r"\s*(function P\(e, t\) {\s*var n = q \+ '\/\/data.video.iq.com\/videos' \+ t,.+\s*return n })\s*",
-                                  self._extract_vms_player_js(webpage, video_id), 'audio sign function')
 
     def _update_bid_tags(self, webpage, video_id):
         extracted_bid_tags = self._parse_json(
@@ -668,12 +657,10 @@ class IqIE(InfoExtractor):
                 'ut_list': '[' + ','.join(ut_list) + ']',
                 'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
             })[1].strip(), video_id)
-        bid_paths = dash_paths['bid_paths']
-        lid_paths = dash_paths['lid_paths']
         
         formats, subtitles = [], {}
         initial_format_data = self._download_json(
-            urljoin('https://cache-video.iq.com', bid_paths['0']), video_id,
+            urljoin('https://cache-video.iq.com', dash_paths['0']), video_id,
             note='Downloading initial video format info', errnote='Unable to download initial video format info')['data']
 
         preview_time = traverse_obj(
@@ -683,8 +670,8 @@ class IqIE(InfoExtractor):
 
         # Audio formats
         for audio in traverse_obj(initial_format_data, ('program', 'audio'), default=[]):
-            lid = str(audio['lid'])
-            dash_path = lid_paths.get(lid)
+            audio_bid_lid = str(audio['bid']) + '-' + str(audio['lid'])
+            dash_path = dash_paths.get(audio_bid_lid)
             if not dash_path:
                 self.report_warning(f'Unknown format id: {audio["lid"]}. It is currently not being extracted')
                 continue
@@ -702,32 +689,29 @@ class IqIE(InfoExtractor):
             extracted_formats = []          
             if audio_format.get('fs'):
                 # Create a m3u8 playlist out of all the sections.
-                m3u8Data = '#EXTM3U\n'
-                m3u8Data = '#EXT-X-TARGETDURATION:10\n'
+                audio_fragments = []
                 for f in audio_format['fs']:
-                    audio_fragment = traverse_obj(self._download_json(f['dpl'], video_id, errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str)
-                    m3u8Data += '#EXTINF:10,\n'
-                    m3u8Data += audio_fragment + '\n'
+                    audio_fragments.append(traverse_obj(self._download_json(f['dpl'], video_id, errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str))
 
-                # Create the format.
-                m3u8_formats, _ = self._parse_m3u8_formats_and_subtitles(
-                    m3u8Data, ext='amp4', m3u8_id=lid, fatal=False)
-                extracted_formats.extend(m3u8_formats)
+                # Special format for the audio, we need to decrypt it as we download it.
+                format = [{
+                    'format_id': audio_bid_lid,
+                    'fragment_urls': audio_fragments,
+                    'protocol': 'iq_audio_fragments',
+                    'audio_codec': 'mp4a.40.2',
+                    'ext': 'mp4',
+                    'url': audio_fragments[0],
+                    'format_note': audio['name']
+                }]
+
+                extracted_formats.extend(format)
 
             if not extracted_formats:
                 if audio_format.get('s'):
                     self.report_warning(f'format is restricted')
                 else:
                     self.report_warning(f'Unable to extract format')
-            for f in extracted_formats:
-                f.update({
-                    'quality': qualities(list(self._BID_TAGS.keys()))(audio['bid']),
-                    'format_note': self._LID_TAGS[lid],
-                    **parse_resolution(audio_format.get('scrsz'))
-                })
-            formats.extend(extracted_formats)
-
-        self._sort_formats(formats)                                 
+            formats.extend(extracted_formats)                         
 
         # Video formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
