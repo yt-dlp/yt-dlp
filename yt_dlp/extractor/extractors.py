@@ -640,6 +640,7 @@ from .hungama import (
     HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
+from .icareus import IcareusIE 
 from .ichinanalive import (
     IchinanaLiveIE,
     IchinanaLiveClipIE,
