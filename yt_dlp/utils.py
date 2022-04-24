@@ -36,6 +36,7 @@ import tempfile
 import time
 import traceback
 import urllib.parse
+import warnings
 import xml.etree.ElementTree
 import zlib
 
@@ -5221,17 +5222,23 @@ class WebSocketsWrapper():
     pool = None
 
     def __init__(self, url, headers=None, connect=True):
-        self.loop = asyncio.events.new_event_loop()
-        self.conn = websockets.connect(
-            url, extra_headers=headers, ping_interval=None,
-            close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
+        self.loop = asyncio.new_event_loop()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            # https://github.com/aaugustin/websockets/blob/9c87d43f1d7bbf6847350087aae74fd35f73a642/src/websockets/legacy/client.py#L480
+            # the reason to keep giving `loop` parameter: we aren't in async function
+            self.conn = websockets.connect(
+                url, extra_headers=headers, ping_interval=None,
+                close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
         if connect:
             self.__enter__()
         atexit.register(self.__exit__, None, None, None)
 
     def __enter__(self):
         if not self.pool:
-            self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
         return self
 
     def send(self, *args):
@@ -5251,7 +5258,7 @@ class WebSocketsWrapper():
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
     @staticmethod
     def run_with_loop(main, loop):
-        if not asyncio.coroutines.iscoroutine(main):
+        if not asyncio.iscoroutine(main):
             raise ValueError(f'a coroutine was expected, got {main!r}')
 
         try:
