@@ -126,14 +126,27 @@ class RuutuIE(InfoExtractor):
     _API_BASE = 'https://gatling.nelonenmedia.fi'
 
     @classmethod
-    def _extract_url(cls, webpage):
+    def _extract_urls(cls, webpage):
+        # nelonen.fi
         settings = try_call(
             lambda: json.loads(re.search(
                 r'jQuery\.extend\(Drupal\.settings, ({.+?})\);', webpage).group(1), strict=False))
-        video_id = traverse_obj(settings, (
-            'mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
-        if video_id:
-            return f'http://www.ruutu.fi/video/{video_id}'
+        if settings:
+            video_id = traverse_obj(settings, (
+                'mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
+            if video_id:
+                return [f'http://www.ruutu.fi/video/{video_id}']
+        # hs.fi
+        settings = try_call(
+            lambda: json.loads(re.search(
+                r'<script id="__NEXT_DATA__" type="application/json">\s*({.+?})\s*</script>',
+                webpage).group(1), strict=False))
+        if settings:
+            video_ids = list(filter(
+                bool, (traverse_obj(d, ('video', 'sourceId')) for d in traverse_obj(settings,
+                       ('props', 'pageProps', 'page', 'assetData', 'splitBody')))))
+            if video_ids:
+                return list(f'http://www.ruutu.fi/video/{v}' for v in video_ids)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
