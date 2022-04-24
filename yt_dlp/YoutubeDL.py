@@ -3106,12 +3106,16 @@ class YoutubeDL:
                             self.report_warning(f'{msg}. {self._format_err(warn, self.Styles.WARNING)}')
 
                         if temp_filename == '-':
-                            reason = ('using a downloader other than ffmpeg' if FFmpegFD.can_merge_formats(info_dict, self.params)
-                                      else 'but the formats are incompatible for simultaneous download' if merger.available
-                                      else 'but ffmpeg is not installed')
+                            reason = (f'using a downloader other than {("ffmpeg", self.Styles.REQUIREMENT)}'
+                                      if FFmpegFD.can_merge_formats(info_dict, self.params) else
+                                      'but the formats are incompatible for simultaneous download'
+                                      if merger.available else
+                                      f'but {("ffmpeg", self.Styles.REQUIREMENT)} is not installed')
                             self.report_warning(
-                                f'You have requested downloading multiple formats to stdout {reason}. '
-                                'The formats will be streamed one after the other')
+                                f'You have requested downloading multiple formats to stdout {reason}. %s' %
+                                self._format_err("The formats will be streamed one after the other",
+                                                 self.Styles.WARNING)
+                            )
                             fname = temp_filename
                         for f in requested_formats:
                             new_info = dict(info_dict)
