@@ -7,6 +7,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+from yt_dlp import compat
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_expanduser,
@@ -21,6 +22,12 @@ from yt_dlp.compat import (
 
 
 class TestCompat(unittest.TestCase):
+    def test_compat_passthrough(self):
+        with self.assertWarns(DeprecationWarning):
+            compat.compat_basestring
+
+        compat.asyncio.events  # Must not raise error
+
     def test_compat_getenv(self):
         test_str = 'тест'
         compat_setenv('yt_dlp_COMPAT_GETENV', test_str)

@@ -2,11 +2,18 @@ import contextlib
 import os
 import subprocess
 import sys
-import types
+import warnings
 import xml.etree.ElementTree as etree
 
 from . import re
 from ._deprecated import *  # noqa: F401, F403
+from .compat_utils import passthrough_module
+
+
+# XXX: Implement this the same way as other DeprecationWarnings without circular import
+passthrough_module(__name__, '._legacy', callback=lambda attr: warnings.warn(
+    DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=2))
+del passthrough_module
 
 
 # HTMLParseError has been deprecated in Python 3.3 and removed in
@@ -85,24 +92,3 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
     with contextlib.suppress(Exception):
         subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
         WINDOWS_VT_MODE = True
-
-
-class _PassthroughLegacy(types.ModuleType):
-    def __getattr__(self, attr):
-        import importlib
-        with contextlib.suppress(ImportError):
-            return importlib.import_module(f'.{attr}', __name__)
-
-        legacy = importlib.import_module('._legacy', __name__)
-        if not hasattr(legacy, attr):
-            raise AttributeError(f'module {__name__} has no attribute {attr}')
-
-        # XXX: Implement this the same way as other DeprecationWarnings without circular import
-        import warnings
-        warnings.warn(DeprecationWarning(f'{__name__}.{attr} is deprecated'), stacklevel=2)
-        return getattr(legacy, attr)
-
-
-# Python 3.6 does not have module level __getattr__
-# https://peps.python.org/pep-0562/
-sys.modules[__name__].__class__ = _PassthroughLegacy
