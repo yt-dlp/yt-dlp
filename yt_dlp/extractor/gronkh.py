@@ -72,13 +72,13 @@ class GronkhFeedIE(InfoExtractor):
         'playlist_count': 16,
     }]
 
-        def _entries(self):
-            for type_ in ('recent', 'views'):
-                info = self._download_json(
-                    f'https://api.gronkh.tv/v1/video/discovery/{type_}', 'feed', note=f'Downloading {type_} API JSON')
-                for item in traverse_obj(info, ('discovery', ...)) or []:
-                    yield self.url_result(
-                            f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE, item.get('title'))
+    def _entries(self):
+        for type_ in ('recent', 'views'):
+            info = self._download_json(
+                f'https://api.gronkh.tv/v1/video/discovery/{type_}', 'feed', note=f'Downloading {type_} API JSON')
+            for item in traverse_obj(info, ('discovery', ...)) or []:
+                yield self.url_result(
+                        f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE, item.get('title'))
 
     def _real_extract(self, url):
         return self.playlist_result(self._entries(), 'feed', 'feed', 'feed')
