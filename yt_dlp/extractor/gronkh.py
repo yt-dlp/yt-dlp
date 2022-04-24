@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 
 from .common import InfoExtractor
@@ -53,13 +50,12 @@ class GronkhIE(InfoExtractor):
 
 
 class GronkhFeedIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/?(feed/?)?$'
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv(?:/feed)?/?(?:#|$)'
     IE_NAME = 'gronkh:feed'
 
     _TESTS = [{
         'url': 'https://gronkh.tv/feed',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'feed',
             'title': 'feed',
             'description': 'feed',
@@ -76,19 +72,16 @@ class GronkhFeedIE(InfoExtractor):
         'playlist_count': 16,
     }]
 
+        def _entries(self):
+            for type_ in ('recent', 'views'):
+                info = self._download_json(
+                    f'https://api.gronkh.tv/v1/video/discovery/{type_}', 'feed', note=f'Downloading {type_} API JSON')
+                for item in traverse_obj(info, ('discovery', ...)) or []:
+                    yield self.url_result(
+                            f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE, item.get('title'))
+
     def _real_extract(self, url):
-        recent_info = traverse_obj(self._download_json('https://api.gronkh.tv/v1/video/discovery/recent', 'recent'),
-                                   'discovery', default=[])
-        views_info = traverse_obj(self._download_json('https://api.gronkh.tv/v1/video/discovery/views', 'views'),
-                                  'discovery', default=[])
-
-        def entries():
-            for item in recent_info + views_info:
-                if item:
-                    yield self.url_result(f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE,
-                                          item.get('title'))
-
-        return self.playlist_result(entries(), 'feed', 'feed', 'feed')
+        return self.playlist_result(self._entries(), 'feed', 'feed', 'feed')
 
 
 class GronkhVodsIE(InfoExtractor):
@@ -110,12 +103,10 @@ class GronkhVodsIE(InfoExtractor):
     def _fetch_page(self, page):
         items = traverse_obj(self._download_json(
             f'https://api.gronkh.tv/v1/search?offset={self._PER_PAGE * page}&first={self._PER_PAGE}', 'vods',
-            note=f'Downloading stream video page {page + 1}'), ('results', 'videos'), default=[])
-        for item in items:
-            if item:
-                yield self.url_result(f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE,
-                                      item.get('title'))
-        page += 1
+            note=f'Downloading stream video page {page + 1}'), ('results', 'videos', ...))
+        for item in items or []:
+            yield self.url_result(
+                f'https://gronkh.tv/watch/stream/{item.get("episode")}', GronkhIE, item.get('title'))
 
     def _real_extract(self, url):
         entries = OnDemandPagedList(functools.partial(self._fetch_page), self._PER_PAGE)
