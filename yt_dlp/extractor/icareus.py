@@ -11,8 +11,8 @@ from ..utils import (
     parse_resolution,
     remove_end,
     str_or_none,
-    urlencode_postdata,
     url_or_none,
+    urlencode_postdata,
 )
 
 
@@ -134,7 +134,7 @@ class IcareusIE(InfoExtractor):
         info, token, live_title = self._search_json_ld(webpage, video_id, default={}), None, None
         if not info:
             token = self._search_regex(
-                r'data\s*:\s*{action:"getAsset".*?token:\'([a-f0-9]+)\'}', webpage, 'token', default=None, fatal=False)
+                r'data\s*:\s*{action:"getAsset".*?token:\'([a-f0-9]+)\'}', webpage, 'token', default=None)
             if not token:
                 live_title = get_element_by_class('unpublished-info-item future-event-title', webpage)
 
