@@ -28,7 +28,7 @@ class SafariBaseIE(InfoExtractor):
             self.LOGGED_IN = True
             return
 
-        auth, url_handle = self._download_json_handle(
+        auth, urlh = self._download_json_handle(
             'https://www.oreilly.com/member/auth/login/', None, 'Logging in',
             data=json.dumps({
                 'email': username,
@@ -46,7 +46,7 @@ class SafariBaseIE(InfoExtractor):
         # oreilly serves two same instances of the following cookies
         # in Set-Cookie header and expects first one to be actually set
         for cookie in ('groot_sessionid', 'orm-jwt', 'orm-rt'):
-            self._apply_first_set_cookie_header(url_handle, cookie)
+            self._apply_first_set_cookie_header(urlh, cookie)
 
         if is_logged():
             self.LOGGED_IN = True
