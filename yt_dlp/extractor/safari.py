@@ -71,7 +71,7 @@ class SafariIE(SafariBaseIE):
 
     _TESTS = [{
         'url': 'https://www.safaribooksonline.com/library/view/hadoop-fundamentals-livelessons/9780133392838/part00.html',
-        'md5': 'dcc5a425e79f2564148652616af1f2a3',
+        'md5': '592d0e6d0b03d9b981b3f7306ffc5ca9',
         'info_dict': {
             'id': '0_qbqx90ic',
             'ext': 'mp4',
@@ -79,7 +79,11 @@ class SafariIE(SafariBaseIE):
             'timestamp': 1437758058,
             'upload_date': '20150724',
             'uploader_id': 'stork',
+            'duration': 149,
+            'view_count': int,
+            'thumbnail': 'http://cfvod.kaltura.com/p/1926081/sp/192608100/thumbnail/entry_id/0_qbqx90ic/version/100000'
         },
+        'expected_warnings': ['Unable to extract kaltura reference id']
     }, {
         # non-digits in course id
         'url': 'https://www.safaribooksonline.com/library/view/create-a-nodejs/100000006A0210/part00.html',
