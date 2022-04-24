@@ -6,10 +6,10 @@ from yt_dlp.cookies import (
     LinuxChromeCookieDecryptor,
     MacChromeCookieDecryptor,
     WindowsChromeCookieDecryptor,
-    parse_safari_cookies,
-    pbkdf2_sha1,
     _get_linux_desktop_environment,
     _LinuxDesktopEnvironment,
+    parse_safari_cookies,
+    pbkdf2_sha1,
 )
 
 

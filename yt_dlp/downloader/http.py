@@ -1,26 +1,21 @@
-from __future__ import unicode_literals
-
 import os
+import random
 import ssl
 import time
-import random
 
 from .common import FileDownloader
-from ..compat import (
-    compat_urllib_error,
-    compat_http_client
-)
+from ..compat import compat_http_client, compat_urllib_error
 from ..utils import (
     ContentTooShortError,
+    ThrottledDownload,
+    XAttrMetadataError,
+    XAttrUnavailableError,
     encodeFilename,
     int_or_none,
     parse_http_range,
     sanitized_Request,
-    ThrottledDownload,
     try_call,
     write_xattr,
-    XAttrMetadataError,
-    XAttrUnavailableError,
 )
 
 RESPONSE_READ_EXCEPTIONS = (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException)
@@ -221,10 +216,12 @@ class HttpFD(FileDownloader):
                 min_data_len = self.params.get('min_filesize')
                 max_data_len = self.params.get('max_filesize')
                 if min_data_len is not None and data_len < min_data_len:
-                    self.to_screen('\r[download] File is smaller than min-filesize (%s bytes < %s bytes). Aborting.' % (data_len, min_data_len))
+                    self.to_screen(
+                        f'\r[download] File is smaller than min-filesize ({data_len} bytes < {min_data_len} bytes). Aborting.')
                     return False
                 if max_data_len is not None and data_len > max_data_len:
-                    self.to_screen('\r[download] File is larger than max-filesize (%s bytes > %s bytes). Aborting.' % (data_len, max_data_len))
+                    self.to_screen(
+                        f'\r[download] File is larger than max-filesize ({data_len} bytes > {max_data_len} bytes). Aborting.')
                     return False
 
             byte_counter = 0 + ctx.resume_len
@@ -265,7 +262,7 @@ class HttpFD(FileDownloader):
                         assert ctx.stream is not None
                         ctx.filename = self.undo_temp_name(ctx.tmpfilename)
                         self.report_destination(ctx.filename)
-                    except (OSError, IOError) as err:
+                    except OSError as err:
                         self.report_error('unable to open for writing: %s' % str(err))
                         return False
 
@@ -277,7 +274,7 @@ class HttpFD(FileDownloader):
 
                 try:
                     ctx.stream.write(data_block)
-                except (IOError, OSError) as err:
+                except OSError as err:
                     self.to_stderr('\n')
                     self.report_error('unable to write data: %s' % str(err))
                     return False

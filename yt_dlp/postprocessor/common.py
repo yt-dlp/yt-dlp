@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import functools
 import itertools
 import json
@@ -8,10 +6,10 @@ import time
 import urllib.error
 
 from ..utils import (
+    PostProcessingError,
     _configuration_args,
     encodeFilename,
     network_exceptions,
-    PostProcessingError,
     sanitized_Request,
     write_string,
 )
@@ -71,9 +69,9 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         return name[6:] if name[:6].lower() == 'ffmpeg' else name
 
     def to_screen(self, text, prefix=True, *args, **kwargs):
-        tag = '[%s] ' % self.PP_NAME if prefix else ''
         if self._downloader:
-            return self._downloader.to_screen('%s%s' % (tag, text), *args, **kwargs)
+            tag = '[%s] ' % self.PP_NAME if prefix else ''
+            return self._downloader.to_screen(f'{tag}{text}', *args, **kwargs)
 
     def report_warning(self, text, *args, **kwargs):
         if self._downloader:
@@ -85,7 +83,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         write_string(f'DeprecationWarning: {text}')
 
     def report_error(self, text, *args, **kwargs):
-        # Exists only for compatibility. Do not use
+        self.deprecation_warning('"yt_dlp.postprocessor.PostProcessor.report_error" is deprecated. '
+                                 'raise "yt_dlp.utils.PostProcessingError" instead')
         if self._downloader:
             return self._downloader.report_error(text, *args, **kwargs)
 

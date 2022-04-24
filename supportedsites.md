@@ -42,6 +42,7 @@
  - **aenetworks:show**
  - **afreecatv**: afreecatv.com
  - **afreecatv:live**: afreecatv.com
+ - **afreecatv:user**
  - **AirMozilla**
  - **AliExpressLive**
  - **AlJazeera**
@@ -104,6 +105,8 @@
  - **awaan:video**
  - **AZMedien**: AZ Medien videos
  - **BaiduVideo**: 百度视频
+ - **BanBye**
+ - **BanByeChannel**
  - **bandaichannel**
  - **Bandcamp**
  - **Bandcamp:album**
@@ -245,6 +248,7 @@
  - **cpac:playlist**
  - **Cracked**
  - **Crackle**
+ - **Craftsy**
  - **CrooksAndLiars**
  - **CrowdBunker**
  - **CrowdBunkerChannel**
@@ -263,6 +267,8 @@
  - **curiositystream:collections**
  - **curiositystream:series**
  - **CWTV**
+ - **Cybrary**
+ - **CybraryCourse**
  - **Daftsex**
  - **DagelijkseKost**: dagelijksekost.een.be
  - **DailyMail**
@@ -484,6 +490,7 @@
  - **Hungama**
  - **HungamaAlbumPlaylist**
  - **HungamaSong**
+ - **huya:live**: huya.com
  - **Hypem**
  - **ign.com**
  - **IGNArticle**
@@ -512,6 +519,8 @@
  - **iq.com**: International version of iQiyi
  - **iq.com:album**
  - **iqiyi**: 爱奇艺
+ - **ITProTV**
+ - **ITProTVCourse**
  - **ITTF**
  - **ITV**
  - **ITVBTCC**
@@ -520,6 +529,8 @@
  - **ivideon**: Ivideon TV
  - **Iwara**
  - **Izlesene**
+ - **Jable**
+ - **JablePlaylist**
  - **Jamendo**
  - **JamendoAlbum**
  - **JeuxVideo**
@@ -555,6 +566,9 @@
  - **la7.it:podcast**
  - **laola1tv**
  - **laola1tv:embed**
+ - **LastFM**
+ - **LastFMPlaylist**
+ - **LastFMUser**
  - **lbry**
  - **lbry:channel**
  - **LCI**
@@ -603,6 +617,7 @@
  - **MallTV**
  - **mangomolo:live**
  - **mangomolo:video**
+ - **MangoTV**: 芒果TV
  - **ManotoTV**: Manoto TV (Episode)
  - **ManotoTVLive**: Manoto TV (Live)
  - **ManotoTVShow**: Manoto TV (Show)
@@ -635,7 +650,6 @@
  - **Metacritic**
  - **mewatch**
  - **Mgoon**
- - **MGTV**: 芒果TV
  - **MiaoPai**
  - **microsoftstream**: Microsoft Stream
  - **mildom**: Record ongoing live by specific user in Mildom
@@ -671,6 +685,7 @@
  - **Motorsport**: motorsport.com
  - **MovieClips**
  - **MovieFap**
+ - **Moviepilot**
  - **Moviezine**
  - **MovingImage**
  - **MSN**
@@ -705,7 +720,6 @@
  - **MyVideoGe**
  - **MyVidster**
  - **MyviEmbed**
- - **MyVisionTV**
  - **n-tv.de**
  - **N1Info:article**
  - **N1InfoAsset**
@@ -863,6 +877,9 @@
  - **PalcoMP3:song**
  - **PalcoMP3:video**
  - **pandora.tv**: 판도라TV
+ - **Panopto**
+ - **PanoptoList**
+ - **PanoptoPlaylist**
  - **ParamountNetwork**
  - **ParamountPlus**
  - **ParamountPlusSeries**
@@ -912,6 +929,7 @@
  - **PlutoTV**
  - **podomatic**
  - **Pokemon**
+ - **PokemonSoundLibrary**
  - **PokemonWatch**
  - **PokerGo**
  - **PokerGoCollection**
@@ -957,8 +975,6 @@
  - **qqmusic:toplist**: QQ音乐 - 排行榜
  - **QuantumTV**
  - **Qub**
- - **Quickline**
- - **QuicklineLive**
  - **R7**
  - **R7Article**
  - **Radiko**
@@ -1131,8 +1147,8 @@
  - **Sport5**
  - **SportBox**
  - **SportDeutschland**
- - **spotify**
- - **spotify:show**
+ - **spotify**: Spotify episodes
+ - **spotify:show**: Spotify shows
  - **Spreaker**
  - **SpreakerPage**
  - **SpreakerShow**
@@ -1427,6 +1443,9 @@
  - **Wakanim**
  - **Walla**
  - **WalyTV**
+ - **wasdtv:clip**
+ - **wasdtv:record**
+ - **wasdtv:stream**
  - **washingtonpost**
  - **washingtonpost:article**
  - **wat.tv**
@@ -1520,6 +1539,8 @@
  - **Zapiks**
  - **Zattoo**
  - **ZattooLive**
+ - **ZattooMovies**
+ - **ZattooRecordings**
  - **ZDF**
  - **ZDFChannel**
  - **Zee5**

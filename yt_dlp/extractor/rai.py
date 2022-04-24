@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -340,6 +337,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
+            'release_year': traverse_obj(media, ('track_info', 'edit_year')),
         }
 
         info.update(relinker_info)

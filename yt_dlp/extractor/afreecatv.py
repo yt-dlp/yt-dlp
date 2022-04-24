@@ -1,11 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_xpath
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -282,7 +278,7 @@ class AfreecaTVIE(InfoExtractor):
         else:
             raise ExtractorError('Unable to download video info')
 
-        video_element = video_xml.findall(compat_xpath('./track/video'))[-1]
+        video_element = video_xml.findall('./track/video')[-1]
         if video_element is None or video_element.text is None:
             raise ExtractorError(
                 'Video %s does not exist' % video_id, expected=True)
@@ -312,7 +308,7 @@ class AfreecaTVIE(InfoExtractor):
 
         if not video_url:
             entries = []
-            file_elements = video_element.findall(compat_xpath('./file'))
+            file_elements = video_element.findall('./file')
             one = len(file_elements) == 1
             for file_num, file_element in enumerate(file_elements, start=1):
                 file_url = url_or_none(file_element.text)

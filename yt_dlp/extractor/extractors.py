@@ -1,5 +1,4 @@
-# flake8: noqa
-from __future__ import unicode_literals
+# flake8: noqa: F401
 
 from .abc import (
     ABCIE,
@@ -621,6 +620,7 @@ from .hitrecord import HitRecordIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
+    HotStarPrefixIE,
     HotStarPlaylistIE,
     HotStarSeriesIE,
 )
@@ -644,6 +644,7 @@ from .hungama import (
     HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
+from .icareus import IcareusIE 
 from .ichinanalive import (
     IchinanaLiveIE,
     IchinanaLiveClipIE,
@@ -705,6 +706,10 @@ from .ivi import (
 from .ivideon import IvideonIE
 from .iwara import IwaraIE
 from .izlesene import IzleseneIE
+from .jable import (
+    JableIE,
+    JablePlaylistIE,
+)
 from .jamendo import (
     JamendoIE,
     JamendoAlbumIE,
@@ -2100,6 +2105,7 @@ from .youtube import (
     YoutubeIE,
     YoutubeClipIE,
     YoutubeFavouritesIE,
+    YoutubeNotificationsIE,
     YoutubeHistoryIE,
     YoutubeTabIE,
     YoutubeLivestreamEmbedIE,
@@ -2123,18 +2129,17 @@ from .zattoo import (
     EWETVIE,
     GlattvisionTVIE,
     MNetTVIE,
-    MyVisionTVIE,
     NetPlusIE,
     OsnatelTVIE,
     QuantumTVIE,
-    QuicklineIE,
-    QuicklineLiveIE,
     SaltTVIE,
     SAKTVIE,
     VTXTVIE,
     WalyTVIE,
     ZattooIE,
     ZattooLiveIE,
+    ZattooMoviesIE,
+    ZattooRecordingsIE,
 )
 from .zdf import ZDFIE, ZDFChannelIE
 from .zee5 import (

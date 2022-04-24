@@ -1,25 +1,16 @@
 #!/usr/bin/env python3
-# coding: utf-8
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
 import subprocess
+from test.helper import FakeYDL, get_params, is_download_test
 
-from test.helper import (
-    FakeYDL,
-    get_params,
-    is_download_test,
-)
-from yt_dlp.compat import (
-    compat_str,
-    compat_urllib_request,
-)
+from yt_dlp.compat import compat_str, compat_urllib_request
 
 
 @is_download_test
