@@ -158,7 +158,7 @@ def validate_options(opts):
 
     def validate_positive(name, value, strict=False):
         return validate(value is None or value > 0 or (not strict and value == 0),
-                        name, value, '{name} "{value}" must be positive' + ('' if strict else ' or 0'))
+                        name, value, f'{name} "{value}" must be positive' + ('' if strict else ' or 0'))
 
     def validate_minmax(min_val, max_val, min_name, max_name=None):
         if max_val is None or min_val is None or max_val >= min_val:

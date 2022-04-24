@@ -20,7 +20,7 @@ if OS_NAME == 'Windows':
 elif OS_NAME == 'Darwin':
     pass
 else:
-    raise Exception('{OS_NAME} is not supported')
+    raise Exception(f'{OS_NAME} is not supported')
 
 ARCH = platform.architecture()[0][:2]
 
