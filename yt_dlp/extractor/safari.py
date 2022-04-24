@@ -5,6 +5,7 @@ from .common import InfoExtractor
 
 from ..utils import (
     ExtractorError,
+    RegexNotFoundError,
     update_url_query,
 )
 
@@ -119,9 +120,15 @@ class SafariIE(SafariBaseIE):
             if reference_id:
                 query['flashvars[referenceId]'] = reference_id
             else:
-                query['entry_id'] = self._search_regex(
-                    r'data-entry-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
-                    webpage, 'kaltura entry id', group='id')
+                try:
+                    query['flashvars[referenceId]'] = self._search_regex(
+                        r'data-reference-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
+                        webpage, 'kaltura reference id', group='id')
+                except RegexNotFoundError as e:
+                    self.report_warning(e.orig_msg)
+                    query['entry_id'] = self._search_regex(
+                        r'data-entry-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
+                        webpage, 'kaltura entry id', group='id')
             query['wid'] = '_%s' % self._search_regex(
                 r'data-partner-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                 webpage, 'kaltura widget id', default=self._PARTNER_ID,
