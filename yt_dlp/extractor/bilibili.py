@@ -1028,8 +1028,7 @@ class BiliLiveIE(InfoExtractor):
         30000: {'format_id': 'dolby', 'format_note': '杜比'},
     }
 
-    def _quality(self, qn):
-        return qualities(list(self._FORMATS.keys()))(qn)
+    _quality = staticmethod(qualities(list(_FORMATS)))
 
     def _call_api(self, path, room_id, query):
         api_result = self._download_json(f'https://api.live.bilibili.com/{path}', room_id, query=query)
@@ -1038,7 +1037,7 @@ class BiliLiveIE(InfoExtractor):
         return api_result.get('data') or {}
 
     def _parse_formats(self, qn, fmt):
-        for codec in reversed(fmt['codec']):
+        for codec in fmt.get('codec') or []:
             if codec.get('current_qn') != qn:
                 continue
             for url_info in codec['url_info']:
@@ -1070,6 +1069,7 @@ class BiliLiveIE(InfoExtractor):
             })
             for fmt in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream', ..., 'format', ...)) or []:
                 formats.extend(self._parse_formats(qn, fmt))
+        self._sort_formats(formats)
 
         return {
             'id': room_id,
