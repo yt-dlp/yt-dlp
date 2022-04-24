@@ -1005,8 +1005,12 @@ class BiliLiveIE(InfoExtractor):
     _TESTS = [{
         'url': 'https://live.bilibili.com/196',
         'info_dict': {
-            'id': '196',
+            'id': '33989',
+            'description': "周六杂谈回，其他时候随机游戏。 | \n录播：@下播型泛式录播组。 | \n直播通知群（全员禁言）：666906670，902092584，59971⑧481 （功能一样，别多加）",
             'ext': 'flv',
+            'title': "太空狼人杀联动，不被爆杀就算赢",
+            'thumbnail': "https://i0.hdslb.com/bfs/live/new_room_cover/e607bc1529057ef4b332e1026e62cf46984c314d.jpg",
+            'timestamp': 1650802769,
         },
         'skip': 'not live'
     }, {
@@ -1023,7 +1027,9 @@ class BiliLiveIE(InfoExtractor):
         20000: {'format_id': '4K', 'format_note': '4K'},
         30000: {'format_id': 'dolby', 'format_note': '杜比'},
     }
-    _quality = qualities(_FORMATS.keys())
+
+    def _quality(self, qn):
+        return qualities(list(self._FORMATS.keys()))(qn)
 
     def _call_api(self, path, room_id, query):
         api_result = self._download_json(f'https://api.live.bilibili.com/{path}', room_id, query=query)
@@ -1064,7 +1070,6 @@ class BiliLiveIE(InfoExtractor):
             })
             for fmt in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream', ..., 'format', ...)) or []:
                 formats.extend(self._parse_formats(qn, fmt))
-        self._format_sort(formats)
 
         return {
             'id': room_id,
