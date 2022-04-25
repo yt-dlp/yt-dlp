@@ -22,7 +22,7 @@ from ..utils import (
     write_string,
     std_headers,
     update_url_query,
-    bug_reports_message, RequestError, YoutubeDLError
+    bug_reports_message, TransportError, YoutubeDLError, RequestError
 )
 
 from .utils import random_user_agent

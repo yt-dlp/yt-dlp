@@ -1110,20 +1110,27 @@ class XAttrUnavailableError(YoutubeDLError):
     pass
 
 
-# TODO: deal with msg in places where we don't always want to specify it
 class RequestError(YoutubeDLError):
-    def __init__(self, msg, cause=None, backend_key=None):
+    def __init__(self, msg, backend_key=None):
         self.backend_key = backend_key
-        self.cause = cause
         super().__init__(msg)
 
+
+# TODO: deal with msg in places where we don't always want to specify it
+# TODO: better name
+class TransportError(RequestError):
+    def __init__(self, msg, cause=None, backend_key=None):
+        self.cause = cause
+        super().__init__(msg, backend_key=backend_key)
+
     def __str__(self):
+        # TODO
         backend_msg = cause_msg = ''
         if self.backend_key:
             backend_msg = f' in {self.backend_key}'
         if self.cause:
             cause_msg = f' (caused by {self.cause.__class__.__name__})'
-        return f'<request error{backend_msg}: {self.__class__.__name__} {self.msg}{cause_msg}>'
+        return f'<transport error{backend_msg}: {self.__class__.__name__} {self.msg}{cause_msg}>'
 
 
 # TODO: Add tests for reading, closing, trying to read again etc.
@@ -1132,7 +1139,7 @@ class RequestError(YoutubeDLError):
 # Similar API as urllib.error.HTTPError
 
 
-class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
+class HTTPError(TransportError, tempfile._TemporaryFileWrapper):
     def __init__(self, response):
         self.response = self.fp = response
         self.code = response.code
@@ -1148,7 +1155,7 @@ class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
         return self.msg
 
 
-class YDLTimeoutError(RequestError, TimeoutError):
+class YDLTimeoutError(TransportError, TimeoutError):
     msg = None
 
     def __init__(self, msg=None, **kwargs):
@@ -1165,7 +1172,7 @@ class ConnectTimeoutError(YDLTimeoutError):
     msg = 'Timed out while connecting'
 
 
-class IncompleteRead(RequestError, http.client.IncompleteRead):
+class IncompleteRead(TransportError, http.client.IncompleteRead):
     def __init__(self, partial, cause=None, expected=None):
         self.partial = partial
         self.expected = expected
@@ -1174,23 +1181,23 @@ class IncompleteRead(RequestError, http.client.IncompleteRead):
         # TODO: incomplete read error
 
 
-class SSLError(RequestError):
+class SSLError(TransportError):
     pass
 
 
-class ProxyError(RequestError):
+class ProxyError(TransportError):
     pass
 
 
-class ContentDecodingError(RequestError):
+class ContentDecodingError(TransportError):
     pass
 
 
-class MaxRedirectsError(RequestError):
+class MaxRedirectsError(TransportError):
     msg = 'Maximum redirects reached'
 
 
-network_exceptions = (HTTPError, RequestError)
+network_exceptions = (HTTPError, TransportError)
 
 def extract_timezone(date_str):
     m = re.search(

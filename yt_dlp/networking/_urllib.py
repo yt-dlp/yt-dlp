@@ -27,7 +27,7 @@ from ..utils import (
     IncompleteRead,
     ReadTimeoutError,
     ConnectTimeoutError,
-    RequestError,
+    TransportError,
     SSLError,
     HTTPError, extract_basic_auth, sanitize_url
 )
@@ -435,7 +435,7 @@ def handle_response_read_exceptions(e):
         raise IncompleteRead(partial=e.partial, cause=e, excepted=e.expected)
     # The response is partially read on request (for headers etc.)
     except http.client.HTTPException as e:
-        raise RequestError(msg=str(e), cause=e) from e
+        raise TransportError(msg=str(e), cause=e) from e
 
     except TimeoutError as e:
         raise ReadTimeoutError(cause=e) from e
@@ -443,7 +443,7 @@ def handle_response_read_exceptions(e):
     except ssl.SSLError as e:
         handle_sslerror(e)
     except ConnectionError as e:
-        raise RequestError(msg=str(e), cause=e) from e
+        raise TransportError(msg=str(e), cause=e) from e
 
 
 class UrllibRH(BackendRH):
@@ -510,7 +510,7 @@ class UrllibRH(BackendRH):
                 raise ConnectTimeoutError(cause=cause) from e
             handle_sslerror(cause)
             handle_response_read_exceptions(cause)
-            raise RequestError(msg=str(e), cause=e)
+            raise TransportError(msg=str(e), cause=e)
 
         except Exception as e:
             handle_response_read_exceptions(e)
