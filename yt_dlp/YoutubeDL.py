@@ -3933,7 +3933,8 @@ class YoutubeDL:
                     t['filepath'] = thumb_filename
                 except network_exceptions as err:
                     thumbnails.pop(idx)
-                    self.report_warning(f'Unable to download {thumb_display_id}: {err}')
+                    self.report_warning(f'Unable to download {self._format_err(thumb_display_id, self.Styles.ID)}: '
+                                        f'{self._format_err(err, self.Styles.ERROR)}')
             if ret and not write_all:
                 break
         return ret
