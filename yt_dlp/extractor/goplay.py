@@ -7,7 +7,7 @@ from .goplay_auth_aws import AwsIdp
 
 
 class GoPlayIE(InfoExtractor):
-    _VALID_URL = r'https?://(www\.)?goplay\.be/video/[^/]+/[^/]+/(?P<display_id>[^/#]+)'
+    _VALID_URL = r'https?://(www\.)?goplay\.be/video/([^/]+/[^/]+/|)(?P<display_id>[^/#]+)'
 
     _NETRC_MACHINE = 'goplay'
 
@@ -22,6 +22,14 @@ class GoPlayIE(InfoExtractor):
             'season_number': 3,
             'episode': 'Episode 2',
             'episode_number': 2,
+        },
+        'skip': 'This video is only available for registered users'
+    }, {
+        'url': 'https://www.goplay.be/video/a-family-for-thr-holidays-s1-aflevering-1#autoplay',
+        'info_dict': {
+            'id': '74e3ed07-748c-49e4-85a0-393a93337dbf',
+            'ext': 'mp4',
+            'title': 'A Family for the Holidays',
         },
         'skip': 'This video is only available for registered users'
     }]
@@ -43,8 +51,22 @@ class GoPlayIE(InfoExtractor):
         video_data_json = self._html_search_regex(r'<div\s+data-hero="([^"]+)"', webpage, 'video_data')
         video_data = self._parse_json(unescapeHTML(video_data_json), display_id).get('data')
 
-        episode = traverse_obj(video_data_json, ('playlists', ..., 'episodes', lambda _, v: traverse_obj(v, ('pageInfo', 'url')) == url), get_all=False)
-        video_id = episode.get('videoUuid')
+        movie = video_data.get('movie')
+        if movie:
+            video_id = movie.get('videoUuid')
+            info_dict = {
+                'title': movie.get('title')
+            }
+        else:
+            episode = traverse_obj(video_data, ('playlists', ..., 'episodes', lambda _, v: traverse_obj(v, ('pageInfo', 'url')) == url), get_all=False)
+            video_id = episode.get('videoUuid')
+            info_dict = {
+                'title': episode.get('episodeTitle'),
+                'series': traverse_obj(episode, ('program', 'title')),
+                'season_number': episode.get('seasonNumber'),
+                'episode_number': episode.get('episodeNumber'),
+            }
+
         api = self._download_json(
             f'https://api.viervijfzes.be/content/{video_id}',
             video_id, headers={'Authorization': self._id_token})
@@ -53,11 +75,9 @@ class GoPlayIE(InfoExtractor):
             api['video']['S'], video_id, ext='mp4', m3u8_id='HLS')
         self._sort_formats(formats)
 
-        return {
+        info_dict.update({
             'id': video_id,
-            'title': episode.get('episodeTitle'),
-            'series': traverse_obj(episode, ('program', 'title')),
-            'season_number': episode.get('seasonNumber'),
-            'episode_number': episode.get('episodeNumber'),
             'formats': formats,
-        }
+        })
+
+        return info_dict
