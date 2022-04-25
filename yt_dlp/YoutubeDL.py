@@ -3184,13 +3184,15 @@ class YoutubeDL:
                         if not cndn:
                             return
                         if not do_fixup:
-                            self.report_warning(f'{vid}: {msg}')
+                            self.report_warning(f'{self._format_err(vid, self.Styles.ID)}: {msg}')
                             return
                         pp = cls(self)
                         if pp.available:
                             info_dict['__postprocessors'].append(pp)
                         else:
-                            self.report_warning(f'{vid}: {msg}. Install ffmpeg to fix this automatically')
+                            self.report_warning(f'{self._format_err(vid, self.Styles.ID)}: {msg}.'
+                                                f'Install {self._format_err("ffmpeg", self.Styles.REQUIREMENT)} to fix '
+                                                'this automatically')
 
                     stretched_ratio = info_dict.get('stretched_ratio')
                     ffmpeg_fixup(
