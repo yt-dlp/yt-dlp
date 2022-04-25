@@ -19,13 +19,12 @@ from ..utils import (
     write_xattr,
     XAttrMetadataError,
     XAttrUnavailableError,
-    HTTPError,
-    TransportError
+    HTTPError, RequestError
 )
 from ..networking.common import Request
 
 # TODO
-RESPONSE_READ_EXCEPTIONS = (TransportError, TimeoutError)
+RESPONSE_READ_EXCEPTIONS = (RequestError,)
 
 
 class HttpFD(FileDownloader):

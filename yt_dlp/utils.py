@@ -19,6 +19,7 @@ import errno
 import functools
 import hashlib
 import hmac
+import http.client
 import importlib.util
 import io
 import itertools
@@ -1111,12 +1112,18 @@ class XAttrUnavailableError(YoutubeDLError):
 
 # TODO: deal with msg in places where we don't always want to specify it
 class RequestError(YoutubeDLError):
-    def __init__(self, msg=None, url=None):
+    def __init__(self, msg, cause=None, backend_key=None):
+        self.backend_key = backend_key
+        self.cause = cause
         super().__init__(msg)
-        self.url = url
 
     def __str__(self):
-        return f'<yt-dlp {self.__class__.__name__} {self.msg}>'
+        backend_msg = cause_msg = ''
+        if self.backend_key:
+            backend_msg = f' in {self.backend_key}'
+        if self.cause:
+            cause_msg = f' (caused by {self.cause.__class__.__name__})'
+        return f'<request error{backend_msg}: {self.__class__.__name__} {self.msg}{cause_msg}>'
 
 
 # TODO: Add tests for reading, closing, trying to read again etc.
@@ -1126,7 +1133,7 @@ class RequestError(YoutubeDLError):
 
 
 class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
-    def __init__(self, response, url):
+    def __init__(self, response):
         self.response = self.fp = response
         self.code = response.code
         msg = f'HTTP Error {self.code}: {response.reason}'
@@ -1134,51 +1141,44 @@ class HTTPError(RequestError, tempfile._TemporaryFileWrapper):
             msg = '[Client Error] ' + msg
         elif 500 <= self.code < 600:
             msg = '[Server Error] ' + msg
-        super().__init__(msg, url)
+        super().__init__(msg=msg)
         tempfile._TemporaryFileWrapper.__init__(self, response, '<yt-dlp response>', delete=False)
 
     def __str__(self):
         return self.msg
 
 
-class TransportError(RequestError):
-    def __init__(self, url=None, msg=None, cause=None):
-        if msg and cause:
-            msg = msg + f' (caused by {cause!r})'  # TODO
-        super().__init__(msg, url)
-        self.cause = cause
+class YDLTimeoutError(RequestError, TimeoutError):
+    msg = None
+
+    def __init__(self, msg=None, **kwargs):
+        if not msg:
+            self.msg = 'Timeout while connecting or reading'
+        super().__init__(self.msg, **kwargs)
 
 
-class ReadTimeoutError(TransportError, TimeoutError):
-    msg = 'Timed out while attempting to read data'
+class ReadTimeoutError(YDLTimeoutError):
+    msg = 'Timed out while reading'
 
 
-class ConnectionTimeoutError(TransportError, TimeoutError):
-    msg = 'Timed out while trying to connect to the server'
+class ConnectTimeoutError(YDLTimeoutError):
+    msg = 'Timed out while connecting'
 
 
-class ResolveHostError(TransportError):
-    def __init__(self, url=None, cause=None, host=None):
-        msg = 'Failed to resolve host' + f' {host or compat_urllib_parse.urlparse(url).hostname if url else ""}'
-        super().__init__(msg, url, cause=cause)
-
-
-class ConnectionReset(TransportError):
-    msg = 'The connection was reset'
-
-
-class IncompleteRead(TransportError, compat_http_client.IncompleteRead):
-    def __init__(self, partial, url=None, cause=None, expected=None):
+class IncompleteRead(RequestError, http.client.IncompleteRead):
+    def __init__(self, partial, cause=None, expected=None):
         self.partial = partial
         self.expected = expected
-        super().__init__(repr(self), url, cause)  # TODO: since we override with repr() in http.client.IncompleteRead
+        super().__init__(msg=repr(self), cause=cause)  # TODO: since we override with repr() in http.client.IncompleteRead
+        http.client.IncompleteRead.__init__(self, partial=partial, expected=expected)
+        # TODO: incomplete read error
 
 
-class SSLError(TransportError):
+class SSLError(RequestError):
     pass
 
 
-class ProxyError(TransportError):
+class ProxyError(RequestError):
     pass
 
 
@@ -1190,11 +1190,7 @@ class MaxRedirectsError(RequestError):
     msg = 'Maximum redirects reached'
 
 
-network_exceptions = [HTTPError, TransportError]
-if hasattr(ssl, 'CertificateError'):
-    network_exceptions.append(ssl.CertificateError)
-network_exceptions = tuple(network_exceptions)
-
+network_exceptions = (HTTPError, RequestError)
 
 def extract_timezone(date_str):
     m = re.search(
