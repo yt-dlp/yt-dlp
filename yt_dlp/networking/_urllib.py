@@ -18,18 +18,16 @@ from ..compat import (
     compat_urlparse, compat_HTTPError, compat_brotli
 )
 
-from .common import HTTPResponse, BackendAdapter, Request, make_std_headers
+from .common import HTTPResponse, BackendRH, Request, make_std_headers
 from .socksproxy import sockssocket
 from .utils import handle_youtubedl_headers, make_ssl_context, socks_create_proxy_args
 from ..utils import (
     escape_url,
     update_url_query,
     IncompleteRead,
-    ConnectionReset,
     ReadTimeoutError,
+    ConnectTimeoutError,
     TransportError,
-    ConnectionTimeoutError,
-    ResolveHostError,
     SSLError,
     HTTPError, extract_basic_auth, sanitize_url
 )
@@ -410,19 +408,9 @@ class UrllibResponseAdapter(HTTPResponse):
     def read(self, amt=None):
         try:
             return self._res.read(amt)
-        # TODO: handle exceptions
-        except http.client.IncompleteRead as err:
-            raise IncompleteRead(err.partial, self.geturl(), cause=err, expected=err.expected) from err
-        except ConnectionResetError as err:
-            raise ConnectionReset(self.geturl(), cause=err) from err
-        except TimeoutError as err:
-            raise ReadTimeoutError(self.geturl(), cause=err) from err
-        except (OSError, http.client.HTTPException) as e:
-            if e.errno == errno.ECONNRESET:
-                raise ConnectionReset(self.geturl(), cause=e) from e
-            if e.errno == errno.ETIMEDOUT:
-                raise ReadTimeoutError(self.geturl(), cause=e) from e
-            raise TransportError(self.geturl(), cause=e) from e
+        except Exception as e:
+            handle_response_read_exceptions(e)
+            raise e
 
     def close(self):
         super().close()
@@ -432,7 +420,33 @@ class UrllibResponseAdapter(HTTPResponse):
         return self._res.tell()
 
 
-class UrllibBackendAdapter(BackendAdapter):
+def handle_sslerror(e):
+    if not isinstance(e, ssl.SSLError):
+        return
+    if e.errno == errno.ETIMEDOUT:
+        raise ReadTimeoutError(cause=e) from e
+    raise SSLError(msg=str(e.reason), cause=e) from e
+
+
+def handle_response_read_exceptions(e):
+    try:
+        raise e
+    except http.client.IncompleteRead as e:
+        raise IncompleteRead(partial=e.partial, cause=e, excepted=e.expected)
+    # The response is partially read on request (for headers etc.)
+    except http.client.HTTPException as e:
+        raise TransportError(msg=str(e), cause=e) from e
+
+    except TimeoutError as e:
+        raise ReadTimeoutError(cause=e) from e
+
+    except ssl.SSLError as e:
+        handle_sslerror(e)
+    except ConnectionError as e:
+        raise TransportError(msg=str(e), cause=e) from e
+
+
+class UrllibRH(BackendRH):
     SUPPORTED_SCHEMES = ['http', 'https', 'data']
 
     def _initialize(self):
@@ -488,28 +502,20 @@ class UrllibBackendAdapter(BackendAdapter):
             res = self.get_opener(request.proxy).open(urllib_req, timeout=request.timeout)
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
-                raise HTTPError(UrllibResponseAdapter(e.fp), url=e.geturl())
+                raise HTTPError(UrllibResponseAdapter(e.fp))
 
         except urllib.error.URLError as e:
-            url = e.filename
-            # TODO: what errors are raised outside URLError?
-            try:
-                raise e.reason from e
-            except TimeoutError as e:
-                raise ConnectionTimeoutError(url=url, cause=e) from e
-            except socket.gaierror as e:
-                raise ResolveHostError(url=url, cause=e) from e
-            except ssl.SSLError as e:
-                if e.errno == errno.ECONNRESET:
-                    raise ConnectionReset(url, cause=e)
-                if e.errno == errno.ETIMEDOUT:
-                    raise ReadTimeoutError(url, cause=e)
-                raise SSLError(url=url, msg=str(e.reason), cause=e) from e
-            except Exception as e:
-                raise TransportError(url=url, cause=e) from e
+            cause = e.reason
+            if isinstance(cause, TimeoutError):
+                raise ConnectTimeoutError(cause=cause) from e
+            handle_sslerror(cause)
+            handle_response_read_exceptions(cause)
+            raise TransportError(msg=str(e), cause=e)
 
-        except http.client.HTTPException as e:
-            raise TransportError(cause=e) from e
+        except Exception as e:
+            handle_response_read_exceptions(e)
+            raise e
+        # TODO: other errors outside URLError
 
         return UrllibResponseAdapter(res)
 

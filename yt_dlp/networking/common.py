@@ -22,7 +22,7 @@ from ..utils import (
     write_string,
     std_headers,
     update_url_query,
-    bug_reports_message, RequestError
+    bug_reports_message, TransportError, YoutubeDLError, RequestError
 )
 
 from .utils import random_user_agent
@@ -233,8 +233,13 @@ class RequestHandler:
     def can_handle(cls, request: Request, **req_kwargs) -> bool:
         """Validate if handler is suitable for given request. Can override in subclasses."""
 
+    @classmethod
+    def rh_key(cls):
+        """A string representing the request handler"""
+        return cls.__name__[:-2]
 
-class BackendAdapter(RequestHandler):
+
+class BackendRH(RequestHandler):
     """Network Backend adapter class
     Responsible for handling requests.
 
@@ -283,7 +288,7 @@ class BackendAdapter(RequestHandler):
         """Real request handling process. Redefine in subclasses"""
 
 
-class BackendManager:
+class RHManager:
 
     def __init__(self, ydl):
         self.handlers = []
@@ -339,9 +344,18 @@ class BackendManager:
         for handler in reversed(self.handlers):
             if not handler.can_handle(req):
                 continue
-            res = handler.handle(req)
+            try:
+                res = handler.handle(req)
+            except Exception as e:
+                if not isinstance(e, YoutubeDLError):
+                    self.ydl.report_warning(f'Unexpected error from request handler: {e}' + bug_reports_message())
+
+                if isinstance(e, RequestError):
+                    e.backend_key = handler.rh_key()
+                raise
+
             if not res:
-                self.ydl.report_warning(f'{handler.__class__} handler returned nothing for response' + bug_reports_message())
+                self.ydl.report_warning(f'{handler.rh_key()} request handler returned nothing for response' + bug_reports_message())
                 continue
             assert isinstance(res, HTTPResponse)
             return res
@@ -530,7 +544,7 @@ def make_std_headers():
     return UniqueHTTPHeaderStore(_std_headers, std_headers)
 
 
-class UnsupportedBackend(BackendAdapter):
+class UnsupportedRH(BackendRH):
     """
     Fallback backend adapter if a request is not supported.
 
