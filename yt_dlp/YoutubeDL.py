@@ -3222,8 +3222,12 @@ class YoutubeDL:
                                      f'Possible duplicate {self._format_err("MOOV", self.Styles.EMPHASIS)} atoms',
                                      FFmpegFixupDuplicateMoovPP)
 
-                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed timestamps detected', FFmpegFixupTimestampPP)
-                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed duration detected', FFmpegFixupDurationPP)
+                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD',
+                                 f'Malformed {self._format_err("timestamps", self.Styles.KEY)} detected',
+                                 FFmpegFixupTimestampPP)
+                    ffmpeg_fixup(downloader == 'WebSocketFragmentFD',
+                                 f'Malformed {self._format_err("duration", self.Styles.KEY)} detected',
+                                 FFmpegFixupDurationPP)
 
                 fixup()
                 try:
