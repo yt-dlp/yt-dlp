@@ -3197,7 +3197,7 @@ class YoutubeDL:
                     stretched_ratio = info_dict.get('stretched_ratio')
                     ffmpeg_fixup(
                         stretched_ratio not in (1, None),
-                        f'Non-uniform pixel ratio {stretched_ratio}',
+                        f'Non-uniform {self._format_err("pixel ratio", self.Styles.KEY)} {stretched_ratio}',
                         FFmpegFixupStretchedPP)
 
                     ffmpeg_fixup(
