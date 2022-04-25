@@ -3808,7 +3808,7 @@ class YoutubeDL:
             return None
 
     def _write_description(self, label, ie_result, descfn):
-        ''' Write description and returns True = written, False = skip, None = error '''
+        """ Write description and returns True = written, False = skip, None = error """
         if not self.params.get('writedescription'):
             return False
         elif not descfn:
