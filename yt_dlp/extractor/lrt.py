@@ -11,7 +11,7 @@ class LRTIE(InfoExtractor):
     _TESTS = [{
         # m3u8 download
         'url': 'https://www.lrt.lt/mediateka/irasas/2000127261/greita-ir-gardu-sicilijos-ikvepta-klasikiniu-makaronu-su-baklazanais-vakariene',
-        'md5': '85cb2bb530f31d91a9c65b479516ade4',
+        'md5': 'cb4b239351697e985ca3177dcc1ced8d',
         'info_dict': {
             'id': '2000127261',
             'ext': 'mp4',
@@ -20,6 +20,8 @@ class LRTIE(InfoExtractor):
             'duration': 3035,
             'timestamp': 1604079000,
             'upload_date': '20201030',
+            'tags': ['LRT TELEVIZIJA', 'Beatos virtuvė', 'Beata Nicholson', 'Makaronai', 'Baklažanai', 'Vakarienė', 'Receptas'],
+            'thumbnail': 'https://www.lrt.lt/img/2020/10/30/764041-126478-1287x836.jpg'
         },
     }, {
         # direct mp3 download
