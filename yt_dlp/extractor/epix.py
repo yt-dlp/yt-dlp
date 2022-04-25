@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import uuid
 
@@ -21,9 +18,9 @@ class EpixBase(InfoExtractor):
     }
 
     def _real_initialize(self):
-        info = self._download_json(f'{self._API_URL}sessions', video_id='access token', data=json.dumps({
+        info = self._download_json(f'{self._API_URL}sessions', None, note='Download access token info', headers=self._HEADERS, data=json.dumps({
             'device': {
-                'guid': uuid.uuid1().__str__(),
+                'guid': str(uuid.uuid1()),
                 'format': 'console',
                 'os': 'web',
                 'app_version': '1.0.2',
@@ -34,7 +31,7 @@ class EpixBase(InfoExtractor):
             'oauth': {
                 'token': None
             }
-        }).encode('utf-8'), headers=self._HEADERS, note='Download access token info')
+        }).encode('utf-8'))
         access_token = traverse_obj(info, ('device_session', 'session_token'))
         self._HEADERS.update({
             'x-session-token': access_token
@@ -42,9 +39,9 @@ class EpixBase(InfoExtractor):
 
 
 class EpixExtraIE(EpixBase):
-    _VALID_URL = r'https?://www\.epix\.com/series/(?P<id>[^(?:/|\?)]+)(?:\/extra\/\d+|\?|$)'
+    _VALID_URL = r'https?://www\.epix\.com/series/(?P<id>[^(?:/|\?)]+)(?:/extra/\d+|\?|$)'
     IE_NAME = 'epix:extra'
-    IE_DESC = 'epix.com'
+    IE_DESC = 'Epix extra video'
     _TESTS = [{
         'url': 'https://www.epix.com/series/from/extra/13596',
         'md5': 'afedb9351282d7f8aee6e5474d8a7bc8',
@@ -95,14 +92,13 @@ class EpixBaseTraier(EpixBase):
             'url': traverse_obj(info, ('trailer', 'url')),
             'ext': 'mp4',
         }]
-        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(info, ('trailer', 'hlspath')),
-                                                                   video_id=video_id)
+        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(traverse_obj(info, ('trailer', 'hlspath')), video_id=video_id)
         formats.extend(fmts)
         self._sort_formats(formats)
         return {
             'id': video_id,
             'title': info.get('title') or info.get('short_title'),
-            'description': info.get('synopsis') or info.get('short_description'),
+            'description': traverse_obj(info, 'synopsis', 'short_description'),
             'subtitles': subtitles,
             'thumbnail': traverse_obj(info, ('images', 'poster', '16_9', 'xlarge')),
             'formats': formats,
@@ -112,7 +108,7 @@ class EpixBaseTraier(EpixBase):
 class EpixTrailerSeasonIE(EpixBaseTraier):
     _VALID_URL = r'https?://www\.epix\.com/series/(?P<id>[^/]+)/season/(?P<season_id>\d+)/episode/(?P<episode_id>\d+)'
     IE_NAME = 'epix:trailer:season'
-    IE_DESC = 'epix.com'
+    IE_DESC = 'Epix trailer season'
     _TESTS = [{
         'url': 'https://www.epix.com/series/from/season/1/episode/3/from-s1-e3?trailer=true',
         'md5': '3f56c06de32ff5453f9a590a12a31d13',
@@ -138,15 +134,18 @@ class EpixTrailerSeasonIE(EpixBaseTraier):
     def _real_extract(self, url):
         video_id, season_id, episode_id = self._match_valid_url(url).groups()
         info = self._download_json(f'{self._API_URL}series/{video_id}', video_id=video_id, headers=self._HEADERS)
-        trailer_info = traverse_obj(info, (
-            'series', 'items', int_or_none(season_id) - 1, 'content', 'items', int_or_none(episode_id) - 1, 'content'))
+        if int_or_none(season_id) and int_or_none(episode_id):
+            trailer_info = traverse_obj(info, (
+                'series', 'items', int_or_none(season_id) - 1, 'content', 'items', int_or_none(episode_id) - 1, 'content'))
+        else:
+            raise ExtractorError('Extractor failed to obtain "season_id" and "episode_id"', expected=True)
         return self._extract_trailer_info(trailer_info, video_id)
 
 
 class EpixTrailerMovieIE(EpixBaseTraier):
     _VALID_URL = r'https?://www\.epix\.com/movie\/(?P<id>[^(/|\?)]+)'
     IE_NAME = 'epix:trailer:movie'
-    IE_DESC = 'epix.com'
+    IE_DESC = 'Epix trailer movie'
     _TESTS = [{
         'url': 'https://www.epix.com/movie/the-marksman',
         'md5': '63f2bff2ef775c278dc9095eabc91ab9',
