@@ -1,6 +1,6 @@
-from ._urllib import UrllibBackendAdapter
-from .common import UnsupportedBackend
+from ._urllib import UrllibRH
+from .common import UnsupportedRH
 
-network_handlers = [UnsupportedBackend, UrllibBackendAdapter]
+network_handlers = [UnsupportedRH, UrllibRH]
 
-__all__ = ['UrllibBackendAdapter', 'UnsupportedBackend', 'network_handlers']
+__all__ = ['UrllibRH', 'UnsupportedRH', 'network_handlers']

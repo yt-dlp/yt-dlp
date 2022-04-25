@@ -45,14 +45,14 @@ from .compat import (
 from .cookies import load_cookies
 from .networking.common import (
     Request,
-    BackendManager,
+    RHManager,
     make_std_headers,
     HEADRequest, UniqueHTTPHeaderStore
 )
 
 from .networking.utils import has_certifi
 
-from .networking import network_handlers, UrllibBackendAdapter
+from .networking import network_handlers, UrllibRH
 
 from .utils import (
     age_restricted,
@@ -3720,7 +3720,7 @@ class YoutubeDL(object):
         This is for backwards compatability only.
         """
         for handler in self.default_session.handlers:
-            if isinstance(handler, UrllibBackendAdapter):
+            if isinstance(handler, UrllibRH):
                 return handler.get_opener(self.default_session.get_default_proxy())
 
     def _setup_backends(self):
@@ -3728,7 +3728,7 @@ class YoutubeDL(object):
             'cookiejar': self.cookiejar,
             'verbose': self.params.get('debug_printtraffic'),
         }
-        manager = BackendManager(self)
+        manager = RHManager(self)
         for handler_class in network_handlers:
             if not handler_class:
                 continue

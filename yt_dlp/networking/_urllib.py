@@ -18,7 +18,7 @@ from ..compat import (
     compat_urlparse, compat_HTTPError, compat_brotli
 )
 
-from .common import HTTPResponse, BackendAdapter, Request, make_std_headers
+from .common import HTTPResponse, BackendRH, Request, make_std_headers
 from .socksproxy import sockssocket
 from .utils import handle_youtubedl_headers, make_ssl_context, socks_create_proxy_args
 from ..utils import (
@@ -446,7 +446,7 @@ def handle_response_read_exceptions(e):
         raise RequestError(msg=str(e), cause=e) from e
 
 
-class UrllibBackendAdapter(BackendAdapter):
+class UrllibRH(BackendRH):
     SUPPORTED_SCHEMES = ['http', 'https', 'data']
 
     def _initialize(self):
