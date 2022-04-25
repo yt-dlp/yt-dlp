@@ -3214,7 +3214,9 @@ class YoutubeDL:
 
                     if info_dict.get('requested_formats') is None:  # Not necessary if doing merger
                         ffmpeg_fixup(downloader == 'HlsFD',
-                                     'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
+                                     f'Possible {self._format_err("MPEG - TS", self.Styles.EMPHASIS)} in '
+                                     f'{self._format_err("MP4", self.Styles.EMPHASIS)} container or '
+                                     f'malformed {self._format_err("AAC", self.Styles.EMPHASIS)} timestamps',
                                      FFmpegFixupM3u8PP)
                         ffmpeg_fixup(info_dict.get('is_live') and downloader == 'DashSegmentsFD',
                                      'Possible duplicate MOOV atoms', FFmpegFixupDuplicateMoovPP)
