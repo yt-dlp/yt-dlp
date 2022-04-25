@@ -3204,8 +3204,10 @@ class YoutubeDL:
                         (info_dict.get('requested_formats') is None
                          and info_dict.get('container') == 'm4a_dash'
                          and info_dict.get('ext') == 'm4a'),
-                        'writing DASH m4a. Only some players support this container',
-                        FFmpegFixupM4aPP)
+                        f'writing {self._format_err("DASH m4a", self.Styles.EMPHASIS)}. '
+                        f'{self._format_err("Only some players support this container", self.Styles.WARNING)}',
+                        FFmpegFixupM4aPP
+                    )
 
                     downloader = get_suitable_downloader(info_dict, self.params) if 'protocol' in info_dict else None
                     downloader = downloader.__name__ if downloader else None
