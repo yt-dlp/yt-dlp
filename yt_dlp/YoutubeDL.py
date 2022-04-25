@@ -3725,10 +3725,10 @@ class YoutubeDL:
             latest_version = self.urlopen(
                 'https://yt-dl.org/latest/version').read().decode('utf-8')
             if version_tuple(latest_version) > version_tuple(__version__):
-                self.report_warning(
-                    'You are using an outdated version (newest version: %s)! '
-                    'See https://yt-dl.org/update if you need help updating.' %
-                    latest_version)
+                self.report_warning(f'You are using an outdated version (newest version: '
+                                    f'{self._format_err(latest_version, self.Styles.DEMAND)})! '
+                                    f'See {self._format_err("https://yt-dl.org/update", self.Styles.EMPHASIS)} '
+                                    'if you need help updating.')
 
     def _setup_opener(self):
         if hasattr(self, '_opener'):
