@@ -52,7 +52,7 @@ from .networking.common import (
 
 from .networking.utils import has_certifi
 
-from .networking import network_handlers, UrllibRH
+from .networking import REQUEST_HANDLERS, UrllibRH
 
 from .utils import (
     age_restricted,
@@ -3731,7 +3731,7 @@ class YoutubeDL(object):
             'verbose': self.params.get('debug_printtraffic'),
         }
         manager = RHManager(self)
-        for handler_class in network_handlers:
+        for handler_class in REQUEST_HANDLERS:
             if not handler_class:
                 continue
             handler = handler_class(self, params)

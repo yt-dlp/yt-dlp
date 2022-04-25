@@ -10,7 +10,7 @@ from ..compat import (
 from .common import (
     make_std_headers,
     HTTPResponse,
-    BackendAdapter,
+    BackendRH,
     Request,
     UniqueHTTPHeaderStore
 )
@@ -25,14 +25,11 @@ from .utils import (
 
 from ..utils import (
     IncompleteRead,
-    ConnectionReset,
     ReadTimeoutError,
     TransportError,
-    ConnectionTimeoutError,
     SSLError,
     HTTPError,
-    ProxyError,
-    RequestError
+    ProxyError, ConnectTimeoutError,
 )
 
 import urllib3
@@ -47,6 +44,33 @@ SUPPORTED_ENCODINGS = [
 # urllib3 does not support brotlicffi on versions < 1.26.9
 if compat_brotli and not (compat_brotli.__name__ == 'brotlicffi' and urllib3.__version__ < '1.26.9'):
     SUPPORTED_ENCODINGS.append('br')
+
+def handle_protocol_error(e):
+    if isinstance(e, urllib3.exceptions.ProtocolError):
+        original_cause = e.__cause__
+        if isinstance(original_cause, compat_http_client.IncompleteRead) or 'incomplete read' in str(e).lower():
+            if original_cause:
+                partial, expected = original_cause.partial, original_cause.expected
+                raise IncompleteRead(partial=partial, cause=e, expected=expected) from e
+            else:
+                # TODO: capture incomplete read detail with regex
+                pass
+        raise TransportError(msg=str(e), cause=e) from e
+
+READ_ERRORS = (urllib3.exceptions.ReadTimeoutError, urllib3.exceptions.IncompleteRead, urllib3.exceptions.SSLError)
+
+def handle_read_errors(e):
+    try:
+        raise e
+    except urllib3.exceptions.ReadTimeoutError as e:
+        raise ReadTimeoutError(cause=e) from e
+    except urllib3.exceptions.IncompleteRead as e:
+        raise IncompleteRead(partial=e.partial, expected=e.expected, cause=e) from e
+    except urllib3.exceptions.SSLError as e:
+        # TODO: can we get access to the underlying SSL reason?
+        original_cause = e.__cause__
+        raise SSLError(cause=e, msg=str(original_cause.args if original_cause else str(e))) from e
+
 
 
 class Urllib3ResponseAdapter(HTTPResponse):
@@ -75,31 +99,12 @@ class Urllib3ResponseAdapter(HTTPResponse):
     def read(self, amt: int = None):
         try:
             return self._res.read(amt)
-        except urllib3.exceptions.IncompleteRead as e:
-            raise IncompleteRead(e.partial, self.geturl(), cause=e, expected=e.expected) from e
-        except urllib3.exceptions.SSLError as e:
-            raise SSLError(self.geturl(), cause=e) from e
-        except urllib3.exceptions.ReadTimeoutError as e:
-            raise ReadTimeoutError(self.geturl(), cause=e) from e
+        except READ_ERRORS as e:
+            handle_read_errors(e)
         except urllib3.exceptions.ProtocolError as e:
-            original_cause = e.__cause__
-            if isinstance(original_cause, compat_http_client.IncompleteRead) or 'incomplete read' in str(e).lower():
-                if original_cause:
-                    partial, expected = original_cause.partial, original_cause.expected
-                else:
-                    # TODO: capture incomplete read detail with regex
-                    raise NotImplementedError
-
-                raise IncompleteRead(partial, self.geturl(), cause=e, expected=expected) from e
-            elif isinstance(original_cause, ConnectionResetError) or 'connection reset' in str(e).lower():
-                raise ConnectionReset(self.geturl(), e, cause=e) from e
-            elif isinstance(original_cause, OSError):
-                if original_cause.errno == errno.ECONNRESET:
-                    raise ConnectionReset(self.geturl(), cause=e) from e
-                if original_cause.errno == errno.ETIMEDOUT:
-                    raise ReadTimeoutError(self.geturl(), cause=e) from e
-
-            raise TransportError(self.geturl(), e, cause=e) from e
+            handle_protocol_error(e)
+        except urllib3.exceptions.HTTPError as e:
+            raise TransportError(msg=str(e), cause=e) from e
 
     def close(self):
         super().close()
@@ -109,7 +114,7 @@ class Urllib3ResponseAdapter(HTTPResponse):
         return self._res.tell()
 
 
-class Urllib3RH(BackendAdapter):
+class Urllib3RH(BackendRH):
     SUPPORTED_SCHEMES = ['http', 'https']
 
     def _initialize(self):
@@ -190,42 +195,24 @@ class Urllib3RH(BackendAdapter):
             except urllib3.exceptions.MaxRetryError as r:
                 raise r.reason
 
-        # TODO: these all need A LOT of work
-        # TODO: this is recent
-        # except urllib3.exceptions.NameResolutionError as e:
-        #     # TODO: better regex
-        #     mobj = re.match(r"Failed to resolve '(?P<host>[^']+)' \((?P<reason>[^)]*)", str(e))
-        #     raise ResolveHostError(host=mobj.group('host'), cause=e) from e
-
-        except urllib3.exceptions.ReadTimeoutError as e:
-            raise ReadTimeoutError(e.url, msg=str(e), cause=e) from e
         except urllib3.exceptions.ConnectTimeoutError as e:
-            raise ConnectionTimeoutError(msg=str(e), cause=e) from e
-        except urllib3.exceptions.SSLError as e:
-            original_cause = e.__cause__
-            raise SSLError(cause=e, msg=str(original_cause.args if original_cause else str(e))) from e
-
-        except urllib3.exceptions.IncompleteRead as e:
-            raise IncompleteRead(partial=e.partial, expected=e.expected, cause=e) from e
+            raise ConnectTimeoutError(cause=e) from e
 
         except urllib3.exceptions.ProxyError as e:
-            raise ProxyError(msg=str(e), cause=e) from e  # will likely need to handle this differently
-        except urllib3.exceptions.ProtocolError as e:
-            raise TransportError(msg=str(e), cause=e) from e
+            raise ProxyError(msg=str(e), cause=e) from e  # TODO: will likely need to handle this differently
 
-        except urllib3.exceptions.RequestError as e:
-            raise RequestError(msg=str(e), url=e.url) from e
+        except READ_ERRORS as e:
+            handle_read_errors(e)
+
+        except urllib3.exceptions.ProtocolError as e:
+            handle_protocol_error(e)
 
         except urllib3.exceptions.HTTPError as e:
-            raise RequestError(msg=str(e)) from e
+            raise TransportError(msg=str(e), cause=e) from e
 
         res = Urllib3ResponseAdapter(urllib3_res)
-        if not (
-                (200 <= res.status < 300)
-                or (res.status in (301, 302, 303, 307, 308) and request.get_method() in ('GET', 'HEAD'))
-                or (res.status in (301, 302, 303) and request.get_method() == 'POST')
-        ):
-            raise HTTPError(res, res.url)
+        if not 200 <= res.status < 400:
+            raise HTTPError(res)
 
         if self.cookiejar:
             self.cookiejar.extract_cookies(res, request)
