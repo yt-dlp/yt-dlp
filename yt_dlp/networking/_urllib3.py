@@ -109,7 +109,7 @@ class Urllib3ResponseAdapter(HTTPResponse):
         return self._res.tell()
 
 
-class Urllib3BackendAdapter(BackendAdapter):
+class Urllib3RH(BackendAdapter):
     SUPPORTED_SCHEMES = ['http', 'https']
 
     def _initialize(self):
