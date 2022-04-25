@@ -3219,7 +3219,8 @@ class YoutubeDL:
                                      f'malformed {self._format_err("AAC", self.Styles.EMPHASIS)} timestamps',
                                      FFmpegFixupM3u8PP)
                         ffmpeg_fixup(info_dict.get('is_live') and downloader == 'DashSegmentsFD',
-                                     'Possible duplicate MOOV atoms', FFmpegFixupDuplicateMoovPP)
+                                     f'Possible duplicate {self._format_err("MOOV", self.Styles.EMPHASIS)} atoms',
+                                     FFmpegFixupDuplicateMoovPP)
 
                     ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed timestamps detected', FFmpegFixupTimestampPP)
                     ffmpeg_fixup(downloader == 'WebSocketFragmentFD', 'Malformed duration detected', FFmpegFixupDurationPP)
