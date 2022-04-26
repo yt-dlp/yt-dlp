@@ -33,7 +33,9 @@ from .compat import (
     compat_str,
     compat_urllib_error,
     compat_urllib_request,
+    set_windows_conout_mode,
     windows_enable_vt_mode,
+    WINDOWS_VT_MODE
 )
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -535,7 +537,12 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
 
-        windows_enable_vt_mode()
+        try:
+            self._vt_mode = windows_enable_vt_mode()
+        except Exception:
+            self._vt_mode = None
+            self.report_warning('Failed to set Windows console to VT mode')
+
         self._out_files = {
             'error': sys.stderr,
             'print': sys.stderr if self.params.get('logtostderr') else sys.stdout,
@@ -840,6 +847,17 @@ class YoutubeDL:
 
         if self.params.get('cookiefile') is not None:
             self.cookiejar.save(ignore_discard=True, ignore_expires=True)
+
+    def __del__(self):
+        self.close()
+
+    def close(self):
+        if WINDOWS_VT_MODE:
+            try:
+                set_windows_conout_mode(self._vt_mode)
+                self._vt_mode = None
+            except Exception:
+                self.report_warning('Failed to reset Windows console to VT mode')
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.

@@ -1,6 +1,4 @@
-import contextlib
 import os
-import subprocess
 import sys
 import warnings
 import xml.etree.ElementTree as etree
@@ -36,6 +34,10 @@ compat_os_name = os._name if os.name == 'java' else os.name
 
 
 if compat_os_name == 'nt':
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
     def compat_shlex_quote(s):
         return s if re.match(r'^[-_\w./]+$', s) else '"%s"' % s.replace('"', '\\"')
 else:
@@ -83,12 +85,46 @@ else:
 WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 
 
-def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+def set_windows_conout_mode(new_mode, mask=0xffffffff):
+    # based on https://github.com/python/cpython/issues/74261#issuecomment-1093745755
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+    def _check_bool(result, func, args):
+        if not result:
+            raise ctypes.WinError(ctypes.get_last_error())
+        return args
+
+    kernel32.GetConsoleMode.errcheck = _check_bool
+    kernel32.GetConsoleMode.argtypes = (wintypes.HANDLE, (ctypes.POINTER(wintypes.DWORD)))
+    kernel32.SetConsoleMode.errcheck = _check_bool
+    kernel32.SetConsoleMode.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+
+    # don't assume StandardOutput is a console.
+    # open CONOUT$ instead
+    fdout = os.open('CONOUT$', os.O_RDWR)
+    try:
+        hout = msvcrt.get_osfhandle(fdout)
+        old_mode = ctypes.wintypes.DWORD()
+        kernel32.GetConsoleMode(hout, ctypes.byref(old_mode))
+        mode = (new_mode & mask) | (old_mode.value & ~mask)
+        kernel32.SetConsoleMode(hout, mode)
+        return old_mode.value
+    finally:
+        os.close(fdout)
+
+
+def windows_enable_vt_mode():
     if compat_os_name != 'nt':
         return
     global WINDOWS_VT_MODE
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    with contextlib.suppress(Exception):
-        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
+    error_invalid_parameter = 0x0057
+    enable_virtual_terminal_processing = 0x0004
+
+    mode = mask = enable_virtual_terminal_processing
+    try:
+        mode = set_windows_conout_mode(mode, mask)
         WINDOWS_VT_MODE = True
+        return mode
+    except WindowsError as e:
+        if e.winerror != error_invalid_parameter:  # any other error than not supported os
+            raise e
