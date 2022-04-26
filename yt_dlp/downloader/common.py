@@ -400,7 +400,7 @@ class FileDownloader:
 
     def sleep_retry(self, retry_type, count):
         sleep_func = self.params.get('retry_sleep_functions', {}).get(retry_type)
-        delay = int_or_none(sleep_func(n=count)) if sleep_func else None
+        delay = int_or_none(sleep_func(n=count - 1)) if sleep_func else None
         if delay:
             self.__to_screen(f'Sleeping {delay} seconds ...')
             time.sleep(delay)

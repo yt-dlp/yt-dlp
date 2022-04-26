@@ -33,7 +33,6 @@ from .utils import (
     DownloadCancelled,
     DownloadError,
     GeoUtils,
-    SafeEval,
     SameFileError,
     decodeOption,
     expand_path,
@@ -242,14 +241,25 @@ def validate_options(opts):
     opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
 
     # Retry sleep function
-    calculator = SafeEval((int, float), SafeEval.FUNC_NODES | SafeEval.MATH_NODES, {**SafeEval.MATH_FUNCS, 'n': 0})
+    def parse_sleep_func(expr):
+        NUMBER_RE = r'\d+(?:\.\d+)?'
+        op, start, limit, step, *_ = tuple(re.fullmatch(
+            rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE}))?(?::({NUMBER_RE}))?',
+            expr.strip()).groups()) + (None, None)
+
+        if op == 'exp':
+            return lambda n: min(float(start) * (float(step or 2) ** n), float(limit or 'inf'))
+        else:
+            default_step = start if op or limit else 0
+            return lambda n: min(float(start) + float(step or default_step) * n, float(limit or 'inf'))
+
     for key, expr in opts.retry_sleep.items():
         if not expr:
             del opts.retry_sleep[key]
             continue
         try:
-            opts.retry_sleep[key] = calculator.to_func(expr)
-        except ValueError as e:
+            opts.retry_sleep[key] = parse_sleep_func(expr)
+        except AttributeError as e:
             raise ValueError(f'invalid {key} retry sleep expression {expr!r}: {e}')
 
     # Bytes
