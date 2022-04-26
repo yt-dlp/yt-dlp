@@ -72,6 +72,18 @@ def handle_read_errors(e):
         raise SSLError(cause=e, msg=str(original_cause.args if original_cause else str(e))) from e
 
 
+# TODO: actually test if this helps
+# After an HTTP Error, close the connection rather than returning it to the pool
+# May help with recovering from temporary errors related to persistent connections (e.g. temp block)
+class Urllib3HTTPError(HTTPError):
+    def __init__(self, response):
+        def release_conn_override():
+            if response._res._connection:
+                response._res._connection.close()
+                response._res._connection = None
+        response._res.release_conn = release_conn_override
+        super().__init__(response)
+
 
 class Urllib3ResponseAdapter(HTTPResponse):
     def __init__(self, res):
@@ -212,7 +224,7 @@ class Urllib3RH(BackendRH):
 
         res = Urllib3ResponseAdapter(urllib3_res)
         if not 200 <= res.status < 400:
-            raise HTTPError(res)
+            raise Urllib3HTTPError(res)
 
         if self.cookiejar:
             self.cookiejar.extract_cookies(res, request)
