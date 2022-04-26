@@ -799,8 +799,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             yield ('-map', '-0:%d' % old_stream)
             new_stream -= 1
 
-        yield ('-attach', infofn,
-               '-metadata:s:%d' % new_stream, 'mimetype=application/json')
+        yield (
+            '-attach', infofn,
+            f'-metadata:s:{new_stream}', 'mimetype=application/json',
+            f'-metadata:s:{new_stream}', 'filename=info.json',
+        )
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):
