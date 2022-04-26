@@ -666,6 +666,7 @@ def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
     if is_id is NO_DEFAULT:
+        result = result.encode(get_filesystem_encoding(), errors='ignore').decode(get_filesystem_encoding())
         result = re.sub('(\0.)(?:(?=\\1)..)+', r'\1', result)  # Remove repeated substitute chars
         STRIP_RE = '(?:\0.|[ _-])*'
         result = re.sub(f'^\0.{STRIP_RE}|{STRIP_RE}\0.$', '', result)  # Remove substitute chars from start/end
