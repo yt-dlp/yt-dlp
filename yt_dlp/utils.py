@@ -5221,7 +5221,7 @@ class WebSocketsWrapper():
     pool = None
 
     def __init__(self, url, headers=None, connect=True):
-        self.loop = asyncio.events.new_event_loop()
+        self.loop = asyncio.new_event_loop()
         # XXX: "loop" is deprecated
         self.conn = websockets.connect(
             url, extra_headers=headers, ping_interval=None,
@@ -5252,7 +5252,7 @@ class WebSocketsWrapper():
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
     @staticmethod
     def run_with_loop(main, loop):
-        if not asyncio.coroutines.iscoroutine(main):
+        if not asyncio.iscoroutine(main):
             raise ValueError(f'a coroutine was expected, got {main!r}')
 
         try:
@@ -5264,7 +5264,7 @@ class WebSocketsWrapper():
 
     @staticmethod
     def _cancel_all_tasks(loop):
-        to_cancel = asyncio.tasks.all_tasks(loop)
+        to_cancel = asyncio.all_tasks(loop)
 
         if not to_cancel:
             return
@@ -5274,7 +5274,7 @@ class WebSocketsWrapper():
 
         # XXX: "loop" is removed in python 3.10+
         loop.run_until_complete(
-            asyncio.tasks.gather(*to_cancel, loop=loop, return_exceptions=True))
+            asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
 
         for task in to_cancel:
             if task.cancelled():
