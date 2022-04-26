@@ -47,6 +47,7 @@ def main():
         '--noconfirm',
         *dependency_options(),
         *opts,
+        '--collect-submodules=yt_dlp',
         'yt_dlp/__main__.py',
     ]
     print(f'Running PyInstaller with {opts}')

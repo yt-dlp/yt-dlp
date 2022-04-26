@@ -48,6 +48,8 @@ if sys.argv[1:2] == ['py2exe']:
                 'dist_dir': './dist',
                 'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
                 'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
+                # Modules that are only imported dynamically must be added here
+                'includes': ['yt_dlp.compat._legacy'],
             }
         },
         'zipfile': None
