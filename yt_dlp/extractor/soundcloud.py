@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import re
 import json
@@ -12,7 +9,6 @@ from .common import (
 )
 from ..compat import (
     compat_HTTPError,
-    compat_kwargs,
     compat_str,
 )
 from ..utils import (
@@ -96,7 +92,7 @@ class SoundcloudBaseIE(InfoExtractor):
             query['client_id'] = self._CLIENT_ID
             kwargs['query'] = query
             try:
-                return super()._download_json(*args, **compat_kwargs(kwargs))
+                return super()._download_json(*args, **kwargs)
             except ExtractorError as e:
                 if isinstance(e.cause, compat_HTTPError) and e.cause.code in (401, 403):
                     self._store_client_id(None)
@@ -107,30 +103,24 @@ class SoundcloudBaseIE(InfoExtractor):
                     return False
                 raise
 
-    def _real_initialize(self):
+    def _initialize_pre_login(self):
         self._CLIENT_ID = self._downloader.cache.load('soundcloud', 'client_id') or 'a3e059563d7fd3372b49b37f00a00bcf'
-        self._login()
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
-        if username == 'oauth' and password is not None:
-            self._access_token = password
-            query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
-            payload = {'session': {'access_token': self._access_token}}
-            token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
-            response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
-            if response is not False:
-                self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
-                self.report_login()
-            else:
-                self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
-        elif username is not None:
+    def _perform_login(self, username, password):
+        if username != 'oauth':
             self.report_warning(
                 'Login using username and password is not currently supported. '
                 'Use "--username oauth --password <oauth_token>" to login using an oauth token')
+        self._access_token = password
+        query = self._API_AUTH_QUERY_TEMPLATE % self._CLIENT_ID
+        payload = {'session': {'access_token': self._access_token}}
+        token_verification = sanitized_Request(self._API_VERIFY_AUTH_TOKEN % query, json.dumps(payload).encode('utf-8'))
+        response = self._download_json(token_verification, None, note='Verifying login token...', fatal=False)
+        if response is not False:
+            self._HEADERS = {'Authorization': 'OAuth ' + self._access_token}
+            self.report_login()
+        else:
+            self.report_warning('Provided authorization token seems to be invalid. Continue as guest')
 
         r'''
         def genDevId():

@@ -1,21 +1,20 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 # Allow direct execution
+import contextlib
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import io
 import re
 import string
-
+import urllib.request
 from test.helper import FakeYDL, is_download_test
+
+from yt_dlp.compat import compat_str
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.jsinterp import JSInterpreter
-from yt_dlp.compat import compat_str, compat_urlretrieve
 
 _SIG_TESTS = [
     (
@@ -129,11 +128,9 @@ class TestSignature(unittest.TestCase):
             os.mkdir(self.TESTDATA_DIR)
 
     def tearDown(self):
-        try:
+        with contextlib.suppress(OSError):
             for f in os.listdir(self.TESTDATA_DIR):
                 os.remove(f)
-        except OSError:
-            pass
 
 
 def t_factory(name, sig_func, url_pattern):
@@ -147,8 +144,8 @@ def t_factory(name, sig_func, url_pattern):
             fn = os.path.join(self.TESTDATA_DIR, basename)
 
             if not os.path.exists(fn):
-                compat_urlretrieve(url, fn)
-            with io.open(fn, encoding='utf-8') as testf:
+                urllib.request.urlretrieve(url, fn)
+            with open(fn, encoding='utf-8') as testf:
                 jscode = testf.read()
             self.assertEqual(sig_func(jscode, sig_input), expected_sig)
 

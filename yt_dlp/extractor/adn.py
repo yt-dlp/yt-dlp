@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import binascii
 import json
@@ -126,10 +123,7 @@ Format: Marked,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text'''
             }])
         return subtitles
 
-    def _real_initialize(self):
-        username, password = self._get_login_info()
-        if not username:
-            return
+    def _perform_login(self, username, password):
         try:
             access_token = (self._download_json(
                 self._API_BASE_URL + 'authentication/login', None,

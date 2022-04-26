@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import re
 
@@ -163,7 +160,6 @@ class YandexVideoPreviewIE(InfoExtractor):
             'thumbnail': 'https://i.mycdn.me/videoPreview?id=544866765315&type=37&idx=13&tkn=TY5qjLYZHxpmcnK8U2LgzYkgmaU&fn=external_8',
             'uploader_id': '481054701571',
             'title': 'LOFT - summer, summer, summer HD',
-            'manifest_stream_number': 0,
             'uploader': 'АРТЁМ КУДРОВ',
         },
     }, {  # youtube

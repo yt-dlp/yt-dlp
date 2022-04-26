@@ -1,17 +1,10 @@
-from __future__ import division, unicode_literals
-
 import json
 import time
 
 from .fragment import FragmentFD
 from ..compat import compat_urllib_error
-from ..utils import (
-    try_get,
-    dict_get,
-    int_or_none,
-    RegexNotFoundError,
-)
 from ..extractor.youtube import YoutubeBaseInfoExtractor as YT_BaseIE
+from ..utils import RegexNotFoundError, dict_get, int_or_none, try_get
 
 
 class YoutubeLiveChatFD(FragmentFD):
@@ -115,9 +108,10 @@ class YoutubeLiveChatFD(FragmentFD):
             count = 0
             while count <= fragment_retries:
                 try:
-                    success, raw_fragment = dl_fragment(url, request_data, headers)
+                    success = dl_fragment(url, request_data, headers)
                     if not success:
                         return False, None, None, None
+                    raw_fragment = self._read_fragment(ctx)
                     try:
                         data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
                     except RegexNotFoundError:
@@ -145,9 +139,10 @@ class YoutubeLiveChatFD(FragmentFD):
 
         self._prepare_and_start_frag_download(ctx, info_dict)
 
-        success, raw_fragment = dl_fragment(info_dict['url'])
+        success = dl_fragment(info_dict['url'])
         if not success:
             return False
+        raw_fragment = self._read_fragment(ctx)
         try:
             data = ie.extract_yt_initial_data(video_id, raw_fragment.decode('utf-8', 'replace'))
         except RegexNotFoundError:

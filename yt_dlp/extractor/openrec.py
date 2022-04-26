@@ -1,12 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
     get_first,
     int_or_none,
     traverse_obj,
+    try_get,
     unified_strdate,
     unified_timestamp,
 )
@@ -17,6 +15,13 @@ class OpenRecBaseIE(InfoExtractor):
     def _extract_pagestore(self, webpage, video_id):
         return self._parse_json(
             self._search_regex(r'(?m)window\.pageStore\s*=\s*(\{.+?\});$', webpage, 'window.pageStore'), video_id)
+
+    def _expand_media(self, video_id, media):
+        for name, m3u8_url in (media or {}).items():
+            if not m3u8_url:
+                continue
+            yield from self._extract_m3u8_formats(
+                m3u8_url, video_id, ext='mp4', m3u8_id=name)
 
     def _extract_movie(self, webpage, video_id, name, is_live):
         window_stores = self._extract_pagestore(webpage, video_id)
@@ -29,13 +34,21 @@ class OpenRecBaseIE(InfoExtractor):
         if not any(movie_stores):
             raise ExtractorError(f'Failed to extract {name} info')
 
-        m3u8_playlists = get_first(movie_stores, 'media') or {}
-        formats = []
-        for name, m3u8_url in m3u8_playlists.items():
-            if not m3u8_url:
-                continue
-            formats.extend(self._extract_m3u8_formats(
-                m3u8_url, video_id, ext='mp4', live=is_live, m3u8_id=name))
+        formats = list(self._expand_media(video_id, get_first(movie_stores, 'media')))
+        if not formats:
+            # archived livestreams or subscriber-only videos
+            cookies = self._get_cookies('https://www.openrec.tv/')
+            detail = self._download_json(
+                f'https://apiv5.openrec.tv/api/v5/movies/{video_id}/detail', video_id,
+                headers={
+                    'Origin': 'https://www.openrec.tv',
+                    'Referer': 'https://www.openrec.tv/',
+                    'access-token': try_get(cookies, lambda x: x.get('access_token').value),
+                    'uuid': try_get(cookies, lambda x: x.get('uuid').value),
+                })
+            new_media = traverse_obj(detail, ('data', 'items', ..., 'media'), get_all=False)
+            formats = list(self._expand_media(video_id, new_media))
+            is_live = False
 
         self._sort_formats(formats)
 

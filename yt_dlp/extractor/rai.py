@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -11,6 +8,7 @@ from ..compat import (
 from ..utils import (
     determine_ext,
     ExtractorError,
+    filter_dict,
     find_xpath_attr,
     fix_xml_ampersands,
     GeoRestrictedError,
@@ -110,14 +108,14 @@ class RaiBaseIE(InfoExtractor):
         if not audio_only:
             formats.extend(self._create_http_urls(relinker_url, formats))
 
-        return dict((k, v) for k, v in {
+        return filter_dict({
             'is_live': is_live,
             'duration': duration,
             'formats': formats,
-        }.items() if v is not None)
+        })
 
     def _create_http_urls(self, relinker_url, fmts):
-        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\d+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
+        _RELINKER_REG = r'https?://(?P<host>[^/]+?)/(?:i/)?(?P<extra>[^/]+?)/(?P<path>.+?)/(?P<id>\w+)(?:_(?P<quality>[\d\,]+))?(?:\.mp4|/playlist\.m3u8).+?'
         _MP4_TMPL = '%s&overrideUserAgentRule=mp4-%s'
         _QUALITY = {
             # tbr: w, h
@@ -339,6 +337,7 @@ class RaiPlayIE(RaiBaseIE):
             'episode': media.get('episode_title'),
             'episode_number': int_or_none(media.get('episode')),
             'subtitles': subtitles,
+            'release_year': traverse_obj(media, ('track_info', 'edit_year')),
         }
 
         info.update(relinker_info)

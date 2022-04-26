@@ -82,6 +82,7 @@ updates_key.pem
 *.egg-info
 .tox
 *.class
+*.isorted
 
 # Generated
 AUTHORS
@@ -116,3 +117,6 @@ yt-dlp.zip
 ytdlp_plugins/extractor/*
 !ytdlp_plugins/extractor/__init__.py
 !ytdlp_plugins/extractor/sample.py
+ytdlp_plugins/postprocessor/*
+!ytdlp_plugins/postprocessor/__init__.py
+!ytdlp_plugins/postprocessor/sample.py

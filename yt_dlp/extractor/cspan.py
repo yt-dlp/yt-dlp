@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -278,7 +276,7 @@ class CSpanCongressIE(InfoExtractor):
             video_id, transform_source=js_to_json)
 
         title = (self._og_search_title(webpage, default=None)
-                 or self._html_search_regex(r'(?s)<title>(.*?)</title>', webpage, 'video title'))
+                 or self._html_extract_title(webpage, 'video title'))
         description = (self._og_search_description(webpage, default=None)
                        or self._html_search_meta('description', webpage, 'description', default=None))
 

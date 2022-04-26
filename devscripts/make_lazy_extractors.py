@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals, print_function
-
-from inspect import getsource
-import io
 import os
-from os.path import dirname as dirn
 import sys
+from inspect import getsource
 
-sys.path.insert(0, dirn(dirn((os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 lazy_extractors_filename = sys.argv[1] if len(sys.argv) > 1 else 'yt_dlp/extractor/lazy_extractors.py'
 if os.path.exists(lazy_extractors_filename):
@@ -25,7 +21,7 @@ from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
 if os.path.exists(plugins_blocked_dirname):
     os.rename(plugins_blocked_dirname, plugins_dirname)
 
-with open('devscripts/lazy_load_template.py', 'rt') as f:
+with open('devscripts/lazy_load_template.py') as f:
     module_template = f.read()
 
 CLASS_PROPERTIES = ['ie_key', 'working', '_match_valid_url', 'suitable', '_match_id', 'get_temp_id']
@@ -72,7 +68,7 @@ classes = _ALL_CLASSES[:-1]
 ordered_cls = []
 while classes:
     for c in classes[:]:
-        bases = set(c.__bases__) - set((object, InfoExtractor, SearchInfoExtractor))
+        bases = set(c.__bases__) - {object, InfoExtractor, SearchInfoExtractor}
         stop = False
         for b in bases:
             if b not in classes and b not in ordered_cls:
@@ -97,9 +93,9 @@ for ie in ordered_cls:
         names.append(name)
 
 module_contents.append(
-    '\n_ALL_CLASSES = [{0}]'.format(', '.join(names)))
+    '\n_ALL_CLASSES = [{}]'.format(', '.join(names)))
 
 module_src = '\n'.join(module_contents) + '\n'
 
-with io.open(lazy_extractors_filename, 'wt', encoding='utf-8') as f:
+with open(lazy_extractors_filename, 'wt', encoding='utf-8') as f:
     f.write(module_src)

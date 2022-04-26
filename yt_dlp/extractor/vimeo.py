@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import functools
 import re
@@ -8,7 +5,6 @@ import itertools
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_kwargs,
     compat_HTTPError,
     compat_str,
     compat_urlparse,
@@ -44,12 +40,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            if self._LOGIN_REQUIRED:
-                raise ExtractorError('No login info available, needed for using %s.' % self.IE_NAME, expected=True)
-            return
+    def _perform_login(self, username, password):
         webpage = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
         token, vuid = self._extract_xsrft_and_vuid(webpage)
@@ -74,6 +65,10 @@ class VimeoBaseInfoExtractor(InfoExtractor):
                     'Unable to log in: bad username or password',
                     expected=True)
             raise ExtractorError('Unable to log in')
+
+    def _real_initialize(self):
+        if self._LOGIN_REQUIRED and not self._get_cookies('https://vimeo.com').get('vuid'):
+            self._raise_login_required()
 
     def _get_video_password(self):
         password = self.get_param('videopassword')
@@ -110,7 +105,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _extract_vimeo_config(self, webpage, video_id, *args, **kwargs):
         vimeo_config = self._search_regex(
             r'vimeo\.config\s*=\s*(?:({.+?})|_extend\([^,]+,\s+({.+?})\));',
-            webpage, 'vimeo config', *args, **compat_kwargs(kwargs))
+            webpage, 'vimeo config', *args, **kwargs)
         if vimeo_config:
             return self._parse_json(vimeo_config, video_id)
 
@@ -328,7 +323,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'info_dict': {
                 'id': '56015672',
                 'ext': 'mp4',
-                'title': "youtube-dl test video - \u2605 \" ' \u5e78 / \\ \u00e4 \u21ad \U0001d550",
+                'title': "youtube-dl test video '' ä↭𝕐-BaW jenozKc",
                 'description': 'md5:2d3305bad981a06ff79f027f19865021',
                 'timestamp': 1355990239,
                 'upload_date': '20121220',
@@ -341,6 +336,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'params': {
                 'format': 'best[protocol=https]',
             },
+            'skip': 'No longer available'
         },
         {
             'url': 'http://vimeopro.com/openstreetmapus/state-of-the-map-us-2013/video/68093876',
@@ -358,6 +354,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'upload_date': '20130610',
                 'timestamp': 1370893156,
                 'license': 'by',
+                'thumbnail': 'https://i.vimeocdn.com/video/440260469-19b0d92fca3bd84066623b53f1eb8aaa3980c6c809e2d67b6b39ab7b4a77a344-d_960',
+                'view_count': int,
+                'comment_count': int,
+                'like_count': int,
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -365,7 +365,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
         },
         {
             'url': 'http://player.vimeo.com/video/54469442',
-            'md5': '619b811a4417aa4abe78dc653becf511',
+            'md5': 'b3e7f4d2cbb53bd7dc3bb6ff4ed5cfbd',
             'note': 'Videos that embed the url in the player page',
             'info_dict': {
                 'id': '54469442',
@@ -376,6 +376,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader_id': 'businessofsoftware',
                 'duration': 3610,
                 'description': None,
+                'thumbnail': 'https://i.vimeocdn.com/video/376682406-f34043e7b766af6bef2af81366eacd6724f3fc3173179a11a97a1e26587c9529-d_1280',
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -396,6 +397,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
                 'description': 'md5:dca3ea23adb29ee387127bc4ddfce63f',
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_960',
+                'view_count': int,
+                'comment_count': int,
+                'like_count': int,
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -418,6 +423,10 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'timestamp': 1380339469,
                 'upload_date': '20130928',
                 'duration': 187,
+                'thumbnail': 'https://i.vimeocdn.com/video/450239872-a05512d9b1e55d707a7c04365c10980f327b06d966351bc403a5d5d65c95e572-d_1280',
+                'view_count': int,
+                'comment_count': int,
+                'like_count': int,
             },
             'params': {'format': 'http-1080p'},
         },
@@ -426,7 +435,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'note': 'Video with subtitles',
             'info_dict': {
                 'id': '76979871',
-                'ext': 'mp4',
+                'ext': 'mov',
                 'title': 'The New Vimeo Player (You Know, For Videos)',
                 'description': 'md5:2ec900bf97c3f389378a96aee11260ea',
                 'timestamp': 1381846109,
@@ -455,6 +464,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Tulio Gonçalves',
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user28849593',
                 'uploader_id': 'user28849593',
+                'duration': 118,
+                'thumbnail': 'https://i.vimeocdn.com/video/478636036-c18440305ef3df9decfb6bf207a61fe39d2d17fa462a96f6f2d93d30492b037d-d_1280',
             },
         },
         {
@@ -471,6 +482,11 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'timestamp': 1324343742,
                 'upload_date': '20111220',
                 'description': 'md5:ae23671e82d05415868f7ad1aec21147',
+                'duration': 60,
+                'comment_count': int,
+                'view_count': int,
+                'thumbnail': 'https://i.vimeocdn.com/video/231174622-dd07f015e9221ff529d451e1cc31c982b5d87bfafa48c4189b1da72824ee289a-d_1280',
+                'like_count': int,
             },
         },
         {
@@ -486,6 +502,9 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'uploader': 'Framework Studio',
                 'description': 'md5:f2edc61af3ea7a5592681ddbb683db73',
                 'upload_date': '20200225',
+                'duration': 176,
+                'thumbnail': 'https://i.vimeocdn.com/video/859377297-836494a4ef775e9d4edbace83937d9ad34dc846c688c0c419c0e87f7ab06c4b3-d_1280',
+                'uploader_url': 'https://vimeo.com/frameworkla',
             },
         },
         {
@@ -504,6 +523,11 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'timestamp': 1250886430,
                 'upload_date': '20090821',
                 'description': 'md5:bdbf314014e58713e6e5b66eb252f4a6',
+                'duration': 321,
+                'comment_count': int,
+                'view_count': int,
+                'thumbnail': 'https://i.vimeocdn.com/video/22728298-bfc22146f930de7cf497821c7b0b9f168099201ecca39b00b6bd31fcedfca7a6-d_1280',
+                'like_count': int,
             },
             'params': {
                 'skip_download': True,
@@ -536,10 +560,17 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'id': '68375962',
                 'ext': 'mp4',
                 'title': 'youtube-dl password protected test video',
+                'timestamp': 1371200155,
+                'upload_date': '20130614',
                 'uploader_url': r're:https?://(?:www\.)?vimeo\.com/user18948128',
                 'uploader_id': 'user18948128',
                 'uploader': 'Jaime Marquínez Ferrándiz',
                 'duration': 10,
+                'description': 'md5:dca3ea23adb29ee387127bc4ddfce63f',
+                'thumbnail': 'https://i.vimeocdn.com/video/440665496-b2c5aee2b61089442c794f64113a8e8f7d5763c3e6b3ebfaf696ae6413f8b1f4-d_960',
+                'view_count': int,
+                'comment_count': int,
+                'like_count': int,
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -569,12 +600,18 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'info_dict': {
                 'id': '119195465',
                 'ext': 'mp4',
-                'title': 'youtube-dl test video \'ä"BaW_jenozKc',
+                'title': "youtube-dl test video '' ä↭𝕐-BaW jenozKc",
                 'uploader': 'Philipp Hagemeister',
                 'uploader_id': 'user20132939',
                 'description': 'md5:fa7b6c6d8db0bdc353893df2f111855b',
                 'upload_date': '20150209',
                 'timestamp': 1423518307,
+                'thumbnail': 'https://i.vimeocdn.com/video/default_1280',
+                'duration': 10,
+                'like_count': int,
+                'uploader_url': 'https://vimeo.com/user20132939',
+                'view_count': int,
+                'comment_count': int,
             },
             'params': {
                 'format': 'best[protocol=https]',
@@ -597,6 +634,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'title': 'Harrisville New Hampshire',
                 'timestamp': 1459259666,
                 'upload_date': '20160329',
+                'release_timestamp': 1459259666,
+                'license': 'by-nc',
+                'duration': 159,
+                'comment_count': int,
+                'thumbnail': 'https://i.vimeocdn.com/video/562802436-585eeb13b5020c6ac0f171a2234067938098f84737787df05ff0d767f6d54ee9-d_1280',
+                'like_count': int,
+                'uploader_url': 'https://vimeo.com/aliniamedia',
+                'release_date': '20160329',
             },
             'params': {'skip_download': True},
         },
@@ -628,6 +673,14 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 'title': 'The Shoes - Submarine Feat. Blaine Harrison',
                 'uploader_id': 'karimhd',
                 'description': 'md5:8e2eea76de4504c2e8020a9bcfa1e843',
+                'channel_id': 'staffpicks',
+                'duration': 336,
+                'comment_count': int,
+                'view_count': int,
+                'thumbnail': 'https://i.vimeocdn.com/video/541243181-b593db36a16db2f0096f655da3f5a4dc46b8766d77b0f440df937ecb0c418347-d_1280',
+                'like_count': int,
+                'uploader_url': 'https://vimeo.com/karimhd',
+                'channel_url': 'https://vimeo.com/channels/staffpicks',
             },
             'params': {'skip_download': 'm3u8'},
         },
@@ -642,13 +695,19 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'url': 'https://vimeo.com/581039021/9603038895',
             'info_dict': {
                 'id': '581039021',
-                # these have to be provided but we don't care
                 'ext': 'mp4',
                 'timestamp': 1627621014,
-                'title': 're:.+',
-                'uploader_id': 're:.+',
-                'uploader': 're:.+',
-                'upload_date': r're:\d+',
+                'release_timestamp': 1627621014,
+                'duration': 976,
+                'comment_count': int,
+                'thumbnail': 'https://i.vimeocdn.com/video/1202249320-4ddb2c30398c0dc0ee059172d1bd5ea481ad12f0e0e3ad01d2266f56c744b015-d_1280',
+                'like_count': int,
+                'uploader_url': 'https://vimeo.com/txwestcapital',
+                'release_date': '20210730',
+                'uploader': 'Christopher Inks',
+                'title': 'Thursday, July 29, 2021 BMA Evening Video Update',
+                'uploader_id': 'txwestcapital',
+                'upload_date': '20210730',
             },
             'params': {
                 'skip_download': True,
@@ -700,9 +759,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
         if checked is False:
             raise ExtractorError('Wrong video password', expected=True)
         return checked
-
-    def _real_initialize(self):
-        self._login()
 
     def _extract_from_api(self, video_id, unlisted_hash=None):
         token = self._download_json(
@@ -965,9 +1021,15 @@ class VimeoOndemandIE(VimeoIE):
             'uploader': 'גם סרטים',
             'uploader_url': r're:https?://(?:www\.)?vimeo\.com/gumfilms',
             'uploader_id': 'gumfilms',
-            'description': 'md5:4c027c965e439de4baab621e48b60791',
+            'description': 'md5:aeeba3dbd4d04b0fa98a4fdc9c639998',
             'upload_date': '20140906',
             'timestamp': 1410032453,
+            'thumbnail': 'https://i.vimeocdn.com/video/488238335-d7bf151c364cff8d467f1b73784668fe60aae28a54573a35d53a1210ae283bd8-d_1280',
+            'comment_count': int,
+            'license': 'https://creativecommons.org/licenses/by-nc-nd/3.0/',
+            'duration': 53,
+            'view_count': int,
+            'like_count': int,
         },
         'params': {
             'format': 'best[protocol=https]',
@@ -986,6 +1048,11 @@ class VimeoOndemandIE(VimeoIE):
             'description': 'md5:c3c46a90529612c8279fb6af803fc0df',
             'upload_date': '20150502',
             'timestamp': 1430586422,
+            'duration': 121,
+            'comment_count': int,
+            'view_count': int,
+            'thumbnail': 'https://i.vimeocdn.com/video/517077723-7066ae1d9a79d3eb361334fb5d58ec13c8f04b52f8dd5eadfbd6fb0bcf11f613-d_1280',
+            'like_count': int,
         },
         'params': {
             'skip_download': True,
@@ -1015,7 +1082,7 @@ class VimeoChannelIE(VimeoBaseInfoExtractor):
             'id': 'tributes',
             'title': 'Vimeo Tributes',
         },
-        'playlist_mincount': 25,
+        'playlist_mincount': 22,
     }]
     _BASE_URL_TEMPL = 'https://vimeo.com/channels/%s'
 
@@ -1200,6 +1267,9 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
             'uploader': 'Richard Hardwick',
             'uploader_id': 'user21297594',
             'description': "Comedian Dick Hardwick's five minute demo filmed in front of a live theater audience.\nEdit by Doug Mattocks",
+            'duration': 304,
+            'thumbnail': 'https://i.vimeocdn.com/video/450115033-43303819d9ebe24c2630352e18b7056d25197d09b3ae901abdac4c4f1d68de71-d_1280',
+            'uploader_url': 'https://vimeo.com/user21297594',
         },
     }, {
         'note': 'video player needs Referer',
@@ -1230,9 +1300,6 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
         },
         'skip': 'video gone',
     }]
-
-    def _real_initialize(self):
-        self._login()
 
     def _real_extract(self, url):
         page_url, video_id = self._match_valid_url(url).groups()
@@ -1274,9 +1341,6 @@ class VimeoWatchLaterIE(VimeoChannelIE):
         'url': 'https://vimeo.com/watchlater',
         'only_matching': True,
     }]
-
-    def _real_initialize(self):
-        self._login()
 
     def _page_url(self, base_url, pagenum):
         url = '%s/page:%d/' % (base_url, pagenum)

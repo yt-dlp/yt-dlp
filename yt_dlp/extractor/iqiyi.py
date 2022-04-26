@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import hashlib
 import itertools
 import re
@@ -241,9 +238,6 @@ class IqiyiIE(InfoExtractor):
         '18': 7,    # 1080p
     }
 
-    def _real_initialize(self):
-        self._login()
-
     @staticmethod
     def _rsa_fun(data):
         # public key extracted from http://static.iqiyi.com/js/qiyiV2/20160129180840/jobs/i18n/i18nIndex.js
@@ -252,12 +246,7 @@ class IqiyiIE(InfoExtractor):
 
         return ohdave_rsa_encrypt(data, e, N)
 
-    def _login(self):
-        username, password = self._get_login_info()
-
-        # No authentication to be performed
-        if not username:
-            return True
+    def _perform_login(self, username, password):
 
         data = self._download_json(
             'http://kylin.iqiyi.com/get_token', None,
@@ -634,8 +623,8 @@ class IqIE(InfoExtractor):
                 note=f'Downloading format data for {self._BID_TAGS[bid]}', errnote='Unable to download format data',
                 fatal=False), 'data', expected_type=dict)
 
-            video_format = next((video_format for video_format in traverse_obj(
-                format_data, ('program', 'video', ...), expected_type=dict, default=[]) if str(video_format['bid']) == bid), {})
+            video_format = traverse_obj(format_data, ('program', 'video', lambda _, v: str(v['bid']) == bid),
+                                        expected_type=dict, default=[], get_all=False) or {}
             extracted_formats = []
             if video_format.get('m3u8Url'):
                 extracted_formats.extend(self._extract_m3u8_formats(

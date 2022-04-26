@@ -1,33 +1,50 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import (
-    get_elements_by_class,
     int_or_none,
     js_to_json,
     parse_count,
     parse_duration,
+    traverse_obj,
     try_get,
+    unified_timestamp,
 )
 
 
 class DaftsexIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?daftsex\.com/watch/(?P<id>-?\d+_\d+)'
     _TESTS = [{
+        'url': 'https://daftsex.com/watch/-35370899_456246186',
+        'md5': 'd95135e6cea2d905bea20dbe82cda64a',
+        'info_dict': {
+            'id': '-35370899_456246186',
+            'ext': 'mp4',
+            'title': 'just relaxing',
+            'description': 'just relaxing - Watch video Watch video in high quality',
+            'upload_date': '20201113',
+            'timestamp': 1605261911,
+            'thumbnail': r're:https://[^/]+/impf/-43BuMDIawmBGr3GLcZ93CYwWf2PBv_tVWoS1A/dnu41DnARU4\.jpg\?size=800x450&quality=96&keep_aspect_ratio=1&background=000000&sign=6af2c26ff4a45e55334189301c867384&type=video_thumb',
+        },
+    }, {
         'url': 'https://daftsex.com/watch/-156601359_456242791',
         'info_dict': {
             'id': '-156601359_456242791',
             'ext': 'mp4',
             'title': 'Skye Blue - Dinner And A Show',
+            'description': 'Skye Blue - Dinner And A Show - Watch video Watch video in high quality',
+            'upload_date': '20200916',
+            'timestamp': 1600250735,
+            'thumbnail': 'https://psv153-1.crazycloud.ru/videos/-156601359/456242791/thumb.jpg?extra=i3D32KaBbBFf9TqDRMAVmQ',
         },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        title = get_elements_by_class('heading', webpage)[-1]
+        title = self._html_search_meta('name', webpage, 'title')
+        timestamp = unified_timestamp(self._html_search_meta('uploadDate', webpage, 'Upload Date', default=None))
+        description = self._html_search_meta('description', webpage, 'Description', default=None)
+
         duration = parse_duration(self._search_regex(
             r'Duration: ((?:[0-9]{2}:){0,2}[0-9]{2})',
             webpage, 'duration', fatal=False))
@@ -52,28 +69,75 @@ class DaftsexIE(InfoExtractor):
             video_id, transform_source=js_to_json)
 
         server_domain = 'https://%s' % compat_b64decode(video_params['server'][::-1]).decode('utf-8')
+
+        cdn_files = traverse_obj(video_params, ('video', 'cdn_files')) or {}
+        if cdn_files:
+            formats = []
+            for format_id, format_data in cdn_files.items():
+                ext, height = format_id.split('_')
+                formats.append({
+                    'format_id': format_id,
+                    'url': f'{server_domain}/videos/{video_id.replace("_", "/")}/{height}.mp4?extra={format_data.split(".")[-1]}',
+                    'height': int_or_none(height),
+                    'ext': ext,
+                })
+            self._sort_formats(formats)
+
+            return {
+                'id': video_id,
+                'title': title,
+                'formats': formats,
+                'description': description,
+                'duration': duration,
+                'thumbnail': try_get(video_params, lambda vi: 'https:' + compat_b64decode(vi['video']['thumb']).decode('utf-8')),
+                'timestamp': timestamp,
+                'view_count': views,
+                'age_limit': 18,
+            }
+
+        item = self._download_json(
+            f'{server_domain}/method/video.get/{video_id}', video_id,
+            headers={'Referer': url}, query={
+                'token': video_params['video']['access_token'],
+                'videos': video_id,
+                'ckey': video_params['c_key'],
+                'credentials': video_params['video']['credentials'],
+            })['response']['items'][0]
+
         formats = []
-        for format_id, format_data in video_params['video']['cdn_files'].items():
-            ext, height = format_id.split('_')
-            extra_quality_data = format_data.split('.')[-1]
-            url = f'{server_domain}/videos/{video_id.replace("_", "/")}/{height}.mp4?extra={extra_quality_data}'
-            formats.append({
-                'format_id': format_id,
-                'url': url,
-                'height': int_or_none(height),
-                'ext': ext,
-            })
+        for f_id, f_url in item.get('files', {}).items():
+            if f_id == 'external':
+                return self.url_result(f_url)
+            ext, height = f_id.split('_')
+            height_extra_key = traverse_obj(video_params, ('video', 'partial', 'quality', height))
+            if height_extra_key:
+                formats.append({
+                    'format_id': f'{height}p',
+                    'url': f'{server_domain}/{f_url[8:]}&videos={video_id}&extra_key={height_extra_key}',
+                    'height': int_or_none(height),
+                    'ext': ext,
+                })
         self._sort_formats(formats)
 
-        thumbnail = try_get(video_params,
-                            lambda vi: 'https:' + compat_b64decode(vi['video']['thumb']).decode('utf-8'))
+        thumbnails = []
+        for k, v in item.items():
+            if k.startswith('photo_') and v:
+                width = k.replace('photo_', '')
+                thumbnails.append({
+                    'id': width,
+                    'url': v,
+                    'width': int_or_none(width),
+                })
 
         return {
             'id': video_id,
             'title': title,
             'formats': formats,
+            'comment_count': int_or_none(item.get('comments')),
+            'description': description,
             'duration': duration,
-            'thumbnail': thumbnail,
+            'thumbnails': thumbnails,
+            'timestamp': timestamp,
             'view_count': views,
             'age_limit': 18,
         }

@@ -1,4 +1,3 @@
-# coding: utf-8
 from ..utils import ExtractorError
 from .common import InfoExtractor
 

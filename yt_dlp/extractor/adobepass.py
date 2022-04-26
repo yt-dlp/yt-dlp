@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 import time
@@ -8,7 +5,6 @@ import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_kwargs,
     compat_urlparse,
     compat_getpass
 )
@@ -1365,7 +1361,7 @@ class AdobePassIE(InfoExtractor):
         headers.update(kwargs.get('headers', {}))
         kwargs['headers'] = headers
         return super(AdobePassIE, self)._download_webpage_handle(
-            *args, **compat_kwargs(kwargs))
+            *args, **kwargs)
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):
@@ -1650,21 +1646,27 @@ class AdobePassIE(InfoExtractor):
                     hidden_data = self._hidden_inputs(first_bookend_page)
                     hidden_data['history_val'] = 1
 
-                    provider_login_redirect_page = self._download_webpage(
+                    provider_login_redirect_page_res = self._download_webpage_handle(
                         urlh.geturl(), video_id, 'Sending First Bookend',
                         query=hidden_data)
 
-                    provider_tryauth_url = self._html_search_regex(
-                        r'url:\s*[\'"]([^\'"]+)', provider_login_redirect_page, 'ajaxurl')
+                    provider_login_redirect_page, urlh = provider_login_redirect_page_res
 
-                    provider_tryauth_page = self._download_webpage(
-                        provider_tryauth_url, video_id, 'Submitting TryAuth',
-                        query=hidden_data)
+                    # Some website partners seem to not have the extra ajaxurl redirect step, so we check if we already
+                    # have the login prompt or not
+                    if 'id="password" type="password" name="password"' in provider_login_redirect_page:
+                        provider_login_page_res = provider_login_redirect_page_res
+                    else:
+                        provider_tryauth_url = self._html_search_regex(
+                            r'url:\s*[\'"]([^\'"]+)', provider_login_redirect_page, 'ajaxurl')
+                        provider_tryauth_page = self._download_webpage(
+                            provider_tryauth_url, video_id, 'Submitting TryAuth',
+                            query=hidden_data)
 
-                    provider_login_page_res = self._download_webpage_handle(
-                        f'https://authorize.suddenlink.net/saml/module.php/authSynacor/login.php?AuthState={provider_tryauth_page}',
-                        video_id, 'Getting Login Page',
-                        query=hidden_data)
+                        provider_login_page_res = self._download_webpage_handle(
+                            f'https://authorize.suddenlink.net/saml/module.php/authSynacor/login.php?AuthState={provider_tryauth_page}',
+                            video_id, 'Getting Login Page',
+                            query=hidden_data)
 
                     provider_association_redirect, urlh = post_form(
                         provider_login_page_res, 'Logging in', {

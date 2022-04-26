@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import json
 
@@ -26,22 +23,16 @@ class VLiveBaseIE(NaverBaseIE):
     _NETRC_MACHINE = 'vlive'
     _logged_in = False
 
-    def _real_initialize(self):
-        if not self._logged_in:
-            VLiveBaseIE._logged_in = self._login()
-
-    def _login(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return False
-
+    def _perform_login(self, username, password):
+        if self._logged_in:
+            return
         LOGIN_URL = 'https://www.vlive.tv/auth/email/login'
         self._request_webpage(
             LOGIN_URL, None, note='Downloading login cookies')
 
         self._download_webpage(
             LOGIN_URL, None, note='Logging in',
-            data=urlencode_postdata({'email': email, 'pwd': password}),
+            data=urlencode_postdata({'email': username, 'pwd': password}),
             headers={
                 'Referer': LOGIN_URL,
                 'Content-Type': 'application/x-www-form-urlencoded'
@@ -54,7 +45,7 @@ class VLiveBaseIE(NaverBaseIE):
 
         if not try_get(login_info, lambda x: x['message']['login'], bool):
             raise ExtractorError('Unable to log in', expected=True)
-        return True
+        VLiveBaseIE._logged_in = True
 
     def _call_api(self, path_template, video_id, fields=None, query_add={}, note=None):
         if note is None:

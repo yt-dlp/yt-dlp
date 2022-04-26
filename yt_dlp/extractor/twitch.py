@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import collections
 import itertools
 import json
@@ -57,14 +54,7 @@ class TwitchBaseIE(InfoExtractor):
         'VideoPlayer_ChapterSelectButtonVideo': '8d2793384aac3773beab5e59bd5d6f585aedb923d292800119e03d40cd0f9b41',
     }
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         def fail(message):
             raise ExtractorError(
                 'Unable to login. Twitch said: %s' % message, expected=True)

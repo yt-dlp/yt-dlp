@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .adobepass import AdobePassIE
@@ -217,6 +214,7 @@ class GoIE(AdobePassIE):
         title = video_data['title']
 
         formats = []
+        subtitles = {}
         for asset in video_data.get('assets', {}).get('asset', []):
             asset_url = asset.get('value')
             if not asset_url:
@@ -256,8 +254,10 @@ class GoIE(AdobePassIE):
                     error_message = ', '.join([error['message'] for error in errors])
                     raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message), expected=True)
                 asset_url += '?' + entitlement['uplynkData']['sessionKey']
-                formats.extend(self._extract_m3u8_formats(
-                    asset_url, video_id, 'mp4', m3u8_id=format_id or 'hls', fatal=False))
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(
+                    asset_url, video_id, 'mp4', m3u8_id=format_id or 'hls', fatal=False)
+                formats.extend(fmts)
+                self._merge_subtitles(subs, target=subtitles)
             else:
                 f = {
                     'format_id': format_id,
@@ -281,7 +281,6 @@ class GoIE(AdobePassIE):
                 formats.append(f)
         self._sort_formats(formats)
 
-        subtitles = {}
         for cc in video_data.get('closedcaption', {}).get('src', []):
             cc_url = cc.get('value')
             if not cc_url:

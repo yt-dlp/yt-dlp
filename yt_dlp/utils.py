@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 import ast
-import asyncio
 import atexit
 import base64
 import binascii
@@ -14,8 +9,8 @@ import collections
 import contextlib
 import ctypes
 import datetime
-import email.utils
 import email.header
+import email.utils
 import errno
 import functools
 import gzip
@@ -27,11 +22,13 @@ import itertools
 import json
 import locale
 import math
+import mimetypes
 import operator
 import os
 import platform
 import random
 import re
+import shlex
 import socket
 import ssl
 import subprocess
@@ -39,52 +36,37 @@ import sys
 import tempfile
 import time
 import traceback
+import urllib.parse
 import xml.etree.ElementTree
 import zlib
-import mimetypes
 
 from .compat import (
-    compat_HTMLParseError,
-    compat_HTMLParser,
-    compat_HTTPError,
-    compat_basestring,
-    compat_brotli,
+    asyncio,
     compat_chr,
     compat_cookiejar,
-    compat_ctypes_WINFUNCTYPE,
     compat_etree_fromstring,
     compat_expanduser,
     compat_html_entities,
     compat_html_entities_html5,
+    compat_HTMLParseError,
+    compat_HTMLParser,
     compat_http_client,
-    compat_integer_types,
-    compat_numeric_types,
-    compat_kwargs,
+    compat_HTTPError,
     compat_os_name,
     compat_parse_qs,
-    compat_shlex_split,
     compat_shlex_quote,
     compat_str,
     compat_struct_pack,
     compat_struct_unpack,
     compat_urllib_error,
-    compat_urllib_parse,
+    compat_urllib_parse_unquote_plus,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
-    compat_urllib_parse_urlunparse,
-    compat_urllib_parse_quote,
-    compat_urllib_parse_quote_plus,
-    compat_urllib_parse_unquote_plus,
     compat_urllib_request,
     compat_urlparse,
-    compat_websockets,
-    compat_xpath,
 )
-
-from .socks import (
-    ProxyType,
-    sockssocket,
-)
+from .dependencies import brotli, certifi, websockets
+from .socks import ProxyType, sockssocket
 
 
 def register_socks_protocols():
@@ -148,13 +130,12 @@ def random_user_agent():
 SUPPORTED_ENCODINGS = [
     'gzip', 'deflate'
 ]
-if compat_brotli:
+if brotli:
     SUPPORTED_ENCODINGS.append('br')
 
 std_headers = {
     'User-Agent': random_user_agent(),
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Encoding': ', '.join(SUPPORTED_ENCODINGS),
     'Accept-Language': 'en-us,en;q=0.5',
     'Sec-Fetch-Mode': 'navigate',
 }
@@ -284,37 +265,9 @@ def preferredencoding():
 def write_json_file(obj, fn):
     """ Encode obj as JSON and write it to fn, atomically if possible """
 
-    fn = encodeFilename(fn)
-    if sys.version_info < (3, 0) and sys.platform != 'win32':
-        encoding = get_filesystem_encoding()
-        # os.path.basename returns a bytes object, but NamedTemporaryFile
-        # will fail if the filename contains non ascii characters unless we
-        # use a unicode object
-        path_basename = lambda f: os.path.basename(fn).decode(encoding)
-        # the same for os.path.dirname
-        path_dirname = lambda f: os.path.dirname(fn).decode(encoding)
-    else:
-        path_basename = os.path.basename
-        path_dirname = os.path.dirname
-
-    args = {
-        'suffix': '.tmp',
-        'prefix': path_basename(fn) + '.',
-        'dir': path_dirname(fn),
-        'delete': False,
-    }
-
-    # In Python 2.x, json.dump expects a bytestream.
-    # In Python 3.x, it writes to a character stream
-    if sys.version_info < (3, 0):
-        args['mode'] = 'wb'
-    else:
-        args.update({
-            'mode': 'w',
-            'encoding': 'utf-8',
-        })
-
-    tf = tempfile.NamedTemporaryFile(**compat_kwargs(args))
+    tf = tempfile.NamedTemporaryFile(
+        prefix=f'{os.path.basename(fn)}.', dir=os.path.dirname(fn),
+        suffix='.tmp', delete=False, mode='w', encoding='utf-8')
 
     try:
         with tf:
@@ -322,39 +275,24 @@ def write_json_file(obj, fn):
         if sys.platform == 'win32':
             # Need to remove existing file on Windows, else os.rename raises
             # WindowsError or FileExistsError.
-            try:
+            with contextlib.suppress(OSError):
                 os.unlink(fn)
-            except OSError:
-                pass
-        try:
+        with contextlib.suppress(OSError):
             mask = os.umask(0)
             os.umask(mask)
             os.chmod(tf.name, 0o666 & ~mask)
-        except OSError:
-            pass
         os.rename(tf.name, fn)
     except Exception:
-        try:
+        with contextlib.suppress(OSError):
             os.remove(tf.name)
-        except OSError:
-            pass
         raise
 
 
-if sys.version_info >= (2, 7):
-    def find_xpath_attr(node, xpath, key, val=None):
-        """ Find the xpath xpath[@key=val] """
-        assert re.match(r'^[a-zA-Z_-]+$', key)
-        expr = xpath + ('[@%s]' % key if val is None else "[@%s='%s']" % (key, val))
-        return node.find(expr)
-else:
-    def find_xpath_attr(node, xpath, key, val=None):
-        for f in node.findall(compat_xpath(xpath)):
-            if key not in f.attrib:
-                continue
-            if val is None or f.attrib.get(key) == val:
-                return f
-        return None
+def find_xpath_attr(node, xpath, key, val=None):
+    """ Find the xpath xpath[@key=val] """
+    assert re.match(r'^[a-zA-Z_-]+$', key)
+    expr = xpath + ('[@%s]' % key if val is None else f"[@{key}='{val}']")
+    return node.find(expr)
 
 # On python2.6 the xml.etree.ElementTree.Element methods don't support
 # the namespace parameter
@@ -374,7 +312,7 @@ def xpath_with_ns(path, ns_map):
 
 def xpath_element(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
     def _find_xpath(xpath):
-        return node.find(compat_xpath(xpath))
+        return node.find(xpath)
 
     if isinstance(xpath, (str, compat_str)):
         n = _find_xpath(xpath)
@@ -416,7 +354,7 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
         if default is not NO_DEFAULT:
             return default
         elif fatal:
-            name = '%s[@%s]' % (xpath, key) if name is None else name
+            name = f'{xpath}[@{key}]' if name is None else name
             raise ExtractorError('Could not find XML attribute %s' % name)
         else:
             return None
@@ -485,15 +423,15 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
     attribute in the passed HTML document
     """
 
-    value_quote_optional = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
+    quote = '' if re.match(r'''[\s"'`=<>]''', value) else '?'
 
     value = re.escape(value) if escape_value else value
 
-    partial_element_re = r'''(?x)
+    partial_element_re = rf'''(?x)
         <(?P<tag>[a-zA-Z0-9:._-]+)
          (?:\s(?:[^>"']|"[^"]*"|'[^']*')*)?
-         \s%(attribute)s\s*=\s*(?P<_q>['"]%(vqo)s)(?-x:%(value)s)(?P=_q)
-        ''' % {'attribute': re.escape(attribute), 'value': value, 'vqo': value_quote_optional}
+         \s{re.escape(attribute)}\s*=\s*(?P<_q>['"]{quote})(?-x:{value})(?P=_q)
+        '''
 
     for m in re.finditer(partial_element_re, html):
         content, whole = get_element_text_and_html_by_tag(m.group('tag'), html[m.start():])
@@ -622,16 +560,11 @@ def extract_attributes(html_element):
         'empty': '', 'noval': None, 'entity': '&',
         'sq': '"', 'dq': '\''
     }.
-    NB HTMLParser is stricter in Python 2.6 & 3.2 than in later versions,
-    but the cases in the unit test will work for all of 2.6, 2.7, 3.2-3.5.
     """
     parser = HTMLAttributeParser()
-    try:
+    with contextlib.suppress(compat_HTMLParseError):
         parser.feed(html_element)
         parser.close()
-    # Older Python may throw HTMLParseError in case of malformed HTML
-    except compat_HTMLParseError:
-        pass
     return parser.attrs
 
 
@@ -670,26 +603,30 @@ def sanitize_open(filename, open_mode):
 
     It returns the tuple (stream, definitive_file_name).
     """
-    try:
-        if filename == '-':
-            if sys.platform == 'win32':
-                import msvcrt
-                msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-            return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
-        stream = locked_file(filename, open_mode, block=False).open()
-        return (stream, filename)
-    except (IOError, OSError) as err:
-        if err.errno in (errno.EACCES,):
-            raise
+    if filename == '-':
+        if sys.platform == 'win32':
+            import msvcrt
+            msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
+        return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
 
-        # In case of error, try to remove win32 forbidden chars
-        alt_filename = sanitize_path(filename)
-        if alt_filename == filename:
-            raise
-        else:
-            # An exception here should be caught in the caller
-            stream = locked_file(filename, open_mode, block=False).open()
-            return (stream, alt_filename)
+    for attempt in range(2):
+        try:
+            try:
+                if sys.platform == 'win32':
+                    # FIXME: An exclusive lock also locks the file from being read.
+                    # Since windows locks are mandatory, don't lock the file on windows (for now).
+                    # Ref: https://github.com/yt-dlp/yt-dlp/issues/3124
+                    raise LockingUnsupportedError()
+                stream = locked_file(filename, open_mode, block=False).__enter__()
+            except LockingUnsupportedError:
+                stream = open(filename, open_mode)
+            return (stream, filename)
+        except OSError as err:
+            if attempt or err.errno in (errno.EACCES,):
+                raise
+            old_filename, filename = filename, sanitize_path(filename)
+            if old_filename == filename:
+                raise
 
 
 def timeconvert(timestr):
@@ -701,36 +638,40 @@ def timeconvert(timestr):
     return timestamp
 
 
-def sanitize_filename(s, restricted=False, is_id=False):
+def sanitize_filename(s, restricted=False, is_id=NO_DEFAULT):
     """Sanitizes a string so it could be used as part of a filename.
-    If restricted is set, use a stricter subset of allowed characters.
-    Set is_id if this is not an arbitrary string, but an ID that should be kept
-    if possible.
+    @param restricted   Use a stricter subset of allowed characters
+    @param is_id        Whether this is an ID that should be kept unchanged if possible.
+                        If unset, yt-dlp's new sanitization rules are in effect
     """
+    if s == '':
+        return ''
+
     def replace_insane(char):
         if restricted and char in ACCENT_CHARS:
             return ACCENT_CHARS[char]
         elif not restricted and char == '\n':
-            return ' '
+            return '\0 '
         elif char == '?' or ord(char) < 32 or ord(char) == 127:
             return ''
         elif char == '"':
             return '' if restricted else '\''
         elif char == ':':
-            return '_-' if restricted else ' -'
+            return '\0_\0-' if restricted else '\0 \0-'
         elif char in '\\/|*<>':
-            return '_'
-        if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace()):
-            return '_'
-        if restricted and ord(char) > 127:
-            return '_'
+            return '\0_'
+        if restricted and (char in '!&\'()[]{}$;`^,#' or char.isspace() or ord(char) > 127):
+            return '\0_'
         return char
 
-    if s == '':
-        return ''
-    # Handle timestamps
-    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)
+    s = re.sub(r'[0-9]+(?::[0-9]+)+', lambda m: m.group(0).replace(':', '_'), s)  # Handle timestamps
     result = ''.join(map(replace_insane, s))
+    if is_id is NO_DEFAULT:
+        result = re.sub('(\0.)(?:(?=\\1)..)+', r'\1', result)  # Remove repeated substitute chars
+        STRIP_RE = '(?:\0.|[ _-])*'
+        result = re.sub(f'^\0.{STRIP_RE}|{STRIP_RE}\0.$', '', result)  # Remove substitute chars from start/end
+    result = result.replace('\0', '') or '_'
+
     if not is_id:
         while '__' in result:
             result = result.replace('__', '_')
@@ -751,8 +692,6 @@ def sanitize_path(s, force=False):
     if sys.platform == 'win32':
         force = False
         drive_or_unc, _ = os.path.splitdrive(s)
-        if sys.version_info < (2, 7) and not drive_or_unc:
-            drive_or_unc, _ = os.path.splitunc(s)
     elif force:
         drive_or_unc = ''
     else:
@@ -766,7 +705,7 @@ def sanitize_path(s, force=False):
         for path_part in norm_path]
     if drive_or_unc:
         sanitized_path.insert(0, drive_or_unc + os.path.sep)
-    elif force and s[0] == os.path.sep:
+    elif force and s and s[0] == os.path.sep:
         sanitized_path.insert(0, os.path.sep)
     return os.path.join(*sanitized_path)
 
@@ -845,10 +784,8 @@ def _htmlentity_transform(entity_with_semicolon):
         else:
             base = 10
         # See https://github.com/ytdl-org/youtube-dl/issues/7518
-        try:
+        with contextlib.suppress(ValueError):
             return compat_chr(int(numstr, base))
-        except ValueError:
-            pass
 
     # Unknown entity in name, return its literal representation
     return '&%s;' % entity
@@ -857,7 +794,7 @@ def _htmlentity_transform(entity_with_semicolon):
 def unescapeHTML(s):
     if s is None:
         return None
-    assert type(s) == compat_str
+    assert isinstance(s, str)
 
     return re.sub(
         r'&([^&;]+;)', lambda m: _htmlentity_transform(m.group(1)), s)
@@ -891,7 +828,7 @@ class Popen(subprocess.Popen):
         _startupinfo = None
 
     def __init__(self, *args, **kwargs):
-        super(Popen, self).__init__(*args, **kwargs, startupinfo=self._startupinfo)
+        super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
         return process_communicate_or_kill(self, *args, **kwargs)
@@ -910,51 +847,23 @@ def get_subprocess_encoding():
 
 
 def encodeFilename(s, for_subprocess=False):
-    """
-    @param s The name of the file
-    """
-
-    assert type(s) == compat_str
-
-    # Python 3 has a Unicode API
-    if sys.version_info >= (3, 0):
-        return s
-
-    # Pass '' directly to use Unicode APIs on Windows 2000 and up
-    # (Detecting Windows NT 4 is tricky because 'major >= 4' would
-    # match Windows 9x series as well. Besides, NT 4 is obsolete.)
-    if not for_subprocess and sys.platform == 'win32' and sys.getwindowsversion()[0] >= 5:
-        return s
-
-    # Jython assumes filenames are Unicode strings though reported as Python 2.x compatible
-    if sys.platform.startswith('java'):
-        return s
-
-    return s.encode(get_subprocess_encoding(), 'ignore')
+    assert isinstance(s, str)
+    return s
 
 
 def decodeFilename(b, for_subprocess=False):
-
-    if sys.version_info >= (3, 0):
-        return b
-
-    if not isinstance(b, bytes):
-        return b
-
-    return b.decode(get_subprocess_encoding(), 'ignore')
+    return b
 
 
 def encodeArgument(s):
-    if not isinstance(s, compat_str):
-        # Legacy code that uses byte strings
-        # Uncomment the following line after fixing all post processors
-        # assert False, 'Internal error: %r should be of type %r, is %r' % (s, compat_str, type(s))
-        s = s.decode('ascii')
-    return encodeFilename(s, True)
+    # Legacy code that uses byte strings
+    # Uncomment the following line after fixing all post processors
+    # assert isinstance(s, str), 'Internal error: %r should be of type %r, is %r' % (s, compat_str, type(s))
+    return s if isinstance(s, str) else s.decode('ascii')
 
 
 def decodeArgument(b):
-    return decodeFilename(b, True)
+    return b
 
 
 def decodeOption(optval):
@@ -997,10 +906,8 @@ def _ssl_load_windows_store_certs(ssl_context, storename):
     except PermissionError:
         return
     for cert in certs:
-        try:
+        with contextlib.suppress(ssl.SSLError):
             ssl_context.load_verify_locations(cadata=cert)
-        except ssl.SSLError:
-            pass
 
 
 def make_HTTPS_handler(params, **kwargs):
@@ -1011,25 +918,28 @@ def make_HTTPS_handler(params, **kwargs):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
-        try:
-            context.load_default_certs()
-            # Work around the issue in load_default_certs when there are bad certificates. See:
-            # https://github.com/yt-dlp/yt-dlp/issues/1060,
-            # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-        except ssl.SSLError:
-            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                # Create a new context to discard any certificates that were already loaded
-                context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
-                for storename in ('CA', 'ROOT'):
-                    _ssl_load_windows_store_certs(context, storename)
-            context.set_default_verify_paths()
+        if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
+            context.load_verify_locations(cafile=certifi.where())
+        else:
+            try:
+                context.load_default_certs()
+                # Work around the issue in load_default_certs when there are bad certificates. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/1060,
+                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+            except ssl.SSLError:
+                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                    # Create a new context to discard any certificates that were already loaded
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
+                    for storename in ('CA', 'ROOT'):
+                        _ssl_load_windows_store_certs(context, storename)
+                context.set_default_verify_paths()
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
 def bug_reports_message(before=';'):
-    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp , '
+    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , '
            'filling out the appropriate issue template. '
            'Confirm you are on the latest version using  yt-dlp -U')
 
@@ -1076,7 +986,7 @@ class ExtractorError(YoutubeDLError):
         self.ie = ie
         self.exc_info = sys.exc_info()  # preserve original exception
 
-        super(ExtractorError, self).__init__(''.join((
+        super().__init__(''.join((
             format_field(ie, template='[%s] '),
             format_field(video_id, template='%s: '),
             msg,
@@ -1092,7 +1002,7 @@ class ExtractorError(YoutubeDLError):
 
 class UnsupportedError(ExtractorError):
     def __init__(self, url):
-        super(UnsupportedError, self).__init__(
+        super().__init__(
             'Unsupported URL: %s' % url, expected=True)
         self.url = url
 
@@ -1111,7 +1021,7 @@ class GeoRestrictedError(ExtractorError):
 
     def __init__(self, msg, countries=None, **kwargs):
         kwargs['expected'] = True
-        super(GeoRestrictedError, self).__init__(msg, **kwargs)
+        super().__init__(msg, **kwargs)
         self.countries = countries
 
 
@@ -1125,7 +1035,7 @@ class DownloadError(YoutubeDLError):
 
     def __init__(self, msg, exc_info=None):
         """ exc_info, if given, is the original exception that caused the trouble (as returned by sys.exc_info()). """
-        super(DownloadError, self).__init__(msg)
+        super().__init__(msg)
         self.exc_info = exc_info
 
 
@@ -1219,9 +1129,7 @@ class ContentTooShortError(YoutubeDLError):
     """
 
     def __init__(self, downloaded, expected):
-        super(ContentTooShortError, self).__init__(
-            'Downloaded {0} bytes, expected {1} bytes'.format(downloaded, expected)
-        )
+        super().__init__(f'Downloaded {downloaded} bytes, expected {expected} bytes')
         # Both in bytes
         self.downloaded = downloaded
         self.expected = expected
@@ -1229,7 +1137,7 @@ class ContentTooShortError(YoutubeDLError):
 
 class XAttrMetadataError(YoutubeDLError):
     def __init__(self, code=None, msg='Unknown error'):
-        super(XAttrMetadataError, self).__init__(msg)
+        super().__init__(msg)
         self.code = code
         self.msg = msg
 
@@ -1248,12 +1156,7 @@ class XAttrUnavailableError(YoutubeDLError):
 
 
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
-    # Working around python 2 bug (see http://bugs.python.org/issue17849) by limiting
-    # expected HTTP responses to meet HTTP/1.0 or later (see also
-    # https://github.com/ytdl-org/youtube-dl/issues/6727)
-    if sys.version_info < (3, 0):
-        kwargs['strict'] = True
-    hc = http_class(*args, **compat_kwargs(kwargs))
+    hc = http_class(*args, **kwargs)
     source_address = ydl_handler._params.get('source_address')
 
     if source_address is not None:
@@ -1270,7 +1173,7 @@ def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
             ip_addrs = [addr for addr in addrs if addr[0] == af]
             if addrs and not ip_addrs:
                 ip_version = 'v4' if af == socket.AF_INET else 'v6'
-                raise socket.error(
+                raise OSError(
                     "No remote IP%s addresses available for connect, can't use '%s' as source address"
                     % (ip_version, source_address[0]))
             for res in ip_addrs:
@@ -1284,30 +1187,17 @@ def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
                     sock.connect(sa)
                     err = None  # Explicitly break reference cycle
                     return sock
-                except socket.error as _:
+                except OSError as _:
                     err = _
                     if sock is not None:
                         sock.close()
             if err is not None:
                 raise err
             else:
-                raise socket.error('getaddrinfo returns an empty list')
+                raise OSError('getaddrinfo returns an empty list')
         if hasattr(hc, '_create_connection'):
             hc._create_connection = _create_connection
-        sa = (source_address, 0)
-        if hasattr(hc, 'source_address'):  # Python 2.7+
-            hc.source_address = sa
-        else:  # Python 2.6
-            def _hc_connect(self, *args, **kwargs):
-                sock = _create_connection(
-                    (self.host, self.port), self.timeout, sa)
-                if is_https:
-                    self.sock = ssl.wrap_socket(
-                        sock, self.key_file, self.cert_file,
-                        ssl_version=ssl.PROTOCOL_TLSv1)
-                else:
-                    self.sock = sock
-            hc.connect = functools.partial(_hc_connect, hc)
+        hc.source_address = (source_address, 0)
 
     return hc
 
@@ -1316,7 +1206,7 @@ def handle_youtubedl_headers(headers):
     filtered_headers = headers
 
     if 'Youtubedl-no-compression' in filtered_headers:
-        filtered_headers = dict((k, v) for k, v in filtered_headers.items() if k.lower() != 'accept-encoding')
+        filtered_headers = {k: v for k, v in filtered_headers.items() if k.lower() != 'accept-encoding'}
         del filtered_headers['Youtubedl-no-compression']
 
     return filtered_headers
@@ -1369,7 +1259,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
     def brotli(data):
         if not data:
             return data
-        return compat_brotli.decompress(data)
+        return brotli.decompress(data)
 
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
@@ -1393,12 +1283,10 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             if h.capitalize() not in req.headers:
                 req.add_header(h, v)
 
-        req.headers = handle_youtubedl_headers(req.headers)
+        if 'Accept-encoding' not in req.headers:
+            req.add_header('Accept-encoding', ', '.join(SUPPORTED_ENCODINGS))
 
-        if sys.version_info < (2, 7) and '#' in req.get_full_url():
-            # Python 2.6 is brain-dead when it comes to fragments
-            req._Request__original = req._Request__original.partition('#')[0]
-            req._Request__r_type = req._Request__r_type.partition('#')[0]
+        req.headers = handle_youtubedl_headers(req.headers)
 
         return req
 
@@ -1410,14 +1298,14 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             gz = gzip.GzipFile(fileobj=io.BytesIO(content), mode='rb')
             try:
                 uncompressed = io.BytesIO(gz.read())
-            except IOError as original_ioerror:
+            except OSError as original_ioerror:
                 # There may be junk add the end of the file
                 # See http://stackoverflow.com/q/4928560/35070 for details
                 for i in range(1, 1024):
                     try:
                         gz = gzip.GzipFile(fileobj=io.BytesIO(content[:-i]), mode='rb')
                         uncompressed = io.BytesIO(gz.read())
-                    except IOError:
+                    except OSError:
                         continue
                     break
                 else:
@@ -1443,15 +1331,10 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             location = resp.headers.get('Location')
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
-                if sys.version_info >= (3, 0):
-                    location = location.encode('iso-8859-1').decode('utf-8')
-                else:
-                    location = location.decode('utf-8')
+                location = location.encode('iso-8859-1').decode('utf-8')
                 location_escaped = escape_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
-                    if sys.version_info < (3, 0):
-                        location_escaped = location_escaped.encode('utf-8')
                     resp.headers['Location'] = location_escaped
         return resp
 
@@ -1488,7 +1371,7 @@ def make_socks_conn_class(base_class, socks_proxy):
         def connect(self):
             self.sock = sockssocket()
             self.sock.setproxy(*proxy_args)
-            if type(self.timeout) in (int, float):
+            if isinstance(self.timeout, (int, float)):
                 self.sock.settimeout(self.timeout)
             self.sock.connect((self.host, self.port))
 
@@ -1562,7 +1445,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             if cookie.expires is None:
                 cookie.expires = 0
 
-        with io.open(filename, 'w', encoding='utf-8') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             f.write(self._HEADER)
             now = time.time()
             for cookie in self:
@@ -1618,14 +1501,12 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             return line
 
         cf = io.StringIO()
-        with io.open(filename, encoding='utf-8') as f:
+        with open(filename, encoding='utf-8') as f:
             for line in f:
                 try:
                     cf.write(prepare_line(line))
                 except compat_cookiejar.LoadError as e:
-                    write_string(
-                        'WARNING: skipping cookie file entry due to %s: %r\n'
-                        % (e, line), sys.stderr)
+                    write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')
                     continue
         cf.seek(0)
         self._really_load(cf, filename, ignore_discard, ignore_expires)
@@ -1650,19 +1531,6 @@ class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
         compat_urllib_request.HTTPCookieProcessor.__init__(self, cookiejar)
 
     def http_response(self, request, response):
-        # Python 2 will choke on next HTTP request in row if there are non-ASCII
-        # characters in Set-Cookie HTTP header of last response (see
-        # https://github.com/ytdl-org/youtube-dl/issues/6769).
-        # In order to at least prevent crashing we will percent encode Set-Cookie
-        # header before HTTPCookieProcessor starts processing it.
-        # if sys.version_info < (3, 0) and response.headers:
-        #     for set_cookie_header in ('Set-Cookie', 'Set-Cookie2'):
-        #         set_cookie = response.headers.get(set_cookie_header)
-        #         if set_cookie:
-        #             set_cookie_escaped = compat_urllib_parse.quote(set_cookie, b"%/;:@&=+$,!~*'()?#[] ")
-        #             if set_cookie != set_cookie_escaped:
-        #                 del response.headers[set_cookie_header]
-        #                 response.headers[set_cookie_header] = set_cookie_escaped
         return compat_urllib_request.HTTPCookieProcessor.http_response(self, request, response)
 
     https_request = compat_urllib_request.HTTPCookieProcessor.http_request
@@ -1706,12 +1574,6 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         # essentially all clients do redirect in this case, so we do
         # the same.
 
-        # On python 2 urlh.geturl() may sometimes return redirect URL
-        # as byte string instead of unicode. This workaround allows
-        # to force it always return unicode.
-        if sys.version_info[0] < 3:
-            newurl = compat_str(newurl)
-
         # Be conciliant with URIs containing a space.  This is mainly
         # redundant with the more complete encoding done in http_error_302(),
         # but it is kept for compatibility with other callers.
@@ -1719,8 +1581,7 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
 
         CONTENT_HEADERS = ("content-length", "content-type")
         # NB: don't use dict comprehension for python 2.6 compatibility
-        newheaders = dict((k, v) for k, v in req.headers.items()
-                          if k.lower() not in CONTENT_HEADERS)
+        newheaders = {k: v for k, v in req.headers.items() if k.lower() not in CONTENT_HEADERS}
         return compat_urllib_request.Request(
             newurl, headers=newheaders, origin_req_host=req.origin_req_host,
             unverifiable=True)
@@ -1763,12 +1624,10 @@ def parse_iso8601(date_str, delimiter='T', timezone=None):
     if timezone is None:
         timezone, date_str = extract_timezone(date_str)
 
-    try:
-        date_format = '%Y-%m-%d{0}%H:%M:%S'.format(delimiter)
+    with contextlib.suppress(ValueError):
+        date_format = f'%Y-%m-%d{delimiter}%H:%M:%S'
         dt = datetime.datetime.strptime(date_str, date_format) - timezone
         return calendar.timegm(dt.timetuple())
-    except ValueError:
-        pass
 
 
 def date_formats(day_first=True):
@@ -1788,17 +1647,13 @@ def unified_strdate(date_str, day_first=True):
     _, date_str = extract_timezone(date_str)
 
     for expression in date_formats(day_first):
-        try:
+        with contextlib.suppress(ValueError):
             upload_date = datetime.datetime.strptime(date_str, expression).strftime('%Y%m%d')
-        except ValueError:
-            pass
     if upload_date is None:
         timetuple = email.utils.parsedate_tz(date_str)
         if timetuple:
-            try:
+            with contextlib.suppress(ValueError):
                 upload_date = datetime.datetime(*timetuple[:6]).strftime('%Y%m%d')
-            except ValueError:
-                pass
     if upload_date is not None:
         return compat_str(upload_date)
 
@@ -1826,11 +1681,9 @@ def unified_timestamp(date_str, day_first=True):
         date_str = m.group(1)
 
     for expression in date_formats(day_first):
-        try:
+        with contextlib.suppress(ValueError):
             dt = datetime.datetime.strptime(date_str, expression) - timezone + datetime.timedelta(hours=pm_delta)
             return calendar.timegm(dt.timetuple())
-        except ValueError:
-            pass
     timetuple = email.utils.parsedate_tz(date_str)
     if timetuple:
         return calendar.timegm(timetuple) + pm_delta * 3600
@@ -1946,7 +1799,7 @@ def hyphenate_date(date_str):
         return date_str
 
 
-class DateRange(object):
+class DateRange:
     """Represents a time interval between two dates"""
 
     def __init__(self, start=None, end=None):
@@ -1974,7 +1827,7 @@ class DateRange(object):
         return self.start <= date <= self.end
 
     def __str__(self):
-        return '%s - %s' % (self.start.isoformat(), self.end.isoformat())
+        return f'{self.start.isoformat()} - {self.end.isoformat()}'
 
 
 def platform_name():
@@ -1995,91 +1848,11 @@ def get_windows_version():
         return None
 
 
-def _windows_write_string(s, out):
-    """ Returns True if the string was written using special methods,
-    False if it has yet to be written out."""
-    # Adapted from http://stackoverflow.com/a/3259271/35070
-
-    import ctypes.wintypes
-
-    WIN_OUTPUT_IDS = {
-        1: -11,
-        2: -12,
-    }
-
-    try:
-        fileno = out.fileno()
-    except AttributeError:
-        # If the output stream doesn't have a fileno, it's virtual
-        return False
-    except io.UnsupportedOperation:
-        # Some strange Windows pseudo files?
-        return False
-    if fileno not in WIN_OUTPUT_IDS:
-        return False
-
-    GetStdHandle = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.HANDLE, ctypes.wintypes.DWORD)(
-        ('GetStdHandle', ctypes.windll.kernel32))
-    h = GetStdHandle(WIN_OUTPUT_IDS[fileno])
-
-    WriteConsoleW = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE, ctypes.wintypes.LPWSTR,
-        ctypes.wintypes.DWORD, ctypes.POINTER(ctypes.wintypes.DWORD),
-        ctypes.wintypes.LPVOID)(('WriteConsoleW', ctypes.windll.kernel32))
-    written = ctypes.wintypes.DWORD(0)
-
-    GetFileType = compat_ctypes_WINFUNCTYPE(ctypes.wintypes.DWORD, ctypes.wintypes.DWORD)(('GetFileType', ctypes.windll.kernel32))
-    FILE_TYPE_CHAR = 0x0002
-    FILE_TYPE_REMOTE = 0x8000
-    GetConsoleMode = compat_ctypes_WINFUNCTYPE(
-        ctypes.wintypes.BOOL, ctypes.wintypes.HANDLE,
-        ctypes.POINTER(ctypes.wintypes.DWORD))(
-        ('GetConsoleMode', ctypes.windll.kernel32))
-    INVALID_HANDLE_VALUE = ctypes.wintypes.DWORD(-1).value
-
-    def not_a_console(handle):
-        if handle == INVALID_HANDLE_VALUE or handle is None:
-            return True
-        return ((GetFileType(handle) & ~FILE_TYPE_REMOTE) != FILE_TYPE_CHAR
-                or GetConsoleMode(handle, ctypes.byref(ctypes.wintypes.DWORD())) == 0)
-
-    if not_a_console(h):
-        return False
-
-    def next_nonbmp_pos(s):
-        try:
-            return next(i for i, c in enumerate(s) if ord(c) > 0xffff)
-        except StopIteration:
-            return len(s)
-
-    while s:
-        count = min(next_nonbmp_pos(s), 1024)
-
-        ret = WriteConsoleW(
-            h, s, count if count else 2, ctypes.byref(written), None)
-        if ret == 0:
-            raise OSError('Failed to write string')
-        if not count:  # We just wrote a non-BMP character
-            assert written.value == 2
-            s = s[1:]
-        else:
-            assert written.value > 0
-            s = s[written.value:]
-    return True
-
-
 def write_string(s, out=None, encoding=None):
-    if out is None:
-        out = sys.stderr
-    assert type(s) == compat_str
+    assert isinstance(s, str)
+    out = out or sys.stderr
 
-    if sys.platform == 'win32' and encoding is None and hasattr(out, 'fileno'):
-        if _windows_write_string(s, out):
-            return
-
-    if ('b' in getattr(out, 'mode', '')
-            or sys.version_info[0] < 3):  # Python 2 lies about mode of sys.stderr
+    if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
         out.write(byt)
     elif hasattr(out, 'buffer'):
@@ -2104,6 +1877,13 @@ def intlist_to_bytes(xs):
     if not xs:
         return b''
     return compat_struct_pack('%dB' % len(xs), *xs)
+
+
+class LockingUnsupportedError(IOError):
+    msg = 'File locking is not supported on this platform'
+
+    def __init__(self):
+        super().__init__(self.msg)
 
 
 # Cross-platform file locking
@@ -2166,18 +1946,15 @@ else:
         import fcntl
 
         def _lock_file(f, exclusive, block):
+            flags = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+            if not block:
+                flags |= fcntl.LOCK_NB
             try:
-                fcntl.flock(f,
-                            fcntl.LOCK_SH if not exclusive
-                            else fcntl.LOCK_EX if block
-                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.flock(f, flags)
             except BlockingIOError:
                 raise
             except OSError:  # AOSP does not have flock()
-                fcntl.lockf(f,
-                            fcntl.LOCK_SH if not exclusive
-                            else fcntl.LOCK_EX if block
-                            else fcntl.LOCK_EX | fcntl.LOCK_NB)
+                fcntl.lockf(f, flags)
 
         def _unlock_file(f):
             try:
@@ -2186,58 +1963,70 @@ else:
                 fcntl.lockf(f, fcntl.LOCK_UN)
 
     except ImportError:
-        UNSUPPORTED_MSG = 'file locking is not supported on this platform'
 
         def _lock_file(f, exclusive, block):
-            raise IOError(UNSUPPORTED_MSG)
+            raise LockingUnsupportedError()
 
         def _unlock_file(f):
-            raise IOError(UNSUPPORTED_MSG)
+            raise LockingUnsupportedError()
 
 
-class locked_file(object):
-    _closed = False
+class locked_file:
+    locked = False
 
     def __init__(self, filename, mode, block=True, encoding=None):
-        assert mode in ['r', 'rb', 'a', 'ab', 'w', 'wb']
-        self.f = io.open(filename, mode, encoding=encoding)
-        self.mode = mode
-        self.block = block
+        if mode not in {'r', 'rb', 'a', 'ab', 'w', 'wb'}:
+            raise NotImplementedError(mode)
+        self.mode, self.block = mode, block
+
+        writable = any(f in mode for f in 'wax+')
+        readable = any(f in mode for f in 'r+')
+        flags = functools.reduce(operator.ior, (
+            getattr(os, 'O_CLOEXEC', 0),  # UNIX only
+            getattr(os, 'O_BINARY', 0),  # Windows only
+            getattr(os, 'O_NOINHERIT', 0),  # Windows only
+            os.O_CREAT if writable else 0,  # O_TRUNC only after locking
+            os.O_APPEND if 'a' in mode else 0,
+            os.O_EXCL if 'x' in mode else 0,
+            os.O_RDONLY if not writable else os.O_RDWR if readable else os.O_WRONLY,
+        ))
+
+        self.f = os.fdopen(os.open(filename, flags, 0o666), mode, encoding=encoding)
 
     def __enter__(self):
         exclusive = 'r' not in self.mode
         try:
             _lock_file(self.f, exclusive, self.block)
-        except IOError:
+            self.locked = True
+        except OSError:
             self.f.close()
             raise
+        if 'w' in self.mode:
+            self.f.truncate()
         return self
 
-    def __exit__(self, etype, value, traceback):
+    def unlock(self):
+        if not self.locked:
+            return
         try:
-            if not self._closed:
-                _unlock_file(self.f)
+            _unlock_file(self.f)
+        finally:
+            self.locked = False
+
+    def __exit__(self, *_):
+        try:
+            self.unlock()
         finally:
             self.f.close()
-            self._closed = True
+
+    open = __enter__
+    close = __exit__
+
+    def __getattr__(self, attr):
+        return getattr(self.f, attr)
 
     def __iter__(self):
         return iter(self.f)
-
-    def write(self, *args):
-        return self.f.write(*args)
-
-    def read(self, *args):
-        return self.f.read(*args)
-
-    def flush(self):
-        self.f.flush()
-
-    def open(self):
-        return self.__enter__()
-
-    def close(self, *args):
-        self.__exit__(self, *args, value=False, traceback=False)
 
 
 def get_filesystem_encoding():
@@ -2280,8 +2069,9 @@ def format_decimal_suffix(num, fmt='%d%s', *, factor=1000):
     num, factor = float_or_none(num), float(factor)
     if num is None or num < 0:
         return None
-    exponent = 0 if num == 0 else int(math.log(num, factor))
-    suffix = ['', *'kMGTPEZY'][exponent]
+    POSSIBLE_SUFFIXES = 'kMGTPEZY'
+    exponent = 0 if num == 0 else min(int(math.log(num, factor)), len(POSSIBLE_SUFFIXES))
+    suffix = ['', *POSSIBLE_SUFFIXES][exponent]
     if factor == 1024:
         suffix = {'k': 'Ki', '': ''}.get(suffix, f'{suffix}i')
     converted = num / (factor ** exponent)
@@ -2403,11 +2193,14 @@ def parse_count(s):
         return str_to_int(mobj.group(1))
 
 
-def parse_resolution(s):
+def parse_resolution(s, *, lenient=False):
     if s is None:
         return {}
 
-    mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
+    if lenient:
+        mobj = re.search(r'(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)', s)
+    else:
+        mobj = re.search(r'(?<![a-zA-Z0-9])(?P<w>\d+)\s*[xX×,]\s*(?P<h>\d+)(?![a-zA-Z0-9])', s)
     if mobj:
         return {
             'width': int(mobj.group('w')),
@@ -2559,7 +2352,7 @@ def str_or_none(v, default=None):
 
 def str_to_int(int_str):
     """ A more relaxed version of int_or_none """
-    if isinstance(int_str, compat_integer_types):
+    if isinstance(int_str, int):
         return int_str
     elif isinstance(int_str, compat_str):
         int_str = re.sub(r'[,\.\+]', '', int_str)
@@ -2600,7 +2393,7 @@ def request_to_url(req):
 def strftime_or_none(timestamp, date_format, default=None):
     datetime_object = None
     try:
-        if isinstance(timestamp, compat_numeric_types):  # unix timestamp
+        if isinstance(timestamp, (int, float)):  # unix timestamp
             datetime_object = datetime.datetime.utcfromtimestamp(timestamp)
         elif isinstance(timestamp, compat_str):  # assume YYYYMMDD
             datetime_object = datetime.datetime.strptime(timestamp, '%Y%m%d')
@@ -2610,7 +2403,7 @@ def strftime_or_none(timestamp, date_format, default=None):
 
 
 def parse_duration(s):
-    if not isinstance(s, compat_basestring):
+    if not isinstance(s, str):
         return None
     s = s.strip()
     if not s:
@@ -2629,23 +2422,23 @@ def parse_duration(s):
         m = re.match(
             r'''(?ix)(?:P?
                 (?:
-                    [0-9]+\s*y(?:ears?)?\s*
+                    [0-9]+\s*y(?:ears?)?,?\s*
                 )?
                 (?:
-                    [0-9]+\s*m(?:onths?)?\s*
+                    [0-9]+\s*m(?:onths?)?,?\s*
                 )?
                 (?:
-                    [0-9]+\s*w(?:eeks?)?\s*
+                    [0-9]+\s*w(?:eeks?)?,?\s*
                 )?
                 (?:
-                    (?P<days>[0-9]+)\s*d(?:ays?)?\s*
+                    (?P<days>[0-9]+)\s*d(?:ays?)?,?\s*
                 )?
                 T)?
                 (?:
-                    (?P<hours>[0-9]+)\s*h(?:ours?)?\s*
+                    (?P<hours>[0-9]+)\s*h(?:ours?)?,?\s*
                 )?
                 (?:
-                    (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?\s*
+                    (?P<mins>[0-9]+)\s*m(?:in(?:ute)?s?)?,?\s*
                 )?
                 (?:
                     (?P<secs>[0-9]+)(?P<ms>\.[0-9]+)?\s*s(?:ec(?:ond)?s?)?\s*
@@ -2659,31 +2452,23 @@ def parse_duration(s):
             else:
                 return None
 
-    duration = 0
-    if secs:
-        duration += float(secs)
-    if mins:
-        duration += float(mins) * 60
-    if hours:
-        duration += float(hours) * 60 * 60
-    if days:
-        duration += float(days) * 24 * 60 * 60
     if ms:
-        duration += float(ms.replace(':', '.'))
-    return duration
+        ms = ms.replace(':', '.')
+    return sum(float(part or 0) * mult for part, mult in (
+        (days, 86400), (hours, 3600), (mins, 60), (secs, 1), (ms, 1)))
 
 
 def prepend_extension(filename, ext, expected_real_ext=None):
     name, real_ext = os.path.splitext(filename)
     return (
-        '{0}.{1}{2}'.format(name, ext, real_ext)
+        f'{name}.{ext}{real_ext}'
         if not expected_real_ext or real_ext[1:] == expected_real_ext
-        else '{0}.{1}'.format(filename, ext))
+        else f'{filename}.{ext}')
 
 
 def replace_extension(filename, ext, expected_real_ext=None):
     name, real_ext = os.path.splitext(filename)
-    return '{0}.{1}'.format(
+    return '{}.{}'.format(
         name if not expected_real_ext or real_ext[1:] == expected_real_ext else filename,
         ext)
 
@@ -2698,7 +2483,9 @@ def check_executable(exe, args=[]):
     return exe
 
 
-def _get_exe_version_output(exe, args):
+def _get_exe_version_output(exe, args, *, to_screen=None):
+    if to_screen:
+        to_screen(f'Checking exe version: {shell_quote([exe] + args)}')
     try:
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
@@ -2863,6 +2650,8 @@ class PagedList:
 
 
 class OnDemandPagedList(PagedList):
+    """Download pages until a page with less than maximum results"""
+
     def _getslice(self, start, end):
         for pagenum in itertools.count(start // self._pagesize):
             firstid = pagenum * self._pagesize
@@ -2902,6 +2691,8 @@ class OnDemandPagedList(PagedList):
 
 
 class InAdvancePagedList(PagedList):
+    """PagedList with total number of pages known in advance"""
+
     def __init__(self, pagefunc, pagecount, pagesize):
         PagedList.__init__(self, pagefunc, pagesize, True)
         self._pagecount = pagecount
@@ -2943,9 +2734,7 @@ def lowercase_escape(s):
 
 def escape_rfc3986(s):
     """Escape non-ASCII characters as suggested by RFC 3986"""
-    if sys.version_info < (3, 0) and isinstance(s, compat_str):
-        s = s.encode('utf-8')
-    return compat_urllib_parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
+    return urllib.parse.quote(s, b"%/;:@&=+$,!~*'()?#[]")
 
 
 def escape_url(url):
@@ -3070,36 +2859,37 @@ def multipart_encode(data, boundary=None):
 
 
 def dict_get(d, key_or_keys, default=None, skip_false_values=True):
-    if isinstance(key_or_keys, (list, tuple)):
-        for key in key_or_keys:
-            if key not in d or d[key] is None or skip_false_values and not d[key]:
-                continue
-            return d[key]
-        return default
-    return d.get(key_or_keys, default)
+    for val in map(d.get, variadic(key_or_keys)):
+        if val is not None and (val or not skip_false_values):
+            return val
+    return default
+
+
+def try_call(*funcs, expected_type=None, args=[], kwargs={}):
+    for f in funcs:
+        try:
+            val = f(*args, **kwargs)
+        except (AttributeError, KeyError, TypeError, IndexError, ZeroDivisionError):
+            pass
+        else:
+            if expected_type is None or isinstance(val, expected_type):
+                return val
 
 
 def try_get(src, getter, expected_type=None):
-    for get in variadic(getter):
-        try:
-            v = get(src)
-        except (AttributeError, KeyError, TypeError, IndexError):
-            pass
-        else:
-            if expected_type is None or isinstance(v, expected_type):
-                return v
+    return try_call(*variadic(getter), args=(src,), expected_type=expected_type)
+
+
+def filter_dict(dct, cndn=lambda _, v: v is not None):
+    return {k: v for k, v in dct.items() if cndn(k, v)}
 
 
 def merge_dicts(*dicts):
     merged = {}
     for a_dict in dicts:
         for k, v in a_dict.items():
-            if v is None:
-                continue
-            if (k not in merged
-                    or (isinstance(v, compat_str) and v
-                        and isinstance(merged[k], compat_str)
-                        and not merged[k])):
+            if (v is not None and k not in merged
+                    or isinstance(v, str) and merged[k] == ''):
                 merged[k] = v
     return merged
 
@@ -3128,9 +2918,10 @@ TV_PARENTAL_GUIDELINES = {
 
 
 def parse_age_limit(s):
-    if type(s) == int:
+    # isinstance(False, int) is True. So type() must be used instead
+    if type(s) is int:
         return s if 0 <= s <= 21 else None
-    if not isinstance(s, compat_basestring):
+    elif not isinstance(s, str):
         return None
     m = re.match(r'^(?P<age>\d{1,2})\+?$', s)
     if m:
@@ -3157,10 +2948,10 @@ def strip_jsonp(code):
 def js_to_json(code, vars={}):
     # vars is a dict of var, val pairs to substitute
     COMMENT_RE = r'/\*(?:(?!\*/).)*?\*/|//[^\n]*\n'
-    SKIP_RE = r'\s*(?:{comment})?\s*'.format(comment=COMMENT_RE)
+    SKIP_RE = fr'\s*(?:{COMMENT_RE})?\s*'
     INTEGER_TABLE = (
-        (r'(?s)^(0[xX][0-9a-fA-F]+){skip}:?$'.format(skip=SKIP_RE), 16),
-        (r'(?s)^(0+[0-7]+){skip}:?$'.format(skip=SKIP_RE), 8),
+        (fr'(?s)^(0[xX][0-9a-fA-F]+){SKIP_RE}:?$', 16),
+        (fr'(?s)^(0+[0-7]+){SKIP_RE}:?$', 8),
     )
 
     def fix_kv(m):
@@ -3214,7 +3005,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = {'pre_process', 'after_filter', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist'}
+POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist')
 
 
 DEFAULT_OUTTMPL = {
@@ -3292,12 +3083,11 @@ def args_to_str(args):
 
 
 def error_to_compat_str(err):
-    err_str = str(err)
-    # On python 2 error byte string must be decoded with proper
-    # encoding rather than ascii
-    if sys.version_info[0] < 3:
-        err_str = err_str.decode(preferredencoding())
-    return err_str
+    return str(err)
+
+
+def error_to_str(err):
+    return f'{type(err).__name__}: {err}'
 
 
 def mimetype2ext(mt):
@@ -3399,7 +3189,7 @@ def parse_codecs(codecs_str):
             if not tcodec:
                 tcodec = full_codec
         else:
-            write_string('WARNING: Unknown codec %s\n' % full_codec, sys.stderr)
+            write_string(f'WARNING: Unknown codec {full_codec}\n')
     if vcodec or acodec or tcodec:
         return {
             'vcodec': vcodec or 'none',
@@ -3534,6 +3324,11 @@ def _match_one(filter_part, dct, incomplete):
         '=': operator.eq,
     }
 
+    if isinstance(incomplete, bool):
+        is_incomplete = lambda _: incomplete
+    else:
+        is_incomplete = lambda k: k in incomplete
+
     operator_rex = re.compile(r'''(?x)\s*
         (?P<key>[a-z_]+)
         \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
@@ -3556,7 +3351,7 @@ def _match_one(filter_part, dct, incomplete):
             comparison_value = comparison_value.replace(r'\%s' % m['quote'], m['quote'])
         actual_value = dct.get(m['key'])
         numeric_comparison = None
-        if isinstance(actual_value, compat_numeric_types):
+        if isinstance(actual_value, (int, float)):
             # If the original field is a string and matching comparisonvalue is
             # a number we should respect the origin of the original field
             # and process comparison value as a string (see
@@ -3572,7 +3367,7 @@ def _match_one(filter_part, dct, incomplete):
         if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
             raise ValueError('Operator %s only supports string values!' % m['op'])
         if actual_value is None:
-            return incomplete or m['none_inclusive']
+            return is_incomplete(m['key']) or m['none_inclusive']
         return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
 
     UNARY_OPERATORS = {
@@ -3587,7 +3382,7 @@ def _match_one(filter_part, dct, incomplete):
     if m:
         op = UNARY_OPERATORS[m.group('op')]
         actual_value = dct.get(m.group('key'))
-        if incomplete and actual_value is None:
+        if is_incomplete(m.group('key')) and actual_value is None:
             return True
         return op(actual_value)
 
@@ -3595,24 +3390,29 @@ def _match_one(filter_part, dct, incomplete):
 
 
 def match_str(filter_str, dct, incomplete=False):
-    """ Filter a dictionary with a simple string syntax. Returns True (=passes filter) or false
-        When incomplete, all conditions passes on missing fields
+    """ Filter a dictionary with a simple string syntax.
+    @returns           Whether the filter passes
+    @param incomplete  Set of keys that is expected to be missing from dct.
+                       Can be True/False to indicate all/none of the keys may be missing.
+                       All conditions on incomplete keys pass if the key is missing
     """
     return all(
         _match_one(filter_part.replace(r'\&', '&'), dct, incomplete)
         for filter_part in re.split(r'(?<!\\)&', filter_str))
 
 
-def match_filter_func(filter_str):
-    if filter_str is None:
+def match_filter_func(filters):
+    if not filters:
         return None
+    filters = variadic(filters)
 
     def _match_func(info_dict, *args, **kwargs):
-        if match_str(filter_str, info_dict, *args, **kwargs):
+        if any(match_str(f, info_dict, *args, **kwargs) for f in filters):
             return None
         else:
-            video_title = info_dict.get('title', info_dict.get('id', 'video'))
-            return '%s does not pass filter %s, skipping ..' % (video_title, filter_str)
+            video_title = info_dict.get('title') or info_dict.get('id') or 'video'
+            filter_str = ') | ('.join(map(str.strip, filters))
+            return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func
 
 
@@ -3672,7 +3472,7 @@ def dfxp2srt(dfxp_data):
     styles = {}
     default_style = {}
 
-    class TTMLPElementParser(object):
+    class TTMLPElementParser:
         _out = ''
         _unclosed_elements = []
         _applied_styles = []
@@ -3857,7 +3657,7 @@ def _configuration_args(main_key, argdict, exe, keys=None, default=[], use_compa
     return cli_configuration_args(argdict, keys, default, use_compat)
 
 
-class ISO639Utils(object):
+class ISO639Utils:
     # See http://www.loc.gov/standards/iso639-2/ISO-639-2_utf-8.txt
     _lang_map = {
         'aa': 'aar',
@@ -4062,7 +3862,7 @@ class ISO639Utils(object):
                 return short_name
 
 
-class ISO3166Utils(object):
+class ISO3166Utils:
     # From http://data.okfn.org/data/core/country-list
     _country_map = {
         'AF': 'Afghanistan',
@@ -4322,7 +4122,7 @@ class ISO3166Utils(object):
         return cls._country_map.get(code.upper())
 
 
-class GeoUtils(object):
+class GeoUtils:
     # Major IPv4 address blocks per country
     _country_ip_map = {
         'AD': '46.172.224.0/19',
@@ -4759,7 +4559,7 @@ def decode_png(png_data):
     header = png_data[8:]
 
     if png_data[:8] != b'\x89PNG\x0d\x0a\x1a\x0a' or header[4:8] != b'IHDR':
-        raise IOError('Not a valid PNG file.')
+        raise OSError('Not a valid PNG file.')
 
     int_map = {1: '>B', 2: '>H', 4: '>I'}
     unpack_integer = lambda x: compat_struct_unpack(int_map[len(x)], x)[0]
@@ -4796,7 +4596,7 @@ def decode_png(png_data):
             idat += chunk['data']
 
     if not idat:
-        raise IOError('Unable to read PNG data.')
+        raise OSError('Unable to read PNG data.')
 
     decompressed_data = bytearray(zlib.decompress(idat))
 
@@ -4884,7 +4684,7 @@ def write_xattr(path, key, value):
 
         try:
             setxattr(path, key, value)
-        except EnvironmentError as e:
+        except OSError as e:
             raise XAttrMetadataError(e.errno, e.strerror)
 
     except ImportError:
@@ -4898,7 +4698,7 @@ def write_xattr(path, key, value):
             try:
                 with open(ads_fn, 'wb') as f:
                     f.write(value)
-            except EnvironmentError as e:
+            except OSError as e:
                 raise XAttrMetadataError(e.errno, e.strerror)
         else:
             user_has_setfattr = check_executable('setfattr', ['--version'])
@@ -4921,7 +4721,7 @@ def write_xattr(path, key, value):
                 try:
                     p = Popen(
                         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-                except EnvironmentError as e:
+                except OSError as e:
                     raise XAttrMetadataError(e.errno, e.strerror)
                 stdout, stderr = p.communicate_or_kill()
                 stderr = stderr.decode('utf-8', 'replace')
@@ -4956,12 +4756,12 @@ def random_birthday(year_field, month_field, day_field):
 
 
 # Templates for internet shortcut files, which are plain text files.
-DOT_URL_LINK_TEMPLATE = '''
+DOT_URL_LINK_TEMPLATE = '''\
 [InternetShortcut]
 URL=%(url)s
-'''.lstrip()
+'''
 
-DOT_WEBLOC_LINK_TEMPLATE = '''
+DOT_WEBLOC_LINK_TEMPLATE = '''\
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -4970,16 +4770,16 @@ DOT_WEBLOC_LINK_TEMPLATE = '''
 \t<string>%(url)s</string>
 </dict>
 </plist>
-'''.lstrip()
+'''
 
-DOT_DESKTOP_LINK_TEMPLATE = '''
+DOT_DESKTOP_LINK_TEMPLATE = '''\
 [Desktop Entry]
 Encoding=UTF-8
 Name=%(filename)s
 Type=Link
 URL=%(url)s
 Icon=text-html
-'''.lstrip()
+'''
 
 LINK_TEMPLATES = {
     'url': DOT_URL_LINK_TEMPLATE,
@@ -5005,9 +4805,9 @@ def iri_to_uri(iri):
 
     net_location = ''
     if iri_parts.username:
-        net_location += compat_urllib_parse_quote(iri_parts.username, safe=r"!$%&'()*+,~")
+        net_location += urllib.parse.quote(iri_parts.username, safe=r"!$%&'()*+,~")
         if iri_parts.password is not None:
-            net_location += ':' + compat_urllib_parse_quote(iri_parts.password, safe=r"!$%&'()*+,~")
+            net_location += ':' + urllib.parse.quote(iri_parts.password, safe=r"!$%&'()*+,~")
         net_location += '@'
 
     net_location += iri_parts.hostname.encode('idna').decode('utf-8')  # Punycode for Unicode hostnames.
@@ -5015,19 +4815,19 @@ def iri_to_uri(iri):
     if iri_parts.port is not None and iri_parts.port != 80:
         net_location += ':' + str(iri_parts.port)
 
-    return compat_urllib_parse_urlunparse(
+    return urllib.parse.urlunparse(
         (iri_parts.scheme,
             net_location,
 
-            compat_urllib_parse_quote_plus(iri_parts.path, safe=r"!$%&'()*+,/:;=@|~"),
+            urllib.parse.quote_plus(iri_parts.path, safe=r"!$%&'()*+,/:;=@|~"),
 
             # Unsure about the `safe` argument, since this is a legacy way of handling parameters.
-            compat_urllib_parse_quote_plus(iri_parts.params, safe=r"!$%&'()*+,/:;=@|~"),
+            urllib.parse.quote_plus(iri_parts.params, safe=r"!$%&'()*+,/:;=@|~"),
 
             # Not totally sure about the `safe` argument, since the source does not explicitly mention the query URI component.
-            compat_urllib_parse_quote_plus(iri_parts.query, safe=r"!$%&'()*+,/:;=?@{|}~"),
+            urllib.parse.quote_plus(iri_parts.query, safe=r"!$%&'()*+,/:;=?@{|}~"),
 
-            compat_urllib_parse_quote_plus(iri_parts.fragment, safe=r"!#$%&'()*+,/:;=?@{|}~")))
+            urllib.parse.quote_plus(iri_parts.fragment, safe=r"!#$%&'()*+,/:;=?@{|}~")))
 
     # Source for `safe` arguments: https://url.spec.whatwg.org/#percent-encoded-bytes.
 
@@ -5035,7 +4835,7 @@ def iri_to_uri(iri):
 def to_high_limit_path(path):
     if sys.platform in ['win32', 'cygwin']:
         # Work around MAX_PATH limitation on Windows. The maximum allowed length for the individual path segments may still be quite limited.
-        return r'\\?\ '.rstrip() + os.path.abspath(path)
+        return '\\\\?\\' + os.path.abspath(path)
 
     return path
 
@@ -5077,7 +4877,7 @@ def make_dir(path, to_screen=None):
         if dn and not os.path.exists(dn):
             os.makedirs(dn)
         return True
-    except (OSError, IOError) as err:
+    except OSError as err:
         if callable(to_screen) is not None:
             to_screen('unable to create directory ' + error_to_compat_str(err))
         return False
@@ -5087,7 +4887,7 @@ def get_executable_path():
     from zipimport import zipimporter
     if hasattr(sys, 'frozen'):  # Running from PyInstaller
         path = os.path.dirname(sys.executable)
-    elif isinstance(globals().get('__loader__'), zipimporter):  # Running from ZIP
+    elif isinstance(__loader__, zipimporter):  # Running from ZIP
         path = os.path.join(os.path.dirname(__file__), '../..')
     else:
         path = os.path.join(os.path.dirname(__file__), '..')
@@ -5096,7 +4896,7 @@ def get_executable_path():
 
 def load_plugins(name, suffix, namespace):
     classes = {}
-    try:
+    with contextlib.suppress(FileNotFoundError):
         plugins_spec = importlib.util.spec_from_file_location(
             name, os.path.join(get_executable_path(), 'ytdlp_plugins', name, '__init__.py'))
         plugins = importlib.util.module_from_spec(plugins_spec)
@@ -5109,8 +4909,6 @@ def load_plugins(name, suffix, namespace):
                 continue
             klass = getattr(plugins, name)
             classes[name] = namespace[name] = klass
-    except FileNotFoundError:
-        pass
     return classes
 
 
@@ -5119,13 +4917,14 @@ def traverse_obj(
         casesense=True, is_user_input=False, traverse_string=False):
     ''' Traverse nested list/dict/tuple
     @param path_list        A list of paths which are checked one by one.
-                            Each path is a list of keys where each key is a string,
-                            a function, a tuple of strings/None or "...".
-                            When a fuction is given, it takes the key as argument and
-                            returns whether the key matches or not. When a tuple is given,
-                            all the keys given in the tuple are traversed, and
-                            "..." traverses all the keys in the object
-                            "None" returns the object without traversal
+                            Each path is a list of keys where each key is a:
+                              - None:     Do nothing
+                              - string:   A dictionary key
+                              - int:      An index into a list
+                              - tuple:    A list of keys all of which will be traversed
+                              - Ellipsis: Fetch all values in the object
+                              - Function: Takes the key and value as arguments
+                                          and returns whether the key matches or not
     @param default          Default value to return
     @param expected_type    Only accept final value of this type (Can also be any callable)
     @param get_all          Return all the values obtained from a path or only the first one
@@ -5167,7 +4966,7 @@ def traverse_obj(
                     obj = str(obj)
                 _current_depth += 1
                 depth = max(depth, _current_depth)
-                return [_traverse_obj(v, path[i + 1:], _current_depth) for k, v in obj if key(k)]
+                return [_traverse_obj(v, path[i + 1:], _current_depth) for k, v in obj if try_call(key, args=(k, v))]
             elif isinstance(obj, dict) and not (is_user_input and key == ':'):
                 obj = (obj.get(key) if casesense or (key in obj)
                        else next((v for k, v in obj.items() if _lower(k) == key), None))
@@ -5309,7 +5108,7 @@ def scale_thumbnails_to_max_format_width(formats, thumbnails, url_width_re):
     """
     _keys = ('width', 'height')
     max_dimensions = max(
-        [tuple(format.get(k) or 0 for k in _keys) for format in formats],
+        (tuple(format.get(k) or 0 for k in _keys) for format in formats),
         default=(0, 0))
     if not max_dimensions[0]:
         return thumbnails
@@ -5374,21 +5173,19 @@ class Config:
     def read_file(filename, default=[]):
         try:
             optionf = open(filename)
-        except IOError:
+        except OSError:
             return default  # silently skip if file is not present
         try:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read()
-            if sys.version_info < (3,):
-                contents = contents.decode(preferredencoding())
-            res = compat_shlex_split(contents, comments=True)
+            res = shlex.split(contents, comments=True)
         finally:
             optionf.close()
         return res
 
     @staticmethod
     def hide_login_info(opts):
-        PRIVATE_OPTS = set(['-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'])
+        PRIVATE_OPTS = {'-p', '--password', '-u', '--username', '--video-password', '--ap-password', '--ap-username'}
         eqre = re.compile('^(?P<key>' + ('|'.join(re.escape(po) for po in PRIVATE_OPTS)) + ')=.+$')
 
         def _scrub_eq(o):
@@ -5417,21 +5214,26 @@ class Config:
         yield from self.own_args or []
 
     def parse_args(self):
-        return self._parser.parse_args(list(self.all_args))
+        return self._parser.parse_args(self.all_args)
 
 
 class WebSocketsWrapper():
     """Wraps websockets module to use in non-async scopes"""
+    pool = None
 
-    def __init__(self, url, headers=None):
-        self.loop = asyncio.events.new_event_loop()
-        self.conn = compat_websockets.connect(
+    def __init__(self, url, headers=None, connect=True):
+        self.loop = asyncio.new_event_loop()
+        # XXX: "loop" is deprecated
+        self.conn = websockets.connect(
             url, extra_headers=headers, ping_interval=None,
             close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
+        if connect:
+            self.__enter__()
         atexit.register(self.__exit__, None, None, None)
 
     def __enter__(self):
-        self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
+        if not self.pool:
+            self.pool = self.run_with_loop(self.conn.__aenter__(), self.loop)
         return self
 
     def send(self, *args):
@@ -5451,7 +5253,7 @@ class WebSocketsWrapper():
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
     @staticmethod
     def run_with_loop(main, loop):
-        if not asyncio.coroutines.iscoroutine(main):
+        if not asyncio.iscoroutine(main):
             raise ValueError(f'a coroutine was expected, got {main!r}')
 
         try:
@@ -5463,7 +5265,7 @@ class WebSocketsWrapper():
 
     @staticmethod
     def _cancel_all_tasks(loop):
-        to_cancel = asyncio.tasks.all_tasks(loop)
+        to_cancel = asyncio.all_tasks(loop)
 
         if not to_cancel:
             return
@@ -5471,8 +5273,9 @@ class WebSocketsWrapper():
         for task in to_cancel:
             task.cancel()
 
+        # XXX: "loop" is removed in python 3.10+
         loop.run_until_complete(
-            asyncio.tasks.gather(*to_cancel, loop=loop, return_exceptions=True))
+            asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
 
         for task in to_cancel:
             if task.cancelled():
@@ -5485,16 +5288,9 @@ class WebSocketsWrapper():
                 })
 
 
-has_websockets = bool(compat_websockets)
-
-
 def merge_headers(*dicts):
     """Merge dicts of http headers case insensitively, prioritizing the latter ones"""
     return {k.title(): v for k, v in itertools.chain.from_iterable(map(dict.items, dicts))}
-
-
-def error_to_str(err):
-    return f'{type(err).__name__}: {err}'
 
 
 class SafeEval(ast.NodeVisitor):
@@ -5563,3 +5359,20 @@ class SafeEval(ast.NodeVisitor):
     def visit_Name(self, node):
         if node.id not in self.names:
             raise ValueError(f'{node.id} is not allowed')
+
+
+class classproperty:
+    def __init__(self, f):
+        self.f = f
+
+    def __get__(self, _, cls):
+        return self.f(cls)
+
+
+def Namespace(**kwargs):
+    return collections.namedtuple('Namespace', kwargs)(**kwargs)
+
+
+# Deprecated
+has_certifi = bool(certifi)
+has_websockets = bool(websockets)

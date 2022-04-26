@@ -1,55 +1,29 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import json
 import re
+import json
+import uuid
+import random
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_kwargs,
-    compat_str,
-    compat_urlparse,
-    compat_urllib_request,
-)
+from ..compat import compat_str
 from ..utils import (
     ExtractorError,
     int_or_none,
+    strip_or_none,
     try_get,
     smuggle_url,
     unsmuggle_url,
+    url_or_none,
 )
 
 
 class ViuBaseIE(InfoExtractor):
-    def _real_initialize(self):
-        viu_auth_res = self._request_webpage(
-            'https://www.viu.com/api/apps/v2/authenticate', None,
-            'Requesting Viu auth', query={
-                'acct': 'test',
-                'appid': 'viu_desktop',
-                'fmt': 'json',
-                'iid': 'guest',
-                'languageid': 'default',
-                'platform': 'desktop',
-                'userid': 'guest',
-                'useridtype': 'guest',
-                'ver': '1.0'
-            }, headers=self.geo_verification_headers())
-        self._auth_token = viu_auth_res.info()['X-VIU-AUTH']
-
-    def _call_api(self, path, *args, **kwargs):
-        headers = self.geo_verification_headers()
-        headers.update({
-            'X-VIU-AUTH': self._auth_token
-        })
-        headers.update(kwargs.get('headers', {}))
-        kwargs['headers'] = headers
+    def _call_api(self, path, *args, headers={}, **kwargs):
         response = self._download_json(
-            'https://www.viu.com/api/' + path, *args,
-            **compat_kwargs(kwargs))['response']
+            f'https://www.viu.com/api/{path}', *args, **kwargs,
+            headers={**self.geo_verification_headers(), **headers})['response']
         if response.get('status') != 'success':
-            raise ExtractorError('%s said: %s' % (
-                self.IE_NAME, response['message']), expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {response["message"]}', expected=True)
         return response
 
 
@@ -101,6 +75,7 @@ class ViuIE(ViuBaseIE):
         tdirforwhole = video_data.get('tdirforwhole')
         # #EXT-X-BYTERANGE is not supported by native hls downloader
         # and ffmpeg (#10955)
+        # FIXME: It is supported in yt-dlp
         # hls_file = video_data.get('hlsfile')
         hls_file = video_data.get('jwhlsfile')
         if url_path and tdirforwhole and hls_file:
@@ -110,10 +85,9 @@ class ViuIE(ViuBaseIE):
             #     r'(/hlsc_)[a-z]+(\d+\.m3u8)',
             #     r'\1whe\2', video_data['href'])
             m3u8_url = video_data['href']
-        formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4')
         self._sort_formats(formats)
 
-        subtitles = {}
         for key, value in video_data.items():
             mobj = re.match(r'^subtitle_(?P<lang>[^_]+)_(?P<ext>(vtt|srt))', key)
             if not mobj:
@@ -227,42 +201,63 @@ class ViuOTTIE(InfoExtractor):
         'zh-cn': 2,
         'en-us': 3,
     }
-    _user_info = None
+
+    _user_token = None
+    _auth_codes = {}
 
     def _detect_error(self, response):
-        code = response.get('status', {}).get('code')
-        if code > 0:
+        code = try_get(response, lambda x: x['status']['code'])
+        if code and code > 0:
             message = try_get(response, lambda x: x['status']['message'])
-            raise ExtractorError('%s said: %s (%s)' % (
-                self.IE_NAME, message, code), expected=True)
-        return response['data']
-
-    def _raise_login_required(self):
-        raise ExtractorError(
-            'This video requires login. '
-            'Specify --username and --password or --netrc (machine: %s) '
-            'to provide account credentials.' % self._NETRC_MACHINE,
-            expected=True)
+            raise ExtractorError(f'{self.IE_NAME} said: {message} ({code})', expected=True)
+        return response.get('data') or {}
 
     def _login(self, country_code, video_id):
-        if not self._user_info:
+        if self._user_token is None:
             username, password = self._get_login_info()
-            if username is None or password is None:
+            if username is None:
                 return
+            headers = {
+                'Authorization': f'Bearer {self._auth_codes[country_code]}',
+                'Content-Type': 'application/json'
+            }
+            data = self._download_json(
+                'https://api-gateway-global.viu.com/api/account/validate',
+                video_id, 'Validating email address', headers=headers,
+                data=json.dumps({
+                    'principal': username,
+                    'provider': 'email'
+                }).encode())
+            if not data.get('exists'):
+                raise ExtractorError('Invalid email address')
 
             data = self._download_json(
-                compat_urllib_request.Request(
-                    'https://www.viu.com/ott/%s/index.php' % country_code, method='POST'),
-                video_id, 'Logging in', errnote=False, fatal=False,
-                query={'r': 'user/login'},
+                'https://api-gateway-global.viu.com/api/auth/login',
+                video_id, 'Logging in', headers=headers,
                 data=json.dumps({
-                    'username': username,
+                    'email': username,
                     'password': password,
-                    'platform_flag_label': 'web',
+                    'provider': 'email',
                 }).encode())
-            self._user_info = self._detect_error(data)['user']
+            self._detect_error(data)
+            self._user_token = data.get('identity')
+            # need to update with valid user's token else will throw an error again
+            self._auth_codes[country_code] = data.get('token')
+        return self._user_token
 
-        return self._user_info
+    def _get_token(self, country_code, video_id):
+        rand = ''.join(random.choice('0123456789') for _ in range(10))
+        return self._download_json(
+            f'https://api-gateway-global.viu.com/api/auth/token?v={rand}000', video_id,
+            headers={'Content-Type': 'application/json'}, note='Getting bearer token',
+            data=json.dumps({
+                'countryCode': country_code.upper(),
+                'platform': 'browser',
+                'platformFlagLabel': 'web',
+                'language': 'en',
+                'uuid': str(uuid.uuid4()),
+                'carrierId': '0'
+            }).encode('utf-8'))['token']
 
     def _real_extract(self, url):
         url, idata = unsmuggle_url(url, {})
@@ -279,16 +274,16 @@ class ViuOTTIE(InfoExtractor):
             query['area_id'] = area_id
 
         product_data = self._download_json(
-            'http://www.viu.com/ott/%s/index.php' % country_code, video_id,
+            f'http://www.viu.com/ott/{country_code}/index.php', video_id,
             'Downloading video info', query=query)['data']
 
         video_data = product_data.get('current_product')
         if not video_data:
-            raise ExtractorError('This video is not available in your region.', expected=True)
+            self.raise_geo_restricted()
 
         series_id = video_data.get('series_id')
         if self._yes_playlist(series_id, video_id, idata):
-            series = product_data.get('series', {})
+            series = product_data.get('series') or {}
             product = series.get('product')
             if product:
                 entries = []
@@ -296,14 +291,10 @@ class ViuOTTIE(InfoExtractor):
                     item_id = entry.get('product_id')
                     if not item_id:
                         continue
-                    item_id = compat_str(item_id)
                     entries.append(self.url_result(
-                        smuggle_url(
-                            'http://www.viu.com/ott/%s/%s/vod/%s/' % (country_code, lang_code, item_id),
-                            {'force_noplaylist': True}),  # prevent infinite recursion
-                        'ViuOTT',
-                        item_id,
-                        entry.get('synopsis', '').strip()))
+                        smuggle_url(f'http://www.viu.com/ott/{country_code}/{lang_code}/vod/{item_id}/',
+                                    {'force_noplaylist': True}),
+                        ViuOTTIE, str(item_id), entry.get('synopsis', '').strip()))
 
                 return self.playlist_result(entries, series_id, series.get('name'), series.get('description'))
 
@@ -312,69 +303,66 @@ class ViuOTTIE(InfoExtractor):
             'ccs_product_id': video_data['ccs_product_id'],
             'language_flag_id': self._LANGUAGE_FLAG.get(lang_code.lower()) or '3',
         }
-        headers = {
-            'Referer': url,
-            'Origin': url,
-        }
-        try:
-            stream_data = self._download_json(
-                'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                video_id, 'Downloading stream info', query=query, headers=headers)
-            stream_data = self._detect_error(stream_data)['stream']
-        except (ExtractorError, KeyError):
-            stream_data = None
-            if video_data.get('user_level', 0) > 0:
-                user = self._login(country_code, video_id)
-                if user:
-                    query['identity'] = user['identity']
-                    stream_data = self._download_json(
-                        'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                        video_id, 'Downloading stream info', query=query, headers=headers)
-                    stream_data = self._detect_error(stream_data).get('stream')
-                else:
-                    # preview is limited to 3min for non-members
-                    # try to bypass the duration limit
-                    duration_limit = True
-                    query['duration'] = '180'
-                    stream_data = self._download_json(
-                        'https://d1k2us671qcoau.cloudfront.net/distribute_web_%s.php' % country_code,
-                        video_id, 'Downloading stream info', query=query, headers=headers)
-                    try:
-                        stream_data = self._detect_error(stream_data)['stream']
-                    except (ExtractorError, KeyError):  # if still not working, give up
-                        self._raise_login_required()
 
+        def download_playback():
+            stream_data = self._download_json(
+                'https://api-gateway-global.viu.com/api/playback/distribute',
+                video_id=video_id, query=query, fatal=False, note='Downloading stream info',
+                headers={
+                    'Authorization': f'Bearer {self._auth_codes[country_code]}',
+                    'Referer': url,
+                    'Origin': url
+                })
+            return self._detect_error(stream_data).get('stream')
+
+        if not self._auth_codes.get(country_code):
+            self._auth_codes[country_code] = self._get_token(country_code, video_id)
+
+        stream_data = None
+        try:
+            stream_data = download_playback()
+        except (ExtractorError, KeyError):
+            token = self._login(country_code, video_id)
+            if token is not None:
+                query['identity'] = token
+            else:
+                # The content is Preview or for VIP only.
+                # We can try to bypass the duration which is limited to 3mins only
+                duration_limit, query['duration'] = True, '180'
+            try:
+                stream_data = download_playback()
+            except (ExtractorError, KeyError):
+                if token is not None:
+                    raise
+                self.raise_login_required(method='password')
         if not stream_data:
             raise ExtractorError('Cannot get stream info', expected=True)
 
-        stream_sizes = stream_data.get('size', {})
         formats = []
-        for vid_format, stream_url in stream_data.get('url', {}).items():
-            height = int_or_none(self._search_regex(
-                r's(\d+)p', vid_format, 'height', default=None))
+        for vid_format, stream_url in (stream_data.get('url') or {}).items():
+            height = int(self._search_regex(r's(\d+)p', vid_format, 'height', default=None))
 
             # bypass preview duration limit
             if duration_limit:
-                stream_url = compat_urlparse.urlparse(stream_url)
-                query = dict(compat_urlparse.parse_qsl(stream_url.query, keep_blank_values=True))
-                time_duration = int_or_none(video_data.get('time_duration'))
+                old_stream_url = urllib.parse.urlparse(stream_url)
+                query = dict(urllib.parse.parse_qsl(old_stream_url.query, keep_blank_values=True))
                 query.update({
-                    'duration': time_duration if time_duration > 0 else '9999999',
+                    'duration': video_data.get('time_duration') or '9999999',
                     'duration_start': '0',
                 })
-                stream_url = stream_url._replace(query=compat_urlparse.urlencode(query)).geturl()
+                stream_url = old_stream_url._replace(query=urllib.parse.urlencode(query)).geturl()
 
             formats.append({
                 'format_id': vid_format,
                 'url': stream_url,
                 'height': height,
                 'ext': 'mp4',
-                'filesize': int_or_none(stream_sizes.get(vid_format))
+                'filesize': try_get(stream_data, lambda x: x['size'][vid_format], int)
             })
         self._sort_formats(formats)
 
         subtitles = {}
-        for sub in video_data.get('subtitle', []):
+        for sub in video_data.get('subtitle') or []:
             sub_url = sub.get('url')
             if not sub_url:
                 continue
@@ -383,17 +371,16 @@ class ViuOTTIE(InfoExtractor):
                 'ext': 'srt',
             })
 
-        title = video_data['synopsis'].strip()
-
+        title = strip_or_none(video_data.get('synopsis'))
         return {
             'id': video_id,
             'title': title,
             'description': video_data.get('description'),
-            'series': product_data.get('series', {}).get('name'),
+            'series': try_get(product_data, lambda x: x['series']['name']),
             'episode': title,
             'episode_number': int_or_none(video_data.get('number')),
             'duration': int_or_none(stream_data.get('duration')),
-            'thumbnail': video_data.get('cover_image_url'),
+            'thumbnail': url_or_none(video_data.get('cover_image_url')),
             'formats': formats,
             'subtitles': subtitles,
         }

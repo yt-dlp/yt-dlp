@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
-import io
 import optparse
 import os
 import sys
-
 
 # Import yt_dlp
 ROOT_DIR = os.path.join(os.path.dirname(__file__), '..')
@@ -23,12 +19,11 @@ def main():
 
     def gen_ies_md(ies):
         for ie in ies:
-            ie_md = '**{0}**'.format(ie.IE_NAME)
-            ie_desc = getattr(ie, 'IE_DESC', None)
-            if ie_desc is False:
+            ie_md = f'**{ie.IE_NAME}**'
+            if ie.IE_DESC is False:
                 continue
-            if ie_desc is not None:
-                ie_md += ': {0}'.format(ie.IE_DESC)
+            if ie.IE_DESC is not None:
+                ie_md += f': {ie.IE_DESC}'
             search_key = getattr(ie, 'SEARCH_KEY', None)
             if search_key is not None:
                 ie_md += f'; "{ie.SEARCH_KEY}:" prefix'
@@ -41,7 +36,7 @@ def main():
         ' - ' + md + '\n'
         for md in gen_ies_md(ies))
 
-    with io.open(outfile, 'w', encoding='utf-8') as outf:
+    with open(outfile, 'w', encoding='utf-8') as outf:
         outf.write(out)
 
 

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -36,9 +34,6 @@ class ViewLiftBaseIE(InfoExtractor):
     def _fetch_token(self, site, url):
         if self._TOKENS.get(site):
             return
-        email, password = self._get_login_info(netrc_machine=site)
-        if email:
-            self.report_warning('Logging in using username and password is broken. %s' % self._LOGIN_HINTS['cookies'])
 
         cookies = self._get_cookies(url)
         if cookies and cookies.get('token'):

@@ -178,7 +178,6 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
     ```python
-    # coding: utf-8
     from .common import InfoExtractor
     
     
@@ -375,21 +374,21 @@ When extracting metadata try to do so from multiple sources. For example if `tit
 
 #### Example
 
-Say `meta` from the previous example has a `title` and you are about to extract it. Since `title` is a mandatory meta field you should end up with something like:
+Say `meta` from the previous example has a `title` and you are about to extract it like:
 
 ```python
-title = meta['title']
+title = meta.get('title')
 ```
 
-If `title` disappears from `meta` in future due to some changes on the hoster's side the extraction would fail since `title` is mandatory. That's expected.
+If `title` disappears from `meta` in future due to some changes on the hoster's side the title extraction would fail.
 
-Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback scenario:
+Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback like:
 
 ```python
 title = meta.get('title') or self._og_search_title(webpage)
 ```
 
-This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`.
+This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`, making the extractor more robust.
 
 
 ### Regular expressions
@@ -534,13 +533,13 @@ Extracting variables is acceptable for reducing code duplication and improving r
 Correct:
 
 ```python
-title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
+title = self._html_search_regex(r'<h1>([^<]+)</h1>', webpage, 'title')
 ```
 
 Incorrect:
 
 ```python
-TITLE_RE = r'<title>([^<]+)</title>'
+TITLE_RE = r'<h1>([^<]+)</h1>'
 # ...some lines of code...
 title = self._html_search_regex(TITLE_RE, webpage, 'title')
 ```
@@ -643,7 +642,7 @@ Wrap all extracted numeric data into safe functions from [`yt_dlp/utils.py`](yt_
 
 Use `url_or_none` for safe URL processing.
 
-Use `try_get`, `dict_get` and `traverse_obj` for safe metadata extraction from parsed JSON.
+Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
 
 Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
 

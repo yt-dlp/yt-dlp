@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-# coding: utf-8
 import os.path
-import warnings
 import sys
+import warnings
 
 try:
-    from setuptools import setup, Command, find_packages
+    from setuptools import Command, find_packages, setup
     setuptools_available = True
 except ImportError:
-    from distutils.core import setup, Command
+    from distutils.core import Command, setup
     setuptools_available = False
 from distutils.spawn import spawn
 
@@ -49,6 +48,8 @@ if sys.argv[1:2] == ['py2exe']:
                 'dist_dir': './dist',
                 'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
                 'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
+                # Modules that are only imported dynamically must be added here
+                'includes': ['yt_dlp.compat._legacy'],
             }
         },
         'zipfile': None

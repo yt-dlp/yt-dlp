@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-# coding: utf-8
 import os
 import platform
 import sys
-from PyInstaller.utils.hooks import collect_submodules
 
+from PyInstaller.utils.hooks import collect_submodules
 
 OS_NAME = platform.system()
 if OS_NAME == 'Windows':
     from PyInstaller.utils.win32.versioninfo import (
-        VarStruct, VarFileInfo, StringStruct, StringTable,
-        StringFileInfo, FixedFileInfo, VSVersionInfo, SetVersion,
+        FixedFileInfo,
+        SetVersion,
+        StringFileInfo,
+        StringStruct,
+        StringTable,
+        VarFileInfo,
+        VarStruct,
+        VSVersionInfo,
     )
 elif OS_NAME == 'Darwin':
     pass
@@ -42,6 +47,7 @@ def main():
         '--noconfirm',
         *dependency_options(),
         *opts,
+        '--collect-submodules=yt_dlp',
         'yt_dlp/__main__.py',
     ]
     print(f'Running PyInstaller with {opts}')
@@ -74,7 +80,7 @@ def version_to_list(version):
 
 
 def dependency_options():
-    dependencies = [pycryptodome_module(), 'mutagen', 'brotli'] + collect_submodules('websockets')
+    dependencies = [pycryptodome_module(), 'mutagen', 'brotli', 'certifi'] + collect_submodules('websockets')
     excluded_modules = ['test', 'ytdlp_plugins', 'youtube-dl', 'youtube-dlc']
 
     yield from (f'--hidden-import={module}' for module in dependencies)

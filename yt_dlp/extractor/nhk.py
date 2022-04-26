@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -309,7 +307,9 @@ class NhkForSchoolProgramListIE(InfoExtractor):
 
         webpage = self._download_webpage(f'https://www.nhk.or.jp/school/{program_id}/', program_id)
 
-        title = self._og_search_title(webpage, fatal=False) or self._html_extract_title(webpage, fatal=False) or self._html_search_regex(r'<h3>([^<]+?)とは？\s*</h3>', webpage, 'title', fatal=False)
+        title = (self._og_search_title(webpage)
+                 or self._html_extract_title(webpage)
+                 or self._html_search_regex(r'<h3>([^<]+?)とは？\s*</h3>', webpage, 'title', fatal=False))
         title = re.sub(r'\s*\|\s*NHK\s+for\s+School\s*$', '', title) if title else None
         description = self._html_search_regex(
             r'(?s)<div\s+class="programDetail\s*">\s*<p>[^<]+</p>',

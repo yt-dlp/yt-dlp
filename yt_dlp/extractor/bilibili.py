@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import base64
 import hashlib
 import itertools
@@ -15,6 +13,7 @@ from ..compat import (
 )
 from ..utils import (
     ExtractorError,
+    filter_dict,
     int_or_none,
     float_or_none,
     mimetype2ext,
@@ -50,7 +49,7 @@ class BiliBiliIE(InfoExtractor):
 
     _TESTS = [{
         'url': 'http://www.bilibili.com/video/av1074402/',
-        'md5': '5f7d29e1a2872f3df0cf76b1f87d3788',
+        'md5': '7ac275ec84a99a6552c5d229659a0fe1',
         'info_dict': {
             'id': '1074402_part1',
             'ext': 'mp4',
@@ -60,6 +59,11 @@ class BiliBiliIE(InfoExtractor):
             'upload_date': '20140420',
             'description': 'md5:ce18c2a2d2193f0df2917d270f2e5923',
             'timestamp': 1398012678,
+            'tags': ['顶上去报复社会', '该来的总会来的', '金克拉是检验歌曲的唯一标准', '坷垃教主', '金坷垃', '邓紫棋', '治愈系坷垃'],
+            'bv_id': 'BV11x411K7CN',
+            'cid': '1554319',
+            'thumbnail': 'http://i2.hdslb.com/bfs/archive/c79a8cf0347cd7a897c53a2f756e96aead128e8c.jpg',
+            'duration': 308.36,
         },
     }, {
         # Tested in BiliBiliBangumiIE
@@ -90,6 +94,11 @@ class BiliBiliIE(InfoExtractor):
             'timestamp': 1488382634,
             'uploader_id': '65880958',
             'uploader': '阿滴英文',
+            'thumbnail': 'http://i2.hdslb.com/bfs/archive/49267ce20bc246be6304bf369a3ded0256854c23.jpg',
+            'cid': '14694589',
+            'duration': 554.117,
+            'bv_id': 'BV13x41117TL',
+            'tags': ['人文', '英语', '文化', '公开课', '阿滴英文'],
         },
         'params': {
             'skip_download': True,
@@ -106,6 +115,27 @@ class BiliBiliIE(InfoExtractor):
             'title': '物语中的人物是如何吐槽自己的OP的'
         },
         'playlist_count': 17,
+    }, {
+        # Correct matching of single and double quotes in title
+        'url': 'https://www.bilibili.com/video/BV1NY411E7Rx/',
+        'info_dict': {
+            'id': '255513412_part1',
+            'ext': 'mp4',
+            'title': 'Vid"eo" Te\'st',
+            'cid': '570602418',
+            'thumbnail': 'http://i2.hdslb.com/bfs/archive/0c0de5a90b6d5b991b8dcc6cde0afbf71d564791.jpg',
+            'upload_date': '20220408',
+            'timestamp': 1649436552,
+            'description': 'Vid"eo" Te\'st',
+            'uploader_id': '1630758804',
+            'bv_id': 'BV1NY411E7Rx',
+            'duration': 60.394,
+            'uploader': 'bili_31244483705',
+            'tags': ['VLOG'],
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     _APP_KEY = 'iVGUTjsxvpLeuDCf'
@@ -257,7 +287,8 @@ class BiliBiliIE(InfoExtractor):
         self._sort_formats(formats)
 
         title = self._html_search_regex((
-            r'<h1[^>]+title=(["\'])(?P<content>[^"\']+)',
+            r'<h1[^>]+title=(["])(?P<content>[^"]+)',
+            r'<h1[^>]+title=([\'])(?P<content>[^\']+)',
             r'(?s)<h1[^>]*>(?P<content>.+?)</h1>',
             self._meta_regex('title')
         ), webpage, 'title', group='content', fatal=False)
@@ -755,15 +786,21 @@ class BiliIntlBaseIE(InfoExtractor):
             for i, line in enumerate(json['body']) if line.get('content'))
         return data
 
-    def _get_subtitles(self, ep_id):
-        sub_json = self._call_api(f'/web/v2/subtitle?episode_id={ep_id}&platform=web', ep_id)
+    def _get_subtitles(self, *, ep_id=None, aid=None):
+        sub_json = self._call_api(
+            '/web/v2/subtitle', ep_id or aid, note='Downloading subtitles list',
+            errnote='Unable to download subtitles list', query=filter_dict({
+                'platform': 'web',
+                'episode_id': ep_id,
+                'aid': aid,
+            }))
         subtitles = {}
         for sub in sub_json.get('subtitles') or []:
             sub_url = sub.get('url')
             if not sub_url:
                 continue
             sub_data = self._download_json(
-                sub_url, ep_id, errnote='Unable to download subtitles', fatal=False,
+                sub_url, ep_id or aid, errnote='Unable to download subtitles', fatal=False,
                 note='Downloading subtitles%s' % f' for {sub["lang"]}' if sub.get('lang') else '')
             if not sub_data:
                 continue
@@ -773,9 +810,14 @@ class BiliIntlBaseIE(InfoExtractor):
             })
         return subtitles
 
-    def _get_formats(self, ep_id):
-        video_json = self._call_api(f'/web/playurl?ep_id={ep_id}&platform=web', ep_id,
-                                    note='Downloading video formats', errnote='Unable to download video formats')
+    def _get_formats(self, *, ep_id=None, aid=None):
+        video_json = self._call_api(
+            '/web/playurl', ep_id or aid, note='Downloading video formats',
+            errnote='Unable to download video formats', query=filter_dict({
+                'platform': 'web',
+                'ep_id': ep_id,
+                'aid': aid,
+            }))
         video_json = video_json['playurl']
         formats = []
         for vid in video_json.get('video') or []:
@@ -809,23 +851,19 @@ class BiliIntlBaseIE(InfoExtractor):
         self._sort_formats(formats)
         return formats
 
-    def _extract_ep_info(self, episode_data, ep_id):
+    def _extract_video_info(self, video_data, *, ep_id=None, aid=None):
         return {
-            'id': ep_id,
-            'title': episode_data.get('title_display') or episode_data['title'],
-            'thumbnail': episode_data.get('cover'),
+            'id': ep_id or aid,
+            'title': video_data.get('title_display') or video_data.get('title'),
+            'thumbnail': video_data.get('cover'),
             'episode_number': int_or_none(self._search_regex(
-                r'^E(\d+)(?:$| - )', episode_data.get('title_display'), 'episode number', default=None)),
-            'formats': self._get_formats(ep_id),
-            'subtitles': self._get_subtitles(ep_id),
+                r'^E(\d+)(?:$| - )', video_data.get('title_display') or '', 'episode number', default=None)),
+            'formats': self._get_formats(ep_id=ep_id, aid=aid),
+            'subtitles': self._get_subtitles(ep_id=ep_id, aid=aid),
             'extractor_key': BiliIntlIE.ie_key(),
         }
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         try:
             from Cryptodome.PublicKey import RSA
             from Cryptodome.Cipher import PKCS1_v1_5
@@ -856,12 +894,9 @@ class BiliIntlBaseIE(InfoExtractor):
             else:
                 raise ExtractorError('Unable to log in')
 
-    def _real_initialize(self):
-        self._login()
-
 
 class BiliIntlIE(BiliIntlBaseIE):
-    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?play/(?P<season_id>\d+)/(?P<id>\d+)'
+    _VALID_URL = r'https?://(?:www\.)?bili(?:bili\.tv|intl\.com)/(?:[a-z]{2}/)?(play/(?P<season_id>\d+)/(?P<ep_id>\d+)|video/(?P<aid>\d+))'
     _TESTS = [{
         # Bstation page
         'url': 'https://www.bilibili.tv/en/play/34613/341736',
@@ -896,24 +931,35 @@ class BiliIntlIE(BiliIntlBaseIE):
     }, {
         'url': 'https://www.biliintl.com/en/play/34613/341736',
         'only_matching': True,
+    }, {
+        # User-generated content (as opposed to a series licensed from a studio)
+        'url': 'https://bilibili.tv/en/video/2019955076',
+        'only_matching': True,
+    }, {
+        # No language in URL
+        'url': 'https://www.bilibili.tv/video/2019955076',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
-        season_id, video_id = self._match_valid_url(url).groups()
+        season_id, ep_id, aid = self._match_valid_url(url).group('season_id', 'ep_id', 'aid')
+        video_id = ep_id or aid
         webpage = self._download_webpage(url, video_id)
         # Bstation layout
         initial_data = self._parse_json(self._search_regex(
-            r'window\.__INITIAL_DATA__\s*=\s*({.+?});', webpage,
+            r'window\.__INITIAL_(?:DATA|STATE)__\s*=\s*({.+?});', webpage,
             'preload state', default='{}'), video_id, fatal=False) or {}
-        episode_data = traverse_obj(initial_data, ('OgvVideo', 'epDetail'), expected_type=dict)
+        video_data = (
+            traverse_obj(initial_data, ('OgvVideo', 'epDetail'), expected_type=dict)
+            or traverse_obj(initial_data, ('UgcVideo', 'videoData'), expected_type=dict) or {})
 
-        if not episode_data:
+        if season_id and not video_data:
             # Non-Bstation layout, read through episode list
             season_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={season_id}&platform=web', video_id)
-            episode_data = next(
-                episode for episode in traverse_obj(season_json, ('sections', ..., 'episodes', ...), expected_type=dict)
-                if str(episode.get('episode_id')) == video_id)
-        return self._extract_ep_info(episode_data, video_id)
+            video_data = traverse_obj(season_json,
+                                      ('sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == ep_id),
+                                      expected_type=dict, get_all=False)
+        return self._extract_video_info(video_data, ep_id=ep_id, aid=aid)
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
@@ -941,7 +987,7 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
         series_json = self._call_api(f'/web/v2/ogv/play/episodes?season_id={series_id}&platform=web', series_id)
         for episode in traverse_obj(series_json, ('sections', ..., 'episodes', ...), expected_type=dict, default=[]):
             episode_id = str(episode.get('episode_id'))
-            yield self._extract_ep_info(episode, episode_id)
+            yield self._extract_video_info(episode, ep_id=episode_id)
 
     def _real_extract(self, url):
         series_id = self._match_id(url)

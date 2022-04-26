@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 from ..utils import (
@@ -45,10 +42,7 @@ class DigitalConcertHallIE(InfoExtractor):
         'playlist_count': 3,
     }]
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if not username:
-            self.raise_login_required()
+    def _perform_login(self, username, password):
         token_response = self._download_json(
             self._OAUTH_URL,
             None, 'Obtaining token', errnote='Unable to obtain token', data=urlencode_postdata({
@@ -78,7 +72,8 @@ class DigitalConcertHallIE(InfoExtractor):
             self.raise_login_required(msg='Login info incorrect')
 
     def _real_initialize(self):
-        self._login()
+        if not self._ACCESS_TOKEN:
+            self.raise_login_required(method='password')
 
     def _entries(self, items, language, **kwargs):
         for item in items:
