@@ -2,11 +2,56 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     merge_dicts,
+    try_get
 )
 
 
-class LRTIE(InfoExtractor):
-    IE_NAME = 'lrt.lt'
+class LRTStreamIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?lrt\.lt/mediateka/tiesiogiai/(?P<id>[\w-]+)'
+    _TESTS = [{
+        'url': 'https://www.lrt.lt/mediateka/tiesiogiai/lrt-opus',
+        'info_dict': {
+            'id': 'lrt-opus',
+            'live_status': 'is_live',
+            'title': 're:^LRT Opus.+$',
+            'ext': 'mp4'
+        }
+    }]
+
+    def _extract_js_var(self, webpage, var_name, default):
+        return self._search_regex(
+            r'%s\s*=\s*(["\'])((?:(?!\1).)+)\1' % var_name,
+            webpage, var_name.replace('_', ' '), default, group=2)
+
+    def _real_extract(self, url):
+        matches = self._match_valid_url(url).groupdict()
+        video_id = matches['id']
+
+        webpage = self._download_webpage(url, video_id)
+        token_url = self._extract_js_var(webpage, 'tokenURL', None)
+        stream_title = self._extract_js_var(webpage, 'video_title', 'LRT')
+        title = self._og_search_title(webpage)
+
+        streams_data = self._download_json(token_url, video_id)
+
+        formats = []
+        for key in ['content', 'content2', 'content3']:
+            stream_url = try_get(streams_data, lambda x: x['response']['data'][key])
+            if stream_url == '':
+                continue
+            formats.extend(self._extract_m3u8_formats(stream_url, video_id, m3u8_id='hls', live=True))
+
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'formats': formats,
+            'is_live': True,
+            'title': '{0} - {1}'.format(title, stream_title)
+        }
+
+
+class LRTVODIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?lrt\.lt(?P<path>/mediateka/irasas/(?P<id>[0-9]+))'
     _TESTS = [{
         # m3u8 download
