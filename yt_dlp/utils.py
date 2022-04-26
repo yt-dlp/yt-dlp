@@ -1194,7 +1194,12 @@ class ContentDecodingError(TransportError):
 
 
 class MaxRedirectsError(TransportError):
-    msg = 'Maximum redirects reached'
+    msg = None
+
+    def __init__(self, msg=None, **kwargs):
+        if not msg:
+            self.msg = 'Maximum redirects reached'
+        super().__init__(self.msg, **kwargs)
 
 
 network_exceptions = (HTTPError, TransportError)
