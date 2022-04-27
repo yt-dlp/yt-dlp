@@ -1193,10 +1193,6 @@ class ContentDecodingError(TransportError):
     pass
 
 
-class MaxRedirectsError(TransportError):
-    msg = 'Maximum redirects reached'
-
-
 network_exceptions = (HTTPError, TransportError)
 
 def extract_timezone(date_str):
