@@ -5,7 +5,7 @@ import unittest
 
 from yt_dlp.networking import UrllibRH
 from yt_dlp.networking.common import Request, RHManager
-from yt_dlp.utils import HTTPError
+from yt_dlp.utils import HTTPError, MaxRedirectsError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -54,6 +54,10 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(b'<html></html>')
+        elif self.path.startswith('/redirect_loop'):
+            self.send_response(301)
+            self.send_header('Location', self.path)
+            self.end_headers()
         else:
             assert False
 
@@ -154,14 +158,17 @@ class RequestHandlerTestBase:
 
     def test_raise_http_error(self):
         ydl = self.make_ydl()
-        for bad_status in (400, 500, 599):
+        for bad_status in (400, 500, 599, 302):
             with self.assertRaises(HTTPError):
                 ydl.urlopen('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status))
 
         # Should not raise an error
         ydl.urlopen('http://127.0.0.1:%d/gen_200' % self.http_port)
 
-        # TODO: test handling for redirects is consistent
+    def test_redirect_loop(self):
+        ydl = self.make_ydl()
+        with self.assertRaises(HTTPError):  # TODO: MaxRedirectsError or HTTPError?
+            ydl.urlopen('http://127.0.0.1:%d/redirect_loop' % self.http_port)
 
 
 class TestUrllibRH(RequestHandlerTestBase, unittest.TestCase):
