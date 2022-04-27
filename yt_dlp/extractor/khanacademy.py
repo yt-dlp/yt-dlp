@@ -1,3 +1,5 @@
+import json
+
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
@@ -23,24 +25,21 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        component_props = self._parse_json(
-            self._download_json(
-                'https://www.khanacademy.org/api/internal/graphql/FetchContentData',
-                display_id,
-                query={
-                    'fastly_cacheable': ['persist_until_publish'],
-                    'hash': ['4134764944'],
-                    'lang': ['en'],
-                    'variables': [
-                        '{"path":"'
-                        + display_id
-                        + '","queryParams":"lang=en","isModal":false,"followRedirects":true,"countryCode":"US"}'
-                    ],
-                },
-            )['data']['contentJson'],
-            display_id,
-        )['componentProps']
-        return self._parse_component_props(component_props)
+        content = self._download_json(
+            'https://www.khanacademy.org/api/internal/graphql/FetchContentData',
+            display_id, query={
+                'fastly_cacheable': ['persist_until_publish'],
+                'hash': ['4134764944'],
+                'lang': ['en'],
+                'variables': json.dumps({
+                    'path': display_id,
+                    'queryParams': 'lang=en',
+                    'isModal': False,
+                    'followRedirects': True,
+                    'countryCode': 'US',
+                }),
+            })['data']['contentJson']
+        return self._parse_component_props(self._parse_json(content, display_id)['componentProps'])
 
 
 class KhanAcademyIE(KhanAcademyBaseIE):
@@ -68,13 +67,11 @@ class KhanAcademyIE(KhanAcademyBaseIE):
         video = component_props['tutorialPageData']['contentModel']
         info = self._parse_video(video)
         author_names = video.get('authorNames')
-        info.update(
-            {
-                'uploader': ', '.join(author_names) if author_names else None,
-                'timestamp': parse_iso8601(video.get('dateAdded')),
-                'license': video.get('kaUserLicense'),
-            }
-        )
+        info.update({
+            'uploader': ', '.join(author_names) if author_names else None,
+            'timestamp': parse_iso8601(video.get('dateAdded')),
+            'license': video.get('kaUserLicense'),
+        })
         return info
 
 
@@ -95,25 +92,19 @@ class KhanAcademyUnitIE(KhanAcademyBaseIE):
         curation = component_props['curation']
 
         entries = []
-        tutorials = (
-            try_get(curation, lambda x: x['tabs'][0]['modules'][0]['tutorials'], list)
-            or []
-        )
+        tutorials = try_get(curation, lambda x: x['tabs'][0]['modules'][0]['tutorials'], list) or []
         for tutorial_number, tutorial in enumerate(tutorials, 1):
             chapter_info = {
                 'chapter': tutorial.get('title'),
                 'chapter_number': tutorial_number,
                 'chapter_id': tutorial.get('id'),
             }
-            for content_item in tutorial.get('contentItems') or []:
+            for content_item in (tutorial.get('contentItems') or []):
                 if content_item.get('kind') == 'Video':
                     info = self._parse_video(content_item)
                     info.update(chapter_info)
                     entries.append(info)
 
         return self.playlist_result(
-            entries,
-            curation.get('unit'),
-            curation.get('title'),
-            curation.get('description'),
-        )
+            entries, curation.get('unit'), curation.get('title'),
+            curation.get('description'))
