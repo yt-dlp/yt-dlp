@@ -198,7 +198,7 @@ class TestUrllib3RH(RequestHandlerTestBase, unittest.TestCase):
 
     def test_close_conn_on_http_error(self):
         from urllib3.util.connection import is_connection_dropped
-        ydl = self.make_ydl({'printdebugtraffic': True})
+        ydl = self.make_ydl()
         res = ydl.urlopen(Request('http://127.0.0.1:%d/gen_200' % self.http_port, compression=False))
         # Get connection before we read, since it gets released back to pool after read
         conn = res._res.connection
