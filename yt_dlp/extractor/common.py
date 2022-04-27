@@ -2402,11 +2402,13 @@ class InfoExtractor:
         return '/'.join(out)
 
     def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
-        smil = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
-
-        if smil is False:
+        res = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
+        if res is False:
             assert not fatal
             return [], {}
+
+        smil, urlh = res
+        smil_url = urlh.geturl()
 
         namespace = self._parse_smil_namespace(smil)
 
@@ -2424,13 +2426,17 @@ class InfoExtractor:
         return fmts
 
     def _extract_smil_info(self, smil_url, video_id, fatal=True, f4m_params=None):
-        smil = self._download_smil(smil_url, video_id, fatal=fatal)
-        if smil is False:
+        res = self._download_smil(smil_url, video_id, fatal=fatal)
+        if res is False:
             return {}
+
+        smil, urlh = res
+        smil_url = urlh.geturl()
+
         return self._parse_smil(smil, smil_url, video_id, f4m_params=f4m_params)
 
     def _download_smil(self, smil_url, video_id, fatal=True, transform_source=None):
-        return self._download_xml(
+        return self._download_xml_handle(
             smil_url, video_id, 'Downloading SMIL file',
             'Unable to download SMIL file', fatal=fatal, transform_source=transform_source)
 
