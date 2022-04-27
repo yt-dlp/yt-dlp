@@ -7,7 +7,7 @@ from ..utils import (
     ExtractorError,
     determine_ext,
     update_url_query,
-    try_get,
+    traverse_obj,
 )
 from .bokecc import BokeCCBaseIE
 
