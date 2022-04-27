@@ -2609,11 +2609,15 @@ class InfoExtractor:
         return subtitles
 
     def _extract_xspf_playlist(self, xspf_url, playlist_id, fatal=True):
-        xspf = self._download_xml(
+        res = self._download_xml_handle(
             xspf_url, playlist_id, 'Downloading xpsf playlist',
             'Unable to download xspf manifest', fatal=fatal)
-        if xspf is False:
+        if res is False:
             return []
+
+        xspf, urlh = res
+        xspf_url = urlh.geturl()
+
         return self._parse_xspf(
             xspf, playlist_id, xspf_url=xspf_url,
             xspf_base_url=base_url(xspf_url))
