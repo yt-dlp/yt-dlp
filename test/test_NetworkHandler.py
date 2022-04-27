@@ -3,7 +3,7 @@ import os
 import sys
 import unittest
 
-from yt_dlp.networking import UrllibRH
+from yt_dlp.networking import UrllibRH, Urllib3RH
 from yt_dlp.networking.common import Request, RHManager
 from yt_dlp.utils import HTTPError, MaxRedirectsError
 
@@ -175,6 +175,15 @@ class TestUrllibRH(RequestHandlerTestBase, unittest.TestCase):
 
     def get_network_handler_classes(self):
         return [UrllibRH]
+
+
+class TestUrllib3RH(RequestHandlerTestBase, unittest.TestCase):
+    """
+    Notes
+    - test_redirect_loop: the error doesn't say we hit a loop
+    """
+    def get_network_handler_classes(self):
+        return [Urllib3RH]
 
 
 if __name__ == '__main__':

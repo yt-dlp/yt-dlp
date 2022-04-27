@@ -174,7 +174,7 @@ class Urllib3RH(BackendRH):
         # Remove headers not meant to be forwarded to different host
         retries = urllib3.Retry(
             remove_headers_on_redirect=request.unredirected_headers.keys(),
-            raise_on_redirect=True, other=0, read=0, connect=0)
+            raise_on_redirect=False, other=0, read=0, connect=0)
         headers = UniqueHTTPHeaderStore(
             make_std_headers(), self.ydl.params.get('http_headers'), request.headers, request.unredirected_headers)
 
@@ -221,15 +221,11 @@ class Urllib3RH(BackendRH):
 
         except urllib3.exceptions.ProtocolError as e:
             handle_protocol_error(e)
-
         except urllib3.exceptions.HTTPError as e:
             raise TransportError(msg=str(e), cause=e) from e
 
-        except urllib3.exceptions.MaxRetryError as e:
-            raise MaxRedirectsError(cause=e)
-
         res = Urllib3ResponseAdapter(urllib3_res)
-        if not 200 <= res.status < 400:
+        if not 200 <= res.status < 300:
             raise Urllib3HTTPError(res)
 
         if self.cookiejar:
