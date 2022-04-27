@@ -9,6 +9,7 @@ import sys
 import unittest
 
 from test.test_RequestHandler import RequestHandlerTestBase, with_request_handlers
+from yt_dlp.networking import UrllibRH
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -304,7 +305,7 @@ class TestInfoExtractor(RequestHandlerTestBase, unittest.TestCase):
                 expected_dict
             )
 
-    @with_request_handlers()
+    @with_request_handlers(handlers=[UrllibRH])  # urllib3 has no support for data uri
     def test_download_json(self):
         ie = DummyIE(self.make_ydl())
         uri = encode_data_uri(b'{"foo": "blah"}', 'application/json')

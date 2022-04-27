@@ -6,7 +6,7 @@ import sys
 import unittest
 from random import random
 
-from yt_dlp.networking import UrllibRH, Urllib3RH, network_handlers
+from yt_dlp.networking import UrllibRH, Urllib3RH, REQUEST_HANDLERS
 from yt_dlp.networking.common import Request, RHManager, UnsupportedRH
 from yt_dlp.utils import HTTPError, SSLError
 
@@ -20,7 +20,7 @@ import threading
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
-REQUEST_HANDLERS = [UrllibRH]
+REQUEST_HANDLERS = (UrllibRH, Urllib3RH)
 
 
 class FakeLogger(object):
@@ -205,13 +205,12 @@ class TestUrllibRH(RequestHandlerCommonTestsBase, unittest.TestCase):
     handler = UrllibRH
 
 
-class TestUrllib3RH(RequestHandlerTestBase, unittest.TestCase):
+class TestUrllib3RH(RequestHandlerCommonTestsBase, unittest.TestCase):
     """
     Notes
     - test_redirect_loop: the error doesn't say we hit a loop
     """
-    def get_network_handler_classes(self):
-        return [Urllib3RH]
+    handler = Urllib3RH
 
     def test_close_conn_on_http_error(self):
         from urllib3.util.connection import is_connection_dropped
