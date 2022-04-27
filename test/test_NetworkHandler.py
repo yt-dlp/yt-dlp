@@ -196,6 +196,19 @@ class TestUrllib3RH(RequestHandlerTestBase, unittest.TestCase):
     def get_network_handler_classes(self):
         return [Urllib3RH]
 
+    def test_close_conn_on_http_error(self):
+        from urllib3.util.connection import is_connection_dropped
+        ydl = self.make_ydl({'printdebugtraffic': True})
+        res = ydl.urlopen(Request('http://127.0.0.1:%d/gen_200' % self.http_port, compression=False))
+        # Get connection before we read, since it gets released back to pool after read
+        conn = res._res.connection
+        a = res.read()
+        self.assertFalse(is_connection_dropped(conn))
+        with self.assertRaises(HTTPError) as e:
+            ydl.urlopen(Request('http://127.0.0.1:%d/gen_404' % self.http_port, compression=False))
+        self.assertIs(conn, e.exception.response._res.connection)
+        e.exception.response.read()
+        self.assertTrue(is_connection_dropped(conn))
 
 if __name__ == '__main__':
     unittest.main()
