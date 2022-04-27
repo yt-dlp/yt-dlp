@@ -51,7 +51,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         for src in src_json['video_selector']:
             if not src.get('url'):
                 continue
-            fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'mp4')
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'ts')
             for f in fmt:
                 f.update(dict(zip(('height', 'width'),
                                   self._BITRATE_MAP.get(f.get('tbr'), ()))))
