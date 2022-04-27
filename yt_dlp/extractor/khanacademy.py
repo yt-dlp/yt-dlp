@@ -7,9 +7,7 @@ from ..utils import (
 
 
 class KhanAcademyBaseIE(InfoExtractor):
-    _VALID_URL_TEMPL = (
-        r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
-    )
+    _VALID_URL_TEMPL = r'https?://(?:www\.)?khanacademy\.org/(?P<id>(?:[^/]+/){%s}%s[^?#/&]+)'
 
     def _parse_video(self, video):
         return {
@@ -25,37 +23,21 @@ class KhanAcademyBaseIE(InfoExtractor):
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        fastly_cacheable = 'persist_until_publish'
-        query_hash = 4134764944
-        query_lang = 'en'
-        query_params = 'lang=en'
-        is_modal = 'false'
-        follow_redirects = 'true'
-        country_code = 'US'
-        query_url = (
-            'https://www.khanacademy.org/api/internal/graphql/FetchContentData?fastly_cacheable='
-            + fastly_cacheable
-            + '&hash='
-            + str(query_hash)
-            + '&lang='
-            + query_lang
-            + '&variables=%7B%22path%22%3A%22'
-            + display_id
-            + '%22%2C%22queryParams%22%3A%22'
-            + query_params
-            + '%22%2C%22isModal%22%3A'
-            + is_modal
-            + '%2C%22followRedirects%22%3A'
-            + follow_redirects
-            + '%2C%22countryCode%22%3A%22'
-            + country_code
-            + '%22%7D'
-        )
-
         component_props = self._parse_json(
-            self._download_json(query_url, display_id,)[
-                'data'
-            ]['contentJson'],
+            self._download_json(
+                'https://www.khanacademy.org/api/internal/graphql/FetchContentData',
+                display_id,
+                query={
+                    'fastly_cacheable': ['persist_until_publish'],
+                    'hash': ['4134764944'],
+                    'lang': ['en'],
+                    'variables': [
+                        '{"path":"'
+                        + display_id
+                        + '","queryParams":"lang=en","isModal":false,"followRedirects":true,"countryCode":"US"}'
+                    ],
+                },
+            )['data']['contentJson'],
             display_id,
         )['componentProps']
         return self._parse_component_props(component_props)
