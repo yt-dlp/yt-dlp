@@ -5,6 +5,7 @@ import unittest
 
 from yt_dlp.networking import UrllibRH
 from yt_dlp.networking.common import Request, RHManager
+from yt_dlp.utils import HTTPError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -48,8 +49,11 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(b'<html><video src="/vid.mp4" /></html>')
-        elif self.path == '/gen_429':
-            self.send_response(429)
+        elif self.path.startswith('/gen_'):
+            self.send_response(int(self.path[len('/gen_'):]))
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.end_headers()
+            self.wfile.write(b'<html></html>')
         else:
             assert False
 
@@ -68,7 +72,7 @@ def _build_proxy_handler(name):
             self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode('utf-8'))
     return HTTPTestRequestHandler
 
-
+# TODO: what to do with request handlers that do not support everything
 class RequestHandlerTestBase:
     def setUp(self):
         # HTTP server
@@ -106,7 +110,7 @@ class RequestHandlerTestBase:
         self.geo_proxy_thread.daemon = True
         self.geo_proxy_thread.start()
 
-    def make_ydl(self, params):
+    def make_ydl(self, params=None):
         ydl = YoutubeDL(params)
         ydl.default_session = ydl.make_RHManager(self.get_network_handler_classes())
         return ydl
@@ -147,6 +151,17 @@ class RequestHandlerTestBase:
         response = ydl.urlopen(url).read().decode('utf-8')
         # b'xn--fiq228c' is '中文'.encode('idna')
         self.assertEqual(response, 'normal: http://xn--fiq228c.tw/')
+
+    def test_raise_http_error(self):
+        ydl = self.make_ydl()
+        for bad_status in (400, 500, 599):
+            with self.assertRaises(HTTPError):
+                ydl.urlopen('http://127.0.0.1:%d/gen_%d' % (self.http_port, bad_status))
+
+        # Should not raise an error
+        ydl.urlopen('http://127.0.0.1:%d/gen_200' % self.http_port)
+
+        # TODO: test handling for redirects is consistent
 
 
 class TestUrllibRH(RequestHandlerTestBase, unittest.TestCase):
