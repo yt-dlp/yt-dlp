@@ -2150,6 +2150,7 @@ class YoutubeDL:
                     r'(?P<m>merge)?all(?P<t>video|audio)?(?P<l>lang)?', format_spec)
                 if mobj:
                     mg, tp, la = mobj.group('m', 't', 'l')
+
                     def selector_function(ctx):
                         formats = ctx['formats'][::-1]
 
