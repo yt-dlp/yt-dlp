@@ -2200,7 +2200,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:2ef1d002cad520f65825346e2084e49d',
             },
             'params': {'skip_download': True}
-        },
+        }, {
+            # Story. Requires specific player params to work.
+            # Note: stories get removed after some period of time
+            'url': 'https://www.youtube.com/watch?v=yN3x1t3sieA',
+            'info_dict': {
+                'id': 'yN3x1t3sieA',
+                'ext': 'mp4',
+                'uploader': 'Linus Tech Tips',
+                'duration': 13,
+                'channel': 'Linus Tech Tips',
+                'playable_in_embed': True,
+                'tags': [],
+                'age_limit': 0,
+                'uploader_url': 'http://www.youtube.com/user/LinusTechTips',
+                'upload_date': '20220402',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/yN3x1t3sieA/maxresdefault.webp',
+                'title': 'Story',
+                'live_status': 'not_live',
+                'uploader_id': 'LinusTechTips',
+                'view_count': int,
+                'description': '',
+                'channel_id': 'UCXuqSBlHAE6Xw-yeJA0Tunw',
+                'categories': ['Science & Technology'],
+                'channel_url': 'https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw',
+                'availability': 'unlisted',
+            }
+        }
     ]
 
     @classmethod
