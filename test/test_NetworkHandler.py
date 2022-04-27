@@ -30,33 +30,44 @@ class FakeLogger(object):
 
 
 class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'  # required for persistent connections
+
     def log_message(self, format, *args):
         pass
 
     def do_GET(self):
         if self.path == '/video.html':
+            payload = b'<html><video src="/vid.mp4" /></html>'
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))  # required for persistent connections
             self.end_headers()
-            self.wfile.write(b'<html><video src="/vid.mp4" /></html>')
+            self.wfile.write(payload)
         elif self.path == '/vid.mp4':
+            payload = b'\x00\x00\x00\x00\x20\x66\x74[video]'
             self.send_response(200)
             self.send_header('Content-Type', 'video/mp4')
+            self.send_header('Content-Length', str(len(payload)))
             self.end_headers()
-            self.wfile.write(b'\x00\x00\x00\x00\x20\x66\x74[video]')
+            self.wfile.write(payload)
         elif self.path == '/%E4%B8%AD%E6%96%87.html':
+            payload = b'<html><video src="/vid.mp4" /></html>'
             self.send_response(200)
             self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
             self.end_headers()
-            self.wfile.write(b'<html><video src="/vid.mp4" /></html>')
+            self.wfile.write(payload)
         elif self.path.startswith('/gen_'):
+            payload = b'<html></html>'
             self.send_response(int(self.path[len('/gen_'):]))
             self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
             self.end_headers()
-            self.wfile.write(b'<html></html>')
+            self.wfile.write(payload)
         elif self.path.startswith('/redirect_loop'):
             self.send_response(301)
             self.send_header('Location', self.path)
+            self.send_header('Content-Length', '0')
             self.end_headers()
         else:
             assert False

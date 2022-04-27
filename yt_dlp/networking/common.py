@@ -348,7 +348,7 @@ class RHManager:
                 res = handler.handle(req)
             except Exception as e:
                 if not isinstance(e, YoutubeDLError):
-                    self.ydl.report_warning(f'Unexpected error from request handler: {e}' + bug_reports_message())
+                    self.ydl.report_warning(f'Unexpected error from request handler: {e.__class__.__name__}: {e}' + bug_reports_message())
 
                 if isinstance(e, RequestError):
                     e.backend_key = handler.rh_key()
