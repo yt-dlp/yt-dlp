@@ -1140,14 +1140,12 @@ class TransportError(RequestError):
 
 
 class HTTPError(TransportError, tempfile._TemporaryFileWrapper):
-    def __init__(self, response):
+    def __init__(self, response, redirect_loop=False):
         self.response = self.fp = response
         self.code = response.code
         msg = f'HTTP Error {self.code}: {response.reason}'
-        if 400 <= self.code < 500:
-            msg = '[Client Error] ' + msg
-        elif 500 <= self.code < 600:
-            msg = '[Server Error] ' + msg
+        if redirect_loop:
+            msg += ' (redirect loop detected)'
         super().__init__(msg=msg)
         tempfile._TemporaryFileWrapper.__init__(self, response, '<yt-dlp response>', delete=False)
 

@@ -167,7 +167,7 @@ class RequestHandlerTestBase:
 
     def test_redirect_loop(self):
         ydl = self.make_ydl()
-        with self.assertRaises(HTTPError):
+        with self.assertRaisesRegex(HTTPError, r'HTTP Error 301: Moved Permanently \(redirect loop detected\)'):
             ydl.urlopen('http://127.0.0.1:%d/redirect_loop' % self.http_port)
 
 
