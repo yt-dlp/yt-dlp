@@ -210,5 +210,14 @@ class TestUrllib3RH(RequestHandlerTestBase, unittest.TestCase):
         e.exception.response.read()
         self.assertTrue(is_connection_dropped(conn))
 
+    def test_no_persistent_connections(self):
+        from urllib3.util.connection import is_connection_dropped
+        ydl = self.make_ydl({'no_persistent_connections': True})
+        res = ydl.urlopen(Request('http://127.0.0.1:%d/gen_200' % self.http_port, compression=False))
+        conn = res._res.connection
+        a = res.read()
+        self.assertTrue(is_connection_dropped(conn))
+
+
 if __name__ == '__main__':
     unittest.main()
