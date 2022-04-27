@@ -664,7 +664,7 @@ class YoutubeDL(object):
         self.params['http_headers'] = UniqueHTTPHeaderStore(
             make_std_headers(), self.params.get('http_headers', {}))
 
-        self.default_session = self._setup_backends()
+        self.default_session = self.make_RHManager(REQUEST_HANDLERS)
 
         if auto_init:
             if auto_init != 'no_verbose_header':
@@ -3725,13 +3725,13 @@ class YoutubeDL(object):
             if isinstance(handler, UrllibRH):
                 return handler.get_opener(self.default_session.get_default_proxy())
 
-    def _setup_backends(self):
+    def make_RHManager(self, handlers):
         params = {
             'cookiejar': self.cookiejar,
             'verbose': self.params.get('debug_printtraffic'),
         }
         manager = RHManager(self)
-        for handler_class in REQUEST_HANDLERS:
+        for handler_class in handlers:
             if not handler_class:
                 continue
             handler = handler_class(self, params)
