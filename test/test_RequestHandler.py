@@ -1,21 +1,26 @@
 # Allow direct execution
+import functools
 import os
+import subprocess
 import sys
 import unittest
+from random import random
 
-from yt_dlp.networking import UrllibRH, Urllib3RH
-from yt_dlp.networking.common import Request, RHManager
-from yt_dlp.utils import HTTPError
+from yt_dlp.networking import UrllibRH, Urllib3RH, network_handlers
+from yt_dlp.networking.common import Request, RHManager, UnsupportedRH
+from yt_dlp.utils import HTTPError, SSLError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import http_server_port
+from test.helper import http_server_port, FakeYDL, is_download_test, get_params
 from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_http_server
 import ssl
 import threading
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
+REQUEST_HANDLERS = [UrllibRH]
 
 
 class FakeLogger(object):
@@ -88,7 +93,19 @@ def _build_proxy_handler(name):
     return HTTPTestRequestHandler
 
 # TODO: what to do with request handlers that do not support everything
+# TODO: is there a better way
+
+
 class RequestHandlerTestBase:
+    handler = UnsupportedRH
+
+    def make_ydl(self, params=None, fake=True):
+        ydl = (FakeYDL if fake else YoutubeDL)(params)
+        ydl.default_session = ydl.make_RHManager([self.handler])
+        return ydl
+
+
+class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
     def setUp(self):
         # HTTP server
         self.http_httpd = compat_http_server.HTTPServer(
@@ -125,22 +142,12 @@ class RequestHandlerTestBase:
         self.geo_proxy_thread.daemon = True
         self.geo_proxy_thread.start()
 
-    def make_ydl(self, params=None):
-        ydl = YoutubeDL(params)
-        ydl.default_session = ydl.make_RHManager(self.get_network_handler_classes())
-        return ydl
-
-    def get_network_handler_classes(self):
-        # Return a list of network handler classes to use
-        return []
-
     def test_nocheckcertificate(self):
         ydl = self.make_ydl({'logger': FakeLogger()})
         self.assertRaises(
-            Exception,
-            ydl.extract_info, 'https://127.0.0.1:%d/video.html' % self.https_port)
-
-        ydl = self.make_ydl({'logger': FakeLogger(), 'nocheckcertificate': True})
+            SSLError,
+            ydl.urlopen, 'https://127.0.0.1:%d/video.html' % self.https_port)
+        ydl = self.make_ydl({'logger': FakeLogger(), 'nocheckcertificate': True}, fake=False)
         r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.https_port)
         self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.https_port)
 
@@ -182,10 +189,20 @@ class RequestHandlerTestBase:
             ydl.urlopen('http://127.0.0.1:%d/redirect_loop' % self.http_port)
 
 
-class TestUrllibRH(RequestHandlerTestBase, unittest.TestCase):
+def with_request_handlers(handlers=REQUEST_HANDLERS):
+    def inner_func(test):
+        @functools.wraps(test)
+        def wrapper(self, *args, **kwargs):
+            for handler in handlers:
+                with self.subTest(handler=handler.__name__):
+                    self.handler = handler
+                    test(self, *args, **kwargs)
+        return wrapper
+    return inner_func
 
-    def get_network_handler_classes(self):
-        return [UrllibRH]
+
+class TestUrllibRH(RequestHandlerCommonTestsBase, unittest.TestCase):
+    handler = UrllibRH
 
 
 class TestUrllib3RH(RequestHandlerTestBase, unittest.TestCase):
