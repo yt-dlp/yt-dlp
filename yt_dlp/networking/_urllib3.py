@@ -29,7 +29,7 @@ from ..utils import (
     TransportError,
     SSLError,
     HTTPError,
-    ProxyError, ConnectTimeoutError, MaxRedirectsError,
+    ProxyError, ConnectTimeoutError
 )
 
 import urllib3
@@ -76,13 +76,13 @@ def handle_read_errors(e):
 # After an HTTP Error, close the connection rather than returning it to the pool
 # May help with recovering from temporary errors related to persistent connections (e.g. temp block)
 class Urllib3HTTPError(HTTPError):
-    def __init__(self, response):
+    def __init__(self, response, *args, **kwargs):
         def release_conn_override():
             if response._res._connection:
                 response._res._connection.close()
                 response._res._connection = None
         response._res.release_conn = release_conn_override
-        super().__init__(response)
+        super().__init__(response, *args, **kwargs)
 
 
 class Urllib3ResponseAdapter(HTTPResponse):
@@ -226,7 +226,7 @@ class Urllib3RH(BackendRH):
 
         res = Urllib3ResponseAdapter(urllib3_res)
         if not 200 <= res.status < 300:
-            raise Urllib3HTTPError(res)
+            raise Urllib3HTTPError(res, redirect_loop=urllib3_res.retries.total == 0)
 
         if self.cookiejar:
             self.cookiejar.extract_cookies(res, request)
