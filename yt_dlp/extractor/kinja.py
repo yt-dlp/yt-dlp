@@ -1,18 +1,9 @@
 import re
 
+from ..compat import compat_str, compat_urllib_parse_unquote
+from ..utils import (int_or_none, parse_iso8601, strip_or_none, try_get,
+                     unescapeHTML, urljoin)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    strip_or_none,
-    try_get,
-    unescapeHTML,
-    urljoin,
-)
 
 
 class KinjaEmbedIE(InfoExtractor):

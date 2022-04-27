@@ -2,17 +2,11 @@ import json
 import math
 import re
 
-from .aws import AWSIE
 from ..compat import compat_HTTPError
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    InAdvancePagedList,
-    int_or_none,
-    parse_iso8601,
-    str_or_none,
-    urlencode_postdata,
-)
+from ..utils import (ExtractorError, InAdvancePagedList, clean_html,
+                     int_or_none, parse_iso8601, str_or_none,
+                     urlencode_postdata)
+from .aws import AWSIE
 
 
 class ShahidBaseIE(AWSIE):

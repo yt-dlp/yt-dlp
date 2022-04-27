@@ -1,14 +1,7 @@
-from .common import InfoExtractor
-
-from ..utils import (
-    ExtractorError,
-    urlencode_postdata,
-    int_or_none,
-    str_or_none,
-    determine_ext,
-)
-
 from ..compat import compat_HTTPError
+from ..utils import (ExtractorError, determine_ext, int_or_none, str_or_none,
+                     urlencode_postdata)
+from .common import InfoExtractor
 
 
 class AnimeLabBaseIE(InfoExtractor):

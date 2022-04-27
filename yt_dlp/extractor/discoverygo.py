@@ -1,16 +1,9 @@
 import re
 
+from ..utils import (ExtractorError, determine_ext, extract_attributes,
+                     int_or_none, parse_age_limit, remove_end, unescapeHTML,
+                     url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    ExtractorError,
-    int_or_none,
-    parse_age_limit,
-    remove_end,
-    unescapeHTML,
-    url_or_none,
-)
 
 
 class DiscoveryGoBaseIE(InfoExtractor):

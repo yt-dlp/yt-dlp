@@ -1,14 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, determine_ext, int_or_none, parse_iso8601,
+                     traverse_obj, variadic)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-    traverse_obj,
-    variadic,
-)
 
 
 class OpencastBaseIE(InfoExtractor):

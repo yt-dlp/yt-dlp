@@ -1,13 +1,8 @@
 import json
 
+from ..utils import (float_or_none, int_or_none, parse_codecs, traverse_obj,
+                     urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    parse_codecs,
-    traverse_obj,
-    urljoin,
-)
 
 
 class StreamCZIE(InfoExtractor):

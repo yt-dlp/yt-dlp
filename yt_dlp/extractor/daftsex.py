@@ -1,14 +1,7 @@
-from .common import InfoExtractor
 from ..compat import compat_b64decode
-from ..utils import (
-    int_or_none,
-    js_to_json,
-    parse_count,
-    parse_duration,
-    traverse_obj,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import (int_or_none, js_to_json, parse_count, parse_duration,
+                     traverse_obj, try_get, unified_timestamp)
+from .common import InfoExtractor
 
 
 class DaftsexIE(InfoExtractor):

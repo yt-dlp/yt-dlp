@@ -1,10 +1,7 @@
 import re
 
+from ..utils import int_or_none, xpath_text
 from .common import InfoExtractor
-from ..utils import (
-    xpath_text,
-    int_or_none,
-)
 
 
 class WallaIE(InfoExtractor):

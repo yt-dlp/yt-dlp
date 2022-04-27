@@ -1,17 +1,10 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    clean_html,
-    extract_attributes,
-    ExtractorError,
-    get_elements_by_class,
-    int_or_none,
-    js_to_json,
-    smuggle_url,
-    unescapeHTML,
-)
+from ..utils import (ExtractorError, clean_html, extract_attributes,
+                     get_elements_by_class, int_or_none, js_to_json,
+                     smuggle_url, unescapeHTML)
+from .common import InfoExtractor
 
 
 def _get_elements_by_tag_and_attrib(html, tag=None, attribute=None, value=None, escape_value=True):

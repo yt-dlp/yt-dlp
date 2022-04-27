@@ -1,18 +1,10 @@
 import json
 import re
 
+from ..compat import compat_HTTPError, compat_urllib_parse
+from ..utils import (ExtractorError, float_or_none, str_or_none, traverse_obj,
+                     url_or_none)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urllib_parse,
-)
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    str_or_none,
-    traverse_obj,
-    url_or_none,
-)
 
 
 class PelotonIE(InfoExtractor):

@@ -3,11 +3,7 @@ import json
 import time
 import urllib
 
-from ..utils import (
-    ExtractorError,
-    parse_iso8601,
-    try_get,
-)
+from ..utils import ExtractorError, parse_iso8601, try_get
 from .common import InfoExtractor
 
 

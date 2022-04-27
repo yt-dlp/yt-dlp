@@ -1,10 +1,6 @@
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    urljoin,
-)
+from ..utils import ExtractorError, int_or_none, urljoin
+from .common import InfoExtractor
 
 
 class ShowRoomLiveIE(InfoExtractor):

@@ -1,12 +1,7 @@
 import json
 
-from ..utils import (
-    ExtractorError,
-    format_field,
-    traverse_obj,
-    try_get,
-    unified_timestamp
-)
+from ..utils import (ExtractorError, format_field, traverse_obj, try_get,
+                     unified_timestamp)
 from .common import InfoExtractor
 
 

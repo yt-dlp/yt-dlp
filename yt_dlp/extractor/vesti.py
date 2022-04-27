@@ -1,7 +1,7 @@
 import re
 
-from .common import InfoExtractor
 from ..utils import ExtractorError
+from .common import InfoExtractor
 from .rutv import RUTVIE
 
 

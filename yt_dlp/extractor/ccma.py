@@ -1,13 +1,6 @@
+from ..utils import (clean_html, int_or_none, parse_duration, parse_resolution,
+                     try_get, unified_timestamp, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    parse_duration,
-    parse_resolution,
-    try_get,
-    unified_timestamp,
-    url_or_none,
-)
 
 
 class CCMAIE(InfoExtractor):

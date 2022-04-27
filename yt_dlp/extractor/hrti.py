@@ -1,15 +1,9 @@
 import json
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    int_or_none,
-    parse_age_limit,
-    sanitized_Request,
-    try_get,
-)
+from ..utils import (ExtractorError, clean_html, int_or_none, parse_age_limit,
+                     sanitized_Request, try_get)
+from .common import InfoExtractor
 
 
 class HRTiBaseIE(InfoExtractor):

@@ -1,9 +1,5 @@
+from ..utils import KNOWN_EXTENSIONS, determine_ext, str_to_int
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    KNOWN_EXTENSIONS,
-    str_to_int,
-)
 
 
 class HearThisAtIE(InfoExtractor):

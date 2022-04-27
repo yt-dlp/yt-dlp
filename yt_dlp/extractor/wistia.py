@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, float_or_none, int_or_none, try_get,
+                     unescapeHTML)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    try_get,
-    unescapeHTML,
-)
 
 
 class WistiaBaseIE(InfoExtractor):

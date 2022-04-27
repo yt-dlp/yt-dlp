@@ -1,18 +1,10 @@
 import base64
 import re
 
+from ..compat import compat_b64decode, compat_str
+from ..utils import (determine_ext, float_or_none, int_or_none, try_get,
+                     unsmuggle_url)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-)
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    int_or_none,
-    try_get,
-    unsmuggle_url,
-)
 
 
 class OoyalaBaseIE(InfoExtractor):

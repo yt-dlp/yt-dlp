@@ -1,8 +1,5 @@
+from ..utils import int_or_none, unescapeHTML
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    unescapeHTML,
-)
 
 
 class BildIE(InfoExtractor):

@@ -1,8 +1,8 @@
 import os
 import subprocess
 
-from .common import FileDownloader
 from ..utils import check_executable, encodeFilename
+from .common import FileDownloader
 
 
 class RtspFD(FileDownloader):

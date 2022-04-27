@@ -2,23 +2,11 @@ import hashlib
 import itertools
 import re
 
-from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse,
-)
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    int_or_none,
-    mimetype2ext,
-    parse_iso8601,
-    smuggle_url,
-    try_get,
-    url_or_none,
-)
-
+from ..compat import compat_str, compat_urllib_parse
+from ..utils import (ExtractorError, clean_html, int_or_none, mimetype2ext,
+                     parse_iso8601, smuggle_url, try_get, url_or_none)
 from .brightcove import BrightcoveNewIE
+from .common import InfoExtractor, SearchInfoExtractor
 from .youtube import YoutubeIE
 
 

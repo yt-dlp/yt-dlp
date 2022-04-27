@@ -1,11 +1,7 @@
 import re
 
+from ..utils import ExtractorError, extract_attributes, get_element_by_class
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    ExtractorError,
-    get_element_by_class,
-)
 
 
 class SteamIE(InfoExtractor):

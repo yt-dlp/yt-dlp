@@ -1,20 +1,13 @@
-import re
 import json
-import uuid
 import random
+import re
 import urllib.parse
+import uuid
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    strip_or_none,
-    try_get,
-    smuggle_url,
-    unsmuggle_url,
-    url_or_none,
-)
+from ..utils import (ExtractorError, int_or_none, smuggle_url, strip_or_none,
+                     try_get, unsmuggle_url, url_or_none)
+from .common import InfoExtractor
 
 
 class ViuBaseIE(InfoExtractor):

@@ -1,8 +1,5 @@
+from ..utils import ExtractorError, str_to_int
 from .common import InfoExtractor
-from ..utils import (
-    str_to_int,
-    ExtractorError
-)
 
 
 class AppleConnectIE(InfoExtractor):

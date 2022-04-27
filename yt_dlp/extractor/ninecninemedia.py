@@ -1,10 +1,5 @@
+from ..utils import float_or_none, int_or_none, parse_iso8601, try_get
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    try_get,
-)
 
 
 class NineCNineMediaIE(InfoExtractor):

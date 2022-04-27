@@ -1,13 +1,6 @@
+from ..utils import (determine_ext, int_or_none, parse_duration, qualities,
+                     try_get, unified_strdate, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    parse_duration,
-    qualities,
-    try_get,
-    unified_strdate,
-    urljoin,
-)
 
 
 class NDRBaseIE(InfoExtractor):

@@ -1,10 +1,5 @@
+from ..utils import int_or_none, parse_duration, qualities, try_get
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    qualities,
-    try_get
-)
 
 
 class VeohIE(InfoExtractor):

@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import clean_html, get_element_by_class
+from .common import InfoExtractor
 
 
 class TelegramEmbedIE(InfoExtractor):

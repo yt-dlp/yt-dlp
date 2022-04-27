@@ -2,8 +2,8 @@ import hashlib
 import json
 import re
 
-from .ffmpeg import FFmpegPostProcessor
 from ..compat import compat_urllib_parse_urlencode
+from .ffmpeg import FFmpegPostProcessor
 
 
 class SponsorBlockPP(FFmpegPostProcessor):

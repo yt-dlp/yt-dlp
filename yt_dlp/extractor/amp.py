@@ -1,13 +1,6 @@
+from ..utils import (ExtractorError, determine_ext, int_or_none, mimetype2ext,
+                     parse_iso8601, unified_timestamp, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    mimetype2ext,
-    parse_iso8601,
-    unified_timestamp,
-    url_or_none,
-)
 
 
 class AMPIE(InfoExtractor):

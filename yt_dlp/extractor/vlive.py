@@ -1,22 +1,11 @@
 import itertools
 import json
 
+from ..compat import compat_HTTPError, compat_str
+from ..utils import (ExtractorError, LazyList, int_or_none, merge_dicts,
+                     str_or_none, strip_or_none, try_get, url_or_none,
+                     urlencode_postdata)
 from .naver import NaverBaseIE
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    LazyList,
-    merge_dicts,
-    str_or_none,
-    strip_or_none,
-    try_get,
-    urlencode_postdata,
-    url_or_none,
-)
 
 
 class VLiveBaseIE(NaverBaseIE):

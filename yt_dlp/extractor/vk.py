@@ -1,21 +1,12 @@
 import collections
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    get_element_by_class,
-    int_or_none,
-    orderedSet,
-    str_or_none,
-    str_to_int,
-    unescapeHTML,
-    unified_timestamp,
-    url_or_none,
-    urlencode_postdata,
-)
+from ..utils import (ExtractorError, clean_html, get_element_by_class,
+                     int_or_none, orderedSet, str_or_none, str_to_int,
+                     unescapeHTML, unified_timestamp, url_or_none,
+                     urlencode_postdata)
+from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from .odnoklassniki import OdnoklassnikiIE
 from .pladform import PladformIE

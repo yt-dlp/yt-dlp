@@ -1,10 +1,5 @@
+from ..utils import date_from_str, format_field, try_get, unified_strdate
 from .common import InfoExtractor
-from ..utils import (
-    date_from_str,
-    format_field,
-    try_get,
-    unified_strdate,
-)
 
 
 class MusicdexBaseIE(InfoExtractor):

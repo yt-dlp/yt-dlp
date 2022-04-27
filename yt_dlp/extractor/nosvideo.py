@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, sanitized_Request, urlencode_postdata,
+                     xpath_text, xpath_with_ns)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    sanitized_Request,
-    urlencode_postdata,
-    xpath_text,
-    xpath_with_ns,
-)
 
 _x = lambda p: xpath_with_ns(p, {'xspf': 'http://xspf.org/ns/0/'})
 

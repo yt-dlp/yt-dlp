@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import ExtractorError, try_get
+from .common import InfoExtractor
 
 
 class SaitosanIE(InfoExtractor):

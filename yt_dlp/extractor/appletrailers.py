@@ -1,13 +1,9 @@
-import re
 import json
+import re
 
-from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    unified_strdate,
-)
+from ..utils import int_or_none, parse_duration, unified_strdate
+from .common import InfoExtractor
 
 
 class AppleTrailersIE(InfoExtractor):

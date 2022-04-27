@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import urljoin
+from .common import InfoExtractor
 
 
 class YourUploadIE(InfoExtractor):

@@ -1,12 +1,6 @@
-from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    qualities,
-    try_call,
-    try_get,
-    ExtractorError,
-)
 from ..compat import compat_str
+from ..utils import ExtractorError, int_or_none, qualities, try_call, try_get
+from .common import InfoExtractor
 
 
 class WhoWatchIE(InfoExtractor):

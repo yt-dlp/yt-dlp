@@ -1,11 +1,8 @@
 import re
 
+from ..utils import parse_iso8601, str_to_int
 from .common import InfoExtractor
 from .youtube import YoutubeIE
-from ..utils import (
-    parse_iso8601,
-    str_to_int,
-)
 
 
 class CrackedIE(InfoExtractor):

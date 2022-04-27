@@ -1,5 +1,5 @@
-import string
 import random
+import string
 import time
 
 from .common import InfoExtractor

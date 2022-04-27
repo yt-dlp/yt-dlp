@@ -11,17 +11,11 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
 
-from .aes import (
-    aes_cbc_decrypt_bytes,
-    aes_gcm_decrypt_and_verify_bytes,
-    unpad_pkcs7,
-)
+from .aes import (aes_cbc_decrypt_bytes, aes_gcm_decrypt_and_verify_bytes,
+                  unpad_pkcs7)
 from .compat import compat_b64decode, compat_cookiejar_Cookie
-from .dependencies import (
-    _SECRETSTORAGE_UNAVAILABLE_REASON,
-    secretstorage,
-    sqlite3,
-)
+from .dependencies import (_SECRETSTORAGE_UNAVAILABLE_REASON, secretstorage,
+                           sqlite3)
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
 from .utils import Popen, YoutubeDLCookieJar, error_to_str, expand_path
 

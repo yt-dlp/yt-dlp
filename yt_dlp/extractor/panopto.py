@@ -1,26 +1,15 @@
-import re
 import calendar
-import json
 import functools
+import json
+import re
 from datetime import datetime
 from random import random
 
+from ..compat import compat_urllib_parse_urlparse, compat_urlparse
+from ..utils import (ExtractorError, OnDemandPagedList, bug_reports_message,
+                     get_first, int_or_none, parse_qs, srt_subtitles_timecode,
+                     traverse_obj)
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urlparse
-)
-
-from ..utils import (
-    bug_reports_message,
-    ExtractorError,
-    get_first,
-    int_or_none,
-    OnDemandPagedList,
-    parse_qs,
-    srt_subtitles_timecode,
-    traverse_obj,
-)
 
 
 class PanoptoBaseIE(InfoExtractor):

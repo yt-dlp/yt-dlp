@@ -2,18 +2,10 @@ import os
 import shlex
 import subprocess
 
+from ..utils import (Popen, PostProcessingError, check_executable, cli_option,
+                     encodeArgument, encodeFilename, prepend_extension,
+                     shell_quote, str_or_none)
 from .common import PostProcessor
-from ..utils import (
-    Popen,
-    PostProcessingError,
-    check_executable,
-    cli_option,
-    encodeArgument,
-    encodeFilename,
-    prepend_extension,
-    shell_quote,
-    str_or_none,
-)
 
 
 # Deprecated in favor of the native implementation

@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (int_or_none, parse_duration, parse_iso8601, xpath_text,
+                     xpath_with_ns)
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    parse_iso8601,
-    xpath_with_ns,
-    xpath_text,
-    int_or_none,
-)
 
 
 class ZapiksIE(InfoExtractor):

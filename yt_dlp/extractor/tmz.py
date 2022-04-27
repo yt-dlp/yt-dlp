@@ -1,10 +1,7 @@
 import re
 
+from ..utils import ExtractorError, get_element_by_attribute
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    get_element_by_attribute,
-)
 
 
 class TMZIE(InfoExtractor):

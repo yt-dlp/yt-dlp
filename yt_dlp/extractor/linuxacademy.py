@@ -1,22 +1,10 @@
 import json
 import random
 
+from ..compat import compat_b64decode, compat_HTTPError, compat_str
+from ..utils import (ExtractorError, clean_html, js_to_json, parse_duration,
+                     try_get, unified_timestamp, urlencode_postdata, urljoin)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_HTTPError,
-    compat_str,
-)
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    js_to_json,
-    parse_duration,
-    try_get,
-    unified_timestamp,
-    urlencode_postdata,
-    urljoin,
-)
 
 
 class LinuxAcademyIE(InfoExtractor):

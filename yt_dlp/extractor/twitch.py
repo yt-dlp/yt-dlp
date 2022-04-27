@@ -4,31 +4,14 @@ import json
 import random
 import re
 
+from ..compat import (compat_parse_qs, compat_str,
+                      compat_urllib_parse_urlencode,
+                      compat_urllib_parse_urlparse)
+from ..utils import (ExtractorError, clean_html, dict_get, float_or_none,
+                     int_or_none, parse_duration, parse_iso8601, parse_qs,
+                     qualities, str_or_none, traverse_obj, try_get,
+                     unified_timestamp, update_url_query, url_or_none, urljoin)
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_str,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    clean_html,
-    dict_get,
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    parse_duration,
-    parse_iso8601,
-    parse_qs,
-    qualities,
-    str_or_none,
-    traverse_obj,
-    try_get,
-    unified_timestamp,
-    update_url_query,
-    url_or_none,
-    urljoin,
-)
 
 
 class TwitchBaseIE(InfoExtractor):

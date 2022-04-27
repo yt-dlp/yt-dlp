@@ -1,24 +1,12 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_HTMLParseError
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    extract_attributes,
-    find_xpath_attr,
-    get_element_by_attribute,
-    get_element_by_class,
-    int_or_none,
-    join_nonempty,
-    js_to_json,
-    merge_dicts,
-    parse_iso8601,
-    parse_qs,
-    smuggle_url,
-    str_to_int,
-    unescapeHTML,
-)
+from ..utils import (ExtractorError, determine_ext, extract_attributes,
+                     find_xpath_attr, get_element_by_attribute,
+                     get_element_by_class, int_or_none, join_nonempty,
+                     js_to_json, merge_dicts, parse_iso8601, parse_qs,
+                     smuggle_url, str_to_int, unescapeHTML)
+from .common import InfoExtractor
 from .senategov import SenateISVPIE
 from .ustream import UstreamIE
 

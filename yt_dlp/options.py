@@ -7,24 +7,13 @@ import sys
 from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
-from .postprocessor import (
-    FFmpegExtractAudioPP,
-    FFmpegSubtitlesConvertorPP,
-    FFmpegThumbnailsConvertorPP,
-    FFmpegVideoRemuxerPP,
-    SponsorBlockPP,
-)
+from .postprocessor import (FFmpegExtractAudioPP, FFmpegSubtitlesConvertorPP,
+                            FFmpegThumbnailsConvertorPP, FFmpegVideoRemuxerPP,
+                            SponsorBlockPP)
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
-from .utils import (
-    OUTTMPL_TYPES,
-    POSTPROCESS_WHEN,
-    Config,
-    expand_path,
-    get_executable_path,
-    join_nonempty,
-    remove_end,
-    write_string,
-)
+from .utils import (OUTTMPL_TYPES, POSTPROCESS_WHEN, Config, expand_path,
+                    get_executable_path, join_nonempty, remove_end,
+                    write_string)
 from .version import __version__
 
 

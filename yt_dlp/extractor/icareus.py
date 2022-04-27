@@ -1,19 +1,9 @@
 import re
 
+from ..utils import (clean_html, determine_ext, get_element_by_class,
+                     int_or_none, merge_dicts, parse_bitrate, parse_resolution,
+                     remove_end, str_or_none, url_or_none, urlencode_postdata)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    determine_ext,
-    get_element_by_class,
-    int_or_none,
-    merge_dicts,
-    parse_bitrate,
-    parse_resolution,
-    remove_end,
-    str_or_none,
-    url_or_none,
-    urlencode_postdata,
-)
 
 
 class IcareusIE(InfoExtractor):

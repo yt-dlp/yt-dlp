@@ -1,9 +1,5 @@
+from ..utils import compat_str, parse_duration, unified_strdate
 from .prosiebensat1 import ProSiebenSat1BaseIE
-from ..utils import (
-    unified_strdate,
-    parse_duration,
-    compat_str,
-)
 
 
 class Puls4IE(ProSiebenSat1BaseIE):

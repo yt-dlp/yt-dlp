@@ -1,9 +1,5 @@
+from ..utils import ExtractorError, traverse_obj, unified_timestamp
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    traverse_obj,
-    unified_timestamp,
-)
 
 
 class PixivSketchBaseIE(InfoExtractor):

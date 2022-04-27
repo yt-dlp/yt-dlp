@@ -4,19 +4,12 @@ import os
 import re
 import subprocess
 
+from ..dependencies import mutagen
+from ..utils import (Popen, PostProcessingError, check_executable,
+                     encodeArgument, encodeFilename, error_to_compat_str,
+                     prepend_extension, shell_quote)
 from .common import PostProcessor
 from .ffmpeg import FFmpegPostProcessor, FFmpegThumbnailsConvertorPP
-from ..dependencies import mutagen
-from ..utils import (
-    Popen,
-    PostProcessingError,
-    check_executable,
-    encodeArgument,
-    encodeFilename,
-    error_to_compat_str,
-    prepend_extension,
-    shell_quote,
-)
 
 if mutagen:
     from mutagen.flac import FLAC, Picture

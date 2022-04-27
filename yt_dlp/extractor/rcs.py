@@ -1,14 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, base_url, clean_html, js_to_json,
+                     url_basename, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    js_to_json,
-    base_url,
-    url_basename,
-    urljoin,
-)
 
 
 class RCSBaseIE(InfoExtractor):

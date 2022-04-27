@@ -3,34 +3,16 @@ import itertools
 import re
 import time
 
+from ..compat import (compat_str, compat_urllib_parse_unquote,
+                      compat_urllib_parse_urlencode)
+from ..utils import (ExtractorError, clean_html, decode_packed_codes,
+                     float_or_none, format_field, get_element_by_attribute,
+                     get_element_by_id, int_or_none, js_to_json,
+                     ohdave_rsa_encrypt, parse_age_limit, parse_duration,
+                     parse_iso8601, parse_resolution, qualities, remove_start,
+                     str_or_none, traverse_obj, urljoin)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_unquote
-)
 from .openload import PhantomJSwrapper
-from ..utils import (
-    clean_html,
-    decode_packed_codes,
-    ExtractorError,
-    float_or_none,
-    format_field,
-    get_element_by_id,
-    get_element_by_attribute,
-    int_or_none,
-    js_to_json,
-    ohdave_rsa_encrypt,
-    parse_age_limit,
-    parse_duration,
-    parse_iso8601,
-    parse_resolution,
-    qualities,
-    remove_start,
-    str_or_none,
-    traverse_obj,
-    urljoin,
-)
 
 
 def md5_text(text):

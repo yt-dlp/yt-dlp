@@ -10,21 +10,12 @@ import time
 import urllib.response
 import uuid
 
-from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
 from ..compat import compat_urllib_parse_urlparse, compat_urllib_request
-from ..utils import (
-    ExtractorError,
-    bytes_to_intlist,
-    decode_base,
-    int_or_none,
-    intlist_to_bytes,
-    request_to_url,
-    time_seconds,
-    traverse_obj,
-    update_url_query,
-    urljoin,
-)
+from ..utils import (ExtractorError, bytes_to_intlist, decode_base,
+                     int_or_none, intlist_to_bytes, request_to_url,
+                     time_seconds, traverse_obj, update_url_query, urljoin)
+from .common import InfoExtractor
 
 # NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 

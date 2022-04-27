@@ -1,11 +1,6 @@
+from ..utils import (ExtractorError, determine_ext, format_field,
+                     parse_iso8601, parse_qs)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    format_field,
-    parse_iso8601,
-    parse_qs,
-)
 from .dailymotion import DailymotionIE
 
 

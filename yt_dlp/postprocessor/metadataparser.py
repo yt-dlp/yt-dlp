@@ -1,7 +1,7 @@
 import re
 
-from .common import PostProcessor
 from ..utils import Namespace
+from .common import PostProcessor
 
 
 class MetadataParserPP(PostProcessor):

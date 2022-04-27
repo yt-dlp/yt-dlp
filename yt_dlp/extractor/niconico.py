@@ -5,34 +5,15 @@ import json
 import re
 import time
 
+from ..compat import (compat_HTTPError, compat_parse_qs,
+                      compat_urllib_parse_urlparse)
+from ..utils import (ExtractorError, OnDemandPagedList, bug_reports_message,
+                     clean_html, float_or_none, int_or_none, join_nonempty,
+                     parse_duration, parse_filesize, parse_iso8601,
+                     parse_resolution, qualities, remove_start, str_or_none,
+                     traverse_obj, try_get, unescapeHTML, update_url_query,
+                     url_or_none, urlencode_postdata)
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-    compat_HTTPError,
-)
-from ..utils import (
-    ExtractorError,
-    OnDemandPagedList,
-    bug_reports_message,
-    clean_html,
-    float_or_none,
-    int_or_none,
-    join_nonempty,
-    parse_duration,
-    parse_filesize,
-    parse_iso8601,
-    parse_resolution,
-    qualities,
-    remove_start,
-    str_or_none,
-    traverse_obj,
-    try_get,
-    unescapeHTML,
-    update_url_query,
-    url_or_none,
-    urlencode_postdata,
-)
 
 
 class NiconicoIE(InfoExtractor):

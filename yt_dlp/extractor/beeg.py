@@ -1,11 +1,5 @@
+from ..utils import int_or_none, traverse_obj, try_get, unified_timestamp
 from .common import InfoExtractor
-
-from ..utils import (
-    int_or_none,
-    traverse_obj,
-    try_get,
-    unified_timestamp,
-)
 
 
 class BeegIE(InfoExtractor):

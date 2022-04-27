@@ -16,38 +16,17 @@ from .extractor import gen_extractors, list_extractors
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
-from .postprocessor import (
-    FFmpegExtractAudioPP,
-    FFmpegSubtitlesConvertorPP,
-    FFmpegThumbnailsConvertorPP,
-    FFmpegVideoConvertorPP,
-    FFmpegVideoRemuxerPP,
-    MetadataFromFieldPP,
-    MetadataParserPP,
-)
+from .postprocessor import (FFmpegExtractAudioPP, FFmpegSubtitlesConvertorPP,
+                            FFmpegThumbnailsConvertorPP,
+                            FFmpegVideoConvertorPP, FFmpegVideoRemuxerPP,
+                            MetadataFromFieldPP, MetadataParserPP)
 from .update import run_update
-from .utils import (
-    NO_DEFAULT,
-    POSTPROCESS_WHEN,
-    DateRange,
-    DownloadCancelled,
-    DownloadError,
-    GeoUtils,
-    SameFileError,
-    decodeOption,
-    expand_path,
-    float_or_none,
-    int_or_none,
-    match_filter_func,
-    parse_duration,
-    preferredencoding,
-    read_batch_urls,
-    render_table,
-    setproctitle,
-    std_headers,
-    traverse_obj,
-    write_string,
-)
+from .utils import (NO_DEFAULT, POSTPROCESS_WHEN, DateRange, DownloadCancelled,
+                    DownloadError, GeoUtils, SameFileError, decodeOption,
+                    expand_path, float_or_none, int_or_none, match_filter_func,
+                    parse_duration, preferredencoding, read_batch_urls,
+                    render_table, setproctitle, std_headers, traverse_obj,
+                    write_string)
 from .YoutubeDL import YoutubeDL
 
 

@@ -1,10 +1,7 @@
 import re
 
+from ..utils import determine_ext, js_to_json
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    determine_ext,
-)
 
 
 class BpbIE(InfoExtractor):

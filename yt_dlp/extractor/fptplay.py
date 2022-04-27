@@ -2,12 +2,8 @@ import hashlib
 import time
 import urllib.parse
 
+from ..utils import clean_html, join_nonempty, strip_or_none
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    join_nonempty,
-    strip_or_none,
-)
 
 
 class FptplayIE(InfoExtractor):

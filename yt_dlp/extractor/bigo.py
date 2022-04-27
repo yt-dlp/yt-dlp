@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import ExtractorError, urlencode_postdata
+from .common import InfoExtractor
 
 
 class BigoIE(InfoExtractor):

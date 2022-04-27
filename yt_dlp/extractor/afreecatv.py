@@ -1,22 +1,11 @@
 import functools
 import re
 
+from ..utils import (ExtractorError, OnDemandPagedList, date_from_str,
+                     determine_ext, int_or_none, qualities, traverse_obj,
+                     unified_strdate, unified_timestamp, update_url_query,
+                     url_or_none, urlencode_postdata, xpath_text)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    OnDemandPagedList,
-    date_from_str,
-    determine_ext,
-    int_or_none,
-    qualities,
-    traverse_obj,
-    unified_strdate,
-    unified_timestamp,
-    update_url_query,
-    url_or_none,
-    urlencode_postdata,
-    xpath_text,
-)
 
 
 class AfreecaTVIE(InfoExtractor):

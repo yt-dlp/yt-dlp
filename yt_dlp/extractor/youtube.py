@@ -14,59 +14,23 @@ import threading
 import time
 import traceback
 
-from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_chr,
-    compat_HTTPError,
-    compat_parse_qs,
-    compat_str,
-    compat_urllib_parse_unquote_plus,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_urlparse,
-    compat_urlparse,
-)
+from ..compat import (compat_chr, compat_HTTPError, compat_parse_qs,
+                      compat_str, compat_urllib_parse_unquote_plus,
+                      compat_urllib_parse_urlencode,
+                      compat_urllib_parse_urlparse, compat_urlparse)
 from ..jsinterp import JSInterpreter
-from ..utils import (
-    NO_DEFAULT,
-    ExtractorError,
-    bug_reports_message,
-    clean_html,
-    datetime_from_str,
-    dict_get,
-    error_to_compat_str,
-    float_or_none,
-    format_field,
-    get_first,
-    int_or_none,
-    is_html,
-    join_nonempty,
-    js_to_json,
-    mimetype2ext,
-    network_exceptions,
-    orderedSet,
-    parse_codecs,
-    parse_count,
-    parse_duration,
-    parse_iso8601,
-    parse_qs,
-    qualities,
-    remove_end,
-    remove_start,
-    smuggle_url,
-    str_or_none,
-    str_to_int,
-    strftime_or_none,
-    traverse_obj,
-    try_get,
-    unescapeHTML,
-    unified_strdate,
-    unified_timestamp,
-    unsmuggle_url,
-    update_url_query,
-    url_or_none,
-    urljoin,
-    variadic,
-)
+from ..utils import (NO_DEFAULT, ExtractorError, bug_reports_message,
+                     clean_html, datetime_from_str, dict_get,
+                     error_to_compat_str, float_or_none, format_field,
+                     get_first, int_or_none, is_html, join_nonempty,
+                     js_to_json, mimetype2ext, network_exceptions, orderedSet,
+                     parse_codecs, parse_count, parse_duration, parse_iso8601,
+                     parse_qs, qualities, remove_end, remove_start,
+                     smuggle_url, str_or_none, str_to_int, strftime_or_none,
+                     traverse_obj, try_get, unescapeHTML, unified_strdate,
+                     unified_timestamp, unsmuggle_url, update_url_query,
+                     url_or_none, urljoin, variadic)
+from .common import InfoExtractor, SearchInfoExtractor
 
 # any clients starting with _ cannot be explicity requested by the user
 INNERTUBE_CLIENTS = {

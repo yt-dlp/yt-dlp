@@ -1,14 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, float_or_none, int_or_none, parse_iso8601,
+                     parse_qs, try_get)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    parse_qs,
-    try_get,
-)
 
 
 class ArkenaIE(InfoExtractor):

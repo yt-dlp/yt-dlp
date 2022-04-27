@@ -1,17 +1,9 @@
 import json
 
+from ..compat import compat_b64decode, compat_str, compat_urlparse
+from ..utils import (ExtractorError, extract_attributes, get_elements_by_class,
+                     urlencode_postdata)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    extract_attributes,
-    ExtractorError,
-    get_elements_by_class,
-    urlencode_postdata,
-)
 
 
 class EinthusanIE(InfoExtractor):

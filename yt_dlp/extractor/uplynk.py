@@ -1,10 +1,7 @@
 import re
 
+from ..utils import ExtractorError, float_or_none
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    ExtractorError,
-)
 
 
 class UplynkIE(InfoExtractor):

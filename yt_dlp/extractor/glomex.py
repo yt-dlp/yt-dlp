@@ -1,17 +1,10 @@
 import re
 import urllib.parse
 
+from ..utils import (ExtractorError, determine_ext, extract_attributes,
+                     int_or_none, parse_qs, smuggle_url, unescapeHTML,
+                     unsmuggle_url)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    ExtractorError,
-    int_or_none,
-    parse_qs,
-    smuggle_url,
-    unescapeHTML,
-    unsmuggle_url,
-)
 
 
 class GlomexBaseIE(InfoExtractor):

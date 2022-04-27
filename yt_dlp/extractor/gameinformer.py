@@ -1,10 +1,6 @@
+from ..utils import clean_html, get_element_by_class, get_element_by_id
 from .brightcove import BrightcoveNewIE
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    get_element_by_class,
-    get_element_by_id,
-)
 
 
 class GameInformerIE(InfoExtractor):

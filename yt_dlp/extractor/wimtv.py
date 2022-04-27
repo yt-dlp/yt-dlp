@@ -1,12 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, determine_ext, parse_duration,
+                     urlencode_postdata)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    parse_duration,
-    urlencode_postdata,
-    ExtractorError,
-)
 
 
 class WimTVIE(InfoExtractor):

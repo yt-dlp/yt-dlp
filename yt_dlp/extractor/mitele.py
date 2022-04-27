@@ -1,8 +1,5 @@
+from ..utils import int_or_none, parse_iso8601
 from .telecinco import TelecincoIE
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-)
 
 
 class MiTeleIE(TelecincoIE):

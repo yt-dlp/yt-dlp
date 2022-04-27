@@ -1,24 +1,14 @@
 import hashlib
 import hmac
+import json
 import re
 import time
 import uuid
-import json
 
+from ..compat import compat_HTTPError, compat_str
+from ..utils import (ExtractorError, determine_ext, int_or_none, join_nonempty,
+                     str_or_none, try_get, url_or_none)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str
-)
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    join_nonempty,
-    str_or_none,
-    try_get,
-    url_or_none,
-)
 
 
 class HotStarBaseIE(InfoExtractor):

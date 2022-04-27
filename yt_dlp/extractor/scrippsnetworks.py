@@ -1,14 +1,10 @@
-import json
 import hashlib
+import json
 
-from .aws import AWSIE
+from ..utils import smuggle_url, urlencode_postdata, xpath_text
 from .anvato import AnvatoIE
+from .aws import AWSIE
 from .common import InfoExtractor
-from ..utils import (
-    smuggle_url,
-    urlencode_postdata,
-    xpath_text,
-)
 
 
 class ScrippsNetworksWatchIE(AWSIE):

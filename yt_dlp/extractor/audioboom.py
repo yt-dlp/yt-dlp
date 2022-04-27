@@ -1,8 +1,5 @@
+from ..utils import clean_html, float_or_none
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    float_or_none,
-)
 
 
 class AudioBoomIE(InfoExtractor):

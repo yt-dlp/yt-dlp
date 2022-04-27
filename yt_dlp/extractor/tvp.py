@@ -2,17 +2,9 @@ import itertools
 import random
 import re
 
+from ..utils import (ExtractorError, determine_ext, dict_get, int_or_none,
+                     js_to_json, orderedSet, str_or_none, try_get)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    dict_get,
-    ExtractorError,
-    int_or_none,
-    js_to_json,
-    orderedSet,
-    str_or_none,
-    try_get,
-)
 
 
 class TVPIE(InfoExtractor):

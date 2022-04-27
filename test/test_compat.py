@@ -8,17 +8,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from yt_dlp import compat
-from yt_dlp.compat import (
-    compat_etree_fromstring,
-    compat_expanduser,
-    compat_getenv,
-    compat_setenv,
-    compat_str,
-    compat_struct_unpack,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
-    compat_urllib_parse_urlencode,
-)
+from yt_dlp.compat import (compat_etree_fromstring, compat_expanduser,
+                           compat_getenv, compat_setenv, compat_str,
+                           compat_struct_unpack, compat_urllib_parse_unquote,
+                           compat_urllib_parse_unquote_plus,
+                           compat_urllib_parse_urlencode)
 
 
 class TestCompat(unittest.TestCase):

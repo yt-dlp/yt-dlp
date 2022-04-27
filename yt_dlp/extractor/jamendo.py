@@ -2,12 +2,8 @@ import hashlib
 import random
 
 from ..compat import compat_str
+from ..utils import clean_html, int_or_none, try_get
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    try_get,
-)
 
 
 class JamendoIE(InfoExtractor):

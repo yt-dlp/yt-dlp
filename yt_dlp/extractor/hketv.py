@@ -1,17 +1,8 @@
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    int_or_none,
-    merge_dicts,
-    parse_count,
-    str_or_none,
-    try_get,
-    unified_strdate,
-    urlencode_postdata,
-    urljoin,
-)
+from ..utils import (ExtractorError, clean_html, int_or_none, merge_dicts,
+                     parse_count, str_or_none, try_get, unified_strdate,
+                     urlencode_postdata, urljoin)
+from .common import InfoExtractor
 
 
 class HKETVIE(InfoExtractor):

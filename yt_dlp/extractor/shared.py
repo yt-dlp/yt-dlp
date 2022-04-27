@@ -1,19 +1,8 @@
+from ..compat import compat_b64decode, compat_urllib_parse_unquote_plus
+from ..utils import (KNOWN_EXTENSIONS, ExtractorError, determine_ext,
+                     int_or_none, js_to_json, parse_filesize, rot47,
+                     url_or_none, urlencode_postdata)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote_plus,
-)
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    js_to_json,
-    KNOWN_EXTENSIONS,
-    parse_filesize,
-    rot47,
-    url_or_none,
-    urlencode_postdata,
-)
 
 
 class SharedBaseIE(InfoExtractor):

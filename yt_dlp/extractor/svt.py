@@ -1,16 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    determine_ext,
-    dict_get,
-    int_or_none,
-    unified_timestamp,
-    str_or_none,
-    strip_or_none,
-    try_get,
-)
+from ..utils import (determine_ext, dict_get, int_or_none, str_or_none,
+                     strip_or_none, try_get, unified_timestamp)
+from .common import InfoExtractor
 
 
 class SVTBaseIE(InfoExtractor):

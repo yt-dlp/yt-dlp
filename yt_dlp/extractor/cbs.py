@@ -1,13 +1,6 @@
+from ..utils import (ExtractorError, find_xpath_attr, int_or_none,
+                     update_url_query, url_or_none, xpath_element, xpath_text)
 from .theplatform import ThePlatformFeedIE
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    find_xpath_attr,
-    xpath_element,
-    xpath_text,
-    update_url_query,
-    url_or_none,
-)
 
 
 class CBSBaseIE(ThePlatformFeedIE):

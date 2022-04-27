@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (int_or_none, remove_end, remove_start, str_to_int,
+                     unified_strdate)
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    remove_end,
-    remove_start,
-    str_to_int,
-    unified_strdate,
-)
 
 
 class PinkbikeIE(InfoExtractor):

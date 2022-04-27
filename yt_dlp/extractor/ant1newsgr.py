@@ -1,14 +1,9 @@
 import re
 import urllib.parse
 
+from ..utils import (ExtractorError, HEADRequest, determine_ext,
+                     scale_thumbnails_to_max_format_width, unescapeHTML)
 from .common import InfoExtractor
-from ..utils import (
-    HEADRequest,
-    ExtractorError,
-    determine_ext,
-    scale_thumbnails_to_max_format_width,
-    unescapeHTML,
-)
 
 
 class Ant1NewsGrBaseIE(InfoExtractor):

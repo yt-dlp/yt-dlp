@@ -1,8 +1,5 @@
+from ..utils import int_or_none, parse_duration
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_duration,
-)
 
 
 class ToonGogglesIE(InfoExtractor):

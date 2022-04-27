@@ -1,7 +1,7 @@
 import random
 
-from .common import InfoExtractor
 from ..utils import xpath_text
+from .common import InfoExtractor
 
 
 class MatchTVIE(InfoExtractor):

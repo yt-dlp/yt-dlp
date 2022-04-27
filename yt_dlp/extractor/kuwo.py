@@ -1,14 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    get_element_by_id,
-    clean_html,
-    ExtractorError,
-    InAdvancePagedList,
-    remove_start,
-)
+from ..utils import (ExtractorError, InAdvancePagedList, clean_html,
+                     get_element_by_id, remove_start)
+from .common import InfoExtractor
 
 
 class KuwoBaseIE(InfoExtractor):

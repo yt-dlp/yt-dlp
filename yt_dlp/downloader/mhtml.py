@@ -3,9 +3,9 @@ import quopri
 import re
 import uuid
 
-from .fragment import FragmentFD
 from ..utils import escapeHTML, formatSeconds, srt_subtitles_timecode, urljoin
 from ..version import __version__ as YT_DLP_VERSION
+from .fragment import FragmentFD
 
 
 class MhtmlFD(FragmentFD):

@@ -1,19 +1,9 @@
 import re
 
+from ..compat import compat_str
+from ..utils import (ExtractorError, int_or_none, parse_qs, qualities,
+                     strip_or_none, try_get, unified_strdate, url_or_none)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_qs,
-    qualities,
-    strip_or_none,
-    try_get,
-    unified_strdate,
-    url_or_none,
-)
 
 
 class ArteTVBaseIE(InfoExtractor):

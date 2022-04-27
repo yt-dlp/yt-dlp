@@ -1,11 +1,7 @@
+from ..utils import int_or_none, parse_iso8601, update_url_query
 from .common import InfoExtractor
-from .youtube import YoutubeIE
 from .vimeo import VimeoIE
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    update_url_query,
-)
+from .youtube import YoutubeIE
 
 
 class AmaraIE(InfoExtractor):

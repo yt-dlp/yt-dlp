@@ -1,42 +1,22 @@
 import base64
-import re
 import json
-import zlib
-
+import re
 import xml.etree.ElementTree
+import zlib
 from hashlib import sha1
-from math import pow, sqrt, floor
+from math import floor, pow, sqrt
+
+from ..aes import aes_cbc_decrypt
+from ..compat import (compat_b64decode, compat_etree_fromstring, compat_str,
+                      compat_urllib_parse_urlencode, compat_urllib_request,
+                      compat_urlparse)
+from ..utils import (ExtractorError, bytes_to_intlist, extract_attributes,
+                     float_or_none, format_field, int_or_none,
+                     intlist_to_bytes, join_nonempty, lowercase_escape,
+                     merge_dicts, qualities, remove_end, sanitized_Request,
+                     traverse_obj, try_get, xpath_text)
 from .common import InfoExtractor
 from .vrv import VRVBaseIE
-from ..compat import (
-    compat_b64decode,
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_urlencode,
-    compat_urllib_request,
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    bytes_to_intlist,
-    extract_attributes,
-    float_or_none,
-    format_field,
-    intlist_to_bytes,
-    int_or_none,
-    join_nonempty,
-    lowercase_escape,
-    merge_dicts,
-    qualities,
-    remove_end,
-    sanitized_Request,
-    traverse_obj,
-    try_get,
-    xpath_text,
-)
-from ..aes import (
-    aes_cbc_decrypt,
-)
 
 
 class CrunchyrollBaseIE(InfoExtractor):

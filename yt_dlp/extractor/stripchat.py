@@ -1,12 +1,6 @@
+from ..compat import compat_str
+from ..utils import ExtractorError, lowercase_escape, try_get
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    lowercase_escape,
-    try_get,
-)
 
 
 class StripchatIE(InfoExtractor):

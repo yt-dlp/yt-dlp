@@ -3,15 +3,10 @@ import re
 import subprocess
 import time
 
-from .common import FileDownloader
 from ..compat import compat_str
-from ..utils import (
-    Popen,
-    check_executable,
-    encodeArgument,
-    encodeFilename,
-    get_exe_version,
-)
+from ..utils import (Popen, check_executable, encodeArgument, encodeFilename,
+                     get_exe_version)
+from .common import FileDownloader
 
 
 def rtmpdump_version():

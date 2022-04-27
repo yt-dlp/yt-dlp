@@ -1,8 +1,5 @@
+from ..utils import clean_html, merge_dicts
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    merge_dicts,
-)
 
 
 class LRTIE(InfoExtractor):

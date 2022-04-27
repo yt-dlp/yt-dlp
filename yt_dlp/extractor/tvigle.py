@@ -1,12 +1,6 @@
+from ..utils import (ExtractorError, float_or_none, int_or_none,
+                     parse_age_limit, try_get, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    parse_age_limit,
-    try_get,
-    url_or_none,
-)
 
 
 class TvigleIE(InfoExtractor):

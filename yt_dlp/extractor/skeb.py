@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import ExtractorError, determine_ext, parse_qs, traverse_obj
+from .common import InfoExtractor
 
 
 class SkebIE(InfoExtractor):

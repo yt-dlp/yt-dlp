@@ -1,14 +1,9 @@
 import itertools
 import re
 
+from ..utils import (ExtractorError, GeoRestrictedError, orderedSet,
+                     unified_strdate, urlencode_postdata)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    GeoRestrictedError,
-    orderedSet,
-    unified_strdate,
-    urlencode_postdata,
-)
 
 
 class BitChuteIE(InfoExtractor):

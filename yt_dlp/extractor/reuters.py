@@ -1,11 +1,7 @@
 import re
 
+from ..utils import int_or_none, js_to_json, unescapeHTML
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    int_or_none,
-    unescapeHTML,
-)
 
 
 class ReutersIE(InfoExtractor):

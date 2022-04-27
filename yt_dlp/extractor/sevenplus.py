@@ -1,16 +1,9 @@
 import json
 import re
 
+from ..compat import compat_HTTPError, compat_str
+from ..utils import ExtractorError, try_get, update_url_query
 from .brightcove import BrightcoveNewIE
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    try_get,
-    update_url_query,
-)
 
 
 class SevenPlusIE(BrightcoveNewIE):

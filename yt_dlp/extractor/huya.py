@@ -1,18 +1,9 @@
 import hashlib
 import random
 
-from ..compat import compat_urlparse, compat_b64decode
-
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    js_to_json,
-    str_or_none,
-    try_get,
-    unescapeHTML,
-    update_url_query,
-)
-
+from ..compat import compat_b64decode, compat_urlparse
+from ..utils import (ExtractorError, int_or_none, js_to_json, str_or_none,
+                     try_get, unescapeHTML, update_url_query)
 from .common import InfoExtractor
 
 

@@ -1,18 +1,9 @@
 import re
 
+from ..compat import compat_parse_qs, compat_urllib_parse_urlparse
+from ..utils import (HEADRequest, determine_ext, int_or_none, parse_iso8601,
+                     strip_or_none, try_get)
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    HEADRequest,
-    determine_ext,
-    int_or_none,
-    parse_iso8601,
-    strip_or_none,
-    try_get,
-)
 
 
 class IGNBaseIE(InfoExtractor):

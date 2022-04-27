@@ -1,11 +1,6 @@
+from ..utils import (ExtractorError, float_or_none, int_or_none, parse_iso8601,
+                     qualities)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    qualities,
-)
 
 
 class CoubIE(InfoExtractor):

@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import parse_iso8601
+from .common import InfoExtractor
 
 
 class BlackboardCollaborateIE(InfoExtractor):

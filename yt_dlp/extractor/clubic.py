@@ -1,8 +1,5 @@
+from ..utils import clean_html, qualities
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    qualities,
-)
 
 
 class ClubicIE(InfoExtractor):

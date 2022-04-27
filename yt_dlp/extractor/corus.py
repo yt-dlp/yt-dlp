@@ -1,10 +1,5 @@
+from ..utils import ExtractorError, dict_get, float_or_none, int_or_none
 from .theplatform import ThePlatformFeedIE
-from ..utils import (
-    dict_get,
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-)
 
 
 class CorusIE(ThePlatformFeedIE):

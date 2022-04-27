@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import int_or_none
+from .common import InfoExtractor
 
 
 class TwentyThreeVideoIE(InfoExtractor):

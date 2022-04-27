@@ -1,12 +1,6 @@
-﻿from .common import InfoExtractor
-
-from ..utils import (
-    ExtractorError,
-    smuggle_url,
-    str_or_none,
-    traverse_obj,
-    urlencode_postdata
-)
+﻿from ..utils import (ExtractorError, smuggle_url, str_or_none, traverse_obj,
+                     urlencode_postdata)
+from .common import InfoExtractor
 
 
 class CybraryBaseIE(InfoExtractor):

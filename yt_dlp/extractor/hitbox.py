@@ -1,14 +1,8 @@
 import re
 
+from ..utils import (clean_html, compat_str, determine_ext, float_or_none,
+                     int_or_none, parse_iso8601)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    parse_iso8601,
-    float_or_none,
-    int_or_none,
-    compat_str,
-    determine_ext,
-)
 
 
 class HitboxIE(InfoExtractor):

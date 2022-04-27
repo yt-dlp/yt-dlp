@@ -1,15 +1,10 @@
 import itertools
 import json
 
-from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote_plus
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    int_or_none,
-    str_to_int,
-    url_or_none,
-)
+from ..utils import (ExtractorError, clean_html, int_or_none, str_to_int,
+                     url_or_none)
+from .common import InfoExtractor
 
 
 class ChingariBaseIE(InfoExtractor):

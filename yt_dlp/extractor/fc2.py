@@ -1,21 +1,11 @@
 import re
 
-from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-)
+from ..compat import compat_parse_qs
 from ..dependencies import websockets
-from ..utils import (
-    ExtractorError,
-    WebSocketsWrapper,
-    js_to_json,
-    sanitized_Request,
-    std_headers,
-    traverse_obj,
-    update_url_query,
-    urlencode_postdata,
-    urljoin,
-)
+from ..utils import (ExtractorError, WebSocketsWrapper, js_to_json,
+                     sanitized_Request, std_headers, traverse_obj,
+                     update_url_query, urlencode_postdata, urljoin)
+from .common import InfoExtractor
 
 
 class FC2IE(InfoExtractor):

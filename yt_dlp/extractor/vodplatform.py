@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import unescapeHTML
+from .common import InfoExtractor
 
 
 class VODPlatformIE(InfoExtractor):

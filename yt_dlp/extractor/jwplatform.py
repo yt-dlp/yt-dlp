@@ -1,7 +1,7 @@
 import re
 
-from .common import InfoExtractor
 from ..utils import unsmuggle_url
+from .common import InfoExtractor
 
 
 class JWPlatformIE(InfoExtractor):

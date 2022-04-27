@@ -1,8 +1,4 @@
-from ..utils import (
-    unescapeHTML,
-    urljoin,
-    ExtractorError,
-)
+from ..utils import ExtractorError, unescapeHTML, urljoin
 from .common import InfoExtractor
 from .vimeo import VimeoIE
 from .youtube import YoutubeIE

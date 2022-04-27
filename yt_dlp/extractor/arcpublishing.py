@@ -1,12 +1,7 @@
 import re
 
+from ..utils import extract_attributes, int_or_none, parse_iso8601, try_get
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    int_or_none,
-    parse_iso8601,
-    try_get,
-)
 
 
 class ArcPublishingIE(InfoExtractor):

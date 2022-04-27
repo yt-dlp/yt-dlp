@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, int_or_none, js_to_json,
+                     sanitized_Request, urlencode_postdata)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    js_to_json,
-    sanitized_Request,
-    urlencode_postdata,
-)
 
 
 class TubiTvIE(InfoExtractor):

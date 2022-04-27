@@ -1,13 +1,7 @@
 import re
 
+from ..utils import base_url, determine_ext, int_or_none, url_basename, urljoin
 from .common import InfoExtractor
-from ..utils import (
-    base_url,
-    determine_ext,
-    int_or_none,
-    url_basename,
-    urljoin,
-)
 
 
 class GediDigitalIE(InfoExtractor):

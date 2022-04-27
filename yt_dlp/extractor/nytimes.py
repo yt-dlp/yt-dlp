@@ -1,17 +1,10 @@
-import hmac
-import hashlib
 import base64
+import hashlib
+import hmac
 
+from ..utils import (determine_ext, float_or_none, int_or_none, js_to_json,
+                     mimetype2ext, parse_iso8601, remove_start)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    int_or_none,
-    js_to_json,
-    mimetype2ext,
-    parse_iso8601,
-    remove_start,
-)
 
 
 class NYTimesBaseIE(InfoExtractor):

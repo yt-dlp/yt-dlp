@@ -1,36 +1,16 @@
 import json
 import re
 
+from ..compat import (compat_etree_fromstring, compat_str,
+                      compat_urllib_parse_unquote,
+                      compat_urllib_parse_unquote_plus)
+from ..utils import (ExtractorError, clean_html, determine_ext,
+                     error_to_compat_str, float_or_none, get_element_by_id,
+                     get_first, int_or_none, js_to_json, merge_dicts,
+                     network_exceptions, parse_count, parse_qs, qualities,
+                     sanitized_Request, traverse_obj, try_get, url_or_none,
+                     urlencode_postdata, urljoin, variadic)
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
-)
-from ..utils import (
-    clean_html,
-    determine_ext,
-    error_to_compat_str,
-    ExtractorError,
-    float_or_none,
-    get_element_by_id,
-    get_first,
-    int_or_none,
-    js_to_json,
-    merge_dicts,
-    network_exceptions,
-    parse_count,
-    parse_qs,
-    qualities,
-    sanitized_Request,
-    traverse_obj,
-    try_get,
-    url_or_none,
-    urlencode_postdata,
-    urljoin,
-    variadic,
-)
 
 
 class FacebookIE(InfoExtractor):

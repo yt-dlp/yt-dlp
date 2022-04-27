@@ -1,15 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, dict_get, int_or_none, join_nonempty,
+                     parse_iso8601, try_get, unescapeHTML)
 from .common import InfoExtractor
-from ..utils import (
-    dict_get,
-    ExtractorError,
-    int_or_none,
-    join_nonempty,
-    parse_iso8601,
-    try_get,
-    unescapeHTML,
-)
 
 
 class PikselIE(InfoExtractor):

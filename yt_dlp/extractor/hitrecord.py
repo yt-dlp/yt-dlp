@@ -1,11 +1,6 @@
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    clean_html,
-    float_or_none,
-    int_or_none,
-    try_get,
-)
+from ..utils import clean_html, float_or_none, int_or_none, try_get
+from .common import InfoExtractor
 
 
 class HitRecordIE(InfoExtractor):

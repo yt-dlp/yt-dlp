@@ -1,21 +1,11 @@
-from itertools import zip_longest
 import re
+from itertools import zip_longest
 
+from ..utils import (ExtractorError, clean_html, extract_attributes,
+                     float_or_none, get_element_by_class, int_or_none,
+                     mimetype2ext, srt_subtitles_timecode, strip_or_none,
+                     try_get, urlencode_postdata, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    extract_attributes,
-    ExtractorError,
-    float_or_none,
-    get_element_by_class,
-    int_or_none,
-    srt_subtitles_timecode,
-    strip_or_none,
-    mimetype2ext,
-    try_get,
-    urlencode_postdata,
-    urljoin,
-)
 
 
 class LinkedInBaseIE(InfoExtractor):

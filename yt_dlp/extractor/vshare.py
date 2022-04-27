@@ -1,11 +1,8 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_chr
-from ..utils import (
-    decode_packed_codes,
-    ExtractorError,
-)
+from ..utils import ExtractorError, decode_packed_codes
+from .common import InfoExtractor
 
 
 class VShareIE(InfoExtractor):

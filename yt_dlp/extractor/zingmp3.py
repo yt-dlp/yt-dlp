@@ -2,11 +2,8 @@ import hashlib
 import hmac
 import urllib.parse
 
+from ..utils import int_or_none, traverse_obj
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    traverse_obj,
-)
 
 
 class ZingMp3BaseIE(InfoExtractor):

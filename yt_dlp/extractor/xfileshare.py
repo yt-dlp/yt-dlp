@@ -1,15 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_chr
-from ..utils import (
-    decode_packed_codes,
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    js_to_json,
-    urlencode_postdata,
-)
+from ..utils import (ExtractorError, decode_packed_codes, determine_ext,
+                     int_or_none, js_to_json, urlencode_postdata)
+from .common import InfoExtractor
 
 
 # based on openload_decode from 2bfeee69b976fe049761dd3012e30b637ee05a58

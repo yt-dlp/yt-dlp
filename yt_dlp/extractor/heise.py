@@ -1,14 +1,8 @@
+from ..utils import (NO_DEFAULT, determine_ext, int_or_none, parse_iso8601,
+                     smuggle_url, xpath_text)
 from .common import InfoExtractor
 from .kaltura import KalturaIE
 from .youtube import YoutubeIE
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    NO_DEFAULT,
-    parse_iso8601,
-    smuggle_url,
-    xpath_text,
-)
 
 
 class HeiseIE(InfoExtractor):

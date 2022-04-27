@@ -11,17 +11,12 @@ try:
 except ImportError:
     can_threaded_download = False
 
-from .common import FileDownloader
-from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_os_name, compat_struct_pack, compat_urllib_error
-from ..utils import (
-    DownloadError,
-    encodeFilename,
-    error_to_compat_str,
-    sanitized_Request,
-    traverse_obj,
-)
+from ..utils import (DownloadError, encodeFilename, error_to_compat_str,
+                     sanitized_Request, traverse_obj)
+from .common import FileDownloader
+from .http import HttpFD
 
 
 class HttpQuietDownloader(HttpFD):

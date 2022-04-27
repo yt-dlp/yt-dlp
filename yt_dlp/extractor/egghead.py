@@ -1,12 +1,7 @@
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    try_get,
-    unified_timestamp,
-    url_or_none,
-)
+from ..utils import (determine_ext, int_or_none, try_get, unified_timestamp,
+                     url_or_none)
+from .common import InfoExtractor
 
 
 class EggheadBaseIE(InfoExtractor):

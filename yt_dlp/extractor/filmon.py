@@ -1,14 +1,6 @@
+from ..compat import compat_HTTPError, compat_str
+from ..utils import ExtractorError, int_or_none, qualities, strip_or_none
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_HTTPError,
-)
-from ..utils import (
-    qualities,
-    strip_or_none,
-    int_or_none,
-    ExtractorError,
-)
 
 
 class FilmOnIE(InfoExtractor):

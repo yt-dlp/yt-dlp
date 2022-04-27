@@ -1,13 +1,8 @@
 import json
 
+from ..utils import (float_or_none, int_or_none, try_get, unified_timestamp,
+                     url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    try_get,
-    int_or_none,
-    url_or_none,
-    float_or_none,
-    unified_timestamp,
-)
 
 
 class BannedVideoIE(InfoExtractor):

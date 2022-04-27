@@ -1,8 +1,5 @@
+from ..utils import determine_ext, unescapeHTML
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    unescapeHTML,
-)
 
 
 class CJSWIE(InfoExtractor):

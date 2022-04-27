@@ -1,19 +1,9 @@
 import re
 
+from ..utils import (NO_DEFAULT, ExtractorError, determine_ext, float_or_none,
+                     get_element_by_class, int_or_none, js_to_json,
+                     parse_iso8601, remove_start, strip_or_none, url_basename)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    float_or_none,
-    get_element_by_class,
-    int_or_none,
-    js_to_json,
-    NO_DEFAULT,
-    parse_iso8601,
-    remove_start,
-    strip_or_none,
-    url_basename,
-)
 
 
 class OnetBaseIE(InfoExtractor):

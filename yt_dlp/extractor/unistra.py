@@ -1,7 +1,7 @@
 import re
 
-from .common import InfoExtractor
 from ..utils import qualities
+from .common import InfoExtractor
 
 
 class UnistraIE(InfoExtractor):

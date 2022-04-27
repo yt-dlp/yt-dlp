@@ -1,23 +1,11 @@
-import re
 import itertools
+import re
 
+from ..compat import compat_str, compat_urlparse
+from ..utils import (determine_ext, find_xpath_attr, float_or_none,
+                     int_or_none, orderedSet, parse_iso8601, update_url_query,
+                     xpath_attr, xpath_text, xpath_with_ns)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    find_xpath_attr,
-    xpath_attr,
-    xpath_with_ns,
-    xpath_text,
-    orderedSet,
-    update_url_query,
-    int_or_none,
-    float_or_none,
-    parse_iso8601,
-    determine_ext,
-)
 
 
 class LivestreamIE(InfoExtractor):

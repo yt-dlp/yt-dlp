@@ -1,13 +1,6 @@
+from ..utils import (ExtractorError, int_or_none, js_to_json, parse_filesize,
+                     str_or_none, urlencode_postdata, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    str_or_none,
-    js_to_json,
-    parse_filesize,
-    urlencode_postdata,
-    urljoin,
-)
 
 
 class ZoomIE(InfoExtractor):

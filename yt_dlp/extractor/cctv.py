@@ -1,12 +1,8 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    float_or_none,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import float_or_none, try_get, unified_timestamp
+from .common import InfoExtractor
 
 
 class CCTVIE(InfoExtractor):

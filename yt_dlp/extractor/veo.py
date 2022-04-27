@@ -1,12 +1,6 @@
+from ..utils import (int_or_none, mimetype2ext, str_or_none, unified_timestamp,
+                     url_or_none)
 from .common import InfoExtractor
-
-from ..utils import (
-    int_or_none,
-    mimetype2ext,
-    str_or_none,
-    unified_timestamp,
-    url_or_none,
-)
 
 
 class VeoIE(InfoExtractor):

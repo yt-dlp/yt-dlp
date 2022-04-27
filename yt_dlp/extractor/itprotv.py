@@ -1,13 +1,7 @@
 import re
 
+from ..utils import int_or_none, str_or_none, traverse_obj, urljoin
 from .common import InfoExtractor
-
-from ..utils import (
-    int_or_none,
-    str_or_none,
-    traverse_obj,
-    urljoin
-)
 
 
 class ITProTVBaseIE(InfoExtractor):

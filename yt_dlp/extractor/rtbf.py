@@ -1,12 +1,7 @@
 import re
 
+from ..utils import ExtractorError, float_or_none, int_or_none, strip_or_none
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    strip_or_none,
-)
 
 
 class RTBFIE(InfoExtractor):

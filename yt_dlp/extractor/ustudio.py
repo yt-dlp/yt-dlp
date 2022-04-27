@@ -1,9 +1,5 @@
+from ..utils import int_or_none, unescapeHTML, unified_strdate
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    unified_strdate,
-    unescapeHTML,
-)
 
 
 class UstudioIE(InfoExtractor):

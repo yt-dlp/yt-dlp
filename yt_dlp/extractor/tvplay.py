@@ -1,22 +1,10 @@
 import re
 
+from ..compat import compat_HTTPError, compat_urlparse
+from ..utils import (ExtractorError, determine_ext, int_or_none, parse_iso8601,
+                     qualities, traverse_obj, try_get, update_url_query,
+                     url_or_none, urljoin)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urlparse,
-)
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-    qualities,
-    traverse_obj,
-    try_get,
-    update_url_query,
-    url_or_none,
-    urljoin,
-)
 
 
 class TVPlayIE(InfoExtractor):

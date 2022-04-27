@@ -3,36 +3,16 @@ import re
 import struct
 import xml.etree.ElementTree
 
+from ..compat import (compat_etree_fromstring, compat_HTTPError,
+                      compat_parse_qs, compat_urlparse)
+from ..utils import (ExtractorError, UnsupportedError, clean_html, dict_get,
+                     extract_attributes, find_xpath_attr, fix_xml_ampersands,
+                     float_or_none, int_or_none, js_to_json, mimetype2ext,
+                     parse_iso8601, parse_qs, smuggle_url, str_or_none,
+                     try_get, unescapeHTML, unsmuggle_url, update_url_query,
+                     url_or_none)
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
-from ..compat import (
-    compat_etree_fromstring,
-    compat_HTTPError,
-    compat_parse_qs,
-    compat_urlparse,
-)
-from ..utils import (
-    clean_html,
-    dict_get,
-    extract_attributes,
-    ExtractorError,
-    find_xpath_attr,
-    fix_xml_ampersands,
-    float_or_none,
-    int_or_none,
-    js_to_json,
-    mimetype2ext,
-    parse_iso8601,
-    parse_qs,
-    smuggle_url,
-    str_or_none,
-    try_get,
-    unescapeHTML,
-    unsmuggle_url,
-    UnsupportedError,
-    update_url_query,
-    url_or_none,
-)
 
 
 class BrightcoveLegacyIE(InfoExtractor):

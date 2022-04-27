@@ -5,13 +5,9 @@ import random
 import time
 import uuid
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    try_get,
-)
+from ..utils import ExtractorError, int_or_none, try_get
+from .common import InfoExtractor
 
 
 class SonyLIVIE(InfoExtractor):

@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import int_or_none, parse_qs
+from .common import InfoExtractor
 
 
 class ToggoIE(InfoExtractor):

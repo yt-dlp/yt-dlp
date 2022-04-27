@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import determine_ext
+from .common import InfoExtractor
 
 
 class ElonetIE(InfoExtractor):

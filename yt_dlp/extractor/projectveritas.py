@@ -1,9 +1,5 @@
+from ..utils import ExtractorError, traverse_obj, unified_strdate
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    traverse_obj,
-    unified_strdate,
-)
 
 
 class ProjectVeritasIE(InfoExtractor):

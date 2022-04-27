@@ -1,8 +1,8 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_b64decode
 from ..utils import parse_duration
+from .common import InfoExtractor
 
 
 class ChirbitIE(InfoExtractor):

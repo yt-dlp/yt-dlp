@@ -1,12 +1,6 @@
+from ..utils import (ExtractorError, parse_resolution, traverse_obj, try_get,
+                     urlencode_postdata)
 from .common import InfoExtractor
-
-from ..utils import (
-    ExtractorError,
-    parse_resolution,
-    traverse_obj,
-    try_get,
-    urlencode_postdata,
-)
 
 
 class DigitalConcertHallIE(InfoExtractor):

@@ -1,16 +1,7 @@
+from ..compat import compat_str, compat_urllib_parse_urlencode
+from ..utils import (clean_html, int_or_none, parse_duration, parse_iso8601,
+                     qualities, update_url_query)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
-from ..utils import (
-    clean_html,
-    int_or_none,
-    parse_duration,
-    parse_iso8601,
-    qualities,
-    update_url_query,
-)
 
 
 class UOLIE(InfoExtractor):

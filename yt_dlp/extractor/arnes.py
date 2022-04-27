@@ -1,15 +1,7 @@
+from ..compat import compat_parse_qs, compat_urllib_parse_urlparse
+from ..utils import (float_or_none, format_field, int_or_none, parse_iso8601,
+                     remove_start)
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    format_field,
-    float_or_none,
-    int_or_none,
-    parse_iso8601,
-    remove_start,
-)
 
 
 class ArnesIE(InfoExtractor):

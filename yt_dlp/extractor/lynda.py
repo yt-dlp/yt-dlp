@@ -1,15 +1,8 @@
 import re
 
+from ..compat import compat_str, compat_urlparse
+from ..utils import ExtractorError, int_or_none, urlencode_postdata
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    urlencode_postdata,
-)
 
 
 class LyndaBaseIE(InfoExtractor):

@@ -1,25 +1,11 @@
 import re
 
+from ..compat import (compat_HTTPError, compat_str, compat_urllib_request,
+                      compat_urlparse)
+from ..utils import (ExtractorError, determine_ext, extract_attributes,
+                     float_or_none, int_or_none, js_to_json, sanitized_Request,
+                     try_get, unescapeHTML, url_or_none, urlencode_postdata)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_request,
-    compat_urlparse,
-)
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    js_to_json,
-    sanitized_Request,
-    try_get,
-    unescapeHTML,
-    url_or_none,
-    urlencode_postdata,
-)
 
 
 class UdemyIE(InfoExtractor):

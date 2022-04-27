@@ -5,24 +5,12 @@ import random
 import re
 import time
 
-from ..minicurses import (
-    BreaklineStatusPrinter,
-    MultilineLogger,
-    MultilinePrinter,
-    QuietMultilinePrinter,
-)
-from ..utils import (
-    LockingUnsupportedError,
-    Namespace,
-    decodeArgument,
-    encodeFilename,
-    error_to_compat_str,
-    format_bytes,
-    sanitize_open,
-    shell_quote,
-    timeconvert,
-    timetuple_from_msec,
-)
+from ..minicurses import (BreaklineStatusPrinter, MultilineLogger,
+                          MultilinePrinter, QuietMultilinePrinter)
+from ..utils import (LockingUnsupportedError, Namespace, decodeArgument,
+                     encodeFilename, error_to_compat_str, format_bytes,
+                     sanitize_open, shell_quote, timeconvert,
+                     timetuple_from_msec)
 
 
 class FileDownloader:

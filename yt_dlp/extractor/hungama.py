@@ -1,11 +1,7 @@
 import re
 
+from ..utils import int_or_none, try_get, urlencode_postdata
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    try_get,
-    urlencode_postdata,
-)
 
 
 class HungamaIE(InfoExtractor):

@@ -1,9 +1,9 @@
 import threading
 
-from .common import FileDownloader
 from ..downloader import get_suitable_downloader
 from ..extractor.niconico import NiconicoIE
 from ..utils import sanitized_Request
+from .common import FileDownloader
 
 
 class NiconicoDmcFD(FileDownloader):

@@ -1,9 +1,6 @@
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    parse_duration,
-)
+from ..utils import int_or_none, parse_duration
+from .common import InfoExtractor
 
 
 class MwaveIE(InfoExtractor):

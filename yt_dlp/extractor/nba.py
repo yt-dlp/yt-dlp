@@ -1,22 +1,11 @@
 import functools
 import re
 
+from ..compat import compat_str, compat_urllib_parse_unquote
+from ..utils import (OnDemandPagedList, int_or_none, merge_dicts,
+                     parse_duration, parse_iso8601, parse_qs, try_get,
+                     update_url_query, urljoin)
 from .turner import TurnerBaseIE
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
-from ..utils import (
-    int_or_none,
-    merge_dicts,
-    OnDemandPagedList,
-    parse_duration,
-    parse_iso8601,
-    parse_qs,
-    try_get,
-    update_url_query,
-    urljoin,
-)
 
 
 class NBACVPBaseIE(TurnerBaseIE):

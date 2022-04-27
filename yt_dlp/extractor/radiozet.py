@@ -1,8 +1,5 @@
+from ..utils import strip_or_none, traverse_obj
 from .common import InfoExtractor
-from ..utils import (
-    traverse_obj,
-    strip_or_none,
-)
 
 
 class RadioZetPodcastIE(InfoExtractor):

@@ -1,8 +1,8 @@
 import subprocess
 
-from .common import PostProcessor
 from ..compat import compat_shlex_quote
 from ..utils import PostProcessingError, encodeArgument, variadic
+from .common import PostProcessor
 
 
 class ExecPP(PostProcessor):

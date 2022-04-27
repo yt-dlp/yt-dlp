@@ -1,11 +1,8 @@
-from .dailymotion import DailymotionIE
-from .common import InfoExtractor
-from ..utils import (
-    parse_iso8601,
-    try_get,
-)
-
 import re
+
+from ..utils import parse_iso8601, try_get
+from .common import InfoExtractor
+from .dailymotion import DailymotionIE
 
 
 class MoviepilotIE(InfoExtractor):

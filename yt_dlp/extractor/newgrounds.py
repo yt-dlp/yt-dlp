@@ -1,18 +1,10 @@
 import functools
 import re
 
+from ..utils import (OnDemandPagedList, clean_html, extract_attributes,
+                     get_element_by_id, int_or_none, parse_count,
+                     parse_duration, try_get, unified_timestamp)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    extract_attributes,
-    get_element_by_id,
-    int_or_none,
-    parse_count,
-    parse_duration,
-    unified_timestamp,
-    OnDemandPagedList,
-    try_get,
-)
 
 
 class NewgroundsIE(InfoExtractor):

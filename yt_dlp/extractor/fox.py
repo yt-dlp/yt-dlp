@@ -1,20 +1,10 @@
 import json
 import uuid
 
+from ..compat import compat_HTTPError, compat_str, compat_urllib_parse_unquote
+from ..utils import (ExtractorError, int_or_none, parse_age_limit,
+                     parse_duration, try_get, unified_timestamp)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_parse_unquote,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_age_limit,
-    parse_duration,
-    try_get,
-    unified_timestamp,
-)
 
 
 class FOXIE(InfoExtractor):

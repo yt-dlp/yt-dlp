@@ -1,20 +1,10 @@
 import itertools
 
+from ..compat import (compat_b64decode, compat_chr, compat_ord, compat_str,
+                      compat_urllib_parse_unquote)
+from ..utils import (ExtractorError, int_or_none, parse_iso8601, strip_or_none,
+                     try_get)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_chr,
-    compat_ord,
-    compat_str,
-    compat_urllib_parse_unquote,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-    strip_or_none,
-    try_get,
-)
 
 
 class MixcloudBaseIE(InfoExtractor):

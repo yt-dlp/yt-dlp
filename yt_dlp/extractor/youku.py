@@ -3,14 +3,9 @@ import re
 import string
 import time
 
+from ..utils import (ExtractorError, get_element_by_class, js_to_json,
+                     str_or_none, strip_jsonp)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    get_element_by_class,
-    js_to_json,
-    str_or_none,
-    strip_jsonp,
-)
 
 
 class YoukuIE(InfoExtractor):

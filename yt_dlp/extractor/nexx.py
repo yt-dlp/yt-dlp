@@ -3,17 +3,11 @@ import random
 import re
 import time
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_duration,
-    srt_subtitles_timecode,
-    traverse_obj,
-    try_get,
-    urlencode_postdata,
-)
+from ..utils import (ExtractorError, int_or_none, parse_duration,
+                     srt_subtitles_timecode, traverse_obj, try_get,
+                     urlencode_postdata)
+from .common import InfoExtractor
 
 
 class NexxIE(InfoExtractor):

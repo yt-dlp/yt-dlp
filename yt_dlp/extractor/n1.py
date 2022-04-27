@@ -1,10 +1,7 @@
 import re
 
+from ..utils import extract_attributes, unified_timestamp
 from .common import InfoExtractor
-from ..utils import (
-    unified_timestamp,
-    extract_attributes,
-)
 
 
 class N1InfoAssetIE(InfoExtractor):

@@ -1,8 +1,5 @@
+from ..utils import int_or_none, url_or_none
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    url_or_none,
-)
 
 
 class CliphunterIE(InfoExtractor):

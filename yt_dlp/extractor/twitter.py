@@ -1,31 +1,14 @@
 import re
 
+from ..compat import (compat_HTTPError, compat_parse_qs,
+                      compat_urllib_parse_unquote,
+                      compat_urllib_parse_urlparse)
+from ..utils import (ExtractorError, dict_get, float_or_none, format_field,
+                     int_or_none, strip_or_none, traverse_obj, try_get,
+                     unified_timestamp, update_url_query, url_or_none,
+                     xpath_text)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_parse_qs,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    dict_get,
-    ExtractorError,
-    format_field,
-    float_or_none,
-    int_or_none,
-    traverse_obj,
-    try_get,
-    strip_or_none,
-    unified_timestamp,
-    update_url_query,
-    url_or_none,
-    xpath_text,
-)
-
-from .periscope import (
-    PeriscopeBaseIE,
-    PeriscopeIE,
-)
+from .periscope import PeriscopeBaseIE, PeriscopeIE
 
 
 class TwitterBaseIE(InfoExtractor):

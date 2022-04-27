@@ -1,12 +1,6 @@
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
-from ..utils import (
-    determine_ext,
-    update_url_query,
-)
+from ..compat import (compat_b64decode, compat_urllib_parse_unquote,
+                      compat_urlparse)
+from ..utils import determine_ext, update_url_query
 from .bokecc import BokeCCBaseIE
 
 

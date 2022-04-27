@@ -1,14 +1,8 @@
 import re
 
+from ..compat import compat_urllib_parse_urlparse
+from ..utils import ExtractorError, parse_duration, remove_end
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    parse_duration,
-    remove_end,
-)
 
 
 class VuClipIE(InfoExtractor):

@@ -1,15 +1,8 @@
 import random
 
+from ..utils import (ExtractorError, float_or_none, int_or_none, traverse_obj,
+                     try_get, unescapeHTML, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    float_or_none,
-    try_get,
-    unescapeHTML,
-    url_or_none,
-    traverse_obj
-)
 
 
 class RedditIE(InfoExtractor):

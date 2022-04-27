@@ -5,20 +5,13 @@ import random
 import re
 import time
 
-from .anvato_token_generator import NFLTokenGenerator
-from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..compat import compat_str
-from ..utils import (
-    bytes_to_intlist,
-    determine_ext,
-    intlist_to_bytes,
-    int_or_none,
-    join_nonempty,
-    strip_jsonp,
-    unescapeHTML,
-    unsmuggle_url,
-)
+from ..utils import (bytes_to_intlist, determine_ext, int_or_none,
+                     intlist_to_bytes, join_nonempty, strip_jsonp,
+                     unescapeHTML, unsmuggle_url)
+from .anvato_token_generator import NFLTokenGenerator
+from .common import InfoExtractor
 
 
 def md5_text(s):

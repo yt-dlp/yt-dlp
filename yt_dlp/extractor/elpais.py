@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import strip_jsonp, unified_strdate
+from .common import InfoExtractor
 
 
 class ElPaisIE(InfoExtractor):

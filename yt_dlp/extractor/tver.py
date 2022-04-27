@@ -1,10 +1,5 @@
+from ..utils import ExtractorError, smuggle_url, str_or_none, traverse_obj
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    smuggle_url,
-    str_or_none,
-    traverse_obj,
-)
 
 
 class TVerIE(InfoExtractor):

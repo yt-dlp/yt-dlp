@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (determine_ext, int_or_none, join_nonempty,
+                     unified_strdate, update_url_query)
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    unified_strdate,
-    determine_ext,
-    join_nonempty,
-    update_url_query,
-)
 
 
 class DisneyIE(InfoExtractor):

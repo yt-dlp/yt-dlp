@@ -1,16 +1,7 @@
+from ..utils import (ExtractorError, bool_or_none, dict_get, float_or_none,
+                     int_or_none, str_or_none, traverse_obj, try_get,
+                     url_or_none, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    bool_or_none,
-    ExtractorError,
-    dict_get,
-    float_or_none,
-    int_or_none,
-    str_or_none,
-    traverse_obj,
-    try_get,
-    url_or_none,
-    urljoin,
-)
 
 
 class GettrBaseIE(InfoExtractor):

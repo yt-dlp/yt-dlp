@@ -1,16 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    strip_or_none,
-)
+from ..compat import compat_b64decode, compat_str
+from ..utils import ExtractorError, int_or_none, strip_or_none
+from .common import InfoExtractor
 
 
 class RTL2IE(InfoExtractor):

@@ -1,8 +1,8 @@
-import re
 import json
+import re
 
-from .common import InfoExtractor
 from ..compat import compat_urllib_parse_unquote_plus
+from .common import InfoExtractor
 
 
 class YnetIE(InfoExtractor):

@@ -1,12 +1,8 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    orderedSet,
-    parse_duration,
-    try_get,
-)
+from ..utils import orderedSet, parse_duration, try_get
+from .common import InfoExtractor
 
 
 class MarkizaIE(InfoExtractor):

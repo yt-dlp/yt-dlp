@@ -1,12 +1,7 @@
 import functools
 
+from ..utils import OnDemandPagedList, format_field, int_or_none, smuggle_url
 from .common import InfoExtractor
-from ..utils import (
-    format_field,
-    int_or_none,
-    OnDemandPagedList,
-    smuggle_url,
-)
 
 
 class StoryFireBaseIE(InfoExtractor):

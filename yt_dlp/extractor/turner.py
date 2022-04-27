@@ -1,20 +1,10 @@
 import re
 
-from .adobepass import AdobePassIE
 from ..compat import compat_str
-from ..utils import (
-    fix_xml_ampersands,
-    xpath_text,
-    int_or_none,
-    determine_ext,
-    float_or_none,
-    parse_duration,
-    xpath_attr,
-    update_url_query,
-    ExtractorError,
-    strip_or_none,
-    url_or_none,
-)
+from ..utils import (ExtractorError, determine_ext, fix_xml_ampersands,
+                     float_or_none, int_or_none, parse_duration, strip_or_none,
+                     update_url_query, url_or_none, xpath_attr, xpath_text)
+from .adobepass import AdobePassIE
 
 
 class TurnerBaseIE(AdobePassIE):

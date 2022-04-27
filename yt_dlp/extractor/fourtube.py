@@ -1,22 +1,10 @@
 import re
 
+from ..compat import (compat_b64decode, compat_str,
+                      compat_urllib_parse_unquote, compat_urlparse)
+from ..utils import (int_or_none, parse_duration, parse_iso8601, str_or_none,
+                     str_to_int, try_get, unified_timestamp, url_or_none)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_str,
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    parse_iso8601,
-    str_or_none,
-    str_to_int,
-    try_get,
-    unified_timestamp,
-    url_or_none,
-)
 
 
 class FourTubeBaseIE(InfoExtractor):

@@ -1,16 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_parse_qs
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    get_element_by_class,
-    int_or_none,
-    lowercase_escape,
-    try_get,
-    update_url_query,
-)
+from ..utils import (ExtractorError, determine_ext, get_element_by_class,
+                     int_or_none, lowercase_escape, try_get, update_url_query)
+from .common import InfoExtractor
 
 
 class GoogleDriveIE(InfoExtractor):

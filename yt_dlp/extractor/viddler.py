@@ -1,8 +1,5 @@
+from ..utils import float_or_none, int_or_none
 from .common import InfoExtractor
-from ..utils import (
-    float_or_none,
-    int_or_none,
-)
 
 
 class ViddlerIE(InfoExtractor):

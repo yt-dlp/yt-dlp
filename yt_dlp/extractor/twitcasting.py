@@ -1,23 +1,12 @@
 import itertools
 import re
 
-from .common import InfoExtractor
 from ..dependencies import websockets
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    float_or_none,
-    get_element_by_class,
-    get_element_by_id,
-    parse_duration,
-    qualities,
-    str_to_int,
-    traverse_obj,
-    try_get,
-    unified_timestamp,
-    urlencode_postdata,
-    urljoin,
-)
+from ..utils import (ExtractorError, clean_html, float_or_none,
+                     get_element_by_class, get_element_by_id, parse_duration,
+                     qualities, str_to_int, traverse_obj, try_get,
+                     unified_timestamp, urlencode_postdata, urljoin)
+from .common import InfoExtractor
 
 
 class TwitCastingIE(InfoExtractor):

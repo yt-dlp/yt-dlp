@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..compat import compat_urlparse
+from .common import InfoExtractor
 
 
 class RtmpIE(InfoExtractor):

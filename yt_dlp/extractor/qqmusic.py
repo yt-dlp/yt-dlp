@@ -2,13 +2,8 @@ import random
 import re
 import time
 
+from ..utils import ExtractorError, clean_html, strip_jsonp, unescapeHTML
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    strip_jsonp,
-    unescapeHTML,
-)
 
 
 class QQMusicIE(InfoExtractor):

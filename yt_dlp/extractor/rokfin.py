@@ -1,19 +1,10 @@
 import itertools
 from datetime import datetime
 
+from ..utils import (ExtractorError, determine_ext, float_or_none,
+                     format_field, int_or_none, str_or_none, traverse_obj,
+                     unified_timestamp, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    float_or_none,
-    format_field,
-    int_or_none,
-    str_or_none,
-    traverse_obj,
-    unified_timestamp,
-    url_or_none,
-)
-
 
 _API_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
 

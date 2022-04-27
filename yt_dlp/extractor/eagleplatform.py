@@ -1,13 +1,8 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    unsmuggle_url,
-    url_or_none,
-)
+from ..utils import ExtractorError, int_or_none, unsmuggle_url, url_or_none
+from .common import InfoExtractor
 
 
 class EaglePlatformIE(InfoExtractor):

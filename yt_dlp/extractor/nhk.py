@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (parse_duration, traverse_obj, unescapeHTML,
+                     unified_timestamp, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    traverse_obj,
-    unescapeHTML,
-    unified_timestamp,
-    urljoin
-)
 
 
 class NhkBaseIE(InfoExtractor):

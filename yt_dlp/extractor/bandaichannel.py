@@ -1,5 +1,5 @@
-from .brightcove import BrightcoveNewIE
 from ..utils import extract_attributes
+from .brightcove import BrightcoveNewIE
 
 
 class BandaiChannelIE(BrightcoveNewIE):

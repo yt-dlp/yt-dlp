@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import remove_end
+from .common import InfoExtractor
 
 
 class CharlieRoseIE(InfoExtractor):

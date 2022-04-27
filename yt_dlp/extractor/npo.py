@@ -1,26 +1,11 @@
 import re
 
+from ..compat import compat_HTTPError, compat_str
+from ..utils import (ExtractorError, determine_ext, fix_xml_ampersands,
+                     int_or_none, merge_dicts, orderedSet, parse_duration,
+                     qualities, str_or_none, strip_jsonp, unified_strdate,
+                     unified_timestamp, url_or_none, urlencode_postdata)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    fix_xml_ampersands,
-    int_or_none,
-    merge_dicts,
-    orderedSet,
-    parse_duration,
-    qualities,
-    str_or_none,
-    strip_jsonp,
-    unified_strdate,
-    unified_timestamp,
-    url_or_none,
-    urlencode_postdata,
-)
 
 
 class NPOBaseIE(InfoExtractor):

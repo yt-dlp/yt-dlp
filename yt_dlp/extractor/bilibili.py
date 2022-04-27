@@ -1,35 +1,18 @@
 import base64
+import functools
 import hashlib
 import itertools
-import functools
-import re
 import math
+import re
 
+from ..compat import (compat_parse_qs, compat_urllib_parse_urlparse,
+                      compat_urlparse)
+from ..utils import (ExtractorError, OnDemandPagedList, filter_dict,
+                     float_or_none, int_or_none, mimetype2ext, parse_count,
+                     parse_iso8601, smuggle_url, srt_subtitles_timecode,
+                     str_or_none, strip_jsonp, traverse_obj, unified_timestamp,
+                     unsmuggle_url, url_or_none, urlencode_postdata)
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import (
-    compat_parse_qs,
-    compat_urlparse,
-    compat_urllib_parse_urlparse
-)
-from ..utils import (
-    ExtractorError,
-    filter_dict,
-    int_or_none,
-    float_or_none,
-    mimetype2ext,
-    parse_iso8601,
-    traverse_obj,
-    parse_count,
-    smuggle_url,
-    srt_subtitles_timecode,
-    str_or_none,
-    strip_jsonp,
-    unified_timestamp,
-    unsmuggle_url,
-    urlencode_postdata,
-    url_or_none,
-    OnDemandPagedList
-)
 
 
 class BiliBiliIE(InfoExtractor):
@@ -865,12 +848,12 @@ class BiliIntlBaseIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         try:
-            from Cryptodome.PublicKey import RSA
             from Cryptodome.Cipher import PKCS1_v1_5
+            from Cryptodome.PublicKey import RSA
         except ImportError:
             try:
-                from Crypto.PublicKey import RSA
                 from Crypto.Cipher import PKCS1_v1_5
+                from Crypto.PublicKey import RSA
             except ImportError:
                 raise ExtractorError('pycryptodomex not found. Please install', expected=True)
 

@@ -1,13 +1,9 @@
-from .common import InfoExtractor
-from ..compat import compat_urlparse
-from ..utils import (
-    parse_count,
-    unified_timestamp,
-    remove_end,
-    determine_ext,
-)
-import re
 import random
+import re
+
+from ..compat import compat_urlparse
+from ..utils import determine_ext, parse_count, remove_end, unified_timestamp
+from .common import InfoExtractor
 
 
 class NitterIE(InfoExtractor):

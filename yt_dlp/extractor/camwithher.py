@@ -1,11 +1,7 @@
 import re
 
+from ..utils import int_or_none, parse_duration, unified_strdate
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_duration,
-    unified_strdate,
-)
 
 
 class CamWithHerIE(InfoExtractor):

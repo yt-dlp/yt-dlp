@@ -1,16 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    fix_xml_ampersands,
-    float_or_none,
-    int_or_none,
-    parse_duration,
-    str_to_int,
-    unescapeHTML,
-    xpath_text,
-)
+from ..utils import (fix_xml_ampersands, float_or_none, int_or_none,
+                     parse_duration, str_to_int, unescapeHTML, xpath_text)
+from .common import InfoExtractor
 
 
 class TNAFlixNetworkBaseIE(InfoExtractor):

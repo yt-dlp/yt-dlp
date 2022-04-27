@@ -39,31 +39,17 @@ import urllib.parse
 import xml.etree.ElementTree
 import zlib
 
-from .compat import (
-    asyncio,
-    compat_chr,
-    compat_cookiejar,
-    compat_etree_fromstring,
-    compat_expanduser,
-    compat_html_entities,
-    compat_html_entities_html5,
-    compat_HTMLParseError,
-    compat_HTMLParser,
-    compat_http_client,
-    compat_HTTPError,
-    compat_os_name,
-    compat_parse_qs,
-    compat_shlex_quote,
-    compat_str,
-    compat_struct_pack,
-    compat_struct_unpack,
-    compat_urllib_error,
-    compat_urllib_parse_unquote_plus,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_urlparse,
-    compat_urllib_request,
-    compat_urlparse,
-)
+from .compat import (asyncio, compat_chr, compat_cookiejar,
+                     compat_etree_fromstring, compat_expanduser,
+                     compat_html_entities, compat_html_entities_html5,
+                     compat_HTMLParseError, compat_HTMLParser,
+                     compat_http_client, compat_HTTPError, compat_os_name,
+                     compat_parse_qs, compat_shlex_quote, compat_str,
+                     compat_struct_pack, compat_struct_unpack,
+                     compat_urllib_error, compat_urllib_parse_unquote_plus,
+                     compat_urllib_parse_urlencode,
+                     compat_urllib_parse_urlparse, compat_urllib_request,
+                     compat_urlparse)
 from .dependencies import brotli, certifi, websockets
 from .socks import ProxyType, sockssocket
 

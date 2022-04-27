@@ -1,9 +1,6 @@
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    parse_iso8601,
-    parse_duration,
-)
+from ..utils import parse_duration, parse_iso8601
+from .common import InfoExtractor
 
 
 class SkyNewsArabiaBaseIE(InfoExtractor):

@@ -1,8 +1,5 @@
+from ..utils import int_or_none, qualities
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    qualities,
-)
 
 
 class DumpertIE(InfoExtractor):

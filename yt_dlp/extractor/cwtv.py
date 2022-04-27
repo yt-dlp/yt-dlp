@@ -1,12 +1,6 @@
+from ..utils import (ExtractorError, int_or_none, parse_age_limit,
+                     parse_iso8601, smuggle_url, str_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_age_limit,
-    parse_iso8601,
-    smuggle_url,
-    str_or_none,
-)
 
 
 class CWTVIE(InfoExtractor):

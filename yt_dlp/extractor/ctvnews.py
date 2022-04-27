@@ -1,7 +1,7 @@
 import re
 
-from .common import InfoExtractor
 from ..utils import orderedSet
+from .common import InfoExtractor
 
 
 class CTVNewsIE(InfoExtractor):

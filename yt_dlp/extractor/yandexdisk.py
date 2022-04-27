@@ -1,14 +1,8 @@
 import json
 
+from ..utils import (determine_ext, float_or_none, int_or_none, mimetype2ext,
+                     try_get, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    int_or_none,
-    mimetype2ext,
-    try_get,
-    urljoin,
-)
 
 
 class YandexDiskIE(InfoExtractor):

@@ -3,24 +3,12 @@ import hashlib
 import re
 import time
 
+from ..compat import (compat_b64decode, compat_ord, compat_str,
+                      compat_urllib_parse_urlencode)
+from ..utils import (ExtractorError, determine_ext, encode_data_uri,
+                     int_or_none, orderedSet, parse_iso8601, str_or_none,
+                     url_basename, urshift)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_str,
-    compat_urllib_parse_urlencode,
-)
-from ..utils import (
-    determine_ext,
-    encode_data_uri,
-    ExtractorError,
-    int_or_none,
-    orderedSet,
-    parse_iso8601,
-    str_or_none,
-    url_basename,
-    urshift,
-)
 
 
 class LeIE(InfoExtractor):

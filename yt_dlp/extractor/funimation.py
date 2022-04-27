@@ -2,21 +2,11 @@ import random
 import re
 import string
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    join_nonempty,
-    js_to_json,
-    orderedSet,
-    qualities,
-    str_or_none,
-    traverse_obj,
-    try_get,
-    urlencode_postdata,
-    ExtractorError,
-)
+from ..utils import (ExtractorError, determine_ext, int_or_none, join_nonempty,
+                     js_to_json, orderedSet, qualities, str_or_none,
+                     traverse_obj, try_get, urlencode_postdata)
+from .common import InfoExtractor
 
 
 class FunimationBaseIE(InfoExtractor):

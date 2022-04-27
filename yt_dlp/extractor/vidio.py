@@ -1,18 +1,8 @@
+from ..utils import (ExtractorError, clean_html, format_field,
+                     get_element_by_class, int_or_none, parse_iso8601,
+                     smuggle_url, str_or_none, strip_or_none, try_get,
+                     unsmuggle_url, urlencode_postdata)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    format_field,
-    get_element_by_class,
-    int_or_none,
-    parse_iso8601,
-    smuggle_url,
-    str_or_none,
-    strip_or_none,
-    try_get,
-    unsmuggle_url,
-    urlencode_postdata,
-)
 
 
 class VidioBaseIE(InfoExtractor):

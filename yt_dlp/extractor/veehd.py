@@ -1,16 +1,9 @@
-import re
 import json
+import re
 
+from ..compat import compat_urllib_parse_unquote, compat_urlparse
+from ..utils import ExtractorError, clean_html, get_element_by_id
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    clean_html,
-    get_element_by_id,
-)
 
 
 class VeeHDIE(InfoExtractor):

@@ -1,12 +1,8 @@
-import re
 import itertools
+import re
 
+from ..utils import int_or_none, unified_strdate, urlencode_postdata
 from .common import InfoExtractor
-from ..utils import (
-    urlencode_postdata,
-    int_or_none,
-    unified_strdate,
-)
 
 
 class VierIE(InfoExtractor):

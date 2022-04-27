@@ -1,12 +1,7 @@
-from .common import PostProcessor
 from ..compat import compat_os_name
-from ..utils import (
-    PostProcessingError,
-    XAttrMetadataError,
-    XAttrUnavailableError,
-    hyphenate_date,
-    write_xattr,
-)
+from ..utils import (PostProcessingError, XAttrMetadataError,
+                     XAttrUnavailableError, hyphenate_date, write_xattr)
+from .common import PostProcessor
 
 
 class XAttrMetadataPP(PostProcessor):

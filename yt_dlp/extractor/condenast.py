@@ -1,21 +1,10 @@
 import re
 
+from ..compat import compat_urllib_parse_urlparse, compat_urlparse
+from ..utils import (determine_ext, extract_attributes, int_or_none,
+                     js_to_json, mimetype2ext, orderedSet, parse_iso8601,
+                     strip_or_none, try_get)
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_urlparse,
-)
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    int_or_none,
-    js_to_json,
-    mimetype2ext,
-    orderedSet,
-    parse_iso8601,
-    strip_or_none,
-    try_get,
-)
 
 
 class CondeNastIE(InfoExtractor):

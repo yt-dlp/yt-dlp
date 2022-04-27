@@ -1,13 +1,6 @@
+from ..compat import compat_str
+from ..utils import ExtractorError, clean_html, int_or_none, traverse_obj
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-)
-from ..utils import (
-    clean_html,
-    ExtractorError,
-    traverse_obj,
-    int_or_none,
-)
 
 
 class StarTVIE(InfoExtractor):

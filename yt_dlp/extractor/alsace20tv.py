@@ -1,12 +1,6 @@
+from ..utils import (clean_html, dict_get, get_element_by_class, int_or_none,
+                     unified_strdate, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    dict_get,
-    get_element_by_class,
-    int_or_none,
-    unified_strdate,
-    url_or_none,
-)
 
 
 class Alsace20TVBaseIE(InfoExtractor):

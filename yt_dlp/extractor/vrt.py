@@ -1,11 +1,6 @@
+from ..utils import (extract_attributes, float_or_none, get_element_by_class,
+                     strip_or_none, unified_timestamp)
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    float_or_none,
-    get_element_by_class,
-    strip_or_none,
-    unified_timestamp,
-)
 
 
 class VRTIE(InfoExtractor):

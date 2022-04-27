@@ -1,13 +1,8 @@
 import json
 
+from ..compat import compat_urlparse
+from ..utils import ExtractorError, get_element_by_id
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    get_element_by_id,
-)
 
 
 class SlideshareIE(InfoExtractor):

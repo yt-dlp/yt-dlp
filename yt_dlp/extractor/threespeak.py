@@ -1,10 +1,7 @@
 import re
 
+from ..utils import try_get, unified_strdate
 from .common import InfoExtractor
-from ..utils import (
-    try_get,
-    unified_strdate,
-)
 
 
 class ThreeSpeakIE(InfoExtractor):

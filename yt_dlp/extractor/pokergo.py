@@ -1,10 +1,7 @@
 import base64
 
+from ..utils import ExtractorError, try_get
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    try_get,
-)
 
 
 class PokerGoBaseIE(InfoExtractor):

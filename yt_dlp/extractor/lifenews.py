@@ -1,17 +1,9 @@
 import re
 
+from ..compat import compat_str, compat_urlparse
+from ..utils import (ExtractorError, determine_ext, int_or_none, parse_iso8601,
+                     remove_end)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-    remove_end,
-)
 
 
 class LifeNewsIE(InfoExtractor):

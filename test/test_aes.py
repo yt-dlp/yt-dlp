@@ -8,21 +8,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import base64
 
-from yt_dlp.aes import (
-    BLOCK_SIZE_BYTES,
-    aes_cbc_decrypt,
-    aes_cbc_decrypt_bytes,
-    aes_cbc_encrypt,
-    aes_ctr_decrypt,
-    aes_ctr_encrypt,
-    aes_decrypt,
-    aes_decrypt_text,
-    aes_ecb_decrypt,
-    aes_ecb_encrypt,
-    aes_encrypt,
-    aes_gcm_decrypt_and_verify,
-    aes_gcm_decrypt_and_verify_bytes,
-)
+from yt_dlp.aes import (BLOCK_SIZE_BYTES, aes_cbc_decrypt,
+                        aes_cbc_decrypt_bytes, aes_cbc_encrypt,
+                        aes_ctr_decrypt, aes_ctr_encrypt, aes_decrypt,
+                        aes_decrypt_text, aes_ecb_decrypt, aes_ecb_encrypt,
+                        aes_encrypt, aes_gcm_decrypt_and_verify,
+                        aes_gcm_decrypt_and_verify_bytes)
 from yt_dlp.dependencies import Cryptodome_AES
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
 

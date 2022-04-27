@@ -1,24 +1,12 @@
 import codecs
-import re
 import json
+import re
 
+from ..compat import compat_chr, compat_ord, compat_urllib_parse_unquote
+from ..utils import (ExtractorError, float_or_none, int_or_none, merge_dicts,
+                     multipart_encode, parse_duration, random_birthday,
+                     try_get, urljoin)
 from .common import InfoExtractor
-from ..compat import (
-    compat_chr,
-    compat_ord,
-    compat_urllib_parse_unquote,
-)
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    merge_dicts,
-    multipart_encode,
-    parse_duration,
-    random_birthday,
-    urljoin,
-    try_get,
-)
 
 
 class CDAIE(InfoExtractor):

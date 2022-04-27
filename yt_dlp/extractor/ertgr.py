@@ -1,24 +1,12 @@
 import json
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    clean_html,
-    determine_ext,
-    ExtractorError,
-    dict_get,
-    int_or_none,
-    merge_dicts,
-    parse_qs,
-    parse_age_limit,
-    parse_iso8601,
-    str_or_none,
-    try_get,
-    unescapeHTML,
-    url_or_none,
-    variadic,
-)
+from ..utils import (ExtractorError, clean_html, determine_ext, dict_get,
+                     int_or_none, merge_dicts, parse_age_limit, parse_iso8601,
+                     parse_qs, str_or_none, try_get, unescapeHTML, url_or_none,
+                     variadic)
+from .common import InfoExtractor
 
 
 class ERTFlixBaseIE(InfoExtractor):

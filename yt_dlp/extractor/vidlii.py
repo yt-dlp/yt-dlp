@@ -1,17 +1,9 @@
 import re
 
+from ..utils import (HEADRequest, float_or_none, format_field,
+                     get_element_by_id, int_or_none, str_to_int, strip_or_none,
+                     unified_strdate, urljoin)
 from .common import InfoExtractor
-from ..utils import (
-    HEADRequest,
-    format_field,
-    float_or_none,
-    get_element_by_id,
-    int_or_none,
-    str_to_int,
-    strip_or_none,
-    unified_strdate,
-    urljoin,
-)
 
 
 class VidLiiIE(InfoExtractor):

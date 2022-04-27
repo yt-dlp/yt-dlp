@@ -1,8 +1,5 @@
+from ..utils import dict_get, int_or_none
 from .common import InfoExtractor
-from ..utils import (
-    dict_get,
-    int_or_none,
-)
 
 
 class KinoPoiskIE(InfoExtractor):

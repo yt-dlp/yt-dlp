@@ -1,13 +1,7 @@
 import re
 
+from ..utils import determine_ext, float_or_none, int_or_none, parse_filesize
 from .common import InfoExtractor
-
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    int_or_none,
-    parse_filesize,
-)
 
 
 class LibraryOfCongressIE(InfoExtractor):

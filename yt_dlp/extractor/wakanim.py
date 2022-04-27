@@ -1,10 +1,7 @@
 from urllib.parse import unquote
 
+from ..utils import merge_dicts, urljoin
 from .common import InfoExtractor
-from ..utils import (
-    merge_dicts,
-    urljoin,
-)
 
 
 class WakanimIE(InfoExtractor):

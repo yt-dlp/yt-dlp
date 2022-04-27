@@ -1,18 +1,8 @@
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    join_nonempty,
-    LazyList,
-    parse_qs,
-    str_or_none,
-    traverse_obj,
-    url_or_none,
-    urlencode_postdata,
-    urljoin,
-    update_url_query,
-)
+from ..utils import (ExtractorError, LazyList, int_or_none, join_nonempty,
+                     parse_qs, str_or_none, traverse_obj, update_url_query,
+                     url_or_none, urlencode_postdata, urljoin)
+from .common import InfoExtractor
 
 
 class RoosterTeethBaseIE(InfoExtractor):

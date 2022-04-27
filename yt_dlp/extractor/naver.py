@@ -1,15 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, clean_html, dict_get, int_or_none,
+                     parse_duration, try_get, update_url_query)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    dict_get,
-    ExtractorError,
-    int_or_none,
-    parse_duration,
-    try_get,
-    update_url_query,
-)
 
 
 class NaverBaseIE(InfoExtractor):

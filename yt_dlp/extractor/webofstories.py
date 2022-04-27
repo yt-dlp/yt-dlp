@@ -1,10 +1,7 @@
 import re
 
+from ..utils import int_or_none, orderedSet
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    orderedSet,
-)
 
 
 class WebOfStoriesIE(InfoExtractor):

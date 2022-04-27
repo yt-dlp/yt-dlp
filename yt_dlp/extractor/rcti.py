@@ -2,15 +2,10 @@ import json
 import random
 import time
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    dict_get,
-    ExtractorError,
-    strip_or_none,
-    traverse_obj,
-    try_get
-)
+from ..utils import (ExtractorError, dict_get, strip_or_none, traverse_obj,
+                     try_get)
+from .common import InfoExtractor
 
 
 class RCTIPlusBaseIE(InfoExtractor):

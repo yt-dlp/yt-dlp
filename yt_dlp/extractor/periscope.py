@@ -1,11 +1,7 @@
 import re
 
+from ..utils import int_or_none, parse_iso8601, unescapeHTML
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    unescapeHTML,
-)
 
 
 class PeriscopeBaseIE(InfoExtractor):

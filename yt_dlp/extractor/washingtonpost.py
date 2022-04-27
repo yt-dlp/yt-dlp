@@ -1,8 +1,7 @@
 import re
 
-from .common import InfoExtractor
-
 from ..utils import traverse_obj
+from .common import InfoExtractor
 
 
 class WashingtonPostIE(InfoExtractor):

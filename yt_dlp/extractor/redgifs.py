@@ -1,14 +1,9 @@
 import functools
 
-from .common import InfoExtractor
 from ..compat import compat_parse_qs
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    qualities,
-    try_get,
-    OnDemandPagedList,
-)
+from ..utils import (ExtractorError, OnDemandPagedList, int_or_none, qualities,
+                     try_get)
+from .common import InfoExtractor
 
 
 class RedGifsBaseInfoExtractor(InfoExtractor):

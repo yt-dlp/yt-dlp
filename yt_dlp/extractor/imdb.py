@@ -2,16 +2,9 @@ import base64
 import json
 import re
 
+from ..utils import (determine_ext, int_or_none, mimetype2ext, qualities,
+                     traverse_obj, try_get, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    mimetype2ext,
-    qualities,
-    traverse_obj,
-    try_get,
-    url_or_none,
-)
 
 
 class ImdbIE(InfoExtractor):

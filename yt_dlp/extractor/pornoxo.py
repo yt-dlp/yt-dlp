@@ -1,7 +1,5 @@
+from ..utils import str_to_int
 from .common import InfoExtractor
-from ..utils import (
-    str_to_int,
-)
 
 
 class PornoXOIE(InfoExtractor):

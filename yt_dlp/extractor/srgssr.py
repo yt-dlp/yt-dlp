@@ -1,13 +1,6 @@
+from ..utils import (ExtractorError, float_or_none, int_or_none, join_nonempty,
+                     parse_iso8601, qualities, try_get)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    join_nonempty,
-    parse_iso8601,
-    qualities,
-    try_get,
-)
 
 
 class SRGSSRIE(InfoExtractor):

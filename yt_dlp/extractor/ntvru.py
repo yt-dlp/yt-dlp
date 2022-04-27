@@ -1,10 +1,5 @@
+from ..utils import int_or_none, strip_or_none, unescapeHTML, xpath_text
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    strip_or_none,
-    unescapeHTML,
-    xpath_text,
-)
 
 
 class NTVRuIE(InfoExtractor):

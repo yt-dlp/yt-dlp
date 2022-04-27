@@ -3,14 +3,9 @@ import hmac
 import json
 import time
 
+from ..utils import (ExtractorError, int_or_none, parse_age_limit,
+                     parse_iso8601, try_get)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_age_limit,
-    parse_iso8601,
-    try_get,
-)
 
 
 class VikiBaseIE(InfoExtractor):

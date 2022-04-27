@@ -1,11 +1,6 @@
+from ..utils import (determine_ext, extract_attributes, int_or_none,
+                     parse_duration, try_get)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    int_or_none,
-    parse_duration,
-    try_get,
-)
 
 
 class TV5MondePlusIE(InfoExtractor):

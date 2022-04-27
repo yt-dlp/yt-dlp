@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (int_or_none, parse_duration, strip_or_none, traverse_obj,
+                     url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    int_or_none,
-    strip_or_none,
-    traverse_obj,
-    url_or_none,
-)
 
 
 class NuvidIE(InfoExtractor):

@@ -1,11 +1,6 @@
+from ..utils import (ExtractorError, int_or_none, parse_iso8601, traverse_obj,
+                     try_get)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_iso8601,
-    traverse_obj,
-    try_get,
-)
 
 
 class WASDTVBaseIE(InfoExtractor):

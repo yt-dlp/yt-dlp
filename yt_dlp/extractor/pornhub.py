@@ -4,28 +4,13 @@ import math
 import operator
 import re
 
+from ..compat import compat_HTTPError, compat_str, compat_urllib_request
+from ..utils import (NO_DEFAULT, ExtractorError, clean_html, determine_ext,
+                     format_field, int_or_none, merge_dicts, orderedSet,
+                     remove_quotes, str_to_int, update_url_query, url_or_none,
+                     urlencode_postdata)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_request,
-)
 from .openload import PhantomJSwrapper
-from ..utils import (
-    clean_html,
-    determine_ext,
-    ExtractorError,
-    format_field,
-    int_or_none,
-    merge_dicts,
-    NO_DEFAULT,
-    orderedSet,
-    remove_quotes,
-    str_to_int,
-    update_url_query,
-    urlencode_postdata,
-    url_or_none,
-)
 
 
 class PornHubBaseIE(InfoExtractor):

@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (find_xpath_attr, int_or_none, parse_iso8601, xpath_text,
+                     xpath_with_ns)
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    parse_iso8601,
-    xpath_with_ns,
-    xpath_text,
-    find_xpath_attr,
-)
 
 
 class XstreamIE(InfoExtractor):

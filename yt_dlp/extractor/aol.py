@@ -1,12 +1,7 @@
 import re
 
+from ..utils import ExtractorError, int_or_none, parse_qs, url_or_none
 from .yahoo import YahooIE
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    parse_qs,
-    url_or_none,
-)
 
 
 class AolIE(YahooIE):

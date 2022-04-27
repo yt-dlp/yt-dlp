@@ -1,15 +1,8 @@
 import itertools
+
+from ..utils import (clean_html, int_or_none, mimetype2ext, str_or_none,
+                     traverse_obj, unified_timestamp, url_or_none, urljoin)
 from .common import InfoExtractor, SearchInfoExtractor
-from ..utils import (
-    urljoin,
-    traverse_obj,
-    int_or_none,
-    mimetype2ext,
-    clean_html,
-    url_or_none,
-    unified_timestamp,
-    str_or_none,
-)
 
 
 class PRXBaseIE(InfoExtractor):

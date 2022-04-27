@@ -2,23 +2,11 @@ import random
 import re
 import string
 
+from ..compat import compat_b64decode, compat_ord, compat_struct_pack
+from ..utils import (ExtractorError, int_or_none, mimetype2ext, parse_codecs,
+                     parse_qs, update_url_query, urljoin, xpath_element,
+                     xpath_text)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    mimetype2ext,
-    parse_codecs,
-    parse_qs,
-    update_url_query,
-    urljoin,
-    xpath_element,
-    xpath_text,
-)
-from ..compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_struct_pack,
-)
 
 
 class VideaIE(InfoExtractor):

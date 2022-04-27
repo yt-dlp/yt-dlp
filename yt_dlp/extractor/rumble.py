@@ -1,16 +1,10 @@
 import itertools
 import re
 
+from ..compat import compat_HTTPError, compat_str
+from ..utils import (ExtractorError, determine_ext, int_or_none, parse_iso8601,
+                     try_get, unescapeHTML)
 from .common import InfoExtractor
-from ..compat import compat_str, compat_HTTPError
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    parse_iso8601,
-    try_get,
-    unescapeHTML,
-    ExtractorError,
-)
 
 
 class RumbleEmbedIE(InfoExtractor):

@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import smuggle_url
+from .common import InfoExtractor
 
 
 class CNBCIE(InfoExtractor):

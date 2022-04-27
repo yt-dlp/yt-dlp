@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import unified_timestamp
+from .common import InfoExtractor
 from .youtube import YoutubeIE
 
 

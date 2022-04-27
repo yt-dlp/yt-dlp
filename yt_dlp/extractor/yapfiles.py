@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (ExtractorError, int_or_none, qualities, unescapeHTML,
+                     url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    qualities,
-    unescapeHTML,
-    url_or_none,
-)
 
 
 class YapFilesIE(InfoExtractor):

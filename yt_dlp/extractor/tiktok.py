@@ -1,29 +1,15 @@
 import itertools
+import json
 import random
 import string
 import time
-import json
 
+from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
+from ..utils import (ExtractorError, HEADRequest, LazyList, UnsupportedError,
+                     get_first, int_or_none, join_nonempty, qualities,
+                     srt_subtitles_timecode, str_or_none, traverse_obj,
+                     try_get, url_or_none)
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse
-)
-from ..utils import (
-    ExtractorError,
-    HEADRequest,
-    UnsupportedError,
-    get_first,
-    int_or_none,
-    join_nonempty,
-    LazyList,
-    srt_subtitles_timecode,
-    str_or_none,
-    traverse_obj,
-    try_get,
-    url_or_none,
-    qualities,
-)
 
 
 class TikTokBaseIE(InfoExtractor):

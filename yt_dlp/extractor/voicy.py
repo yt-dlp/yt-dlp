@@ -1,15 +1,9 @@
-from .common import InfoExtractor
-from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    smuggle_url,
-    str_or_none,
-    traverse_obj,
-    unified_strdate,
-    unsmuggle_url,
-)
-
 import itertools
+
+from ..compat import compat_str
+from ..utils import (ExtractorError, smuggle_url, str_or_none, traverse_obj,
+                     unified_strdate, unsmuggle_url)
+from .common import InfoExtractor
 
 
 class VoicyBaseIE(InfoExtractor):

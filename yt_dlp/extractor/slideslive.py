@@ -1,10 +1,5 @@
+from ..utils import bool_or_none, smuggle_url, try_get, url_or_none
 from .common import InfoExtractor
-from ..utils import (
-    bool_or_none,
-    smuggle_url,
-    try_get,
-    url_or_none,
-)
 
 
 class SlidesLiveIE(InfoExtractor):

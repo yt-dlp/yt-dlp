@@ -1,12 +1,8 @@
 import re
+
+from ..utils import (determine_ext, extract_attributes, int_or_none,
+                     traverse_obj, unified_strdate)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    extract_attributes,
-    int_or_none,
-    traverse_obj,
-    unified_strdate,
-)
 
 
 class FranceCultureIE(InfoExtractor):

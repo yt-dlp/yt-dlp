@@ -1,37 +1,17 @@
-import re
 import json
+import re
+
+from ..compat import (compat_HTTPError, compat_urllib_parse_unquote,
+                      compat_urllib_parse_unquote_plus)
+from ..utils import (KNOWN_EXTENSIONS, ExtractorError, HEADRequest,
+                     bug_reports_message, clean_html, dict_get,
+                     extract_attributes, get_element_by_id, int_or_none,
+                     join_nonempty, merge_dicts, mimetype2ext, orderedSet,
+                     parse_duration, parse_qs, str_or_none, str_to_int,
+                     traverse_obj, try_get, unified_strdate, unified_timestamp,
+                     url_or_none, urlhandle_detect_ext)
 from .common import InfoExtractor
-from .youtube import YoutubeIE, YoutubeBaseInfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
-    compat_HTTPError
-)
-from ..utils import (
-    bug_reports_message,
-    clean_html,
-    dict_get,
-    extract_attributes,
-    ExtractorError,
-    get_element_by_id,
-    HEADRequest,
-    int_or_none,
-    join_nonempty,
-    KNOWN_EXTENSIONS,
-    merge_dicts,
-    mimetype2ext,
-    orderedSet,
-    parse_duration,
-    parse_qs,
-    str_to_int,
-    str_or_none,
-    traverse_obj,
-    try_get,
-    unified_strdate,
-    unified_timestamp,
-    urlhandle_detect_ext,
-    url_or_none
-)
+from .youtube import YoutubeBaseInfoExtractor, YoutubeIE
 
 
 class ArchiveOrgIE(InfoExtractor):

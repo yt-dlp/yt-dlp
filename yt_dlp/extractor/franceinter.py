@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import month_by_name
+from .common import InfoExtractor
 
 
 class FranceInterIE(InfoExtractor):

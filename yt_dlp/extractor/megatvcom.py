@@ -1,18 +1,10 @@
 import re
 
+from ..utils import (ExtractorError, HEADRequest, clean_html, determine_ext,
+                     extract_attributes, get_element_by_class,
+                     get_element_html_by_id, parse_qs, unescapeHTML,
+                     unified_timestamp)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    determine_ext,
-    ExtractorError,
-    extract_attributes,
-    get_element_by_class,
-    get_element_html_by_id,
-    HEADRequest,
-    parse_qs,
-    unescapeHTML,
-    unified_timestamp,
-)
 
 
 class MegaTVComBaseIE(InfoExtractor):

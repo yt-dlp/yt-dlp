@@ -1,11 +1,6 @@
+from ..utils import (ExtractorError, float_or_none, get_element_by_attribute,
+                     parse_iso8601, remove_end)
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    get_element_by_attribute,
-    parse_iso8601,
-    remove_end,
-)
 
 
 class XuiteIE(InfoExtractor):

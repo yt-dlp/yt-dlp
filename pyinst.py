@@ -7,16 +7,11 @@ from PyInstaller.__main__ import run as run_pyinstaller
 
 OS_NAME = platform.system()
 if OS_NAME == 'Windows':
-    from PyInstaller.utils.win32.versioninfo import (
-        FixedFileInfo,
-        SetVersion,
-        StringFileInfo,
-        StringStruct,
-        StringTable,
-        VarFileInfo,
-        VarStruct,
-        VSVersionInfo,
-    )
+    from PyInstaller.utils.win32.versioninfo import (FixedFileInfo, SetVersion,
+                                                     StringFileInfo,
+                                                     StringStruct, StringTable,
+                                                     VarFileInfo, VarStruct,
+                                                     VSVersionInfo)
 elif OS_NAME == 'Darwin':
     pass
 else:

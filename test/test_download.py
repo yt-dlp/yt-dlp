@@ -9,30 +9,16 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import (
-    assertGreaterEqual,
-    expect_info_dict,
-    expect_warnings,
-    get_params,
-    gettestcases,
-    is_download_test,
-    report_warning,
-    try_rm,
-)
+from test.helper import (assertGreaterEqual, expect_info_dict, expect_warnings,
+                         get_params, gettestcases, is_download_test,
+                         report_warning, try_rm)
 
 import yt_dlp.YoutubeDL
-from yt_dlp.compat import (
-    compat_http_client,
-    compat_HTTPError,
-    compat_urllib_error,
-)
+from yt_dlp.compat import (compat_http_client, compat_HTTPError,
+                           compat_urllib_error)
 from yt_dlp.extractor import get_info_extractor
-from yt_dlp.utils import (
-    DownloadError,
-    ExtractorError,
-    UnavailableVideoError,
-    format_bytes,
-)
+from yt_dlp.utils import (DownloadError, ExtractorError, UnavailableVideoError,
+                          format_bytes)
 
 RETRIES = 3
 

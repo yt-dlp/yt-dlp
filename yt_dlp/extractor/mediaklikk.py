@@ -1,11 +1,6 @@
-from ..utils import (
-    unified_strdate
-)
+from ..compat import compat_str, compat_urllib_parse_unquote
+from ..utils import unified_strdate
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_str
-)
 
 
 class MediaKlikkIE(InfoExtractor):

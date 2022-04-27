@@ -2,8 +2,8 @@ import datetime
 import hashlib
 import hmac
 
-from .common import InfoExtractor
 from ..compat import compat_urllib_parse_urlencode
+from .common import InfoExtractor
 
 
 class AWSIE(InfoExtractor):

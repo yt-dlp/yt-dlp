@@ -1,13 +1,8 @@
 import re
 
+from ..utils import (clean_html, int_or_none, parse_iso8601, qualities,
+                     unescapeHTML)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    int_or_none,
-    parse_iso8601,
-    qualities,
-    unescapeHTML,
-)
 
 
 class Channel9IE(InfoExtractor):

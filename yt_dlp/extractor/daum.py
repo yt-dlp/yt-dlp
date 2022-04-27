@@ -1,10 +1,8 @@
 import itertools
 
-from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_urllib_parse_unquote
 from ..utils import parse_qs
+from .common import InfoExtractor
 
 
 class DaumBaseIE(InfoExtractor):

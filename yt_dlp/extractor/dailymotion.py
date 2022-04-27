@@ -2,18 +2,11 @@ import functools
 import json
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    age_restricted,
-    clean_html,
-    ExtractorError,
-    int_or_none,
-    OnDemandPagedList,
-    try_get,
-    unescapeHTML,
-    urlencode_postdata,
-)
+from ..utils import (ExtractorError, OnDemandPagedList, age_restricted,
+                     clean_html, int_or_none, try_get, unescapeHTML,
+                     urlencode_postdata)
+from .common import InfoExtractor
 
 
 class DailymotionBaseInfoExtractor(InfoExtractor):

@@ -1,31 +1,13 @@
 import re
 
+from ..compat import compat_str, compat_urlparse
+from ..utils import (ExtractorError, GeoRestrictedError, HEADRequest,
+                     determine_ext, filter_dict, find_xpath_attr,
+                     fix_xml_ampersands, int_or_none, join_nonempty,
+                     parse_duration, remove_start, strip_or_none, traverse_obj,
+                     try_get, unified_strdate, unified_timestamp,
+                     update_url_query, urljoin, xpath_text)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    filter_dict,
-    find_xpath_attr,
-    fix_xml_ampersands,
-    GeoRestrictedError,
-    HEADRequest,
-    int_or_none,
-    join_nonempty,
-    parse_duration,
-    remove_start,
-    strip_or_none,
-    traverse_obj,
-    try_get,
-    unified_strdate,
-    unified_timestamp,
-    update_url_query,
-    urljoin,
-    xpath_text,
-)
 
 
 class RaiBaseIE(InfoExtractor):

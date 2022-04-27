@@ -1,11 +1,6 @@
+from ..utils import (ExtractorError, GeoRestrictedError, int_or_none,
+                     update_url_query, urlencode_postdata)
 from .theplatform import ThePlatformIE
-from ..utils import (
-    ExtractorError,
-    GeoRestrictedError,
-    int_or_none,
-    update_url_query,
-    urlencode_postdata,
-)
 
 
 class AENetworksBaseIE(ThePlatformIE):

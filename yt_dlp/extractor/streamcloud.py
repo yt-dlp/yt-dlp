@@ -1,10 +1,7 @@
 import re
 
+from ..utils import ExtractorError, urlencode_postdata
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    urlencode_postdata,
-)
 
 
 class StreamcloudIE(InfoExtractor):

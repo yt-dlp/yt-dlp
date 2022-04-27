@@ -1,17 +1,10 @@
 import json
 import uuid
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    strip_or_none,
-    try_get,
-    unified_timestamp,
-)
+from ..utils import (ExtractorError, determine_ext, float_or_none, int_or_none,
+                     strip_or_none, try_get, unified_timestamp)
+from .common import InfoExtractor
 
 
 class DPlayBaseIE(InfoExtractor):

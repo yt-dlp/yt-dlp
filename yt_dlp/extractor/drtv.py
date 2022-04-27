@@ -2,21 +2,12 @@ import binascii
 import hashlib
 import re
 
-
-from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_urllib_parse_unquote
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    float_or_none,
-    mimetype2ext,
-    str_or_none,
-    try_get,
-    unified_timestamp,
-    update_url_query,
-    url_or_none,
-)
+from ..utils import (ExtractorError, float_or_none, int_or_none, mimetype2ext,
+                     str_or_none, try_get, unified_timestamp, update_url_query,
+                     url_or_none)
+from .common import InfoExtractor
 
 
 class DRTVIE(InfoExtractor):

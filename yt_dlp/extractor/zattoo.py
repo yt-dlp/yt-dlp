@@ -1,19 +1,10 @@
 import re
 from uuid import uuid4
 
+from ..compat import compat_HTTPError, compat_str
+from ..utils import (ExtractorError, int_or_none, join_nonempty, try_get,
+                     url_or_none, urlencode_postdata)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-)
-from ..utils import (
-    ExtractorError,
-    int_or_none,
-    join_nonempty,
-    try_get,
-    url_or_none,
-    urlencode_postdata,
-)
 
 
 class ZattooPlatformBaseIE(InfoExtractor):

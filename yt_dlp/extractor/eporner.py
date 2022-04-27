@@ -1,13 +1,6 @@
+from ..utils import (ExtractorError, encode_base_n, int_or_none, merge_dicts,
+                     parse_duration, str_to_int, url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    encode_base_n,
-    ExtractorError,
-    int_or_none,
-    merge_dicts,
-    parse_duration,
-    str_to_int,
-    url_or_none,
-)
 
 
 class EpornerIE(InfoExtractor):

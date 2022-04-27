@@ -1,12 +1,8 @@
 import re
 
+from ..utils import (extract_attributes, int_or_none, mimetype2ext,
+                     parse_iso8601)
 from .common import InfoExtractor
-from ..utils import (
-    extract_attributes,
-    int_or_none,
-    mimetype2ext,
-    parse_iso8601,
-)
 
 
 class MedialaanIE(InfoExtractor):

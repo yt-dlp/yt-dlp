@@ -1,14 +1,7 @@
-from .common import InfoExtractor
 from ..compat import compat_urlparse
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    join_nonempty,
-    parse_duration,
-    parse_iso8601,
-    url_or_none,
-    xpath_text,
-)
+from ..utils import (determine_ext, int_or_none, join_nonempty, parse_duration,
+                     parse_iso8601, url_or_none, xpath_text)
+from .common import InfoExtractor
 
 
 class MDRIE(InfoExtractor):

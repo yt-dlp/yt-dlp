@@ -1,12 +1,6 @@
+from ..utils import (determine_ext, get_element_by_attribute, int_or_none,
+                     js_to_json, mimetype2ext, update_url_query)
 from .common import InfoExtractor
-from ..utils import (
-    js_to_json,
-    mimetype2ext,
-    determine_ext,
-    update_url_query,
-    get_element_by_attribute,
-    int_or_none,
-)
 
 
 class NobelPrizeIE(InfoExtractor):

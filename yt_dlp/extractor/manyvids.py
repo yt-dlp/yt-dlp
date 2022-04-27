@@ -1,10 +1,5 @@
+from ..utils import determine_ext, int_or_none, str_to_int, urlencode_postdata
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    str_to_int,
-    urlencode_postdata,
-)
 
 
 class ManyVidsIE(InfoExtractor):

@@ -1,16 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_HTTPError
-from ..utils import (
-    float_or_none,
-    parse_iso8601,
-    str_or_none,
-    try_get,
-    unescapeHTML,
-    url_or_none,
-    ExtractorError,
-)
+from ..utils import (ExtractorError, float_or_none, parse_iso8601, str_or_none,
+                     try_get, unescapeHTML, url_or_none)
+from .common import InfoExtractor
 
 
 class RteBaseIE(InfoExtractor):

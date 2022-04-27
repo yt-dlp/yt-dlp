@@ -5,14 +5,8 @@ import subprocess
 import tempfile
 
 from ..compat import compat_urlparse
-from ..utils import (
-    ExtractorError,
-    Popen,
-    check_executable,
-    encodeArgument,
-    get_exe_version,
-    is_outdated_version,
-)
+from ..utils import (ExtractorError, Popen, check_executable, encodeArgument,
+                     get_exe_version, is_outdated_version)
 
 
 def cookie_to_dict(cookie):

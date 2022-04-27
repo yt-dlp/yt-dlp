@@ -6,28 +6,14 @@ import re
 import subprocess
 import time
 
-from .common import AudioConversionError, PostProcessor
 from ..compat import compat_str
-from ..utils import (
-    ISO639Utils,
-    Popen,
-    PostProcessingError,
-    _get_exe_version_output,
-    detect_exe_version,
-    determine_ext,
-    dfxp2srt,
-    encodeArgument,
-    encodeFilename,
-    float_or_none,
-    is_outdated_version,
-    orderedSet,
-    prepend_extension,
-    replace_extension,
-    shell_quote,
-    traverse_obj,
-    variadic,
-    write_json_file,
-)
+from ..utils import (ISO639Utils, Popen, PostProcessingError,
+                     _get_exe_version_output, detect_exe_version,
+                     determine_ext, dfxp2srt, encodeArgument, encodeFilename,
+                     float_or_none, is_outdated_version, orderedSet,
+                     prepend_extension, replace_extension, shell_quote,
+                     traverse_obj, variadic, write_json_file)
+from .common import AudioConversionError, PostProcessor
 
 EXT_TO_OUT_FORMATS = {
     'aac': 'adts',

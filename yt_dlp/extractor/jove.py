@@ -1,8 +1,5 @@
+from ..utils import ExtractorError, unified_strdate
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    unified_strdate
-)
 
 
 class JoveIE(InfoExtractor):

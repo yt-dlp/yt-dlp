@@ -1,13 +1,6 @@
+from ..utils import (int_or_none, orderedSet, parse_duration, parse_qs,
+                     qualities, unified_strdate, xpath_text)
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    orderedSet,
-    parse_duration,
-    parse_qs,
-    qualities,
-    unified_strdate,
-    xpath_text
-)
 
 
 class EuropaIE(InfoExtractor):

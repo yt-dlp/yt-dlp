@@ -4,23 +4,13 @@ import subprocess
 import sys
 import time
 
-from .fragment import FragmentFD
 from ..compat import compat_setenv, compat_str
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
-from ..utils import (
-    Popen,
-    _configuration_args,
-    check_executable,
-    classproperty,
-    cli_bool_option,
-    cli_option,
-    cli_valueless_option,
-    determine_ext,
-    encodeArgument,
-    encodeFilename,
-    handle_youtubedl_headers,
-    remove_end,
-)
+from ..utils import (Popen, _configuration_args, check_executable,
+                     classproperty, cli_bool_option, cli_option,
+                     cli_valueless_option, determine_ext, encodeArgument,
+                     encodeFilename, handle_youtubedl_headers, remove_end)
+from .fragment import FragmentFD
 
 
 class ExternalFD(FragmentFD):

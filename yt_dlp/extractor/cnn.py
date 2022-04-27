@@ -1,6 +1,6 @@
+from ..utils import url_basename
 from .common import InfoExtractor
 from .turner import TurnerBaseIE
-from ..utils import url_basename
 
 
 class CNNIE(TurnerBaseIE):

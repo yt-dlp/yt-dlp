@@ -1,18 +1,9 @@
 import re
 
+from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
+from ..utils import (USER_AGENTS, ExtractorError, float_or_none,
+                     sanitized_Request, traverse_obj, urlencode_postdata)
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse,
-)
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    sanitized_Request,
-    traverse_obj,
-    urlencode_postdata,
-    USER_AGENTS,
-)
 
 
 class CeskaTelevizeIE(InfoExtractor):

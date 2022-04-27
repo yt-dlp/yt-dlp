@@ -1,17 +1,9 @@
 import functools
 import re
 
+from ..utils import (ExtractorError, GeoRestrictedError, OnDemandPagedList,
+                     int_or_none, parse_qs, try_get, update_url_query, urljoin)
 from .theplatform import ThePlatformBaseIE
-from ..utils import (
-    ExtractorError,
-    GeoRestrictedError,
-    int_or_none,
-    OnDemandPagedList,
-    parse_qs,
-    try_get,
-    urljoin,
-    update_url_query,
-)
 
 
 class MediasetIE(ThePlatformBaseIE):

@@ -1,17 +1,9 @@
 import re
 
+from ..utils import (ExtractorError, determine_ext, int_or_none, join_nonempty,
+                     js_to_json, mimetype2ext, parse_iso8601, try_get,
+                     unescapeHTML)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    join_nonempty,
-    js_to_json,
-    mimetype2ext,
-    try_get,
-    unescapeHTML,
-    parse_iso8601,
-)
 
 
 class DVTVIE(InfoExtractor):

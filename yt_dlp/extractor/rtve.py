@@ -1,20 +1,10 @@
 import base64
 import io
 
+from ..compat import compat_b64decode, compat_struct_unpack
+from ..utils import (ExtractorError, determine_ext, float_or_none, qualities,
+                     remove_end, remove_start, try_get)
 from .common import InfoExtractor
-from ..compat import (
-    compat_b64decode,
-    compat_struct_unpack,
-)
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    float_or_none,
-    qualities,
-    remove_end,
-    remove_start,
-    try_get,
-)
 
 
 class RTVEALaCartaIE(InfoExtractor):

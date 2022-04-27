@@ -1,16 +1,12 @@
-import re
 import base64
 import calendar
 import datetime
+import re
 
-from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    update_url_query,
-    clean_html,
-    unified_timestamp,
-)
 from ..compat import compat_urllib_parse
+from ..utils import (ExtractorError, clean_html, unified_timestamp,
+                     update_url_query)
+from .common import InfoExtractor
 
 
 class RadikoBaseIE(InfoExtractor):

@@ -2,15 +2,12 @@ import unittest
 from datetime import datetime, timezone
 
 from yt_dlp import cookies
-from yt_dlp.cookies import (
-    LinuxChromeCookieDecryptor,
-    MacChromeCookieDecryptor,
-    WindowsChromeCookieDecryptor,
-    _get_linux_desktop_environment,
-    _LinuxDesktopEnvironment,
-    parse_safari_cookies,
-    pbkdf2_sha1,
-)
+from yt_dlp.cookies import (LinuxChromeCookieDecryptor,
+                            MacChromeCookieDecryptor,
+                            WindowsChromeCookieDecryptor,
+                            _get_linux_desktop_environment,
+                            _LinuxDesktopEnvironment, parse_safari_cookies,
+                            pbkdf2_sha1)
 
 
 class Logger:

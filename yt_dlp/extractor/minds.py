@@ -1,12 +1,7 @@
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    clean_html,
-    format_field,
-    int_or_none,
-    str_or_none,
-    strip_or_none,
-)
+from ..utils import (clean_html, format_field, int_or_none, str_or_none,
+                     strip_or_none)
+from .common import InfoExtractor
 
 
 class MindsBaseIE(InfoExtractor):

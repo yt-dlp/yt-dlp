@@ -1,5 +1,5 @@
-from .common import InfoExtractor
 from ..utils import remove_start
+from .common import InfoExtractor
 
 
 class PressTVIE(InfoExtractor):

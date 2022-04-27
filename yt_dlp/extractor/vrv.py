@@ -1,24 +1,16 @@
 import base64
-import json
 import hashlib
 import hmac
+import json
 import random
 import string
 import time
 
+from ..compat import (compat_HTTPError, compat_urllib_parse,
+                      compat_urllib_parse_urlencode)
+from ..utils import (ExtractorError, float_or_none, int_or_none, join_nonempty,
+                     traverse_obj)
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse,
-)
-from ..utils import (
-    ExtractorError,
-    float_or_none,
-    int_or_none,
-    join_nonempty,
-    traverse_obj,
-)
 
 
 class VRVBaseIE(InfoExtractor):

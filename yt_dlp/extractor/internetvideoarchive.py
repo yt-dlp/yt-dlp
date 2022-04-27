@@ -1,8 +1,8 @@
 import json
 import re
 
-from .common import InfoExtractor
 from ..utils import parse_qs
+from .common import InfoExtractor
 
 
 class InternetVideoArchiveIE(InfoExtractor):

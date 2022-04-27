@@ -1,15 +1,8 @@
 import json
 
+from ..utils import (ExtractorError, determine_ext, int_or_none, mimetype2ext,
+                     parse_duration, parse_iso8601, qualities)
 from .turner import TurnerBaseIE
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    int_or_none,
-    mimetype2ext,
-    parse_duration,
-    parse_iso8601,
-    qualities,
-)
 
 
 class TeamcocoIE(TurnerBaseIE):

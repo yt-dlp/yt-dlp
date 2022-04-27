@@ -1,13 +1,9 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    int_or_none,
-    parse_age_limit,
-    parse_iso8601,
-    update_url_query,
-)
+from ..utils import (int_or_none, parse_age_limit, parse_iso8601,
+                     update_url_query)
+from .common import InfoExtractor
 
 
 class IndavideoEmbedIE(InfoExtractor):

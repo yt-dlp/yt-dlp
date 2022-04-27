@@ -3,8 +3,8 @@ import io
 import struct
 import time
 
-from .fragment import FragmentFD
 from ..compat import compat_urllib_error
+from .fragment import FragmentFD
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')

@@ -1,10 +1,7 @@
 import re
 
+from ..utils import ExtractorError, js_to_json
 from .common import InfoExtractor
-from ..utils import (
-    ExtractorError,
-    js_to_json,
-)
 
 
 class OnDemandKoreaIE(InfoExtractor):

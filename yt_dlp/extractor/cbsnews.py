@@ -1,15 +1,10 @@
 import re
 import zlib
 
-from .common import InfoExtractor
+from ..compat import compat_b64decode, compat_urllib_parse_unquote
+from ..utils import parse_duration
 from .cbs import CBSIE
-from ..compat import (
-    compat_b64decode,
-    compat_urllib_parse_unquote,
-)
-from ..utils import (
-    parse_duration,
-)
+from .common import InfoExtractor
 
 
 class CBSNewsEmbedIE(CBSIE):

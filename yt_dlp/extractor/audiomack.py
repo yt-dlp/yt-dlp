@@ -1,13 +1,10 @@
 import itertools
 import time
 
+from ..compat import compat_str
+from ..utils import ExtractorError, url_basename
 from .common import InfoExtractor
 from .soundcloud import SoundcloudIE
-from ..compat import compat_str
-from ..utils import (
-    ExtractorError,
-    url_basename,
-)
 
 
 class AudiomackIE(InfoExtractor):

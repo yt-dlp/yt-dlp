@@ -2,15 +2,9 @@ import functools
 import json
 import uuid
 
+from ..utils import (ExtractorError, OnDemandPagedList, determine_ext,
+                     dict_get, float_or_none, traverse_obj)
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    dict_get,
-    ExtractorError,
-    float_or_none,
-    OnDemandPagedList,
-    traverse_obj,
-)
 
 
 class MildomBaseIE(InfoExtractor):

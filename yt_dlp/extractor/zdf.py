@@ -1,24 +1,11 @@
 import re
 
-from .common import InfoExtractor
 from ..compat import compat_str
-from ..utils import (
-    determine_ext,
-    float_or_none,
-    int_or_none,
-    join_nonempty,
-    merge_dicts,
-    NO_DEFAULT,
-    orderedSet,
-    parse_codecs,
-    qualities,
-    traverse_obj,
-    try_get,
-    unified_timestamp,
-    update_url_query,
-    url_or_none,
-    urljoin,
-)
+from ..utils import (NO_DEFAULT, determine_ext, float_or_none, int_or_none,
+                     join_nonempty, merge_dicts, orderedSet, parse_codecs,
+                     qualities, traverse_obj, try_get, unified_timestamp,
+                     update_url_query, url_or_none, urljoin)
+from .common import InfoExtractor
 
 
 class ZDFBaseIE(InfoExtractor):

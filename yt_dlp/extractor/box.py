@@ -1,12 +1,7 @@
 import json
 
+from ..utils import determine_ext, parse_iso8601, update_url_query  # try_get,
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    parse_iso8601,
-    # try_get,
-    update_url_query,
-)
 
 
 class BoxIE(InfoExtractor):

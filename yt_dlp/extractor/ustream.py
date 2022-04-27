@@ -1,20 +1,10 @@
 import random
 import re
 
+from ..compat import compat_str, compat_urlparse
+from ..utils import (ExtractorError, encode_data_uri, float_or_none,
+                     int_or_none, join_nonempty, mimetype2ext, str_or_none)
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urlparse,
-)
-from ..utils import (
-    encode_data_uri,
-    ExtractorError,
-    int_or_none,
-    float_or_none,
-    join_nonempty,
-    mimetype2ext,
-    str_or_none,
-)
 
 
 class UstreamIE(InfoExtractor):

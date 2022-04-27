@@ -1,25 +1,12 @@
 import functools
 import re
 
+from ..utils import (HEADRequest, InAdvancePagedList, clean_html,
+                     determine_ext, float_or_none, int_or_none, join_nonempty,
+                     orderedSet, remove_end, smuggle_url, str_or_none,
+                     strip_jsonp, unescapeHTML, unified_strdate, unsmuggle_url,
+                     url_or_none)
 from .common import InfoExtractor
-from ..utils import (
-    clean_html,
-    determine_ext,
-    float_or_none,
-    HEADRequest,
-    InAdvancePagedList,
-    int_or_none,
-    join_nonempty,
-    orderedSet,
-    remove_end,
-    smuggle_url,
-    str_or_none,
-    strip_jsonp,
-    unescapeHTML,
-    unified_strdate,
-    unsmuggle_url,
-    url_or_none,
-)
 
 
 class ORFTVthekIE(InfoExtractor):

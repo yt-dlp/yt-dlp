@@ -1,10 +1,5 @@
+from ..utils import clean_html, determine_ext, float_or_none, int_or_none
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    clean_html,
-    int_or_none,
-    float_or_none,
-)
 
 
 def _decrypt_config(key, string):

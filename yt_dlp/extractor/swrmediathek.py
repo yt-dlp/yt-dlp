@@ -1,9 +1,5 @@
+from ..utils import determine_protocol, int_or_none, parse_duration
 from .common import InfoExtractor
-from ..utils import (
-    parse_duration,
-    int_or_none,
-    determine_protocol,
-)
 
 
 class SWRMediathekIE(InfoExtractor):

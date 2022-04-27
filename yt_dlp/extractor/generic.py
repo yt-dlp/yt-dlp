@@ -2,6 +2,16 @@ import os
 import re
 import xml.etree.ElementTree
 
+from ..compat import (compat_etree_fromstring, compat_str,
+                      compat_urllib_parse_unquote, compat_urlparse)
+from ..utils import (KNOWN_EXTENSIONS, ExtractorError, HEADRequest,
+                     UnsupportedError, determine_ext, dict_get, float_or_none,
+                     int_or_none, is_html, js_to_json, merge_dicts,
+                     mimetype2ext, orderedSet, parse_duration,
+                     parse_resolution, sanitized_Request, smuggle_url,
+                     str_or_none, unescapeHTML, unified_timestamp,
+                     unsmuggle_url, url_or_none, xpath_attr, xpath_text,
+                     xpath_with_ns)
 from .ant1newsgr import Ant1NewsGrEmbedIE
 from .anvato import AnvatoIE
 from .apa import APAIE
@@ -104,39 +114,6 @@ from .yapfiles import YapFilesIE
 from .youporn import YouPornIE
 from .youtube import YoutubeIE
 from .zype import ZypeIE
-from ..compat import (
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
-from ..utils import (
-    KNOWN_EXTENSIONS,
-    ExtractorError,
-    HEADRequest,
-    UnsupportedError,
-    determine_ext,
-    dict_get,
-    float_or_none,
-    int_or_none,
-    is_html,
-    js_to_json,
-    merge_dicts,
-    mimetype2ext,
-    orderedSet,
-    parse_duration,
-    parse_resolution,
-    sanitized_Request,
-    smuggle_url,
-    str_or_none,
-    unescapeHTML,
-    unified_timestamp,
-    unsmuggle_url,
-    url_or_none,
-    xpath_attr,
-    xpath_text,
-    xpath_with_ns,
-)
 
 
 class GenericIE(InfoExtractor):
