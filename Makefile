@@ -22,7 +22,9 @@ clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
-	find . \( -name "*.pyc" -o -name "*.class" \) -delete
+	find . \( \
+		-type d -name .pytest_cache -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
+	\) -prune -exec rm -rf {} \;
 
 completion-bash: completions/bash/yt-dlp
 completion-fish: completions/fish/yt-dlp.fish
@@ -131,6 +133,7 @@ yt-dlp.tar.gz: all
 		--exclude '*.pyo' \
 		--exclude '*~' \
 		--exclude '__pycache__' \
+		--exclude '.pytest_cache' \
 		--exclude '.git' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \
