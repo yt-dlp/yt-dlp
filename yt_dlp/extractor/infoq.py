@@ -90,11 +90,9 @@ class InfoQIE(BokeCCBaseIE):
 
     def _extract_http_audio(self, webpage, video_id):
         try:
-            fields = self._form_hidden_inputs('mp3Form', webpage)
+            http_audio_url = traverse_obj(self._form_hidden_inputs('mp3Form', webpage), 'filename')
         except ExtractorError:
-            fields = None
-
-        http_audio_url = try_get(fields, lambda x: x['filename'])
+            http_audio_url = None
         if not http_audio_url:
             return []
 
