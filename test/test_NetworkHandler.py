@@ -1,13 +1,10 @@
-#!/usr/bin/env python3
-# coding: utf-8
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
 
-from yt_dlp.networking.common import Request
+from yt_dlp.networking import UrllibRH
+from yt_dlp.networking.common import Request, RHManager
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -18,6 +15,17 @@ import ssl
 import threading
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+class FakeLogger(object):
+    def debug(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        pass
 
 
 class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
@@ -40,52 +48,10 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(b'<html><video src="/vid.mp4" /></html>')
+        elif self.path == '/gen_429':
+            self.send_response(429)
         else:
             assert False
-
-
-class FakeLogger(object):
-    def debug(self, msg):
-        pass
-
-    def warning(self, msg):
-        pass
-
-    def error(self, msg):
-        pass
-
-
-class TestHTTP(unittest.TestCase):
-    def setUp(self):
-        self.httpd = compat_http_server.HTTPServer(
-            ('127.0.0.1', 0), HTTPTestRequestHandler)
-        self.port = http_server_port(self.httpd)
-        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
-        self.server_thread.daemon = True
-        self.server_thread.start()
-
-
-class TestHTTPS(unittest.TestCase):
-    def setUp(self):
-        certfn = os.path.join(TEST_DIR, 'testcert.pem')
-        self.httpd = compat_http_server.HTTPServer(
-            ('127.0.0.1', 0), HTTPTestRequestHandler)
-        self.httpd.socket = ssl.wrap_socket(
-            self.httpd.socket, certfile=certfn, server_side=True)
-        self.port = http_server_port(self.httpd)
-        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
-        self.server_thread.daemon = True
-        self.server_thread.start()
-
-    def test_nocheckcertificate(self):
-        ydl = YoutubeDL({'logger': FakeLogger()})
-        self.assertRaises(
-            Exception,
-            ydl.extract_info, 'https://127.0.0.1:%d/video.html' % self.port)
-
-        ydl = YoutubeDL({'logger': FakeLogger(), 'nocheckcertificate': True})
-        r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
-        self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
 
 
 def _build_proxy_handler(name):
@@ -103,15 +69,36 @@ def _build_proxy_handler(name):
     return HTTPTestRequestHandler
 
 
-class TestProxy(unittest.TestCase):
+class RequestHandlerTestBase:
     def setUp(self):
+        # HTTP server
+        self.http_httpd = compat_http_server.HTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        self.http_port = http_server_port(self.http_httpd)
+        self.http_server_thread = threading.Thread(target=self.http_httpd.serve_forever)
+        self.http_server_thread.daemon = True
+        self.http_server_thread.start()
+
+        # HTTPS server
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        self.https_httpd = compat_http_server.HTTPServer(
+            ('127.0.0.1', 0), HTTPTestRequestHandler)
+        self.https_httpd.socket = ssl.wrap_socket(
+            self.https_httpd.socket, certfile=certfn, server_side=True)
+        self.https_port = http_server_port(self.https_httpd)
+        self.https_server_thread = threading.Thread(target=self.https_httpd.serve_forever)
+        self.https_server_thread.daemon = True
+        self.https_server_thread.start()
+
+        # HTTP Proxy server
         self.proxy = compat_http_server.HTTPServer(
             ('127.0.0.1', 0), _build_proxy_handler('normal'))
-        self.port = http_server_port(self.proxy)
+        self.proxy_port = http_server_port(self.proxy)
         self.proxy_thread = threading.Thread(target=self.proxy.serve_forever)
         self.proxy_thread.daemon = True
         self.proxy_thread.start()
 
+        # Geo proxy server
         self.geo_proxy = compat_http_server.HTTPServer(
             ('127.0.0.1', 0), _build_proxy_handler('geo'))
         self.geo_port = http_server_port(self.geo_proxy)
@@ -119,10 +106,29 @@ class TestProxy(unittest.TestCase):
         self.geo_proxy_thread.daemon = True
         self.geo_proxy_thread.start()
 
-    def test_proxy(self):
+    def make_ydl(self, params):
+        ydl = YoutubeDL(params)
+        ydl.default_session = ydl.make_RHManager(self.get_network_handler_classes())
+        return ydl
+
+    def get_network_handler_classes(self):
+        # Return a list of network handler classes to use
+        return []
+
+    def test_nocheckcertificate(self):
+        ydl = self.make_ydl({'logger': FakeLogger()})
+        self.assertRaises(
+            Exception,
+            ydl.extract_info, 'https://127.0.0.1:%d/video.html' % self.https_port)
+
+        ydl = self.make_ydl({'logger': FakeLogger(), 'nocheckcertificate': True})
+        r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.https_port)
+        self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.https_port)
+
+    def test_http_proxy(self):
         geo_proxy = '127.0.0.1:{0}'.format(self.geo_port)
-        ydl = YoutubeDL({
-            'proxy': '127.0.0.1:{0}'.format(self.port),
+        ydl = self.make_ydl({
+            'proxy': '127.0.0.1:{0}'.format(self.proxy_port),
             'geo_verification_proxy': geo_proxy,
         })
         url = 'http://foo.com/bar'
@@ -133,14 +139,20 @@ class TestProxy(unittest.TestCase):
         response = ydl.urlopen(Request(url, proxy=geo_proxy)).read().decode('utf-8')
         self.assertEqual(response, 'geo: {0}'.format(url))
 
-    def test_proxy_with_idn(self):
-        ydl = YoutubeDL({
-            'proxy': '127.0.0.1:{0}'.format(self.port),
+    def test_http_proxy_with_idn(self):
+        ydl = self.make_ydl({
+            'proxy': '127.0.0.1:{0}'.format(self.proxy_port),
         })
         url = 'http://中文.tw/'
         response = ydl.urlopen(url).read().decode('utf-8')
         # b'xn--fiq228c' is '中文'.encode('idna')
         self.assertEqual(response, 'normal: http://xn--fiq228c.tw/')
+
+
+class TestUrllibRH(RequestHandlerTestBase, unittest.TestCase):
+
+    def get_network_handler_classes(self):
+        return [UrllibRH]
 
 
 if __name__ == '__main__':
