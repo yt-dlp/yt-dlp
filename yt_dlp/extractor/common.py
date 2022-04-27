@@ -208,8 +208,10 @@ class InfoExtractor:
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
-                    * downloader_options  A dictionary of downloader options as
-                                 described in FileDownloader (For internal use only)
+                    * downloader_options  A dictionary of downloader options
+                                 (For internal use only)
+                                 * http_chunk_size Chunk size for HTTP downloads
+                                 * ffmpeg_args     Extra arguments for ffmpeg downloader
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time

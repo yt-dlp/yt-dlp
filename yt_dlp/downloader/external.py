@@ -20,6 +20,7 @@ from ..utils import (
     encodeFilename,
     handle_youtubedl_headers,
     remove_end,
+    traverse_obj,
 )
 
 
@@ -363,9 +364,11 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
-        args += info_dict.get('_ffmpeg_args', [])
+        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args'), default=[])
 
-        # This option exists only for compatibility. Extractors should use `_ffmpeg_args` instead
+        # These exists only for compatibility. Extractors should use
+        # info_dict['downloader_options']['ffmpeg_args'] instead
+        args += info_dict.get('_ffmpeg_args')
         seekable = info_dict.get('_seekable')
         if seekable is not None:
             # setting -seekable prevents ffmpeg from guessing if the server

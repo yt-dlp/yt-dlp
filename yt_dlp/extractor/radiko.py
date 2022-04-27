@@ -125,7 +125,7 @@ class RadikoBaseIE(InfoExtractor):
                     # Prioritize live radio vs playback based on extractor
                     sf['preference'] = 100 if is_onair else -100
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
-                    sf['_ffmpeg_args'] = ['-ss', time_to_skip]
+                    sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
             formats.extend(subformats)
 
         self._sort_formats(formats)
