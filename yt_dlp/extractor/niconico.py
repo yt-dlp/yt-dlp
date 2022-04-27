@@ -199,24 +199,18 @@ class NiconicoIE(InfoExtractor):
                 'Referer': 'https://account.nicovideo.jp/login',
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
-        need_mfa = 'oneTimePw' in page
-        if need_mfa:
+        if 'oneTimePw' in page:
             post_url = self._search_regex(
-                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page,
-                'post url', group='url')
-            mfa_form_strs = {
-                'otp': self._get_tfa_info('6 digits code')
-            }
+                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'post url', group='url')
             page = self._download_webpage(
                 urljoin('https://account.nicovideo.jp', post_url), None,
                 note='Performing MFA', errnote='Unable to complete MFA',
-                data=urlencode_postdata(mfa_form_strs),
-                headers={
+                data=urlencode_postdata({
+                    'otp': self._get_tfa_info('6 digits code')
+                }), headers={
                     'Content-Type': 'application/x-www-form-urlencoded',
                 })
-            need_mfa = 'oneTimePw' in page
-            mfa_error = need_mfa or 'formError' in page
-            if mfa_error:
+            if 'oneTimePw' in page or 'formError' in page:
                 err_msg = self._html_search_regex(
                     r'formError["\']+>(.*?)</div>', page, 'form_error',
                     default='There\'s an error but the message can\'t be parsed.',
