@@ -7,6 +7,9 @@ import os
 import re
 import sys
 import unittest
+
+from test.test_RequestHandler import RequestHandlerTestBase, with_request_handlers
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import http_server_port, try_rm
@@ -77,7 +80,7 @@ class FakeLogger(object):
         pass
 
 
-class TestHttpFD(unittest.TestCase):
+class TestHttpFD(RequestHandlerTestBase, unittest.TestCase):
     def setUp(self):
         self.httpd = compat_http_server.HTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
@@ -88,7 +91,7 @@ class TestHttpFD(unittest.TestCase):
 
     def download(self, params, ep):
         params['logger'] = FakeLogger()
-        ydl = YoutubeDL(params)
+        ydl = self.make_ydl(params, fake=False)
         downloader = HttpFD(ydl, params)
         filename = 'testfile.mp4'
         try_rm(encodeFilename(filename))
@@ -102,9 +105,11 @@ class TestHttpFD(unittest.TestCase):
         for ep in ('regular', 'no-content-length', 'no-range', 'no-range-no-content-length'):
             self.download(params, ep)
 
+    @with_request_handlers()
     def test_regular(self):
         self.download_all({})
 
+    @with_request_handlers()
     def test_chunked(self):
         self.download_all({
             'http_chunk_size': 1000,
