@@ -1,4 +1,3 @@
-from .common import InfoExtractor
 from ..compat import (
     compat_b64decode,
     compat_urllib_parse_unquote,
@@ -10,9 +9,10 @@ from ..utils import (
     update_url_query,
     try_get,
 )
+from .bokecc import BokeCCBaseIE
 
 
-class InfoQIE(InfoExtractor):
+class InfoQIE(BokeCCBaseIE):
     _VALID_URL = r'https?://(?:www\.)?infoq\.com/(?:[^/]+/)+(?P<id>[^/]+)'
 
     _TESTS = [{
@@ -27,6 +27,15 @@ class InfoQIE(InfoExtractor):
     }, {
         'url': 'http://www.infoq.com/fr/presentations/changez-avis-sur-javascript',
         'only_matching': True,
+    }, {
+        'url': 'http://www.infoq.com/cn/presentations/openstack-continued-delivery',
+        'md5': '4918d0cca1497f2244572caf626687ef',
+        'info_dict': {
+            'id': 'openstack-continued-delivery',
+            'title': 'OpenStack持续交付之路',
+            'ext': 'flv',
+            'description': 'md5:308d981fb28fa42f49f9568322c683ff',
+        },
     }, {
         'url': 'https://www.infoq.com/presentations/Simple-Made-Easy',
         'md5': '0e34642d4d9ef44bf86f66f6399672db',
@@ -111,10 +120,14 @@ class InfoQIE(InfoExtractor):
         video_title = self._html_extract_title(webpage)
         video_description = self._html_search_meta('description', webpage, 'description')
 
-        formats = (
-            self._extract_rtmp_video(webpage)
-            + self._extract_http_video(webpage)
-            + self._extract_http_audio(webpage, video_id))
+        if '/cn/' in url:
+            # for China videos, HTTP video URL exists but always fails with 403
+            formats = self._extract_bokecc_formats(webpage, video_id)
+        else:
+            formats = (
+                self._extract_rtmp_video(webpage)
+                + self._extract_http_video(webpage)
+                + self._extract_http_audio(webpage, video_id))
 
         self._sort_formats(formats)
 
