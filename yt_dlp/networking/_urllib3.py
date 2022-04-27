@@ -29,7 +29,7 @@ from ..utils import (
     TransportError,
     SSLError,
     HTTPError,
-    ProxyError, ConnectTimeoutError
+    ProxyError, ConnectTimeoutError, urljoin
 )
 
 import urllib3
@@ -88,18 +88,11 @@ class Urllib3HTTPError(HTTPError):
 class Urllib3ResponseAdapter(HTTPResponse):
     def __init__(self, res):
         self._res = res
-        self._url = res.geturl()
-        if self._url:
-            url_parsed = compat_urllib_parse_urlparse(self._url)
-            if isinstance(url_parsed, compat_urllib_parse.ParseResultBytes):
-                url_parsed = url_parsed.decode()
-            if url_parsed.hostname is None:
-                # hack
-                netloc = f'{res.connection.host}:{res.connection.port}'
-                url_parsed = url_parsed._replace(
-                    netloc=netloc,
-                    scheme='https')
-            self._url = url_parsed.geturl()
+        request_history = res.retries.history
+        if len(request_history):
+            self._url = urljoin(request_history[-1].url, request_history[-1].redirect_location)
+        else:
+            self._url = res.geturl()
 
         super().__init__(
             headers=res.headers, status=res.status,
