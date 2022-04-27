@@ -5,7 +5,7 @@ import unittest
 
 from yt_dlp.networking import UrllibRH, Urllib3RH
 from yt_dlp.networking.common import Request, RHManager
-from yt_dlp.utils import HTTPError, MaxRedirectsError
+from yt_dlp.utils import HTTPError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -167,7 +167,7 @@ class RequestHandlerTestBase:
 
     def test_redirect_loop(self):
         ydl = self.make_ydl()
-        with self.assertRaises(HTTPError):  # TODO: MaxRedirectsError or HTTPError?
+        with self.assertRaisesRegex(HTTPError, r'HTTP Error 301: Moved Permanently \(redirect loop detected\)'):
             ydl.urlopen('http://127.0.0.1:%d/redirect_loop' % self.http_port)
 
 

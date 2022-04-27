@@ -502,8 +502,8 @@ class UrllibRH(BackendRH):
             res = self.get_opener(request.proxy).open(urllib_req, timeout=request.timeout)
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
-                raise HTTPError(UrllibResponseAdapter(e.fp))
-
+                raise HTTPError(UrllibResponseAdapter(e.fp), redirect_loop='redirect error' in str(e))
+            raise  # RHManager will catch leaked exception
         except urllib.error.URLError as e:
             cause = e.reason
             if isinstance(cause, TimeoutError):
