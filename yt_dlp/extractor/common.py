@@ -2676,7 +2676,10 @@ class InfoExtractor:
         mpd_doc, urlh = res
         if mpd_doc is None:
             return [], {}
-        mpd_base_url = base_url(urlh.geturl())
+
+        # We could have been redirected to a new url when we retrieved our mpd file.
+        mpd_url = urlh.geturl()
+        mpd_base_url = base_url(mpd_url)
 
         return self._parse_mpd_formats_and_subtitles(
             mpd_doc, mpd_id, mpd_base_url, mpd_url)
