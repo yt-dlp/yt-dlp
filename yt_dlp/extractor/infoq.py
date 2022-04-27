@@ -36,6 +36,7 @@ class InfoQIE(BokeCCBaseIE):
             'ext': 'flv',
             'description': 'md5:308d981fb28fa42f49f9568322c683ff',
         },
+        'skip': 'Sorry, the page you visited does not exist',
     }, {
         'url': 'https://www.infoq.com/presentations/Simple-Made-Easy',
         'md5': '0e34642d4d9ef44bf86f66f6399672db',
