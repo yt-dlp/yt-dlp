@@ -1,6 +1,7 @@
 import itertools
 import json
 import re
+# import random
 
 from ..compat import compat_HTTPError, compat_str
 from ..utils import (KNOWN_EXTENSIONS, ExtractorError, HEADRequest,
@@ -9,9 +10,6 @@ from ..utils import (KNOWN_EXTENSIONS, ExtractorError, HEADRequest,
                      str_or_none, try_get, unified_timestamp, update_url_query,
                      url_or_none, urlhandle_detect_ext)
 from .common import InfoExtractor, SearchInfoExtractor
-
-# import random
-
 
 
 class SoundcloudEmbedIE(InfoExtractor):
