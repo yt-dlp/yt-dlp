@@ -3,6 +3,7 @@ import itertools
 import re
 import time
 import os
+import json
 
 from urllib.parse import urlparse
 from pathlib import Path
@@ -577,41 +578,51 @@ class IqIE(InfoExtractor):
         cookie = self._get_cookies('https://iq.com/').get(name)
         return cookie.value if cookie else default
 
-    def _sign_audio_fs(self, url, video_info, webpage, video_id, format_data, audioFormat):
+    def _get_signed_audio_fs_urls(self, url, video_info, webpage, video_id, format_data, audioFormat):
         # The javascript version of this function can be found by searching for:
         # var n = q + '//data.video.iq.com/videos'
 
-        if audioFormat.get('fs'):
-            # I'm attempting to port it to python here:
-            runCmd5xCode = '''
-                console.log(page.evaluate(function() {
-                    var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
-                    return cmd5x("%(cmd5xInput)s");
-                }));
-                saveAndExit();
-            '''
+        # Do the whole bunch of urls at the same time to save some time.
+        runCmd5xCode = '''
+            console.log(page.evaluate(function() {
+                var inputs = %(inputs)s;
+                var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
 
+                var outputs = [];
+                inputs.forEach(function(input) {
+                    var url = input.path + '&t=' + input.bossDataT + '&vid' + input.vid + '&ibt=' + cmd5x(input.bossDataT + input.filename) + '&cid=afbe8fd3d73448c9&ib=4&ptime=' + input.previewTime + '&QY00001=' + input.bossDataU;
+                    outputs.push(url);
+                });
+
+                return JSON.stringify(outputs);
+            }));
+            saveAndExit();
+        '''
+
+        # Collect the arguments for each sign operation into a list so that we can do all of them in one javascript call.
+        urlSignInfos = []
+        urls = []
+        if audioFormat.get('fs'):
             # Loop through each fs and complete the url.
             fs = audioFormat['fs']
             for f in fs:
-                path = 'https://data.video.iq.com/videos' + f['l'] # the (incomplete) audio fragment request url
-                filename = Path(os.path.basename(urlparse(path).path)).stem
+                urlSignInfo = {}
+                urlSignInfo['path'] = 'https://data.video.iq.com/videos' + f['l'] # the (incomplete) audio fragment request url
+                urlSignInfo['filename'] = Path(os.path.basename(urlparse(urlSignInfo['path']).path)).stem
+                urlSignInfo['bossDataT'] = traverse_obj(format_data, ('boss_ts', 'data', 't'), expected_type=str_or_none, default='')
+                urlSignInfo['bossDataU'] = traverse_obj(format_data, ('boss_ts', 'data', 'u'), expected_type=str_or_none)
+                urlSignInfo['previewTime'] = str(traverse_obj(format_data, ('boss_ts', 'data', 'ptime'), expected_type=int_or_none))
+                urlSignInfo['vid'] = video_info['vid']
 
-                # The cmd5x signature function is used if vip is enabled. (seems like this works regardless of whether or not you are using VIP?)
-                #if isVip:
-                bossDataT = traverse_obj(format_data, ('boss_ts', 'data', 't'), expected_type=str_or_none, default='')
-                bossDataU = traverse_obj(format_data, ('boss_ts', 'data', 'u'), expected_type=str_or_none)
+                urlSignInfos.append(urlSignInfo)
 
-                cmd5xSignature = PhantomJSwrapper(self, timeout=1).get(url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code for audio.', jscode=runCmd5xCode % {
-                    'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
-                    'cmd5xInput': bossDataT + filename
-                })[1].strip()
+            # Run the javascript and retrieve the results.
+            urls = self._parse_json(PhantomJSwrapper(self, timeout=1).get(url, html='<!DOCTYPE html>', video_id=video_id, note2='Signing audio fragment urls', jscode=runCmd5xCode % {
+                'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
+                'inputs': json.dumps(urlSignInfos)
+            })[1].strip(), video_id)
 
-                previewTime = traverse_obj(format_data, ('boss_ts', 'data', 'ptime'), expected_type=int_or_none)
-
-                f['dpl'] = path + '&t=' + bossDataT + '&vid' + video_info['vid'] + '&ibt=' + cmd5xSignature + '&cid=afbe8fd3d73448c9&ib=4&ptime=' + str(previewTime) + '&QY00001=' + bossDataU
-
-        return audioFormat
+        return urls
 
 
     def _real_extract(self, url):
@@ -670,38 +681,41 @@ class IqIE(InfoExtractor):
 
         # Audio formats
         for audio in traverse_obj(initial_format_data, ('program', 'audio'), default=[]):
+            audio_format_name = str(audio['bid']) + '_' + audio['name']
             audio_bid_lid = str(audio['bid']) + '-' + str(audio['lid'])
             dash_path = dash_paths.get(audio_bid_lid)
             if not dash_path:
-                self.report_warning(f'Unknown format id: {audio["lid"]}. It is currently not being extracted')
+                self.report_warning(f'Unknown format id: {audio_format_name}. It is currently not being extracted')
                 continue
             format_data = traverse_obj(self._download_json(
                 urljoin('https://cache-video.iq.com', dash_path), video_id,
-                note=f'Downloading format data for', errnote='Unable to download format data',
+                note=f'Downloading format data for {audio_format_name}', errnote='Unable to download format data',
                 fatal=False), 'data', expected_type=dict)
 
             audio_format = traverse_obj(format_data, ('program', 'audio', lambda _, v: v['aid'] == audio['aid']),
                                         expected_type=dict, default=[], get_all=False) or {}
 
             # Get signed links for the audio.
-            audio_format = self._sign_audio_fs(url, video_info, webpage, video_id, format_data, audio_format)
+            signed_urls = self._get_signed_audio_fs_urls(url, video_info, webpage, video_id, format_data, audio_format)
 
             extracted_formats = []          
-            if audio_format.get('fs'):
+            if len(signed_urls) > 0:
                 # Create a m3u8 playlist out of all the sections.
                 audio_fragments = []
-                for f in audio_format['fs']:
-                    audio_fragments.append(traverse_obj(self._download_json(f['dpl'], video_id, errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str))
+                for url in signed_urls:
+                    audio_fragments.append(traverse_obj(self._download_json(url, video_id, note='Resolving audio fragment url', errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str))
 
                 # Special format for the audio, we need to decrypt it as we download it.
                 format = [{
-                    'format_id': audio_bid_lid,
+                    'format_id': audio_format_name,
                     'fragment_urls': audio_fragments,
                     'protocol': 'iq_audio_fragments',
-                    'audio_codec': 'mp4a.40.2',
+                    'vcodec': 'none',
+                    'acodec': 'mp4a.40.2',
                     'ext': 'mp4',
-                    'url': audio_fragments[0],
-                    'format_note': audio['name']
+                    'url': url,
+                    'format_note': audio['name'],
+                    'language': audio['name']
                 }]
 
                 extracted_formats.extend(format)
