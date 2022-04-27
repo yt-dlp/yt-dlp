@@ -146,7 +146,8 @@ class FFmpegPostProcessor(PostProcessor):
                 self._paths[basename] = location
 
         self._versions = {}
-        executables = {'basename': ('ffmpeg', 'avconv'), 'probe_basename': ('ffprobe', 'avprobe')}
+        # NB: probe must be first for _features to be poulated correctly
+        executables = {'probe_basename': ('ffprobe', 'avprobe'), 'basename': ('ffmpeg', 'avconv')}
         if prefer_ffmpeg is False:
             executables = {k: v[::-1] for k, v in executables.items()}
         for var, prefs in executables.items():
