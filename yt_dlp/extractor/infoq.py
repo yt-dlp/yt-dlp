@@ -4,8 +4,10 @@ from ..compat import (
     compat_urlparse,
 )
 from ..utils import (
+    ExtractorError,
     determine_ext,
     update_url_query,
+    try_get,
 )
 from .bokecc import BokeCCBaseIE
 
@@ -86,8 +88,12 @@ class InfoQIE(BokeCCBaseIE):
         }]
 
     def _extract_http_audio(self, webpage, video_id):
-        fields = self._form_hidden_inputs('mp3Form', webpage)
-        http_audio_url = fields.get('filename')
+        try:
+            fields = self._form_hidden_inputs('mp3Form', webpage)
+        except ExtractorError:
+            fields = None
+
+        http_audio_url = try_get(fields, lambda x: x['filename'])
         if not http_audio_url:
             return []
 
