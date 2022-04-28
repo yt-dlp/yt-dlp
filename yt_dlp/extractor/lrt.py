@@ -2,11 +2,20 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     merge_dicts,
-    try_get
+    try_get,
+    url_or_none,
+    traverse_obj
 )
 
 
-class LRTStreamIE(InfoExtractor):
+class LRTBaseIE(InfoExtractor):
+    def _extract_js_var(self, webpage, var_name, default=None):
+        return self._search_regex(
+            f'{var_name}\s*=\s*(["\'])((?:(?!\\1).)+)\\1',
+            webpage, var_name.replace('_', ' '), default, group=2)
+
+
+class LRTStreamIE(LRTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?lrt\.lt/mediateka/tiesiogiai/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://www.lrt.lt/mediateka/tiesiogiai/lrt-opus',
@@ -14,49 +23,46 @@ class LRTStreamIE(InfoExtractor):
             'id': 'lrt-opus',
             'live_status': 'is_live',
             'title': 're:^LRT Opus.+$',
-            'ext': 'mp4'
+            'ext': 'm3u8'
         }
     }]
 
-    def _extract_js_var(self, webpage, var_name, default):
-        return self._search_regex(
-            r'%s\s*=\s*(["\'])((?:(?!\1).)+)\1' % var_name,
-            webpage, var_name.replace('_', ' '), default, group=2)
-
     def _real_extract(self, url):
         matches = self._match_valid_url(url).groupdict()
-        video_id = matches['id']
+        _match_id = matches['id']
 
-        webpage = self._download_webpage(url, video_id)
-        token_url = self._extract_js_var(webpage, 'tokenURL', None)
+        webpage = self._download_webpage(url, _match_id)
+        token_url = self._extract_js_var(webpage, 'tokenURL')
         stream_title = self._extract_js_var(webpage, 'video_title', 'LRT')
         title = self._og_search_title(webpage)
 
-        streams_data = self._download_json(token_url, video_id)
+        streams_data = self._download_json(token_url, _match_id)
 
-        formats = []
-        for key in ['content', 'content2', 'content3']:
-            stream_url = try_get(streams_data, lambda x: x['response']['data'][key])
-            if stream_url == '':
-                continue
-            formats.extend(self._extract_m3u8_formats(stream_url, video_id, m3u8_id='hls', live=True))
+        stream_formats = []
+        stream_subtitles = {}
+
+        for stream_url in traverse_obj(streams_data, ('response', 'data', lambda k, _: k.startswith('content')), expected_type=url_or_none):
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, _match_id, m3u8_id='hls', live=True)
+
+            stream_formats.extend(formats)
+            stream_subtitles = self._merge_subtitles(stream_subtitles, subtitles)
 
         self._sort_formats(formats)
 
         return {
-            'id': video_id,
-            'formats': formats,
+            'id': _match_id,
+            'formats': stream_formats,
+            'subtitles': stream_subtitles,
             'is_live': True,
-            'title': '{0} - {1}'.format(title, stream_title)
+            'title': f'{title} - {stream_title}'
         }
 
 
-class LRTVODIE(InfoExtractor):
+class LRTVODIE(LRTBaseIE):
     _VALID_URL = r'https?://(?:www\.)?lrt\.lt(?P<path>/mediateka/irasas/(?P<id>[0-9]+))'
     _TESTS = [{
         # m3u8 download
         'url': 'https://www.lrt.lt/mediateka/irasas/2000127261/greita-ir-gardu-sicilijos-ikvepta-klasikiniu-makaronu-su-baklazanais-vakariene',
-        'md5': 'cb4b239351697e985ca3177dcc1ced8d',
         'info_dict': {
             'id': '2000127261',
             'ext': 'mp4',
@@ -82,11 +88,6 @@ class LRTVODIE(InfoExtractor):
             'like_count': int,
         },
     }]
-
-    def _extract_js_var(self, webpage, var_name, default):
-        return self._search_regex(
-            r'%s\s*=\s*(["\'])((?:(?!\1).)+)\1' % var_name,
-            webpage, var_name.replace('_', ' '), default, group=2)
 
     def _real_extract(self, url):
         path, video_id = self._match_valid_url(url).groups()
