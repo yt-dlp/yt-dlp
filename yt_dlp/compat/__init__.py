@@ -85,33 +85,37 @@ WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 
 def set_windows_conout_mode(new_mode, mask=0xffffffff):
     # based on https://github.com/python/cpython/issues/74261#issuecomment-1093745755
-    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
-    import msvcrt
     from ctypes import wintypes
 
-    def _check_bool(result, func, args):
+    INVALID_HANDLE_VALUE = 0xffffffff  # ((DWORD)-1)
+    STD_OUTPUT_HANDLE = 0xfffffff5  # ((DWORD)-11)
+
+    kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+    def check_bool(result, func, args):
         if not result:
             raise ctypes.WinError(ctypes.get_last_error())
         return args
 
-    kernel32.GetConsoleMode.errcheck = _check_bool
+    def check_handle(result, func, args):
+        if not result or result == INVALID_HANDLE_VALUE:
+            raise ctypes.WinError(ctypes.get_last_error(), 'Couldn\'t find handle')
+        return args
+
+    kernel32.GetStdHandle.errcheck = check_handle
+    kernel32.GetStdHandle.argtypes = (wintypes.DWORD,)
+    kernel32.GetConsoleMode.errcheck = check_bool
     kernel32.GetConsoleMode.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
-    kernel32.SetConsoleMode.errcheck = _check_bool
+    kernel32.SetConsoleMode.errcheck = check_bool
     kernel32.SetConsoleMode.argtypes = (wintypes.HANDLE, wintypes.DWORD)
 
-    # don't assume StandardOutput is a console.
-    # open CONOUT$ instead
-    fdout = os.open('CONOUT$', os.O_RDWR)
-    try:
-        hout = msvcrt.get_osfhandle(fdout)
-        out = ctypes.wintypes.DWORD()
-        kernel32.GetConsoleMode(hout, ctypes.byref(out))
-        old_mode = out.value
-        mode = (new_mode & mask) | (old_mode & ~mask)
-        kernel32.SetConsoleMode(hout, mode)
-        return old_mode
-    finally:
-        os.close(fdout)
+    hout = kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+    out = wintypes.DWORD()
+    kernel32.GetConsoleMode(hout, ctypes.byref(out))
+    old_mode = out.value
+    mode = (new_mode & mask) | (old_mode & ~mask)
+    kernel32.SetConsoleMode(hout, mode)
+    return old_mode
 
 
 def windows_enable_vt_mode():
