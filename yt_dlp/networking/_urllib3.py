@@ -73,9 +73,13 @@ def handle_read_errors(e):
 
 
 # TODO: actually test if this helps
-# After an HTTP Error, close the connection rather than returning it to the pool
-# May help with recovering from temporary errors related to persistent connections (e.g. temp block)
-class Urllib3HTTPError(HTTPError):
+class _Urllib3HTTPError(HTTPError):
+    """
+    INTERNAL USE ONLY, catch utils.HTTPError instead.
+
+    Close the connection instead of releasing it to the pool.
+    May help with recovering from temporary errors related to persistent connections (e.g. temp block)
+    """
     def __init__(self, response, *args, **kwargs):
         def release_conn_override():
             if response._res._connection:
@@ -219,7 +223,7 @@ class Urllib3RH(BackendRH):
 
         res = Urllib3ResponseAdapter(urllib3_res)
         if not 200 <= res.status < 300:
-            raise Urllib3HTTPError(res, redirect_loop=urllib3_res.retries.total == 0)
+            raise _Urllib3HTTPError(res, redirect_loop=urllib3_res.retries.total == 0)
 
         if self.cookiejar:
             self.cookiejar.extract_cookies(res, request)
