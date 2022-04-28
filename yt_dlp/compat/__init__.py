@@ -126,6 +126,6 @@ def windows_enable_vt_mode():
         mode = set_windows_conout_mode(mode, mask)
         WINDOWS_VT_MODE = True
         return mode
-    except WindowsError as e:
+    except OSError as e:
         if e.winerror != ERROR_INVALID_PARAMETER:  # any other error than not supported os
             raise e
