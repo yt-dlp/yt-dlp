@@ -3599,7 +3599,7 @@ class YoutubeDL:
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
             if not supports_terminal_sequences(stream):
-                from .compat import WINDOWS_VT_MODE
+                from .compat import WINDOWS_VT_MODE  # Must be imported locally
                 ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
             return ret
 

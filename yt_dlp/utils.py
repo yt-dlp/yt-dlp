@@ -1851,6 +1851,10 @@ def write_string(s, out=None, encoding=None):
     assert isinstance(s, str)
     out = out or sys.stderr
 
+    from .compat import WINDOWS_VT_MODE  # Must be imported locally
+    if WINDOWS_VT_MODE:
+        s = s.replace('\n', ' \n')
+
     if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
         out.write(byt)
