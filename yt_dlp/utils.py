@@ -1590,7 +1590,7 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         # for subsequent requests by browsers, so we'll do the same. [1][2]
         # 1. https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.2
         # 2. https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.3
-        if code == (301, 302) and m == 'POST':
+        if code in (301, 302) and m == 'POST':
             m = 'GET'
 
         return compat_urllib_request.Request(
