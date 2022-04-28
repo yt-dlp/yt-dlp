@@ -1,6 +1,6 @@
 from .fragment import FragmentFD
-
 import gzip
+
 
 class IqAudioFragmentFD(FragmentFD):
     """
@@ -16,7 +16,7 @@ class IqAudioFragmentFD(FragmentFD):
                 format = f
                 break
 
-        if format == None:
+        if format is None:
             return
 
         fragments = []

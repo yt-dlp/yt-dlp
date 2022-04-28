@@ -431,6 +431,18 @@ class IqIE(InfoExtractor):
         # VIP-restricted video
         'url': 'https://www.iq.com/play/mermaid-in-the-fog-2021-gbdpx13bs4',
         'only_matching': True
+    }, {
+        'url': 'https://www.iq.com/play/the-spy-dad-2003-19ruth8vp4',
+        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '19ruth8vp4',
+            'description': "In Hong Kong, a terrorist organization plans to blackmail the world's government with the help of two fatal diseases a goofy scientist created. Two Interpol agents went to stop their evil plot of world domination, but one of them became a victim of one of the diseases and wanders off acting like a six-year old child. He mindlessly walks into a bullied action film star's mansion, and the star, Jones Bon, was forced to babysit him while dealing with affairs involving his divorced wife and his two daughters. Only a short period of times has passed when Jones, although paying more attention to solving his family situations, finds himself fighting the terrorists.",
+        },
+        'params': {
+            'format': '300_Cantonese'
+        },
+        'expected_warnings': ['format is restricted']
     }]
     _BID_TAGS = {
         '100': '240P',
@@ -613,7 +625,6 @@ class IqIE(InfoExtractor):
                 urlSignInfo['bossDataU'] = traverse_obj(format_data, ('boss_ts', 'data', 'u'), expected_type=str_or_none)
                 urlSignInfo['previewTime'] = str(traverse_obj(format_data, ('boss_ts', 'data', 'ptime'), expected_type=int_or_none))
                 urlSignInfo['vid'] = video_info['vid']
-
                 urlSignInfos.append(urlSignInfo)
 
             # Run the javascript and retrieve the results.
@@ -657,8 +668,7 @@ class IqIE(InfoExtractor):
             url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code', jscode=self._DASH_JS % {
                 'tvid': video_info['tvId'],
                 'vid': video_info['vid'],
-                'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
-                                    expected_type=str, default='04022001010011000000'),
+                'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'), expected_type=str, default='04022001010011000000'),
                 'uid': uid,
                 'dfp': self._get_cookie('dfp', ''),
                 'mode': self._get_cookie('mod', 'intl'),
@@ -698,7 +708,7 @@ class IqIE(InfoExtractor):
             # Get signed links for the audio.
             signed_urls = self._get_signed_audio_fs_urls(url, video_info, webpage, video_id, format_data, audio_format)
 
-            extracted_formats = []          
+            extracted_formats = []
             if len(signed_urls) > 0:
                 # Create a m3u8 playlist out of all the sections.
                 audio_fragments = []
@@ -725,7 +735,7 @@ class IqIE(InfoExtractor):
                     self.report_warning(f'format is restricted')
                 else:
                     self.report_warning(f'Unable to extract format')
-            formats.extend(extracted_formats)                         
+            formats.extend(extracted_formats)
 
         # Video formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
