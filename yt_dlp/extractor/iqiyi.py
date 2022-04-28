@@ -531,7 +531,7 @@ class IqIE(InfoExtractor):
                     enc_params.push('ut=' + ut);
                 })
                 var dash_path = '/dash?' + enc_params.join('&'); dash_path += '&vf=' + cmd5x(dash_path);
-                
+
                 if (lid === 0)
                     dash_paths[bid] = dash_path;
                 else
@@ -619,7 +619,7 @@ class IqIE(InfoExtractor):
             fs = audioFormat['fs']
             for f in fs:
                 urlSignInfo = {}
-                urlSignInfo['path'] = 'https://data.video.iq.com/videos' + f['l'] # the (incomplete) audio fragment request url
+                urlSignInfo['path'] = 'https://data.video.iq.com/videos' + f['l']
                 urlSignInfo['filename'] = Path(os.path.basename(urlparse(urlSignInfo['path']).path)).stem
                 urlSignInfo['bossDataT'] = traverse_obj(format_data, ('boss_ts', 'data', 't'), expected_type=str_or_none, default='')
                 urlSignInfo['bossDataU'] = traverse_obj(format_data, ('boss_ts', 'data', 'u'), expected_type=str_or_none)
@@ -634,7 +634,6 @@ class IqIE(InfoExtractor):
             })[1].strip(), video_id)
 
         return urls
-
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -678,7 +677,7 @@ class IqIE(InfoExtractor):
                 'ut_list': '[' + ','.join(ut_list) + ']',
                 'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
             })[1].strip(), video_id)
-        
+
         formats, subtitles = [], {}
         initial_format_data = self._download_json(
             urljoin('https://cache-video.iq.com', dash_paths['0']), video_id,
@@ -732,9 +731,9 @@ class IqIE(InfoExtractor):
 
             if not extracted_formats:
                 if audio_format.get('s'):
-                    self.report_warning(f'format is restricted')
+                    self.report_warning(f'format is restricted {audio_format_name}')
                 else:
-                    self.report_warning(f'Unable to extract format')
+                    self.report_warning(f'Unable to extract format {audio_format_name}')
             formats.extend(extracted_formats)
 
         # Video formats
