@@ -10,7 +10,7 @@ from ..utils import (
 class LRTBaseIE(InfoExtractor):
     def _extract_js_var(self, webpage, var_name, default=None):
         return self._search_regex(
-            f'{var_name}\\s*=\\s*(["\'])((?:(?!\\1).)+)\\1',
+            fr'{var_name}\s*=\s*(["\'])((?:(?!\1).)+)\1',
             webpage, var_name.replace('_', ' '), default, group=2)
 
 
@@ -22,38 +22,30 @@ class LRTStreamIE(LRTBaseIE):
             'id': 'lrt-opus',
             'live_status': 'is_live',
             'title': 're:^LRT Opus.+$',
-            'ext': 'm3u8'
+            'ext': 'mp4'
         }
     }]
 
     def _real_extract(self, url):
-        matches = self._match_valid_url(url).groupdict()
-        _match_id = matches['id']
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        streams_data = self._download_json(self._extract_js_var(webpage, 'tokenURL'), video_id)
 
-        webpage = self._download_webpage(url, _match_id)
-        token_url = self._extract_js_var(webpage, 'tokenURL')
-        stream_title = self._extract_js_var(webpage, 'video_title', 'LRT')
-        title = self._og_search_title(webpage)
-
-        streams_data = self._download_json(token_url, _match_id)
-
-        stream_formats = []
-        stream_subtitles = {}
-
-        for stream_url in traverse_obj(streams_data, ('response', 'data', lambda k, _: k.startswith('content')), expected_type=url_or_none):
-            formats, subtitles = self._extract_m3u8_formats_and_subtitles(stream_url, _match_id, m3u8_id='hls', live=True)
-
-            stream_formats.extend(formats)
-            stream_subtitles = self._merge_subtitles(stream_subtitles, subtitles)
-
+        formats, subtitles = [], {}
+        for stream_url in traverse_obj(streams_data, (
+                'response', 'data', lambda k, _: k.startswith('content')), expected_type=url_or_none):
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(stream_url, video_id, 'mp4', m3u8_id='hls', live=True)
+            formats.extend(fmts)
+            subtitles = self._merge_subtitles(subtitles, subs)
         self._sort_formats(formats)
 
+        stream_title = self._extract_js_var(webpage, 'video_title', 'LRT')
         return {
-            'id': _match_id,
-            'formats': stream_formats,
-            'subtitles': stream_subtitles,
+            'id': video_id,
+            'formats': formats,
+            'subtitles': subtitles,
             'is_live': True,
-            'title': f'{title} - {stream_title}'
+            'title': f'{self._og_search_title(webpage)} - {stream_title}'
         }
 
 
