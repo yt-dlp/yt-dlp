@@ -95,7 +95,7 @@ def set_windows_conout_mode(new_mode, mask=0xffffffff):
         return args
 
     kernel32.GetConsoleMode.errcheck = _check_bool
-    kernel32.GetConsoleMode.argtypes = (wintypes.HANDLE, (ctypes.POINTER(wintypes.DWORD)))
+    kernel32.GetConsoleMode.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
     kernel32.SetConsoleMode.errcheck = _check_bool
     kernel32.SetConsoleMode.argtypes = (wintypes.HANDLE, wintypes.DWORD)
 
@@ -104,11 +104,12 @@ def set_windows_conout_mode(new_mode, mask=0xffffffff):
     fdout = os.open('CONOUT$', os.O_RDWR)
     try:
         hout = msvcrt.get_osfhandle(fdout)
-        old_mode = ctypes.wintypes.DWORD()
-        kernel32.GetConsoleMode(hout, ctypes.byref(old_mode))
-        mode = (new_mode & mask) | (old_mode.value & ~mask)
+        out = ctypes.wintypes.DWORD()
+        kernel32.GetConsoleMode(hout, ctypes.byref(out))
+        old_mode = out.value
+        mode = (new_mode & mask) | (old_mode & ~mask)
         kernel32.SetConsoleMode(hout, mode)
-        return old_mode.value
+        return old_mode
     finally:
         os.close(fdout)
 
@@ -117,14 +118,14 @@ def windows_enable_vt_mode():
     if compat_os_name != 'nt':
         return
     global WINDOWS_VT_MODE
-    error_invalid_parameter = 0x0057
-    enable_virtual_terminal_processing = 0x0004
+    ERROR_INVALID_PARAMETER = 0x0057
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
 
-    mode = mask = enable_virtual_terminal_processing
+    mode = mask = ENABLE_VIRTUAL_TERMINAL_PROCESSING
     try:
         mode = set_windows_conout_mode(mode, mask)
         WINDOWS_VT_MODE = True
         return mode
     except WindowsError as e:
-        if e.winerror != error_invalid_parameter:  # any other error than not supported os
+        if e.winerror != ERROR_INVALID_PARAMETER:  # any other error than not supported os
             raise e
