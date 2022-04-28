@@ -541,7 +541,7 @@ class YoutubeDL:
             self._vt_mode = windows_enable_vt_mode()
         except Exception:
             self._vt_mode = None
-            self.report_warning('Failed to set Windows console to VT mode')
+            self.write_debug('Failed to set Windows console to VT mode')
 
         self._out_files = {
             'error': sys.stderr,
