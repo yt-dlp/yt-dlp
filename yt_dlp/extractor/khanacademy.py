@@ -28,9 +28,9 @@ class KhanAcademyBaseIE(InfoExtractor):
         content = self._download_json(
             'https://www.khanacademy.org/api/internal/graphql/FetchContentData',
             display_id, query={
-                'fastly_cacheable': ['persist_until_publish'],
-                'hash': ['4134764944'],
-                'lang': ['en'],
+                'fastly_cacheable': 'persist_until_publish',
+                'hash': '4134764944',
+                'lang':'en',
                 'variables': json.dumps({
                     'path': display_id,
                     'queryParams': 'lang=en',
