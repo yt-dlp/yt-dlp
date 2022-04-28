@@ -413,6 +413,8 @@ class YoutubeDL:
                        every video.
                        If it returns a message, the video is ignored.
                        If it returns None, the video is downloaded.
+                       If it returns utils.NO_DEFAULT, the user is interactively
+                       asked whether to download the video.
                        match_filter_func in utils.py is one example for this.
     no_color:          Do not emit color codes in output.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
@@ -878,6 +880,7 @@ class YoutubeDL:
     Styles = Namespace(
         HEADERS='yellow',
         EMPHASIS='light blue',
+        FILENAME='green',
         ID='green',
         DELIM='blue',
         ERROR='red',
@@ -1303,7 +1306,17 @@ class YoutubeDL:
                 except TypeError:
                     # For backward compatibility
                     ret = None if incomplete else match_filter(info_dict)
-                if ret is not None:
+                if ret is NO_DEFAULT:
+                    while True:
+                        filename = self._format_screen(self.prepare_filename(info_dict), self.Styles.FILENAME)
+                        reply = input(self._format_screen(
+                            f'Download "{filename}"? (Y/n): ', self.Styles.EMPHASIS)).lower().strip()
+                        if reply in {'y', ''}:
+                            return None
+                        elif reply == 'n':
+                            return f'Skipping {video_title}'
+                    return True
+                elif ret is not None:
                     return ret
             return None
 

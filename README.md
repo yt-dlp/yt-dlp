@@ -451,7 +451,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      those that have a like count more than 100
                                      (or the like field is not available) and
                                      also has a description that contains the
-                                     phrase "cats & dogs" (ignoring case)
+                                     phrase "cats & dogs" (ignoring case). Use
+                                     "--match-filter -" to interactively ask
+                                     whether to download each video
     --no-match-filter                Do not use generic video filter (default)
     --no-playlist                    Download only the video, if the URL refers
                                      to a video and a playlist

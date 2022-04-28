@@ -471,7 +471,8 @@ def create_parser():
             '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
             'matches only videos that are not live OR those that have a like count more than 100 '
             '(or the like field is not available) and also has a description '
-            'that contains the phrase "cats & dogs" (ignoring case)'))
+            'that contains the phrase "cats & dogs" (ignoring case). '
+            'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filter',
         metavar='FILTER', dest='match_filter', action='store_const', const=None,

@@ -3407,11 +3407,15 @@ def match_str(filter_str, dct, incomplete=False):
 def match_filter_func(filters):
     if not filters:
         return None
-    filters = variadic(filters)
+    filters = set(variadic(filters))
 
-    def _match_func(info_dict, *args, **kwargs):
-        if any(match_str(f, info_dict, *args, **kwargs) for f in filters):
-            return None
+    interactive = '-' in filters
+    if interactive:
+        filters.remove('-')
+
+    def _match_func(info_dict, incomplete=False):
+        if not filters or any(match_str(f, info_dict, incomplete) for f in filters):
+            return NO_DEFAULT if interactive and not incomplete else None
         else:
             video_title = info_dict.get('title') or info_dict.get('id') or 'video'
             filter_str = ') | ('.join(map(str.strip, filters))
