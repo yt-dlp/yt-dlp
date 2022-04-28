@@ -541,7 +541,6 @@ class YoutubeDL:
             self._vt_mode = windows_enable_vt_mode()
         except Exception:
             self._vt_mode = None
-            self.report_warning('Failed to set Windows console to VT mode')
 
         self._out_files = {
             'error': sys.stderr,
@@ -554,6 +553,9 @@ class YoutubeDL:
             type_: not self.params.get('no_color') and supports_terminal_sequences(self._out_files[type_])
             for type_ in ('screen', 'error')
         }
+
+        if self._vt_mode is False:
+            self.write_debug('Failed to set Windows console to VT mode')
 
         if sys.version_info < (3, 6):
             self.report_warning(

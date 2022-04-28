@@ -134,3 +134,4 @@ def windows_enable_vt_mode():
     except OSError as e:
         if e.winerror != ERROR_INVALID_PARAMETER:  # any other error than not supported os
             raise e
+        return False
