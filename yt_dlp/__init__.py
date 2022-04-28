@@ -28,6 +28,7 @@ from .postprocessor import (
 from .update import run_update
 from .utils import (
     NO_DEFAULT,
+    POSTPROCESS_WHEN,
     DateRange,
     DownloadCancelled,
     DownloadError,
@@ -618,11 +619,11 @@ def parse_options(argv=None):
 
     postprocessors = list(get_postprocessors(opts))
 
-    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
-                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
-                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
-
-    any_printing = opts.print_json
+    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[2:])
+    any_getting = any(getattr(opts, k) for k in (
+        'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+    ))
 
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
@@ -640,7 +641,7 @@ def parse_options(argv=None):
         'ap_mso': opts.ap_mso,
         'ap_username': opts.ap_username,
         'ap_password': opts.ap_password,
-        'quiet': (opts.quiet or any_getting or any_printing),
+        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
         'no_warnings': opts.no_warnings,
         'forceurl': opts.geturl,
         'forcetitle': opts.gettitle,
@@ -655,7 +656,7 @@ def parse_options(argv=None):
         'forcejson': opts.dumpjson or opts.print_json,
         'dump_single_json': opts.dump_single_json,
         'force_write_download_archive': opts.force_write_download_archive,
-        'simulate': (any_getting or None) if opts.simulate is None else opts.simulate,
+        'simulate': (print_only or any_getting or None) if opts.simulate is None else opts.simulate,
         'skip_download': opts.skip_download,
         'format': opts.format,
         'allow_unplayable_formats': opts.allow_unplayable_formats,

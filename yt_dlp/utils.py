@@ -41,7 +41,6 @@ import zlib
 
 from .compat import (
     asyncio,
-    compat_brotli,
     compat_chr,
     compat_cookiejar,
     compat_etree_fromstring,
@@ -64,17 +63,9 @@ from .compat import (
     compat_urllib_parse_urlparse,
     compat_urllib_request,
     compat_urlparse,
-    compat_websockets,
 )
+from .dependencies import brotli, certifi, websockets
 from .socks import ProxyType, sockssocket
-
-try:
-    import certifi
-
-    # The certificate may not be bundled in executable
-    has_certifi = os.path.exists(certifi.where())
-except ImportError:
-    has_certifi = False
 
 
 def register_socks_protocols():
@@ -138,7 +129,7 @@ def random_user_agent():
 SUPPORTED_ENCODINGS = [
     'gzip', 'deflate'
 ]
-if compat_brotli:
+if brotli:
     SUPPORTED_ENCODINGS.append('br')
 
 std_headers = {
@@ -1267,7 +1258,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
     def brotli(data):
         if not data:
             return data
-        return compat_brotli.decompress(data)
+        return brotli.decompress(data)
 
     def http_request(self, req):
         # According to RFC 3986, URLs can not contain non-ASCII characters, however this is not
@@ -3013,7 +3004,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = {'pre_process', 'after_filter', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist'}
+POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist')
 
 
 DEFAULT_OUTTMPL = {
@@ -5230,8 +5221,9 @@ class WebSocketsWrapper():
     pool = None
 
     def __init__(self, url, headers=None, connect=True):
-        self.loop = asyncio.events.new_event_loop()
-        self.conn = compat_websockets.connect(
+        self.loop = asyncio.new_event_loop()
+        # XXX: "loop" is deprecated
+        self.conn = websockets.connect(
             url, extra_headers=headers, ping_interval=None,
             close_timeout=float('inf'), loop=self.loop, ping_timeout=float('inf'))
         if connect:
@@ -5260,7 +5252,7 @@ class WebSocketsWrapper():
     # for contributors: If there's any new library using asyncio needs to be run in non-async, move these function out of this class
     @staticmethod
     def run_with_loop(main, loop):
-        if not asyncio.coroutines.iscoroutine(main):
+        if not asyncio.iscoroutine(main):
             raise ValueError(f'a coroutine was expected, got {main!r}')
 
         try:
@@ -5272,7 +5264,7 @@ class WebSocketsWrapper():
 
     @staticmethod
     def _cancel_all_tasks(loop):
-        to_cancel = asyncio.tasks.all_tasks(loop)
+        to_cancel = asyncio.all_tasks(loop)
 
         if not to_cancel:
             return
@@ -5280,8 +5272,9 @@ class WebSocketsWrapper():
         for task in to_cancel:
             task.cancel()
 
+        # XXX: "loop" is removed in python 3.10+
         loop.run_until_complete(
-            asyncio.tasks.gather(*to_cancel, loop=loop, return_exceptions=True))
+            asyncio.gather(*to_cancel, loop=loop, return_exceptions=True))
 
         for task in to_cancel:
             if task.cancelled():
@@ -5292,9 +5285,6 @@ class WebSocketsWrapper():
                     'exception': task.exception(),
                     'task': task,
                 })
-
-
-has_websockets = bool(compat_websockets)
 
 
 def merge_headers(*dicts):
@@ -5312,3 +5302,8 @@ class classproperty:
 
 def Namespace(**kwargs):
     return collections.namedtuple('Namespace', kwargs)(**kwargs)
+
+
+# Deprecated
+has_certifi = bool(certifi)
+has_websockets = bool(websockets)

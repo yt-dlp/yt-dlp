@@ -27,10 +27,8 @@ from string import ascii_letters
 
 from .cache import Cache
 from .compat import (
-    compat_brotli,
     compat_get_terminal_size,
     compat_os_name,
-    compat_pycrypto_AES,
     compat_shlex_quote,
     compat_str,
     compat_urllib_error,
@@ -109,7 +107,6 @@ from .utils import (
     format_field,
     formatSeconds,
     get_domain,
-    has_certifi,
     int_or_none,
     iri_to_uri,
     join_nonempty,
@@ -3656,20 +3653,11 @@ class YoutubeDL:
         ) or 'none'
         write_debug('exe versions: %s' % exe_str)
 
-        from .cookies import SECRETSTORAGE_AVAILABLE, SQLITE_AVAILABLE
-        from .downloader.websocket import has_websockets
-        from .postprocessor.embedthumbnail import has_mutagen
+        from .dependencies import available_dependencies
 
-        lib_str = join_nonempty(
-            compat_brotli and compat_brotli.__name__,
-            has_certifi and 'certifi',
-            compat_pycrypto_AES and compat_pycrypto_AES.__name__.split('.')[0],
-            SECRETSTORAGE_AVAILABLE and 'secretstorage',
-            has_mutagen and 'mutagen',
-            SQLITE_AVAILABLE and 'sqlite',
-            has_websockets and 'websockets',
-            delim=', ') or 'none'
-        write_debug('Optional libraries: %s' % lib_str)
+        write_debug('Optional libraries: %s' % (', '.join(sorted({
+            module.__name__.split('.')[0] for module in available_dependencies.values()
+        })) or 'none'))
 
         self._setup_opener()
         proxy_map = {}

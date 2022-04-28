@@ -146,7 +146,8 @@ class FFmpegPostProcessor(PostProcessor):
                 self._paths[basename] = location
 
         self._versions = {}
-        executables = {'basename': ('ffmpeg', 'avconv'), 'probe_basename': ('ffprobe', 'avprobe')}
+        # NB: probe must be first for _features to be poulated correctly
+        executables = {'probe_basename': ('ffprobe', 'avprobe'), 'basename': ('ffmpeg', 'avconv')}
         if prefer_ffmpeg is False:
             executables = {k: v[::-1] for k, v in executables.items()}
         for var, prefs in executables.items():
@@ -799,8 +800,11 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             yield ('-map', '-0:%d' % old_stream)
             new_stream -= 1
 
-        yield ('-attach', infofn,
-               '-metadata:s:%d' % new_stream, 'mimetype=application/json')
+        yield (
+            '-attach', infofn,
+            f'-metadata:s:{new_stream}', 'mimetype=application/json',
+            f'-metadata:s:{new_stream}', 'filename=info.json',
+        )
 
 
 class FFmpegMergerPP(FFmpegPostProcessor):
