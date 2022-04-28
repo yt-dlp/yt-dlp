@@ -1583,13 +1583,13 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         newheaders = {k: v for k, v in req.headers.items() if k.lower() not in CONTENT_HEADERS}
 
         # A 303 must either use GET or HEAD for subsequent request [1].
-        # [1] https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.4
+        # 1. https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.4
         if code == 303 and m != 'HEAD':
             m = 'GET'
         # 301 and 302 redirects are commonly turned into a GET from a POST
         # for subsequent requests by browsers, so we'll do the same. [1][2]
-        # [1] https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.2
-        # [2] https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.3
+        # 1. https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.2
+        # 2. https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.3
         if code == (301, 302) and m == 'POST':
             m = 'GET'
 
