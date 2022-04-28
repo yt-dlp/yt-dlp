@@ -20,8 +20,9 @@ class RedditIE(InfoExtractor):
             'id': 'zv89llsvexdz',
             'ext': 'mp4',
             'title': 'That small heart attack.',
+            'display_id': '6rrwyj',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
-            'thumbnails': 'count:4',
+            'thumbnails': 'count:5',
             'timestamp': 1501941939,
             'upload_date': '20170805',
             'uploader': 'Antw87',
@@ -33,6 +34,24 @@ class RedditIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
+        },
+    }, {
+        # gif
+        'url': 'https://www.reddit.com/r/FinalDestinationShit/comments/ks2fjy/im_never_driving_again/',
+        'info_dict': {
+            'id': 'lh5qybef3o961',
+            'ext': 'mp4',
+            'title': 'I\'m never driving again',
+            'display_id': 'ks2fjy',
+            'thumbnail': r're:^https?://.*\.(?:jpg|gif)',
+            'thumbnails': 'count:5',
+            'timestamp': 1609983156,
+            'upload_date': '20210107',
+            'uploader': 'IvanKaramazov28',
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+            'age_limit': 0,
         },
     }, {
         'url': 'https://www.reddit.com/r/videos/comments/6rrwyj',
@@ -106,6 +125,11 @@ class RedditIE(InfoExtractor):
                 'height': int_or_none(src.get('height')),
             })
 
+        add_thumbnail({
+            'url': data.get('thumbnail'),
+            'width': data.get('thumbnail_width'),
+            'height': data.get('thumbnail_height')
+        })
         for image in try_get(data, lambda x: x['preview']['images']) or []:
             if not isinstance(image, dict):
                 continue
@@ -126,7 +150,7 @@ class RedditIE(InfoExtractor):
             'age_limit': age_limit,
         }
 
-        # Check if media is hosted on reddit:
+        # Check if media is hosted on reddit as a video:
         reddit_video = traverse_obj(data, (('media', 'secure_media'), 'reddit_video'), get_all=False)
         if reddit_video:
             playlist_urls = [
@@ -156,6 +180,37 @@ class RedditIE(InfoExtractor):
                 'display_id': display_id,
                 'formats': formats,
                 'duration': int_or_none(reddit_video.get('duration')),
+            }
+
+        # Check if media is hosted on reddit as an image (but also available as video):
+        reddit_video = traverse_obj(data, ('preview', 'images', 0, 'variants'))
+        if isinstance(reddit_video, dict):
+            display_id = video_id
+            video_id = self._search_regex(
+                r'https?://i\.redd\.it/(?P<id>[^\.]+)', video_url, 'video_id', default=display_id)
+
+            formats = []
+            for ext, ext_data in reddit_video.items():
+                formats.extend([
+                    {
+                        'url': unescapeHTML(x['url']),
+                        'width': int_or_none(x.get('width')),
+                        'height': int_or_none(x.get('height')),
+                        'acodec': 'none',
+                        'ext': ext
+                    }
+                    for x in filter(
+                        lambda x: isinstance(x, dict),
+                        [ext_data.get('source')] + traverse_obj(
+                            ext_data, 'resolutions', expected_type=list, default=[]))
+                ])
+            self._sort_formats(formats)
+
+            return {
+                **info,
+                'id': video_id,
+                'display_id': display_id,
+                'formats': formats,
             }
 
         # Not hosted on reddit, must continue extraction
