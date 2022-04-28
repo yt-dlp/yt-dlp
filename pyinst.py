@@ -33,9 +33,9 @@ def main():
     if not onedir and '-F' not in opts and '--onefile' not in opts:
         opts.append('--onefile')
 
-    suffix = '_macos' if OS_NAME == 'Darwin' else '_x86' if ARCH == '32' else ''
-    final_file = 'dist/%syt-dlp%s%s' % (
-        'yt-dlp/' if onedir else '', suffix, '.exe' if OS_NAME == 'Windows' else '')
+    name = 'yt-dlp%s' % ('_macos' if OS_NAME == 'Darwin' else '_x86' if ARCH == '32' else '')
+    final_file = ''.join((
+        'dist/', f'{name}/' if onedir else '', name, '.exe' if OS_NAME == 'Windows' else ''))
 
     print(f'Building yt-dlp v{version} {ARCH}bit for {OS_NAME} with options {opts}')
     print('Remember to update the version using  "devscripts/update-version.py"')
@@ -45,7 +45,7 @@ def main():
     print(f'Destination: {final_file}\n')
 
     opts = [
-        f'--name=yt-dlp{suffix}',
+        f'--name={name}',
         '--icon=devscripts/logo.ico',
         '--upx-exclude=vcruntime140.dll',
         '--noconfirm',
