@@ -120,8 +120,9 @@ def windows_enable_vt_mode():
     global WINDOWS_VT_MODE
     ERROR_INVALID_PARAMETER = 0x0057
     ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+    DISABLE_NEWLINE_AUTO_RETURN = 0x0008
 
-    mode = mask = ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    mode = mask = ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN
     try:
         mode = set_windows_conout_mode(mode, mask)
         WINDOWS_VT_MODE = True
