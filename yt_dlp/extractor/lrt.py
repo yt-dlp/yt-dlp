@@ -2,7 +2,6 @@ from .common import InfoExtractor
 from ..utils import (
     clean_html,
     merge_dicts,
-    try_get,
     url_or_none,
     traverse_obj
 )
@@ -11,7 +10,7 @@ from ..utils import (
 class LRTBaseIE(InfoExtractor):
     def _extract_js_var(self, webpage, var_name, default=None):
         return self._search_regex(
-            f'{var_name}\s*=\s*(["\'])((?:(?!\\1).)+)\\1',
+            f'{var_name}\\s*=\\s*(["\'])((?:(?!\\1).)+)\\1',
             webpage, var_name.replace('_', ' '), default, group=2)
 
 
