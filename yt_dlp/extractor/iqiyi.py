@@ -413,7 +413,10 @@ class IqIE(InfoExtractor):
             'ext': 'mp4',
             'id': '19rza4kl2w',
             'title': '谋爱上瘾 第1集',
-            'description': "In order to reclaim everything that is rightfully hers from her uncle, she decided to approach her uncle’s biggest client—Sheng Jun. Initially thinking that everything would go according to her plan, little did she know that Sheng Jun is also carefully crafting his moves and already has her wrapped around his fingers. The two gets trapped in love but both are scared to express their honest feelings to each other, for one wrong step might lead to the point of no return.",
+            'description':
+                "In order to reclaim everything that is rightfully hers from her uncle, she decided to approach her uncle’s biggest client—Sheng Jun. "
+                "Initially thinking that everything would go according to her plan, little did she know that Sheng Jun is also carefully crafting his moves and already has her wrapped around his fingers. " 
+                "The two gets trapped in love but both are scared to express their honest feelings to each other, for one wrong step might lead to the point of no return.",
             'duration': 407.0,
             'timestamp': 1596215239,
             'upload_date': '20200731',
@@ -439,7 +442,11 @@ class IqIE(InfoExtractor):
             'ext': 'mp4',
             'id': '19ruth8vp4',
             'title': 'The Spy Dad',
-            'description': "In Hong Kong, a terrorist organization plans to blackmail the world's government with the help of two fatal diseases a goofy scientist created. Two Interpol agents went to stop their evil plot of world domination, but one of them became a victim of one of the diseases and wanders off acting like a six-year old child. He mindlessly walks into a bullied action film star's mansion, and the star, Jones Bon, was forced to babysit him while dealing with affairs involving his divorced wife and his two daughters. Only a short period of times has passed when Jones, although paying more attention to solving his family situations, finds himself fighting the terrorists.",
+            'description':
+                "In Hong Kong, a terrorist organization plans to blackmail the world's government with the help of two fatal diseases a goofy scientist created. "
+                "Two Interpol agents went to stop their evil plot of world domination, but one of them became a victim of one of the diseases and wanders off acting like a six-year old child. "
+                "He mindlessly walks into a bullied action film star's mansion, and the star, Jones Bon, was forced to babysit him while dealing with affairs involving his divorced wife and his two daughters. "
+                "Only a short period of times has passed when Jones, although paying more attention to solving his family situations, finds himself fighting the terrorists.",
             'duration': 5554.0,
             'timestamp': 1579188614,
             'upload_date': '20200116',
@@ -448,7 +455,7 @@ class IqIE(InfoExtractor):
             'series': 'The Spy Dad',
             'age_limit': 16,
             'average_rating': float,
-            'fragment_urls': list,
+            'fragments': list,
             'cast': ['Tony Ka Fai Leung', 'Teresa Mo'],
         },
         'params': {
@@ -724,12 +731,15 @@ class IqIE(InfoExtractor):
                 # Create a m3u8 playlist out of all the sections.
                 audio_fragments = []
                 for url in signed_urls:
-                    audio_fragments.append(traverse_obj(self._download_json(url, video_id, note='Resolving audio fragment url', errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str))
+                    fragment = { 
+                        'url': traverse_obj(self._download_json(url, video_id, note='Resolving audio fragment url', errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str)
+                    }
+                    audio_fragments.append(fragment)
 
                 # Special format for the audio, we need to decrypt it as we download it.
                 format = [{
                     'format_id': audio_format_name,
-                    'fragment_urls': audio_fragments,
+                    'fragments': audio_fragments,
                     'protocol': 'iq_audio_fragments',
                     'quality': qualities(list(self._BID_TAGS.keys()))(audio_format['bid']),
                     'vcodec': 'none',

@@ -21,10 +21,10 @@ class IqAudioFragmentFD(FragmentFD):
 
         fragments = []
         totalFrags = 0
-        for url in format['fragment_urls']:
+        for frag in format['fragments']:
             fragments.append({
                 'frag_index': totalFrags,
-                'url': url
+                'url': frag['url']
             })
             totalFrags += 1
 
