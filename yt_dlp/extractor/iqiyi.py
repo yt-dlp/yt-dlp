@@ -415,7 +415,7 @@ class IqIE(InfoExtractor):
             'title': '谋爱上瘾 第1集',
             'description':
                 "In order to reclaim everything that is rightfully hers from her uncle, she decided to approach her uncle’s biggest client—Sheng Jun. "
-                "Initially thinking that everything would go according to her plan, little did she know that Sheng Jun is also carefully crafting his moves and already has her wrapped around his fingers. " 
+                "Initially thinking that everything would go according to her plan, little did she know that Sheng Jun is also carefully crafting his moves and already has her wrapped around his fingers. "
                 "The two gets trapped in love but both are scared to express their honest feelings to each other, for one wrong step might lead to the point of no return.",
             'duration': 407.0,
             'timestamp': 1596215239,
@@ -451,7 +451,7 @@ class IqIE(InfoExtractor):
             'timestamp': 1579188614,
             'upload_date': '20200116',
             'episode_number': None,
-            'episode':  None,
+            'episode': None,
             'series': 'The Spy Dad',
             'age_limit': 16,
             'average_rating': float,
@@ -731,7 +731,7 @@ class IqIE(InfoExtractor):
                 # Create a m3u8 playlist out of all the sections.
                 audio_fragments = []
                 for url in signed_urls:
-                    fragment = { 
+                    fragment = {
                         'url': traverse_obj(self._download_json(url, video_id, note='Resolving audio fragment url', errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str)
                     }
                     audio_fragments.append(fragment)
