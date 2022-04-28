@@ -681,7 +681,7 @@ class IqIE(InfoExtractor):
 
         # Audio formats
         for audio in traverse_obj(initial_format_data, ('program', 'audio'), default=[]):
-            audio_format_name = str(audio['bid']) + '_' + audio['name']
+            audio_format_name = str(audio['bid']) + '_' + str(audio['name'])
             audio_bid_lid = str(audio['bid']) + '-' + str(audio['lid'])
             dash_path = dash_paths.get(audio_bid_lid)
             if not dash_path:
@@ -710,12 +710,12 @@ class IqIE(InfoExtractor):
                     'format_id': audio_format_name,
                     'fragment_urls': audio_fragments,
                     'protocol': 'iq_audio_fragments',
+                    'quality': qualities(list(self._BID_TAGS.keys()))(audio_format['bid']),
                     'vcodec': 'none',
-                    'acodec': 'mp4a.40.2',
+                    'acodec': 'aac',
                     'ext': 'mp4',
                     'url': url,
-                    'format_note': audio['name'],
-                    'language': audio['name']
+                    'language': audio_format['name']
                 }]
 
                 extracted_formats.extend(format)
