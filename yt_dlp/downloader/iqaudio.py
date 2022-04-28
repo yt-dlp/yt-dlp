@@ -10,27 +10,18 @@ class IqAudioFragmentFD(FragmentFD):
     FD_NAME = 'IqAudioFragmentDownloader'
 
     def real_download(self, filename, info_dict):
-        format = None
-        for f in info_dict['formats']:
-            if f['format_id'] == info_dict['format_id']:
-                format = f
-                break
-
-        if format is None:
-            return
-
         fragments = []
-        totalFrags = 0
-        for frag in format['fragments']:
+        total_frags = 0
+        for frag in info_dict['fragments']:
             fragments.append({
-                'frag_index': totalFrags,
+                'frag_index': total_frags,
                 'url': frag['url']
             })
-            totalFrags += 1
+            total_frags += 1
 
         ctx = {
             'filename': filename,
-            'total_frags': totalFrags,
+            'total_frags': total_frags,
             'ad_frags': 0,
         }
         self._prepare_and_start_frag_download(ctx, info_dict)
