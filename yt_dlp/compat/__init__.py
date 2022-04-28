@@ -35,8 +35,6 @@ compat_os_name = os._name if os.name == 'java' else os.name
 
 if compat_os_name == 'nt':
     import ctypes
-    import msvcrt
-    from ctypes import wintypes
 
     def compat_shlex_quote(s):
         return s if re.match(r'^[-_\w./]+$', s) else '"%s"' % s.replace('"', '\\"')
@@ -88,6 +86,8 @@ WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 def set_windows_conout_mode(new_mode, mask=0xffffffff):
     # based on https://github.com/python/cpython/issues/74261#issuecomment-1093745755
     kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+    import msvcrt
+    from ctypes import wintypes
 
     def _check_bool(result, func, args):
         if not result:
