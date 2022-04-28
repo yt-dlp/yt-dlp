@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
-import io
 import optparse
 import re
 
@@ -16,7 +13,7 @@ def main():
 
     infile, outfile = args
 
-    with io.open(infile, encoding='utf-8') as inf:
+    with open(infile, encoding='utf-8') as inf:
         readme = inf.read()
 
     bug_text = re.search(
@@ -26,7 +23,7 @@ def main():
 
     out = bug_text + dev_text
 
-    with io.open(outfile, 'w', encoding='utf-8') as outf:
+    with open(outfile, 'w', encoding='utf-8') as outf:
         outf.write(out)
 
 

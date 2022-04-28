@@ -2,30 +2,29 @@
 
 # yt-dlp --help | make_readme.py
 # This must be run in a console of correct width
-
-from __future__ import unicode_literals
-
-import io
-import sys
 import re
+import sys
 
 README_FILE = 'README.md'
-helptext = sys.stdin.read()
 
+OPTIONS_START = 'General Options:'
+OPTIONS_END = 'CONFIGURATION'
+EPILOG_START = 'See full documentation'
+
+
+helptext = sys.stdin.read()
 if isinstance(helptext, bytes):
     helptext = helptext.decode('utf-8')
 
-with io.open(README_FILE, encoding='utf-8') as f:
-    oldreadme = f.read()
+start, end = helptext.index(f'\n  {OPTIONS_START}'), helptext.index(f'\n{EPILOG_START}')
+options = re.sub(r'(?m)^  (\w.+)$', r'## \1', helptext[start + 1: end + 1])
 
-header = oldreadme[:oldreadme.index('## General Options:')]
-footer = oldreadme[oldreadme.index('# CONFIGURATION'):]
+with open(README_FILE, encoding='utf-8') as f:
+    readme = f.read()
 
-options = helptext[helptext.index('  General Options:'):]
-options = re.sub(r'(?m)^  (\w.+)$', r'## \1', options)
-options = options + '\n'
+header = readme[:readme.index(f'## {OPTIONS_START}')]
+footer = readme[readme.index(f'# {OPTIONS_END}'):]
 
-with io.open(README_FILE, 'w', encoding='utf-8') as f:
-    f.write(header)
-    f.write(options)
-    f.write(footer)
+with open(README_FILE, 'w', encoding='utf-8') as f:
+    for part in (header, options, footer):
+        f.write(part)

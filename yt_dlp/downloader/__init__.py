@@ -1,10 +1,5 @@
-from __future__ import unicode_literals
-
 from ..compat import compat_str
-from ..utils import (
-    determine_protocol,
-    NO_DEFAULT
-)
+from ..utils import NO_DEFAULT, determine_protocol
 
 
 def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=None, to_stdout=False):
@@ -29,21 +24,18 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
 # Some of these require get_suitable_downloader
 from .common import FileDownloader
 from .dash import DashSegmentsFD
+from .external import FFmpegFD, get_external_downloader
 from .f4m import F4mFD
 from .fc2 import FC2LiveFD
 from .hls import HlsFD
 from .http import HttpFD
-from .rtmp import RtmpFD
-from .rtsp import RtspFD
 from .ism import IsmFD
 from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
+from .rtmp import RtmpFD
+from .rtsp import RtspFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
-from .external import (
-    get_external_downloader,
-    FFmpegFD,
-)
 
 PROTOCOL_MAP = {
     'rtmp': RtmpFD,

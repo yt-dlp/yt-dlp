@@ -1,23 +1,14 @@
-from __future__ import unicode_literals
-
-import re
-import io
 import binascii
+import io
+import re
 
-from ..downloader import get_suitable_downloader
-from .fragment import FragmentFD
 from .external import FFmpegFD
-
-from ..compat import (
-    compat_pycrypto_AES,
-    compat_urlparse,
-)
-from ..utils import (
-    parse_m3u8_attributes,
-    update_url_query,
-    bug_reports_message,
-)
+from .fragment import FragmentFD
 from .. import webvtt
+from ..compat import compat_urlparse
+from ..dependencies import Cryptodome_AES
+from ..downloader import get_suitable_downloader
+from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
 
 class HlsFD(FragmentFD):
@@ -70,7 +61,7 @@ class HlsFD(FragmentFD):
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
-        if can_download and not compat_pycrypto_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
+        if can_download and not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
             if FFmpegFD.available():
                 can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
             else:
@@ -102,8 +93,7 @@ class HlsFD(FragmentFD):
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:
-            self.to_screen(
-                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
+            self.to_screen(f'[{self.FD_NAME}] Fragment downloads will be delegated to {real_downloader.get_basename()}')
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s

@@ -1,7 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import datetime
+import json
 import math
 import random
 import time
@@ -85,21 +83,32 @@ class SonyLIVIE(InfoExtractor):
             raise ExtractorError(f'Invalid username/password; {self._LOGIN_HINT}')
 
         self.report_login()
-        data = '''{"mobileNumber":"%s","channelPartnerID":"MSMIND","country":"IN","timestamp":"%s",
-        "otpSize":6,"loginType":"REGISTERORSIGNIN","isMobileMandatory":true}
-         ''' % (username, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
         otp_request_json = self._download_json(
             'https://apiv2.sonyliv.com/AGL/1.6/A/ENG/WEB/IN/HR/CREATEOTP-V2',
-            None, note='Sending OTP', data=data.encode(), headers=self._HEADERS)
+            None, note='Sending OTP', headers=self._HEADERS, data=json.dumps({
+                'mobileNumber': username,
+                'channelPartnerID': 'MSMIND',
+                'country': 'IN',
+                'timestamp': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
+                'otpSize': 6,
+                'loginType': 'REGISTERORSIGNIN',
+                'isMobileMandatory': True,
+            }).encode())
         if otp_request_json['resultCode'] == 'KO':
             raise ExtractorError(otp_request_json['message'], expected=True)
-        otp_code = self._get_tfa_info('OTP')
-        data = '''{"channelPartnerID":"MSMIND","mobileNumber":"%s","country":"IN","otp":"%s",
-        "dmaId":"IN","ageConfirmation":true,"timestamp":"%s","isMobileMandatory":true}
-         ''' % (username, otp_code, datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%MZ"))
+
         otp_verify_json = self._download_json(
             'https://apiv2.sonyliv.com/AGL/2.0/A/ENG/WEB/IN/HR/CONFIRMOTP-V2',
-            None, note='Verifying OTP', data=data.encode(), headers=self._HEADERS)
+            None, note='Verifying OTP', headers=self._HEADERS, data=json.dumps({
+                'channelPartnerID': 'MSMIND',
+                'mobileNumber': username,
+                'country': 'IN',
+                'otp': self._get_tfa_info('OTP'),
+                'dmaId': 'IN',
+                'ageConfirmation': True,
+                'timestamp': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S.%MZ'),
+                'isMobileMandatory': True,
+            }).encode())
         if otp_verify_json['resultCode'] == 'KO':
             raise ExtractorError(otp_request_json['message'], expected=True)
         self._HEADERS['authorization'] = otp_verify_json['resultObj']['accessToken']

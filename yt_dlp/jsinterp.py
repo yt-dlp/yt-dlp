@@ -1,12 +1,10 @@
-from collections.abc import MutableMapping
+import collections
+import contextlib
 import json
 import operator
 import re
 
-from .utils import (
-    ExtractorError,
-    remove_quotes,
-)
+from .utils import ExtractorError, remove_quotes
 
 _OPERATORS = [
     ('|', operator.or_),
@@ -38,40 +36,19 @@ class JS_Continue(ExtractorError):
         ExtractorError.__init__(self, 'Invalid continue')
 
 
-class LocalNameSpace(MutableMapping):
-    def __init__(self, *stack):
-        self.stack = tuple(stack)
-
-    def __getitem__(self, key):
-        for scope in self.stack:
-            if key in scope:
-                return scope[key]
-        raise KeyError(key)
-
+class LocalNameSpace(collections.ChainMap):
     def __setitem__(self, key, value):
-        for scope in self.stack:
+        for scope in self.maps:
             if key in scope:
                 scope[key] = value
-                break
-        else:
-            self.stack[0][key] = value
-        return value
+                return
+        self.maps[0][key] = value
 
     def __delitem__(self, key):
         raise NotImplementedError('Deleting is not supported')
 
-    def __iter__(self):
-        for scope in self.stack:
-            yield from scope
 
-    def __len__(self, key):
-        return len(iter(self))
-
-    def __repr__(self):
-        return f'LocalNameSpace{self.stack}'
-
-
-class JSInterpreter(object):
+class JSInterpreter:
     def __init__(self, code, objects=None):
         if objects is None:
             objects = {}
@@ -232,7 +209,7 @@ class JSInterpreter(object):
             for default in (False, True):
                 matched = False
                 for item in items:
-                    case, stmt = [i.strip() for i in self._separate(item, ':', 1)]
+                    case, stmt = (i.strip() for i in self._separate(item, ':', 1))
                     if default:
                         matched = matched or case == 'default'
                     elif not matched:
@@ -268,10 +245,10 @@ class JSInterpreter(object):
             expr = expr[:start] + json.dumps(ret) + expr[end:]
 
         for op, opfunc in _ASSIGN_OPERATORS:
-            m = re.match(r'''(?x)
-                (?P<out>%s)(?:\[(?P<index>[^\]]+?)\])?
-                \s*%s
-                (?P<expr>.*)$''' % (_NAME_RE, re.escape(op)), expr)
+            m = re.match(rf'''(?x)
+                (?P<out>{_NAME_RE})(?:\[(?P<index>[^\]]+?)\])?
+                \s*{re.escape(op)}
+                (?P<expr>.*)$''', expr)
             if not m:
                 continue
             right_val = self.interpret_expression(m.group('expr'), local_vars, allow_recursion)
@@ -305,10 +282,8 @@ class JSInterpreter(object):
         if var_m:
             return local_vars[var_m.group('name')]
 
-        try:
+        with contextlib.suppress(ValueError):
             return json.loads(expr)
-        except ValueError:
-            pass
 
         m = re.match(
             r'(?P<in>%s)\[(?P<idx>.+)\]$' % _NAME_RE, expr)
@@ -451,9 +426,9 @@ class JSInterpreter(object):
         m = re.match(r'^(?P<func>%s)\((?P<args>[a-zA-Z0-9_$,]*)\)$' % _NAME_RE, expr)
         if m:
             fname = m.group('func')
-            argvals = tuple([
+            argvals = tuple(
                 int(v) if v.isdigit() else local_vars[v]
-                for v in self._separate(m.group('args'))])
+                for v in self._separate(m.group('args')))
             if fname in local_vars:
                 return local_vars[fname](argvals)
             elif fname not in self._functions:
@@ -524,14 +499,13 @@ class JSInterpreter(object):
 
     def build_function(self, argnames, code, *global_stack):
         global_stack = list(global_stack) or [{}]
-        local_vars = global_stack.pop(0)
 
         def resf(args, **kwargs):
-            local_vars.update({
+            global_stack[0].update({
                 **dict(zip(argnames, args)),
                 **kwargs
             })
-            var_stack = LocalNameSpace(local_vars, *global_stack)
+            var_stack = LocalNameSpace(*global_stack)
             for stmt in self._separate(code.replace('\n', ''), ';'):
                 ret, should_abort = self.interpret_statement(stmt, var_stack)
                 if should_abort:

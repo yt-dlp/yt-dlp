@@ -82,6 +82,7 @@ updates_key.pem
 *.egg-info
 .tox
 *.class
+*.isorted
 
 # Generated
 AUTHORS

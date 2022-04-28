@@ -60,6 +60,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * [EXTRACTOR ARGUMENTS](#extractor-arguments)
 * [PLUGINS](#plugins)
 * [EMBEDDING YT-DLP](#embedding-yt-dlp)
+    * [Embedding examples](#embedding-examples)
 * [DEPRECATED OPTIONS](#deprecated-options)
 * [CONTRIBUTING](CONTRIBUTING.md#contributing-to-yt-dlp)
     * [Opening an Issue](CONTRIBUTING.md#opening-an-issue)
@@ -79,7 +80,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 * **Merged with animelover1984/youtube-dl**: You get most of the features and improvements from [animelover1984/youtube-dl](https://github.com/animelover1984/youtube-dl) including `--write-comments`, `BiliBiliSearch`, `BilibiliChannel`, Embedding thumbnail in mp4/ogg/opus, playlist infojson etc. Note that the NicoNico livestreams are not available. See [#31](https://github.com/yt-dlp/yt-dlp/pull/31) for details.
 
 * **Youtube improvements**:
-    * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`) and private playlists supports downloading multiple pages of content
+    * All Feeds (`:ytfav`, `:ytwatchlater`, `:ytsubs`, `:ythistory`, `:ytrec`, `:ytnotif`) and private playlists supports downloading multiple pages of content
     * Search (`ytsearch:`, `ytsearchdate:`), search URLs and in-channel search works
     * Mixes supports downloading multiple pages of content
     * Some (but not all) age-gated content can be downloaded without cookies
@@ -148,6 +149,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * youtube-dl tries to remove some superfluous punctuations from filenames. While this can sometimes be helpfull, it is often undesirable. So yt-dlp tries to keep the fields in the filenames as close to their original values as possible. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
 
 For ease of use, a few more compat options are available:
+
 * `--compat-options all`: Use all compat options
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
@@ -166,7 +168,7 @@ You can simply download the [correct binary file](#release-files) for your OS
 [![Linux](https://img.shields.io/badge/-Linux/MacOS/BSD-red.svg?style=for-the-badge&logo=linux)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)
 [![Source Tarball](https://img.shields.io/badge/-Source_tar-green.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
 [![Other variants](https://img.shields.io/badge/-Other-grey.svg?style=for-the-badge)](#release-files)
-[![ALl versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
+[![All versions](https://img.shields.io/badge/-All_Versions-lightgrey.svg?style=for-the-badge)](https://github.com/yt-dlp/yt-dlp/releases)
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 Note: The manpages, shell completion files etc. are available in the [source tarball](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.tar.gz)
@@ -485,7 +487,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     -R, --retries RETRIES            Number of retries (default is 10), or
                                      "infinite"
     --file-access-retries RETRIES    Number of times to retry on file access
-                                     error (default is 10), or "infinite"
+                                     error (default is 3), or "infinite"
     --fragment-retries RETRIES       Number of retries for a fragment (default
                                      is 10), or "infinite" (DASH, hlsnative and
                                      ISM)
@@ -688,9 +690,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      print it, separated by a ":". Supported
                                      values of "WHEN" are the same as that of
                                      --use-postprocessor, and "video" (default).
-                                     Implies --quiet and --simulate (unless
-                                     --no-simulate is used). This option can be
-                                     used multiple times
+                                     Implies --quiet. Implies --simulate unless
+                                     --no-simulate or later stages of WHEN are
+                                     used. This option can be used multiple
+                                     times
     --print-to-file [WHEN:]TEMPLATE FILE
                                      Append given template to the file. The
                                      values of WHEN and TEMPLATE are same as
@@ -925,8 +928,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      same codecs and number of streams to be
                                      concatable. The "pl_video:" prefix can be
                                      used with "--paths" and "--output" to set
-                                     the output filename for the split files.
-                                     See "OUTPUT TEMPLATE" for details
+                                     the output filename for the concatenated
+                                     files. See "OUTPUT TEMPLATE" for details
     --fixup POLICY                   Automatically correct known faults of the
                                      file. One of never (do nothing), warn (only
                                      emit a warning), detect_or_warn (the
@@ -1063,8 +1066,9 @@ You can configure yt-dlp by placing any supported command line option to a confi
     * `%APPDATA%/yt-dlp/config.txt`
     * `~/yt-dlp.conf`
     * `~/yt-dlp.conf.txt`
-
+    
     `%XDG_CONFIG_HOME%` defaults to `~/.config` if undefined. On windows, `%APPDATA%` generally points to `C:\Users\<user name>\AppData\Roaming` and `~` points to `%HOME%` if present, `%USERPROFILE%` (generally `C:\Users\<user name>`), or `%HOMEDRIVE%%HOMEPATH%`
+
 1. **System Configuration**: `/etc/yt-dlp.conf`
 
 For example, with the following configuration file yt-dlp will always extract the audio, not copy the mtime, use a proxy and save all videos under `YouTube` directory in your home directory:
@@ -1121,6 +1125,7 @@ The simplest usage of `-o` is not to set any template arguments when downloading
 It may however also contain special sequences that will be replaced when downloading each video. The special sequences may be formatted according to [Python string formatting operations](https://docs.python.org/3/library/stdtypes.html#printf-style-string-formatting). For example, `%(NAME)s` or `%(NAME)05d`. To clarify, that is a percent symbol followed by a name in parentheses, followed by formatting operations.
 
 The field names themselves (the part inside the parenthesis) can also have some special formatting:
+
 1. **Object traversal**: The dictionaries and lists available in metadata can be traversed by using a `.` (dot) separator. You can also do python slicing using `:`. Eg: `%(tags.0)s`, `%(subtitles.en.-1.ext)s`, `%(id.3:7:-1)s`, `%(formats.:.format_id)s`. `%()s` refers to the entire infodict. Note that all the fields that become available using this method are not listed below. Use `-j` to see such fields
 
 1. **Addition**: Addition and subtraction of numeric fields can be done using `+` and `-` respectively. Eg: `%(playlist_index+10)03d`, `%(n_entries+1-playlist_index)d`
@@ -1601,7 +1606,9 @@ The general syntax of `--parse-metadata FROM:TO` is to give the name of a field 
 Note that any field created by this can be used in the [output template](#output-template) and will also affect the media file's metadata added when using `--add-metadata`.
 
 This option also has a few special uses:
+
 * You can download an additional URL based on the metadata of the currently downloaded video. To do this, set the field `additional_urls` to the URL that you want to download. Eg: `--parse-metadata "description:(?P<additional_urls>https?://www\.vimeo\.com/\d+)` will download the first vimeo video found in the description
+
 * You can use this to change the metadata that is embedded in the media file. To do this, set the value of the corresponding field with a `meta_` prefix. For example, any value you set to `meta_description` field will be added to the `description` field in the file. For example, you can use this to set a different "description" and "synopsis". To modify the metadata of individual streams, use the `meta<n>_` prefix (Eg: `meta1_language`). Any value set to the `meta_` field will overwrite all default values.
 
 **Note**: Metadata modification happens before format selection, post-extraction and other post-processing operations. Some fields may be added or changed during these steps, overriding your changes.
@@ -1743,19 +1750,72 @@ From a Python program, you can embed yt-dlp in a more powerful fashion, like thi
 ```python
 from yt_dlp import YoutubeDL
 
-ydl_opts = {'format': 'bestaudio'}
-with YoutubeDL(ydl_opts) as ydl:
-    ydl.download(['https://www.youtube.com/watch?v=BaW_jenozKc'])
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+with YoutubeDL() as ydl:
+    ydl.download(URLS)
 ```
 
-Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L197).
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L181).
 
-Here's a more complete example demonstrating various functionality:
+**Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the [example below](#extracting-information)
+
+## Embedding examples
+
+#### Extracting information
 
 ```python
 import json
 import yt_dlp
 
+URL = 'https://www.youtube.com/watch?v=BaW_jenozKc'
+
+# ℹ️ See help(yt_dlp.YoutubeDL) for a list of available options and public functions
+ydl_opts = {}
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    info = ydl.extract_info(URL, download=False)
+
+    # ℹ️ ydl.sanitize_info makes the info json-serializable
+    print(json.dumps(ydl.sanitize_info(info)))
+```
+#### Download using an info-json
+
+```python
+import yt_dlp
+
+INFO_FILE = 'path/to/video.info.json'
+
+with yt_dlp.YoutubeDL() as ydl:
+    error_code = ydl.download_with_info_file(INFO_FILE)
+
+print('Some videos failed to download' if error_code
+      else 'All videos successfully downloaded')
+```
+
+#### Extract audio
+
+```python
+import yt_dlp
+
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+
+ydl_opts = {
+    'format': 'm4a/bestaudio/best'
+    # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
+    'postprocessors': [{  # Extract audio using ffmpeg
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'm4a',
+    }]
+}
+
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    error_code = ydl.download(URLS)
+```
+#### Adding logger and progress hook
+
+```python
+import yt_dlp
+
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
 class MyLogger:
     def debug(self, msg):
@@ -1776,23 +1836,51 @@ class MyLogger:
         print(msg)
 
 
-# ℹ️ See the docstring of yt_dlp.postprocessor.common.PostProcessor
+# ℹ️ See "progress_hooks" in help(yt_dlp.YoutubeDL)
+def my_hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now post-processing ...')
+
+
+ydl_opts = {
+    'logger': MyLogger(),
+    'progress_hooks': [my_hook],
+}
+
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.download(URLS)
+```
+
+#### Add a custom PostProcessor
+
+```python
+import yt_dlp
+
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+
+# ℹ️ See help(yt_dlp.postprocessor.PostProcessor)
 class MyCustomPP(yt_dlp.postprocessor.PostProcessor):
-    # ℹ️ See docstring of yt_dlp.postprocessor.common.PostProcessor.run
     def run(self, info):
         self.to_screen('Doing stuff')
         return [], info
 
 
-# ℹ️ See "progress_hooks" in the docstring of yt_dlp.YoutubeDL
-def my_hook(d):
-    if d['status'] == 'finished':
-        print('Done downloading, now converting ...')
+with yt_dlp.YoutubeDL() as ydl:
+    ydl.add_post_processor(MyCustomPP())
+    ydl.download(URLS)
+```
 
+
+#### Use a custom format selector
+
+```python
+import yt_dlp
+
+URL = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
 def format_selector(ctx):
     """ Select the best video and the best audio that won't result in an mkv.
-    This is just an example and does not handle all cases """
+    NOTE: This is just an example and does not handle all cases """
 
     # formats are already sorted worst to best
     formats = ctx.get('formats')[::-1]
@@ -1807,8 +1895,8 @@ def format_selector(ctx):
     best_audio = next(f for f in formats if (
         f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
 
+    # These are the minimum required fields for a merged format
     yield {
-        # These are the minimum required fields for a merged format
         'format_id': f'{best_video["format_id"]}+{best_audio["format_id"]}',
         'ext': best_video['ext'],
         'requested_formats': [best_video, best_audio],
@@ -1817,35 +1905,13 @@ def format_selector(ctx):
     }
 
 
-# ℹ️ See docstring of yt_dlp.YoutubeDL for a description of the options
 ydl_opts = {
     'format': format_selector,
-    'postprocessors': [{
-        # Embed metadata in video using ffmpeg.
-        # ℹ️ See yt_dlp.postprocessor.FFmpegMetadataPP for the arguments it accepts
-        'key': 'FFmpegMetadata',
-        'add_chapters': True,
-        'add_metadata': True,
-    }],
-    'logger': MyLogger(),
-    'progress_hooks': [my_hook],
-    # Add custom headers
-    'http_headers': {'Referer': 'https://www.google.com'}
 }
 
-
-# ℹ️ See the public functions in yt_dlp.YoutubeDL for for other available functions.
-# Eg: "ydl.download", "ydl.download_with_info_file"
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    ydl.add_post_processor(MyCustomPP())
-    info = ydl.extract_info('https://www.youtube.com/watch?v=BaW_jenozKc')
-
-    # ℹ️ ydl.sanitize_info makes the info json-serializable
-    print(json.dumps(ydl.sanitize_info(info)))
+    ydl.download(URLS)
 ```
-
-**Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the example above
-
 
 <!-- MANPAGE: MOVE "NEW FEATURES" SECTION HERE -->
 
@@ -1960,8 +2026,7 @@ These options may no longer work as intended
 These options were deprecated since 2014 and have now been entirely removed
 
     -A, --auto-number                -o "%(autonumber)s-%(id)s.%(ext)s"
-    -t, --title                      -o "%(title)s-%(id)s.%(ext)s"
-    -l, --literal                    -o accepts literal names
+    -t, -l, --title, --literal       -o "%(title)s-%(id)s.%(ext)s"
 
 # CONTRIBUTING
 See [CONTRIBUTING.md](CONTRIBUTING.md#contributing-to-yt-dlp) for instructions on [Opening an Issue](CONTRIBUTING.md#opening-an-issue) and [Contributing code to the project](CONTRIBUTING.md#developer-instructions)
