@@ -867,7 +867,7 @@ class IqAlbumIE(InfoExtractor):
             'age_limit': 13,
             'average_rating': float,
         },
-        'expected_warnings': ['format is restricted']
+        'expected_warnings': ['format is restricted', 'format not present']
     }]
 
     def _entries(self, album_id_num, page_ranges, album_id=None, mode_code='intl', lang_code='en_us'):
