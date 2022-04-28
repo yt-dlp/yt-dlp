@@ -3402,13 +3402,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         original_thumbnails = thumbnails.copy()
 
         # The best resolution thumbnails sometimes does not appear in the webpage
-        # See: https://github.com/ytdl-org/youtube-dl/issues/29049, https://github.com/yt-dlp/yt-dlp/issues/340
+        # See: https://github.com/yt-dlp/yt-dlp/issues/340
         # List of possible thumbnails - Ref: <https://stackoverflow.com/a/20542029>
         thumbnail_names = [
-            'maxresdefault', 'hq720', 'sddefault', 'sd1', 'sd2', 'sd3',
-            'hqdefault', 'hq1', 'hq2', 'hq3', '0',
-            'mqdefault', 'mq1', 'mq2', 'mq3',
-            'default', '1', '2', '3'
+            # While the *1,*2,*3 thumbnails are just below their correspnding "*default" variants
+            # in resolution, these are not the custom thumbnail. So de-prioritize them
+            'maxresdefault', 'hq720', 'sddefault', 'hqdefault', '0', 'mqdefault', 'default',
+            'sd1', 'sd2', 'sd3', 'hq1', 'hq2', 'hq3', 'mq1', 'mq2', 'mq3', '1', '2', '3'
         ]
         n_thumbnail_names = len(thumbnail_names)
         thumbnails.extend({
