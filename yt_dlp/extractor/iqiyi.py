@@ -407,42 +407,54 @@ class IqIE(InfoExtractor):
     IE_DESC = 'International version of iQiyi'
     _VALID_URL = r'https?://(?:www\.)?iq\.com/play/(?:[\w%-]*-)?(?P<id>\w+)'
     _TESTS = [{
-        'url': 'https://www.iq.com/play/one-piece-episode-1000-1ma1i6ferf4',
-        'md5': '2d7caf6eeca8a32b407094b33b757d39',
+        'url': 'https://www.iq.com/play/conspiracy-of-love-episode-1-19rza4kl2w?lang=en_us',
+        'md5': '9ab85839a0b717382f505265c7c5eb85',
         'info_dict': {
             'ext': 'mp4',
-            'id': '1ma1i6ferf4',
-            'title': '航海王 第1000集',
-            'description': 'Subtitle available on Sunday 4PM（GMT+8）.',
-            'duration': 1430,
-            'timestamp': 1637488203,
-            'upload_date': '20211121',
-            'episode_number': 1000,
-            'episode': 'Episode 1000',
-            'series': 'One Piece',
-            'age_limit': 13,
+            'id': '19rza4kl2w',
+            'title': '谋爱上瘾 第1集',
+            'description': "In order to reclaim everything that is rightfully hers from her uncle, she decided to approach her uncle’s biggest client—Sheng Jun. Initially thinking that everything would go according to her plan, little did she know that Sheng Jun is also carefully crafting his moves and already has her wrapped around his fingers. The two gets trapped in love but both are scared to express their honest feelings to each other, for one wrong step might lead to the point of no return.",
+            'duration': 407.0,
+            'timestamp': 1596215239,
+            'upload_date': '20200731',
+            'episode_number': 1,
+            'episode': 'Episode 1',
+            'series': 'Conspiracy of Love',
+            'age_limit': None,
             'average_rating': float,
         },
         'params': {
             'format': '500',
         },
-        'expected_warnings': ['format is restricted']
+        'expected_warnings': ['format is restricted', 'format not present']
     }, {
         # VIP-restricted video
         'url': 'https://www.iq.com/play/mermaid-in-the-fog-2021-gbdpx13bs4',
         'only_matching': True
     }, {
+        # Only audio
         'url': 'https://www.iq.com/play/the-spy-dad-2003-19ruth8vp4',
-        'md5': 'TODO: md5 sum of the first 10241 bytes of the video file (use --test)',
+        'md5': 'd27c4823ed0c9294ace0d946c94e7497',
         'info_dict': {
             'ext': 'mp4',
             'id': '19ruth8vp4',
+            'title': 'The Spy Dad',
             'description': "In Hong Kong, a terrorist organization plans to blackmail the world's government with the help of two fatal diseases a goofy scientist created. Two Interpol agents went to stop their evil plot of world domination, but one of them became a victim of one of the diseases and wanders off acting like a six-year old child. He mindlessly walks into a bullied action film star's mansion, and the star, Jones Bon, was forced to babysit him while dealing with affairs involving his divorced wife and his two daughters. Only a short period of times has passed when Jones, although paying more attention to solving his family situations, finds himself fighting the terrorists.",
+            'duration': 5554.0,
+            'timestamp': 1579188614,
+            'upload_date': '20200116',
+            'episode_number': None,
+            'episode':  None,
+            'series': 'The Spy Dad',
+            'age_limit': 16,
+            'average_rating': float,
+            'fragment_urls': list,
+            'cast': ['Tony Ka Fai Leung', 'Teresa Mo'],
         },
         'params': {
             'format': '300_Cantonese'
         },
-        'expected_warnings': ['format is restricted']
+        'expected_warnings': ['format is restricted', 'format not present', 'This preview video is limited to 360.0 seconds']
     }]
     _BID_TAGS = {
         '100': '240P',
@@ -732,6 +744,8 @@ class IqIE(InfoExtractor):
             if not extracted_formats:
                 if audio_format.get('s'):
                     self.report_warning(f'format is restricted {audio_format_name}')
+                elif not audio_format.get('fs'):
+                    self.report_warning(f'format not present {audio_format_name}')
                 else:
                     self.report_warning(f'Unable to extract format {audio_format_name}')
             formats.extend(extracted_formats)
