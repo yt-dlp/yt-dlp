@@ -173,10 +173,11 @@ class HTTPResponse(ABC, io.IOBase):
     """
     REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308]
 
-    def __init__(self, headers, status, http_version=None, reason=None):
+    def __init__(self, headers, status, http_version=None, reason=None, method=None):
         self.headers = HTTPHeaderStore(headers)
         self.status = self.code = status
         self.reason = reason
+        self.method = method
         if not reason:
             try:
                 self.reason = HTTPStatus(status).name.replace('_', ' ').title()

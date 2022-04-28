@@ -8,7 +8,7 @@ from random import random
 
 from yt_dlp.networking import UrllibRH, network_handlers
 from yt_dlp.networking.common import Request, RHManager, UnsupportedRH, HEADRequest
-from yt_dlp.utils import HTTPError, SSLError
+from yt_dlp.utils import HTTPError, SSLError, TransportError
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -40,11 +40,15 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+    def _redirect(self):
+        self.send_response(int(self.path[len('/redirect_'):]))
+        self.send_header('Location', '/gen_204')
+        self.send_header('Content-Length', '0')
+        self.end_headers()
+
     def do_HEAD(self):
-        if self.path.startswith('/redirect'):
-            self.send_response(303)
-            self.send_header('Location', '/gen_204')
-            self.end_headers()
+        if self.path.startswith('/redirect_'):
+            self._redirect()
         else:
             assert False
 
@@ -82,11 +86,8 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             self.send_header('Location', self.path)
             self.send_header('Content-Length', '0')
             self.end_headers()
-        elif self.path.startswith('/redirect'):
-            self.send_response(301)
-            self.send_header('Location', '/gen_204')
-            self.send_header('Content-Length', '0')
-            self.end_headers()
+        elif self.path.startswith('/redirect_'):
+            self._redirect()
         else:
             assert False
 
@@ -203,13 +204,22 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
     def test_get_url(self):
         ydl = self.make_ydl()
-        res = ydl.urlopen('http://127.0.0.1:%d/redirect' % self.http_port)
-        res.read()
+        res = ydl.urlopen('http://127.0.0.1:%d/redirect_301' % self.http_port)
         self.assertEqual(res.url, 'http://127.0.0.1:%d/gen_204' % self.http_port)
-        # TODO: rework redirect handlers
-        res2 = ydl.urlopen(HEADRequest('http://127.0.0.1:%d/redirect' % self.http_port))
-        a = res2.read()
-        self.assertEqual(res2.url, 'http://127.0.0.1:%d/gen_204' % self.http_port)
+        res.close()
+        res2 = ydl.urlopen('http://127.0.0.1:%d/gen_200' % self.http_port)
+        self.assertEqual(res2.url, 'http://127.0.0.1:%d/gen_200' % self.http_port)
+        res2.close()
+
+    def test_redirect(self):
+        # TODO
+        ydl = self.make_ydl()
+        # HEAD request. Should follow through with head request to gen_204 which should fail.
+        with self.assertRaises(TransportError):
+            ydl.urlopen(HEADRequest('http://127.0.0.1:%d/redirect_301' % self.http_port))
+
+        res = ydl.urlopen('http://127.0.0.1:%d/redirect_301' % self.http_port)
+        self.assertEquals(res.method, 'GET')
 
 
 def with_request_handlers(handlers=REQUEST_HANDLERS):
