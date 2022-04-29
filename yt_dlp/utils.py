@@ -1859,7 +1859,7 @@ def write_string(s, out=None, encoding=None):
 
     from .compat import WINDOWS_VT_MODE  # Must be imported locally
     if WINDOWS_VT_MODE:
-        s = s.replace('\n', ' \n')
+        s = re.sub(r'([\r\n]+)', r' \1', s)
 
     if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
@@ -3177,7 +3177,7 @@ def parse_codecs(codecs_str):
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec, tcodec, hdr = None, None, None, None
+    vcodec, acodec, scodec, hdr = None, None, None, None
     for full_codec in split_codecs:
         parts = full_codec.split('.')
         codec = parts[0].replace('0', '')
@@ -3195,16 +3195,16 @@ def parse_codecs(codecs_str):
             if not acodec:
                 acodec = full_codec
         elif codec in ('stpp', 'wvtt',):
-            if not tcodec:
-                tcodec = full_codec
+            if not scodec:
+                scodec = full_codec
         else:
             write_string(f'WARNING: Unknown codec {full_codec}\n')
-    if vcodec or acodec or tcodec:
+    if vcodec or acodec or scodec:
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
-            **({'tcodec': tcodec} if tcodec is not None else {}),
+            **({'scodec': scodec} if scodec is not None else {}),
         }
     elif len(split_codecs) == 2:
         return {

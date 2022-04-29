@@ -2808,7 +2808,7 @@ class InfoExtractor:
                             content_type = 'video'
                         elif codecs['acodec'] != 'none':
                             content_type = 'audio'
-                        elif codecs.get('tcodec', 'none') != 'none':
+                        elif codecs.get('scodec', 'none') != 'none':
                             content_type = 'text'
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'

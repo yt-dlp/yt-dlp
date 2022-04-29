@@ -320,9 +320,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## General Options:
     -h, --help                       Print this help text and exit
     --version                        Print program version and exit
-    -U, --update                     Update this program to latest version. Make
-                                     sure that you have sufficient permissions
-                                     (run with sudo if needed)
+    -U, --update                     Update this program to latest version
     -i, --ignore-errors              Ignore download and postprocessing errors.
                                      The download will be considered successful
                                      even if the postprocessing fails
