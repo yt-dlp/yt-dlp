@@ -409,12 +409,14 @@ class YoutubeDL:
     sleep_interval_subtitles: Number of seconds to sleep before each subtitle download
     listformats:       Print an overview of available video formats and exit.
     list_thumbnails:   Print a table of all thumbnails and exit.
-    match_filter:      A function that gets called with the info_dict of
-                       every video.
-                       If it returns a message, the video is ignored.
-                       If it returns None, the video is downloaded.
-                       If it returns utils.NO_DEFAULT, the user is interactively
-                       asked whether to download the video.
+    match_filter:      A function that gets called for every video with the signature
+                       (info_dict, *, incomplete: bool) -> Optional[str]
+                       For backward compatibility with youtube-dl, the signature
+                       (info_dict) -> Optional[str] is also allowed.
+                       - If it returns a message, the video is ignored.
+                       - If it returns None, the video is downloaded.
+                       - If it returns utils.NO_DEFAULT, the user is interactively
+                         asked whether to download the video.
                        match_filter_func in utils.py is one example for this.
     no_color:          Do not emit color codes in output.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For

@@ -127,7 +127,7 @@ setup(
     packages=packages,
     install_requires=REQUIREMENTS,
     project_urls={
-        'Documentation': 'https://yt-dlp.readthedocs.io',
+        'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
         'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
         'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',

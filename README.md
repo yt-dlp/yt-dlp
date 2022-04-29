@@ -270,7 +270,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 * [**mutagen**](https://github.com/quodlibet/mutagen)\* - For embedding thumbnail in certain formats. Licensed under [GPLv2+](https://github.com/quodlibet/mutagen/blob/master/COPYING)
 * [**pycryptodomex**](https://github.com/Legrandin/pycryptodome)\* - For decrypting AES-128 HLS streams and various other data. Licensed under [BSD-2-Clause](https://github.com/Legrandin/pycryptodome/blob/master/LICENSE.rst)
 * [**websockets**](https://github.com/aaugustin/websockets)\* - For downloading over websocket. Licensed under [BSD-3-Clause](https://github.com/aaugustin/websockets/blob/main/LICENSE)
-* [**secretstorage**](https://github.com/mitya57/secretstorage)\* - For accessing the Gnome keyring while decrypting cookies of Chromium-based browsers on Linux. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
+* [**secretstorage**](https://github.com/mitya57/secretstorage) - For accessing the Gnome keyring while decrypting cookies of Chromium-based browsers on Linux. Licensed under [BSD-3-Clause](https://github.com/mitya57/secretstorage/blob/master/LICENSE)
 * [**brotli**](https://github.com/google/brotli)\* or [**brotlicffi**](https://github.com/python-hyper/brotlicffi) - [Brotli](https://en.wikipedia.org/wiki/Brotli) content encoding support. Both licensed under MIT <sup>[1](https://github.com/google/brotli/blob/master/LICENSE) [2](https://github.com/python-hyper/brotlicffi/blob/master/LICENSE) </sup>
 * [**certifi**](https://github.com/certifi/python-certifi)\* - Provides Mozilla's root certificate bundle. Licensed under [MPLv2](https://github.com/certifi/python-certifi/blob/master/LICENSE)
 * [**AtomicParsley**](https://github.com/wez/atomicparsley) - For embedding thumbnail in mp4/m4a if mutagen/ffmpeg cannot. Licensed under [GPLv2+](https://github.com/wez/atomicparsley/blob/master/COPYING)
@@ -282,7 +282,7 @@ While all the other dependencies are optional, `ffmpeg` and `ffprobe` are highly
 
 To use or redistribute the dependencies, you must agree to their respective licensing terms.
 
-The Windows and MacOS standalone release binaries are already built with the python interpreter and all optional python packages (marked with \*) included.
+The Windows and MacOS standalone release binaries are built with the Python interpreter and the packages marked with \* included.
 
 <!-- TODO: ffmpeg has merged this patch. Remove this note once there is new release -->
 **Note**: There are some regressions in newer ffmpeg versions that causes various issues when used alongside yt-dlp. Since ffmpeg is such an important dependency, we provide [custom builds](https://github.com/yt-dlp/FFmpeg-Builds#ffmpeg-static-auto-builds) with patches for these issues at [yt-dlp/FFmpeg-Builds](https://github.com/yt-dlp/FFmpeg-Builds). See [the readme](https://github.com/yt-dlp/FFmpeg-Builds#patches-applied) for details on the specific issues solved by these builds
@@ -533,10 +533,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      (http, ftp, m3u8, dash, rstp, rtmp, mms) to
                                      use it for. Currently supports native,
                                      aria2c, avconv, axel, curl, ffmpeg, httpie,
-                                     wget (Recommended: aria2c). You can use
-                                     this option multiple times to set different
-                                     downloaders for different protocols. For
-                                     example, --downloader aria2c --downloader
+                                     wget. You can use this option multiple
+                                     times to set different downloaders for
+                                     different protocols. For example,
+                                     --downloader aria2c --downloader
                                      "dash,m3u8:native" will use aria2c for
                                      http/ftp downloads, and the native
                                      downloader for dash/m3u8 downloads (Alias:
@@ -1801,7 +1801,7 @@ import yt_dlp
 URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
 
 ydl_opts = {
-    'format': 'm4a/bestaudio/best'
+    'format': 'm4a/bestaudio/best',
     # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
     'postprocessors': [{  # Extract audio using ffmpeg
         'key': 'FFmpegExtractAudio',
@@ -1812,6 +1812,28 @@ ydl_opts = {
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
     error_code = ydl.download(URLS)
 ```
+
+#### Filter videos
+
+```python
+import yt_dlp
+
+URLS = ['https://www.youtube.com/watch?v=BaW_jenozKc']
+
+def longer_than_a_minute(info, *, incomplete):
+    """Download only videos longer than a minute (or with unknown duration)"""
+    duration = info.get('duration')
+    if duration and duration < 60:
+        return 'The video is too short'
+
+ydl_opts = {
+    'match_filter': longer_than_a_minute,
+}
+
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    error_code = ydl.download(URLS)
+```
+
 #### Adding logger and progress hook
 
 ```python
