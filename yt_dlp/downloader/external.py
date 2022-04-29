@@ -368,7 +368,7 @@ class FFmpegFD(ExternalFD):
 
         # These exists only for compatibility. Extractors should use
         # info_dict['downloader_options']['ffmpeg_args'] instead
-        args += info_dict.get('_ffmpeg_args')
+        args += info_dict.get('_ffmpeg_args') or []
         seekable = info_dict.get('_seekable')
         if seekable is not None:
             # setting -seekable prevents ffmpeg from guessing if the server

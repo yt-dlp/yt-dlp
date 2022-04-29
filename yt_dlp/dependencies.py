@@ -1,4 +1,6 @@
 # flake8: noqa: F401
+"""Imports all optional dependencies for the project.
+An attribute "_yt_dlp__identifier" may be inserted into the module if it uses an ambigious namespace"""
 
 try:
     import brotlicffi as brotli
@@ -28,6 +30,15 @@ except ImportError:
         from Crypto.Cipher import AES as Cryptodome_AES
     except ImportError:
         Cryptodome_AES = None
+    else:
+        try:
+            # In pycrypto, mode defaults to ECB. See:
+            # https://www.pycryptodome.org/en/latest/src/vs_pycrypto.html#:~:text=not%20have%20ECB%20as%20default%20mode
+            Cryptodome_AES.new(b'abcdefghijklmnop')
+        except TypeError:
+            pass
+        else:
+            Cryptodome_AES._yt_dlp__identifier = 'pycrypto'
 
 
 try:

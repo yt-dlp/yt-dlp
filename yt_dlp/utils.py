@@ -245,6 +245,8 @@ DATE_FORMATS_MONTH_FIRST.extend([
 PACKED_CODES_RE = r"}\('(.+)',(\d+),(\d+),'([^']+)'\.split\('\|'\)"
 JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<json_ld>.+?)</script>'
 
+NUMBER_RE = r'\d+(?:\.\d+)?'
+
 
 def preferredencoding():
     """Get preferred encoding.
@@ -3427,7 +3429,7 @@ def parse_dfxp_time_expr(time_expr):
     if not time_expr:
         return
 
-    mobj = re.match(r'^(?P<time_offset>\d+(?:\.\d+)?)s?$', time_expr)
+    mobj = re.match(rf'^(?P<time_offset>{NUMBER_RE})s?$', time_expr)
     if mobj:
         return float(mobj.group('time_offset'))
 

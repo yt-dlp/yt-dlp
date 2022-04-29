@@ -1922,8 +1922,7 @@ class InfoExtractor:
     def _sort_formats(self, formats, field_preference=[]):
         if not formats:
             return
-        format_sort = self.FormatSort(self, field_preference)
-        formats.sort(key=lambda f: format_sort.calculate_preference(f))
+        formats.sort(key=self.FormatSort(self, field_preference).calculate_preference)
 
     def _check_formats(self, formats, video_id):
         if formats:

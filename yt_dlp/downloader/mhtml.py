@@ -173,7 +173,7 @@ body > figure > img {
                 mime_type = b'image/png'
             if frag_content.startswith((b'GIF87a', b'GIF89a')):
                 mime_type = b'image/gif'
-            if frag_content.startswith(b'RIFF') and frag_content[8:12] == 'WEBP':
+            if frag_content.startswith(b'RIFF') and frag_content[8:12] == b'WEBP':
                 mime_type = b'image/webp'
 
             frag_header = io.BytesIO()

@@ -1,3 +1,5 @@
+import os
+
 from .common import PostProcessor
 from ..compat import compat_os_name
 from ..utils import (
@@ -28,6 +30,7 @@ class XAttrMetadataPP(PostProcessor):
         self.to_screen('Writing metadata to file\'s xattrs')
 
         filename = info['filepath']
+        mtime = os.stat(filename).st_mtime
 
         try:
             xattr_mapping = {
@@ -53,8 +56,6 @@ class XAttrMetadataPP(PostProcessor):
                     write_xattr(filename, xattrname, byte_value)
                     num_written += 1
 
-            return [], info
-
         except XAttrUnavailableError as e:
             raise PostProcessingError(str(e))
 
@@ -73,4 +74,6 @@ class XAttrMetadataPP(PostProcessor):
                 else:
                     msg += '(You may have to enable them in your /etc/fstab)'
                 raise PostProcessingError(str(e))
-            return [], info
+
+        self.try_utime(filename, mtime, mtime)
+        return [], info

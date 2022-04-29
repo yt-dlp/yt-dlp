@@ -3107,7 +3107,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
                 except ExtractorError as e:
                     self.report_warning(
-                        f'nsig extraction failed: You may experience throttling for some formats\n'
+                        'nsig extraction failed: You may experience throttling for some formats\n'
                         f'n = {query["n"][0]} ; player = {player_url}\n{e}', only_once=True)
                     throttled = True
 
