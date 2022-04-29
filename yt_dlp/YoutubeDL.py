@@ -1399,10 +1399,10 @@ class YoutubeDL:
                     raise
                 except ReExtractInfo as e:
                     if e.expected:
-                        self.to_screen(f'{e}; {self._format_screen("Re-extracting data", self.Style.EMPHASIS)}')
+                        self.to_screen(f'{e}; {self._format_screen("Re-extracting data", self.Styles.EMPHASIS)}')
                     else:
                         self.to_stderr('\r')
-                        self.report_warning(f'{e}; {self._format_err("Re-extracting data", self.Style.WARNING)}')
+                        self.report_warning(f'{e}; {self._format_err("Re-extracting data", self.Styles.WARNING)}')
                     continue
                 except GeoRestrictedError as e:
                     msg = e.msg
@@ -3041,7 +3041,7 @@ class YoutubeDL:
                         if not compatible_formats(requested_formats):
                             info_dict['ext'] = 'mkv'
                             self.report_warning('Requested formats are incompatible for merge and will be merged into '
-                                                f'{self._format_err("mkv", self.Styles.EPHASIS)}')
+                                                f'{self._format_err("mkv", self.Styles.EMPHASIS)}')
                         if (info_dict['ext'] == 'webm'
                                 and info_dict.get('thumbnails')
                                 # check with type instead of pp_key, __name__, or isinstance
@@ -3049,8 +3049,8 @@ class YoutubeDL:
                                 and any(type(pp) == EmbedThumbnailPP for pp in self._pps['post_process'])):
                             info_dict['ext'] = 'mkv'
                             self.report_warning(
-                                f'{self._format_err("webm", self.Styles.EPHASIS)} doesn\'t support embedding a '
-                                f'thumbnail, {self._format_err("mkv", self.Styles.EPHASIS)} will be used'
+                                f'{self._format_err("webm", self.Styles.EMPHASIS)} doesn\'t support embedding a '
+                                f'thumbnail, {self._format_err("mkv", self.Styles.EMPHASIS)} will be used'
                             )
                     new_ext = info_dict['ext']
 
@@ -3090,9 +3090,9 @@ class YoutubeDL:
                             self.report_warning(
                                 'You have requested merging of multiple formats '
                                 'while also allowing %(unplayable)s formats to be downloaded. %(be-warned)s' %
-                                {'unplayable': self._format_err('unplayable', self.Styles.EPHASIS),
+                                {'unplayable': self._format_err('unplayable', self.Styles.EMPHASIS),
                                  'be-warned': self._format_err(
-                                     'The formats won\'t be merged to prevent data corruption.', self.Styles.WARNNING)
+                                     'The formats won\'t be merged to prevent data corruption.', self.Styles.WARNING)
                                  }
                             )
                         elif not merger.available:
