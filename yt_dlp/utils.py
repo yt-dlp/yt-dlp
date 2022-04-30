@@ -1853,7 +1853,7 @@ def write_string(s, out=None, encoding=None):
 
     from .compat import WINDOWS_VT_MODE  # Must be imported locally
     if WINDOWS_VT_MODE:
-        s = s.replace('\n', ' \n')
+        s = s.replace('\n', '\n\r')
 
     if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
