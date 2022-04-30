@@ -1269,7 +1269,7 @@ class YoutubeDL:
                 pass
             elif filename == '-':
                 self.report_warning(f'{self._format_err("--paths", self.Styles.OPTION)} is ignored when '
-                                    f'outputting to {self._format_err("stdout", self.Styles.EMPHASIS)}',
+                                    f'outputting to {self._format_err("stdout", self.Styles.FILENAME)}',
                                     only_once=True)
             elif os.path.isabs(filename):
                 self.report_warning(f'{self._format_err("--paths", self.Styles.OPTION)} is ignored since '
@@ -1912,7 +1912,7 @@ class YoutubeDL:
                         os.remove(temp_file.name)
                     except OSError:
                         self.report_warning('Unable to delete temporary file '
-                                            f'"{self._format_err(temp_file.name, self.Styles.DEMAND)}"')
+                                            f'"{self._format_err(temp_file.name, self.Styles.FILENAME)}"')
             if success:
                 yield f
             else:
