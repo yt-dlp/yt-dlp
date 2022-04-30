@@ -884,6 +884,7 @@ class YoutubeDL:
         HEADERS='yellow',
         DEMAND='bold',
         OPTION='bold',
+        URL='light blue',
         EMPHASIS='light blue',
         REQUIREMENT='light blue',
         FILENAME='green',
@@ -2943,7 +2944,7 @@ class YoutubeDL:
             url = try_get(info_dict['webpage_url'], iri_to_uri)
             if not url:
                 self.report_warning('Cannot write internet shortcut file because the actual URL of '
-                                    f'"{self._format_err(info_dict["webpage_url"], self.Styles.EMPHASIS)}" is unknown')
+                                    f'"{self._format_err(info_dict["webpage_url"], self.Styles.URL)}" is unknown')
                 return True
             linkfn = replace_extension(self.prepare_filename(info_dict, 'link'), link_type, info_dict.get('ext'))
             if not self._ensure_dir_exists(encodeFilename(linkfn)):
@@ -3304,7 +3305,7 @@ class YoutubeDL:
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
                 self.report_warning(f'The info failed to download: {e}; trying '
-                                    f'with URL {self._format_err(webpage_url, self.Styles.EMPHASIS)}')
+                                    f'with URL {self._format_err(webpage_url, self.Styles.URL)}')
                 return self.download([webpage_url])
             else:
                 raise
@@ -3728,7 +3729,7 @@ class YoutubeDL:
             if version_tuple(latest_version) > version_tuple(__version__):
                 self.report_warning(f'You are using an outdated version (newest version: '
                                     f'{self._format_err(latest_version, self.Styles.DEMAND)})! '
-                                    f'See {self._format_err("https://yt-dl.org/update", self.Styles.EMPHASIS)} '
+                                    f'See {self._format_err("https://yt-dl.org/update", self.Styles.URL)} '
                                     'if you need help updating.')
 
     def _setup_opener(self):
