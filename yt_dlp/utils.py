@@ -1507,6 +1507,10 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 try:
                     cf.write(prepare_line(line))
                 except compat_cookiejar.LoadError as e:
+                    if f'{line.strip()} '[0] in '[{"':
+                        raise compat_cookiejar.LoadError(
+                            'Cookies file must be Netscape formatted, not JSON. See  '
+                            'https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl')
                     write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')
                     continue
         cf.seek(0)
