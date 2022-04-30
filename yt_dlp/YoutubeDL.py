@@ -3307,6 +3307,17 @@ class YoutubeDL:
         ''' Alias of sanitize_info for backward compatibility '''
         return YoutubeDL.sanitize_info(info_dict, actually_filter)
 
+    def _delete_downloaded_files(self, *files_to_delete, info={}, msg=None):
+        for filename in set(filter(None, files_to_delete)):
+            if msg:
+                self.to_screen(msg % filename)
+            try:
+                os.remove(filename)
+            except OSError:
+                self.report_warning(f'Unable to delete file {filename}')
+            if filename in info.get('__files_to_move', []):  # NB: Delete even if None
+                del info['__files_to_move'][filename]
+
     @staticmethod
     def post_extract(info_dict):
         def actual_post_extract(info_dict):
@@ -3339,14 +3350,8 @@ class YoutubeDL:
             for f in files_to_delete:
                 infodict['__files_to_move'].setdefault(f, '')
         else:
-            for old_filename in set(files_to_delete):
-                self.to_screen('Deleting original file %s (pass -k to keep)' % old_filename)
-                try:
-                    os.remove(encodeFilename(old_filename))
-                except OSError:
-                    self.report_warning('Unable to remove downloaded original file')
-                if old_filename in infodict['__files_to_move']:
-                    del infodict['__files_to_move'][old_filename]
+            self._delete_downloaded_files(
+                *files_to_delete, info=infodict, msg='Deleting original file %s (pass -k to keep)')
         return infodict
 
     def run_all_pps(self, key, info, *, additional_pps=None):

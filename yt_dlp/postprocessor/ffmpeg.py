@@ -374,7 +374,7 @@ class FFmpegPostProcessor(PostProcessor):
         self.real_run_ffmpeg(
             [(concat_file, ['-hide_banner', '-nostdin', '-f', 'concat', '-safe', '0'])],
             [(out_file, out_flags)])
-        os.remove(concat_file)
+        self._delete_downloaded_files(concat_file)
 
     @classmethod
     def _concat_spec(cls, in_files, concat_opts=None):
@@ -701,8 +701,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
             itertools.chain(self._options(info['ext']), *options))
-        for file in filter(None, files_to_delete):
-            os.remove(file)  # Don't obey --keep-files
+        self._delete_downloaded_files(*files_to_delete)
         os.replace(temp_filename, filename)
         return [], info
 
@@ -1049,7 +1048,7 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
             destination, opts = self._ffmpeg_args_for_chapter(idx + 1, chapter, info)
             self.real_run_ffmpeg([(in_file, opts)], [(destination, self.stream_copy_opts())])
         if in_file != info['filepath']:
-            os.remove(in_file)
+            self._delete_downloaded_files(in_file, msg=None)
         return [], info
 
 

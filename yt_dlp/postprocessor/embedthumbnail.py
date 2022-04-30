@@ -220,11 +220,9 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             os.replace(temp_filename, filename)
 
         self.try_utime(filename, mtime, mtime)
-
-        files_to_delete = [thumbnail_filename]
-        if self._already_have_thumbnail:
-            if original_thumbnail == thumbnail_filename:
-                files_to_delete = []
-        elif original_thumbnail != thumbnail_filename:
-            files_to_delete.append(original_thumbnail)
-        return files_to_delete, info
+        converted = original_thumbnail != thumbnail_filename
+        self._delete_downloaded_files(
+            thumbnail_filename if converted or not self._already_have_thumbnail else None,
+            original_thumbnail if converted and not self._already_have_thumbnail else None,
+            info=info)
+        return [], info
