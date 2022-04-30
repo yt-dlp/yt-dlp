@@ -1422,7 +1422,7 @@ def create_parser():
         dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
         help='Replace text in a metadata field using the given regex. This option can be used multiple times')
     postproc.add_option(
-        '--xattrs',
+        '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
     postproc.add_option(
