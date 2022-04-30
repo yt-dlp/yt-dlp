@@ -989,7 +989,7 @@ class YoutubeDL:
             if outtmpl_dict.get(k) is None})
         for _, val in outtmpl_dict.items():
             if isinstance(val, bytes):
-                self.report_warning(f'Parameter {self._format_err("outtmpl", self.Styles.DEMAND)} '
+                self.report_warning(f'Parameter {self._format_err("outtmpl", self.Styles.KEY)} '
                                     f'is {self._format_err("bytes", self.Styles.EMPHASIS)}, '
                                     f'but should be a {self._format_err("unicode string", self.Styles.EMPHASIS)}')
         return outtmpl_dict
@@ -2721,7 +2721,7 @@ class YoutubeDL:
         for lang in requested_langs:
             formats = available_subs.get(lang)
             if formats is None:
-                self.report_warning(f'{self._format_err(lang, self.Styles.EMPHASIS)} subtitles not available for '
+                self.report_warning(f'{self._format_err(lang, self.Styles.KEY)} subtitles not available for '
                                     f'{self._format_err(video_id, self.Styles.ID)}')
                 continue
             for ext in formats_preference:
