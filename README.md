@@ -321,7 +321,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --version                        Print program version and exit
     -U, --update                     Update this program to latest version. Make
                                      sure that you have sufficient permissions
-                                     (run with sudo if needed)
+                                     (run as root if needed)
     -i, --ignore-errors              Ignore download and postprocessing errors.
                                      The download will be considered successful
                                      even if the postprocessing fails

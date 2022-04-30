@@ -236,7 +236,7 @@ def create_parser():
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
+        help='Update this program to latest version. Make sure that you have sufficient permissions (run as root if needed)')
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
