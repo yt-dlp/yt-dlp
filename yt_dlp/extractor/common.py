@@ -1205,7 +1205,7 @@ class InfoExtractor:
                 if mobj:
                     break
 
-        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
+        _name = self._downloader._format_err(name, self._downloader.Styles.ID)
 
         if mobj:
             if group is None:
