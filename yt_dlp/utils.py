@@ -1509,8 +1509,8 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 # most likely a JSON-formatted cookies file created by EditThisCookie
                 # at least, these 3 characters are invalid for host names
                 raise compat_cookiejar.LoadError(
-                    'the file supplied for --cookies is JSON-formatted, which is not supported. '
-                    'follow instructions at https://www.reddit.com/r/youtubedl/wiki/cookies to get a correct format.')
+                    'Cookies file must be Netscape formatted, not JSON. See  '
+                    'https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl')
             elif fstp:
                 f = itertools.chain([f_first], f)
             for line in f:
