@@ -110,7 +110,7 @@ class VideocampusSachsenIE(InfoExtractor):
 
     def _real_extract(self, url):
         host, video_id, tmp_id, display_id, embed_id = self._match_valid_url(url).group(
-                'host', 'id', 'tmp_id', 'display_id', 'embed_id')
+            'host', 'id', 'tmp_id', 'display_id', 'embed_id')
         webpage = self._download_webpage(url, video_id or tmp_id, fatal=False) or ''
 
         if not video_id:
