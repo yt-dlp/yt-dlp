@@ -118,26 +118,22 @@ class VideocampusSachsenIE(InfoExtractor):
                 rf'src="https?://{host}/media/embed.*(?:\?|&)key=([0-9a-f]+)&?',
                 webpage, 'video_id')
 
-        # Title, description from page meta wouldn't be correct if the video is embedded
-        # so separating normal and embedded extraction
         if not (display_id or tmp_id):
+            # Title, description from embedded page's meta wouldn't be correct
             title = self._html_search_regex(r'<img[^>]*title="([^"<]+)"', webpage, 'title', fatal=False)
             description = None
         else:
             title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, default=None)
-            description = self._html_search_meta(('og:description', 'twitter:description', 'description'), webpage, default=None)
+            description = self._html_search_meta(
+                ('og:description', 'twitter:description', 'description'), webpage, default=None)
 
-        # Many pages don't provide HLSs but some do, so ignoring 404s
-        formats = []
-        subtitles = {}
+        formats, subtitles = [], {}
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 f'https://{host}/media/hlsMedium/key/{video_id}/format/auto/ext/mp4/learning/0/path/m3u8',
-                video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=True)
+                video_id, 'mp4', m3u8_id='hls', fatal=True)
         except ExtractorError as e:
-            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
-                pass
-            else:
+            if not isinstance(e.cause, compat_HTTPError) or e.cause.code != 404:
                 raise
 
         formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4', 'ext': 'mp4'})
