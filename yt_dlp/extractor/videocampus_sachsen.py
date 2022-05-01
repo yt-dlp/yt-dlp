@@ -1,57 +1,61 @@
+import re
+
 from .common import InfoExtractor
+from ..compat import compat_HTTPError
 from ..utils import ExtractorError
 
 
-class VimpIE(InfoExtractor):
-    _INSTANCES_RE = r'''(?:
-        campus\.demo\.vimp\.com|
-        corporate\.demo\.vimp\.com|
-        dancehalldatabase\.com|
-        educhannel\.hs-gesundheit\.de|
-        globale-evolution\.net|
-        media\.cmslegal\.com|
-        media\.hs-furtwangen\.de|
-        media\.hwr-berlin\.de|
-        mediathek\.dkfz\.de|
-        mediathek\.htw-berlin\.de|
-        mediathek\.polizei-bw\.de|
-        medien\.hs-merseburg\.de|
-        mportal\.europa-uni\.de|
-        pacific\.demo\.vimp\.com|
-        slctv\.com|
-        tube\.isbonline\.cn|
-        univideo\.uni-kassel\.de|
-        v\.agrarumweltpaedagogik\.at|
-        video\.eplay-tv\.de|
-        video\.fh-dortmund\.de|
-        video\.hs-offenburg\.de|
-        video\.hs-pforzheim\.de|
-        video\.hspv\.nrw\.de|
-        video\.irtshdf\.fr|
-        video\.pareygo\.de|
-        video\.tu-freiberg\.de|
-        videocampus\.sachsen\.de|
-        videoportal\.uni-freiburg\.de|
-        videos\.duoc\.cl|
-        videos\.uni-paderborn\.de|
-        vimp-bemus\.udk-berlin\.de|
-        vimp\.aekwl\.de|
-        vimp\.oth-regensburg\.de|
-        vimp\.ph-heidelberg\.de|
-        vimp\.sma-events\.com|
-        webtv\.univ-montp3\.fr|
-        www2\.univ-sba\.dz|
-        www\.bigcitytv\.de|
-        www\.fh-bielefeld\.de/medienportal|
-        www\.orvovideo\.com|
-        www\.rwe\.tv|
-        www\.wenglor-media\.com
-    )'''
+class VideocampusSachsenIE(InfoExtractor):
+    IE_NAME = 'Vimp'
+    _INSTANCES = (
+        'campus.demo.vimp.com',
+        'corporate.demo.vimp.com',
+        'dancehalldatabase.com',
+        'educhannel.hs-gesundheit.de',
+        'globale-evolution.net',
+        'media.cmslegal.com',
+        'media.hs-furtwangen.de',
+        'media.hwr-berlin.de',
+        'mediathek.dkfz.de',
+        'mediathek.htw-berlin.de',
+        'mediathek.polizei-bw.de',
+        'medien.hs-merseburg.de',
+        'mportal.europa-uni.de',
+        'pacific.demo.vimp.com',
+        'slctv.com',
+        'tube.isbonline.cn',
+        'univideo.uni-kassel.de',
+        'v.agrarumweltpaedagogik.at',
+        'video.eplay-tv.de',
+        'video.fh-dortmund.de',
+        'video.hs-offenburg.de',
+        'video.hs-pforzheim.de',
+        'video.hspv.nrw.de',
+        'video.irtshdf.fr',
+        'video.pareygo.de',
+        'video.tu-freiberg.de',
+        'videocampus.sachsen.de',
+        'videoportal.uni-freiburg.de',
+        'videos.duoc.cl',
+        'videos.uni-paderborn.de',
+        'vimp-bemus.udk-berlin.de',
+        'vimp.aekwl.de',
+        'vimp.oth-regensburg.de',
+        'vimp.ph-heidelberg.de',
+        'vimp.sma-events.com',
+        'webtv.univ-montp3.fr',
+        'www2.univ-sba.dz',
+        'www.bigcitytv.de',
+        'www.fh-bielefeld.de/medienportal',
+        'www.orvovideo.com',
+        'www.rwe.tv',
+        'www.wenglor-media.com',
+    )
     _VALID_URL = r'''(?x)https?://(?P<host>%s)/(?:
         m/(?P<tmp_id>[0-9a-f]+)|
         (?:category/)?video/(?P<display_id>[\w-]+)/(?P<id>[0-9a-f]{32})|
-        media/embed\?key=(?P<embed_id>[0-9a-f]{32})
-    )''' % (_INSTANCES_RE)
+        media/embed.*(?:\?|&)key=(?P<embed_id>[0-9a-f]{32}&?)
+    )''' % ('|'.join(map(re.escape, _INSTANCES)))
 
     _TESTS = [
         {
@@ -68,7 +72,7 @@ class VimpIE(InfoExtractor):
             'info_dict': {
                 'id': 'fc99c527e4205b121cb7c74433469262',
                 'title': 'Was ist selbstgesteuertes Lernen?',
-                'description': 'Ein Erkl&auml;rvideo zur Definition des selbstgesteuerten Lernens. Kursleiterin Jana m&ouml;chte in ihrem Kurs einen gr&ouml;&szlig;eren Anteil selbstgesteuerter Elemente realisieren. Experte Jonas ber&auml;t sie bei der Kursplanung. Das Video ist im Projekt &quot;Weiterbildung selbstorganisiert&quot; der Professur Bildungstechnologie an der TU Dresden entstanden. Es verweist auf folgende Webseite: https://methodenkoffer-sgl.de/',
+                'description': 'md5:196aa3b0509a526db62f84679522a2f5',
                 'display_id': 'Was-ist-selbstgesteuertes-Lernen',
                 'ext': 'mp4',
             },
@@ -78,7 +82,7 @@ class VimpIE(InfoExtractor):
             'info_dict': {
                 'id': '09d4ed029002eb1bdda610f1103dd54c',
                 'title': 'Tutorial zur Nutzung von Adobe Connect aus Veranstalter-Sicht',
-                'description': '&lt;p&gt; Lernen Sie die wichtigsten Funktionen von Adobe Connect kennen, mit denen Sie selbst eine Online-Veranstaltung als Veranstalter durchf&uuml;hren k&ouml;nnen.&lt;/p&gt;',
+                'description': 'md5:3d379ca3cc17b9da6784d7f58cca4d58',
                 'display_id': 'Tutorial-zur-Nutzung-von-Adobe-Connect-aus-Veranstalter-Sicht',
                 'ext': 'mp4',
             },
@@ -105,12 +109,13 @@ class VimpIE(InfoExtractor):
     ]
 
     def _real_extract(self, url):
-        host, video_id, tmp_id, display_id, embed_id = self._match_valid_url(url).group('host', 'id', 'tmp_id', 'display_id', 'embed_id')
+        host, video_id, tmp_id, display_id, embed_id = self._match_valid_url(url).group(
+                'host', 'id', 'tmp_id', 'display_id', 'embed_id')
         webpage = self._download_webpage(url, video_id or tmp_id, fatal=False) or ''
 
         if not video_id:
             video_id = embed_id or self._html_search_regex(
-                rf'src="https?://{host}/media/embed\?key=([0-9a-f]+)&',
+                rf'src="https?://{host}/media/embed.*(?:\?|&)key=([0-9a-f]+)&?',
                 webpage, 'video_id')
 
         # Title, description from page meta wouldn't be correct if the video is embedded
@@ -122,31 +127,27 @@ class VimpIE(InfoExtractor):
             title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, default=None)
             description = self._html_search_meta(('og:description', 'twitter:description', 'description'), webpage, default=None)
 
-        # Try extraction of HLS first since it usually has multiple formats plus possibly subtitles
-        formats = subtitles = None
+        # Many pages don't provide HLSs but some do, so ignoring 404s
+        formats = []
+        subtitles = {}
         try:
             formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 f'https://{host}/media/hlsMedium/key/{video_id}/format/auto/ext/mp4/learning/0/path/m3u8',
-                video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
-            self._sort_formats(formats)
-        except ExtractorError:
-            pass
+                video_id, 'mp4', 'm3u8_native', m3u8_id='hls', fatal=True)
+        except ExtractorError as e:
+            if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                pass
+            else:
+                raise
 
-        # Formats may be empty
-        if formats:
-            return {
-                'id': video_id,
-                'title': title,
-                'description': description,
-                'display_id': display_id,
-                'formats': formats,
-                'subtitles': subtitles
-            }
-        else:
-            return {
-                'url': f'https://{host}/getMedium/{video_id}.mp4',
-                'id': video_id,
-                'title': title,
-                'description': description,
-                'display_id': display_id
-            }
+        formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4', 'ext': 'mp4'})
+        self._sort_formats(formats)
+
+        return {
+            'id': video_id,
+            'title': title,
+            'description': description,
+            'display_id': display_id,
+            'formats': formats,
+            'subtitles': subtitles
+        }
