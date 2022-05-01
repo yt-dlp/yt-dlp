@@ -2011,7 +2011,11 @@ class locked_file:
             self.f.close()
             raise
         if 'w' in self.mode:
-            self.f.truncate()
+            try:
+                self.f.truncate()
+            except OSError as e:
+                if e.errno != 29:  # Illegal seek, expected when self.f is a FIFO
+                    raise e
         return self
 
     def unlock(self):
