@@ -2000,7 +2000,6 @@ class locked_file:
             os.O_RDONLY if not writable else os.O_RDWR if readable else os.O_WRONLY,
         ))
 
-        # if filename is a FIFO os.open() blocks until the named pipe is read from
         self.f = os.fdopen(os.open(filename, flags, 0o666), mode, encoding=encoding)
 
     def __enter__(self):
