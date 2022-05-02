@@ -412,7 +412,7 @@ class UrllibResponseAdapter(HTTPResponse):
             # In Python 3.9+, res.status was introduced and res.getcode() was deprecated [1]
             # 1. https://github.com/python/cpython/commit/ff2e18286560e981f4e09afb0d2448ea994414d8
             headers=res.headers, status=res.status if hasattr(res, 'status') else res.getcode() if hasattr(res, 'getcode') else None,
-            http_version=res.version if hasattr(res, 'version') else None, method=res._method)
+            http_version=res.version if hasattr(res, 'version') else None, method=res._method if hasattr(res, '_method') else None)
 
     def geturl(self):
         return self._res.geturl()

@@ -5,15 +5,16 @@ import hashlib
 import hmac
 import re
 import struct
+import urllib.parse
 from base64 import urlsafe_b64encode
 from binascii import unhexlify
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
-from ..compat import (
-    compat_urllib_response,
-    compat_urllib_parse_urlparse,
-    compat_urllib_request,
+from ..networking.common import (
+    Request,
+    RequestHandler,
+    SimpleHTTPResponse,
 )
 from ..utils import (
     ExtractorError,
@@ -29,90 +30,17 @@ from ..utils import (
     urljoin,
 )
 
-# TODO
-# NOTE: network handler related code is temporary thing until network stack overhaul PRs are merged (#2861/#2862)
 
-def add_opener(ydl, handler):
-    ''' Add a handler for opening URLs, like _download_webpage '''
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
-    ydl._opener.add_handler(handler)
-
-
-def remove_opener(ydl, handler):
-    '''
-    Remove handler(s) for opening URLs
-    @param handler Either handler object itself or handler type.
-    Specifying handler type will remove all handler which isinstance returns True.
-    '''
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
-    # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    opener = ydl._opener
-    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
-    if isinstance(handler, (type, tuple)):
-        find_cp = lambda x: isinstance(x, handler)
-    else:
-        find_cp = lambda x: x is handler
-
-    removed = []
-    for meth in dir(handler):
-        if meth in ["redirect_request", "do_open", "proxy_open"]:
-            # oops, coincidental match
-            continue
-
-        i = meth.find("_")
-        protocol = meth[:i]
-        condition = meth[i + 1:]
-
-        if condition.startswith("error"):
-            j = condition.find("_") + i + 1
-            kind = meth[j + 1:]
-            try:
-                kind = int(kind)
-            except ValueError:
-                pass
-            lookup = opener.handle_error.get(protocol, {})
-            opener.handle_error[protocol] = lookup
-        elif condition == "open":
-            kind = protocol
-            lookup = opener.handle_open
-        elif condition == "response":
-            kind = protocol
-            lookup = opener.process_response
-        elif condition == "request":
-            kind = protocol
-            lookup = opener.process_request
-        else:
-            continue
-
-        handlers = lookup.setdefault(kind, [])
-        if handlers:
-            handlers[:] = [x for x in handlers if not find_cp(x)]
-
-        removed.append(x for x in handlers if find_cp(x))
-
-    if removed:
-        for x in opener.handlers:
-            if find_cp(x):
-                x.add_parent(None)
-        opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
-
-
-class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
-    handler_order = 499
+class AbemaLicenseHandler(RequestHandler):
     STRTABLE = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     HKEY = b'3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E'
+    SUPPORTED_SCHEMES = ['abematv-license']
 
     def __init__(self, ie: 'AbemaTVIE'):
-        # the protcol that this should really handle is 'abematv-license://'
-        # abematv_license_open is just a placeholder for development purposes
-        # ref. https://github.com/python/cpython/blob/f4c03484da59049eb62a9bf7777b963e2267d187/Lib/urllib/request.py#L510
-        setattr(self, 'abematv-license_open', getattr(self, 'abematv_license_open'))
         self.ie = ie
 
     def _get_videokey_from_ticket(self, ticket):
-        to_show = self.ie._downloader.params.get('verbose', False)
+        to_show = self.ie.get_param('verbose', False)
         media_token = self.ie._get_media_token(to_show=to_show)
 
         license_response = self.ie._download_json(
@@ -137,13 +65,19 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
 
         return intlist_to_bytes(aes_ecb_decrypt(encvideokey, enckey))
 
-    def abematv_license_open(self, url):
-        url = request_to_url(url)
-        ticket = compat_urllib_parse_urlparse(url).netloc
+    @classmethod
+    def can_handle(cls, request: Request, **req_kwargs):
+        return cls._is_supported_scheme(request)
+
+    def handle(self, request: Request, **req_kwargs):
+        url = request_to_url(request)
+        ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
-        return compat_urllib_response.addinfourl(io.BytesIO(response_data), headers={
-            'Content-Length': len(response_data),
-        }, url=url, code=200)
+
+        return SimpleHTTPResponse(
+            data=response_data,
+            headers={'Content-Length': len(response_data)},
+            status=200)
 
 
 class AbemaTVBaseIE(InfoExtractor):
@@ -267,8 +201,8 @@ class AbemaTVIE(AbemaTVBaseIE):
         self._USERTOKEN = user_data['token']
 
         # don't allow adding it 2 times or more, though it's guarded
-        remove_opener(self._downloader, AbemaLicenseHandler)
-        add_opener(self._downloader, AbemaLicenseHandler(self))
+        self._downloader.default_session.remove_handler(AbemaLicenseHandler)
+        self._downloader.default_session.add_handler(AbemaLicenseHandler(self))
 
         return self._USERTOKEN
 

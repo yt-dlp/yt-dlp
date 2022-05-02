@@ -216,6 +216,22 @@ class HTTPResponse(ABC, io.IOBase):
         raise NotImplementedError
 
 
+class SimpleHTTPResponse(HTTPResponse):
+    def __init__(self, data, headers, status, http_version=None, reason=None, method=None):
+        super().__init__(headers, status, http_version, reason, method)
+        if isinstance(data, str):
+            data = data.encode()
+        if isinstance(data, bytes):
+            self.fp = io.BytesIO(data)
+        elif isinstance(data, io.IOBase):
+            self.fp = data
+        else:
+            raise ValueError('invalid value for response data: {!r}'.format(data))
+
+    def read(self, amt: int = None):
+        return self.fp.read(amt)
+
+
 class RequestHandler:
     """
     Bare-bones request handler.
