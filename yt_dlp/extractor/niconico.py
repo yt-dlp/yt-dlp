@@ -7,8 +7,6 @@ import time
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import (
-    compat_parse_qs,
-    compat_urllib_parse_urlparse,
     compat_HTTPError,
 )
 from ..utils import (
@@ -32,6 +30,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
     urlencode_postdata,
+    urljoin,
 )
 
 
@@ -192,7 +191,7 @@ class NiconicoIE(InfoExtractor):
         self._request_webpage(
             'https://account.nicovideo.jp/login', None,
             note='Acquiring Login session')
-        urlh = self._request_webpage(
+        page = self._download_webpage(
             'https://account.nicovideo.jp/login/redirector?show_button_twitter=1&site=niconico&show_button_facebook=1', None,
             note='Logging in', errnote='Unable to log in',
             data=urlencode_postdata(login_form_strs),
@@ -200,14 +199,27 @@ class NiconicoIE(InfoExtractor):
                 'Referer': 'https://account.nicovideo.jp/login',
                 'Content-Type': 'application/x-www-form-urlencoded',
             })
-        if urlh is False:
-            login_ok = False
-        else:
-            parts = compat_urllib_parse_urlparse(urlh.geturl())
-            if compat_parse_qs(parts.query).get('message', [None])[0] == 'cant_login':
-                login_ok = False
+        if 'oneTimePw' in page:
+            post_url = self._search_regex(
+                r'<form[^>]+action=(["\'])(?P<url>.+?)\1', page, 'post url', group='url')
+            page = self._download_webpage(
+                urljoin('https://account.nicovideo.jp', post_url), None,
+                note='Performing MFA', errnote='Unable to complete MFA',
+                data=urlencode_postdata({
+                    'otp': self._get_tfa_info('6 digits code')
+                }), headers={
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                })
+            if 'oneTimePw' in page or 'formError' in page:
+                err_msg = self._html_search_regex(
+                    r'formError["\']+>(.*?)</div>', page, 'form_error',
+                    default='There\'s an error but the message can\'t be parsed.',
+                    flags=re.DOTALL)
+                self.report_warning(f'Unable to log in: MFA challenge failed, "{err_msg}"')
+                return False
+        login_ok = 'class="notice error"' not in page
         if not login_ok:
-            self.report_warning('unable to log in: bad username or password')
+            self.report_warning('Unable to log in: bad username or password')
         return login_ok
 
     def _get_heartbeat_info(self, info_dict):

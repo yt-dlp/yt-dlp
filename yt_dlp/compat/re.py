@@ -1,5 +1,4 @@
 # flake8: noqa: F405
-
 from re import *  # F403
 
 from .compat_utils import passthrough_module

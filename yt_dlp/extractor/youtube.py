@@ -1,3 +1,4 @@
+import base64
 import calendar
 import copy
 import datetime
@@ -287,7 +288,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         # invidious-redirect websites
         r'(?:www\.)?redirect\.invidious\.io',
         r'(?:(?:www|dev)\.)?invidio\.us',
-        # Invidious instances taken from https://github.com/iv-org/documentation/blob/master/Invidious-Instances.md
+        # Invidious instances taken from https://github.com/iv-org/documentation/blob/master/docs/instances.md
         r'(?:www\.)?invidious\.pussthecat\.org',
         r'(?:www\.)?invidious\.zee\.li',
         r'(?:www\.)?invidious\.ethibox\.fr',
@@ -2199,7 +2200,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'description': 'md5:2ef1d002cad520f65825346e2084e49d',
             },
             'params': {'skip_download': True}
-        },
+        }, {
+            # Story. Requires specific player params to work.
+            # Note: stories get removed after some period of time
+            'url': 'https://www.youtube.com/watch?v=yN3x1t3sieA',
+            'info_dict': {
+                'id': 'yN3x1t3sieA',
+                'ext': 'mp4',
+                'uploader': 'Linus Tech Tips',
+                'duration': 13,
+                'channel': 'Linus Tech Tips',
+                'playable_in_embed': True,
+                'tags': [],
+                'age_limit': 0,
+                'uploader_url': 'http://www.youtube.com/user/LinusTechTips',
+                'upload_date': '20220402',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/yN3x1t3sieA/maxresdefault.webp',
+                'title': 'Story',
+                'live_status': 'not_live',
+                'uploader_id': 'LinusTechTips',
+                'view_count': int,
+                'description': '',
+                'channel_id': 'UCXuqSBlHAE6Xw-yeJA0Tunw',
+                'categories': ['Science & Technology'],
+                'channel_url': 'https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw',
+                'availability': 'unlisted',
+            }
+        }
     ]
 
     @classmethod
@@ -2831,12 +2858,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             lambda p: int_or_none(p, default=sys.maxsize), self._configuration_arg('max_comments', ) + [''] * 4)
 
         continuation = self._extract_continuation(root_continuation_data)
-        message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
-        if message and not parent:
-            self.report_warning(message, video_id=video_id)
 
         response = None
+        is_forced_continuation = False
         is_first_continuation = parent is None
+        if is_first_continuation and not continuation:
+            # Sometimes you can get comments by generating the continuation yourself,
+            # even if YouTube initially reports them being disabled - e.g. stories comments.
+            # Note: if the comment section is actually disabled, YouTube may return a response with
+            # required check_get_keys missing. So we will disable that check initially in this case.
+            continuation = self._build_api_continuation_query(self._generate_comment_continuation(video_id))
+            is_forced_continuation = True
 
         for page_num in itertools.count(0):
             if not continuation:
@@ -2857,8 +2889,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             response = self._extract_response(
                 item_id=None, query=continuation,
                 ep='next', ytcfg=ytcfg, headers=headers, note=note_prefix,
-                check_get_keys='onResponseReceivedEndpoints')
-
+                check_get_keys='onResponseReceivedEndpoints' if not is_forced_continuation else None)
+            is_forced_continuation = False
             continuation_contents = traverse_obj(
                 response, 'onResponseReceivedEndpoints', expected_type=list, default=[])
 
@@ -2882,6 +2914,18 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 continuation = self._extract_continuation({'contents': continuation_items})
                 if continuation:
                     break
+
+        message = self._get_text(root_continuation_data, ('contents', ..., 'messageRenderer', 'text'), max_runs=1)
+        if message and not parent and tracker['running_total'] == 0:
+            self.report_warning(f'Youtube said: {message}', video_id=video_id, only_once=True)
+
+    @staticmethod
+    def _generate_comment_continuation(video_id):
+        """
+        Generates initial comment section continuation token from given video id
+        """
+        token = f'\x12\r\x12\x0b{video_id}\x18\x062\'"\x11"\x0b{video_id}0\x00x\x020\x00B\x10comments-section'
+        return base64.b64encode(token.encode()).decode()
 
     def _get_comments(self, ytcfg, video_id, contents, webpage):
         """Entry for comment extraction"""
@@ -2936,7 +2980,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         headers = self.generate_api_headers(
             ytcfg=player_ytcfg, account_syncid=syncid, session_index=session_index, default_client=client)
 
-        yt_query = {'videoId': video_id}
+        yt_query = {
+            'videoId': video_id,
+            'params': '8AEB'  # enable stories
+        }
         yt_query.update(self._generate_player_context(sts))
         return self._extract_response(
             item_id=video_id, ep='player', query=yt_query,
@@ -3107,7 +3154,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         'n': self._decrypt_nsig(query['n'][0], video_id, player_url)})
                 except ExtractorError as e:
                     self.report_warning(
-                        f'nsig extraction failed: You may experience throttling for some formats\n'
+                        'nsig extraction failed: You may experience throttling for some formats\n'
                         f'n = {query["n"][0]} ; player = {player_url}\n{e}', only_once=True)
                     throttled = True
 
@@ -3251,7 +3298,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         webpage = None
         if 'webpage' not in self._configuration_arg('player_skip'):
             webpage = self._download_webpage(
-                webpage_url + '&bpctr=9999999999&has_verified=1', video_id, fatal=False)
+                webpage_url + '&bpctr=9999999999&has_verified=1&pp=8AEB', video_id, fatal=False)
 
         master_ytcfg = self.extract_ytcfg(video_id, webpage) or self._get_default_ytcfg()
 
@@ -3402,13 +3449,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         original_thumbnails = thumbnails.copy()
 
         # The best resolution thumbnails sometimes does not appear in the webpage
-        # See: https://github.com/ytdl-org/youtube-dl/issues/29049, https://github.com/yt-dlp/yt-dlp/issues/340
+        # See: https://github.com/yt-dlp/yt-dlp/issues/340
         # List of possible thumbnails - Ref: <https://stackoverflow.com/a/20542029>
         thumbnail_names = [
-            'maxresdefault', 'hq720', 'sddefault', 'sd1', 'sd2', 'sd3',
-            'hqdefault', 'hq1', 'hq2', 'hq3', '0',
-            'mqdefault', 'mq1', 'mq2', 'mq3',
-            'default', '1', '2', '3'
+            # While the *1,*2,*3 thumbnails are just below their correspnding "*default" variants
+            # in resolution, these are not the custom thumbnail. So de-prioritize them
+            'maxresdefault', 'hq720', 'sddefault', 'hqdefault', '0', 'mqdefault', 'default',
+            'sd1', 'sd2', 'sd3', 'hq1', 'hq2', 'hq3', 'mq1', 'mq2', 'mq3', '1', '2', '3'
         ]
         n_thumbnail_names = len(thumbnail_names)
         thumbnails.extend({
@@ -3696,7 +3743,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             unified_strdate(get_first(microformats, 'uploadDate'))
             or unified_strdate(search_meta('uploadDate')))
         if not upload_date or (not info.get('is_live') and not info.get('was_live') and info.get('live_status') != 'is_upcoming'):
-            upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d')
+            upload_date = strftime_or_none(self._extract_time_text(vpir, 'dateText')[0], '%Y%m%d') or upload_date
         info['upload_date'] = upload_date
 
         for to, frm in fallbacks.items():
@@ -4211,7 +4258,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 self._extract_visitor_data(data, ytcfg)),
             **metadata)
 
-    def _extract_mix_playlist(self, playlist, playlist_id, data, ytcfg):
+    def _extract_inline_playlist(self, playlist, playlist_id, data, ytcfg):
         first_id = last_id = response = None
         for page_num in itertools.count(1):
             videos = list(self._playlist_entries(playlist))
@@ -4221,9 +4268,6 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if start >= len(videos):
                 return
             for video in videos[start:]:
-                if video['id'] == first_id:
-                    self.to_screen('First video %s found again; Assuming end of Mix' % first_id)
-                    return
                 yield video
             first_id = first_id or videos[0]['id']
             last_id = videos[-1]['id']
@@ -4255,13 +4299,18 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         playlist_url = urljoin(url, try_get(
             playlist, lambda x: x['endpoint']['commandMetadata']['webCommandMetadata']['url'],
             compat_str))
-        if playlist_url and playlist_url != url:
+
+        # Some playlists are unviewable but YouTube still provides a link to the (broken) playlist page [1]
+        # [1] MLCT, RLTDwFCb4jeqaKWnciAYM-ZVHg
+        is_known_unviewable = re.fullmatch(r'MLCT|RLTD[\w-]{22}', playlist_id)
+
+        if playlist_url and playlist_url != url and not is_known_unviewable:
             return self.url_result(
                 playlist_url, ie=YoutubeTabIE.ie_key(), video_id=playlist_id,
                 video_title=title)
 
         return self.playlist_result(
-            self._extract_mix_playlist(playlist, playlist_id, data, ytcfg),
+            self._extract_inline_playlist(playlist, playlist_id, data, ytcfg),
             playlist_id=playlist_id, playlist_title=title)
 
     def _extract_availability(self, data):
@@ -5796,6 +5845,22 @@ class YoutubeHistoryIE(YoutubeFeedsInfoExtractor):
         'url': ':ythistory',
         'only_matching': True,
     }]
+
+
+class YoutubeStoriesIE(InfoExtractor):
+    IE_DESC = 'YouTube channel stories; "ytstories:" prefix'
+    IE_NAME = 'youtube:stories'
+    _VALID_URL = r'ytstories:UC(?P<id>[A-Za-z0-9_-]{21}[AQgw])$'
+    _TESTS = [{
+        'url': 'ytstories:UCwFCb4jeqaKWnciAYM-ZVHg',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        playlist_id = f'RLTD{self._match_id(url)}'
+        return self.url_result(
+            f'https://www.youtube.com/playlist?list={playlist_id}&playnext=1',
+            ie=YoutubeTabIE, video_id=playlist_id)
 
 
 class YoutubeTruncatedURLIE(InfoExtractor):

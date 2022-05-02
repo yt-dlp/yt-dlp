@@ -18,6 +18,7 @@ from ..utils import (
     float_or_none,
     mimetype2ext,
     parse_iso8601,
+    qualities,
     traverse_obj,
     parse_count,
     smuggle_url,
@@ -996,3 +997,88 @@ class BiliIntlSeriesIE(BiliIntlBaseIE):
             self._entries(series_id), series_id, series_info.get('title'), series_info.get('description'),
             categories=traverse_obj(series_info, ('styles', ..., 'title'), expected_type=str_or_none),
             thumbnail=url_or_none(series_info.get('horizontal_cover')), view_count=parse_count(series_info.get('view')))
+
+
+class BiliLiveIE(InfoExtractor):
+    _VALID_URL = r'https?://live.bilibili.com/(?P<id>\d+)'
+
+    _TESTS = [{
+        'url': 'https://live.bilibili.com/196',
+        'info_dict': {
+            'id': '33989',
+            'description': "周六杂谈回，其他时候随机游戏。 | \n录播：@下播型泛式录播组。 | \n直播通知群（全员禁言）：666906670，902092584，59971⑧481 （功能一样，别多加）",
+            'ext': 'flv',
+            'title': "太空狼人杀联动，不被爆杀就算赢",
+            'thumbnail': "https://i0.hdslb.com/bfs/live/new_room_cover/e607bc1529057ef4b332e1026e62cf46984c314d.jpg",
+            'timestamp': 1650802769,
+        },
+        'skip': 'not live'
+    }, {
+        'url': 'https://live.bilibili.com/196?broadcast_type=0&is_room_feed=1?spm_id_from=333.999.space_home.strengthen_live_card.click',
+        'only_matching': True
+    }]
+
+    _FORMATS = {
+        80: {'format_id': 'low', 'format_note': '流畅'},
+        150: {'format_id': 'high_res', 'format_note': '高清'},
+        250: {'format_id': 'ultra_high_res', 'format_note': '超清'},
+        400: {'format_id': 'blue_ray', 'format_note': '蓝光'},
+        10000: {'format_id': 'source', 'format_note': '原画'},
+        20000: {'format_id': '4K', 'format_note': '4K'},
+        30000: {'format_id': 'dolby', 'format_note': '杜比'},
+    }
+
+    _quality = staticmethod(qualities(list(_FORMATS)))
+
+    def _call_api(self, path, room_id, query):
+        api_result = self._download_json(f'https://api.live.bilibili.com/{path}', room_id, query=query)
+        if api_result.get('code') != 0:
+            raise ExtractorError(api_result.get('message') or 'Unable to download JSON metadata')
+        return api_result.get('data') or {}
+
+    def _parse_formats(self, qn, fmt):
+        for codec in fmt.get('codec') or []:
+            if codec.get('current_qn') != qn:
+                continue
+            for url_info in codec['url_info']:
+                yield {
+                    'url': f'{url_info["host"]}{codec["base_url"]}{url_info["extra"]}',
+                    'ext': fmt.get('format_name'),
+                    'vcodec': codec.get('codec_name'),
+                    'quality': self._quality(qn),
+                    **self._FORMATS[qn],
+                }
+
+    def _real_extract(self, url):
+        room_id = self._match_id(url)
+        room_data = self._call_api('room/v1/Room/get_info', room_id, {'id': room_id})
+        if room_data.get('live_status') == 0:
+            raise ExtractorError('Streamer is not live', expected=True)
+
+        formats = []
+        for qn in self._FORMATS.keys():
+            stream_data = self._call_api('xlive/web-room/v2/index/getRoomPlayInfo', room_id, {
+                'room_id': room_id,
+                'qn': qn,
+                'codec': '0,1',
+                'format': '0,2',
+                'mask': '0',
+                'no_playurl': '0',
+                'platform': 'web',
+                'protocol': '0,1',
+            })
+            for fmt in traverse_obj(stream_data, ('playurl_info', 'playurl', 'stream', ..., 'format', ...)) or []:
+                formats.extend(self._parse_formats(qn, fmt))
+        self._sort_formats(formats)
+
+        return {
+            'id': room_id,
+            'title': room_data.get('title'),
+            'description': room_data.get('description'),
+            'thumbnail': room_data.get('user_cover'),
+            'timestamp': stream_data.get('live_time'),
+            'formats': formats,
+            'http_headers': {
+                'Referer': url,
+            },
+        }

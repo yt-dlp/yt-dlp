@@ -208,8 +208,10 @@ class InfoExtractor:
                     * no_resume  The server does not support resuming the
                                  (HTTP or RTMP) download. Boolean.
                     * has_drm    The format has DRM and cannot be downloaded. Boolean
-                    * downloader_options  A dictionary of downloader options as
-                                 described in FileDownloader (For internal use only)
+                    * downloader_options  A dictionary of downloader options
+                                 (For internal use only)
+                                 * http_chunk_size Chunk size for HTTP downloads
+                                 * ffmpeg_args     Extra arguments for ffmpeg downloader
                     RTMP formats can also have the additional fields: page_url,
                     app, play_path, tc_url, flash_version, rtmp_live, rtmp_conn,
                     rtmp_protocol, rtmp_real_time
@@ -1920,8 +1922,7 @@ class InfoExtractor:
     def _sort_formats(self, formats, field_preference=[]):
         if not formats:
             return
-        format_sort = self.FormatSort(self, field_preference)
-        formats.sort(key=lambda f: format_sort.calculate_preference(f))
+        formats.sort(key=self.FormatSort(self, field_preference).calculate_preference)
 
     def _check_formats(self, formats, video_id):
         if formats:
@@ -1982,16 +1983,18 @@ class InfoExtractor:
     def _extract_f4m_formats(self, manifest_url, video_id, preference=None, quality=None, f4m_id=None,
                              transform_source=lambda s: fix_xml_ampersands(s).strip(),
                              fatal=True, m3u8_id=None, data=None, headers={}, query={}):
-        manifest = self._download_xml(
+        res = self._download_xml_handle(
             manifest_url, video_id, 'Downloading f4m manifest',
             'Unable to download f4m manifest',
             # Some manifests may be malformed, e.g. prosiebensat1 generated manifests
             # (see https://github.com/ytdl-org/youtube-dl/issues/6215#issuecomment-121704244)
             transform_source=transform_source,
             fatal=fatal, data=data, headers=headers, query=query)
-
-        if manifest is False:
+        if res is False:
             return []
+
+        manifest, urlh = res
+        manifest_url = urlh.geturl()
 
         return self._parse_f4m_formats(
             manifest, manifest_url, video_id, preference=preference, quality=quality, f4m_id=f4m_id,
@@ -2400,11 +2403,13 @@ class InfoExtractor:
         return '/'.join(out)
 
     def _extract_smil_formats_and_subtitles(self, smil_url, video_id, fatal=True, f4m_params=None, transform_source=None):
-        smil = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
-
-        if smil is False:
+        res = self._download_smil(smil_url, video_id, fatal=fatal, transform_source=transform_source)
+        if res is False:
             assert not fatal
             return [], {}
+
+        smil, urlh = res
+        smil_url = urlh.geturl()
 
         namespace = self._parse_smil_namespace(smil)
 
@@ -2422,13 +2427,17 @@ class InfoExtractor:
         return fmts
 
     def _extract_smil_info(self, smil_url, video_id, fatal=True, f4m_params=None):
-        smil = self._download_smil(smil_url, video_id, fatal=fatal)
-        if smil is False:
+        res = self._download_smil(smil_url, video_id, fatal=fatal)
+        if res is False:
             return {}
+
+        smil, urlh = res
+        smil_url = urlh.geturl()
+
         return self._parse_smil(smil, smil_url, video_id, f4m_params=f4m_params)
 
     def _download_smil(self, smil_url, video_id, fatal=True, transform_source=None):
-        return self._download_xml(
+        return self._download_xml_handle(
             smil_url, video_id, 'Downloading SMIL file',
             'Unable to download SMIL file', fatal=fatal, transform_source=transform_source)
 
@@ -2607,11 +2616,15 @@ class InfoExtractor:
         return subtitles
 
     def _extract_xspf_playlist(self, xspf_url, playlist_id, fatal=True):
-        xspf = self._download_xml(
+        res = self._download_xml_handle(
             xspf_url, playlist_id, 'Downloading xpsf playlist',
             'Unable to download xspf manifest', fatal=fatal)
-        if xspf is False:
+        if res is False:
             return []
+
+        xspf, urlh = res
+        xspf_url = urlh.geturl()
+
         return self._parse_xspf(
             xspf, playlist_id, xspf_url=xspf_url,
             xspf_base_url=base_url(xspf_url))
@@ -2676,7 +2689,10 @@ class InfoExtractor:
         mpd_doc, urlh = res
         if mpd_doc is None:
             return [], {}
-        mpd_base_url = base_url(urlh.geturl())
+
+        # We could have been redirected to a new url when we retrieved our mpd file.
+        mpd_url = urlh.geturl()
+        mpd_base_url = base_url(mpd_url)
 
         return self._parse_mpd_formats_and_subtitles(
             mpd_doc, mpd_id, mpd_base_url, mpd_url)
@@ -2792,7 +2808,7 @@ class InfoExtractor:
                             content_type = 'video'
                         elif codecs['acodec'] != 'none':
                             content_type = 'audio'
-                        elif codecs.get('tcodec', 'none') != 'none':
+                        elif codecs.get('scodec', 'none') != 'none':
                             content_type = 'text'
                         elif mimetype2ext(mime_type) in ('tt', 'dfxp', 'ttml', 'xml', 'json'):
                             content_type = 'text'

@@ -43,5 +43,5 @@ def build_completion(opt_parser):
         f.write(template)
 
 
-parser = yt_dlp.parseOpts()[0]
+parser = yt_dlp.parseOpts(ignore_config_files=True)[0]
 build_completion(parser)

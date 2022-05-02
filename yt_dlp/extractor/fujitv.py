@@ -17,7 +17,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         'url': 'https://fod.fujitv.co.jp/title/5d40/5d40110076',
         'info_dict': {
             'id': '5d40110076',
-            'ext': 'mp4',
+            'ext': 'ts',
             'title': '#1318 『まる子、まぼろしの洋館を見る』の巻',
             'series': 'ちびまる子ちゃん',
             'series_id': '5d40',
@@ -28,7 +28,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         'url': 'https://fod.fujitv.co.jp/title/5d40/5d40810083',
         'info_dict': {
             'id': '5d40810083',
-            'ext': 'mp4',
+            'ext': 'ts',
             'title': '#1324 『まる子とオニの子』の巻／『結成！2月をムダにしない会』の巻',
             'description': 'md5:3972d900b896adc8ab1849e310507efa',
             'series': 'ちびまる子ちゃん',
@@ -51,7 +51,7 @@ class FujiTVFODPlus7IE(InfoExtractor):
         for src in src_json['video_selector']:
             if not src.get('url'):
                 continue
-            fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'mp4')
+            fmt, subs = self._extract_m3u8_formats_and_subtitles(src['url'], video_id, 'ts')
             for f in fmt:
                 f.update(dict(zip(('height', 'width'),
                                   self._BITRATE_MAP.get(f.get('tbr'), ()))))

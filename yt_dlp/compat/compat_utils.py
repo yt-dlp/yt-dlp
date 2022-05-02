@@ -1,7 +1,26 @@
+import collections
 import contextlib
 import importlib
 import sys
 import types
+
+
+_NO_ATTRIBUTE = object()
+
+_Package = collections.namedtuple('Package', ('name', 'version'))
+
+
+def get_package_info(module):
+    parent = module.__name__.split('.')[0]
+    parent_module = None
+    with contextlib.suppress(ImportError):
+        parent_module = importlib.import_module(parent)
+
+    for attr in ('__version__', 'version_string', 'version'):
+        version = getattr(parent_module, attr, None)
+        if version is not None:
+            break
+    return _Package(getattr(module, '_yt_dlp__identifier', parent), str(version))
 
 
 def _is_package(module):
@@ -10,9 +29,6 @@ def _is_package(module):
     except AttributeError:
         return False
     return True
-
-
-_NO_ATTRIBUTE = object()
 
 
 def passthrough_module(parent, child, *, callback=lambda _: None):

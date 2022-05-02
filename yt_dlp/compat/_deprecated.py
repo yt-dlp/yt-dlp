@@ -44,4 +44,9 @@ compat_urllib_parse_urlparse = urllib.parse.urlparse
 compat_urllib_request = urllib.request
 compat_urlparse = compat_urllib_parse = urllib.parse
 
+
+def compat_setenv(key, value, env=os.environ):
+    env[key] = value
+
+
 __all__ = [x for x in globals() if x.startswith('compat_')]

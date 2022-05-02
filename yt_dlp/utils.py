@@ -245,6 +245,8 @@ DATE_FORMATS_MONTH_FIRST.extend([
 PACKED_CODES_RE = r"}\('(.+)',(\d+),(\d+),'([^']+)'\.split\('\|'\)"
 JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<json_ld>.+?)</script>'
 
+NUMBER_RE = r'\d+(?:\.\d+)?'
+
 
 def preferredencoding():
     """Get preferred encoding.
@@ -934,6 +936,14 @@ def make_HTTPS_handler(params, **kwargs):
                     for storename in ('CA', 'ROOT'):
                         _ssl_load_windows_store_certs(context, storename)
                 context.set_default_verify_paths()
+    client_certfile = params.get('client_certificate')
+    if client_certfile:
+        try:
+            context.load_cert_chain(
+                client_certfile, keyfile=params.get('client_certificate_key'),
+                password=params.get('client_certificate_password'))
+        except ssl.SSLError:
+            raise YoutubeDLError('Unable to load client certificate')
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
@@ -1505,6 +1515,10 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 try:
                     cf.write(prepare_line(line))
                 except compat_cookiejar.LoadError as e:
+                    if f'{line.strip()} '[0] in '[{"':
+                        raise compat_cookiejar.LoadError(
+                            'Cookies file must be Netscape formatted, not JSON. See  '
+                            'https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl')
                     write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')
                     continue
         cf.seek(0)
@@ -1581,9 +1595,21 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         CONTENT_HEADERS = ("content-length", "content-type")
         # NB: don't use dict comprehension for python 2.6 compatibility
         newheaders = {k: v for k, v in req.headers.items() if k.lower() not in CONTENT_HEADERS}
+
+        # A 303 must either use GET or HEAD for subsequent request
+        # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.4
+        if code == 303 and m != 'HEAD':
+            m = 'GET'
+        # 301 and 302 redirects are commonly turned into a GET from a POST
+        # for subsequent requests by browsers, so we'll do the same.
+        # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.2
+        # https://datatracker.ietf.org/doc/html/rfc7231#section-6.4.3
+        if code in (301, 302) and m == 'POST':
+            m = 'GET'
+
         return compat_urllib_request.Request(
             newurl, headers=newheaders, origin_req_host=req.origin_req_host,
-            unverifiable=True)
+            unverifiable=True, method=m)
 
 
 def extract_timezone(date_str):
@@ -1851,6 +1877,10 @@ def write_string(s, out=None, encoding=None):
     assert isinstance(s, str)
     out = out or sys.stderr
 
+    from .compat import WINDOWS_VT_MODE  # Must be imported locally
+    if WINDOWS_VT_MODE:
+        s = re.sub(r'([\r\n]+)', r' \1', s)
+
     if 'b' in getattr(out, 'mode', ''):
         byt = s.encode(encoding or preferredencoding(), 'ignore')
         out.write(byt)
@@ -2001,7 +2031,11 @@ class locked_file:
             self.f.close()
             raise
         if 'w' in self.mode:
-            self.f.truncate()
+            try:
+                self.f.truncate()
+            except OSError as e:
+                if e.errno != 29:  # Illegal seek, expected when self.f is a FIFO
+                    raise e
         return self
 
     def unlock(self):
@@ -3167,7 +3201,7 @@ def parse_codecs(codecs_str):
         return {}
     split_codecs = list(filter(None, map(
         str.strip, codecs_str.strip().strip(',').split(','))))
-    vcodec, acodec, tcodec, hdr = None, None, None, None
+    vcodec, acodec, scodec, hdr = None, None, None, None
     for full_codec in split_codecs:
         parts = full_codec.split('.')
         codec = parts[0].replace('0', '')
@@ -3185,16 +3219,16 @@ def parse_codecs(codecs_str):
             if not acodec:
                 acodec = full_codec
         elif codec in ('stpp', 'wvtt',):
-            if not tcodec:
-                tcodec = full_codec
+            if not scodec:
+                scodec = full_codec
         else:
             write_string(f'WARNING: Unknown codec {full_codec}\n')
-    if vcodec or acodec or tcodec:
+    if vcodec or acodec or scodec:
         return {
             'vcodec': vcodec or 'none',
             'acodec': acodec or 'none',
             'dynamic_range': hdr,
-            **({'tcodec': tcodec} if tcodec is not None else {}),
+            **({'scodec': scodec} if scodec is not None else {}),
         }
     elif len(split_codecs) == 2:
         return {
@@ -3403,11 +3437,15 @@ def match_str(filter_str, dct, incomplete=False):
 def match_filter_func(filters):
     if not filters:
         return None
-    filters = variadic(filters)
+    filters = set(variadic(filters))
 
-    def _match_func(info_dict, *args, **kwargs):
-        if any(match_str(f, info_dict, *args, **kwargs) for f in filters):
-            return None
+    interactive = '-' in filters
+    if interactive:
+        filters.remove('-')
+
+    def _match_func(info_dict, incomplete=False):
+        if not filters or any(match_str(f, info_dict, incomplete) for f in filters):
+            return NO_DEFAULT if interactive and not incomplete else None
         else:
             video_title = info_dict.get('title') or info_dict.get('id') or 'video'
             filter_str = ') | ('.join(map(str.strip, filters))
@@ -3419,7 +3457,7 @@ def parse_dfxp_time_expr(time_expr):
     if not time_expr:
         return
 
-    mobj = re.match(r'^(?P<time_offset>\d+(?:\.\d+)?)s?$', time_expr)
+    mobj = re.match(rf'^(?P<time_offset>{NUMBER_RE})s?$', time_expr)
     if mobj:
         return float(mobj.group('time_offset'))
 
@@ -4659,87 +4697,56 @@ def decode_png(png_data):
 
 
 def write_xattr(path, key, value):
-    # This mess below finds the best xattr tool for the job
-    try:
-        # try the pyxattr module...
-        import xattr
+    # Windows: Write xattrs to NTFS Alternate Data Streams:
+    # http://en.wikipedia.org/wiki/NTFS#Alternate_data_streams_.28ADS.29
+    if compat_os_name == 'nt':
+        assert ':' not in key
+        assert os.path.exists(path)
 
-        if hasattr(xattr, 'set'):  # pyxattr
-            # Unicode arguments are not supported in python-pyxattr until
-            # version 0.5.0
-            # See https://github.com/ytdl-org/youtube-dl/issues/5498
-            pyxattr_required_version = '0.5.0'
-            if version_tuple(xattr.__version__) < version_tuple(pyxattr_required_version):
-                # TODO: fallback to CLI tools
-                raise XAttrUnavailableError(
-                    'python-pyxattr is detected but is too old. '
-                    'yt-dlp requires %s or above while your version is %s. '
-                    'Falling back to other xattr implementations' % (
-                        pyxattr_required_version, xattr.__version__))
+        try:
+            with open(f'{path}:{key}', 'wb') as f:
+                f.write(value)
+        except OSError as e:
+            raise XAttrMetadataError(e.errno, e.strerror)
+        return
 
+    # UNIX Method 1. Use xattrs/pyxattrs modules
+    from .dependencies import xattr
+
+    setxattr = None
+    if getattr(xattr, '_yt_dlp__identifier', None) == 'pyxattr':
+        # Unicode arguments are not supported in pyxattr until version 0.5.0
+        # See https://github.com/ytdl-org/youtube-dl/issues/5498
+        if version_tuple(xattr.__version__) >= (0, 5, 0):
             setxattr = xattr.set
-        else:  # xattr
-            setxattr = xattr.setxattr
+    elif xattr:
+        setxattr = xattr.setxattr
 
+    if setxattr:
         try:
             setxattr(path, key, value)
         except OSError as e:
             raise XAttrMetadataError(e.errno, e.strerror)
+        return
 
-    except ImportError:
-        if compat_os_name == 'nt':
-            # Write xattrs to NTFS Alternate Data Streams:
-            # http://en.wikipedia.org/wiki/NTFS#Alternate_data_streams_.28ADS.29
-            assert ':' not in key
-            assert os.path.exists(path)
+    # UNIX Method 2. Use setfattr/xattr executables
+    exe = ('setfattr' if check_executable('setfattr', ['--version'])
+           else 'xattr' if check_executable('xattr', ['-h']) else None)
+    if not exe:
+        raise XAttrUnavailableError(
+            'Couldn\'t find a tool to set the xattrs. Install either the python "xattr" or "pyxattr" modules or the '
+            + ('"xattr" binary' if sys.platform != 'linux' else 'GNU "attr" package (which contains the "setfattr" tool)'))
 
-            ads_fn = path + ':' + key
-            try:
-                with open(ads_fn, 'wb') as f:
-                    f.write(value)
-            except OSError as e:
-                raise XAttrMetadataError(e.errno, e.strerror)
-        else:
-            user_has_setfattr = check_executable('setfattr', ['--version'])
-            user_has_xattr = check_executable('xattr', ['-h'])
-
-            if user_has_setfattr or user_has_xattr:
-
-                value = value.decode('utf-8')
-                if user_has_setfattr:
-                    executable = 'setfattr'
-                    opts = ['-n', key, '-v', value]
-                elif user_has_xattr:
-                    executable = 'xattr'
-                    opts = ['-w', key, value]
-
-                cmd = ([encodeFilename(executable, True)]
-                       + [encodeArgument(o) for o in opts]
-                       + [encodeFilename(path, True)])
-
-                try:
-                    p = Popen(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-                except OSError as e:
-                    raise XAttrMetadataError(e.errno, e.strerror)
-                stdout, stderr = p.communicate_or_kill()
-                stderr = stderr.decode('utf-8', 'replace')
-                if p.returncode != 0:
-                    raise XAttrMetadataError(p.returncode, stderr)
-
-            else:
-                # On Unix, and can't find pyxattr, setfattr, or xattr.
-                if sys.platform.startswith('linux'):
-                    raise XAttrUnavailableError(
-                        "Couldn't find a tool to set the xattrs. "
-                        "Install either the python 'pyxattr' or 'xattr' "
-                        "modules, or the GNU 'attr' package "
-                        "(which contains the 'setfattr' tool).")
-                else:
-                    raise XAttrUnavailableError(
-                        "Couldn't find a tool to set the xattrs. "
-                        "Install either the python 'xattr' module, "
-                        "or the 'xattr' binary.")
+    value = value.decode('utf-8')
+    try:
+        p = Popen(
+            [exe, '-w', key, value, path] if exe == 'xattr' else [exe, '-n', key, '-v', value, path],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+    except OSError as e:
+        raise XAttrMetadataError(e.errno, e.strerror)
+    stderr = p.communicate_or_kill()[1].decode('utf-8', 'replace')
+    if p.returncode:
+        raise XAttrMetadataError(p.returncode, stderr)
 
 
 def random_birthday(year_field, month_field, day_field):

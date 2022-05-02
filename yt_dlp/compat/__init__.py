@@ -46,10 +46,6 @@ def compat_ord(c):
     return c if isinstance(c, int) else ord(c)
 
 
-def compat_setenv(key, value, env=os.environ):
-    env[key] = value
-
-
 if compat_os_name == 'nt' and sys.version_info < (3, 8):
     # os.path.realpath on Windows does not follow symbolic links
     # prior to Python 3.8 (see https://bugs.python.org/issue9949)

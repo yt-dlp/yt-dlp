@@ -191,6 +191,14 @@ class HlsFD(FragmentFD):
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
+                    if map_info.get('BYTERANGE'):
+                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                        byte_range = {
+                            'start': sub_range_start,
+                            'end': sub_range_start + int(splitted_byte_range[0]),
+                        }
+
                     fragments.append({
                         'frag_index': frag_index,
                         'url': frag_url,
@@ -199,14 +207,6 @@ class HlsFD(FragmentFD):
                         'media_sequence': media_sequence
                     })
                     media_sequence += 1
-
-                    if map_info.get('BYTERANGE'):
-                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
-                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                        byte_range = {
-                            'start': sub_range_start,
-                            'end': sub_range_start + int(splitted_byte_range[0]),
-                        }
 
                 elif line.startswith('#EXT-X-KEY'):
                     decrypt_url = decrypt_info.get('URI')
