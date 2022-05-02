@@ -319,6 +319,10 @@ class YoutubeDL:
     legacyserverconnect: Explicitly allow HTTPS connection to servers that do not
                        support RFC 5746 secure renegotiation
     nocheckcertificate:  Do not verify SSL certificates
+    client_certificate:  Path to client certificate file in PEM format. May include the private key
+    client_certificate_key:  Path to private key file for client certificate
+    client_certificate_password:  Password for client certificate private key, if encrypted.
+                        If not provided and the key is encrypted, yt-dlp will ask interactively
     prefer_insecure:   Use HTTP instead of HTTPS to retrieve information.
                        At the moment, this is only supported by YouTube.
     http_headers:      A dictionary of custom headers to be used for all requests

@@ -936,6 +936,14 @@ def make_HTTPS_handler(params, **kwargs):
                     for storename in ('CA', 'ROOT'):
                         _ssl_load_windows_store_certs(context, storename)
                 context.set_default_verify_paths()
+    client_certfile = params.get('client_certificate')
+    if client_certfile:
+        try:
+            context.load_cert_chain(
+                client_certfile, keyfile=params.get('client_certificate_key'),
+                password=params.get('client_certificate_password'))
+        except ssl.SSLError:
+            raise YoutubeDLError('Unable to load client certificate')
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
