@@ -168,6 +168,7 @@ from .bilibili import (
     BilibiliChannelIE,
     BiliIntlIE,
     BiliIntlSeriesIE,
+    BiliLiveIE,
 )
 from .biobiochiletv import BioBioChileTVIE
 from .bitchute import (
