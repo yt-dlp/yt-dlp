@@ -19,8 +19,6 @@ class MastersIE(InfoExtractor):
         }
     }]
 
-    _CONTENT_API_URL = "https://www.masters.com/relatedcontent/rest/v2/masters_v1/en/content/masters_v1_{video_id}_en"
-
     def _real_extract(self, url):
         video_id, upload_date = self._match_valid_url(url).group('id', 'date')
         content_resp = self._download_json(
