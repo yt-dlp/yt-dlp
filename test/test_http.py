@@ -116,12 +116,12 @@ class TestClientCert(unittest.TestCase):
         self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
 
     def test_certificate_nocombined_nopass(self):
-        self._run_test(
-            client_certificate=os.path.join(self.certdir, 'client.crt'), client_certificate_key=os.path.join(self.certdir, 'client.key'))
+        self._run_test(client_certificate=os.path.join(self.certdir, 'client.crt'),
+                       client_certificate_key=os.path.join(self.certdir, 'client.key'))
 
     def test_certificate_combined_pass(self):
-        self._run_test(
-            client_certificate=os.path.join(self.certdir, 'clientwithencryptedkey.crt'), client_certificate_password='foobar')
+        self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithencryptedkey.crt'),
+                       client_certificate_password='foobar')
 
     def test_certificate_nocombined_pass(self):
         self._run_test(client_certificate=os.path.join(self.certdir, 'client.crt'),
