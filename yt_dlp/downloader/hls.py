@@ -5,7 +5,8 @@ import re
 from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
-from ..compat import compat_pycrypto_AES, compat_urlparse
+from ..compat import compat_urlparse
+from ..dependencies import Cryptodome_AES
 from ..downloader import get_suitable_downloader
 from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
@@ -60,7 +61,7 @@ class HlsFD(FragmentFD):
         s = urlh.read().decode('utf-8', 'ignore')
 
         can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
-        if can_download and not compat_pycrypto_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
+        if can_download and not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
             if FFmpegFD.available():
                 can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
             else:
@@ -190,6 +191,14 @@ class HlsFD(FragmentFD):
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
+                    if map_info.get('BYTERANGE'):
+                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                        byte_range = {
+                            'start': sub_range_start,
+                            'end': sub_range_start + int(splitted_byte_range[0]),
+                        }
+
                     fragments.append({
                         'frag_index': frag_index,
                         'url': frag_url,
@@ -198,14 +207,6 @@ class HlsFD(FragmentFD):
                         'media_sequence': media_sequence
                     })
                     media_sequence += 1
-
-                    if map_info.get('BYTERANGE'):
-                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
-                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                        byte_range = {
-                            'start': sub_range_start,
-                            'end': sub_range_start + int(splitted_byte_range[0]),
-                        }
 
                 elif line.startswith('#EXT-X-KEY'):
                     decrypt_url = decrypt_info.get('URI')

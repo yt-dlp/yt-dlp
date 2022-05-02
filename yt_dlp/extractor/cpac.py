@@ -9,13 +9,6 @@ from ..utils import (
     urljoin,
 )
 
-# compat_range
-try:
-    if callable(xrange):
-        range = xrange
-except (NameError, TypeError):
-    pass
-
 
 class CPACIE(InfoExtractor):
     IE_NAME = 'cpac'

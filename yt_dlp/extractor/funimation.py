@@ -242,6 +242,9 @@ class FunimationIE(FunimationBaseIE):
                         'language_preference': language_preference(lang.lower()),
                     })
                 formats.extend(current_formats)
+        if not formats and (requested_languages or requested_versions):
+            self.raise_no_formats(
+                'There are no video formats matching the requested languages/versions', expected=True, video_id=display_id)
         self._remove_duplicate_formats(formats)
         self._sort_formats(formats, ('lang', 'source'))
 

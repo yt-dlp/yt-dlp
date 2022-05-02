@@ -314,7 +314,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         self.to_screen(f'Removing chapters from {filename}')
         self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
         if in_file != filename:
-            os.remove(in_file)
+            self._delete_downloaded_files(in_file, msg=None)
         return out_file
 
     @staticmethod

@@ -7,6 +7,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+from yt_dlp import compat
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_expanduser,
@@ -21,6 +22,12 @@ from yt_dlp.compat import (
 
 
 class TestCompat(unittest.TestCase):
+    def test_compat_passthrough(self):
+        with self.assertWarns(DeprecationWarning):
+            compat.compat_basestring
+
+        compat.asyncio.events  # Must not raise error
+
     def test_compat_getenv(self):
         test_str = 'тест'
         compat_setenv('yt_dlp_COMPAT_GETENV', test_str)
@@ -35,18 +42,12 @@ class TestCompat(unittest.TestCase):
 
     def test_compat_expanduser(self):
         old_home = os.environ.get('HOME')
-        test_str = r'C:\Documents and Settings\тест\Application Data'
-        compat_setenv('HOME', test_str)
-        self.assertEqual(compat_expanduser('~'), test_str)
-        compat_setenv('HOME', old_home or '')
-
-    def test_all_present(self):
-        import yt_dlp.compat
-        all_names = yt_dlp.compat.__all__
-        present_names = set(filter(
-            lambda c: '_' in c and not c.startswith('_'),
-            dir(yt_dlp.compat))) - {'unicode_literals'}
-        self.assertEqual(all_names, sorted(present_names))
+        test_str = R'C:\Documents and Settings\тест\Application Data'
+        try:
+            compat_setenv('HOME', test_str)
+            self.assertEqual(compat_expanduser('~'), test_str)
+        finally:
+            compat_setenv('HOME', old_home or '')
 
     def test_compat_urllib_parse_unquote(self):
         self.assertEqual(compat_urllib_parse_unquote('abc%20def'), 'abc def')

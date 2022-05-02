@@ -1,16 +1,17 @@
 from math import ceil
 
-from .compat import compat_b64decode, compat_ord, compat_pycrypto_AES
+from .compat import compat_b64decode, compat_ord
+from .dependencies import Cryptodome_AES
 from .utils import bytes_to_intlist, intlist_to_bytes
 
-if compat_pycrypto_AES:
+if Cryptodome_AES:
     def aes_cbc_decrypt_bytes(data, key, iv):
         """ Decrypt bytes with AES-CBC using pycryptodome """
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
+        return Cryptodome_AES.new(key, Cryptodome_AES.MODE_CBC, iv).decrypt(data)
 
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using pycryptodome """
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+        return Cryptodome_AES.new(key, Cryptodome_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 
 else:
     def aes_cbc_decrypt_bytes(data, key, iv):
@@ -493,7 +494,7 @@ def ghash(subkey, data):
 
     last_y = [0] * BLOCK_SIZE_BYTES
     for i in range(0, len(data), BLOCK_SIZE_BYTES):
-        block = data[i : i + BLOCK_SIZE_BYTES]  # noqa: E203
+        block = data[i: i + BLOCK_SIZE_BYTES]
         last_y = block_product(xor(last_y, block), subkey)
 
     return last_y

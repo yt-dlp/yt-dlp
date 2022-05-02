@@ -105,6 +105,7 @@ class KakaoIE(InfoExtractor):
                     resp = self._parse_json(e.cause.read().decode(), video_id)
                     if resp.get('code') == 'GeoBlocked':
                         self.raise_geo_restricted()
+                raise
 
             fmt_url = traverse_obj(fmt_url_json, ('videoLocation', 'url'))
             if not fmt_url:

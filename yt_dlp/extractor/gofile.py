@@ -1,3 +1,5 @@
+import hashlib
+
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -37,6 +39,15 @@ class GofileIE(InfoExtractor):
             'id': 'TMjXd9',
         },
         'playlist_count': 1,
+    }, {
+        'url': 'https://gofile.io/d/gqOtRf',
+        'info_dict': {
+            'id': 'gqOtRf',
+        },
+        'playlist_mincount': 1,
+        'params': {
+            'videopassword': 'password',
+        },
     }]
     _TOKEN = None
 
@@ -52,14 +63,22 @@ class GofileIE(InfoExtractor):
         self._set_cookie('gofile.io', 'accountToken', self._TOKEN)
 
     def _entries(self, file_id):
-        files = self._download_json('https://api.gofile.io/getContent', 'Gofile', note='Getting filelist', query={
+        query_params = {
             'contentId': file_id,
             'token': self._TOKEN,
             'websiteToken': 12345,
-        })
+        }
+        password = self.get_param('videopassword')
+        if password:
+            query_params['password'] = hashlib.sha256(password.encode('utf-8')).hexdigest()
+        files = self._download_json(
+            'https://api.gofile.io/getContent', file_id, note='Getting filelist', query=query_params)
 
         status = files['status']
-        if status != 'ok':
+        if status == 'error-passwordRequired':
+            raise ExtractorError(
+                'This video is protected by a password, use the --video-password option', expected=True)
+        elif status != 'ok':
             raise ExtractorError(f'{self.IE_NAME} said: status {status}', expected=True)
 
         found_files = False

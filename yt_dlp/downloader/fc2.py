@@ -18,6 +18,9 @@ class FC2LiveFD(FileDownloader):
         heartbeat_state = [None, 1]
 
         def heartbeat():
+            if heartbeat_state[1] < 0:
+                return
+
             try:
                 heartbeat_state[1] += 1
                 ws.send('{"name":"heartbeat","arguments":{},"id":%d}' % heartbeat_state[1])
@@ -36,4 +39,8 @@ class FC2LiveFD(FileDownloader):
             'ws': None,
             'protocol': 'live_ffmpeg',
         })
-        return FFmpegFD(self.ydl, self.params or {}).download(filename, new_info_dict)
+        try:
+            return FFmpegFD(self.ydl, self.params or {}).download(filename, new_info_dict)
+        finally:
+            # stop heartbeating
+            heartbeat_state[1] = -1

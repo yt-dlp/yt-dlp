@@ -374,21 +374,21 @@ When extracting metadata try to do so from multiple sources. For example if `tit
 
 #### Example
 
-Say `meta` from the previous example has a `title` and you are about to extract it. Since `title` is a mandatory meta field you should end up with something like:
+Say `meta` from the previous example has a `title` and you are about to extract it like:
 
 ```python
-title = meta['title']
+title = meta.get('title')
 ```
 
-If `title` disappears from `meta` in future due to some changes on the hoster's side the extraction would fail since `title` is mandatory. That's expected.
+If `title` disappears from `meta` in future due to some changes on the hoster's side the title extraction would fail.
 
-Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback scenario:
+Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback like:
 
 ```python
 title = meta.get('title') or self._og_search_title(webpage)
 ```
 
-This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`.
+This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`, making the extractor more robust.
 
 
 ### Regular expressions

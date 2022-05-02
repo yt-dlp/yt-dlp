@@ -661,7 +661,7 @@ class TestYoutubeDL(unittest.TestCase):
         'duration': 100000,
         'playlist_index': 1,
         'playlist_autonumber': 2,
-        '_last_playlist_index': 100,
+        '__last_playlist_index': 100,
         'n_entries': 10,
         'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
     }

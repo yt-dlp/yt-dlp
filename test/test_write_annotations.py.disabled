@@ -6,7 +6,6 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import io
 import xml.etree.ElementTree
 from test.helper import get_params, is_download_test, try_rm
 

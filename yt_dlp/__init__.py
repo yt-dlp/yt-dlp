@@ -28,6 +28,7 @@ from .postprocessor import (
 from .update import run_update
 from .utils import (
     NO_DEFAULT,
+    POSTPROCESS_WHEN,
     DateRange,
     DownloadCancelled,
     DownloadError,
@@ -397,13 +398,15 @@ def validate_options(opts):
     # Conflicting options
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
-    report_conflict('--exec-before-download', 'exec_before_dl_cmd', '"--exec before_dl:"', 'exec_cmd', opts.exec_cmd.get('before_dl'))
+    report_conflict('--exec-before-download', 'exec_before_dl_cmd',
+                    '"--exec before_dl:"', 'exec_cmd', val2=opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
     report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
-    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters', val1=opts.sponskrub and opts.sponskrub_cut)
+    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
+                    val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--add-metadata', 'addmetadata')
@@ -412,7 +415,7 @@ def validate_options(opts):
     report_conflict('--embed-subs', 'embedsubtitles')
     report_conflict('--embed-thumbnail', 'embedthumbnail')
     report_conflict('--extract-audio', 'extractaudio')
-    report_conflict('--fixup', 'fixup', val1=(opts.fixup or '').lower() in ('', 'never', 'ignore'), default='never')
+    report_conflict('--fixup', 'fixup', val1=opts.fixup not in (None, 'never', 'ignore'), default='never')
     report_conflict('--recode-video', 'recodevideo')
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
@@ -616,11 +619,11 @@ def parse_options(argv=None):
 
     postprocessors = list(get_postprocessors(opts))
 
-    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
-                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
-                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
-
-    any_printing = opts.print_json
+    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[2:])
+    any_getting = any(getattr(opts, k) for k in (
+        'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+    ))
 
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
@@ -641,7 +644,7 @@ def parse_options(argv=None):
         'client_certificate': opts.client_certificate,
         'client_certificate_key': opts.client_certificate_key,
         'client_certificate_password': opts.client_certificate_password,
-        'quiet': (opts.quiet or any_getting or any_printing),
+        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
         'no_warnings': opts.no_warnings,
         'forceurl': opts.geturl,
         'forcetitle': opts.gettitle,
@@ -656,7 +659,7 @@ def parse_options(argv=None):
         'forcejson': opts.dumpjson or opts.print_json,
         'dump_single_json': opts.dump_single_json,
         'force_write_download_archive': opts.force_write_download_archive,
-        'simulate': (any_getting or None) if opts.simulate is None else opts.simulate,
+        'simulate': (print_only or any_getting or None) if opts.simulate is None else opts.simulate,
         'skip_download': opts.skip_download,
         'format': opts.format,
         'allow_unplayable_formats': opts.allow_unplayable_formats,

@@ -21,6 +21,7 @@ from .utils import (
     Config,
     expand_path,
     get_executable_path,
+    join_nonempty,
     remove_end,
     write_string,
 )
@@ -109,8 +110,42 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     return parser, opts, args
 
 
+class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
+    def __init__(self):
+        # No need to wrap help messages if we're on a wide console
+        max_width = compat_get_terminal_size().columns or 80
+        # 47% is chosen because that is how README.md is currently formatted
+        # and moving help text even further to the right is undesirable.
+        # This can be reduced in the future to get a prettier output
+        super().__init__(width=max_width, max_help_position=int(0.47 * max_width))
+
+    @staticmethod
+    def format_option_strings(option):
+        """ ('-o', '--option') -> -o, --format METAVAR """
+        opts = join_nonempty(
+            option._short_opts and option._short_opts[0],
+            option._long_opts and option._long_opts[0],
+            delim=', ')
+        if option.takes_value():
+            opts += f' {option.metavar}'
+        return opts
+
+
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+
+    def __init__(self):
+        super().__init__(
+            prog='yt-dlp',
+            version=__version__,
+            usage='%prog [OPTIONS] URL [URL...]',
+            epilog='See full documentation at  https://github.com/yt-dlp/yt-dlp#readme',
+            formatter=_YoutubeDLHelpFormatter(),
+            conflict_handler='resolve',
+        )
+
+    def _get_args(self, args):
+        return sys.argv[1:] if args is None else list(args)
 
     def _match_long_opt(self, opt):
         """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
@@ -123,23 +158,6 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
 
 
 def create_parser():
-    def _format_option_string(option):
-        ''' ('-o', '--option') -> -o, --format METAVAR'''
-
-        opts = []
-
-        if option._short_opts:
-            opts.append(option._short_opts[0])
-        if option._long_opts:
-            opts.append(option._long_opts[0])
-        if len(opts) > 1:
-            opts.insert(1, ', ')
-
-        if option.takes_value():
-            opts.append(' %s' % option.metavar)
-
-        return ''.join(opts)
-
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = list(getattr(parser.values, option.dest)) if append else []
@@ -204,23 +222,7 @@ def create_parser():
             out_dict[key] = out_dict.get(key, []) + [val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
-    # No need to wrap help messages if we're on a wide console
-    columns = compat_get_terminal_size().columns
-    max_width = columns if columns else 80
-    # 47% is chosen because that is how README.md is currently formatted
-    # and moving help text even further to the right is undesirable.
-    # This can be reduced in the future to get a prettier output
-    max_help_position = int(0.47 * max_width)
-
-    fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
-    fmt.format_option_strings = _format_option_string
-
-    parser = _YoutubeDLOptionParser(
-        version=__version__,
-        formatter=fmt,
-        usage='%prog [OPTIONS] URL [URL...]',
-        conflict_handler='resolve'
-    )
+    parser = _YoutubeDLOptionParser()
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
@@ -234,7 +236,7 @@ def create_parser():
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
+        help='Update this program to latest version')
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -469,7 +471,8 @@ def create_parser():
             '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
             'matches only videos that are not live OR those that have a like count more than 100 '
             '(or the like field is not available) and also has a description '
-            'that contains the phrase "cats & dogs" (ignoring case)'))
+            'that contains the phrase "cats & dogs" (ignoring case). '
+            'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filter',
         metavar='FILTER', dest='match_filter', action='store_const', const=None,
@@ -824,11 +827,11 @@ def create_parser():
         }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
-            'Currently supports native, %s (Recommended: aria2c). '
+            f'Currently supports native, {", ".join(list_external_downloaders())}. '
             'You can use this option multiple times to set different downloaders for different protocols. '
             'For example, --downloader aria2c --downloader "dash,m3u8:native" will use '
             'aria2c for http/ftp downloads, and the native downloader for dash/m3u8 downloads '
-            '(Alias: --external-downloader)' % ', '.join(list_external_downloaders())))
+            '(Alias: --external-downloader)'))
     downloader.add_option(
         '--downloader-args', '--external-downloader-args',
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
@@ -943,7 +946,8 @@ def create_parser():
         }, help=(
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
-            'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
+            'Implies --quiet. Implies --simulate unless --no-simulate or later stages of WHEN are used. '
+            'This option can be used multiple times'))
     verbosity.add_option(
         '--print-to-file',
         metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
@@ -1061,7 +1065,7 @@ def create_parser():
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        # help='[Broken] Contact the yt-dlp server for debugging')
+        # help='Contact the yt-dlp server for debugging')
         help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--no-call-home',
@@ -1431,7 +1435,7 @@ def create_parser():
         dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
         help='Replace text in a metadata field using the given regex. This option can be used multiple times')
     postproc.add_option(
-        '--xattrs',
+        '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
     postproc.add_option(
