@@ -76,14 +76,12 @@ class RTPIE(InfoExtractor):
             f_hls = f.get('hls')
             if f_hls is not None:
                 formats.extend(self._extract_m3u8_formats(
-                    f_hls, video_id, 'mp4', 'm3u8_native', m3u8_id='hls',
-                    headers=self.__HEADERS))
+                    f_hls, video_id, 'mp4', 'm3u8_native', m3u8_id='hls', headers=self.__HEADERS))
 
             f_dash = f.get('dash')
             if f_dash is not None:
                 formats.extend(self._extract_mpd_formats(
-                    f_dash, video_id, mpd_id='dash',
-                    headers=self.__HEADERS))
+                    f_dash, video_id, mpd_id='dash', headers=self.__HEADERS))
 
             for fmt in formats:
                 fmt.update({
