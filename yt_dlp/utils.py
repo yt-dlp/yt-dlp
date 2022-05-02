@@ -938,8 +938,11 @@ def make_HTTPS_handler(params, **kwargs):
                 context.set_default_verify_paths()
     client_certfile = params.get('client_certificate')
     if client_certfile:
-        context.load_cert_chain(
-            client_certfile, keyfile=params.get('client_certificate_key'), password=params.get('client_certificate_password'))
+        try:
+            context.load_cert_chain(
+                client_certfile, keyfile=params.get('client_certificate_key'), password=params.get('client_certificate_password'))
+        except ssl.SSLError as e:
+            raise YoutubeDLError(f'Unable to load client certificate')
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
