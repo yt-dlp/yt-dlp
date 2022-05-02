@@ -836,9 +836,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --ap-list-mso                    List all supported multiple-system
                                      operators
     --client-certificate CERTFILE    Path to client certificate file in PEM
-                                     format. May include the private key.
-    --client-certificate-key KEYFILE
-                                     Path to private key file for client
+                                     format. May include the private key
+    --client-certificate-key KEYFILE Path to private key file for client
                                      certificate
     --client-certificate-password PASSWORD
                                      Password for client certificate private
