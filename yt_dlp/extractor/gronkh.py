@@ -78,7 +78,7 @@ class GronkhFeedIE(InfoExtractor):
 
 
 class GronkhVodsIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv(?:/feed)?/?(?:#|$)'
+    _VALID_URL = r'https?://(?:www\.)?gronkh\.tv/vods/streams/?(?:#|$)'
     IE_NAME = 'gronkh:vods'
 
     _TESTS = [{
