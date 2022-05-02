@@ -43,11 +43,8 @@ class GabTVIE(InfoExtractor):
         id = self._match_id(url).split('-')[-1]
         webpage = self._download_webpage(url, id)
         channel_id = self._search_regex(r'data-channel-id=\"(?P<channel_id>[^\"]+)', webpage, 'channel_id')
-        video_info = self._parse_json(self._search_regex(r'(?s)mediaMetadata\:\s+(\{.+?\})', webpage, 'video_info'),
+        video_info = self._parse_json(self._search_regex(r'(?s)mediaMetadata:\s+({.+?})', webpage, 'video_info'),
                                       video_id=id, transform_source=js_to_json)
-        title = video_info.get('title')
-        description = clean_html(
-            self._html_search_regex(self._meta_regex('description'), webpage, 'description', group='content')) or None
         formats = [{
             'format_id': q,
             'quality': q,
@@ -56,14 +53,16 @@ class GabTVIE(InfoExtractor):
         } for src, q in re.findall(r'<source[^>]+src="(?P<src>[^"]+)"[^>]*\ssize="(?P<quality>\d+)"', webpage)]
         self._sort_formats(formats)
 
+        poster = self._search_regex(r'data-poster="(?P<data_poster>[^"]+)', webpage, 'poster', fatal=False)
+
         return {
             'id': id,
-            'title': title,
+            'title': video_info.get('title'),
             'formats': formats,
-            'description': description,
+            'description': clean_html(self._html_search_regex(self._meta_regex('description'), webpage, 'description', group='content')) or None,
             'uploader': video_info.get('artist'),
             'uploader_id': channel_id,
-            'thumbnail': urllib.parse.urljoin(self._DOMAIN, self._search_regex(r'data-poster=\"(?P<data_poster>[^\"]+)', webpage, 'data_poster', fatal=False)),
+            'thumbnail': urllib.parse.urljoin(self._DOMAIN, poster) if poster else None,
         }
 
 
