@@ -22,9 +22,11 @@ class TrovoBaseIE(InfoExtractor):
         else:
             url = 'https://api-web.trovo.live/graphql'
 
-        resp = self._download_json(url, video_id, query={
-            'qid': ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)),
-        }, data=json.dumps([data]).encode(), headers={'Accept': 'application/json'})[0]
+        resp = self._download_json(
+            url, video_id, data=json.dumps([data]).encode(), headers={'Accept': 'application/json'},
+            query={
+                'qid': ''.join(random.choices(string.ascii_uppercase + string.digits, k=10)),
+            })[0]
         if 'errors' in resp:
             raise ExtractorError(f'Trovo said: {resp["errors"][0]["message"]}')
         return resp['data'][data['operationName']]
@@ -134,7 +136,7 @@ class TrovoVodIE(TrovoBaseIE):
         vod_info = vod_detail_info['vodInfo']
         title = vod_info['title']
 
-        if vod_info['playbackRights']['playbackRights'] != 'Normal':
+        if try_get(vod_info, lambda x: x['playbackRights']['playbackRights'] != 'Normal'):
             playback_rights_setting = vod_info['playbackRights']['playbackRightsSetting']
             if playback_rights_setting == 'SubscriberOnly':
                 raise ExtractorError('This video is only available for subscribers', expected=True)
@@ -181,7 +183,6 @@ class TrovoVodIE(TrovoBaseIE):
         return info
 
     def _get_comments(self, vid):
-        comment_list = []
         for page in itertools.count(1):
             comments_json = self._call_api(vid, data={
                 'operationName': 'getCommentList',
@@ -202,24 +203,23 @@ class TrovoVodIE(TrovoBaseIE):
                     },
                 },
             })
-            comment_list += comments_json['commentList']
+            for comment in comments_json['commentList']:
+                content = comment.get('content')
+                if not content:
+                    continue
+                author = comment.get('author') or {}
+                parent = comment.get('parentID')
+                yield {
+                    'author': author.get('nickName'),
+                    'author_id': str_or_none(author.get('uid')),
+                    'id': str_or_none(comment.get('commentID')),
+                    'text': content,
+                    'timestamp': int_or_none(comment.get('createdAt')),
+                    'parent': 'root' if parent == 0 else str_or_none(parent),
+                }
+
             if comments_json['lastPage']:
                 break
-
-        for comment in comment_list:
-            content = comment.get('content')
-            if not content:
-                continue
-            author = comment.get('author') or {}
-            parent = comment.get('parentID')
-            yield {
-                'author': author.get('nickName'),
-                'author_id': str_or_none(author.get('uid')),
-                'id': str_or_none(comment.get('commentID')),
-                'text': content,
-                'timestamp': int_or_none(comment.get('createdAt')),
-                'parent': 'root' if parent == 0 else str_or_none(parent),
-            }
 
 
 class TrovoChannelBaseIE(TrovoBaseIE):
