@@ -91,8 +91,11 @@ class TestClientCert(unittest.TestCase):
         self.certdir = os.path.join(TEST_DIR, 'testdata', 'certificate')
         cacertfn = os.path.join(self.certdir, 'ca.crt')
         self.httpd = compat_http_server.HTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
-        self.httpd.socket = ssl.wrap_socket(
-            self.httpd.socket, cert_reqs=ssl.CERT_REQUIRED, ca_certs=cacertfn, certfile=certfn, server_side=True)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.verify_mode = ssl.CERT_REQUIRED
+        sslctx.load_verify_locations(cafile=cacertfn)
+        sslctx.load_cert_chain(certfn, None)
+        self.httpd.socket = sslctx.wrap_socket(self.httpd.socket, server_side=True)
         self.port = http_server_port(self.httpd)
         self.server_thread = threading.Thread(target=self.httpd.serve_forever)
         self.server_thread.daemon = True
