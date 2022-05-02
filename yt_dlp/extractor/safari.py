@@ -112,7 +112,7 @@ class SafariIE(SafariBaseIE):
         reference_id = mobj.group('reference_id')
         if reference_id:
             query['flashvars[referenceId]'] = video_id = reference_id
-            query['wid'] = '_%s' % self._PARTNER_ID
+            query['wid'] = f'_{self._PARTNER_ID}'
             query['uiconf_id'] = self._UICONF_ID
         else:
             video_id = '%s-%s' % (mobj.group('course_id'), mobj.group('part'))
