@@ -13,6 +13,7 @@ from ..utils import (
     ExtractorError,
     HEADRequest,
     UnsupportedError,
+    get_element_by_id,
     get_first,
     int_or_none,
     join_nonempty,
@@ -140,6 +141,23 @@ class TikTokBaseIE(InfoExtractor):
                     for i, line in enumerate(caption_json['utterances']) if line.get('text'))
             })
         return subtitles
+
+    def _get_SIGI_STATE(self, video_id, html):
+        try:
+            sigi_data = get_element_by_id('SIGI_STATE', html)
+        except ValueError:
+            sigi_data = self._search_regex(
+                r'''(?s)
+                    <script\s[^>]*?\b
+                        id\s*=\s*(?P<q>"|'|\b)
+                        sigi-persisted-data(?P=q)[^>]*>[^=]*=\s*(?P<json>{.+?})\s*(?:;[^<]+)?
+                    </script
+                ''',
+                html, 'sigi data', default='{}', group='json'
+            )
+
+        state = self._parse_json(sigi_data, video_id)
+        return state if isinstance(state, dict) else {}
 
     def _parse_aweme_video_app(self, aweme_detail):
         aweme_id = aweme_detail['aweme_id']
@@ -513,21 +531,18 @@ class TikTokIE(TikTokBaseIE):
         except ExtractorError as e:
             self.report_warning(f'{e}; Retrying with webpage')
 
-        # If we only call once, we get a 403 when downlaoding the video.
-        self._download_webpage(url, video_id)
-        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
+        # If UA starts with `Mozilla/5.0`, but shorter than 26 character, 403 response is received
+        webpage = self._download_webpage(
+            url, video_id, headers={'User-Agent': 'Mozilla/5.0 innocent fishing boat'})
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
 
         if next_data:
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
-            sigi_json = self._search_regex(
-                r'>\s*window\[[\'"]SIGI_STATE[\'"]\]\s*=\s*(?P<sigi_state>{.+});',
-                webpage, 'sigi data', group='sigi_state')
-            sigi_data = self._parse_json(sigi_json, video_id)
-            status = traverse_obj(sigi_data, ('VideoPage', 'statusCode'), expected_type=int) or 0
-            video_data = traverse_obj(sigi_data, ('ItemModule', video_id), expected_type=dict)
+            sigi_state = self._get_SIGI_STATE(video_id, webpage)
+            status = traverse_obj(sigi_state, ('VideoPage', 'statusCode'), expected_type=int) or 0
+            video_data = traverse_obj(sigi_state, ('ItemModule', video_id), expected_type=dict)
 
         if status == 0:
             return self._parse_aweme_video_web(video_data, url)
