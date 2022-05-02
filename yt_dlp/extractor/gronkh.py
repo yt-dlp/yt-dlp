@@ -57,8 +57,6 @@ class GronkhFeedIE(InfoExtractor):
         'url': 'https://gronkh.tv/feed',
         'info_dict': {
             'id': 'feed',
-            'title': 'feed',
-            'description': 'feed',
         },
         'playlist_count': 16,
     }, {
@@ -85,8 +83,6 @@ class GronkhVodsIE(InfoExtractor):
         'url': 'https://gronkh.tv/vods/streams',
         'info_dict': {
             'id': 'vods',
-            'title': 'vods',
-            'description': 'vods',
         },
         'playlist_mincount': 150,
     }]
