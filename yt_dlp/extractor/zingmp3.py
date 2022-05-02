@@ -276,7 +276,7 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
 
 
 class ZingMp3WeekChartIE(ZingMp3BaseIE):
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>zing-chart-tuan)/.+?/(?P<id>[^\.]+)'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>zing-chart-tuan)/[^/?#]+/(?P<id>\w+)'
     IE_NAME = 'zingmp3:week-chart'
     _TESTS = [{
         'url': 'https://zingmp3.vn/zing-chart-tuan/Bai-hat-Viet-Nam/IWZ9Z08I.html',
