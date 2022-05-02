@@ -1,9 +1,10 @@
 import functools
 import hashlib
 import hmac
+import json
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import compat_urllib_parse_urlencode
 from ..utils import (
     OnDemandPagedList,
     int_or_none,
@@ -45,7 +46,9 @@ class ZingMp3BaseIE(InfoExtractor):
         title = item.get('title') or item.get('alias')
 
         if type_url == 'video-clip':
-            info = self._download_json('http://api.mp3.zing.vn/api/mobile/video/getvideoinfo?requestdata={"id":"{%s}"}' % item_id, item_id)
+            info = self._download_json(
+                'http://api.mp3.zing.vn/api/mobile/video/getvideoinfo', item_id,
+                query={'requestdata': json.dumps({'id': item_id})})
             source = item.get('streaming')
             if info.get('source'):
                 source['mp4'] = info.get('source')
@@ -134,7 +137,7 @@ class ZingMp3BaseIE(InfoExtractor):
             'sig': hmac.new(self._SECRET_KEY, f'{name_api}{sha256}'.encode('utf-8'), hashlib.sha512).hexdigest(),
             **param,
         }
-        return f'{self._DOMAIN}{name_api}?{compat_urllib_parse_urlencode(data)}'
+        return f'{self._DOMAIN}{name_api}?{urllib.parse.urlencode(data)}'
 
     def _entries(self, items):
         for item in items:
@@ -239,7 +242,7 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
 
 
 class ZingMp3ChartHomeIE(ZingMp3BaseIE):
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:zing-chart|moi-phat-hanh))/?$'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<id>(?:zing-chart|moi-phat-hanh))/?(?:[#?]|$)'
     _TESTS = [{
         'url': 'https://zingmp3.vn/zing-chart',
         'info_dict': {
@@ -302,8 +305,8 @@ class ZingMp3WeekChartIE(ZingMp3BaseIE):
     }]
 
     def _process_data(self, data, chart_id, type_url):
-        items = data.get('items')
-        return self.playlist_result(self._entries(items), chart_id, f'zing-chart-{data.get("country", "")}')
+        return self.playlist_result(
+            self._entries(data['items']), chart_id, f'zing-chart-{data.get("country", "")}')
 
 
 class ZingMp3ChartMusicVideoIE(ZingMp3BaseIE):
@@ -329,7 +332,9 @@ class ZingMp3ChartMusicVideoIE(ZingMp3BaseIE):
             'count': self._PER_PAGE
         })
         data = self._download_json(api, song_id)['data']
-        return self._entries(data.get('items'))
+        items = data.get('items')
+        if items:
+            return self._entries(items)
 
     def _real_extract(self, url):
         song_id, type_url = self._match_valid_url(url).group('id', 'type')
@@ -351,7 +356,6 @@ class ZingMp3UserIE(ZingMp3BaseIE):
     _TESTS = [{
         'url': 'https://zingmp3.vn/Mr-Siro/bai-hat',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ98609',
             'title': 'Mr. Siro - bai-hat',
             'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
@@ -360,7 +364,6 @@ class ZingMp3UserIE(ZingMp3BaseIE):
     }, {
         'url': 'https://zingmp3.vn/Mr-Siro/album',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ98609',
             'title': 'Mr. Siro - album',
             'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
@@ -369,7 +372,6 @@ class ZingMp3UserIE(ZingMp3BaseIE):
     }, {
         'url': 'https://zingmp3.vn/Mr-Siro/single',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ98609',
             'title': 'Mr. Siro - single',
             'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
@@ -378,7 +380,6 @@ class ZingMp3UserIE(ZingMp3BaseIE):
     }, {
         'url': 'https://zingmp3.vn/Mr-Siro/video',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ98609',
             'title': 'Mr. Siro - video',
             'description': 'md5:85ab29bd7b21725c12bf76fd1d6922e5',
@@ -396,25 +397,28 @@ class ZingMp3UserIE(ZingMp3BaseIE):
             'count': self._PER_PAGE
         })
         data = self._download_json(api, user_id, query={'sort': 'new', 'sectionId': 'aSong'})['data']
-        return self._entries(data.get('items'))
+        items = data.get('items')
+        if items:
+            return self._entries(items)
 
     def _real_extract(self, url):
         user_alias, type_url = self._match_valid_url(url).group('user', 'type')
         if not type_url:
             type_url = 'bai-hat'
-        user_info = self._download_json(self.get_api_with_signature(name_api=self._SLUG_API['info-artist'], param={}),
-                                        video_id=user_alias, query={'alias': user_alias})['data']
+        user_info = self._download_json(
+            self.get_api_with_signature(name_api=self._SLUG_API['info-artist'], param={}),
+            video_id=user_alias, query={'alias': user_alias})['data']
         user_id = user_info.get('id')
         biography = user_info.get('biography')
         if type_url == 'bai-hat' or type_url == 'video':
             entries = OnDemandPagedList(functools.partial(self._fetch_page, user_id, type_url), self._PER_PAGE)
             return self.playlist_result(entries, user_id, f'{user_info.get("name")} - {type_url}', biography)
         else:
-            lst_entries = []
+            entries = []
             for section in user_info.get('sections', {}):
                 if section.get('link') == f'/{user_alias}/{type_url}':
                     items = section.get('items')
                     for item in items:
-                        lst_entries.append(self.url_result(urljoin(self._DOMAIN, item.get('link'))))
+                        entries.append(self.url_result(urljoin(self._DOMAIN, item.get('link'))))
                     break
-            return self.playlist_result(lst_entries, user_id, f'{user_info.get("name")} - {type_url}', biography)
+            return self.playlist_result(entries, user_id, f'{user_info.get("name")} - {type_url}', biography)
