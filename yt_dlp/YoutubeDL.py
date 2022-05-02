@@ -3108,7 +3108,8 @@ class YoutubeDL:
                             self.report_warning(f'{msg}. {self._format_err(warn, self.Styles.WARNING)}')
 
                         if temp_filename == '-':
-                            reason = (f'using a downloader other than {("ffmpeg", self.Styles.REQUIREMENT)}'
+                            reason = ('using a downloader other than %s' %
+                                      self._format_err("ffmpeg", self.Styles.REQUIREMENT)
                                       if FFmpegFD.can_merge_formats(info_dict, self.params) else
                                       'but the formats are incompatible for simultaneous download'
                                       if merger.available else
