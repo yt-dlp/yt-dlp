@@ -26,8 +26,8 @@ class SafariBaseIE(InfoExtractor):
                 fatal=False, headers={'Accept': 'application/json'})
             return result is not False
 
-        if is_logged():
-            self.LOGGED_IN = True
+        self.LOGGED_IN = is_logged()
+        if self.LOGGED_IN:
             return
 
         auth, urlh = self._download_json_handle(
@@ -50,8 +50,8 @@ class SafariBaseIE(InfoExtractor):
         for cookie in ('groot_sessionid', 'orm-jwt', 'orm-rt'):
             self._apply_first_set_cookie_header(urlh, cookie)
 
-        if is_logged():
-            self.LOGGED_IN = True
+        self.LOGGED_IN = is_logged()
+        if self.LOGGED_IN:
             return
 
         raise ExtractorError('Unable to log in')
