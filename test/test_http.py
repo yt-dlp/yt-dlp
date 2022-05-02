@@ -98,11 +98,13 @@ class TestClientCert(unittest.TestCase):
         self.server_thread.start()
 
     def _run_test(self, **params):
-        ydl = YoutubeDL({'logger': FakeLogger(),
-                         # Disable client-side validation of unacceptable self-signed testcert.pem
-                         # The test is of a check on the server side, so unaffected
-                         'nocheckcertificate': True, **params
-                         })
+        ydl = YoutubeDL({
+            'logger': FakeLogger(),
+            # Disable client-side validation of unacceptable self-signed testcert.pem
+            # The test is of a check on the server side, so unaffected
+            'nocheckcertificate': True,
+            **params,
+        })
         r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
         self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
 
