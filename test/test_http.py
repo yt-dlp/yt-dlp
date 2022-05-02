@@ -107,20 +107,20 @@ class TestClientCert(unittest.TestCase):
         self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
 
     def test_certificate_combined_nopass(self):
-        self._run_test(certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
+        self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
 
     def test_certificate_nocombined_nopass(self):
         self._run_test(
-            certificate=os.path.join(self.certdir, 'client.crt'), certificatekey=os.path.join(self.certdir, 'client.key'))
+            client_certificate=os.path.join(self.certdir, 'client.crt'), client_certificate_key=os.path.join(self.certdir, 'client.key'))
 
     def test_certificate_combined_pass(self):
         self._run_test(
-            certificate=os.path.join(self.certdir, 'clientwithencryptedkey.crt'), certificatekeypass='foobar')
+            client_certificate=os.path.join(self.certdir, 'clientwithencryptedkey.crt'), client_certificate_password='foobar')
 
     def test_certificate_nocombined_pass(self):
-        self._run_test(certificate=os.path.join(self.certdir, 'client.crt'),
-                       certificatekey=os.path.join(self.certdir, 'clientencrypted.key'),
-                       certificatekeypass='foobar')
+        self._run_test(client_certificate=os.path.join(self.certdir, 'client.crt'),
+                       client_certificate_key=os.path.join(self.certdir, 'clientencrypted.key'),
+                       client_certificate_password='foobar')
 
 
 def _build_proxy_handler(name):
