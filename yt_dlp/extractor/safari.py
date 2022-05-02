@@ -19,15 +19,17 @@ class SafariBaseIE(InfoExtractor):
 
     LOGGED_IN = False
 
-    def is_logged(self, urlh=None):
+    def is_logged(self):
         result = self._download_json_handle(
             'https://api.oreilly.com/api/v2/me/', None, 'Checking if logged in',
             fatal=False, headers={'Accept': 'application/json'})
         return result is not False
 
+    def _initialize_pre_login(self):
+        self.LOGGED_IN = self.is_logged()
+
     def _perform_login(self, username, password):
 
-        self.LOGGED_IN = self.is_logged()
         if self.LOGGED_IN:
             return
 
