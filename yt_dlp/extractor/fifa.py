@@ -53,13 +53,15 @@ class FifaIE(InfoExtractor):
         video_id, locale = self._match_valid_url(url).group('id', 'locale')
         webpage = self._download_webpage(url, video_id)
 
-        preconnect_link = self._search_regex(r'<link[^>]+rel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"', webpage, 'Preconnect Link')
+        preconnect_link = self._search_regex(
+            r'<link[^>]+rel\s*=\s*"preconnect"[^>]+href\s*=\s*"([^"]+)"', webpage, 'Preconnect Link')
 
         json_data = self._download_json(
             f'{preconnect_link}/video/GetVideoPlayerData/{video_id}', video_id,
             'Downloading Video Player Data', query={'includeIdents': True, 'locale': locale})
 
-        video_details = self._download_json(f'{preconnect_link}/sections/videoDetails/{video_id}', video_id, 'Downloading Video Details', fatal=False)
+        video_details = self._download_json(
+            f'{preconnect_link}/sections/videoDetails/{video_id}', video_id, 'Downloading Video Details', fatal=False)
 
         preplay_parameters = self._download_json(
             f'{preconnect_link}/video/GetVerizonPreplayParameters', video_id, 'Downloading Preplay Parameters', query={
