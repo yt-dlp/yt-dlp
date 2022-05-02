@@ -21,7 +21,6 @@ from ..utils import (
     decode_base,
     int_or_none,
     random_uuidv4,
-    request_to_url,
     time_seconds,
     update_url_query,
     traverse_obj,
@@ -70,8 +69,7 @@ class AbemaLicenseHandler(RequestHandler):
         return cls._is_supported_scheme(request)
 
     def handle(self, request: Request, **req_kwargs):
-        url = request_to_url(request)
-        ticket = urllib.parse.urlparse(url).netloc
+        ticket = urllib.parse.urlparse(request.get_full_url()).netloc
         response_data = self._get_videokey_from_ticket(ticket)
 
         return SimpleHTTPResponse(

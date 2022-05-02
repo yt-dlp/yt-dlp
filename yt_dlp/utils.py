@@ -2048,16 +2048,6 @@ def url_or_none(url):
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
 
 
-def request_to_url(req):
-    # NOTE: import is now here to avoid making diff. can be moved to top of file
-    from .networking.common import Request
-
-    if isinstance(req, (Request, compat_urllib_request.Request)):
-        return req.get_full_url()
-    else:
-        return req
-
-
 def strftime_or_none(timestamp, date_format, default=None):
     datetime_object = None
     try:
