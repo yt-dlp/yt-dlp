@@ -67,11 +67,8 @@ class NprIE(InfoExtractor):
 
         # Fetch the JSON-LD from the npr page.
         json_ld = self._search_json_ld(
-            self._download_webpage(url, playlist_id),
-            playlist_id,
-            'NewsArticle',
-            fatal=False
-        )
+            self._download_webpage(url, playlist_id), playlist_id,
+            'NewsArticle', fatal=False)
 
         KNOWN_FORMATS = ('threegp', 'm3u8', 'smil', 'mp4', 'mp3')
         quality = qualities(KNOWN_FORMATS)
