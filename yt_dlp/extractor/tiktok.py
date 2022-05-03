@@ -144,18 +144,19 @@ class TikTokBaseIE(InfoExtractor):
 
     def _get_SIGI_STATE(self, video_id, html):
         try:
-            sigi_data = get_element_by_id('SIGI_STATE', html) or self._search_regex(
+            sigi_data = get_element_by_id('SIGI_STATE', html)
+            if not sigi_data:
+                raise ExtractorError('No element with \'SIGI_STATE\' id was found')
+        except (ValueError, ExtractorError) as err:
+            if isinstance(err, ExtractorError):
+                self.write_debug(err.orig_msg)
+            sigi_data = self._search_regex(
                 r'''(?s)
                     <script\s[^>]*?\b
                         id\s*=\s*(?P<q>"|'|\b)
                         sigi-persisted-data(?P=q)[^>]*>[^=]*=\s*(?P<json>{.+?})\s*(?:;[^<]+)?
                     </script
-                ''',
-                html, 'sigi data', default='{}', group='json'
-            )
-        except ValueError:
-            sigi_data = '{}'
-
+                ''', html, 'sigi data', default='{}', group='json')
         try:
             state = self._parse_json(sigi_data, video_id)
         except TypeError as err:
