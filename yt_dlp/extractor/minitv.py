@@ -133,7 +133,6 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
     contentId: $contentId
     contentType: $contentType
   ) {
-    __typename
     contentId
     name
     ... on Episode {
@@ -144,27 +143,17 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
       description {
         synopsis
         contentLengthInSeconds
-        __typename
       }
-      discretionAdvice
       publicReleaseDateUTC
-      studioNames
-      contributorGroups
-      genres
-      regulatoryRating: localRegulatoryRating
-      contentDescriptors
       audioTracks
       seasonId
       seriesId
       seriesName
       seasonNumber
       episodeNumber
-      episodeImages
       timecode {
         endCreditsTime
-        __typename
       }
-      __typename
     }
     ... on MovieContent {
       contentId
@@ -173,18 +162,10 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
       description {
         synopsis
         contentLengthInSeconds
-        __typename
       }
       images
-      discretionAdvice
       publicReleaseDateUTC
-      studioNames
-      contributorGroups
-      genres
-      regulatoryRating: localRegulatoryRating
-      contentDescriptors
       audioTracks
-      __typename
     }
   }
 }''',
@@ -287,18 +268,13 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
         seriesId
         seasonNumber
         episodeNumber
-        watchedPercentage
         description {
           synopsis
           contentLengthInSeconds
-          __typename
         }
         publicReleaseDateUTC
-        __typename
       }
-      __typename
     }
-    __typename
   }
 }
 ''',
@@ -346,16 +322,7 @@ query getSeasons($sessionIdToken: String!, $deviceLocale: String, $episodeOrSeas
   ) {
     seasons {
       seasonId
-      description {
-        synopsis
-        __typename
-      }
-      seasonNumber
-      continueWatchingEpisodeId
-      isScripted
-      __typename
     }
-    __typename
   }
 }
 ''',
