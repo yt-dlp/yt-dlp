@@ -507,6 +507,29 @@ class TikTokIE(TikTokBaseIE):
         },
         'expected_warnings': ['Creating a generic title']
     }, {
+        # hydration JSON is sent in a <script> element
+        'url': 'https://www.tiktok.com/@denidil6/video/7065799023130643713',
+        'info_dict': {
+            'id': '7042692929109986561',
+            'ext': 'mp4',
+            'title': 'Slap and Run!',
+            'description': 'Slap and Run!',
+            'uploader': 'user440922249',
+            'creator': 'Slap And Run',
+            'uploader_id': '7036055384943690754',
+            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAATh8Vewkn0LYM7Fo03iec3qKdeCUOcBIouRk1mkiag6h3o_pQu_dUXvZ2EZlGST7_',
+            'track': 'Promoted Music',
+            'timestamp': 1639754738,
+            'duration': 30,
+            'thumbnail': r're:^https?://[\w\/\.\-]+(~[\w\-]+\.image)?',
+            'upload_date': '20211217',
+            'view_count': int,
+            'like_count': int,
+            'repost_count': int,
+            'comment_count': int,
+        },
+        'expected_warnings': ['Retrying with webpage', 'Unable to find video in feed']
+    }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
         'only_matching': True
