@@ -588,7 +588,7 @@ class TikTokUserIE(TikTokBaseIE):
             'title': '6820838815978423302',
             'thumbnail': r're:https://.+_1080x1080\.webp'
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying', 'Creating a generic title instead']
     }, {
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
@@ -597,7 +597,7 @@ class TikTokUserIE(TikTokBaseIE):
             'title': 'meme',
             'thumbnail': r're:https://.+_1080x1080\.webp'
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying', 'Creating a generic title instead']
     }]
 
     r'''  # TODO: Fix by adding _signature to api_url
