@@ -546,14 +546,17 @@ class TikTokIE(TikTokBaseIE):
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
-            sigi_state = self._parse_json(get_element_by_id('SIGI_STATE', webpage) or self._search_regex(
-                r'''(?s)
-                    <script\s[^>]*?\b
-                        id\s*=\s*(?P<q>"|'|\b)
-                        sigi-persisted-data(?P=q)[^>]*>[^=]*=\s*(?P<json>{.+?})\s*(?:;[^<]+)?
-                    </script
-                ''',
-                webpage, 'sigi data', group='json'), video_id)
+            try:
+                sigi_data = get_element_by_id('SIGI_STATE', webpage)
+            except ValueError:
+                sigi_data = self._search_regex(
+                    r'''(?s)
+                        <script\s[^>]*?\b
+                            id\s*=\s*(?P<q>"|'|\b)
+                            SIGI_STATE(?P=q)[^>]*>[^=]*=\s*(?P<json>{.+?})\s*(?:;[^<]+)?
+                        </script
+                    ''', webpage, 'sigi data', group='json')
+            sigi_state = self._parse_json(sigi_data, video_id)
 
             status = traverse_obj(sigi_state, ('VideoPage', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(sigi_state, ('ItemModule', video_id), expected_type=dict)
