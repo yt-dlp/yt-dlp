@@ -516,20 +516,14 @@ class TikTokIE(TikTokBaseIE):
 
     def _extract_aweme_app(self, aweme_id):
         try:
-            res = self._call_api(
-                'aweme/detail', {'aweme_id': aweme_id}, aweme_id,
-                note='Downloading video details', errnote='Unable to download video details'
-            )
-            aweme_detail = res.get('aweme_detail')
+            aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
+                                          note='Downloading video details', errnote='Unable to download video details').get('aweme_detail')
             if not aweme_detail:
                 raise ExtractorError('Video not available', video_id=aweme_id)
         except ExtractorError as e:
             self.report_warning(f'{e.orig_msg}; Retrying with feed workaround')
-            res = self._call_api(
-                'feed', {'aweme_id': aweme_id}, aweme_id,
-                note='Downloading video feed', errnote='Unable to download video feed'
-            )
-            feed_list = res.get('aweme_list') or []
+            feed_list = self._call_api('feed', {'aweme_id': aweme_id}, aweme_id,
+                                       note='Downloading video feed', errnote='Unable to download video feed').get('aweme_list') or []
             aweme_detail = next((aweme for aweme in feed_list if str(aweme.get('aweme_id')) == aweme_id), None)
             if not aweme_detail:
                 raise ExtractorError('Unable to find video in feed', video_id=aweme_id)
