@@ -151,10 +151,10 @@ class TikTokBaseIE(InfoExtractor):
                         sigi-persisted-data(?P=q)[^>]*>[^=]*=\s*(?P<json>{.+?})\s*(?:;[^<]+)?
                     </script
                 ''',
-                html, 'sigi data', default=None, group='json'
+                html, 'sigi data', default='{}', group='json'
             )
         except ValueError:
-            sigi_data = None
+            sigi_data = '{}'
 
         try:
             state = self._parse_json(sigi_data, video_id)
