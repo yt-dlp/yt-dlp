@@ -1570,7 +1570,7 @@ class InfoExtractor:
                     })
                     if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
                         extract_video_object(e['video'][0])
-                    if traverse_obj(e, ('subjectOf', 0, '@type')) == 'VideoObject':
+                    elif traverse_obj(e, ('subjectOf', 0, '@type')) == 'VideoObject':
                         extract_video_object(e['subjectOf'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
