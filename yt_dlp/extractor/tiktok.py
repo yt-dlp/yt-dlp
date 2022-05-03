@@ -480,14 +480,14 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Video not available']
+        'expected_warnings': ['Retrying with webpage', 'Unable to find video in feed']
     }, {
         # Video without title and description
         'url': 'https://www.tiktok.com/@pokemonlife22/video/7059698374567611694',
         'info_dict': {
             'id': '7059698374567611694',
             'ext': 'mp4',
-            'title': 'tiktok video #7059698374567611694',
+            'title': 'TikTok video #7059698374567611694',
             'description': '',
             'uploader': 'pokemonlife22',
             'creator': 'Pokemon',
@@ -504,7 +504,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Video not available', 'Creating a generic title']
+        'expected_warnings': ['Creating a generic title']
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
