@@ -140,9 +140,9 @@ class ZingMp3BaseIE(InfoExtractor):
         return f'{self._DOMAIN}{name_api}?{urllib.parse.urlencode(data)}'
 
     def _entries(self, items):
-        for item in items:
-            if item:
-                yield self.url_result(urljoin(self._DOMAIN, item.get('link')))
+        for item in items or []:
+            if item and item.get('link'):
+                yield self.url_result(urljoin(self._DOMAIN, item['link']))
 
 
 class ZingMp3IE(ZingMp3BaseIE):
@@ -213,7 +213,6 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
     _TESTS = [{
         'url': 'http://mp3.zing.vn/album/Lau-Dai-Tinh-Ai-Bang-Kieu-Minh-Tuyet/ZWZBWDAF.html',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'ZWZBWDAF',
             'title': 'Lâu Đài Tình Ái',
         },
@@ -221,7 +220,6 @@ class ZingMp3AlbumIE(ZingMp3BaseIE):
     }, {
         'url': 'https://zingmp3.vn/album/Nhung-Bai-Hat-Hay-Nhat-Cua-Mr-Siro-Mr-Siro/ZWZAEZZD.html',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'ZWZAEZZD',
             'title': 'Những Bài Hát Hay Nhất Của Mr. Siro',
         },
@@ -246,7 +244,6 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
     _TESTS = [{
         'url': 'https://zingmp3.vn/zing-chart',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'zing-chart',
             'title': 'zing-chart',
         },
@@ -254,7 +251,6 @@ class ZingMp3ChartHomeIE(ZingMp3BaseIE):
     }, {
         'url': 'https://zingmp3.vn/moi-phat-hanh',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'moi-phat-hanh',
             'title': 'moi-phat-hanh',
         },
@@ -281,7 +277,6 @@ class ZingMp3WeekChartIE(ZingMp3BaseIE):
     _TESTS = [{
         'url': 'https://zingmp3.vn/zing-chart-tuan/Bai-hat-Viet-Nam/IWZ9Z08I.html',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ9Z08I',
             'title': 'zing-chart-vn',
         },
@@ -289,7 +284,6 @@ class ZingMp3WeekChartIE(ZingMp3BaseIE):
     }, {
         'url': 'https://zingmp3.vn/zing-chart-tuan/Bai-hat-US-UK/IWZ9Z0BW.html',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ9Z0BW',
             'title': 'zing-chart-us',
         },
@@ -297,7 +291,6 @@ class ZingMp3WeekChartIE(ZingMp3BaseIE):
     }, {
         'url': 'https://zingmp3.vn/zing-chart-tuan/Bai-hat-KPop/IWZ9Z0BO.html',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ9Z0BO',
             'title': 'zing-chart-korea',
         },
@@ -305,22 +298,40 @@ class ZingMp3WeekChartIE(ZingMp3BaseIE):
     }]
 
     def _process_data(self, data, chart_id, type_url):
-        return self.playlist_result(
-            self._entries(data['items']), chart_id, f'zing-chart-{data.get("country", "")}')
+        return self.playlist_result(self._entries(data['items']), chart_id, f'zing-chart-{data.get("country", "")}')
 
 
 class ZingMp3ChartMusicVideoIE(ZingMp3BaseIE):
-    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>the-loai-video)/.+?/(?P<id>[^\.]+)'
+    _VALID_URL = r'https?://(?:mp3\.zing|zingmp3)\.vn/(?P<type>the-loai-video)/(?P<regions>[^/]+)/(?P<id>[^\.]+)'
     IE_NAME = 'zingmp3:chart-music-video'
     _TESTS = [{
         'url': 'https://zingmp3.vn/the-loai-video/Viet-Nam/IWZ9Z08I.html',
         'info_dict': {
-            '_type': 'playlist',
             'id': 'IWZ9Z08I',
-            'title': 'zing-chart-video',
-            'description': 'zing-chart-video',
+            'title': 'the-loai-video_Viet-Nam',
         },
         'playlist_mincount': 400,
+    }, {
+        'url': 'https://zingmp3.vn/the-loai-video/Au-My/IWZ9Z08O.html',
+        'info_dict': {
+            'id': 'IWZ9Z08O',
+            'title': 'the-loai-video_Au-My',
+        },
+        'playlist_mincount': 40,
+    }, {
+        'url': 'https://zingmp3.vn/the-loai-video/Han-Quoc/IWZ9Z08W.html',
+        'info_dict': {
+            'id': 'IWZ9Z08W',
+            'title': 'the-loai-video_Han-Quoc',
+        },
+        'playlist_mincount': 30,
+    }, {
+        'url': 'https://zingmp3.vn/the-loai-video/Khong-Loi/IWZ9Z086.html',
+        'info_dict': {
+            'id': 'IWZ9Z086',
+            'title': 'the-loai-video_Khong-Loi',
+        },
+        'playlist_mincount': 10,
     }]
 
     def _fetch_page(self, song_id, type_url, page):
@@ -332,14 +343,12 @@ class ZingMp3ChartMusicVideoIE(ZingMp3BaseIE):
             'count': self._PER_PAGE
         })
         data = self._download_json(api, song_id)['data']
-        items = data.get('items')
-        if items:
-            return self._entries(items)
+        return self._entries(data.get('items'))
 
     def _real_extract(self, url):
-        song_id, type_url = self._match_valid_url(url).group('id', 'type')
+        song_id, regions, type_url = self._match_valid_url(url).group('id', 'regions', 'type')
         entries = OnDemandPagedList(functools.partial(self._fetch_page, song_id, type_url), self._PER_PAGE)
-        return self.playlist_result(entries, song_id, 'zing-chart-video', 'zing-chart-video')
+        return self.playlist_result(entries, song_id, f'{type_url}_{regions}')
 
 
 class ZingMp3UserIE(ZingMp3BaseIE):
@@ -347,10 +356,10 @@ class ZingMp3UserIE(ZingMp3BaseIE):
                         https?://
                             (?:mp3\.zing|zingmp3)\.vn/
                             (?P<user>[^/]+)
-                            (?:/
-                                (?P<type>bai-hat|single|album|video)
+                            (?:
+                                /(?P<type>bai-hat|single|album|video)
                             )
-                            /?(?:[?#].*)?$
+                            /?(?:[?#]|$)
                     '''
     IE_NAME = 'zingmp3:user'
     _TESTS = [{
@@ -397,9 +406,7 @@ class ZingMp3UserIE(ZingMp3BaseIE):
             'count': self._PER_PAGE
         })
         data = self._download_json(api, user_id, query={'sort': 'new', 'sectionId': 'aSong'})['data']
-        items = data.get('items')
-        if items:
-            return self._entries(items)
+        return self._entries(data.get('items'))
 
     def _real_extract(self, url):
         user_alias, type_url = self._match_valid_url(url).group('user', 'type')
