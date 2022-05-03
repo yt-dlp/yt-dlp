@@ -137,7 +137,7 @@ class LikeeIE(InfoExtractor):
 
 class LikeeUserIE(InfoExtractor):
     IE_NAME = 'likee:user'
-    _VALID_URL = r'https?://(www\.)?likee\.video/(?P<id>[^/]+)'
+    _VALID_URL = r'https?://(www\.)?likee\.video/(?P<id>[^/]+)/?$'
     _TESTS = [{
         'url': 'https://likee.video/@fernanda_rivasg',
         'info_dict': {
