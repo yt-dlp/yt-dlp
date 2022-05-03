@@ -103,7 +103,7 @@ class LikeeIE(InfoExtractor):
             video_id, transform_source=js_to_json)
         video_url = traverse_obj(info, 'video_url', ('originVideoInfo', 'video_url'))
         if not video_url:
-            raise ExtractorError(f'Video was deleted', expected=True)
+            raise ExtractorError('Video was deleted', expected=True)
         formats = [{
             'format_id': 'mp4-with-watermark',
             'url': video_url,
