@@ -18,9 +18,8 @@ class NebulaBaseIE(InfoExtractor):
     _nebula_bearer_token = None
     _zype_access_token = None
 
-    def _perform_nebula_auth(self):
-        username, password = self._get_login_info()
-        if not (username and password):
+    def _perform_nebula_auth(self, username, password):
+        if not username or not password:
             self.raise_login_required()
 
         data = json.dumps({'email': username, 'password': password}).encode('utf8')
@@ -51,7 +50,7 @@ class NebulaBaseIE(InfoExtractor):
 
         return response['key']
 
-    def _retrieve_nebula_api_token(self):
+    def _retrieve_nebula_api_token(self, username=None, password=None):
         """
         Check cookie jar for valid token. Try to authenticate using credentials if no valid token
         can be found in the cookie jar.
@@ -65,7 +64,7 @@ class NebulaBaseIE(InfoExtractor):
             if nebula_api_token:
                 return nebula_api_token
 
-        return self._perform_nebula_auth()
+        return self._perform_nebula_auth(username, password)
 
     def _call_nebula_api(self, url, video_id=None, method='GET', auth_type='api', note=''):
         assert method in ('GET', 'POST',)
@@ -146,8 +145,7 @@ class NebulaBaseIE(InfoExtractor):
         }
 
     def _perform_login(self, username=None, password=None):
-        # FIXME: username should be passed from here to inner functions
-        self._nebula_api_token = self._retrieve_nebula_api_token()
+        self._nebula_api_token = self._retrieve_nebula_api_token(username, password)
         self._nebula_bearer_token = self._fetch_nebula_bearer_token()
         self._zype_access_token = self._fetch_zype_access_token()
 
@@ -157,7 +155,7 @@ class NebulaIE(NebulaBaseIE):
     _TESTS = [
         {
             'url': 'https://nebula.app/videos/that-time-disney-remade-beauty-and-the-beast',
-            'md5': 'fe79c4df8b3aa2fea98a93d027465c7e',
+            'md5': '14944cfee8c7beeea106320c47560efc',
             'info_dict': {
                 'id': '5c271b40b13fd613090034fd',
                 'ext': 'mp4',
@@ -169,6 +167,17 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'lindsayellis',
                 'uploader': 'Lindsay Ellis',
                 'uploader_id': 'lindsayellis',
+
+                'timestamp': 1533009600,
+                'uploader_url': 'https://nebula.app/lindsayellis',
+                'series': 'Lindsay Ellis',
+                'average_rating': 0,
+                'display_id': 'that-time-disney-remade-beauty-and-the-beast',
+                'channel_url': 'https://nebula.app/lindsayellis',
+                'creator': 'Lindsay Ellis',
+                'duration': 2212,
+                'view_count': int,
+                'thumbnail': 'https://dj423fildxgac.cloudfront.net/d45d597a-8a81-4580-bc8c-69ab4ec6a8f1.jpeg?height=720&',
             },
             'params': {
                 'usenetrc': True,
@@ -176,7 +185,7 @@ class NebulaIE(NebulaBaseIE):
         },
         {
             'url': 'https://nebula.app/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
-            'md5': '6d4edd14ce65720fa63aba5c583fb328',
+            'md5': 'd05739cf6c38c09322422f696b569c23',
             'info_dict': {
                 'id': '5e7e78171aaf320001fbd6be',
                 'ext': 'mp4',
@@ -188,6 +197,16 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'realengineering',
                 'uploader': 'Real Engineering',
                 'uploader_id': 'realengineering',
+
+                'view_count': int,
+                'series': 'Real Engineering',
+                'average_rating': 0,
+                'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
+                'creator': 'Real Engineering',
+                'duration': 841,
+                'channel_url': 'https://nebula.app/realengineering',
+                'uploader_url': 'https://nebula.app/realengineering',
+                'thumbnail': 'https://dj423fildxgac.cloudfront.net/1239f02b-c6aa-4c4c-ba11-581a1db181ce.jpeg?height=720&',
             },
             'params': {
                 'usenetrc': True,
@@ -195,7 +214,7 @@ class NebulaIE(NebulaBaseIE):
         },
         {
             'url': 'https://nebula.app/videos/money-episode-1-the-draw',
-            'md5': '8c7d272910eea320f6f8e6d3084eecf5',
+            'md5': 'ebe28a7ad822b9ee172387d860487868',
             'info_dict': {
                 'id': '5e779ebdd157bc0001d1c75a',
                 'ext': 'mp4',
@@ -207,6 +226,16 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'tom-scott-presents-money',
                 'uploader': 'Tom Scott Presents: Money',
                 'uploader_id': 'tom-scott-presents-money',
+
+                'uploader_url': 'https://nebula.app/tom-scott-presents-money',
+                'duration': 825,
+                'channel_url': 'https://nebula.app/tom-scott-presents-money',
+                'view_count': int,
+                'series': 'Tom Scott Presents: Money',
+                'display_id': 'money-episode-1-the-draw',
+                'thumbnail': 'https://dj423fildxgac.cloudfront.net/516d7e3d-ba6d-4f76-ab07-c34bc1639800.jpeg?height=720&',
+                'average_rating': 0,
+                'creator': 'Tom Scott Presents: Money',
             },
             'params': {
                 'usenetrc': True,
@@ -230,9 +259,45 @@ class NebulaIE(NebulaBaseIE):
         return self._build_video_info(video)
 
 
-class NebulaCollectionIE(NebulaBaseIE):
-    IE_NAME = 'nebula:collection'
-    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!videos/)(?P<id>[-\w]+)'
+class NebulaSubscriptionsIE(NebulaBaseIE):
+    IE_NAME = 'nebula:subscriptions'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/myshows'
+    _TESTS = [
+        {
+            'url': 'https://nebula.app/myshows',
+            'playlist_mincount': 1,
+            'info_dict': {
+                'id': 'myshows',
+            },
+            'params': {
+                'usenetrc': True,
+            },
+        },
+    ]
+
+    CHANNEL_URL = 'https://content.watchnebula.com/library/video/?page_size=100'
+
+    def _generate_playlist_entries(self):
+        next_url = self.CHANNEL_URL
+        page_num = 1
+        while next_url:
+            channel = self._call_nebula_api(next_url, 'subscriptions', auth_type='bearer',
+                                            note=f'Retrieving subscriptions page {page_num}')
+            for episode in channel['results']:
+                yield self._build_video_info(episode)
+            next_url = channel['next']
+            page_num += 1
+
+    def _real_extract(self, url):
+        return self.playlist_result(
+            entries=self._generate_playlist_entries(),
+            playlist_id='myshows'
+        )
+
+
+class NebulaChannelIE(NebulaBaseIE):
+    IE_NAME = 'nebula:channel'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!myshows)(?!videos/)(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://nebula.app/tom-scott-presents-money',
@@ -252,7 +317,7 @@ class NebulaCollectionIE(NebulaBaseIE):
                 'title': 'Lindsay Ellis',
                 'description': 'Enjoy these hottest of takes on Disney, Transformers, and Musicals.',
             },
-            'playlist_mincount': 100,
+            'playlist_mincount': 10,
             'params': {
                 'usenetrc': True,
             },
