@@ -1501,9 +1501,9 @@ class InfoExtractor:
         def extract_video_object(e):
             assert e['@type'] == 'VideoObject'
             author = e.get('author')
+            embed_url = url_or_none(e.get('embedUrl'))
             info.update({
                 'url': url_or_none(e.get('contentUrl')),
-                'embedUrl': url_or_none(e.get('embedUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': [{'url': url_or_none(url)}
@@ -1521,6 +1521,8 @@ class InfoExtractor:
                 'height': int_or_none(e.get('height')),
                 'view_count': int_or_none(e.get('interactionCount')),
             })
+            if embed_url:
+                info.update({'formats': [{'url': embed_url}]})
             extract_interaction_statistic(e)
             extract_chapter_information(e)
 

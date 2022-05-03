@@ -116,10 +116,10 @@ class NprIE(InfoExtractor):
                     stream_url, stream_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
 
-            if len(formats) == 0 and json_ld.get('embedUrl', None) is not None:
-                # Add the embedUrl as a stream.
+            if (len(formats) == 0 and len(json_ld.get('formats', [])) > 0
+                    and json_ld.get('formats')[0].get('url', None)):
                 formats.extend(self._extract_m3u8_formats(
-                    json_ld.get('embedUrl'), 'hlsUrl', 'mp4', 'm3u8_native',
+                    json_ld.get('formats')[0].get('url'), media_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
 
             self._sort_formats(formats)
