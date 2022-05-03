@@ -540,9 +540,9 @@ class TikTokIE(TikTokBaseIE):
         except ExtractorError as e:
             self.report_warning(f'{e}; Retrying with webpage')
 
-        # If UA starts with `Mozilla/5.0`, but shorter than 26 character, 403 response is received
-        webpage = self._download_webpage(
-            url, video_id, headers={'User-Agent': 'Mozilla/5.0 innocent fishing boat'})
+        # If we only call once, we get a 403 when downlaoding the video.
+        self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
 
         if next_data:
