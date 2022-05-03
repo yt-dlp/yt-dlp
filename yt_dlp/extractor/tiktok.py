@@ -742,7 +742,7 @@ class TikTokEffectIE(TikTokBaseListIE):
         'info_dict': {
             'id': '1258156',
         },
-        'expected_warnings': ['Retrying']
+        'expected_warnings': ['Retrying', 'Creating a generic title instead']
     }, {
         # Different entries between mobile and web, depending on region
         'url': 'https://www.tiktok.com/sticker/Elf-Friend-479565',
