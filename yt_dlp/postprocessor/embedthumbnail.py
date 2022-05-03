@@ -79,9 +79,9 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
         original_thumbnail = thumbnail_filename = info['thumbnails'][idx]['filepath']
 
-        thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
         # Convert unsupported thumbnail formats (see #25687, #25717)
         # PNG is preferred since JPEG is lossy
+        thumbnail_ext = os.path.splitext(thumbnail_filename)[1][1:]
         if info['ext'] not in ('mkv', 'mka') and thumbnail_ext not in ('jpg', 'jpeg', 'png'):
             thumbnail_filename = convertor.convert_thumbnail(thumbnail_filename, 'png')
             thumbnail_ext = 'png'
@@ -100,7 +100,7 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
         elif info['ext'] in ['mkv', 'mka']:
             options = list(self.stream_copy_opts())
 
-            mimetype = 'image/%s' % ('jpeg' if thumbnail_ext in ('jpg', 'jpeg') else thumbnail_ext)
+            mimetype = f'image/{thumbnail_ext.replace("jpg", "jpeg")}'
             old_stream, new_stream = self.get_stream_number(
                 filename, ('tags', 'mimetype'), mimetype)
             if old_stream is not None:
@@ -220,11 +220,9 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
             os.replace(temp_filename, filename)
 
         self.try_utime(filename, mtime, mtime)
-
-        files_to_delete = [thumbnail_filename]
-        if self._already_have_thumbnail:
-            if original_thumbnail == thumbnail_filename:
-                files_to_delete = []
-        elif original_thumbnail != thumbnail_filename:
-            files_to_delete.append(original_thumbnail)
-        return files_to_delete, info
+        converted = original_thumbnail != thumbnail_filename
+        self._delete_downloaded_files(
+            thumbnail_filename if converted or not self._already_have_thumbnail else None,
+            original_thumbnail if converted and not self._already_have_thumbnail else None,
+            info=info)
+        return [], info

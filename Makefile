@@ -22,7 +22,9 @@ clean-dist:
 	rm -rf yt-dlp.1.temp.md yt-dlp.1 README.txt MANIFEST build/ dist/ .coverage cover/ yt-dlp.tar.gz completions/ \
 	yt_dlp/extractor/lazy_extractors.py *.spec CONTRIBUTING.md.tmp yt-dlp yt-dlp.exe yt_dlp.egg-info/ AUTHORS .mailmap
 clean-cache:
-	find . \( -name "*.pyc" -o -name "*.class" \) -delete
+	find . \( \
+		-type d -name .pytest_cache -o -type d -name __pycache__ -o -name "*.pyc" -o -name "*.class" \
+	\) -prune -exec rm -rf {} \;
 
 completion-bash: completions/bash/yt-dlp
 completion-fish: completions/fish/yt-dlp.fish
@@ -43,11 +45,16 @@ SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then ech
 MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
-	install -Dm755 yt-dlp $(DESTDIR)$(BINDIR)/yt-dlp
-	install -Dm644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1/yt-dlp.1
-	install -Dm644 completions/bash/yt-dlp $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
-	install -Dm644 completions/zsh/_yt-dlp $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
-	install -Dm644 completions/fish/yt-dlp.fish $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
+	mkdir -p $(DESTDIR)$(BINDIR)
+	install -m755 yt-dlp $(DESTDIR)$(BINDIR)/yt-dlp
+	mkdir -p $(DESTDIR)$(MANDIR)/man1
+	install -m644 yt-dlp.1 $(DESTDIR)$(MANDIR)/man1/yt-dlp.1
+	mkdir -p $(DESTDIR)$(SHAREDIR)/bash-completion/completions
+	install -m644 completions/bash/yt-dlp $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
+	mkdir -p $(DESTDIR)$(SHAREDIR)/zsh/site-functions
+	install -m644 completions/zsh/_yt-dlp $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
+	mkdir -p $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d
+	install -m644 completions/fish/yt-dlp.fish $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
 
 codetest:
 	flake8 .
@@ -61,7 +68,7 @@ offlinetest: codetest
 
 # XXX: This is hard to maintain
 CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat \
-               yt_dlp/compat/asyncio yt_dlp/extractor/anvato_token_generator
+               yt_dlp/extractor/anvato_token_generator
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
@@ -126,6 +133,7 @@ yt-dlp.tar.gz: all
 		--exclude '*.pyo' \
 		--exclude '*~' \
 		--exclude '__pycache__' \
+		--exclude '.pytest_cache' \
 		--exclude '.git' \
 		-- \
 		README.md supportedsites.md Changelog.md LICENSE \

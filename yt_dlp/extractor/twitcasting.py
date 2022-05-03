@@ -187,6 +187,7 @@ class TwitCastingIE(InfoExtractor):
             infodict = {
                 # No problem here since there's only one manifest
                 'formats': formats,
+                'http_headers': self._M3U8_HEADERS,
             }
         else:
             infodict = {

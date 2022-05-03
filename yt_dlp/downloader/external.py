@@ -20,6 +20,7 @@ from ..utils import (
     encodeFilename,
     handle_youtubedl_headers,
     remove_end,
+    traverse_obj,
 )
 
 
@@ -363,9 +364,11 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
-        args += info_dict.get('_ffmpeg_args', [])
+        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args'), default=[])
 
-        # This option exists only for compatibility. Extractors should use `_ffmpeg_args` instead
+        # These exists only for compatibility. Extractors should use
+        # info_dict['downloader_options']['ffmpeg_args'] instead
+        args += info_dict.get('_ffmpeg_args') or []
         seekable = info_dict.get('_seekable')
         if seekable is not None:
             # setting -seekable prevents ffmpeg from guessing if the server
@@ -382,13 +385,15 @@ class FFmpegFD(ExternalFD):
         # if end_time:
         #     args += ['-t', compat_str(end_time - start_time)]
 
-        if info_dict.get('http_headers') is not None and re.match(r'^https?://', urls[0]):
-            # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
-            # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-            headers = handle_youtubedl_headers(info_dict['http_headers'])
-            args += [
+        http_headers = None
+        if info_dict.get('http_headers'):
+            youtubedl_headers = handle_youtubedl_headers(info_dict['http_headers'])
+            http_headers = [
+                # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
+                # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
                 '-headers',
-                ''.join(f'{key}: {val}\r\n' for key, val in headers.items())]
+                ''.join(f'{key}: {val}\r\n' for key, val in youtubedl_headers.items())
+            ]
 
         env = None
         proxy = self.params.get('proxy')
@@ -441,6 +446,11 @@ class FFmpegFD(ExternalFD):
                 args += ['-rtmp_conn', conn]
 
         for i, url in enumerate(urls):
+            # We need to specify headers for each http input stream
+            # otherwise, it will only be applied to the first.
+            # https://github.com/yt-dlp/yt-dlp/issues/2696
+            if http_headers is not None and re.match(r'^https?://', url):
+                args += http_headers
             args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
 
         args += ['-c', 'copy']
