@@ -891,6 +891,11 @@ from .minds import (
     MindsGroupIE,
 )
 from .ministrygrid import MinistryGridIE
+from .minitv import (
+    MiniTVIE,
+    MiniTVSeasonIE,
+    MiniTVSeriesIE,
+)
 from .minoto import MinotoIE
 from .miomio import MioMioIE
 from .mirrativ import (
