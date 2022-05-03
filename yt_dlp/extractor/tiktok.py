@@ -521,7 +521,7 @@ class TikTokIE(TikTokBaseIE):
             if not aweme_detail:
                 raise ExtractorError('Video not available', video_id=aweme_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with feed workaround')
+            self.report_warning(f'{e.orig_msg}; Retrying with feed workaround')
             res = self._call_api(
                 'feed', {'aweme_id': aweme_id}, aweme_id,
                 note='Downloading video feed', errnote='Unable to download video feed'
@@ -538,7 +538,7 @@ class TikTokIE(TikTokBaseIE):
         try:
             return self._extract_aweme_app(video_id)
         except ExtractorError as e:
-            self.report_warning(f'{e}; Retrying with webpage')
+            self.report_warning(f'{e.orig_msg}; Retrying with webpage')
 
         # If we only call once, we get a 403 when downlaoding the video.
         self._download_webpage(url, video_id)
