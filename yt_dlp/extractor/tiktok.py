@@ -494,7 +494,6 @@ class TikTokIE(TikTokBaseIE):
             'title': '#denidil#денидил',
             'description': '#denidil#денидил',
             'uploader': 'denidil6',
-            'creator': None,
             'uploader_id': '7046664115636405250',
             'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAsvMSzFdQ4ikl3uR2TEJwMBbB2yZh2Zxwhx-WCo3rbDpAharE3GQCrFuJArI3C8QJ',
             'artist': 'Holocron Music',
