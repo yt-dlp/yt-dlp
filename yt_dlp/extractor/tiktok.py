@@ -576,7 +576,7 @@ class TikTokIE(TikTokBaseIE):
 
         # If UA starts with `Mozilla/5.0`, but shorter than 26 character, 403 response is received
         webpage = self._download_webpage(
-            url, video_id, headers={'User-Agent': 'Mozilla/5.0 innocent fishing boat'})
+            url, video_id, headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0'})
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
 
         if next_data:
