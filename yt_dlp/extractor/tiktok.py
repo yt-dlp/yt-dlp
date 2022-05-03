@@ -528,15 +528,6 @@ class TikTokIE(TikTokBaseIE):
             'like_count': int,
             'repost_count': int,
             'comment_count': int,
-            'thumbnails': [],
-            'formats': [{'audio_ext': 'none',
-                         'ext': 'mp4',
-                         'height': 1280,
-                         'protocol': 'https',
-                         'url': r're:^https://\w{3}-webapp.tiktok.com/\w{32}/\w{8}/video/',
-                         'video_ext': 'mp4',
-                         'width': 576}],
-            'http_headers': {'Referer': 'https://www.tiktok.com/@denidil6/video/7065799023130643713'},
         },
         'expected_warnings': ['Retrying with feed workaround', 'Unable to find video in feed']
     }, {
