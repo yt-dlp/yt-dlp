@@ -174,16 +174,21 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
         prs = self._call_api(asin, note='Downloading playback info')
 
         formats = []
+        subtitles = {}
         for type_, asset in prs['playbackAssets'].items():
             if not isinstance(asset, dict):
                 continue
             if type_ == 'hls':
-                formats.extend(self._extract_m3u8_formats_and_subtitles(
+                m3u8_fmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(
                     asset['manifestUrl'], asin, ext='mp4', entry_protocol='m3u8_native',
-                    m3u8_id=type_, fatal=False))
+                    m3u8_id=type_, fatal=False)
+                formats.extend(m3u8_fmts)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
             elif type_ == 'dash':
-                formats.extend(self._extract_mpd_formats_and_subtitles(
-                    asset['manifestUrl'], asin, mpd_id=type_, fatal=False))
+                mpd_fmts, mpd_subs = self._extract_mpd_formats_and_subtitles(
+                    asset['manifestUrl'], asin, mpd_id=type_, fatal=False)
+                formats.extend(mpd_fmts)
+                subtitles = self._merge_subtitles(subtitles, mpd_subs)
             else:
                 pass
         self._sort_formats(formats)
@@ -201,6 +206,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
             'id': asin,
             'title': title_info.get('name'),
             'formats': formats,
+            'subtitles': subtitles,
             'language': traverse_obj(title_info, ('audioTracks', 0)),
             'thumbnails': [{
                 'id': type_,
