@@ -283,7 +283,7 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
             note='Downloading season info')
 
         for episode in season_info['episodes']:
-            yield self.url_result(f'amazonminitv:{episode["contentId"]}', AmazonMiniTVIE, episode['content_id'])
+            yield self.url_result(f'amazonminitv:{episode["contentId"]}', AmazonMiniTVIE, episode['contentId'])
 
     def _real_extract(self, url):
         asin = f'amzn1.dv.gti.{self._match_id(url)}'
