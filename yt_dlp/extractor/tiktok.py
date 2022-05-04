@@ -13,7 +13,7 @@ from ..utils import (
     ExtractorError,
     HEADRequest,
     UnsupportedError,
-    get_element_by_id,
+    get_element_by_attribute,
     get_first,
     int_or_none,
     join_nonempty,
@@ -547,11 +547,11 @@ class TikTokIE(TikTokBaseIE):
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
             try:
-                sigi_data = get_element_by_id('SIGI_STATE', webpage)
+                sigi_data = get_element_by_attribute(r'(SIGI_STATE|sigi-persisted-data)', webpage, escape_value=False)
             except ValueError:
                 sigi_data = self._search_regex(
                     '(?s)<script\\s[^>]*?\\b'
-                    'id\\s*=\\s*(?P<q>"|\'|\\b)SIGI_STATE(?P=q)'
+                    'id\\s*=\\s*(?P<q>"|\'|\\b)(SIGI_STATE|sigi-persisted-data)(?P=q)'
                     '[^>]*>[^=]*?=?\\s*'
                     '(?P<json>\\{.+?\\})\\s*(?:;[^<]+)?'
                     '</script', webpage, 'sigi data', group='json')
