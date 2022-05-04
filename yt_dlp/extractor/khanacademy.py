@@ -30,7 +30,7 @@ class KhanAcademyBaseIE(InfoExtractor):
             display_id, query={
                 'fastly_cacheable': 'persist_until_publish',
                 'hash': '4134764944',
-                'lang':'en',
+                'lang': 'en',
                 'variables': json.dumps({
                     'path': display_id,
                     'queryParams': 'lang=en',
