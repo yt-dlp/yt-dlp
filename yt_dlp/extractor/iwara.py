@@ -22,7 +22,7 @@ class IwaraBaseIE(InfoExtractor):
 
 
 class IwaraIE(IwaraBaseIE):
-    _VALID_URL = IwaraBaseIE._BASE_REGEX + r'/videos/(?P<id>[a-zA-Z0-9]+)'
+    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/videos/(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'url': 'http://iwara.tv/videos/amVwUl1EHpAD9RD',
         # md5 is unstable
@@ -65,9 +65,9 @@ class IwaraIE(IwaraBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, video_id)
+        webpage, urlh = self._download_webpage_handle(url, video_id)
 
-        hostname = urllib.parse.urlparse(url).hostname
+        hostname = urllib.parse.urlparse(urlh.geturl()).hostname
         # ecchi is 'sexy' in Japanese
         age_limit = 18 if hostname.split('.')[0] == 'ecchi' else 0
 
@@ -130,7 +130,7 @@ class IwaraIE(IwaraBaseIE):
 
 
 class IwaraPlaylistIE(IwaraBaseIE):
-    _VALID_URL = IwaraBaseIE._BASE_REGEX + r'/playlist/(?P<id>[^/?#&]+)'
+    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/playlist/(?P<id>[^/?#&]+)'
     IE_NAME = 'iwara:playlist'
 
     _TESTS = [{
@@ -167,7 +167,7 @@ class IwaraPlaylistIE(IwaraBaseIE):
 
 
 class IwaraUserIE(IwaraBaseIE):
-    _VALID_URL = IwaraBaseIE._BASE_REGEX + r'/users/(?P<id>[^/?#&]+)'
+    _VALID_URL = fr'{IwaraBaseIE._BASE_REGEX}/users/(?P<id>[^/?#&]+)'
     IE_NAME = 'iwara:user'
 
     _TESTS = [{
