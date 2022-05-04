@@ -550,12 +550,11 @@ class TikTokIE(TikTokBaseIE):
                 sigi_data = get_element_by_id('SIGI_STATE', webpage)
             except ValueError:
                 sigi_data = self._search_regex(
-                    r'''(?s)
-                        <script\s[^>]*?\b
-                            id\s*=\s*(?P<q>"|'|\b)
-                            SIGI_STATE(?P=q)[^>]*>[^=]*=\s*(?P<json>{.+?})\s*(?:;[^<]+)?
-                        </script
-                    ''', webpage, 'sigi data', group='json')
+                    '(?s)<script\\s[^>]*?\\b'
+                    'id\\s*=\\s*(?P<q>"|\'|\\b)SIGI_STATE(?P=q)'
+                    '[^>]*>\\s*'
+                    '(?P<json>\\{.+?\\})\\s*(?:;[^<]+)?'
+                    '</script', webpage, 'sigi data', group='json')
             sigi_state = self._parse_json(sigi_data, video_id)
 
             status = traverse_obj(sigi_state, ('VideoPage', 'statusCode'), expected_type=int) or 0
