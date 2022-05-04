@@ -67,7 +67,7 @@ class MiniTVIE(InfoExtractor):
 
     def _call_api(self, asin, data=None, note=None):
         query = {}
-        headers = copy(self._HEADERS)
+        headers = self._HEADERS.copy()
         if data:
             name = 'graphql'
             data.update({
@@ -190,24 +190,22 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
         self._sort_formats(formats)
 
         duration = traverse_obj(title_info, ('description', 'contentLengthInSeconds'))
-        chapters = []
         credits_time = try_get(title_info, lambda x: x['timecode']['endCreditsTime'] / 1000)
-        if credits_time is not None and duration is not None:
-            chapters.append({
-                'start_time': credits_time,
-                'end_time': duration,
-                'title': 'End Credits',
-            })
+        chapters = [{
+            'start_time': credits_time,
+            'end_time': duration,
+            'title': 'End Credits',
+        }] if credits_time and duration else []
 
         info = {
             'id': asin,
-            'title': title_info['name'],
+            'title': title_info.get('name'),
             'formats': formats,
             'language': traverse_obj(title_info, ('audioTracks', 0)),
             'thumbnails': [{
                 'id': type_,
                 'url': url,
-            } for type_, url in title_info.get('images', {}).items()],
+            } for type_, url in (title_info.get('images') or {}).items()],
             'description': traverse_obj(title_info, ('description', 'synopsis')),
             'release_timestamp': int_or_none(try_get(title_info, lambda x: x['publicReleaseDateUTC'] / 1000)),
             'duration': duration,
@@ -282,7 +280,7 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
             note='Downloading season info')
 
         for episode in season_info['episodes']:
-            yield self.url_result(f'minitv:{episode["contentId"]}', ie=MiniTVIE.ie_key())
+            yield self.url_result(f'minitv:{episode["contentId"]}', MiniTVIE, episode['content_id'])
 
     def _real_extract(self, url):
         asin = f'amzn1.dv.gti.{self._match_id(url)}'
