@@ -69,9 +69,8 @@ class AmazonMiniTVIE(InfoExtractor):
         headers = self._HEADERS.copy()
         if data:
             name = 'graphql'
-            data.update({
+            data['variables'].update({
                 'clientId': self._CLIENT_ID,
-                'contentId': asin,
                 'contentType': 'VOD',
                 'deviceLocale': self._DEVICE_LOCALE,
                 'sessionIdToken': self.session_id,
@@ -119,11 +118,7 @@ class AmazonMiniTVIE(InfoExtractor):
             data={
                 'operationName': 'content',
                 'variables': {
-                    'clientId': 'ATVIN',
                     'contentId': asin,
-                    'contentType': 'VOD',
-                    'deviceLocale': 'en_GB',
-                    'sessionIdToken': self.session_id,
                 },
                 'query': '''
 query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, $contentType: ContentType!, $clientId: String) {
@@ -248,10 +243,7 @@ class AmazonMiniTVSeasonIE(AmazonMiniTVIE):
             data={
                 'operationName': 'getEpisodes',
                 'variables': {
-                    'sessionIdToken': self.session_id,
-                    'clientId': 'ATVIN',
                     'episodeOrSeasonId': asin,
-                    'deviceLocale': 'en_GB',
                 },
                 'query': '''
 query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonId: ID!, $deviceLocale: String) {
@@ -310,10 +302,7 @@ class AmazonMiniTVSeriesIE(AmazonMiniTVIE):
             data={
                 'operationName': 'getSeasons',
                 'variables': {
-                    'sessionIdToken': self.session_id,
-                    'deviceLocale': 'en_GB',
                     'episodeOrSeasonOrSeriesId': asin,
-                    'clientId': 'ATVIN',
                 },
                 'query': '''
 query getSeasons($sessionIdToken: String!, $deviceLocale: String, $episodeOrSeasonOrSeriesId: ID!, $clientId: String) {
