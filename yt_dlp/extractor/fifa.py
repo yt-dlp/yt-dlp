@@ -8,7 +8,7 @@ from ..utils import (
 
 
 class FifaIE(InfoExtractor):
-    _VALID_URL = r'https?://www.fifa.com/fifaplus/(?P<locale>\w{2})/watch/(?P<id>\w+)/?'
+    _VALID_URL = r'https?://www.fifa.com/fifaplus/(?P<locale>\w{2})/watch/([^#?]+/)?(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.fifa.com/fifaplus/en/watch/7on10qPcnyLajDDU3ntg6y',
         'info_dict': {
@@ -93,8 +93,8 @@ class FifaIE(InfoExtractor):
                 'sig': preplay_parameters['signature'],
             })
 
-        formats = self._extract_m3u8_formats(
-            content_data['playURL'], video_id, note='Downloading m3u8 Information')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(content_data['playURL'], video_id)
+        self._sort_formats(formats)
 
         return {
             'id': video_id,
@@ -105,4 +105,5 @@ class FifaIE(InfoExtractor):
             'categories': traverse_obj(video_details, (('videoCategory', 'videoSubcategory'),)),
             'thumbnail': traverse_obj(video_details, ('backgroundImage', 'src')),
             'formats': formats,
+            'subtitles': subtitles,
         }
