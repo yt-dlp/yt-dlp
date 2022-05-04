@@ -284,7 +284,7 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
         return self.playlist_result(self._entries(asin), playlist_id=asin)
 
 
-class MiniTVSeriesIE(AmazonMiniTVIE):
+class AmazonMiniTVSeriesIE(AmazonMiniTVIE):
     IE_NAME = 'amazonminitv:series'
     _VALID_URL = r'amazonminitv:series:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
     _TESTS = [{

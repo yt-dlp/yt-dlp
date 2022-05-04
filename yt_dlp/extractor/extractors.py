@@ -63,7 +63,7 @@ from .amazonminitv import (
     AmazonMiniTVIE,
     AmazonMiniTVSeasonIE,
     AmazonMiniTVSeriesIE,
-
+)
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
