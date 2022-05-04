@@ -77,9 +77,8 @@ class TVerIE(InfoExtractor):
             })
 
         additional_content_info = traverse_obj(
-            additional_info, ('result', 'episode', 'content'),
-            get_all=False) or {}
-        episode = try_get(additional_content_info, lambda x: str_or_none(x.get('title')).rstrip())
+            additional_info, ('result', 'episode', 'content'), get_all=False) or {}
+        episode = strip_or_none(additional_content_info.get('title'))
         series = str_or_none(additional_content_info.get('seriesTitle'))
         title = (
             ' '.join(filter(None, [series, episode])).rstrip()
