@@ -1,7 +1,13 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import traverse_obj, ExtractorError, js_to_json, int_or_none, str_or_none, parse_iso8601
+from ..utils import (
+    int_or_none,
+    js_to_json,
+    parse_iso8601,
+    str_or_none,
+    traverse_obj,
+)
 
 
 class LikeeIE(InfoExtractor):
@@ -99,11 +105,11 @@ class LikeeIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         info = self._parse_json(
-            self._search_regex(r'window\.data\s=\s(\{.*\})\;', webpage, 'video info'),
+            self._search_regex(r'window\.data\s=\s({.+?});', webpage, 'video info'),
             video_id, transform_source=js_to_json)
         video_url = traverse_obj(info, 'video_url', ('originVideoInfo', 'video_url'))
         if not video_url:
-            raise ExtractorError('Video was deleted', expected=True)
+            self.raise_no_formats('Video was deleted', expected=True)
         formats = [{
             'format_id': 'mp4-with-watermark',
             'url': video_url,
@@ -118,7 +124,7 @@ class LikeeIE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': info.get('msgText') or f'likee video #{video_id}',
+            'title': info.get('msgText'),
             'description': info.get('share_desc'),
             'view_count': int_or_none(info.get('video_count')),
             'like_count': int_or_none(info.get('likeCount')),
@@ -156,14 +162,7 @@ class LikeeUserIE(InfoExtractor):
     _PAGE_SIZE = 50
     _API_GET_USER_VIDEO = 'https://api.like-video.com/likee-activity-flow-micro/videoApi/getUserVideo'
 
-    def _real_extract(self, url):
-        user_name = self._match_id(url)
-        webpage = self._download_webpage(url, user_name)
-        info = self._parse_json(
-            self._search_regex(r'window\.data\s=\s(\{.*\})\;', webpage, 'user info'),
-            user_name, transform_source=js_to_json)
-        user_id = traverse_obj(info, ('userinfo', 'uid'))
-        entries = []
+    def _entries(self, user_name, user_id):
         last_post_id = ''
         while True:
             user_videos = self._download_json(
@@ -181,5 +180,13 @@ class LikeeUserIE(InfoExtractor):
                 break
             last_post_id = items[-1]['postId']
             for item in items:
-                entries.append(self.url_result(f'https://likee.video/{user_name}/video/{item["postId"]}'))
-        return self.playlist_result(entries, user_id, traverse_obj(info, ('userinfo', 'user_name')))
+                yield self.url_result(f'https://likee.video/{user_name}/video/{item["postId"]}')
+
+    def _real_extract(self, url):
+        user_name = self._match_id(url)
+        webpage = self._download_webpage(url, user_name)
+        info = self._parse_json(
+            self._search_regex(r'window\.data\s=\s({.+?});', webpage, 'user info'),
+            user_name, transform_source=js_to_json)
+        user_id = traverse_obj(info, ('userinfo', 'uid'))
+        return self.playlist_result(self._entries(user_name, user_id), user_id, traverse_obj(info, ('userinfo', 'user_name')))
