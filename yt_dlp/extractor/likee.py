@@ -120,6 +120,7 @@ class LikeeIE(InfoExtractor):
             'url': video_url.replace('_4', ''),
             'height': info.get('video_height'),
             'width': info.get('video_width'),
+            'quality': 1,
         }]
         self._sort_formats(formats)
         return {
@@ -176,17 +177,17 @@ class LikeeUserIE(InfoExtractor):
                 headers={'content-type': 'application/json'},
                 note=f'Get user info with lastPostId #{last_post_id}')
             items = traverse_obj(user_videos, ('data', 'videoList'))
-            if len(items) == 0:
+            if not items:
                 break
-            last_post_id = items[-1]['postId']
             for item in items:
-                yield self.url_result(f'https://likee.video/{user_name}/video/{item["postId"]}')
+                last_post_id = item['postId']
+                yield self.url_result(f'https://likee.video/{user_name}/video/{last_post_id}')
 
     def _real_extract(self, url):
         user_name = self._match_id(url)
         webpage = self._download_webpage(url, user_name)
         info = self._parse_json(
-            self._search_regex(r'window\.data\s=\s({.+?});', webpage, 'user info'),
+            self._search_regex(r'window\.data\s*=\s*({.+?});', webpage, 'user info'),
             user_name, transform_source=js_to_json)
         user_id = traverse_obj(info, ('userinfo', 'uid'))
         return self.playlist_result(self._entries(user_name, user_id), user_id, traverse_obj(info, ('userinfo', 'user_name')))
