@@ -1,10 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    join_nonempty,
     smuggle_url,
     str_or_none,
+    strip_or_none,
     traverse_obj,
-    try_get,
 )
 
 
@@ -81,7 +82,7 @@ class TVerIE(InfoExtractor):
         episode = strip_or_none(additional_content_info.get('title'))
         series = str_or_none(additional_content_info.get('seriesTitle'))
         title = (
-            ' '.join(filter(None, [series, episode])).rstrip()
+            join_nonempty(series, episode, delim=' ')
             or str_or_none(video_info.get('title')))
         provider = str_or_none(additional_content_info.get('productionProviderName'))
         onair_label = str_or_none(additional_content_info.get('broadcastDateLabel'))
@@ -92,7 +93,7 @@ class TVerIE(InfoExtractor):
             'series': series,
             'episode': episode,
             # an another title which is considered "full title" for some viewers
-            'alt_title': ' '.join([title, provider, onair_label]),
+            'alt_title': join_nonempty(title, provider, onair_label, delim=' '),
             'channel': provider,
             'description': str_or_none(video_info.get('description')),
             'url': smuggle_url(
