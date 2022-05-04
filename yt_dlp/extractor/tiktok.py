@@ -552,7 +552,7 @@ class TikTokIE(TikTokBaseIE):
                 sigi_data = self._search_regex(
                     '(?s)<script\\s[^>]*?\\b'
                     'id\\s*=\\s*(?P<q>"|\'|\\b)SIGI_STATE(?P=q)'
-                    '[^>]*>\\s*'
+                    '[^>]*>[^=]*?=?\\s*'
                     '(?P<json>\\{.+?\\})\\s*(?:;[^<]+)?'
                     '</script', webpage, 'sigi data', group='json')
             sigi_state = self._parse_json(sigi_data, video_id)
