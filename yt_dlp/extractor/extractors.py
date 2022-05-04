@@ -59,6 +59,11 @@ from .animelab import (
     AnimeLabShowsIE,
 )
 from .amazon import AmazonStoreIE
+from .amazonminitv import (
+    AmazonMiniTVIE,
+    AmazonMiniTVSeasonIE,
+    AmazonMiniTVSeriesIE,
+
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
@@ -891,11 +896,6 @@ from .minds import (
     MindsGroupIE,
 )
 from .ministrygrid import MinistryGridIE
-from .minitv import (
-    MiniTVIE,
-    MiniTVSeasonIE,
-    MiniTVSeriesIE,
-)
 from .minoto import MinotoIE
 from .miomio import MioMioIE
 from .mirrativ import (

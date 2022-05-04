@@ -1,12 +1,11 @@
 import json
-from copy import copy
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, int_or_none, traverse_obj, try_get
 
 
-class MiniTVIE(InfoExtractor):
-    _VALID_URL = r'(?:https?://(?:www\.)?amazon\.in/minitv/tp/|minitv:(?:amzn1\.dv\.gti\.)?)(?P<id>[a-f0-9-]+)'
+class AmazonMiniTVIE(InfoExtractor):
+    _VALID_URL = r'(?:https?://(?:www\.)?amazon\.in/minitv/tp/|amazonminitv:(?:amzn1\.dv\.gti\.)?)(?P<id>[a-f0-9-]+)'
     _HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Mobile Safari/537.36',
     }
@@ -58,10 +57,10 @@ class MiniTVIE(InfoExtractor):
         'url': 'https://www.amazon.in/minitv/tp/280d2564-584f-452f-9c98-7baf906e01ab',
         'only_matching': True,
     }, {
-        'url': 'minitv:amzn1.dv.gti.280d2564-584f-452f-9c98-7baf906e01ab',
+        'url': 'amazonminitv:amzn1.dv.gti.280d2564-584f-452f-9c98-7baf906e01ab',
         'only_matching': True,
     }, {
-        'url': 'minitv:280d2564-584f-452f-9c98-7baf906e01ab',
+        'url': 'amazonminitv:280d2564-584f-452f-9c98-7baf906e01ab',
         'only_matching': True,
     }]
 
@@ -179,11 +178,11 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
             if not isinstance(asset, dict):
                 continue
             if type_ == 'hls':
-                formats.extend(self._extract_m3u8_formats(
+                formats.extend(self._extract_m3u8_formats_and_subtitles(
                     asset['manifestUrl'], asin, ext='mp4', entry_protocol='m3u8_native',
                     m3u8_id=type_, fatal=False))
             elif type_ == 'dash':
-                formats.extend(self._extract_mpd_formats(
+                formats.extend(self._extract_mpd_formats_and_subtitles(
                     asset['manifestUrl'], asin, mpd_id=type_, fatal=False))
             else:
                 pass
@@ -196,6 +195,7 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
             'end_time': duration,
             'title': 'End Credits',
         }] if credits_time and duration else []
+        is_episode = title_info.get('vodType') == 'EPISODE'
 
         info = {
             'id': asin,
@@ -214,28 +214,25 @@ query content($sessionIdToken: String!, $deviceLocale: String, $contentId: ID!, 
             'series_id': title_info.get('seriesId'),
             'season_number': title_info.get('seasonNumber'),
             'season_id': title_info.get('seasonId'),
+            'episode': title_info.get('name') if is_episode else None,
             'episode_number': title_info.get('episodeNumber'),
+            'episode_id': asin if is_episode else None,
         }
-        if title_info.get('vodType') == 'EPISODE':
-            info.update({
-                'episode': title_info['name'],
-                'episode_id': asin,
-            })
 
         return info
 
 
-class MiniTVSeasonIE(MiniTVIE):
-    IE_NAME = 'minitv:season'
-    _VALID_URL = r'minitv:season:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
+class AmazonMiniTVSeasonIE(AmazonMiniTVIE):
+    IE_NAME = 'amazonminitv:season'
+    _VALID_URL = r'amazonminitv:season:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
     _TESTS = [{
-        'url': 'minitv:season:amzn1.dv.gti.0aa996eb-6a1b-4886-a342-387fbd2f1db0',
+        'url': 'amazonminitv:season:amzn1.dv.gti.0aa996eb-6a1b-4886-a342-387fbd2f1db0',
         'playlist_mincount': 6,
         'info_dict': {
             'id': 'amzn1.dv.gti.0aa996eb-6a1b-4886-a342-387fbd2f1db0',
         },
     }, {
-        'url': 'minitv:season:0aa996eb-6a1b-4886-a342-387fbd2f1db0',
+        'url': 'amazonminitv:season:0aa996eb-6a1b-4886-a342-387fbd2f1db0',
         'only_matching': True,
     }]
 
@@ -280,24 +277,24 @@ query getEpisodes($sessionIdToken: String!, $clientId: String, $episodeOrSeasonI
             note='Downloading season info')
 
         for episode in season_info['episodes']:
-            yield self.url_result(f'minitv:{episode["contentId"]}', MiniTVIE, episode['content_id'])
+            yield self.url_result(f'amazonminitv:{episode["contentId"]}', AmazonMiniTVIE, episode['content_id'])
 
     def _real_extract(self, url):
         asin = f'amzn1.dv.gti.{self._match_id(url)}'
         return self.playlist_result(self._entries(asin), playlist_id=asin)
 
 
-class MiniTVSeriesIE(MiniTVIE):
-    IE_NAME = 'minitv:series'
-    _VALID_URL = r'minitv:series:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
+class MiniTVSeriesIE(AmazonMiniTVIE):
+    IE_NAME = 'amazonminitv:series'
+    _VALID_URL = r'amazonminitv:series:(?:amzn1\.dv\.gti\.)?(?P<id>[a-f0-9-]+)'
     _TESTS = [{
-        'url': 'minitv:series:amzn1.dv.gti.56521d46-b040-4fd5-872e-3e70476a04b0',
+        'url': 'amazonminitv:series:amzn1.dv.gti.56521d46-b040-4fd5-872e-3e70476a04b0',
         'playlist_mincount': 3,
         'info_dict': {
             'id': 'amzn1.dv.gti.56521d46-b040-4fd5-872e-3e70476a04b0',
         },
     }, {
-        'url': 'minitv:series:56521d46-b040-4fd5-872e-3e70476a04b0',
+        'url': 'amazonminitv:series:56521d46-b040-4fd5-872e-3e70476a04b0',
         'only_matching': True,
     }]
 
@@ -328,7 +325,7 @@ query getSeasons($sessionIdToken: String!, $deviceLocale: String, $episodeOrSeas
             note='Downloading series info')
 
         for season in season_info['seasons']:
-            yield self.url_result(f'minitv:season:{season["seasonId"]}', ie=MiniTVSeasonIE.ie_key())
+            yield self.url_result(f'amazonminitv:{season["seasonId"]}', AmazonMiniTVSeasonIE, season['seasonId'])
 
     def _real_extract(self, url):
         asin = f'amzn1.dv.gti.{self._match_id(url)}'
