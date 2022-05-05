@@ -57,7 +57,8 @@ class YahooIE(InfoExtractor):
             'id': 'b3affa53-2e14-3590-852b-0e0db6cd1a58',
             'ext': 'webm',
             'title': 'Cute Raccoon Freed From Drain\u00a0Using Angle Grinder',
-            'description': 'md5:f66c890e1490f4910a9953c941dee944', 'duration': 97,
+            'description': 'md5:f66c890e1490f4910a9953c941dee944',
+            'duration': 97,
             'timestamp': 1414489862,
             'upload_date': '20141028',
         },
@@ -458,7 +459,7 @@ class YahooGyaOIE(InfoExtractor):
 class YahooJapanNewsIE(InfoExtractor):
     IE_NAME = 'yahoo:japannews'
     IE_DESC = 'Yahoo! Japan News'
-    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:/articles/|[^\d]*)(?P<id>(?:[\da-f]{40}|\d[\d-]*\d))?'
+    _VALID_URL = r'https?:\/\/(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:\/articles\/|[^\d]*)(?P<id>[\da-f]{40}|[\d]{8}-[\d]{8})?'
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
         'url': 'https://news.yahoo.co.jp/articles/71b59c001c9dbc91b0c6bc75782fb8a26c2771a3',
@@ -553,15 +554,13 @@ class YahooJapanNewsIE(InfoExtractor):
             webpage, default=None) or self._html_search_meta(
             'twitter:image', webpage, 'thumbnail', default=None)
         space_id = self._search_regex([
-            r'<script[^>]+class=["\']yvpub-player["\'][^>]+spaceid=([^&"\']+)',
-            r'<div[^>]+class=["\']yvpub-player["\'][^>]+data-spaceid=["\'](\d+)["\']',
+            r'<(?:script|div)[^>]+class=["\']yvpub-player["\'][^>]+(?:data-)?spaceid=["\']?([^&"\']+|\d+)["\']?',
             r'YAHOO\.JP\.srch\.\w+link\.onLoad[^;]+spaceID["\' ]*:["\' ]+([^"\']+)',
             r'<!--\s+SpaceID=(\d+)'
-        ], webpage, 'spaceid', "")
+        ], webpage, 'spaceid', default='')
 
         content_id = self._search_regex([
-            r'<script[^>]+class=["\']yvpub-player["\'][^>]+contentid=(?P<contentid>[^&"\']+)',
-            r'<div[^>]+class=["\']yvpub-player["\'][^>]+data-contentid=["\'](?P<contentid>\d+)["\']',
+            r'<(?:script|div)[^>]+class=["\']yvpub-player["\'][^>]+(?:data-)?contentid=["\']?(?P<contentid>[^&"\']+|\d+)["\']?',
             r'["\']vid["\']:(?P<contentid>\d+)'
         ], webpage, 'contentid', group='contentid')
 
