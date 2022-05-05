@@ -142,9 +142,8 @@ class RuutuIE(InfoExtractor):
                 r'<script id="__NEXT_DATA__" type="application/json">\s*({.+?})\s*</script>',
                 webpage).group(1), strict=False))
         if settings:
-            video_ids = list(filter(
-                bool, (traverse_obj(d, ('video', 'sourceId')) for d in traverse_obj(settings,
-                       ('props', 'pageProps', 'page', 'assetData', 'splitBody')))))
+            video_ids = traverse_obj(settings,
+                ('props', 'pageProps', 'page', 'assetData', 'splitBody', ..., 'video', 'sourceId'))
             if video_ids:
                 return (f'http://www.ruutu.fi/video/{v}' for v in video_ids)
 
