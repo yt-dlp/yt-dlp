@@ -459,7 +459,7 @@ class YahooGyaOIE(InfoExtractor):
 class YahooJapanNewsIE(InfoExtractor):
     IE_NAME = 'yahoo:japannews'
     IE_DESC = 'Yahoo! Japan News'
-    _VALID_URL = r'https?:\/\/(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:\/articles\/|[^\d]*)(?P<id>[\da-f]{40}|[\d]{8}-[\d]{8})?'
+    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:/articles/|[^\d]*)(?P<id>[\da-f]{40}|[\d]{8}-[\d]{8})?'
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
         'url': 'https://news.yahoo.co.jp/articles/71b59c001c9dbc91b0c6bc75782fb8a26c2771a3',
