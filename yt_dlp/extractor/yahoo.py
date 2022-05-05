@@ -462,13 +462,12 @@ class YahooJapanNewsIE(InfoExtractor):
     _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:/articles/|[^\d]*)(?P<id>(?:[\da-f]{40}|\d[\d-]*\d))?'
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
-        # geo restricted
-        'url': 'https://news.yahoo.co.jp/articles/7a586ea36a508c35457c40c7cb975b7d5b2dd455',
+        'url': 'https://news.yahoo.co.jp/articles/71b59c001c9dbc91b0c6bc75782fb8a26c2771a3',
         'info_dict': {
-            'id': '4831562',
+            'id': '6963552',
             'ext': 'mp4',
-            'title': 'ホッケの刺身はなぜスーパーで売ってないの？実はこんな理由が…　北海道（HBCニュース） - Yahoo!ニュース',
-            'description': 'md5:427fb0fc1bbd13724c319301aac1448c',
+            'title': '30周年のハウステンボスアンバサダーにHKT48が就任【長崎県】（KTNテレビ長崎） - Yahoo!ニュース',
+            'description': 'md5:20a44a844072b85cd3277077017ce640',
             'thumbnail': r're:^https?://.*?\.jpg',
         },
         'params': {
