@@ -208,7 +208,7 @@ class RokfinIE(InfoExtractor):
         return not ({'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'} - set([cookie.name for cookie in self._downloader.cookiejar]))
 
     def _get_auth_token(self):
-        return try_get(self._access_mgmt_tokens, lambda x: ' '.join(x['token_type'], x['access_token']))
+        return try_get(self._access_mgmt_tokens, lambda x: ' '.join([x['token_type'], x['access_token']]))
 
     def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
         assert 'authorization' not in headers
@@ -231,7 +231,6 @@ class RokfinIE(InfoExtractor):
                 'refresh_token': refresh_token,
                 'client_id': 'web'
             }))
-        self._access_mgmt_tokens['refresh_token'] = refresh_token
         headers['authorization'] = self._get_auth_token()
         if headers['authorization'] is None:
             raise ExtractorError('User authorization lost', expected=True)
