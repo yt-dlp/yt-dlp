@@ -572,7 +572,7 @@ class YahooJapanNewsIE(InfoExtractor):
                 'output': 'json',
                 'space_id': space_id,
                 'domain': host,
-                'ak': hashlib.md5('_'.join((space_id,host)).encode()).hexdigest() if space_id else "",
+                'ak': hashlib.md5('_'.join((space_id, host)).encode()).hexdigest() if space_id else '',
                 'device_type': '1100',
             })
         formats = self._extract_formats(json_data, content_id)
