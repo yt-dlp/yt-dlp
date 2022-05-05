@@ -459,23 +459,23 @@ class YahooGyaOIE(InfoExtractor):
 class YahooJapanNewsIE(InfoExtractor):
     IE_NAME = 'yahoo:japannews'
     IE_DESC = 'Yahoo! Japan News'
-    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)[^\d]*(?P<id>\d[\d-]*\d)?'
+    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:/articles/|[^\d]*)(?P<id>(?:[\da-f]{40}|\d[\d-]*\d))?'
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
-        'url': 'https://headlines.yahoo.co.jp/videonews/ann?a=20190716-00000071-ann-int',
+        # geo restricted
+        'url': 'https://news.yahoo.co.jp/articles/7a586ea36a508c35457c40c7cb975b7d5b2dd455',
         'info_dict': {
-            'id': '1736242',
+            'id': '4831562',
             'ext': 'mp4',
-            'title': 'ムン大統領が対日批判を強化“現金化”効果は？（テレビ朝日系（ANN）） - Yahoo!ニュース',
-            'description': '韓国の元徴用工らを巡る裁判の原告が弁護士が差し押さえた三菱重工業の資産を売却して - Yahoo!ニュース(テレビ朝日系（ANN）)',
-            'thumbnail': r're:^https?://.*\.[a-zA-Z\d]{3,4}$',
+            'title': 'ホッケの刺身はなぜスーパーで売ってないの？実はこんな理由が…　北海道（HBCニュース） - Yahoo!ニュース',
+            'description': 'md5:427fb0fc1bbd13724c319301aac1448c',
+            'thumbnail': r're:^https?://.*?\.jpg',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        # geo restricted
-        'url': 'https://headlines.yahoo.co.jp/hl?a=20190721-00000001-oxv-l04',
+        'url': 'https://headlines.yahoo.co.jp/videonews/ann?a=20190716-00000071-ann-int',
         'only_matching': True,
     }, {
         'url': 'https://headlines.yahoo.co.jp/videonews/',
@@ -553,13 +553,15 @@ class YahooJapanNewsIE(InfoExtractor):
             'twitter:image', webpage, 'thumbnail', default=None)
         space_id = self._search_regex([
             r'<script[^>]+class=["\']yvpub-player["\'][^>]+spaceid=([^&"\']+)',
+            r'<div[^>]+class=["\']yvpub-player["\'][^>]+data-spaceid=["\'](\d+)["\']',
             r'YAHOO\.JP\.srch\.\w+link\.onLoad[^;]+spaceID["\' ]*:["\' ]+([^"\']+)',
             r'<!--\s+SpaceID=(\d+)'
         ], webpage, 'spaceid')
 
-        content_id = self._search_regex(
+        content_id = self._search_regex([
             r'<script[^>]+class=["\']yvpub-player["\'][^>]+contentid=(?P<contentid>[^&"\']+)',
-            webpage, 'contentid', group='contentid')
+            r'<div[^>]+class=["\']yvpub-player["\'][^>]+data-contentid=["\'](?P<contentid>\d+)["\']'
+        ], webpage, 'contentid', group='contentid')
 
         json_data = self._download_json(
             'https://feapi-yvpub.yahooapis.jp/v1/content/%s' % content_id,
