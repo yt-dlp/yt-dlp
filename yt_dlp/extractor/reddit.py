@@ -1,4 +1,5 @@
 import random
+from urllib.parse import urlparse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -19,6 +20,7 @@ class RedditIE(InfoExtractor):
         'info_dict': {
             'id': 'zv89llsvexdz',
             'ext': 'mp4',
+            'display_id': '6rrwyj',
             'title': 'That small heart attack.',
             'thumbnail': r're:^https?://.*\.(?:jpg|png)',
             'thumbnails': 'count:4',
@@ -156,6 +158,15 @@ class RedditIE(InfoExtractor):
                 'display_id': display_id,
                 'formats': formats,
                 'duration': int_or_none(reddit_video.get('duration')),
+            }
+
+        parsed_url = urlparse(video_url)
+        if parsed_url.netloc == 'v.redd.it':
+            self.raise_no_formats('This video is processing', expected=True, video_id=video_id)
+            return {
+                **info,
+                'id': parsed_url.path.split('/')[1],
+                'display_id': video_id,
             }
 
         # Not hosted on reddit, must continue extraction

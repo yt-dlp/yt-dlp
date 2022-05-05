@@ -236,7 +236,7 @@ def create_parser():
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
+        help='Update this program to latest version')
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -471,7 +471,8 @@ def create_parser():
             '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
             'matches only videos that are not live OR those that have a like count more than 100 '
             '(or the like field is not available) and also has a description '
-            'that contains the phrase "cats & dogs" (ignoring case)'))
+            'that contains the phrase "cats & dogs" (ignoring case). '
+            'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filter',
         metavar='FILTER', dest='match_filter', action='store_const', const=None,
@@ -570,6 +571,19 @@ def create_parser():
         '--ap-list-mso',
         action='store_true', dest='ap_list_mso', default=False,
         help='List all supported multiple-system operators')
+    authentication.add_option(
+        '--client-certificate',
+        dest='client_certificate', metavar='CERTFILE',
+        help='Path to client certificate file in PEM format. May include the private key')
+    authentication.add_option(
+        '--client-certificate-key',
+        dest='client_certificate_key', metavar='KEYFILE',
+        help='Path to private key file for client certificate')
+    authentication.add_option(
+        '--client-certificate-password',
+        dest='client_certificate_password', metavar='PASSWORD',
+        help='Password for client certificate private key, if encrypted. '
+             'If not provided and the key is encrypted, yt-dlp will ask interactively')
 
     video_format = optparse.OptionGroup(parser, 'Video Format Options')
     video_format.add_option(
@@ -813,11 +827,11 @@ def create_parser():
         }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
-            'Currently supports native, %s (Recommended: aria2c). '
+            f'Currently supports native, {", ".join(list_external_downloaders())}. '
             'You can use this option multiple times to set different downloaders for different protocols. '
             'For example, --downloader aria2c --downloader "dash,m3u8:native" will use '
             'aria2c for http/ftp downloads, and the native downloader for dash/m3u8 downloads '
-            '(Alias: --external-downloader)' % ', '.join(list_external_downloaders())))
+            '(Alias: --external-downloader)'))
     downloader.add_option(
         '--downloader-args', '--external-downloader-args',
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
@@ -1421,7 +1435,7 @@ def create_parser():
         dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
         help='Replace text in a metadata field using the given regex. This option can be used multiple times')
     postproc.add_option(
-        '--xattrs',
+        '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
     postproc.add_option(

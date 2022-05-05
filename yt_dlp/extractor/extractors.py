@@ -168,6 +168,7 @@ from .bilibili import (
     BilibiliChannelIE,
     BiliIntlIE,
     BiliIntlSeriesIE,
+    BiliLiveIE,
 )
 from .biobiochiletv import BioBioChileTVIE
 from .bitchute import (
@@ -500,6 +501,7 @@ from .fc2 import (
     FC2LiveIE,
 )
 from .fczenit import FczenitIE
+from .fifa import FifaIE
 from .filmmodu import FilmmoduIE
 from .filmon import (
     FilmOnIE,
@@ -616,6 +618,7 @@ from .hitrecord import HitRecordIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
+    HotStarPrefixIE,
     HotStarPlaylistIE,
     HotStarSeriesIE,
 )
@@ -639,6 +642,7 @@ from .hungama import (
     HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
+from .icareus import IcareusIE
 from .ichinanalive import (
     IchinanaLiveIE,
     IchinanaLiveClipIE,
@@ -698,7 +702,11 @@ from .ivi import (
     IviCompilationIE
 )
 from .ivideon import IvideonIE
-from .iwara import IwaraIE
+from .iwara import (
+    IwaraIE,
+    IwaraPlaylistIE,
+    IwaraUserIE,
+)
 from .izlesene import IzleseneIE
 from .jable import (
     JableIE,
@@ -784,6 +792,10 @@ from .lifenews import (
     LifeNewsIE,
     LifeEmbedIE,
 )
+from .likee import (
+    LikeeIE,
+    LikeeUserIE
+)
 from .limelight import (
     LimelightMediaIE,
     LimelightChannelIE,
@@ -812,7 +824,10 @@ from .lnkgo import (
 )
 from .localnews8 import LocalNews8IE
 from .lovehomeporn import LoveHomePornIE
-from .lrt import LRTIE
+from .lrt import (
+    LRTVODIE,
+    LRTStreamIE
+)
 from .lynda import (
     LyndaIE,
     LyndaCourseIE
@@ -842,6 +857,7 @@ from .markiza import (
     MarkizaPageIE,
 )
 from .massengeschmacktv import MassengeschmackTVIE
+from .masters import MastersIE
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
@@ -2110,6 +2126,7 @@ from .youtube import (
     YoutubeSearchURLIE,
     YoutubeMusicSearchURLIE,
     YoutubeSubscriptionsIE,
+    YoutubeStoriesIE,
     YoutubeTruncatedIDIE,
     YoutubeTruncatedURLIE,
     YoutubeYtBeIE,
