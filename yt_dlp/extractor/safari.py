@@ -134,8 +134,8 @@ class SafariIE(SafariBaseIE):
                     webpage, 'kaltura entry id', default='', group='id')
                 if not any((entry_id, reference_id)):
                     self._downloader.report_error('Unable to find neither %s nor %s' % (
-                        self._downloader._format_err("reference id", self._downloader.Style.KEY),
-                        self._downloader._format_err("entry id", self._downloader.Style.KEY)))
+                        self._downloader._format_err("reference id", self._downloader.Styles.KEY),
+                        self._downloader._format_err("entry id", self._downloader.Styles.KEY)))
             partner_id = self._search_regex(
                 r'data-partner-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                 webpage, 'kaltura widget id', default=self._PARTNER_ID,
