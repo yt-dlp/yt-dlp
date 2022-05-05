@@ -702,7 +702,11 @@ from .ivi import (
     IviCompilationIE
 )
 from .ivideon import IvideonIE
-from .iwara import IwaraIE
+from .iwara import (
+    IwaraIE,
+    IwaraPlaylistIE,
+    IwaraUserIE,
+)
 from .izlesene import IzleseneIE
 from .jable import (
     JableIE,
@@ -787,6 +791,10 @@ from .libsyn import LibsynIE
 from .lifenews import (
     LifeNewsIE,
     LifeEmbedIE,
+)
+from .likee import (
+    LikeeIE,
+    LikeeUserIE
 )
 from .limelight import (
     LimelightMediaIE,
@@ -1892,10 +1900,7 @@ from .vice import (
 from .vidbit import VidbitIE
 from .viddler import ViddlerIE
 from .videa import VideaIE
-from .videocampus_sachsen import (
-    VideocampusSachsenIE,
-    VideocampusSachsenEmbedIE,
-)
+from .videocampus_sachsen import VideocampusSachsenIE
 from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
 from .videomore import (
