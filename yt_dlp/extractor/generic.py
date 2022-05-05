@@ -2536,8 +2536,6 @@ class GenericIE(InfoExtractor):
                 'title': 'Puolustusvoimat siirsi panssariajoneuvoja harjoituksiin Niinisaloon 2.5.2022',
                 'thumbnail': r're:^https?://.+\.jpg$',
                 'duration': 138,
-                'series': 'NA',
-                'categories': ['NA'],
                 'age_limit': 0,
                 'upload_date': '20220504',
             },
