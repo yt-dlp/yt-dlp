@@ -142,11 +142,13 @@ class RuutuIE(InfoExtractor):
                 '(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
                 webpage).group(1), strict=False))
         if settings:
-            video_ids = traverse_obj(settings,
+            video_ids = traverse_obj(
+                settings,
                 ('props', 'pageProps', 'page', 'assetData', 'splitBody', ..., 'video', 'sourceId'))
             if video_ids:
                 return (f'http://www.ruutu.fi/video/{v}' for v in video_ids)
-            video_id = traverse_obj(settings,
+            video_id = traverse_obj(
+                settings,
                 ('props', 'pageProps', 'page', 'assetData', 'mainVideo', 'sourceId'))
             if video_id:
                 return [f'http://www.ruutu.fi/video/{video_id}']
