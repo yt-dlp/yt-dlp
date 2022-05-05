@@ -556,11 +556,12 @@ class YahooJapanNewsIE(InfoExtractor):
             r'<div[^>]+class=["\']yvpub-player["\'][^>]+data-spaceid=["\'](\d+)["\']',
             r'YAHOO\.JP\.srch\.\w+link\.onLoad[^;]+spaceID["\' ]*:["\' ]+([^"\']+)',
             r'<!--\s+SpaceID=(\d+)'
-        ], webpage, 'spaceid')
+        ], webpage, 'spaceid', "")
 
         content_id = self._search_regex([
             r'<script[^>]+class=["\']yvpub-player["\'][^>]+contentid=(?P<contentid>[^&"\']+)',
-            r'<div[^>]+class=["\']yvpub-player["\'][^>]+data-contentid=["\'](?P<contentid>\d+)["\']'
+            r'<div[^>]+class=["\']yvpub-player["\'][^>]+data-contentid=["\'](?P<contentid>\d+)["\']',
+            r'["\']vid["\']:(?P<contentid>\d+)'
         ], webpage, 'contentid', group='contentid')
 
         json_data = self._download_json(
@@ -571,7 +572,7 @@ class YahooJapanNewsIE(InfoExtractor):
                 'output': 'json',
                 'space_id': space_id,
                 'domain': host,
-                'ak': hashlib.md5('_'.join((space_id, host)).encode()).hexdigest(),
+                'ak': hashlib.md5('_'.join((space_id,host)).encode()).hexdigest() if space_id else "",
                 'device_type': '1100',
             })
         formats = self._extract_formats(json_data, content_id)
