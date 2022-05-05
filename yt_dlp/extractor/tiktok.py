@@ -6,6 +6,7 @@ import json
 
 from .common import InfoExtractor
 from ..compat import (
+    compat_HTMLParseError,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlparse
 )
@@ -548,7 +549,8 @@ class TikTokIE(TikTokBaseIE):
         else:
             try:
                 sigi_data = get_element_by_attribute(r'(SIGI_STATE|sigi-persisted-data)', webpage, escape_value=False)
-            except ValueError:
+            except compat_HTMLParseError as err:
+                self.write_debug(f'Parsing HTML failed, due to {err}')
                 sigi_data = self._search_regex(
                     '(?s)<script\\s[^>]*?\\b'
                     'id\\s*=\\s*(?P<q>"|\'|\\b)(SIGI_STATE|sigi-persisted-data)(?P=q)'
