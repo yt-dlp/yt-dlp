@@ -323,9 +323,15 @@ def create_parser():
         action='store_false', dest='mark_watched',
         help='Do not mark videos watched (default)')
     general.add_option(
+        '--color', '--colour',
+        dest='use_color', default='auto', choices=('auto', 'always', 'never'), metavar='WHEN',
+        help='(alias --colour) Uses escape sequences to display color the output. '
+             'WHEN defaults to \'%default\', it uses colors only if standard  output is '
+             'connected to a terminal. It also can be \'always\', or \'never\'.')
+    general.add_option(
         '--no-colors',
         action='store_true', dest='no_color', default=False,
-        help='Do not emit color codes in output')
+        help='same as: --color never')
     general.add_option(
         '--compat-options',
         metavar='OPTS', dest='compat_opts', default=set(), type='str',
