@@ -2526,6 +2526,22 @@ class GenericIE(InfoExtractor):
             },
             'playlist_count': 3
         },
+        {
+            # Ruutu embed in hs.fi with a single video
+            'url': 'https://www.hs.fi/kotimaa/art-2000008793421.html',
+            'md5': 'f8964e65d8fada6e8a562389bf366bb4',
+            'info_dict': {
+                'id': '4081841',
+                'ext': 'mp4',
+                'title': 'Puolustusvoimat siirsi panssariajoneuvoja harjoituksiin Niinisaloon 2.5.2022',
+                'thumbnail': r're:^https?://.+\.jpg$',
+                'duration': 138,
+                'series': 'NA',
+                'categories': ['NA'],
+                'age_limit': 0,
+                'upload_date': '20220504',
+            },
+        },
     ]
 
     def report_following_redirect(self, new_url):
