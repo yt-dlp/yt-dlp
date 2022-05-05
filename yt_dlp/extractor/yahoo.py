@@ -57,8 +57,7 @@ class YahooIE(InfoExtractor):
             'id': 'b3affa53-2e14-3590-852b-0e0db6cd1a58',
             'ext': 'webm',
             'title': 'Cute Raccoon Freed From Drain\u00a0Using Angle Grinder',
-            'description': 'md5:f66c890e1490f4910a9953c941dee944',
-            'duration': 97,
+            'description': 'md5:f66c890e1490f4910a9953c941dee944', 'duration': 97,
             'timestamp': 1414489862,
             'upload_date': '20141028',
         },
@@ -475,6 +474,9 @@ class YahooJapanNewsIE(InfoExtractor):
         },
     }, {
         'url': 'https://headlines.yahoo.co.jp/videonews/ann?a=20190716-00000071-ann-int',
+        'only_matching': True,
+    }, {
+        'url': 'https://headlines.yahoo.co.jp/hl?a=20190721-00000001-oxv-l04',
         'only_matching': True,
     }, {
         'url': 'https://headlines.yahoo.co.jp/videonews/',
