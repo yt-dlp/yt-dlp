@@ -139,7 +139,7 @@ class RuutuIE(InfoExtractor):
         # hs.fi
         settings = try_call(
             lambda: json.loads(re.search(
-                r'<script id="__NEXT_DATA__" type="application/json">\s*({.+?})\s*</script>',
+                '(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
                 webpage).group(1), strict=False))
         if settings:
             video_ids = traverse_obj(settings,
