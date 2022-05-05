@@ -136,7 +136,7 @@ class RuutuIE(InfoExtractor):
                 'mediaCrossbowSettings', 'file', 'field_crossbow_video_id', 'und', 0, 'value'))
             if video_id:
                 return [f'http://www.ruutu.fi/video/{video_id}']
-        # hs.fi
+        # hs.fi and is.fi
         settings = try_call(
             lambda: json.loads(re.search(
                 '(?s)<script[^>]+id=[\'"]__NEXT_DATA__[\'"][^>]*>([^<]+)</script>',
