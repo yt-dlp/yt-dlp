@@ -108,6 +108,16 @@ class VideocampusSachsenIE(InfoExtractor):
             }
         },
         {
+            'url': 'https://vimp.weka-fachmedien.de/video/Preisverleihung-Produkte-des-Jahres-2022/c8816f1cc942c12b6cce57c835cffd7c',
+            'info_dict': {
+                'id': 'c8816f1cc942c12b6cce57c835cffd7c',
+                'title': 'Preisverleihung »Produkte des Jahres 2022«',
+                'description': 'md5:60c347568ca89aa25b772c4ea564ebd3',
+                'display_id': 'Preisverleihung-Produkte-des-Jahres-2022',
+                'ext': 'mp4',
+            },
+        },
+        {
             'url': 'https://videocampus.sachsen.de/media/embed?key=fc99c527e4205b121cb7c74433469262',
             'info_dict': {
                 'id': 'fc99c527e4205b121cb7c74433469262',
