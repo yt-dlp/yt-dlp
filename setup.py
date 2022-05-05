@@ -13,7 +13,7 @@ from distutils.spawn import spawn
 
 
 def read(fname):
-    with open(fname, encoding='utf-8') as f:
+    with open(fname, encoding='utf-8',mode='r+') as f:
         return f.read()
 
 
