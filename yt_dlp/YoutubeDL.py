@@ -423,7 +423,10 @@ class YoutubeDL:
                        - If it returns utils.NO_DEFAULT, the user is interactively
                          asked whether to download the video.
                        match_filter_func in utils.py is one example for this.
-    no_color:          Do not emit color codes in output.
+    use_color:         Uses escape sequences to display color the output.
+                       defaults to 'auto', it uses colors only if standard output is
+                       connected to a terminal. It also can be 'always', or 'never'.
+    no_color:          Same as `color='never'`.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
                        HTTP header
     geo_bypass_country:
@@ -552,9 +555,11 @@ class YoutubeDL:
                 filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
         }
         self._out_files['screen'] = sys.stderr if self.params.get('quiet') else self._out_files['print']
+        color_capable = ((self.params.get('use_color') != 'never' or self.params.get('no_color'))
+                         and supports_terminal_sequences(self._out_files['screen']))  # auto
         self._allow_colors = {
-            type_: not self.params.get('no_color') and supports_terminal_sequences(self._out_files[type_])
-            for type_ in ('screen', 'error')
+            'error': color_capable,
+            'screen': self.params.get('use_color') == 'always' or color_capable
         }
 
         if sys.version_info < (3, 6):
