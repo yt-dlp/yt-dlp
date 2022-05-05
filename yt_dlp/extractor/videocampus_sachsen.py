@@ -120,10 +120,10 @@ class VideocampusSachsenIE(InfoExtractor):
 
         if not (display_id or tmp_id):
             # Title, description from embedded page's meta wouldn't be correct
-            title = self._html_search_regex(r'<img[^>]*title="([^"<]+)"', webpage, 'title', fatal=False)
+            title = self._html_search_regex(r'<img[^>]* title="([^"<]+)"', webpage, 'title', fatal=False)
             description = None
         else:
-            title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, default=None)
+            title = self._html_search_meta(('og:title', 'twitter:title', 'title'), webpage, fatal=False)
             description = self._html_search_meta(
                 ('og:description', 'twitter:description', 'description'), webpage, default=None)
 
@@ -136,7 +136,7 @@ class VideocampusSachsenIE(InfoExtractor):
             if not isinstance(e.cause, compat_HTTPError) or e.cause.code != 404:
                 raise
 
-        formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4', 'ext': 'mp4'})
+        formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4'})
         self._sort_formats(formats)
 
         return {
