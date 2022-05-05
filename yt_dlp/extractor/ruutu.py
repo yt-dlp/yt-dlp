@@ -146,7 +146,7 @@ class RuutuIE(InfoExtractor):
                 bool, (traverse_obj(d, ('video', 'sourceId')) for d in traverse_obj(settings,
                        ('props', 'pageProps', 'page', 'assetData', 'splitBody')))))
             if video_ids:
-                return list(f'http://www.ruutu.fi/video/{v}' for v in video_ids)
+                return (f'http://www.ruutu.fi/video/{v}' for v in video_ids)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
