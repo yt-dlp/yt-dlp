@@ -552,11 +552,12 @@ class TikTokIE(TikTokBaseIE):
             except compat_HTMLParseError as err:
                 self.write_debug(f'Parsing HTML failed, due to {err}')
                 sigi_data = self._search_regex(
-                    '(?s)<script\\s[^>]*?\\b'
-                    'id\\s*=\\s*(?P<q>"|\'|\\b)(SIGI_STATE|sigi-persisted-data)(?P=q)'
-                    '[^>]*>[^=]*?=?\\s*'
-                    '(?P<json>\\{.+?\\})\\s*(?:;[^<]+)?'
-                    '</script', webpage, 'sigi data', group='json')
+                    r'''(?xs)
+                        <script\s[^>]*?\b
+                            id\s*=\s*(?P<q>"|'|\b)(SIGI_STATE|sigi-persisted-data)(?P=q)[^>]*>
+                            [^=]*?=?\s*(?P<json>\{.+?\})\s*(?:;[^<]+)?
+                        </script
+                    ''', webpage, 'sigi data', group='json')
             sigi_state = self._parse_json(sigi_data, video_id)
 
             status = traverse_obj(sigi_state, ('VideoPage', 'statusCode'), expected_type=int) or 0
