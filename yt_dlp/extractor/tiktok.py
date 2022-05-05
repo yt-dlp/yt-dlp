@@ -548,7 +548,7 @@ class TikTokIE(TikTokBaseIE):
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
             try:
-                sigi_data = get_element_by_attribute(r'(SIGI_STATE|sigi-persisted-data)', webpage, escape_value=False)
+                sigi_data = get_element_by_attribute('id', r'(SIGI_STATE|sigi-persisted-data)', webpage, escape_value=False)
             except compat_HTMLParseError as err:
                 self.write_debug(f'Parsing HTML failed, due to {err}')
                 sigi_data = self._search_regex(
