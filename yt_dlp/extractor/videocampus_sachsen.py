@@ -102,7 +102,7 @@ class VideocampusSachsenIE(InfoExtractor):
                 'url': 'https://www2.univ-sba.dz/getMedium/0183356e41af7bfb83d7667b20d9b6a3.mp4',
                 'id': '0183356e41af7bfb83d7667b20d9b6a3',
                 'title': 'Présentation de la Faculté de droit et des sciences politiques - Journée portes ouvertes 2021/22',
-                'description': 'Pr&eacute;sentation de la Facult&eacute; de droit et des sciences politiques - Journ&eacute;e portes ouvertes 2021/22',
+                'description': 'md5:508958bd93e0ca002ac731d94182a54f',
                 'display_id': 'Presentation-de-la-Faculte-de-droit-et-des-sciences-politiques-Journee-portes-ouvertes-202122',
                 'ext': 'mp4',
             }
