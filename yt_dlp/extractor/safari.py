@@ -5,7 +5,6 @@ from .common import InfoExtractor
 
 from ..utils import (
     ExtractorError,
-    RegexNotFoundError,
     update_url_query,
 )
 
@@ -111,14 +110,14 @@ class SafariIE(SafariBaseIE):
     _UICONF_ID = '29375172'
 
     def _real_extract(self, url):
-        query = {}
+        entry_id = ''
         mobj = self._match_valid_url(url)
 
         reference_id = mobj.group('reference_id')
         if reference_id:
-            query['flashvars[referenceId]'] = video_id = reference_id
-            query['wid'] = f'_{self._PARTNER_ID}'
-            query['uiconf_id'] = self._UICONF_ID
+            video_id = reference_id
+            partner_id = self._PARTNER_ID
+            ui_id = self._UICONF_ID
         else:
             video_id = '%s-%s' % (mobj.group('course_id'), mobj.group('part'))
 
@@ -126,26 +125,32 @@ class SafariIE(SafariBaseIE):
 
             mobj = re.match(self._VALID_URL, urlh.geturl())
             reference_id = mobj.group('reference_id')
-            if reference_id:
-                query['flashvars[referenceId]'] = reference_id
-            else:
-                try:
-                    query['flashvars[referenceId]'] = self._search_regex(
-                        r'data-reference-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
-                        webpage, 'kaltura reference id', group='id')
-                except RegexNotFoundError as e:
-                    self.write_debug(e.orig_msg)
-                    query['entry_id'] = self._search_regex(
-                        r'data-entry-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
-                        webpage, 'kaltura entry id', group='id')
-            query['wid'] = '_%s' % self._search_regex(
+            if not reference_id:
+                reference_id = self._search_regex(
+                    r'data-reference-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
+                    webpage, 'kaltura reference id', default='', group='id')
+                entry_id = self._search_regex(
+                    r'data-entry-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
+                    webpage, 'kaltura entry id', default='', group='id')
+                if not any((entry_id, reference_id)):
+                    self._downloader.report_error('Unable to find neither %s nor %s' % (
+                        self._downloader._format_err("reference id", self._downloader.Style.KEY),
+                        self._downloader._format_err("entry id", self._downloader.Style.KEY)))
+            partner_id = self._search_regex(
                 r'data-partner-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                 webpage, 'kaltura widget id', default=self._PARTNER_ID,
                 group='id')
-            query['uiconf_id'] = self._search_regex(
+            ui_id = self._search_regex(
                 r'data-ui-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                 webpage, 'kaltura uiconf id', default=self._UICONF_ID,
                 group='id')
+
+        query = {
+            'wid': f'_{partner_id}',
+            'uiconf_id': ui_id,
+            'entry_id': entry_id,
+            'flashvars[referenceId]': reference_id
+        }
 
         if self.LOGGED_IN:
             kaltura_session = self._download_json(
