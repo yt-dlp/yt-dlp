@@ -133,7 +133,7 @@ class VideocampusSachsenIE(InfoExtractor):
                 f'https://{host}/media/hlsMedium/key/{video_id}/format/auto/ext/mp4/learning/0/path/m3u8',
                 video_id, 'mp4', m3u8_id='hls', fatal=True)
         except ExtractorError as e:
-            if not isinstance(e.cause, compat_HTTPError) or e.cause.code != 404:
+            if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (404, 500):
                 raise
 
         formats.append({'url': f'https://{host}/getMedium/{video_id}.mp4'})
