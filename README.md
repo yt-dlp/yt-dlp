@@ -1730,6 +1730,9 @@ The following extractors use this feature:
 #### rokfinchannel
 * `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
 
+#### radiko
+* `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
+
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
 

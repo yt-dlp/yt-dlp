@@ -1,7 +1,6 @@
-import re
 import base64
-import calendar
-import datetime
+import re
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
@@ -9,16 +8,17 @@ from ..utils import (
     update_url_query,
     clean_html,
     unified_timestamp,
+    time_seconds,
 )
-from ..compat import compat_urllib_parse
 
 
 class RadikoBaseIE(InfoExtractor):
     _FULL_KEY = None
 
     def _auth_client(self):
+        force_auth = self._configuration_arg('force_reauth', ie_key='radiko')
         auth_cache = self._downloader.cache.load('radiko', 'auth_data')
-        if auth_cache:
+        if auth_cache and not force_auth:
             return auth_cache
 
         _, auth1_handle = self._download_webpage_handle(
@@ -89,8 +89,8 @@ class RadikoBaseIE(InfoExtractor):
 
     def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
         m3u8_playlist_data = self._download_xml(
-            'https://radiko.jp/v3/station/stream/pc_html5/%s.xml' % station, video_id,
-            note='Downloading m3u8 information')
+            f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
+            note='Downloading stream information')
         m3u8_urls = m3u8_playlist_data.findall('.//url')
 
         formats = []
@@ -102,7 +102,7 @@ class RadikoBaseIE(InfoExtractor):
                 'station_id': station,
                 **query,
                 'l': '15',
-                'lsid': '77d0678df93a1034659c14d6fc89f018',
+                'lsid': '88ecea37e968c1f17d5413312d9f8003',
                 'type': 'b',
             })
             if playlist_url in found:
@@ -112,16 +112,17 @@ class RadikoBaseIE(InfoExtractor):
 
             time_to_skip = None if is_onair else cursor - ft
 
+            domain = urllib.parse.urlparse(playlist_url).netloc
             subformats = self._extract_m3u8_formats(
                 playlist_url, video_id, ext='m4a',
-                live=True, fatal=False, m3u8_id=None,
+                live=True, fatal=False, m3u8_id=domain,
+                note=f'Downloading m3u8 information from {domain}',
                 headers={
                     'X-Radiko-AreaId': area_id,
                     'X-Radiko-AuthToken': auth_token,
                 })
             for sf in subformats:
-                domain = sf['format_id'] = compat_urllib_parse.urlparse(sf['url']).netloc
-                if re.match(r'^[cf]-radiko\.smartstream\.ne\.jp$', domain):
+                if re.fullmatch(r'[cf]-radiko\.smartstream\.ne\.jp', domain):
                     # Prioritize live radio vs playback based on extractor
                     sf['preference'] = 100 if is_onair else -100
                 if not is_onair and url_attrib['timefree'] == '1' and time_to_skip:
@@ -205,8 +206,7 @@ class RadikoRadioIE(RadikoBaseIE):
 
         auth_token, area_id = self._auth_client()
         # get current time in JST (GMT+9:00 w/o DST)
-        vid_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-        vid_now = calendar.timegm(vid_now.timetuple())
+        vid_now = time_seconds(hours=9)
 
         prog, station_program, ft, _, _ = self._find_program(station, station, vid_now)
 
