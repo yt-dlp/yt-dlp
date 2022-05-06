@@ -423,8 +423,8 @@ class YoutubeDL:
                        - If it returns utils.NO_DEFAULT, the user is interactively
                          asked whether to download the video.
                        match_filter_func in utils.py is one example for this.
-    color_mode:         Uses escape sequences to display color the output.
-                       defaults to 'auto', it uses colors only if standard output is
+    color_mode:        Sets the usage of escape sequences to display color the output.
+                       Default is 'auto', when colors are used only if standard output is
                        connected to a terminal. It also can be 'always', or 'never'.
     no_color:          Same as `color_mode='never'`, deprecated.
     geo_bypass:        Bypass geographic restriction via faking X-Forwarded-For
@@ -585,7 +585,7 @@ class YoutubeDL:
                 self.params['geo_verification_proxy'] = self.params['cn_verification_proxy']
 
         if self.params.get('color_mode') is not None:
-            check_deprecated('no_color', 'no_color', 'color=never')
+            check_deprecated('no_color', 'no_color', 'color_mode=never')
         check_deprecated('autonumber', '--auto-number', '-o "%(autonumber)s-%(title)s.%(ext)s"')
         check_deprecated('usetitle', '--title', '-o "%(title)s-%(id)s.%(ext)s"')
         check_deprecated('useid', '--id', '-o "%(id)s.%(ext)s"')
