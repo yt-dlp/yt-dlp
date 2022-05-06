@@ -541,12 +541,13 @@ class TikTokIE(TikTokBaseIE):
         def get_random_cookie():
             """Creates a random cookie (name, value) pair compliant with RFC 6265"""
             alnum = string.ascii_letters + string.digits
-            name_set = '!#$%&\'*+-.^_`|~' + alnum
-            value_set = '!#$%&\'()*+-./:<=>?@[]^_`{|}~' + alnum
-            a, b = random.randint(1, 4095), random.randint(1, 4095)
-            name_end, value_end = min(a, b), max(a, b)
-            return ''.join(random.choice(name_set) for _ in range(name_end)), \
-                   ''.join(random.choice(value_set) for _ in range(value_end - name_end))
+            # text: printable not in whitespace
+            name_set = '!#$%&\'*+-.^_`|~' + alnum  # in text not in '()<>@,;:"/[]?={}\\'
+            value_set = '!#$%&\'()*+-./:<=>?@[]^_`{|}~' + alnum  # in text not in '",;\\'
+            name_length = random.randint(1, 4096 - 1)  # keep at least one byte for value
+            value_length = random.randint(1, 4096 - name_length)
+            return ''.join(random.choice(name_set) for _ in range(name_length)), \
+                   ''.join(random.choice(value_set) for _ in range(value_length))
 
         self._set_cookie('www.tiktok.com', *get_random_cookie())
         # If we only call once, we get a 403 when downlaoding the video.
