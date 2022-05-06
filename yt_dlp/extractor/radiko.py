@@ -129,6 +129,9 @@ class RadikoBaseIE(InfoExtractor):
                     sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
             formats.extend(subformats)
 
+        if not formats:
+            self.raise_no_formats('No formats found! You should force re-authenticate using --extractor-args radiko:force_reauth or clear cache.')
+
         self._sort_formats(formats)
         return formats
 
