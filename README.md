@@ -1731,7 +1731,7 @@ The following extractors use this feature:
 * `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
 
 #### radiko
-* `tab`: Which tab to download. One of `new`, `top`, `videos`, `podcasts`, `streams`, `stacks`. (E.g. `rokfinchannel:tab=streams`)
+* `force_reauth`: Force re-authentication, even if it was previously done. Use it when you see `No formats found!` error.
 
 
 NOTE: These options may be changed/removed in the future without concern for backward compatibility
