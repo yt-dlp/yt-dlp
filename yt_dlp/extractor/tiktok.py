@@ -538,9 +538,19 @@ class TikTokIE(TikTokBaseIE):
         except ExtractorError as e:
             self.report_warning(f'{e.orig_msg}; Retrying with webpage')
 
-        # If UA starts with `Mozilla/5.0`, but shorter than 26 character, 403 response is received
-        webpage = self._download_webpage(
-            url, video_id, headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0'})
+        def get_random_cookie():
+            """Creates a random cookie (name, value) pair compliant with RFC 6265"""
+            alnum = string.ascii_letters + string.digits
+            name_set = '!#$%&\'*+-.^_`|~' + alnum
+            value_set = '!#$%&\'()*+-./:<=>?@[]^_`{|}~' + alnum
+            a, b = random.randint(1, 4095), random.randint(1, 4095)
+            name_end, value_end = min(a, b), max(a, b)
+            return ''.join(random.choice(name_set) for _ in range(name_end)), \
+                   ''.join(random.choice(value_set) for _ in range(value_end - name_end))
+
+        self._set_cookie('www.tiktok.com', *get_random_cookie())
+        # If we only call once, we get a 403 when downlaoding the video.
+        webpage = self._download_webpage(url, video_id, tries=2)
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
 
         if next_data:
