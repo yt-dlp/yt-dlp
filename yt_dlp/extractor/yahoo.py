@@ -459,7 +459,7 @@ class YahooGyaOIE(InfoExtractor):
 class YahooJapanNewsIE(InfoExtractor):
     IE_NAME = 'yahoo:japannews'
     IE_DESC = 'Yahoo! Japan News'
-    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:/articles/|[^\d]*)(?P<id>[\da-f]{40}|[\d]{8}-[\d]{8})?'
+    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:/articles/|[^\d]*)(?P<id>[\da-f]{40}|[\d]{8}-[\d]{8}|\d*)?'
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
         'url': 'https://news.yahoo.co.jp/articles/71b59c001c9dbc91b0c6bc75782fb8a26c2771a3',
@@ -468,6 +468,19 @@ class YahooJapanNewsIE(InfoExtractor):
             'ext': 'mp4',
             'title': '30周年のハウステンボスアンバサダーにHKT48が就任【長崎県】（KTNテレビ長崎） - Yahoo!ニュース',
             'description': 'md5:20a44a844072b85cd3277077017ce640',
+            'thumbnail': r're:^https?://.*?\.jpg',
+        },
+        'params': {
+            'skip_download': True,
+        },
+        'skip': '404',
+    }, {
+        'url': 'https://news.yahoo.co.jp/articles/a4aa6a34bcbdcd70b15e8e92db1ab30577859f43',
+        'info_dict': {
+            'id': '7066545',
+            'ext': 'mp4',
+            'title': '山でけがした８９歳の祖父を無事に保護 所有する山林を確認しようと入山 広島・安佐南区（テレビ新広島） - Yahoo!ニュース',
+            'description': 'md5:8171a3c22461b1b9028b24f712d889ae',
             'thumbnail': r're:^https?://.*?\.jpg',
         },
         'params': {
