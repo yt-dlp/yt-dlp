@@ -133,7 +133,7 @@ class SafariIE(SafariBaseIE):
                     r'data-entry-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                     webpage, 'kaltura entry id', default='', group='id')
                 if not any((entry_id, reference_id)):
-                    raise ExtractorError("Unable to find neither 'reference id' nor 'entry id'")
+                    raise ExtractorError('Unable to find kaltura "reference id" or "entry id"')
             partner_id = self._search_regex(
                 r'data-partner-id=(["\'])(?P<id>(?:(?!\1).)+)\1',
                 webpage, 'kaltura widget id', default=self._PARTNER_ID,
