@@ -558,7 +558,6 @@ class TikTokIE(TikTokBaseIE):
         else:
             sigi_data = get_element_by_id('SIGI_STATE', webpage)
             sigi_state = self._parse_json(sigi_data, video_id)
-
             status = traverse_obj(sigi_state, ('VideoPage', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(sigi_state, ('ItemModule', video_id), expected_type=dict)
 
