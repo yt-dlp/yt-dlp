@@ -85,6 +85,50 @@ class TestHTTPS(unittest.TestCase):
         self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
 
 
+class TestClientCert(unittest.TestCase):
+    def setUp(self):
+        certfn = os.path.join(TEST_DIR, 'testcert.pem')
+        self.certdir = os.path.join(TEST_DIR, 'testdata', 'certificate')
+        cacertfn = os.path.join(self.certdir, 'ca.crt')
+        self.httpd = compat_http_server.HTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.verify_mode = ssl.CERT_REQUIRED
+        sslctx.load_verify_locations(cafile=cacertfn)
+        sslctx.load_cert_chain(certfn, None)
+        self.httpd.socket = sslctx.wrap_socket(self.httpd.socket, server_side=True)
+        self.port = http_server_port(self.httpd)
+        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
+    def _run_test(self, **params):
+        ydl = YoutubeDL({
+            'logger': FakeLogger(),
+            # Disable client-side validation of unacceptable self-signed testcert.pem
+            # The test is of a check on the server side, so unaffected
+            'nocheckcertificate': True,
+            **params,
+        })
+        r = ydl.extract_info('https://127.0.0.1:%d/video.html' % self.port)
+        self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.port)
+
+    def test_certificate_combined_nopass(self):
+        self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithkey.crt'))
+
+    def test_certificate_nocombined_nopass(self):
+        self._run_test(client_certificate=os.path.join(self.certdir, 'client.crt'),
+                       client_certificate_key=os.path.join(self.certdir, 'client.key'))
+
+    def test_certificate_combined_pass(self):
+        self._run_test(client_certificate=os.path.join(self.certdir, 'clientwithencryptedkey.crt'),
+                       client_certificate_password='foobar')
+
+    def test_certificate_nocombined_pass(self):
+        self._run_test(client_certificate=os.path.join(self.certdir, 'client.crt'),
+                       client_certificate_key=os.path.join(self.certdir, 'clientencrypted.key'),
+                       client_certificate_password='foobar')
+
+
 def _build_proxy_handler(name):
     class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
         proxy_name = name
