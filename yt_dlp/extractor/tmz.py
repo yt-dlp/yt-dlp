@@ -137,18 +137,7 @@ class TMZIE(InfoExtractor):
                 "playable_in_embed": True,
                 "categories": ["Sports"],
                 "age_limit": 0,
-                "tags": [
-                    "elie seckbach",
-                    "esnews",
-                    "boxing",
-                    "mma",
-                    "sports interviews",
-                    "es news",
-                    "boxing news",
-                    "mma news",
-                    "boxing interviews",
-                    "mma interviews",
-                ],
+                "tags": "count:10",
                 "availability": "public",
             },
         },
@@ -181,9 +170,7 @@ class TMZIE(InfoExtractor):
         if not jsonld or "url" not in jsonld:
             # try to extract from YouTube Player API
             # see https://developers.google.com/youtube/iframe_api_reference#Video_Queueing_Functions
-            match_obj = re.search(
-                r'\.cueVideoById\(\s*(?P<quote>[\'"])(?P<id>.*?)(?P=quote)', webpage
-            )
+            match_obj = re.search(r'\.cueVideoById\(\s*(?P<quote>[\'"])(?P<id>.*?)(?P=quote)', webpage)
             if match_obj:
                 res = self.url_result(match_obj.group("id"))
                 return res
@@ -192,8 +179,7 @@ class TMZIE(InfoExtractor):
             if blockquote_el:
                 matches = re.findall(
                     r'<a[^>]+href=\s*(?P<quote>[\'"])(?P<link>.*?)(?P=quote)',
-                    blockquote_el,
-                )
+                    blockquote_el)
                 if matches:
                     for _, match in matches:
                         if "/status/" in match:
