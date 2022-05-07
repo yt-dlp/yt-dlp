@@ -103,7 +103,9 @@ class InfoExtractor:
     For a video, the dictionaries must include the following fields:
 
     id:             Video identifier.
-    title:          Video title, unescaped.
+    title:          Video title, unescaped. Set to an empty string if video has
+                    no title as opposed to "None" which signifies that the
+                    extractor failed to obtain a title
 
     Additionally, it must contain either a formats entry or a url one:
 
