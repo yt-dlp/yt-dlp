@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 import json
 import re
-from ..utils import float_or_none, try_get, str_to_int, unified_timestamp, merge_dicts
+from ..utils import float_or_none, try_call, str_to_int, unified_timestamp, merge_dicts
 from ..compat import compat_str
 from .common import InfoExtractor
 
@@ -60,30 +60,30 @@ class PodchaserIE(InfoExtractor):
         # Else get every episode available
         else:
             total_episode_count = self._download_json(
-                "https://api.podchaser.com/list/episode", podcast_id,
+                'https://api.podchaser.com/list/episode', podcast_id,
                 headers={'Content-Type': 'application/json;charset=utf-8'},
                 data=json.dumps({
-                    "filters": {"podcast_id": podcast_id}
+                    'filters': {'podcast_id': podcast_id}
                 }).encode()).get('total')
             episodes = []
             for i in range(total_episode_count // 100 + 1):
                 curr_episodes_data = self._download_json(
-                    "https://api.podchaser.com/list/episode", podcast_id,
+                    'https://api.podchaser.com/list/episode', podcast_id,
                     headers={'Content-Type': 'application/json;charset=utf-8'},
                     data=json.dumps({
-                        "start": i * 100,
-                        "count": 100,
-                        "sort_order": "SORT_ORDER_RECENT",
-                        "filters": {
-                            "podcast_id": podcast_id
-                        }, "options": {}
+                        'start': i * 100,
+                        'count': 100,
+                        'sort_order': 'SORT_ORDER_RECENT',
+                        'filters': {
+                            'podcast_id': podcast_id
+                        }, 'options': {}
                     }).encode())
                 curr_episodes = curr_episodes_data.get('entities') or []
                 if len(curr_episodes) + len(episodes) <= total_episode_count:
                     episodes.extend(curr_episodes)
 
         podcast_data = merge_dicts(
-            self._download_json("https://api.podchaser.com/podcasts/%s" % podcast_id, audio_id or podcast_id) or {},
+            self._download_json('https://api.podchaser.com/podcasts/%s' % podcast_id, audio_id or podcast_id) or {},
             episodes[0].get('podcast') or {} if episodes else {})
 
         entries = [{
@@ -96,9 +96,9 @@ class PodchaserIE(InfoExtractor):
             'timestamp': unified_timestamp(episode.get('air_date')),
             'rating': float_or_none(episode.get('rating')),
             'categories': [
-                x.get('text') for x in
-                podcast_data.get('categories')
-                or try_get(podcast_data, lambda x: x['summary']['categories'], list) or []],
+                x.get('text') for x in podcast_data.get('categories')
+                or try_call(podcast_data, lambda x: x['summary']['categories'], list) or []
+            ],
             'tags': [tag.get('text') for tag in podcast_data.get('tags') or []],
             'series': podcast_data.get('title'),
         } for episode in episodes]
