@@ -5,6 +5,7 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
+    try_call,
     update_url_query,
     clean_html,
     unified_timestamp,
@@ -15,12 +16,7 @@ from ..utils import (
 class RadikoBaseIE(InfoExtractor):
     _FULL_KEY = None
 
-    def _auth_client(self, force=False):
-        force_auth = self._configuration_arg('force_reauth', ie_key='radiko') or force
-        auth_cache = self._downloader.cache.load('radiko', 'auth_data')
-        if auth_cache and not force_auth:
-            return auth_cache
-
+    def _auth_client(self):
         _, auth1_handle = self._download_webpage_handle(
             'https://radiko.jp/v2/api/auth1', None, 'Downloading authentication page',
             headers={
@@ -87,7 +83,7 @@ class RadikoBaseIE(InfoExtractor):
         assert ft, to
         return prog, station_program, ft, ft_str, to_str
 
-    def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query, noretry=False):
+    def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
         m3u8_playlist_data = self._download_xml(
             f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
             note='Downloading stream information')
@@ -129,16 +125,6 @@ class RadikoBaseIE(InfoExtractor):
                     sf['downloader_options'] = {'ffmpeg_args': ['-ss', time_to_skip]}
             formats.extend(subformats)
 
-        if not formats:
-            if noretry:
-                self.raise_no_formats('No formats found! You should force re-authenticate using --extractor-args radiko:force_reauth or clear cache.')
-            # retry format extraction with new token
-            auth_token, area_id = self._auth_client(force=True)
-            return self._extract_formats(
-                video_id=video_id, station=station, is_onair=is_onair,
-                ft=ft, cursor=cursor, auth_token=auth_token, area_id=area_id,
-                query=query, noretry=True)
-
         self._sort_formats(formats)
         return formats
 
@@ -162,31 +148,29 @@ class RadikoIE(RadikoBaseIE):
     def _real_extract(self, url):
         station, video_id = self._match_valid_url(url).groups()
         vid_int = unified_timestamp(video_id, False)
-
-        auth_token, area_id = self._auth_client()
-
         prog, station_program, ft, radio_begin, radio_end = self._find_program(video_id, station, vid_int)
 
-        title = prog.find('title').text
-        description = clean_html(prog.find('info').text)
-        station_name = station_program.find('.//name').text
-
-        formats = self._extract_formats(
-            video_id=video_id, station=station, is_onair=False,
-            ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
-            query={
-                'start_at': radio_begin,
-                'ft': radio_begin,
-                'end_at': radio_end,
-                'to': radio_end,
-                'seek': video_id,
-            })
+        auth_cache = self._downloader.cache.load('radiko', 'auth_data')
+        for attempt in range(2):
+            auth_token, area_id = (not attempt and auth_cache) or self._auth_client()
+            formats = self._extract_formats(
+                video_id=video_id, station=station, is_onair=False,
+                ft=ft, cursor=vid_int, auth_token=auth_token, area_id=area_id,
+                query={
+                    'start_at': radio_begin,
+                    'ft': radio_begin,
+                    'end_at': radio_end,
+                    'to': radio_end,
+                    'seek': video_id,
+                })
+            if formats or attempt:
+                break
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'uploader': station_name,
+            'title': try_call(lambda: prog.find('title').text),
+            'description': clean_html(try_call(lambda: prog.find('info').text)),
+            'uploader': try_call(lambda: station_program.find('.//name').text),
             'uploader_id': station,
             'timestamp': vid_int,
             'formats': formats,
