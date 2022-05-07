@@ -82,10 +82,6 @@ class SafariIE(SafariBaseIE):
             'view_count': int,
             'thumbnail': 'http://cfvod.kaltura.com/p/1926081/sp/192608100/thumbnail/entry_id/0_qbqx90ic/version/100000'
         },
-        'expected_warnings': [
-            'Unable to extract kaltura reference id',
-            'Unable to download JSON metadata: HTTP Error 401: Unauthorized'
-        ]
     }, {
         # non-digits in course id
         'url': 'https://www.safaribooksonline.com/library/view/create-a-nodejs/100000006A0210/part00.html',
