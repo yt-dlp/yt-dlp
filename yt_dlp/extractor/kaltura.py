@@ -1,6 +1,6 @@
+import base64
 import json
 import re
-import base64
 
 from .common import InfoExtractor
 from ..compat import (
@@ -14,7 +14,7 @@ from ..utils import (
     int_or_none,
     unsmuggle_url,
     smuggle_url,
-    UnsupportedError,
+    traverse_obj,
 )
 
 
@@ -177,8 +177,8 @@ class KalturaIE(InfoExtractor):
             (service_url or self._SERVICE_URL) + self._SERVICE_BASE,
             video_id, data=json.dumps(params).encode('utf-8'),
             headers={
-                "Content-Type": "application/json",
-                "Accept-Encoding": "gzip, deflate, br",
+                'Content-Type': 'application/json',
+                'Accept-Encoding': 'gzip, deflate, br',
             }, *args, **kwargs)
 
         for idx, status in enumerate(data):
@@ -188,8 +188,7 @@ class KalturaIE(InfoExtractor):
                 raise ExtractorError(
                     '%s said: %s (%d)' % (self.IE_NAME, status['message'], idx))
 
-        info_list = data[1]['objects']
-        data[1] = info_list and info_list[0]
+        data[1] = traverse_obj(data, (1, 'objects', 0))
 
         return data
 
@@ -302,9 +301,6 @@ class KalturaIE(InfoExtractor):
             if referrer:
                 unsigned_url += '?referrer=%s' % referrer
             return unsigned_url
-
-        if not info:
-            raise UnsupportedError(url)
 
         data_url = info['dataUrl']
         if '/flvclipper/' in data_url:
