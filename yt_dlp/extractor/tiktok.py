@@ -485,7 +485,6 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-        'expected_warnings': ['Creating a generic title']
     }, {
         # hydration JSON is sent in a <script> element
         'url': 'https://www.tiktok.com/@denidil6/video/7065799023130643713',
@@ -601,7 +600,7 @@ class TikTokUserIE(TikTokBaseIE):
             'title': '6820838815978423302',
             'thumbnail': r're:https://.+_1080x1080\.webp'
         },
-        'expected_warnings': ['Retrying', 'Creating a generic title instead']
+        'expected_warnings': ['Retrying']
     }, {
         'url': 'https://www.tiktok.com/@meme',
         'playlist_mincount': 593,
@@ -610,7 +609,7 @@ class TikTokUserIE(TikTokBaseIE):
             'title': 'meme',
             'thumbnail': r're:https://.+_1080x1080\.webp'
         },
-        'expected_warnings': ['Retrying', 'Creating a generic title instead']
+        'expected_warnings': ['Retrying']
     }]
 
     r'''  # TODO: Fix by adding _signature to api_url
@@ -755,7 +754,7 @@ class TikTokEffectIE(TikTokBaseListIE):
         'info_dict': {
             'id': '1258156',
         },
-        'expected_warnings': ['Retrying', 'Creating a generic title instead']
+        'expected_warnings': ['Retrying']
     }, {
         # Different entries between mobile and web, depending on region
         'url': 'https://www.tiktok.com/sticker/Elf-Friend-479565',
