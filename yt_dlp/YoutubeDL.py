@@ -555,8 +555,8 @@ class YoutubeDL:
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
-                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be '
-                'listed/downloaded. This is a developer option intended for debugging.\n'
+                f'You have asked for {self._format_err("UNPLAYABLE", self.Styles.EMPHASIS)} formats to be listed/downloaded. '
+                'This is a developer option intended for debugging. \n'
                 '         If you experience any issues while using this option, '
                 f'{self._format_err("DO NOT", self.Styles.ERROR)} open a bug report')
 
@@ -1454,8 +1454,7 @@ class YoutubeDL:
                 if diff <= 0:
                     progress('')
                     raise ReExtractInfo('[wait] Wait period ended', expected=True)
-                progress(f'[wait] Remaining time until next attempt: '
-                         f'{self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
+                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
                 time.sleep(1)
         except KeyboardInterrupt:
             progress('')
@@ -3824,7 +3823,7 @@ class YoutubeDL:
             return None
 
     def _write_description(self, label, ie_result, descfn):
-        """ Write description and returns True = written, False = skip, None = error """
+        ''' Write description and returns True = written, False = skip, None = error '''
         if not self.params.get('writedescription'):
             return False
         elif not descfn:
