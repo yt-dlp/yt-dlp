@@ -6,7 +6,6 @@ import json
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_HTMLParseError,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlparse
 )
@@ -14,7 +13,7 @@ from ..utils import (
     ExtractorError,
     HEADRequest,
     UnsupportedError,
-    get_element_by_attribute,
+    get_element_by_id,
     get_first,
     int_or_none,
     join_nonempty,
@@ -557,17 +556,7 @@ class TikTokIE(TikTokBaseIE):
             status = traverse_obj(next_data, ('props', 'pageProps', 'statusCode'), expected_type=int) or 0
             video_data = traverse_obj(next_data, ('props', 'pageProps', 'itemInfo', 'itemStruct'), expected_type=dict)
         else:
-            try:
-                sigi_data = get_element_by_attribute('id', r'(SIGI_STATE|sigi-persisted-data)', webpage, escape_value=False)
-            except compat_HTMLParseError as err:
-                self.write_debug(f'Parsing HTML failed, due to {err}')
-                sigi_data = self._search_regex(
-                    r'''(?xs)
-                        <script\s[^>]*?\b
-                            id\s*=\s*(?P<q>"|'|\b)(SIGI_STATE|sigi-persisted-data)(?P=q)[^>]*>
-                            [^=]*?=?\s*(?P<json>\{.+?\})\s*(?:;[^<]+)?
-                        </script
-                    ''', webpage, 'sigi data', group='json')
+            sigi_data = get_element_by_id('SIGI_STATE', webpage)
             sigi_state = self._parse_json(sigi_data, video_id)
 
             status = traverse_obj(sigi_state, ('VideoPage', 'statusCode'), expected_type=int) or 0
