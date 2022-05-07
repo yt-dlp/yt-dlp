@@ -21,7 +21,7 @@ from yt_dlp.extractor.common import InfoExtractor, SearchInfoExtractor
 if os.path.exists(plugins_blocked_dirname):
     os.rename(plugins_blocked_dirname, plugins_dirname)
 
-with open('devscripts/lazy_load_template.py') as f:
+with open('devscripts/lazy_load_template.py', encoding='utf-8') as f:
     module_template = f.read()
 
 CLASS_PROPERTIES = ['ie_key', 'working', '_match_valid_url', 'suitable', '_match_id', 'get_temp_id']

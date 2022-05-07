@@ -3,6 +3,17 @@ import io
 import optparse
 
 
+def read(fname):
+    with open(fname, encoding='utf-8') as f:
+        return f.read()
+
+
+# Get the version from yt_dlp/version.py without importing the package
+def read_version(fname):
+    exec(compile(read(fname), fname, 'exec'))
+    return locals()['__version__']
+
+
 def main():
     parser = optparse.OptionParser(usage='%prog INFILE OUTFILE')
     options, args = parser.parse_args()
@@ -10,18 +21,9 @@ def main():
         parser.error('Expected an input and an output filename')
 
     infile, outfile = args
-
-    with open(infile, encoding='utf-8') as inf:
-        issue_template_tmpl = inf.read()
-
-    # Get the version from yt_dlp/version.py without importing the package
-    exec(compile(open('yt_dlp/version.py').read(),
-                 'yt_dlp/version.py', 'exec'))
-
-    out = issue_template_tmpl % {'version': locals()['__version__']}
-
     with open(outfile, 'w', encoding='utf-8') as outf:
-        outf.write(out)
+        outf.write(
+            read(infile) % {'version': read_version('yt_dlp/version.py')})
 
 
 if __name__ == '__main__':

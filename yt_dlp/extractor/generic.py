@@ -2517,6 +2517,29 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20220308',
             },
         },
+        {
+            # Multiple Ruutu embeds
+            'url': 'https://www.hs.fi/kotimaa/art-2000008762560.html',
+            'info_dict': {
+                'title': 'Koronavirus | Epidemiahuippu voi olla Suomessa ohi, mutta koronaviruksen poistamista yleisvaarallisten tautien joukosta harkitaan vasta syksyllä',
+                'id': 'art-2000008762560'
+            },
+            'playlist_count': 3
+        },
+        {
+            # Ruutu embed in hs.fi with a single video
+            'url': 'https://www.hs.fi/kotimaa/art-2000008793421.html',
+            'md5': 'f8964e65d8fada6e8a562389bf366bb4',
+            'info_dict': {
+                'id': '4081841',
+                'ext': 'mp4',
+                'title': 'Puolustusvoimat siirsi panssariajoneuvoja harjoituksiin Niinisaloon 2.5.2022',
+                'thumbnail': r're:^https?://.+\.jpg$',
+                'duration': 138,
+                'age_limit': 0,
+                'upload_date': '20220504',
+            },
+        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -3749,9 +3772,9 @@ class GenericIE(InfoExtractor):
             return self.playlist_from_matches(panopto_urls, video_id, video_title)
 
         # Look for Ruutu embeds
-        ruutu_url = RuutuIE._extract_url(webpage)
-        if ruutu_url:
-            return self.url_result(ruutu_url, RuutuIE)
+        ruutu_urls = RuutuIE._extract_urls(webpage)
+        if ruutu_urls:
+            return self.playlist_from_matches(ruutu_urls, video_id, video_title)
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')

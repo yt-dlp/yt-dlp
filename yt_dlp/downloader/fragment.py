@@ -1,15 +1,10 @@
+import concurrent.futures
 import contextlib
 import http.client
 import json
 import math
 import os
 import time
-
-try:
-    import concurrent.futures
-    can_threaded_download = True
-except ImportError:
-    can_threaded_download = False
 
 from .common import FileDownloader
 from .http import HttpFD
@@ -27,6 +22,8 @@ from ..utils import (
 class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
         pass
+
+    console_title = to_screen
 
     def report_retry(self, err, count, retries):
         super().to_screen(
@@ -126,7 +123,7 @@ class FragmentFD(FileDownloader):
             'request_data': request_data,
             'ctx_id': ctx.get('ctx_id'),
         }
-        success = ctx['dl'].download(fragment_filename, fragment_info_dict)
+        success, _ = ctx['dl'].download(fragment_filename, fragment_info_dict)
         if not success:
             return False
         if fragment_info_dict.get('filetime'):
@@ -501,8 +498,7 @@ class FragmentFD(FileDownloader):
 
         max_workers = math.ceil(
             self.params.get('concurrent_fragment_downloads', 1) / ctx.get('max_progress', 1))
-        if can_threaded_download and max_workers > 1:
-
+        if max_workers > 1:
             def _download_fragment(fragment):
                 ctx_copy = ctx.copy()
                 download_fragment(fragment, ctx_copy)

@@ -12,6 +12,7 @@ from ..minicurses import (
     QuietMultilinePrinter,
 )
 from ..utils import (
+    NUMBER_RE,
     LockingUnsupportedError,
     Namespace,
     decodeArgument,
@@ -91,7 +92,8 @@ class FileDownloader:
             'trouble',
             'write_debug',
         ):
-            setattr(self, func, getattr(ydl, func))
+            if not hasattr(self, func):
+                setattr(self, func, getattr(ydl, func))
 
     def to_screen(self, *args, **kargs):
         self.ydl.to_screen(*args, quiet=self.params.get('quiet'), **kargs)
@@ -170,7 +172,7 @@ class FileDownloader:
     @staticmethod
     def parse_bytes(bytestr):
         """Parse a string indicating a byte quantity into an integer."""
-        matchobj = re.match(r'(?i)^(\d+(?:\.\d+)?)([kMGTPEZY]?)$', bytestr)
+        matchobj = re.match(rf'(?i)^({NUMBER_RE})([kMGTPEZY]?)$', bytestr)
         if matchobj is None:
             return None
         number = float(matchobj.group(1))
