@@ -330,7 +330,7 @@ def create_parser():
              'connected to a terminal. WHEN also can be \'always\', or \'never\'.')
     general.add_option(
         '--no-colors',
-        action='store', dest='color_mode', default='never',
+        action='store_false', dest='color_mode',
         help='same as: --color never')
     general.add_option(
         '--compat-options',

@@ -556,6 +556,8 @@ class YoutubeDL:
         }
         self._out_files['screen'] = sys.stderr if self.params.get('quiet') else self._out_files['print']
         color_mode = self.params.get('color_mode', self.params.get('no_color', 'auto'))  # default behavior
+        if isinstance(color_mode, bool):
+            color_mode = ('never', 'auto')[color_mode]  # set by --no-colors
         self._allow_colors = {
             'error': (color_mode != 'never'
                       and supports_terminal_sequences(self._out_files['error'])),
