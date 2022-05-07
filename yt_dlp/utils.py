@@ -917,6 +917,8 @@ def make_HTTPS_handler(params, **kwargs):
     context.check_hostname = opts_check_certificate
     if params.get('legacyserverconnect'):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
+        # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
+        context.set_ciphers('DEFAULT')
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
         if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
@@ -930,9 +932,6 @@ def make_HTTPS_handler(params, **kwargs):
             except ssl.SSLError:
                 # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
                 if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                    # Create a new context to discard any certificates that were already loaded
-                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                    context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
                     for storename in ('CA', 'ROOT'):
                         _ssl_load_windows_store_certs(context, storename)
                 context.set_default_verify_paths()
@@ -1414,9 +1413,14 @@ class YoutubeDLHTTPSHandler(compat_urllib_request.HTTPSHandler):
             conn_class = make_socks_conn_class(conn_class, socks_proxy)
             del req.headers['Ytdl-socks-proxy']
 
-        return self.do_open(functools.partial(
-            _create_http_connection, self, conn_class, True),
-            req, **kwargs)
+        try:
+            return self.do_open(
+                functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
+        except urllib.error.URLError as e:
+            if (isinstance(e.reason, ssl.SSLError)
+                    and getattr(e.reason, 'reason', None) == 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
+                raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect')
+            raise
 
 
 class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
