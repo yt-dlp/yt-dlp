@@ -323,11 +323,11 @@ def create_parser():
         action='store_false', dest='mark_watched',
         help='Do not mark videos watched (default)')
     general.add_option(
-        '--color', '--colour',
+        '--color',
         dest='color_mode', default='auto', choices=('auto', 'always', 'never'), metavar='WHEN',
         help='Sets the usage of escape sequences to display color the output. '
              'WHEN defaults to \'%default\', colors are used only if standard output is '
-             'connected to a terminal. WHEN also can be \'always\', or \'never\'. (alias --colour)')
+             'connected to a terminal. WHEN also can be \'always\', or \'never\'.')
     general.add_option(
         '--no-colors',
         action='store_false', dest='color_mode',
