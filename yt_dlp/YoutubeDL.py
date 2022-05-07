@@ -3194,7 +3194,8 @@ class YoutubeDL:
                     downloader = downloader.__name__ if downloader else None
 
                     if info_dict.get('requested_formats') is None:  # Not necessary if doing merger
-                        ffmpeg_fixup(downloader == 'HlsFD',
+                        live_fixup = info_dict.get('is_live') and not self.params.get('hls_use_mpegts')
+                        ffmpeg_fixup(downloader == 'HlsFD' or live_fixup,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
                         ffmpeg_fixup(info_dict.get('is_live') and downloader == 'DashSegmentsFD',
