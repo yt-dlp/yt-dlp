@@ -5,11 +5,11 @@ import urllib.parse
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    try_call,
-    update_url_query,
     clean_html,
-    unified_timestamp,
     time_seconds,
+    try_call,
+    unified_timestamp,
+    update_url_query,
 )
 
 
@@ -163,7 +163,7 @@ class RadikoIE(RadikoBaseIE):
                     'to': radio_end,
                     'seek': video_id,
                 })
-            if formats or attempt:
+            if formats:
                 break
 
         return {
