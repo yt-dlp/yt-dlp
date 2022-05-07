@@ -485,6 +485,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
+        'expected_warnings': ['Creating a generic title']
     }, {
         # hydration JSON is sent in a <script> element
         'url': 'https://www.tiktok.com/@denidil6/video/7065799023130643713',
