@@ -15,8 +15,8 @@ from ..utils import (
 class RadikoBaseIE(InfoExtractor):
     _FULL_KEY = None
 
-    def _auth_client(self):
-        force_auth = self._configuration_arg('force_reauth', ie_key='radiko')
+    def _auth_client(self, force=False):
+        force_auth = self._configuration_arg('force_reauth', ie_key='radiko') or force
         auth_cache = self._downloader.cache.load('radiko', 'auth_data')
         if auth_cache and not force_auth:
             return auth_cache
@@ -87,7 +87,7 @@ class RadikoBaseIE(InfoExtractor):
         assert ft, to
         return prog, station_program, ft, ft_str, to_str
 
-    def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query):
+    def _extract_formats(self, video_id, station, is_onair, ft, cursor, auth_token, area_id, query, noretry=False):
         m3u8_playlist_data = self._download_xml(
             f'https://radiko.jp/v3/station/stream/pc_html5/{station}.xml', video_id,
             note='Downloading stream information')
@@ -130,7 +130,14 @@ class RadikoBaseIE(InfoExtractor):
             formats.extend(subformats)
 
         if not formats:
-            self.raise_no_formats('No formats found! You should force re-authenticate using --extractor-args radiko:force_reauth or clear cache.')
+            if noretry:
+                self.raise_no_formats('No formats found! You should force re-authenticate using --extractor-args radiko:force_reauth or clear cache.')
+            # retry format extraction with new token
+            auth_token, area_id = self._auth_client(force=True)
+            return self._extract_formats(
+                video_id=video_id, station=station, is_onair=is_onair,
+                ft=ft, cursor=cursor, auth_token=auth_token, area_id=area_id,
+                query=query, noretry=True)
 
         self._sort_formats(formats)
         return formats
