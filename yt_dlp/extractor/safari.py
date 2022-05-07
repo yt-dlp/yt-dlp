@@ -18,14 +18,22 @@ class SafariBaseIE(InfoExtractor):
 
     LOGGED_IN = False
 
-    def is_logged_in(self):
-        self.LOGGED_IN = bool(self._request_webpage(
-            'https://api.oreilly.com/api/v2/me/', None, note='Checking if logged in',
-            fatal=False, errnote=False, headers={'Accept': 'application/json'}))
+    def is_logged_in(self, fatal=True):
+        auth, urlh = self._download_json_handle(
+            'https://api.oreilly.com/api/v2/me/', None, note='Checking if logged in', fatal=False,
+            headers={'Accept': 'application/json'}, expected_status=401)
+        if urlh.status == 401:
+            msg = 'Unable to login: %s' % auth['detail']
+            if fatal:
+                raise ExtractorError(msg)
+            self.write_debug(msg)
+            self.LOGGED_IN = False
+            return self.LOGGED_IN
+        self.LOGGED_IN = True
         return self.LOGGED_IN
 
     def _initialize_pre_login(self):
-        self.is_logged_in()
+        self.is_logged_in(fatal=False)
 
     def _perform_login(self, username, password):
 
@@ -44,16 +52,14 @@ class SafariBaseIE(InfoExtractor):
         credentials = auth.get('credentials')
         if (not auth.get('logged_in') and not auth.get('redirect_uri')
                 and credentials):
-            raise ExtractorError(
-                'Unable to login: %s' % credentials, expected=True)
+            raise ExtractorError('Unable to login: %s' % credentials, expected=True)
 
         # oreilly serves two same instances of the following cookies
         # in Set-Cookie header and expects first one to be actually set
         for cookie in ('groot_sessionid', 'orm-jwt', 'orm-rt'):
             self._apply_first_set_cookie_header(urlh, cookie)
 
-        if not self.is_logged_in():
-            raise ExtractorError('Unable to log in')
+        self.is_logged_in()
 
 
 class SafariIE(SafariBaseIE):
