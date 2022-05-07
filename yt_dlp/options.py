@@ -325,9 +325,9 @@ def create_parser():
     general.add_option(
         '--color', '--colour',
         dest='color_mode', default='auto', choices=('auto', 'always', 'never'), metavar='WHEN',
-        help='(alias --colour) Sets the usage of escape sequences to display color the output. '
+        help='Sets the usage of escape sequences to display color the output. '
              'WHEN defaults to \'%default\', colors are used only if standard output is '
-             'connected to a terminal. WHEN also can be \'always\', or \'never\'.')
+             'connected to a terminal. WHEN also can be \'always\', or \'never\'. (alias --colour)')
     general.add_option(
         '--no-colors',
         action='store_false', dest='color_mode',
