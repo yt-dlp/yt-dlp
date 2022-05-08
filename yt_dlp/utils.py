@@ -958,6 +958,68 @@ def bug_reports_message(before=';'):
     return (before + ' ' if before else '') + msg
 
 
+def get_referrer_url(referrer_source, request_url, policy):
+    # Returns correct referrer url based on the site policy
+    # Resources used:
+    # https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy#examples
+    # https://github.com/scrapy/scrapy/blob/master/scrapy/spidermiddlewares/referer.py
+
+    # Strip URL as per https://w3c.github.io/webappsec-referrer-policy/#strip-url
+    def strip_url(url, origin_only=False):
+        if url is None:
+            return "no-referrer"
+        parsed_url = compat_urllib_parse_urlparse(url)
+        if parsed_url.username:
+            parsed_url = parsed_url._replace(username=None)
+        if parsed_url.password:
+            parsed_url = parsed_url._replace(password=None)
+        if parsed_url.fragment:
+            parsed_url = parsed_url._replace(fragment='')
+        if origin_only:
+            parsed_url = parsed_url._replace(path='')
+            parsed_url = parsed_url._replace(query='')
+        return parsed_url.geturl()
+
+    # https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
+    # More checks to determine the trustworthiness of a URL, the URL scheme is one check
+    def is_tls(url):
+        return compat_urllib_parse_urlparse(url).scheme in ('https', 'ftps')
+    referrer_url = strip_url(referrer_source)
+    referrer_origin = strip_url(referrer_source, origin_only=True)
+    if len(referrer_url) > 4096:
+        referrer_url = referrer_origin
+    if policy == "no-referrer":
+        return None
+    elif policy == "origin":
+        return referrer_origin
+    elif policy == "unsafe-url":
+        return referrer_url
+    elif policy == "strict-origin":
+        if is_tls(referrer_url) and not is_tls(request_url):
+            return None
+        else:
+            return referrer_origin
+    elif policy == "strict-origin-when-cross-origin":
+        if referrer_origin == strip_url(request_url, True):
+            return referrer_url
+        elif is_tls(referrer_url) and not is_tls(request_url):
+            return None
+        return referrer_origin
+    elif policy == "same-origin":
+        if referrer_origin == strip_url(request_url, True):
+            return referrer_url
+        return None
+    elif policy == "origin-when-cross-origin":
+        if referrer_origin == strip_url(request_url, True):
+            return referrer_url
+        return referrer_origin
+    elif policy == "no-referrer-when-downgrade":
+        if is_tls(referrer_url) and not is_tls(request_url):
+            return None
+        return referrer_url
+
+
 class YoutubeDLError(Exception):
     """Base exception for YoutubeDL errors."""
     msg = None
