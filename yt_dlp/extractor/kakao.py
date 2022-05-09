@@ -1,12 +1,10 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..compat import compat_str
+from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
     int_or_none,
     strip_or_none,
+    str_or_none,
     traverse_obj,
     unified_timestamp,
 )
@@ -24,10 +22,17 @@ class KakaoIE(InfoExtractor):
             'id': '301965083',
             'ext': 'mp4',
             'title': '乃木坂46 バナナマン 「3期生紹介コーナーが始動！顔高低差GPも！」 『乃木坂工事中』',
-            'uploader_id': 2671005,
+            'description': '',
+            'uploader_id': '2671005',
             'uploader': '그랑그랑이',
             'timestamp': 1488160199,
             'upload_date': '20170227',
+            'like_count': int,
+            'thumbnail': r're:http://.+/thumb\.png',
+            'tags': ['乃木坂'],
+            'view_count': int,
+            'duration': 1503,
+            'comment_count': int,
         }
     }, {
         'url': 'http://tv.kakao.com/channel/2653210/cliplink/300103180',
@@ -37,11 +42,21 @@ class KakaoIE(InfoExtractor):
             'ext': 'mp4',
             'description': '러블리즈 - Destiny (나의 지구) (Lovelyz - Destiny)\r\n\r\n[쇼! 음악중심] 20160611, 507회',
             'title': '러블리즈 - Destiny (나의 지구) (Lovelyz - Destiny)',
-            'uploader_id': 2653210,
+            'uploader_id': '2653210',
             'uploader': '쇼! 음악중심',
             'timestamp': 1485684628,
             'upload_date': '20170129',
+            'like_count': int,
+            'thumbnail': r're:http://.+/thumb\.png',
+            'tags': 'count:28',
+            'view_count': int,
+            'duration': 184,
+            'comment_count': int,
         }
+    }, {
+        # geo restricted
+        'url': 'https://tv.kakao.com/channel/3643855/cliplink/412069491',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
@@ -73,19 +88,25 @@ class KakaoIE(InfoExtractor):
         title = clip.get('title') or clip_link.get('displayTitle')
 
         formats = []
-        for fmt in clip.get('videoOutputList', []):
+        for fmt in clip.get('videoOutputList') or []:
             profile_name = fmt.get('profile')
             if not profile_name or profile_name == 'AUDIO':
                 continue
             query.update({
                 'profile': profile_name,
-                'fields': '-*,url',
+                'fields': '-*,code,message,url',
             })
+            try:
+                fmt_url_json = self._download_json(
+                    cdn_api_base, video_id, query=query,
+                    note='Downloading video URL for profile %s' % profile_name)
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                    resp = self._parse_json(e.cause.read().decode(), video_id)
+                    if resp.get('code') == 'GeoBlocked':
+                        self.raise_geo_restricted()
+                raise
 
-            fmt_url_json = self._download_json(
-                cdn_api_base, video_id,
-                'Downloading video URL for profile %s' % profile_name,
-                query=query, fatal=False)
             fmt_url = traverse_obj(fmt_url_json, ('videoLocation', 'url'))
             if not fmt_url:
                 continue
@@ -105,7 +126,7 @@ class KakaoIE(InfoExtractor):
         for thumb in clip.get('clipChapterThumbnailList') or []:
             thumbs.append({
                 'url': thumb.get('thumbnailUrl'),
-                'id': compat_str(thumb.get('timeInSec')),
+                'id': str(thumb.get('timeInSec')),
                 'preference': -1 if thumb.get('isDefault') else 0
             })
         top_thumbnail = clip.get('thumbnailUrl')
@@ -120,7 +141,7 @@ class KakaoIE(InfoExtractor):
             'title': title,
             'description': strip_or_none(clip.get('description')),
             'uploader': traverse_obj(clip_link, ('channel', 'name')),
-            'uploader_id': clip_link.get('channelId'),
+            'uploader_id': str_or_none(clip_link.get('channelId')),
             'thumbnails': thumbs,
             'timestamp': unified_timestamp(clip_link.get('createTime')),
             'duration': int_or_none(clip.get('duration')),

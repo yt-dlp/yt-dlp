@@ -1,97 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    format_field,
     int_or_none,
-    js_to_json,
     str_or_none,
 )
-
-
-class LineTVIE(InfoExtractor):
-    _VALID_URL = r'https?://tv\.line\.me/v/(?P<id>\d+)_[^/]+-(?P<segment>ep\d+-\d+)'
-
-    _TESTS = [{
-        'url': 'https://tv.line.me/v/793123_goodbye-mrblack-ep1-1/list/69246',
-        'info_dict': {
-            'id': '793123_ep1-1',
-            'ext': 'mp4',
-            'title': 'Goodbye Mr.Black | EP.1-1',
-            'thumbnail': r're:^https?://.*\.jpg$',
-            'duration': 998.509,
-            'view_count': int,
-        },
-    }, {
-        'url': 'https://tv.line.me/v/2587507_%E6%B4%BE%E9%81%A3%E5%A5%B3%E9%86%ABx-ep1-02/list/185245',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        series_id, segment = self._match_valid_url(url).groups()
-        video_id = '%s_%s' % (series_id, segment)
-
-        webpage = self._download_webpage(url, video_id)
-
-        player_params = self._parse_json(self._search_regex(
-            r'naver\.WebPlayer\(({[^}]+})\)', webpage, 'player parameters'),
-            video_id, transform_source=js_to_json)
-
-        video_info = self._download_json(
-            'https://global-nvapis.line.me/linetv/rmcnmv/vod_play_videoInfo.json',
-            video_id, query={
-                'videoId': player_params['videoId'],
-                'key': player_params['key'],
-            })
-
-        stream = video_info['streams'][0]
-        extra_query = '?__gda__=' + stream['key']['value']
-        formats = self._extract_m3u8_formats(
-            stream['source'] + extra_query, video_id, ext='mp4',
-            entry_protocol='m3u8_native', m3u8_id='hls')
-
-        for a_format in formats:
-            a_format['url'] += extra_query
-
-        duration = None
-        for video in video_info.get('videos', {}).get('list', []):
-            encoding_option = video.get('encodingOption', {})
-            abr = video['bitrate']['audio']
-            vbr = video['bitrate']['video']
-            tbr = abr + vbr
-            formats.append({
-                'url': video['source'],
-                'format_id': 'http-%d' % int(tbr),
-                'height': encoding_option.get('height'),
-                'width': encoding_option.get('width'),
-                'abr': abr,
-                'vbr': vbr,
-                'filesize': video.get('size'),
-            })
-            if video.get('duration') and duration is None:
-                duration = video['duration']
-
-        self._sort_formats(formats)
-
-        if formats and not formats[0].get('width'):
-            formats[0]['vcodec'] = 'none'
-
-        title = self._og_search_title(webpage)
-
-        # like_count requires an additional API request https://tv.line.me/api/likeit/getCount
-
-        return {
-            'id': video_id,
-            'title': title,
-            'formats': formats,
-            'extra_param_to_segment_url': extra_query[1:],
-            'duration': duration,
-            'thumbnails': [{'url': thumbnail['source']}
-                           for thumbnail in video_info.get('thumbnails', {}).get('list', [])],
-            'view_count': video_info.get('meta', {}).get('count'),
-        }
 
 
 class LineLiveBaseIE(InfoExtractor):
@@ -116,12 +29,12 @@ class LineLiveBaseIE(InfoExtractor):
 
         return {
             'id': broadcast_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'thumbnails': thumbnails,
             'timestamp': int_or_none(item.get('createdAt')),
             'channel': channel.get('name'),
             'channel_id': channel_id,
-            'channel_url': 'https://live.line.me/channels/' + channel_id if channel_id else None,
+            'channel_url': format_field(channel_id, template='https://live.line.me/channels/%s'),
             'duration': int_or_none(item.get('archiveDuration')),
             'view_count': int_or_none(item.get('viewerCount')),
             'comment_count': int_or_none(item.get('chatCount')),
@@ -132,16 +45,19 @@ class LineLiveBaseIE(InfoExtractor):
 class LineLiveIE(LineLiveBaseIE):
     _VALID_URL = r'https?://live\.line\.me/channels/(?P<channel_id>\d+)/broadcast/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://live.line.me/channels/4867368/broadcast/16331360',
-        'md5': 'bc931f26bf1d4f971e3b0982b3fab4a3',
+        'url': 'https://live.line.me/channels/5833718/broadcast/18373277',
+        'md5': '2c15843b8cb3acd55009ddcb2db91f7c',
         'info_dict': {
-            'id': '16331360',
-            'title': '振りコピ講座😙😙😙',
+            'id': '18373277',
+            'title': '2021/12/05 （15分犬）定例譲渡会🐶',
             'ext': 'mp4',
-            'timestamp': 1617095132,
-            'upload_date': '20210330',
-            'channel': '白川ゆめか',
-            'channel_id': '4867368',
+            'timestamp': 1638674925,
+            'upload_date': '20211205',
+            'thumbnail': 'md5:e1f5817e60f4a72b7e43377cf308d7ef',
+            'channel_url': 'https://live.line.me/channels/5833718',
+            'channel': 'Yahooニュース掲載🗞プロフ見てね🐕🐕',
+            'channel_id': '5833718',
+            'duration': 937,
             'view_count': int,
             'comment_count': int,
             'is_live': False,
@@ -193,8 +109,8 @@ class LineLiveChannelIE(LineLiveBaseIE):
         'url': 'https://live.line.me/channels/5893542',
         'info_dict': {
             'id': '5893542',
-            'title': 'いくらちゃん',
-            'description': 'md5:c3a4af801f43b2fac0b02294976580be',
+            'title': 'いくらちゃんだよぉ🦒',
+            'description': 'md5:4d418087973ad081ceb1b3481f0b1816',
         },
         'playlist_mincount': 29
     }

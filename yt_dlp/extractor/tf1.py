@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -29,7 +26,6 @@ class TF1IE(InfoExtractor):
         'params': {
             # Sometimes wat serves the whole file with the --test option
             'skip_download': True,
-            'format': 'bestvideo',
         },
     }, {
         'url': 'http://www.tf1.fr/tf1/koh-lanta/videos/replay-koh-lanta-22-mai-2015.html',

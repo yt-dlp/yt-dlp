@@ -1,30 +1,20 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import hashlib
-import json
 import re
-from xml.sax.saxutils import escape
+import json
+import base64
+import time
 
 from .common import InfoExtractor
 from ..compat import (
     compat_str,
-    compat_HTTPError,
 )
 from ..utils import (
-    js_to_json,
-    smuggle_url,
-    try_get,
-    xpath_text,
-    xpath_element,
-    xpath_with_ns,
-    find_xpath_attr,
-    orderedSet,
-    parse_duration,
-    parse_iso8601,
-    parse_age_limit,
-    strip_or_none,
     int_or_none,
+    join_nonempty,
+    js_to_json,
+    orderedSet,
+    smuggle_url,
+    strip_or_none,
+    try_get,
     ExtractorError,
 )
 
@@ -59,6 +49,7 @@ class CBCIE(InfoExtractor):
             'uploader': 'CBCC-NEW',
             'timestamp': 1382717907,
         },
+        'skip': 'No longer available',
     }, {
         # with clipId, feed only available via tpfeed.cbc.ca
         'url': 'http://www.cbc.ca/archives/entry/1978-robin-williams-freestyles-on-90-minutes-live',
@@ -133,9 +124,9 @@ class CBCIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        title = self._og_search_title(webpage, default=None) or self._html_search_meta(
-            'twitter:title', webpage, 'title', default=None) or self._html_search_regex(
-                r'<title>([^<]+)</title>', webpage, 'title', fatal=False)
+        title = (self._og_search_title(webpage, default=None)
+                 or self._html_search_meta('twitter:title', webpage, 'title', default=None)
+                 or self._html_extract_title(webpage))
         entries = [
             self._extract_player_init(player_init, display_id)
             for player_init in re.findall(r'CBC\.APP\.Caffeine\.initInstance\(({.+?})\);', webpage)]
@@ -209,289 +200,321 @@ class CBCPlayerIE(InfoExtractor):
         }
 
 
-class CBCWatchBaseIE(InfoExtractor):
-    _device_id = None
-    _device_token = None
-    _API_BASE_URL = 'https://api-cbc.cloud.clearleap.com/cloffice/client/'
-    _NS_MAP = {
-        'media': 'http://search.yahoo.com/mrss/',
-        'clearleap': 'http://www.clearleap.com/namespace/clearleap/1.0/',
-    }
-    _GEO_COUNTRIES = ['CA']
-    _LOGIN_URL = 'https://api.loginradius.com/identity/v2/auth/login'
-    _TOKEN_URL = 'https://cloud-api.loginradius.com/sso/jwt/api/token'
-    _API_KEY = '3f4beddd-2061-49b0-ae80-6f1f2ed65b37'
-    _NETRC_MACHINE = 'cbcwatch'
+class CBCGemIE(InfoExtractor):
+    IE_NAME = 'gem.cbc.ca'
+    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>[0-9a-z-]+/s[0-9]+[a-z][0-9]+)'
+    _TESTS = [{
+        # This is a normal, public, TV show video
+        'url': 'https://gem.cbc.ca/media/schitts-creek/s06e01',
+        'md5': '93dbb31c74a8e45b378cf13bd3f6f11e',
+        'info_dict': {
+            'id': 'schitts-creek/s06e01',
+            'ext': 'mp4',
+            'title': 'Smoke Signals',
+            'description': 'md5:929868d20021c924020641769eb3e7f1',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/episode/perso/cbc_schitts_creek_season_06e01_thumbnail_v01.jpg?im=Resize=(Size)',
+            'duration': 1314,
+            'categories': ['comedy'],
+            'series': 'Schitt\'s Creek',
+            'season': 'Season 6',
+            'season_number': 6,
+            'episode': 'Smoke Signals',
+            'episode_number': 1,
+            'episode_id': 'schitts-creek/s06e01',
+        },
+        'params': {'format': 'bv'},
+        'skip': 'Geo-restricted to Canada',
+    }, {
+        # This video requires an account in the browser, but works fine in yt-dlp
+        'url': 'https://gem.cbc.ca/media/schitts-creek/s01e01',
+        'md5': '297a9600f554f2258aed01514226a697',
+        'info_dict': {
+            'id': 'schitts-creek/s01e01',
+            'ext': 'mp4',
+            'title': 'The Cup Runneth Over',
+            'description': 'md5:9bca14ea49ab808097530eb05a29e797',
+            'thumbnail': 'https://images.radio-canada.ca/v1/synps-cbc/episode/perso/cbc_schitts_creek_season_01e01_thumbnail_v01.jpg?im=Resize=(Size)',
+            'series': 'Schitt\'s Creek',
+            'season_number': 1,
+            'season': 'Season 1',
+            'episode_number': 1,
+            'episode': 'The Cup Runneth Over',
+            'episode_id': 'schitts-creek/s01e01',
+            'duration': 1309,
+            'categories': ['comedy'],
+        },
+        'params': {'format': 'bv'},
+        'skip': 'Geo-restricted to Canada',
+    }]
 
-    def _signature(self, email, password):
+    _GEO_COUNTRIES = ['CA']
+    _TOKEN_API_KEY = '3f4beddd-2061-49b0-ae80-6f1f2ed65b37'
+    _NETRC_MACHINE = 'cbcgem'
+    _claims_token = None
+
+    def _new_claims_token(self, email, password):
         data = json.dumps({
             'email': email,
             'password': password,
         }).encode()
         headers = {'content-type': 'application/json'}
-        query = {'apikey': self._API_KEY}
-        resp = self._download_json(self._LOGIN_URL, None, data=data, headers=headers, query=query)
+        query = {'apikey': self._TOKEN_API_KEY}
+        resp = self._download_json('https://api.loginradius.com/identity/v2/auth/login',
+                                   None, data=data, headers=headers, query=query)
         access_token = resp['access_token']
 
-        # token
         query = {
             'access_token': access_token,
-            'apikey': self._API_KEY,
+            'apikey': self._TOKEN_API_KEY,
             'jwtapp': 'jwt',
         }
-        resp = self._download_json(self._TOKEN_URL, None, headers=headers, query=query)
-        return resp['signature']
+        resp = self._download_json('https://cloud-api.loginradius.com/sso/jwt/api/token',
+                                   None, headers=headers, query=query)
+        sig = resp['signature']
 
-    def _call_api(self, path, video_id):
-        url = path if path.startswith('http') else self._API_BASE_URL + path
-        for _ in range(2):
-            try:
-                result = self._download_xml(url, video_id, headers={
-                    'X-Clearleap-DeviceId': self._device_id,
-                    'X-Clearleap-DeviceToken': self._device_token,
-                })
-            except ExtractorError as e:
-                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 401:
-                    # Device token has expired, re-acquiring device token
-                    self._register_device()
-                    continue
-                raise
-        error_message = xpath_text(result, 'userMessage') or xpath_text(result, 'systemMessage')
-        if error_message:
-            raise ExtractorError('%s said: %s' % (self.IE_NAME, error_message))
-        return result
+        data = json.dumps({'jwt': sig}).encode()
+        headers = {'content-type': 'application/json', 'ott-device-type': 'web'}
+        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/token',
+                                   None, data=data, headers=headers)
+        cbc_access_token = resp['accessToken']
+
+        headers = {'content-type': 'application/json', 'ott-device-type': 'web', 'ott-access-token': cbc_access_token}
+        resp = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/profile',
+                                   None, headers=headers)
+        return resp['claimsToken']
+
+    def _get_claims_token_expiry(self):
+        # Token is a JWT
+        # JWT is decoded here and 'exp' field is extracted
+        # It is a Unix timestamp for when the token expires
+        b64_data = self._claims_token.split('.')[1]
+        data = base64.urlsafe_b64decode(b64_data + "==")
+        return json.loads(data)['exp']
+
+    def claims_token_expired(self):
+        exp = self._get_claims_token_expiry()
+        if exp - time.time() < 10:
+            # It will expire in less than 10 seconds, or has already expired
+            return True
+        return False
+
+    def claims_token_valid(self):
+        return self._claims_token is not None and not self.claims_token_expired()
+
+    def _get_claims_token(self, email, password):
+        if not self.claims_token_valid():
+            self._claims_token = self._new_claims_token(email, password)
+            self._downloader.cache.store(self._NETRC_MACHINE, 'claims_token', self._claims_token)
+        return self._claims_token
 
     def _real_initialize(self):
-        if self._valid_device_token():
+        if self.claims_token_valid():
             return
-        device = self._downloader.cache.load(
-            'cbcwatch', self._cache_device_key()) or {}
-        self._device_id, self._device_token = device.get('id'), device.get('token')
-        if self._valid_device_token():
+        self._claims_token = self._downloader.cache.load(self._NETRC_MACHINE, 'claims_token')
+
+    def _find_secret_formats(self, formats, video_id):
+        """ Find a valid video url and convert it to the secret variant """
+        base_format = next((f for f in formats if f.get('vcodec') != 'none'), None)
+        if not base_format:
             return
-        self._register_device()
 
-    def _valid_device_token(self):
-        return self._device_id and self._device_token
+        base_url = re.sub(r'(Manifest\(.*?),filter=[\w-]+(.*?\))', r'\1\2', base_format['url'])
+        url = re.sub(r'(Manifest\(.*?),format=[\w-]+(.*?\))', r'\1\2', base_url)
 
-    def _cache_device_key(self):
-        email, _ = self._get_login_info()
-        return '%s_device' % hashlib.sha256(email.encode()).hexdigest() if email else 'device'
+        secret_xml = self._download_xml(url, video_id, note='Downloading secret XML', fatal=False)
+        if not secret_xml:
+            return
 
-    def _register_device(self):
-        result = self._download_xml(
-            self._API_BASE_URL + 'device/register',
-            None, 'Acquiring device token',
-            data=b'<device><type>web</type></device>')
-        self._device_id = xpath_text(result, 'deviceId', fatal=True)
+        for child in secret_xml:
+            if child.attrib.get('Type') != 'video':
+                continue
+            for video_quality in child:
+                bitrate = int_or_none(video_quality.attrib.get('Bitrate'))
+                if not bitrate or 'Index' not in video_quality.attrib:
+                    continue
+                height = int_or_none(video_quality.attrib.get('MaxHeight'))
+
+                yield {
+                    **base_format,
+                    'format_id': join_nonempty('sec', height),
+                    # Note: \g<1> is necessary instead of \1 since bitrate is a number
+                    'url': re.sub(r'(QualityLevels\()\d+(\))', fr'\g<1>{bitrate}\2', base_url),
+                    'width': int_or_none(video_quality.attrib.get('MaxWidth')),
+                    'tbr': bitrate / 1000.0,
+                    'height': height,
+                }
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        video_info = self._download_json('https://services.radio-canada.ca/ott/cbc-api/v2/assets/' + video_id, video_id)
+
         email, password = self._get_login_info()
         if email and password:
-            signature = self._signature(email, password)
-            data = '<login><token>{0}</token><device><deviceId>{1}</deviceId><type>web</type></device></login>'.format(
-                escape(signature), escape(self._device_id)).encode()
-            url = self._API_BASE_URL + 'device/login'
-            result = self._download_xml(
-                url, None, data=data,
-                headers={'content-type': 'application/xml'})
-            self._device_token = xpath_text(result, 'token', fatal=True)
+            claims_token = self._get_claims_token(email, password)
+            headers = {'x-claims-token': claims_token}
         else:
-            self._device_token = xpath_text(result, 'deviceToken', fatal=True)
-        self._downloader.cache.store(
-            'cbcwatch', self._cache_device_key(), {
-                'id': self._device_id,
-                'token': self._device_token,
-            })
+            headers = {}
+        m3u8_info = self._download_json(video_info['playSession']['url'], video_id, headers=headers)
+        m3u8_url = m3u8_info.get('url')
 
-    def _parse_rss_feed(self, rss):
-        channel = xpath_element(rss, 'channel', fatal=True)
+        if m3u8_info.get('errorCode') == 1:
+            self.raise_geo_restricted(countries=['CA'])
+        elif m3u8_info.get('errorCode') == 35:
+            self.raise_login_required(method='password')
+        elif m3u8_info.get('errorCode') != 0:
+            raise ExtractorError(f'{self.IE_NAME} said: {m3u8_info.get("errorCode")} - {m3u8_info.get("message")}')
 
-        def _add_ns(path):
-            return xpath_with_ns(path, self._NS_MAP)
+        formats = self._extract_m3u8_formats(m3u8_url, video_id, m3u8_id='hls')
+        self._remove_duplicate_formats(formats)
+        formats.extend(self._find_secret_formats(formats, video_id))
 
-        entries = []
-        for item in channel.findall('item'):
-            guid = xpath_text(item, 'guid', fatal=True)
-            title = xpath_text(item, 'title', fatal=True)
+        for format in formats:
+            if format.get('vcodec') == 'none':
+                if format.get('ext') is None:
+                    format['ext'] = 'm4a'
+                if format.get('acodec') is None:
+                    format['acodec'] = 'mp4a.40.2'
 
-            media_group = xpath_element(item, _add_ns('media:group'), fatal=True)
-            content = xpath_element(media_group, _add_ns('media:content'), fatal=True)
-            content_url = content.attrib['url']
+                # Put described audio at the beginning of the list, so that it
+                # isn't chosen by default, as most people won't want it.
+                if 'descriptive' in format['format_id'].lower():
+                    format['preference'] = -2
 
-            thumbnails = []
-            for thumbnail in media_group.findall(_add_ns('media:thumbnail')):
-                thumbnail_url = thumbnail.get('url')
-                if not thumbnail_url:
-                    continue
-                thumbnails.append({
-                    'id': thumbnail.get('profile'),
-                    'url': thumbnail_url,
-                    'width': int_or_none(thumbnail.get('width')),
-                    'height': int_or_none(thumbnail.get('height')),
-                })
-
-            timestamp = None
-            release_date = find_xpath_attr(
-                item, _add_ns('media:credit'), 'role', 'releaseDate')
-            if release_date is not None:
-                timestamp = parse_iso8601(release_date.text)
-
-            entries.append({
-                '_type': 'url_transparent',
-                'url': content_url,
-                'id': guid,
-                'title': title,
-                'description': xpath_text(item, 'description'),
-                'timestamp': timestamp,
-                'duration': int_or_none(content.get('duration')),
-                'age_limit': parse_age_limit(xpath_text(item, _add_ns('media:rating'))),
-                'episode': xpath_text(item, _add_ns('clearleap:episode')),
-                'episode_number': int_or_none(xpath_text(item, _add_ns('clearleap:episodeInSeason'))),
-                'series': xpath_text(item, _add_ns('clearleap:series')),
-                'season_number': int_or_none(xpath_text(item, _add_ns('clearleap:season'))),
-                'thumbnails': thumbnails,
-                'ie_key': 'CBCWatchVideo',
-            })
-
-        return self.playlist_result(
-            entries, xpath_text(channel, 'guid'),
-            xpath_text(channel, 'title'),
-            xpath_text(channel, 'description'))
-
-
-class CBCWatchVideoIE(CBCWatchBaseIE):
-    IE_NAME = 'cbc.ca:watch:video'
-    _VALID_URL = r'https?://api-cbc\.cloud\.clearleap\.com/cloffice/client/web/play/?\?.*?\bcontentId=(?P<id>[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12})'
-    _TEST = {
-        # geo-restricted to Canada, bypassable
-        'url': 'https://api-cbc.cloud.clearleap.com/cloffice/client/web/play/?contentId=3c84472a-1eea-4dee-9267-2655d5055dcf&categoryId=ebc258f5-ee40-4cca-b66b-ba6bd55b7235',
-        'only_matching': True,
-    }
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        result = self._call_api(url, video_id)
-
-        m3u8_url = xpath_text(result, 'url', fatal=True)
-        formats = self._extract_m3u8_formats(re.sub(r'/([^/]+)/[^/?]+\.m3u8', r'/\1/\1.m3u8', m3u8_url), video_id, 'mp4', fatal=False)
-        if len(formats) < 2:
-            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4')
-        for f in formats:
-            format_id = f.get('format_id')
-            if format_id.startswith('AAC'):
-                f['acodec'] = 'aac'
-            elif format_id.startswith('AC3'):
-                f['acodec'] = 'ac-3'
-        self._sort_formats(formats)
-
-        info = {
-            'id': video_id,
-            'title': video_id,
-            'formats': formats,
-        }
-
-        rss = xpath_element(result, 'rss')
-        if rss:
-            info.update(self._parse_rss_feed(rss)['entries'][0])
-            del info['url']
-            del info['_type']
-            del info['ie_key']
-        return info
-
-
-class CBCWatchIE(CBCWatchBaseIE):
-    IE_NAME = 'cbc.ca:watch'
-    _VALID_URL = r'https?://(?:gem|watch)\.cbc\.ca/(?:[^/]+/)+(?P<id>[0-9a-f-]+)'
-    _TESTS = [{
-        # geo-restricted to Canada, bypassable
-        'url': 'http://watch.cbc.ca/doc-zone/season-6/customer-disservice/38e815a-009e3ab12e4',
-        'info_dict': {
-            'id': '9673749a-5e77-484c-8b62-a1092a6b5168',
-            'ext': 'mp4',
-            'title': 'Customer (Dis)Service',
-            'description': 'md5:8bdd6913a0fe03d4b2a17ebe169c7c87',
-            'upload_date': '20160219',
-            'timestamp': 1455840000,
-        },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-            'format': 'bestvideo',
-        },
-    }, {
-        # geo-restricted to Canada, bypassable
-        'url': 'http://watch.cbc.ca/arthur/all/1ed4b385-cd84-49cf-95f0-80f004680057',
-        'info_dict': {
-            'id': '1ed4b385-cd84-49cf-95f0-80f004680057',
-            'title': 'Arthur',
-            'description': 'Arthur, the sweetest 8-year-old aardvark, and his pals solve all kinds of problems with humour, kindness and teamwork.',
-        },
-        'playlist_mincount': 30,
-    }, {
-        'url': 'https://gem.cbc.ca/media/this-hour-has-22-minutes/season-26/episode-20/38e815a-0108c6c6a42',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        video_id = self._match_id(url)
-        rss = self._call_api('web/browse/' + video_id, video_id)
-        return self._parse_rss_feed(rss)
-
-
-class CBCOlympicsIE(InfoExtractor):
-    IE_NAME = 'cbc.ca:olympics'
-    _VALID_URL = r'https?://olympics\.cbc\.ca/video/[^/]+/(?P<id>[^/?#]+)'
-    _TESTS = [{
-        'url': 'https://olympics.cbc.ca/video/whats-on-tv/olympic-morning-featuring-the-opening-ceremony/',
-        'only_matching': True,
-    }]
-
-    def _real_extract(self, url):
-        display_id = self._match_id(url)
-        webpage = self._download_webpage(url, display_id)
-        video_id = self._hidden_inputs(webpage)['videoId']
-        video_doc = self._download_xml(
-            'https://olympics.cbc.ca/videodata/%s.xml' % video_id, video_id)
-        title = xpath_text(video_doc, 'title', fatal=True)
-        is_live = xpath_text(video_doc, 'kind') == 'Live'
-        if is_live:
-            title = self._live_title(title)
-
-        formats = []
-        for video_source in video_doc.findall('videoSources/videoSource'):
-            uri = xpath_text(video_source, 'uri')
-            if not uri:
-                continue
-            tokenize = self._download_json(
-                'https://olympics.cbc.ca/api/api-akamai/tokenize',
-                video_id, data=json.dumps({
-                    'VideoSource': uri,
-                }).encode(), headers={
-                    'Content-Type': 'application/json',
-                    'Referer': url,
-                    # d3.VideoPlayer._init in https://olympics.cbc.ca/components/script/base.js
-                    'Cookie': '_dvp=TK:C0ObxjerU',  # AKAMAI CDN cookie
-                }, fatal=False)
-            if not tokenize:
-                continue
-            content_url = tokenize['ContentUrl']
-            video_source_format = video_source.get('format')
-            if video_source_format == 'IIS':
-                formats.extend(self._extract_ism_formats(
-                    content_url, video_id, ism_id=video_source_format, fatal=False))
-            else:
-                formats.extend(self._extract_m3u8_formats(
-                    content_url, video_id, 'mp4',
-                    'm3u8' if is_live else 'm3u8_native',
-                    m3u8_id=video_source_format, fatal=False))
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'display_id': display_id,
-            'title': title,
-            'description': xpath_text(video_doc, 'description'),
-            'thumbnail': xpath_text(video_doc, 'thumbnailUrl'),
-            'duration': parse_duration(xpath_text(video_doc, 'duration')),
+            'title': video_info['title'],
+            'description': video_info.get('description'),
+            'thumbnail': video_info.get('image'),
+            'series': video_info.get('series'),
+            'season_number': video_info.get('season'),
+            'season': f'Season {video_info.get("season")}',
+            'episode_number': video_info.get('episode'),
+            'episode': video_info.get('title'),
+            'episode_id': video_id,
+            'duration': video_info.get('duration'),
+            'categories': [video_info.get('category')],
             'formats': formats,
-            'is_live': is_live,
+            'release_timestamp': video_info.get('airDate'),
+            'timestamp': video_info.get('availableDate'),
+        }
+
+
+class CBCGemPlaylistIE(InfoExtractor):
+    IE_NAME = 'gem.cbc.ca:playlist'
+    _VALID_URL = r'https?://gem\.cbc\.ca/media/(?P<id>(?P<show>[0-9a-z-]+)/s(?P<season>[0-9]+))/?(?:[?#]|$)'
+    _TESTS = [{
+        # TV show playlist, all public videos
+        'url': 'https://gem.cbc.ca/media/schitts-creek/s06',
+        'playlist_count': 16,
+        'info_dict': {
+            'id': 'schitts-creek/s06',
+            'title': 'Season 6',
+            'description': 'md5:6a92104a56cbeb5818cc47884d4326a2',
+        },
+    }]
+    _API_BASE = 'https://services.radio-canada.ca/ott/cbc-api/v2/shows/'
+
+    def _real_extract(self, url):
+        match = self._match_valid_url(url)
+        season_id = match.group('id')
+        show = match.group('show')
+        show_info = self._download_json(self._API_BASE + show, season_id)
+        season = int(match.group('season'))
+
+        season_info = next((s for s in show_info['seasons'] if s.get('season') == season), None)
+
+        if season_info is None:
+            raise ExtractorError(f'Couldn\'t find season {season} of {show}')
+
+        episodes = []
+        for episode in season_info['assets']:
+            episodes.append({
+                '_type': 'url_transparent',
+                'ie_key': 'CBCGem',
+                'url': 'https://gem.cbc.ca/media/' + episode['id'],
+                'id': episode['id'],
+                'title': episode.get('title'),
+                'description': episode.get('description'),
+                'thumbnail': episode.get('image'),
+                'series': episode.get('series'),
+                'season_number': episode.get('season'),
+                'season': season_info['title'],
+                'season_id': season_info.get('id'),
+                'episode_number': episode.get('episode'),
+                'episode': episode.get('title'),
+                'episode_id': episode['id'],
+                'duration': episode.get('duration'),
+                'categories': [episode.get('category')],
+            })
+
+        thumbnail = None
+        tn_uri = season_info.get('image')
+        # the-national was observed to use a "data:image/png;base64"
+        # URI for their 'image' value. The image was 1x1, and is
+        # probably just a placeholder, so it is ignored.
+        if tn_uri is not None and not tn_uri.startswith('data:'):
+            thumbnail = tn_uri
+
+        return {
+            '_type': 'playlist',
+            'entries': episodes,
+            'id': season_id,
+            'title': season_info['title'],
+            'description': season_info.get('description'),
+            'thumbnail': thumbnail,
+            'series': show_info.get('title'),
+            'season_number': season_info.get('season'),
+            'season': season_info['title'],
+        }
+
+
+class CBCGemLiveIE(InfoExtractor):
+    IE_NAME = 'gem.cbc.ca:live'
+    _VALID_URL = r'https?://gem\.cbc\.ca/live/(?P<id>\d+)'
+    _TEST = {
+        'url': 'https://gem.cbc.ca/live/920604739687',
+        'info_dict': {
+            'title': 'Ottawa',
+            'description': 'The live TV channel and local programming from Ottawa',
+            'thumbnail': 'https://thumbnails.cbc.ca/maven_legacy/thumbnails/CBC_OTT_VMS/Live_Channel_Static_Images/Ottawa_2880x1620.jpg',
+            'is_live': True,
+            'id': 'AyqZwxRqh8EH',
+            'ext': 'mp4',
+            'timestamp': 1492106160,
+            'upload_date': '20170413',
+            'uploader': 'CBCC-NEW',
+        },
+        'skip': 'Live might have ended',
+    }
+
+    # It's unclear where the chars at the end come from, but they appear to be
+    # constant. Might need updating in the future.
+    # There are two URLs, some livestreams are in one, and some
+    # in the other. The JSON schema is the same for both.
+    _API_URLS = ['https://tpfeed.cbc.ca/f/ExhSPC/t_t3UKJR6MAT', 'https://tpfeed.cbc.ca/f/ExhSPC/FNiv9xQx_BnT']
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+
+        for api_url in self._API_URLS:
+            video_info = next((
+                stream for stream in self._download_json(api_url, video_id)['entries']
+                if stream.get('guid') == video_id), None)
+            if video_info:
+                break
+        else:
+            raise ExtractorError('Couldn\'t find video metadata, maybe this livestream is now offline', expected=True)
+
+        return {
+            '_type': 'url_transparent',
+            'ie_key': 'ThePlatform',
+            'url': video_info['content'][0]['url'],
+            'id': video_id,
+            'title': video_info.get('title'),
+            'description': video_info.get('description'),
+            'tags': try_get(video_info, lambda x: x['keywords'].split(', ')),
+            'thumbnail': video_info.get('cbc$staticImage'),
+            'is_live': True,
         }

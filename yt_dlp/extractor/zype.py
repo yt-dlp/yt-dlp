@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -56,6 +53,8 @@ class ZypeIE(InfoExtractor):
         video = response['video']
         title = video['title']
 
+        subtitles = {}
+
         if isinstance(body, dict):
             formats = []
             for output in body.get('outputs', []):
@@ -64,7 +63,7 @@ class ZypeIE(InfoExtractor):
                     continue
                 name = output.get('name')
                 if name == 'm3u8':
-                    formats = self._extract_m3u8_formats(
+                    formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                         output_url, video_id, 'mp4',
                         'm3u8_native', m3u8_id='hls', fatal=False)
                 else:
@@ -97,7 +96,7 @@ class ZypeIE(InfoExtractor):
 
                 if get_attr('integration') == 'verizon-media':
                     m3u8_url = 'https://content.uplynk.com/%s.m3u8' % get_attr('id')
-            formats = self._extract_m3u8_formats(
+            formats, subtitles = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls')
             text_tracks = self._search_regex(
                 r'textTracks\s*:\s*(\[[^]]+\])',
@@ -107,7 +106,6 @@ class ZypeIE(InfoExtractor):
                     text_tracks, video_id, js_to_json, False)
         self._sort_formats(formats)
 
-        subtitles = {}
         if text_tracks:
             for text_track in text_tracks:
                 tt_url = dict_get(text_track, ('file', 'src'))

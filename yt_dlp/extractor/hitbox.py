@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -209,6 +206,6 @@ class HitboxLiveIE(HitboxIE):
             'https://www.smashcast.tv/api/media/live', video_id)
         metadata['formats'] = formats
         metadata['is_live'] = True
-        metadata['title'] = self._live_title(metadata.get('title'))
+        metadata['title'] = metadata.get('title')
 
         return metadata

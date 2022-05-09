@@ -1,5 +1,4 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -71,8 +70,8 @@ class OnDemandKoreaIE(InfoExtractor):
 
         jw_config = self._parse_json(
             self._search_regex(
-                r'(?s)odkPlayer\.init.*?(?P<options>{[^;]+}).*?;',
-                webpage, 'jw config', group='options'),
+                r'playlist\s*=\s*\[(?P<options>.+)];?$',
+                webpage, 'jw config', flags=re.MULTILINE, group='options'),
             video_id, transform_source=js_to_json)
         info = self._parse_jwplayer_data(
             jw_config, video_id, require_title=False, m3u8_id='hls',

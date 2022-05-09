@@ -1,10 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     int_or_none,
     unified_strdate,
+    url_or_none,
 )
 from ..compat import compat_urlparse
 
@@ -15,13 +13,13 @@ class DWIE(InfoExtractor):
     _TESTS = [{
         # video
         'url': 'http://www.dw.com/en/intelligent-light/av-19112290',
-        'md5': '7372046e1815c5a534b43f3c3c36e6e9',
+        'md5': 'fb9dfd9520811d3ece80f04befd73428',
         'info_dict': {
             'id': '19112290',
             'ext': 'mp4',
             'title': 'Intelligent light',
             'description': 'md5:90e00d5881719f2a6a5827cb74985af1',
-            'upload_date': '20160311',
+            'upload_date': '20160605',
         }
     }, {
         # audio
@@ -55,15 +53,16 @@ class DWIE(InfoExtractor):
         title = hidden_inputs['media_title']
         media_id = hidden_inputs.get('media_id') or media_id
 
-        if hidden_inputs.get('player_type') == 'video' and hidden_inputs.get('stream_file') == '1':
+        direct_url = url_or_none(hidden_inputs.get('file_name'))
+        if direct_url:
+            formats = [{'url': hidden_inputs['file_name']}]
+        else:
             formats = self._extract_smil_formats(
                 'http://www.dw.com/smil/v-%s' % media_id, media_id,
                 transform_source=lambda s: s.replace(
                     'rtmp://tv-od.dw.de/flash/',
                     'http://tv-download.dw.de/dwtv_video/flv/'))
-            self._sort_formats(formats)
-        else:
-            formats = [{'url': hidden_inputs['file_name']}]
+        self._sort_formats(formats)
 
         upload_date = hidden_inputs.get('display_date')
         if not upload_date:

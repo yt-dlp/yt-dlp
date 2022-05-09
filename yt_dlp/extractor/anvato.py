@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import hashlib
 import json
@@ -8,6 +5,7 @@ import random
 import re
 import time
 
+from .anvato_token_generator import NFLTokenGenerator
 from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..compat import compat_str
@@ -16,20 +14,11 @@ from ..utils import (
     determine_ext,
     intlist_to_bytes,
     int_or_none,
+    join_nonempty,
     strip_jsonp,
     unescapeHTML,
     unsmuggle_url,
 )
-
-# This import causes a ModuleNotFoundError on some systems for unknown reason.
-# See issues:
-# https://github.com/yt-dlp/yt-dlp/issues/35
-# https://github.com/ytdl-org/youtube-dl/issues/27449
-# https://github.com/animelover1984/youtube-dl/issues/17
-try:
-    from .anvato_token_generator import NFLTokenGenerator
-except ImportError:
-    NFLTokenGenerator = None
 
 
 def md5_text(s):
@@ -303,13 +292,13 @@ class AnvatoIE(InfoExtractor):
             tbr = int_or_none(published_url.get('kbps'))
             a_format = {
                 'url': video_url,
-                'format_id': ('-'.join(filter(None, ['http', published_url.get('cdn_name')]))).lower(),
-                'tbr': tbr if tbr != 0 else None,
+                'format_id': join_nonempty('http', published_url.get('cdn_name')).lower(),
+                'tbr': tbr or None,
             }
 
             if media_format == 'm3u8' and tbr is not None:
                 a_format.update({
-                    'format_id': '-'.join(filter(None, ['hls', compat_str(tbr)])),
+                    'format_id': join_nonempty('hls', tbr),
                     'ext': 'mp4',
                 })
             elif media_format == 'm3u8-variant' or ext == 'm3u8':

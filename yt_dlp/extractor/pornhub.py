@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import itertools
 import math
@@ -18,6 +15,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     ExtractorError,
+    format_field,
     int_or_none,
     merge_dicts,
     NO_DEFAULT,
@@ -32,7 +30,7 @@ from ..utils import (
 
 class PornHubBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'pornhub'
-    _PORNHUB_HOST_RE = r'(?:(?P<host>pornhub(?:premium)?\.(?:com|net|org))|pornhubthbh7ap3u\.onion)'
+    _PORNHUB_HOST_RE = r'(?:(?P<host>pornhub(?:premium)?\.(?:com|net|org))|pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd\.onion)'
 
     def _download_webpage_handle(self, *args, **kwargs):
         def dl(*args, **kwargs):
@@ -247,7 +245,7 @@ class PornHubIE(PornHubBaseIE):
         'url': 'https://www.pornhub.com/view_video.php?viewkey=ph5a9813bfa7156',
         'only_matching': True,
     }, {
-        'url': 'http://pornhubthbh7ap3u.onion/view_video.php?viewkey=ph5a9813bfa7156',
+        'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/view_video.php?viewkey=ph5a9813bfa7156',
         'only_matching': True,
     }]
 
@@ -258,8 +256,7 @@ class PornHubIE(PornHubBaseIE):
             webpage)
 
     def _extract_count(self, pattern, webpage, name):
-        return str_to_int(self._search_regex(
-            pattern, webpage, '%s count' % name, fatal=False))
+        return str_to_int(self._search_regex(pattern, webpage, '%s count' % name, default=None))
 
     def _real_extract(self, url):
         mobj = self._match_valid_url(url)
@@ -432,7 +429,7 @@ class PornHubIE(PornHubBaseIE):
                     default=None))
             formats.append({
                 'url': format_url,
-                'format_id': '%dp' % height if height else None,
+                'format_id': format_field(height, template='%dp'),
                 'height': height,
             })
 
@@ -562,7 +559,7 @@ class PornHubUserIE(PornHubPlaylistBaseIE):
         'url': 'https://www.pornhubpremium.com/pornstar/lily-labeau',
         'only_matching': True,
     }, {
-        'url': 'https://pornhubthbh7ap3u.onion/model/zoe_ph',
+        'url': 'https://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/model/zoe_ph',
         'only_matching': True,
     }]
 
@@ -733,7 +730,7 @@ class PornHubPagedVideoListIE(PornHubPagedPlaylistBaseIE):
         'url': 'https://www.pornhub.com/video/incategories/60fps-1/hd-porn',
         'only_matching': True,
     }, {
-        'url': 'https://pornhubthbh7ap3u.onion/model/zoe_ph/videos',
+        'url': 'https://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/model/zoe_ph/videos',
         'only_matching': True,
     }]
 
@@ -756,7 +753,7 @@ class PornHubUserVideosUploadIE(PornHubPagedPlaylistBaseIE):
         'url': 'https://www.pornhub.com/model/zoe_ph/videos/upload',
         'only_matching': True,
     }, {
-        'url': 'http://pornhubthbh7ap3u.onion/pornstar/jenny-blighe/videos/upload',
+        'url': 'http://pornhubvybmsymdol4iibwgwtkpwmeyd6luq2gxajgjzfjvotyt5zhyd.onion/pornstar/jenny-blighe/videos/upload',
         'only_matching': True,
     }]
 

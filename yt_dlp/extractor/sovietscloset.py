@@ -1,9 +1,5 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
-    js_to_json,
     try_get,
     unified_timestamp
 )
@@ -14,17 +10,7 @@ class SovietsClosetBaseIE(InfoExtractor):
 
     def parse_nuxt_jsonp(self, nuxt_jsonp_url, video_id, name):
         nuxt_jsonp = self._download_webpage(nuxt_jsonp_url, video_id, note=f'Downloading {name} __NUXT_JSONP__')
-        js, arg_keys, arg_vals = self._search_regex(
-            r'__NUXT_JSONP__\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)',
-            nuxt_jsonp, '__NUXT_JSONP__', group=['js', 'arg_keys', 'arg_vals'])
-
-        args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
-
-        for key, val in args.items():
-            if val in ('undefined', 'void 0'):
-                args[key] = 'null'
-
-        return self._parse_json(js_to_json(js, args), video_id)['data'][0]
+        return self._search_nuxt_data(nuxt_jsonp, video_id, '__NUXT_JSONP__')
 
     def video_meta(self, video_id, game_name, category_name, episode_number, stream_date):
         title = game_name
@@ -72,11 +58,13 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'upload_date': '20170413',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
+                'duration': 7007,
                 'was_live': True,
                 'availability': 'public',
                 'series': 'The Witcher',
                 'season': 'Misc',
                 'episode_number': 13,
+                'episode': 'Episode 13',
             },
         },
         {
@@ -96,11 +84,13 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'upload_date': '20160420',
                 'uploader_id': 'SovietWomble',
                 'uploader_url': 'https://www.twitch.tv/SovietWomble',
+                'duration': 8804,
                 'was_live': True,
                 'availability': 'public',
                 'series': 'Arma 3',
                 'season': 'Zeus Games',
                 'episode_number': 3,
+                'episode': 'Episode 3',
             },
         },
     ]
@@ -116,9 +106,16 @@ class SovietsClosetIE(SovietsClosetBaseIE):
         m3u8_formats = self._extract_m3u8_formats(m3u8_url, video_id, headers=self.MEDIADELIVERY_REFERER)
         self._sort_formats(m3u8_formats)
 
+        if not m3u8_formats:
+            duration = None
+        else:
+            duration = self._extract_m3u8_vod_duration(
+                m3u8_formats[0]['url'], video_id, headers=self.MEDIADELIVERY_REFERER)
+
         return {
             'formats': m3u8_formats,
             'thumbnail': thumbnail_url,
+            'duration': duration,
         }
 
     def _real_extract(self, url):
@@ -167,6 +164,14 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
             },
             'playlist_mincount': 3,
         },
+        {
+            'url': 'https://sovietscloset.com/Total-War-Warhammer',
+            'info_dict': {
+                'id': 'Total-War-Warhammer',
+                'title': 'Total War: Warhammer - Greenskins',
+            },
+            'playlist_mincount': 33,
+        },
     ]
 
     def _real_extract(self, url):
@@ -188,7 +193,9 @@ class SovietsClosetPlaylistIE(SovietsClosetBaseIE):
             category_slug = 'misc'
 
         game = next(game for game in sovietscloset if game['slug'].lower() == game_slug)
-        category = next(cat for cat in game['subcategories'] if cat['slug'].lower() == category_slug)
+        category = next((cat for cat in game['subcategories'] if cat.get('slug', '').lower() == category_slug),
+                        game['subcategories'][0])
+        category_slug = category.get('slug', '').lower() or category_slug
         playlist_title = game.get('name') or game_slug
         if category_slug != 'misc':
             playlist_title += f' - {category.get("name") or category_slug}'

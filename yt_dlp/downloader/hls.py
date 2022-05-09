@@ -1,22 +1,14 @@
-from __future__ import unicode_literals
-
-import re
-import io
 import binascii
+import io
+import re
 
-from ..downloader import get_suitable_downloader
-from .fragment import FragmentFD, can_decrypt_frag
 from .external import FFmpegFD
-
-from ..compat import (
-    compat_urlparse,
-)
-from ..utils import (
-    parse_m3u8_attributes,
-    update_url_query,
-    bug_reports_message,
-)
+from .fragment import FragmentFD
 from .. import webvtt
+from ..compat import compat_urlparse
+from ..dependencies import Cryptodome_AES
+from ..downloader import get_suitable_downloader
+from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
 
 class HlsFD(FragmentFD):
@@ -29,7 +21,7 @@ class HlsFD(FragmentFD):
     FD_NAME = 'hlsnative'
 
     @staticmethod
-    def can_download(manifest, info_dict, allow_unplayable_formats=False, with_crypto=can_decrypt_frag):
+    def can_download(manifest, info_dict, allow_unplayable_formats=False):
         UNSUPPORTED_FEATURES = [
             # r'#EXT-X-BYTERANGE',  # playlists composed of byte ranges of media files [2]
 
@@ -56,9 +48,6 @@ class HlsFD(FragmentFD):
 
         def check_results():
             yield not info_dict.get('is_live')
-            is_aes128_enc = '#EXT-X-KEY:METHOD=AES-128' in manifest
-            yield with_crypto or not is_aes128_enc
-            yield not (is_aes128_enc and r'#EXT-X-BYTERANGE' in manifest)
             for feature in UNSUPPORTED_FEATURES:
                 yield not re.search(feature, manifest)
         return all(check_results())
@@ -71,16 +60,29 @@ class HlsFD(FragmentFD):
         man_url = urlh.geturl()
         s = urlh.read().decode('utf-8', 'ignore')
 
-        if not self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')):
-            if info_dict.get('extra_param_to_segment_url') or info_dict.get('_decryption_key_url'):
-                self.report_error('pycryptodome not found. Please install')
+        can_download, message = self.can_download(s, info_dict, self.params.get('allow_unplayable_formats')), None
+        if can_download and not Cryptodome_AES and '#EXT-X-KEY:METHOD=AES-128' in s:
+            if FFmpegFD.available():
+                can_download, message = False, 'The stream has AES-128 encryption and pycryptodomex is not available'
+            else:
+                message = ('The stream has AES-128 encryption and neither ffmpeg nor pycryptodomex are available; '
+                           'Decryption will be performed natively, but will be extremely slow')
+        if not can_download:
+            has_drm = re.search('|'.join([
+                r'#EXT-X-FAXS-CM:',  # Adobe Flash Access
+                r'#EXT-X-(?:SESSION-)?KEY:.*?URI="skd://',  # Apple FairPlay
+            ]), s)
+            if has_drm and not self.params.get('allow_unplayable_formats'):
+                self.report_error(
+                    'This video is DRM protected; Try selecting another format with --format or '
+                    'add --check-formats to automatically fallback to the next best format')
                 return False
-            if self.can_download(s, info_dict, with_crypto=True):
-                self.report_warning('pycryptodome is needed to download this file natively')
+            message = message or 'Unsupported features have been detected'
             fd = FFmpegFD(self.ydl, self.params)
-            self.report_warning(
-                '%s detected unsupported features; extraction will be delegated to %s' % (self.FD_NAME, fd.get_basename()))
+            self.report_warning(f'{message}; extraction will be delegated to {fd.get_basename()}')
             return fd.real_download(filename, info_dict)
+        elif message:
+            self.report_warning(message)
 
         is_webvtt = info_dict['ext'] == 'vtt'
         if is_webvtt:
@@ -91,8 +93,7 @@ class HlsFD(FragmentFD):
         if real_downloader and not real_downloader.supports_manifest(s):
             real_downloader = None
         if real_downloader:
-            self.to_screen(
-                '[%s] Fragment downloads will be delegated to %s' % (self.FD_NAME, real_downloader.get_basename()))
+            self.to_screen(f'[{self.FD_NAME}] Fragment downloads will be delegated to {real_downloader.get_basename()}')
 
         def is_ad_fragment_start(s):
             return (s.startswith('#ANVATO-SEGMENT-INFO') and 'type=ad' in s
@@ -172,6 +173,7 @@ class HlsFD(FragmentFD):
                         'byte_range': byte_range,
                         'media_sequence': media_sequence,
                     })
+                    media_sequence += 1
 
                 elif line.startswith('#EXT-X-MAP'):
                     if format_index and discontinuity_count != format_index:
@@ -189,14 +191,6 @@ class HlsFD(FragmentFD):
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
-                    fragments.append({
-                        'frag_index': frag_index,
-                        'url': frag_url,
-                        'decrypt_info': decrypt_info,
-                        'byte_range': byte_range,
-                        'media_sequence': media_sequence
-                    })
-
                     if map_info.get('BYTERANGE'):
                         splitted_byte_range = map_info.get('BYTERANGE').split('@')
                         sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
@@ -204,6 +198,15 @@ class HlsFD(FragmentFD):
                             'start': sub_range_start,
                             'end': sub_range_start + int(splitted_byte_range[0]),
                         }
+
+                    fragments.append({
+                        'frag_index': frag_index,
+                        'url': frag_url,
+                        'decrypt_info': decrypt_info,
+                        'byte_range': byte_range,
+                        'media_sequence': media_sequence
+                    })
+                    media_sequence += 1
 
                 elif line.startswith('#EXT-X-KEY'):
                     decrypt_url = decrypt_info.get('URI')
@@ -235,20 +238,18 @@ class HlsFD(FragmentFD):
                 elif line.startswith('#EXT-X-DISCONTINUITY'):
                     discontinuity_count += 1
                 i += 1
-                media_sequence += 1
 
         # We only download the first fragment during the test
         if self.params.get('test', False):
             fragments = [fragments[0] if fragments else None]
 
         if real_downloader:
-            info_copy = info_dict.copy()
-            info_copy['fragments'] = fragments
+            info_dict['fragments'] = fragments
             fd = real_downloader(self.ydl, self.params)
             # TODO: Make progress updates work without hooking twice
             # for ph in self._progress_hooks:
             #     fd.add_progress_hook(ph)
-            return fd.real_download(filename, info_copy)
+            return fd.real_download(filename, info_dict)
 
         if is_webvtt:
             def pack_fragment(frag_content, frag_index):
@@ -328,7 +329,7 @@ class HlsFD(FragmentFD):
                             continue
                     block.write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             def fin_fragments():
                 dedup_window = extra_state.get('webvtt_dedup_window')
@@ -339,7 +340,7 @@ class HlsFD(FragmentFD):
                 for cue in dedup_window:
                     webvtt.CueBlock.from_json(cue).write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             self.download_and_append_fragments(
                 ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)

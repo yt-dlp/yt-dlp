@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -40,6 +37,7 @@ class NaverBaseIE(InfoExtractor):
                 formats.append({
                     'format_id': '%s_%s' % (stream.get('type') or stream_type, dict_get(encoding_option, ('name', 'id'))),
                     'url': stream_url,
+                    'ext': 'mp4',
                     'width': int_or_none(encoding_option.get('width')),
                     'height': int_or_none(encoding_option.get('height')),
                     'vbr': int_or_none(bitrate.get('video')),
@@ -174,7 +172,7 @@ class NaverLiveIE(InfoExtractor):
         'url': 'https://tv.naver.com/l/52010',
         'info_dict': {
             'id': '52010',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'title': '[LIVE] 뉴스특보 : "수도권 거리두기, 2주간 2단계로 조정"',
             'description': 'md5:df7f0c237a5ed5e786ce5c91efbeaab3',
             'channel_id': 'NTV-ytnnews24-0',
@@ -184,7 +182,7 @@ class NaverLiveIE(InfoExtractor):
         'url': 'https://tv.naver.com/l/51549',
         'info_dict': {
             'id': '51549',
-            'ext': 'm3u8',
+            'ext': 'mp4',
             'title': '연합뉴스TV - 코로나19 뉴스특보',
             'description': 'md5:c655e82091bc21e413f549c0eaccc481',
             'channel_id': 'NTV-yonhapnewstv-0',
@@ -233,7 +231,7 @@ class NaverLiveIE(InfoExtractor):
                 continue
 
             formats.extend(self._extract_m3u8_formats(
-                quality.get('url'), video_id, 'm3u8',
+                quality.get('url'), video_id, 'mp4',
                 m3u8_id=quality.get('qualityId'), live=True
             ))
         self._sort_formats(formats)

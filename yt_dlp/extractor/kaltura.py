@@ -1,8 +1,6 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import re
 import base64
+import json
+import re
 
 from .common import InfoExtractor
 from ..compat import (
@@ -12,9 +10,11 @@ from ..compat import (
 from ..utils import (
     clean_html,
     ExtractorError,
+    format_field,
     int_or_none,
     unsmuggle_url,
     smuggle_url,
+    traverse_obj,
 )
 
 
@@ -35,7 +35,7 @@ class KalturaIE(InfoExtractor):
                 )
                 '''
     _SERVICE_URL = 'http://cdnapi.kaltura.com'
-    _SERVICE_BASE = '/api_v3/index.php'
+    _SERVICE_BASE = '/api_v3/service/multirequest'
     # See https://github.com/kaltura/server/blob/master/plugins/content/caption/base/lib/model/enums/CaptionType.php
     _CAPTION_TYPES = {
         1: 'srt',
@@ -171,30 +171,35 @@ class KalturaIE(InfoExtractor):
 
     def _kaltura_api_call(self, video_id, actions, service_url=None, *args, **kwargs):
         params = actions[0]
-        if len(actions) > 1:
-            for i, a in enumerate(actions[1:], start=1):
-                for k, v in a.items():
-                    params['%d:%s' % (i, k)] = v
+        params.update({i: a for i, a in enumerate(actions[1:], start=1)})
 
         data = self._download_json(
             (service_url or self._SERVICE_URL) + self._SERVICE_BASE,
-            video_id, query=params, *args, **kwargs)
+            video_id, data=json.dumps(params).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Accept-Encoding': 'gzip, deflate, br',
+            }, *args, **kwargs)
 
-        status = data if len(actions) == 1 else data[0]
-        if status.get('objectType') == 'KalturaAPIException':
-            raise ExtractorError(
-                '%s said: %s' % (self.IE_NAME, status['message']))
+        for idx, status in enumerate(data):
+            if not isinstance(status, dict):
+                continue
+            if status.get('objectType') == 'KalturaAPIException':
+                raise ExtractorError(
+                    '%s said: %s (%d)' % (self.IE_NAME, status['message'], idx))
+
+        data[1] = traverse_obj(data, (1, 'objects', 0))
 
         return data
 
     def _get_video_info(self, video_id, partner_id, service_url=None):
         actions = [
             {
-                'action': 'null',
-                'apiVersion': '3.1.5',
-                'clientTag': 'kdp:v3.8.5',
+                'apiVersion': '3.3.0',
+                'clientTag': 'html5:v3.1.0',
                 'format': 1,  # JSON, 2 = XML, 3 = PHP
-                'service': 'multirequest',
+                'ks': '',
+                'partnerId': partner_id,
             },
             {
                 'expiry': 86400,
@@ -203,12 +208,14 @@ class KalturaIE(InfoExtractor):
                 'widgetId': '_%s' % partner_id,
             },
             {
-                'action': 'get',
-                'entryId': video_id,
+                'action': 'list',
+                'filter': {'redirectFromEntryId': video_id},
                 'service': 'baseentry',
                 'ks': '{1:result:ks}',
-                'responseProfile:fields': 'createdAt,dataUrl,duration,name,plays,thumbnailUrl,userId',
-                'responseProfile:type': 1,
+                'responseProfile': {
+                    'type': 1,
+                    'fields': 'createdAt,dataUrl,duration,name,plays,thumbnailUrl,userId',
+                },
             },
             {
                 'action': 'getbyentryid',
@@ -300,6 +307,7 @@ class KalturaIE(InfoExtractor):
             data_url = re.sub(r'/flvclipper/.*', '/serveFlavor', data_url)
 
         formats = []
+        subtitles = {}
         for f in flavor_assets:
             # Continue if asset is not ready
             if f.get('status') != 2:
@@ -343,13 +351,14 @@ class KalturaIE(InfoExtractor):
         if '/playManifest/' in data_url:
             m3u8_url = sign_url(data_url.replace(
                 'format/url', 'format/applehttp'))
-            formats.extend(self._extract_m3u8_formats(
+            fmts, subs = self._extract_m3u8_formats_and_subtitles(
                 m3u8_url, entry_id, 'mp4', 'm3u8_native',
-                m3u8_id='hls', fatal=False))
+                m3u8_id='hls', fatal=False)
+            formats.extend(fmts)
+            self._merge_subtitles(subs, target=subtitles)
 
         self._sort_formats(formats)
 
-        subtitles = {}
         if captions:
             for caption in captions.get('objects', []):
                 # Continue if caption is not ready
@@ -372,6 +381,6 @@ class KalturaIE(InfoExtractor):
             'thumbnail': info.get('thumbnailUrl'),
             'duration': info.get('duration'),
             'timestamp': info.get('createdAt'),
-            'uploader_id': info.get('userId') if info.get('userId') != 'None' else None,
+            'uploader_id': format_field(info, 'userId', ignore=('None', None)),
             'view_count': info.get('plays'),
         }

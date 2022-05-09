@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 import time
@@ -8,7 +5,6 @@ import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_kwargs,
     compat_urlparse,
     compat_getpass
 )
@@ -36,6 +32,11 @@ MSO_INFO = {
         'name': 'DIRECTV NOW',
         'username_field': 'email',
         'password_field': 'loginpassword',
+    },
+    'RCN': {
+        'name': 'RCN',
+        'username_field': 'username',
+        'password_field': 'password',
     },
     'Rogers': {
         'name': 'Rogers',
@@ -1340,6 +1341,11 @@ MSO_INFO = {
         'username_field': 'username',
         'password_field': 'password',
     },
+    'Suddenlink': {
+        'name': 'Suddenlink',
+        'username_field': 'username',
+        'password_field': 'password',
+    },
 }
 
 
@@ -1355,7 +1361,7 @@ class AdobePassIE(InfoExtractor):
         headers.update(kwargs.get('headers', {}))
         kwargs['headers'] = headers
         return super(AdobePassIE, self)._download_webpage_handle(
-            *args, **compat_kwargs(kwargs))
+            *args, **kwargs)
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):
@@ -1628,6 +1634,58 @@ class AdobePassIE(InfoExtractor):
 
                     mvpd_confirm_page_res = self._download_webpage_handle(
                         urlh.geturl(), video_id, 'Sending final bookend',
+                        query=hidden_data)
+
+                    post_form(mvpd_confirm_page_res, 'Confirming Login')
+                elif mso_id == 'Suddenlink':
+                    # Suddenlink is similar to SlingTV in using a tab history count and a meta refresh,
+                    # but they also do a dynmaic redirect using javascript that has to be followed as well
+                    first_bookend_page, urlh = post_form(
+                        provider_redirect_page_res, 'Pressing Continue...')
+
+                    hidden_data = self._hidden_inputs(first_bookend_page)
+                    hidden_data['history_val'] = 1
+
+                    provider_login_redirect_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending First Bookend',
+                        query=hidden_data)
+
+                    provider_login_redirect_page, urlh = provider_login_redirect_page_res
+
+                    # Some website partners seem to not have the extra ajaxurl redirect step, so we check if we already
+                    # have the login prompt or not
+                    if 'id="password" type="password" name="password"' in provider_login_redirect_page:
+                        provider_login_page_res = provider_login_redirect_page_res
+                    else:
+                        provider_tryauth_url = self._html_search_regex(
+                            r'url:\s*[\'"]([^\'"]+)', provider_login_redirect_page, 'ajaxurl')
+                        provider_tryauth_page = self._download_webpage(
+                            provider_tryauth_url, video_id, 'Submitting TryAuth',
+                            query=hidden_data)
+
+                        provider_login_page_res = self._download_webpage_handle(
+                            f'https://authorize.suddenlink.net/saml/module.php/authSynacor/login.php?AuthState={provider_tryauth_page}',
+                            video_id, 'Getting Login Page',
+                            query=hidden_data)
+
+                    provider_association_redirect, urlh = post_form(
+                        provider_login_page_res, 'Logging in', {
+                            mso_info['username_field']: username,
+                            mso_info['password_field']: password
+                        })
+
+                    provider_refresh_redirect_url = extract_redirect_url(
+                        provider_association_redirect, url=urlh.geturl())
+
+                    last_bookend_page, urlh = self._download_webpage_handle(
+                        provider_refresh_redirect_url, video_id,
+                        'Downloading Auth Association Redirect Page')
+
+                    hidden_data = self._hidden_inputs(last_bookend_page)
+                    hidden_data['history_val'] = 3
+
+                    mvpd_confirm_page_res = self._download_webpage_handle(
+                        urlh.geturl(), video_id, 'Sending Final Bookend',
                         query=hidden_data)
 
                     post_form(mvpd_confirm_page_res, 'Confirming Login')

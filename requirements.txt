@@ -1,3 +1,6 @@
 mutagen
-pycryptodome
+pycryptodomex
 websockets
+brotli; platform_python_implementation=='CPython'
+brotlicffi; platform_python_implementation!='CPython'
+certifi

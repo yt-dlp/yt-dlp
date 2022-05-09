@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import json
 import re
@@ -94,10 +91,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
     _VALID_URL = r'''(?ix)
                     https?://
                         (?:
-                            (?:(?:www|touch)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:embed|swf|\#)/)?video|swf)|
+                            (?:(?:www|touch|geo)\.)?dailymotion\.[a-z]{2,3}/(?:(?:(?:(?:embed|swf|\#)/)|player\.html\?)?video|swf)|
                             (?:www\.)?lequipe\.fr/video
                         )
-                        /(?P<id>[^/?_]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
+                        [/=](?P<id>[^/?_&]+)(?:.+?\bplaylist=(?P<playlist_id>x[0-9a-z]+))?
                     '''
     IE_NAME = 'dailymotion'
     _TESTS = [{
@@ -115,6 +112,25 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
             'uploader_id': 'x1xm8ri',
             'age_limit': 0,
         },
+    }, {
+        'url': 'https://geo.dailymotion.com/player.html?video=x89eyek&mute=true',
+        'md5': 'e2f9717c6604773f963f069ca53a07f8',
+        'info_dict': {
+            'id': 'x89eyek',
+            'ext': 'mp4',
+            'title': "En quête d'esprit du 27/03/2022",
+            'description': 'md5:66542b9f4df2eb23f314fc097488e553',
+            'duration': 2756,
+            'timestamp': 1648383669,
+            'upload_date': '20220327',
+            'uploader': 'CNEWS',
+            'uploader_id': 'x24vth',
+            'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+            'tags': ['en_quete_d_esprit'],
+            'thumbnail': 'https://s2.dmcdn.net/v/Tncwi1YGKdvFbDuDY/x1080',
+        }
     }, {
         'url': 'https://www.dailymotion.com/video/x2iuewm_steam-machine-models-pricing-listed-on-steam-store-ign-news_videogames',
         'md5': '2137c41a8e78554bb09225b8eb322406',
@@ -207,12 +223,10 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         video_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
-            if not self.get_param('noplaylist'):
-                self.to_screen('Downloading playlist %s - add --no-playlist to just download video' % playlist_id)
+            if self._yes_playlist(playlist_id, video_id):
                 return self.url_result(
                     'http://www.dailymotion.com/playlist/' + playlist_id,
                     'DailymotionPlaylist', playlist_id)
-            self.to_screen('Downloading just video %s because of --no-playlist' % video_id)
 
         password = self.get_param('videopassword')
         media = self._call_api(
@@ -261,9 +275,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
                     continue
                 if media_type == 'application/x-mpegURL':
                     formats.extend(self._extract_m3u8_formats(
-                        media_url, video_id, 'mp4',
-                        'm3u8' if is_live else 'm3u8_native',
-                        m3u8_id='hls', fatal=False))
+                        media_url, video_id, 'mp4', live=is_live, m3u8_id='hls', fatal=False))
                 else:
                     f = {
                         'url': media_url,
@@ -305,7 +317,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': clean_html(media.get('description')),
             'thumbnails': thumbnails,
             'duration': int_or_none(metadata.get('duration')) or None,

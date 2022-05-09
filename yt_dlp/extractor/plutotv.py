@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import uuid
 
@@ -19,7 +16,16 @@ from ..utils import (
 
 
 class PlutoTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?pluto\.tv(?:/en)?/on-demand/(?P<video_type>movies|series)/(?P<slug>.*)/?$'
+    _VALID_URL = r'''(?x)
+        https?://(?:www\.)?pluto\.tv(?:/[^/]+)?/on-demand
+        /(?P<video_type>movies|series)
+        /(?P<series_or_movie_slug>[^/]+)
+        (?:
+            (?:/seasons?/(?P<season_no>\d+))?
+            (?:/episode/(?P<episode_slug>[^/]+))?
+        )?
+        /?(?:$|[#?])'''
+
     _INFO_URL = 'https://service-vod.clusters.pluto.tv/v3/vod/slugs/'
     _INFO_QUERY_PARAMS = {
         'appName': 'web',
@@ -74,6 +80,9 @@ class PlutoTVIE(InfoExtractor):
             }
         }, {
             'url': 'https://pluto.tv/en/on-demand/series/manhunters-fugitive-task-force/seasons/1/episode/third-times-the-charm-1-1',
+            'only_matching': True,
+        }, {
+            'url': 'https://pluto.tv/it/on-demand/series/csi-vegas/episode/legacy-2021-1-1',
             'only_matching': True,
         }
     ]
@@ -146,17 +155,13 @@ class PlutoTVIE(InfoExtractor):
         return info
 
     def _real_extract(self, url):
-        path = compat_urlparse.urlparse(url).path
-        path_components = path.split('/')
-        video_type = path_components[2]
-        info_slug = path_components[3]
-        video_json = self._download_json(self._INFO_URL + info_slug, info_slug,
-                                         query=self._INFO_QUERY_PARAMS)
+        mobj = self._match_valid_url(url).groupdict()
+        info_slug = mobj['series_or_movie_slug']
+        video_json = self._download_json(self._INFO_URL + info_slug, info_slug, query=self._INFO_QUERY_PARAMS)
 
-        if video_type == 'series':
+        if mobj['video_type'] == 'series':
             series_name = video_json.get('name', info_slug)
-            season_number = int_or_none(try_get(path_components, lambda x: x[5]))
-            episode_slug = try_get(path_components, lambda x: x[7])
+            season_number, episode_slug = mobj.get('season_number'), mobj.get('episode_slug')
 
             videos = []
             for season in video_json['seasons']:

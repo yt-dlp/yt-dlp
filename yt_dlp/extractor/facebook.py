@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -13,21 +10,26 @@ from ..compat import (
 )
 from ..utils import (
     clean_html,
+    determine_ext,
     error_to_compat_str,
     ExtractorError,
     float_or_none,
     get_element_by_id,
+    get_first,
     int_or_none,
     js_to_json,
-    limit_length,
     merge_dicts,
     network_exceptions,
     parse_count,
+    parse_qs,
     qualities,
     sanitized_Request,
+    traverse_obj,
     try_get,
+    url_or_none,
     urlencode_postdata,
     urljoin,
+    variadic,
 )
 
 
@@ -161,7 +163,7 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '1417995061575415',
             'ext': 'mp4',
-            'title': 'Yaroslav Korpan - Довгоочікуване відео',
+            'title': 'Ukrainian Scientists Worldwide | Довгоочікуване відео',
             'description': 'Довгоочікуване відео',
             'timestamp': 1486648771,
             'upload_date': '20170209',
@@ -192,8 +194,8 @@ class FacebookIE(InfoExtractor):
         'info_dict': {
             'id': '202882990186699',
             'ext': 'mp4',
-            'title': 'Elisabeth Ahtn - Hello? Yes your uber ride is here\n* Jukin...',
-            'description': 'Hello? Yes your uber ride is here\n* Jukin Media Verified *\nFind this video and others like it by visiting...',
+            'title': 'birb (O v O") | Hello? Yes your uber ride is here',
+            'description': 'Hello? Yes your uber ride is here * Jukin Media Verified * Find this video and others like it by visiting...',
             'timestamp': 1486035513,
             'upload_date': '20170202',
             'uploader': 'Elisabeth Ahtn',
@@ -324,11 +326,7 @@ class FacebookIE(InfoExtractor):
             urls.append(mobj.group('url'))
         return urls
 
-    def _login(self):
-        useremail, password = self._get_login_info()
-        if useremail is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page_req = sanitized_Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
         login_page = self._download_webpage(login_page_req, None,
@@ -340,7 +338,7 @@ class FacebookIE(InfoExtractor):
         lgnrnd = self._search_regex(r'name="lgnrnd" value="([^"]*?)"', login_page, 'lgnrnd')
 
         login_form = {
-            'email': useremail,
+            'email': username,
             'pass': password,
             'lsd': lsd,
             'lgnrnd': lgnrnd,
@@ -387,36 +385,34 @@ class FacebookIE(InfoExtractor):
             self.report_warning('unable to log in: %s' % error_to_compat_str(err))
             return
 
-    def _real_initialize(self):
-        self._login()
-
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
 
         def extract_metadata(webpage):
-            video_title = self._html_search_regex(
-                r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>([^<]*)</h2>', webpage,
-                'title', default=None)
-            if not video_title:
-                video_title = self._html_search_regex(
-                    r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(.*?)</span>',
-                    webpage, 'alternative title', default=None)
-            if not video_title:
-                video_title = self._html_search_meta(
-                    ['og:title', 'twitter:title', 'description'],
-                    webpage, 'title', default=None)
-            if video_title:
-                video_title = limit_length(video_title, 80)
-            else:
-                video_title = 'Facebook video #%s' % video_id
-            description = self._html_search_meta(
+            post_data = [self._parse_json(j, video_id, fatal=False) for j in re.findall(
+                r'handleWithCustomApplyEach\(\s*ScheduledApplyEach\s*,\s*(\{.+?\})\s*\);', webpage)]
+            post = traverse_obj(post_data, (
+                ..., 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
+            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
+            title = get_first(media, ('title', 'text'))
+            description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
+            uploader_data = get_first(media, 'owner') or get_first(post, ('node', 'actors', ...)) or {}
+
+            page_title = title or self._html_search_regex((
+                r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
+                r'(?s)<span class="fbPhotosPhotoCaption".*?id="fbPhotoPageCaption"><span class="hasCaption">(?P<content>.*?)</span>',
+                self._meta_regex('og:title'), self._meta_regex('twitter:title'), r'<title>(?P<content>.+?)</title>'
+            ), webpage, 'title', default=None, group='content')
+            description = description or self._html_search_meta(
                 ['description', 'og:description', 'twitter:description'],
                 webpage, 'description', default=None)
-            uploader = clean_html(get_element_by_id(
-                'fbPhotoPageAuthorName', webpage)) or self._search_regex(
-                r'ownerName\s*:\s*"([^"]+)"', webpage, 'uploader',
-                default=None) or self._og_search_title(webpage, fatal=False)
+            uploader = uploader_data.get('name') or (
+                clean_html(get_element_by_id('fbPhotoPageAuthorName', webpage))
+                or self._search_regex(
+                    (r'ownerName\s*:\s*"([^"]+)"', *self._og_regexes('title')), webpage, 'uploader', fatal=False))
+
             timestamp = int_or_none(self._search_regex(
                 r'<abbr[^>]+data-utime=["\'](\d+)', webpage,
                 'timestamp', default=None))
@@ -431,17 +427,17 @@ class FacebookIE(InfoExtractor):
                 r'\bviewCount\s*:\s*["\']([\d,.]+)', webpage, 'view count',
                 default=None))
             info_dict = {
-                'title': video_title,
                 'description': description,
                 'uploader': uploader,
+                'uploader_id': uploader_data.get('id'),
                 'timestamp': timestamp,
                 'thumbnail': thumbnail,
                 'view_count': view_count,
             }
+
             info_json_ld = self._search_json_ld(webpage, video_id, default={})
-            if info_json_ld.get('title'):
-                info_json_ld['title'] = limit_length(
-                    re.sub(r'\s*\|\s*Facebook$', '', info_json_ld['title']), 80)
+            info_json_ld['title'] = (re.sub(r'\s*\|\s*Facebook$', '', title or info_json_ld.get('title') or page_title or '')
+                                     or (description or '').replace('\n', ' ') or f'Facebook video #{video_id}')
             return merge_dicts(info_json_ld, info_dict)
 
         video_data = None
@@ -508,22 +504,27 @@ class FacebookIE(InfoExtractor):
                 def parse_graphql_video(video):
                     formats = []
                     q = qualities(['sd', 'hd'])
-                    for (suffix, format_id) in [('', 'sd'), ('_quality_hd', 'hd')]:
-                        playable_url = video.get('playable_url' + suffix)
+                    for key, format_id in (('playable_url', 'sd'), ('playable_url_quality_hd', 'hd'),
+                                           ('playable_url_dash', '')):
+                        playable_url = video.get(key)
                         if not playable_url:
                             continue
-                        formats.append({
-                            'format_id': format_id,
-                            'quality': q(format_id),
-                            'url': playable_url,
-                        })
+                        if determine_ext(playable_url) == 'mpd':
+                            formats.extend(self._extract_mpd_formats(playable_url, video_id))
+                        else:
+                            formats.append({
+                                'format_id': format_id,
+                                'quality': q(format_id),
+                                'url': playable_url,
+                            })
                     extract_dash_manifest(video, formats)
                     process_formats(formats)
                     v_id = video.get('videoId') or video.get('id') or video_id
                     info = {
                         'id': v_id,
                         'formats': formats,
-                        'thumbnail': try_get(video, lambda x: x['thumbnailImage']['uri']),
+                        'thumbnail': traverse_obj(
+                            video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
                         'uploader_id': try_get(video, lambda x: x['owner']['id']),
                         'timestamp': int_or_none(video.get('publish_time')),
                         'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),
@@ -544,22 +545,15 @@ class FacebookIE(InfoExtractor):
                     if media.get('__typename') == 'Video':
                         return parse_graphql_video(media)
 
-                nodes = data.get('nodes') or []
-                node = data.get('node') or {}
-                if not nodes and node:
-                    nodes.append(node)
-                for node in nodes:
-                    story = try_get(node, lambda x: x['comet_sections']['content']['story'], dict) or {}
-                    attachments = try_get(story, [
-                        lambda x: x['attached_story']['attachments'],
-                        lambda x: x['attachments']
-                    ], list) or []
-                    for attachment in attachments:
-                        attachment = try_get(attachment, lambda x: x['style_type_renderer']['attachment'], dict)
-                        ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
-                        for n in ns:
-                            parse_attachment(n)
-                        parse_attachment(attachment)
+                nodes = variadic(traverse_obj(data, 'nodes', 'node') or [])
+                attachments = traverse_obj(nodes, (
+                    ..., 'comet_sections', 'content', 'story', (None, 'attached_story'), 'attachments',
+                    ..., ('styles', 'style_type_renderer'), 'attachment'), expected_type=dict) or []
+                for attachment in attachments:
+                    ns = try_get(attachment, lambda x: x['all_subattachments']['nodes'], list) or []
+                    for n in ns:
+                        parse_attachment(n)
+                    parse_attachment(attachment)
 
                 edges = try_get(data, lambda x: x['mediaset']['currMedia']['edges'], list) or []
                 for edge in edges:
@@ -728,6 +722,7 @@ class FacebookPluginsVideoIE(InfoExtractor):
         'info_dict': {
             'id': '10154383743583686',
             'ext': 'mp4',
+            # TODO: Fix title, uploader
             'title': 'What to do during the haze?',
             'uploader': 'Gov.sg',
             'upload_date': '20160826',
@@ -746,3 +741,42 @@ class FacebookPluginsVideoIE(InfoExtractor):
         return self.url_result(
             compat_urllib_parse_unquote(self._match_id(url)),
             FacebookIE.ie_key())
+
+
+class FacebookRedirectURLIE(InfoExtractor):
+    IE_DESC = False  # Do not list
+    _VALID_URL = r'https?://(?:[\w-]+\.)?facebook\.com/flx/warn[/?]'
+    _TESTS = [{
+        'url': 'https://www.facebook.com/flx/warn/?h=TAQHsoToz&u=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DpO8h3EaFRdo&s=1',
+        'info_dict': {
+            'id': 'pO8h3EaFRdo',
+            'ext': 'mp4',
+            'title': 'Tripeo Boiler Room x Dekmantel Festival DJ Set',
+            'description': 'md5:2d713ccbb45b686a1888397b2c77ca6b',
+            'channel_id': 'UCGBpxWJr9FNOcFYA5GkKrMg',
+            'playable_in_embed': True,
+            'categories': ['Music'],
+            'channel': 'Boiler Room',
+            'uploader_id': 'brtvofficial',
+            'uploader': 'Boiler Room',
+            'tags': 'count:11',
+            'duration': 3332,
+            'live_status': 'not_live',
+            'thumbnail': 'https://i.ytimg.com/vi/pO8h3EaFRdo/maxresdefault.jpg',
+            'channel_url': 'https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg',
+            'availability': 'public',
+            'uploader_url': 'http://www.youtube.com/user/brtvofficial',
+            'upload_date': '20150917',
+            'age_limit': 0,
+            'view_count': int,
+            'like_count': int,
+        },
+        'add_ie': ['Youtube'],
+        'params': {'skip_download': 'Youtube'},
+    }]
+
+    def _real_extract(self, url):
+        redirect_url = url_or_none(parse_qs(url).get('u', [None])[-1])
+        if not redirect_url:
+            raise ExtractorError('Invalid facebook redirect URL', expected=True)
+        return self.url_result(redirect_url)

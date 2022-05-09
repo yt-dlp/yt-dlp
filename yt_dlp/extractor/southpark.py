@@ -1,24 +1,20 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .mtv import MTVServicesInfoExtractor
 
 
 class SouthParkIE(MTVServicesInfoExtractor):
     IE_NAME = 'southpark.cc.com'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark(?:\.cc|studios)\.com/(?:clips|(?:full-)?episodes|collections)/(?P<id>.+?)(\?|#|$))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark(?:\.cc|studios)\.com/((?:video-)?clips|(?:full-)?episodes|collections)/(?P<id>.+?)(\?|#|$))'
 
     _FEED_URL = 'http://feeds.mtvnservices.com/od/feed/intl-mrss-player-feed'
 
     _TESTS = [{
-        'url': 'http://southpark.cc.com/clips/104437/bat-daded#tab=featured',
+        'url': 'https://southpark.cc.com/video-clips/d7wr06/south-park-you-all-agreed-to-counseling',
         'info_dict': {
-            'id': 'a7bff6c2-ed00-11e0-aca6-0026b9414f30',
             'ext': 'mp4',
-            'title': 'South Park|Bat Daded',
-            'description': 'Randy disqualifies South Park by getting into a fight with Bat Dad.',
-            'timestamp': 1112760000,
-            'upload_date': '20050406',
+            'title': 'You All Agreed to Counseling',
+            'description': 'Kenny, Cartman, Stan, and Kyle visit Mr. Mackey and ask for his help getting Mrs. Nelson to come back. Mr. Mackey reveals the only way to get things back to normal is to get the teachers vaccinated.',
+            'timestamp': 1615352400,
+            'upload_date': '20210310',
         },
     }, {
         'url': 'http://southpark.cc.com/collections/7758/fan-favorites/1',
@@ -40,11 +36,11 @@ class SouthParkIE(MTVServicesInfoExtractor):
 
 class SouthParkEsIE(SouthParkIE):
     IE_NAME = 'southpark.cc.com:español'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.cc\.com/episodios-en-espanol/(?P<id>.+?)(\?|#|$))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.cc\.com/es/episodios/(?P<id>.+?)(\?|#|$))'
     _LANG = 'es'
 
     _TESTS = [{
-        'url': 'http://southpark.cc.com/episodios-en-espanol/s01e01-cartman-consigue-una-sonda-anal#source=351c1323-0b96-402d-a8b9-40d01b2e9bde&position=1&sort=!airdate',
+        'url': 'http://southpark.cc.com/es/episodios/s01e01-cartman-consigue-una-sonda-anal#source=351c1323-0b96-402d-a8b9-40d01b2e9bde&position=1&sort=!airdate',
         'info_dict': {
             'title': 'Cartman Consigue Una Sonda Anal',
             'description': 'Cartman Consigue Una Sonda Anal',

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -7,7 +5,9 @@ from .once import OnceIE
 from ..compat import compat_str
 from ..utils import (
     determine_ext,
+    dict_get,
     int_or_none,
+    unified_strdate,
     unified_timestamp,
 )
 
@@ -236,3 +236,44 @@ class FiveThirtyEightIE(InfoExtractor):
             webpage, 'embed url')
 
         return self.url_result(embed_url, 'AbcNewsVideo')
+
+
+class ESPNCricInfoIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?espncricinfo\.com/video/[^#$&?/]+-(?P<id>\d+)'
+    _TESTS = [{
+        'url': 'https://www.espncricinfo.com/video/finch-chasing-comes-with-risks-despite-world-cup-trend-1289135',
+        'info_dict': {
+            'id': '1289135',
+            'ext': 'mp4',
+            'title': 'Finch: Chasing comes with \'risks\' despite World Cup trend',
+            'description': 'md5:ea32373303e25efbb146efdfc8a37829',
+            'upload_date': '20211113',
+            'duration': 96,
+        },
+        'params': {'skip_download': True}
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        data_json = self._download_json(f'https://hs-consumer-api.espncricinfo.com/v1/pages/video/video-details?videoId={id}', id)['video']
+        formats, subtitles = [], {}
+        for item in data_json.get('playbacks') or []:
+            if item.get('type') == 'HLS' and item.get('url'):
+                m3u8_frmts, m3u8_subs = self._extract_m3u8_formats_and_subtitles(item['url'], id)
+                formats.extend(m3u8_frmts)
+                subtitles = self._merge_subtitles(subtitles, m3u8_subs)
+            elif item.get('type') == 'AUDIO' and item.get('url'):
+                formats.append({
+                    'url': item['url'],
+                    'vcodec': 'none',
+                })
+        self._sort_formats(formats)
+        return {
+            'id': id,
+            'title': data_json.get('title'),
+            'description': data_json.get('summary'),
+            'upload_date': unified_strdate(dict_get(data_json, ('publishedAt', 'recordedAt'))),
+            'duration': data_json.get('duration'),
+            'formats': formats,
+            'subtitles': subtitles,
+        }

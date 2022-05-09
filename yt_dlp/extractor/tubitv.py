@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -54,10 +51,7 @@ class TubiTvIE(InfoExtractor):
         },
     }]
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _perform_login(self, username, password):
         self.report_login()
         form_data = {
             'username': username,
@@ -71,9 +65,6 @@ class TubiTvIE(InfoExtractor):
         if not re.search(r'id="tubi-logout"', login_page):
             raise ExtractorError(
                 'Login failed (invalid username/password)', expected=True)
-
-    def _real_initialize(self):
-        self._login()
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
@@ -107,6 +98,9 @@ class TubiTvIE(InfoExtractor):
                 'url': self._proto_relative_url(sub_url),
             })
 
+        season_number, episode_number, episode_title = self._search_regex(
+            r'^S(\d+):E(\d+) - (.+)', title, 'episode info', fatal=False, group=(1, 2, 3), default=(None, None, None))
+
         return {
             'id': video_id,
             'title': title,
@@ -117,6 +111,9 @@ class TubiTvIE(InfoExtractor):
             'duration': int_or_none(video_data.get('duration')),
             'uploader_id': video_data.get('publisher_id'),
             'release_year': int_or_none(video_data.get('year')),
+            'season_number': int_or_none(season_number),
+            'episode_number': int_or_none(episode_number),
+            'episode_title': episode_title
         }
 
 
@@ -132,9 +129,11 @@ class TubiTvShowIE(InfoExtractor):
 
     def _entries(self, show_url, show_name):
         show_webpage = self._download_webpage(show_url, show_name)
+
         show_json = self._parse_json(self._search_regex(
-            r"window\.__data\s*=\s*({.+?});\s*</script>",
-            show_webpage, 'data',), show_name, transform_source=js_to_json)['video']
+            r'window\.__data\s*=\s*({[^<]+});\s*</script>',
+            show_webpage, 'data'), show_name, transform_source=js_to_json)['video']
+
         for episode_id in show_json['fullContentById'].keys():
             yield self.url_result(
                 'tubitv:%s' % episode_id,

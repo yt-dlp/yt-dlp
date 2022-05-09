@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 
 from .common import InfoExtractor
@@ -9,6 +6,7 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
+    format_field,
     int_or_none,
     parse_iso8601,
     smuggle_url,
@@ -41,9 +39,9 @@ class AWAANBaseIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'description': video_data.get('description_en') or video_data.get('description_ar'),
-            'thumbnail': 'http://admin.mangomolo.com/analytics/%s' % img if img else None,
+            'thumbnail': format_field(img, template='http://admin.mangomolo.com/analytics/%s'),
             'duration': int_or_none(video_data.get('duration')),
             'timestamp': parse_iso8601(video_data.get('create_time'), ' '),
             'is_live': is_live,

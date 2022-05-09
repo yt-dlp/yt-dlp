@@ -1,11 +1,9 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
+    format_field,
     int_or_none,
     js_to_json,
     try_get,
@@ -72,7 +70,7 @@ class JojIE(InfoExtractor):
                     r'(\d+)[pP]\.', format_url, 'height', default=None)
                 formats.append({
                     'url': format_url,
-                    'format_id': '%sp' % height if height else None,
+                    'format_id': format_field(height, template='%sp'),
                     'height': int(height),
                 })
         if not formats:

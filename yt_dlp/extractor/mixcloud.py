@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import itertools
 
 from .common import InfoExtractor
@@ -9,9 +7,9 @@ from ..compat import (
     compat_ord,
     compat_str,
     compat_urllib_parse_unquote,
-    compat_zip
 )
 from ..utils import (
+    ExtractorError,
     int_or_none,
     parse_iso8601,
     strip_or_none,
@@ -75,7 +73,7 @@ class MixcloudIE(MixcloudBaseIE):
         """Encrypt/Decrypt XOR cipher. Both ways are possible because it's XOR."""
         return ''.join([
             compat_chr(compat_ord(ch) ^ compat_ord(k))
-            for ch, k in compat_zip(ciphertext, itertools.cycle(key))])
+            for ch, k in zip(ciphertext, itertools.cycle(key))])
 
     def _real_extract(self, url):
         username, slug = self._match_valid_url(url).groups()
@@ -125,7 +123,20 @@ class MixcloudIE(MixcloudBaseIE):
       tag {
         name
       }
-    }''', track_id, username, slug)
+    }
+    restrictedReason
+    id''', track_id, username, slug)
+
+        if not cloudcast:
+            raise ExtractorError('Track not found', expected=True)
+
+        reason = cloudcast.get('restrictedReason')
+        if reason == 'tracklist':
+            raise ExtractorError('Track unavailable in your country due to licensing restrictions', expected=True)
+        elif reason == 'repeat_play':
+            raise ExtractorError('You have reached your play limit for this track', expected=True)
+        elif reason:
+            raise ExtractorError('Track is restricted', expected=True)
 
         title = cloudcast['name']
 

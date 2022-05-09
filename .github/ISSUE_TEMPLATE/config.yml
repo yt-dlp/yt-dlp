@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Get help from the community on Discord
+    url: https://discord.gg/H5MNcFW63r
+    about: Join the yt-dlp Discord for community-powered support!
+  - name: Matrix Bridge to the Discord server
+    url: https://matrix.to/#/#yt-dlp:matrix.org
+    about: For those who do not want to use Discord

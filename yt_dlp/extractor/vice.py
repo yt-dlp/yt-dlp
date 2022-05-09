@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import hashlib
 import json
@@ -290,7 +287,6 @@ class ViceArticleIE(ViceBaseIE):
         },
         'params': {
             'skip_download': True,
-            'format': 'bestvideo',
         },
         'add_ie': [ViceIE.ie_key()],
     }, {

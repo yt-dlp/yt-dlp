@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -8,6 +6,7 @@ from ..utils import (
     determine_ext,
     extract_attributes,
     ExtractorError,
+    join_nonempty,
     url_or_none,
     urlencode_postdata,
     urljoin,
@@ -52,11 +51,7 @@ class AnimeOnDemandIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page = self._download_webpage(
             self._LOGIN_URL, None, 'Downloading login page')
 
@@ -91,9 +86,6 @@ class AnimeOnDemandIE(InfoExtractor):
             if error:
                 raise ExtractorError('Unable to login: %s' % error, expected=True)
             raise ExtractorError('Unable to log in')
-
-    def _real_initialize(self):
-        self._login()
 
     def _real_extract(self, url):
         anime_id = self._match_id(url)
@@ -140,15 +132,8 @@ class AnimeOnDemandIE(InfoExtractor):
                     kind = self._search_regex(
                         r'videomaterialurl/\d+/([^/]+)/',
                         playlist_url, 'media kind', default=None)
-                    format_id_list = []
-                    if lang:
-                        format_id_list.append(lang)
-                    if kind:
-                        format_id_list.append(kind)
-                    if not format_id_list and num is not None:
-                        format_id_list.append(compat_str(num))
-                    format_id = '-'.join(format_id_list)
-                    format_note = ', '.join(filter(None, (kind, lang_note)))
+                    format_id = join_nonempty(lang, kind) if lang or kind else str(num)
+                    format_note = join_nonempty(kind, lang_note, delim=', ')
                     item_id_list = []
                     if format_id:
                         item_id_list.append(format_id)
@@ -195,12 +180,10 @@ class AnimeOnDemandIE(InfoExtractor):
                         if not file_:
                             continue
                         ext = determine_ext(file_)
-                        format_id_list = [lang, kind]
-                        if ext == 'm3u8':
-                            format_id_list.append('hls')
-                        elif source.get('type') == 'video/dash' or ext == 'mpd':
-                            format_id_list.append('dash')
-                        format_id = '-'.join(filter(None, format_id_list))
+                        format_id = join_nonempty(
+                            lang, kind,
+                            'hls' if ext == 'm3u8' else None,
+                            'dash' if source.get('type') == 'video/dash' or ext == 'mpd' else None)
                         if ext == 'm3u8':
                             file_formats = self._extract_m3u8_formats(
                                 file_, video_id, 'mp4',

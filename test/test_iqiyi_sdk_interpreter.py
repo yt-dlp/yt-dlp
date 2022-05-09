@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from test.helper import FakeYDL, is_download_test
+
 from yt_dlp.extractor import IqiyiIE
 
 
-class IqiyiIEWithCredentials(IqiyiIE):
-    def _get_login_info(self):
-        return 'foo', 'bar'
-
-
-class WarningLogger(object):
+class WarningLogger:
     def __init__(self):
         self.messages = []
 
@@ -40,8 +34,8 @@ class TestIqiyiSDKInterpreter(unittest.TestCase):
         If `sign` is incorrect, /validate call throws an HTTP 556 error
         '''
         logger = WarningLogger()
-        ie = IqiyiIEWithCredentials(FakeYDL({'logger': logger}))
-        ie._login()
+        ie = IqiyiIE(FakeYDL({'logger': logger}))
+        ie._perform_login('foo', 'bar')
         self.assertTrue('unable to log in:' in logger.messages[0])
 
 

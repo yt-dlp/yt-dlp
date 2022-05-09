@@ -1,12 +1,10 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     ExtractorError,
+    format_field,
     float_or_none,
     int_or_none,
     str_or_none,
@@ -118,7 +116,7 @@ class MedalTVIE(InfoExtractor):
         author = try_get(
             hydration_data, lambda x: list(x['profiles'].values())[0], dict) or {}
         author_id = str_or_none(author.get('id'))
-        author_url = 'https://medal.tv/users/{0}'.format(author_id) if author_id else None
+        author_url = format_field(author_id, template='https://medal.tv/users/%s')
 
         return {
             'id': video_id,

@@ -1,65 +1,46 @@
-from __future__ import unicode_literals
+# flake8: noqa: F401
 
+from .common import PostProcessor
 from .embedthumbnail import EmbedThumbnailPP
+from .exec import ExecAfterDownloadPP, ExecPP
 from .ffmpeg import (
-    FFmpegPostProcessor,
+    FFmpegConcatPP,
+    FFmpegCopyStreamPP,
     FFmpegEmbedSubtitlePP,
     FFmpegExtractAudioPP,
+    FFmpegFixupDuplicateMoovPP,
     FFmpegFixupDurationPP,
-    FFmpegFixupStretchedPP,
-    FFmpegFixupTimestampPP,
     FFmpegFixupM3u8PP,
     FFmpegFixupM4aPP,
+    FFmpegFixupStretchedPP,
+    FFmpegFixupTimestampPP,
     FFmpegMergerPP,
     FFmpegMetadataPP,
+    FFmpegPostProcessor,
+    FFmpegSplitChaptersPP,
     FFmpegSubtitlesConvertorPP,
     FFmpegThumbnailsConvertorPP,
-    FFmpegSplitChaptersPP,
     FFmpegVideoConvertorPP,
     FFmpegVideoRemuxerPP,
 )
-from .xattrpp import XAttrMetadataPP
-from .exec import ExecPP, ExecAfterDownloadPP
 from .metadataparser import (
     MetadataFromFieldPP,
     MetadataFromTitlePP,
     MetadataParserPP,
 )
-from .movefilesafterdownload import MoveFilesAfterDownloadPP
-from .sponsorblock import SponsorBlockPP
-from .sponskrub import SponSkrubPP
 from .modify_chapters import ModifyChaptersPP
+from .movefilesafterdownload import MoveFilesAfterDownloadPP
+from .sponskrub import SponSkrubPP
+from .sponsorblock import SponsorBlockPP
+from .xattrpp import XAttrMetadataPP
+from ..utils import load_plugins
+
+_PLUGIN_CLASSES = load_plugins('postprocessor', 'PP', globals())
 
 
 def get_postprocessor(key):
     return globals()[key + 'PP']
 
 
-__all__ = [
-    'FFmpegPostProcessor',
-    'EmbedThumbnailPP',
-    'ExecPP',
-    'ExecAfterDownloadPP',
-    'FFmpegEmbedSubtitlePP',
-    'FFmpegExtractAudioPP',
-    'FFmpegSplitChaptersPP',
-    'FFmpegFixupDurationPP',
-    'FFmpegFixupM3u8PP',
-    'FFmpegFixupM4aPP',
-    'FFmpegFixupStretchedPP',
-    'FFmpegFixupTimestampPP',
-    'FFmpegMergerPP',
-    'FFmpegMetadataPP',
-    'FFmpegSubtitlesConvertorPP',
-    'FFmpegThumbnailsConvertorPP',
-    'FFmpegVideoConvertorPP',
-    'FFmpegVideoRemuxerPP',
-    'MetadataParserPP',
-    'MetadataFromFieldPP',
-    'MetadataFromTitlePP',
-    'MoveFilesAfterDownloadPP',
-    'SponsorBlockPP',
-    'SponSkrubPP',
-    'ModifyChaptersPP',
-    'XAttrMetadataPP',
-]
+__all__ = [name for name in globals().keys() if name.endswith('PP')]
+__all__.extend(('PostProcessor', 'FFmpegPostProcessor'))

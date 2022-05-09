@@ -1,26 +1,26 @@
-from __future__ import unicode_literals
+import contextlib
+import os
 
 from ..utils import load_plugins
 
-try:
-    from .lazy_extractors import *
-    from .lazy_extractors import _ALL_CLASSES
-    _LAZY_LOADER = True
-    _PLUGIN_CLASSES = []
-except ImportError:
-    _LAZY_LOADER = False
+_LAZY_LOADER = False
+if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
+    with contextlib.suppress(ImportError):
+        from .lazy_extractors import *  # noqa: F403
+        from .lazy_extractors import _ALL_CLASSES
+        _LAZY_LOADER = True
 
 if not _LAZY_LOADER:
-    from .extractors import *
-    _ALL_CLASSES = [
+    from .extractors import *  # noqa: F403
+    _ALL_CLASSES = [  # noqa: F811
         klass
         for name, klass in globals().items()
         if name.endswith('IE') and name != 'GenericIE'
     ]
-    _ALL_CLASSES.append(GenericIE)
+    _ALL_CLASSES.append(GenericIE)  # noqa: F405
 
-    _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
-    _ALL_CLASSES = _PLUGIN_CLASSES + _ALL_CLASSES
+_PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
+_ALL_CLASSES = list(_PLUGIN_CLASSES.values()) + _ALL_CLASSES
 
 
 def gen_extractor_classes():

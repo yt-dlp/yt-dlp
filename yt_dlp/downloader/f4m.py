@@ -1,5 +1,3 @@
-from __future__ import division, unicode_literals
-
 import io
 import itertools
 import time
@@ -8,16 +6,13 @@ from .fragment import FragmentFD
 from ..compat import (
     compat_b64decode,
     compat_etree_fromstring,
-    compat_urlparse,
-    compat_urllib_error,
-    compat_urllib_parse_urlparse,
     compat_struct_pack,
     compat_struct_unpack,
+    compat_urllib_error,
+    compat_urllib_parse_urlparse,
+    compat_urlparse,
 )
-from ..utils import (
-    fix_xml_ampersands,
-    xpath_text,
-)
+from ..utils import fix_xml_ampersands, xpath_text
 
 
 class DataTruncatedError(Exception):
@@ -366,7 +361,7 @@ class F4mFD(FragmentFD):
         ctx = {
             'filename': filename,
             'total_frags': total_frags,
-            'live': live,
+            'live': bool(live),
         }
 
         self._prepare_frag_download(ctx)
@@ -417,7 +412,7 @@ class F4mFD(FragmentFD):
                     if box_type == b'mdat':
                         self._append_fragment(ctx, box_data)
                         break
-            except (compat_urllib_error.HTTPError, ) as err:
+            except compat_urllib_error.HTTPError as err:
                 if live and (err.code == 404 or err.code == 410):
                     # We didn't keep up with the live window. Continue
                     # with the next available fragment.

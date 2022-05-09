@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 from .mtv import MTVServicesInfoExtractor
 
 
 class ComedyCentralIE(MTVServicesInfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?cc\.com/(?:episodes|video(?:-clips)?)/(?P<id>[0-9a-z]{6})'
+    _VALID_URL = r'https?://(?:www\.)?cc\.com/(?:episodes|video(?:-clips)?|collection-playlist)/(?P<id>[0-9a-z]{6})'
     _FEED_URL = 'http://comedycentral.com/feeds/mrss/'
 
     _TESTS = [{
@@ -23,6 +21,9 @@ class ComedyCentralIE(MTVServicesInfoExtractor):
         'only_matching': True,
     }, {
         'url': 'https://www.cc.com/video/k3sdvm/the-daily-show-with-jon-stewart-exclusive-the-fourth-estate',
+        'only_matching': True,
+    }, {
+        'url': 'https://www.cc.com/collection-playlist/cosnej/stand-up-specials/t6vtjb',
         'only_matching': True,
     }]
 

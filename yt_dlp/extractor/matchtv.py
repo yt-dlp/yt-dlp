@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import random
 
 from .common import InfoExtractor
@@ -49,7 +46,7 @@ class MatchTVIE(InfoExtractor):
         self._sort_formats(formats)
         return {
             'id': video_id,
-            'title': self._live_title('Матч ТВ - Прямой эфир'),
+            'title': 'Матч ТВ - Прямой эфир',
             'is_live': True,
             'formats': formats,
         }

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -8,6 +5,8 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     int_or_none,
+    try_get,
+    parse_codecs,
 )
 
 
@@ -29,7 +28,7 @@ class StreamableIE(InfoExtractor):
                 'view_count': int,
             }
         },
-        # older video without bitrate, width/height, etc. info
+        # older video without bitrate, width/height, codecs, etc. info
         {
             'url': 'https://streamable.com/moo',
             'md5': '2cf6923639b87fba3279ad0df3a64e73',
@@ -95,7 +94,9 @@ class StreamableIE(InfoExtractor):
                 'height': int_or_none(info.get('height')),
                 'filesize': int_or_none(info.get('size')),
                 'fps': int_or_none(info.get('framerate')),
-                'vbr': float_or_none(info.get('bitrate'), 1000)
+                'vbr': float_or_none(info.get('bitrate'), 1000),
+                'vcodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['video_codec_name'])).get('vcodec'),
+                'acodec': parse_codecs(try_get(info, lambda x: x['input_metadata']['audio_codec_name'])).get('acodec'),
             })
         self._sort_formats(formats)
 

@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -25,14 +22,7 @@ class SafariBaseIE(InfoExtractor):
 
     LOGGED_IN = False
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         _, urlh = self._download_webpage_handle(
             'https://learning.oreilly.com/accounts/login-check/', None,
             'Downloading login page')
@@ -193,7 +183,12 @@ class SafariApiIE(SafariBaseIE):
         part = self._download_json(
             url, '%s/%s' % (mobj.group('course_id'), mobj.group('part')),
             'Downloading part JSON')
-        return self.url_result(part['web_url'], SafariIE.ie_key())
+        web_url = part['web_url']
+        if 'library/view' in web_url:
+            web_url = web_url.replace('library/view', 'videos')
+            natural_keys = part['natural_key']
+            web_url = f'{web_url.rsplit("/", 1)[0]}/{natural_keys[0]}-{natural_keys[1][:-5]}'
+        return self.url_result(web_url, SafariIE.ie_key())
 
 
 class SafariCourseIE(SafariBaseIE):

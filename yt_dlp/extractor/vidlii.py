@@ -1,13 +1,13 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..utils import (
+    HEADRequest,
+    format_field,
     float_or_none,
     get_element_by_id,
     int_or_none,
+    str_to_int,
     strip_or_none,
     unified_strdate,
     urljoin,
@@ -36,6 +36,25 @@ class VidLiiIE(InfoExtractor):
             'tags': ['Vidlii', 'Jan', 'Videogames'],
         }
     }, {
+        'url': 'https://www.vidlii.com/watch?v=zTAtaAgOLKt',
+        'md5': '5778f7366aa4c569b77002f8bf6b614f',
+        'info_dict': {
+            'id': 'zTAtaAgOLKt',
+            'ext': 'mp4',
+            'title': 'FULPTUBE SUCKS.',
+            'description': 'md5:087b2ca355d4c8f8f77e97c43e72d711',
+            'thumbnail': 'https://www.vidlii.com/usfi/thmp/zTAtaAgOLKt.jpg',
+            'uploader': 'Homicide',
+            'uploader_url': 'https://www.vidlii.com/user/Homicide',
+            'upload_date': '20210612',
+            'duration': 89,
+            'view_count': int,
+            'comment_count': int,
+            'average_rating': float,
+            'categories': ['News & Politics'],
+            'tags': ['fulp', 'tube', 'sucks', 'bad', 'fulptube'],
+        },
+    }, {
         'url': 'https://www.vidlii.com/embed?v=tJluaH4BJ3v&a=0',
         'only_matching': True,
     }]
@@ -45,10 +64,20 @@ class VidLiiIE(InfoExtractor):
 
         webpage = self._download_webpage(
             'https://www.vidlii.com/watch?v=%s' % video_id, video_id)
+        formats = []
 
-        video_url = self._search_regex(
-            r'src\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1', webpage,
-            'video url', group='url')
+        sources = [source[1] for source in re.findall(
+            r'src\s*:\s*(["\'])(?P<url>(?:https?://)?(?:(?!\1).)+)\1',
+            webpage) or []]
+        for source in sources:
+            height = int(self._search_regex(r'(\d+).mp4', source, 'height', default=360))
+            if self._request_webpage(HEADRequest(source), video_id, f'Checking {height}p url', errnote=False):
+                formats.append({
+                    'url': source,
+                    'format_id': f'{height}p',
+                    'height': height,
+                })
+        self._sort_formats(formats)
 
         title = self._search_regex(
             (r'<h1>([^<]+)</h1>', r'<title>([^<]+) - VidLii<'), webpage,
@@ -71,7 +100,7 @@ class VidLiiIE(InfoExtractor):
         uploader = self._search_regex(
             r'<div[^>]+class=["\']wt_person[^>]+>\s*<a[^>]+\bhref=["\']/user/[^>]+>([^<]+)',
             webpage, 'uploader', fatal=False)
-        uploader_url = 'https://www.vidlii.com/user/%s' % uploader if uploader else None
+        uploader_url = format_field(uploader, template='https://www.vidlii.com/user/%s')
 
         upload_date = unified_strdate(self._html_search_meta(
             'datePublished', webpage, default=None) or self._search_regex(
@@ -82,9 +111,9 @@ class VidLiiIE(InfoExtractor):
             default=None) or self._search_regex(
             r'duration\s*:\s*(\d+)', webpage, 'duration', fatal=False))
 
-        view_count = int_or_none(self._search_regex(
-            (r'<strong>(\d+)</strong> views',
-             r'Views\s*:\s*<strong>(\d+)</strong>'),
+        view_count = str_to_int(self._search_regex(
+            (r'<strong>([,0-9]+)</strong> views',
+             r'Views\s*:\s*<strong>([,0-9]+)</strong>'),
             webpage, 'view count', fatal=False))
 
         comment_count = int_or_none(self._search_regex(
@@ -109,11 +138,11 @@ class VidLiiIE(InfoExtractor):
 
         return {
             'id': video_id,
-            'url': video_url,
             'title': title,
             'description': description,
             'thumbnail': thumbnail,
             'uploader': uploader,
+            'formats': formats,
             'uploader_url': uploader_url,
             'upload_date': upload_date,
             'duration': duration,

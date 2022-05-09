@@ -1,15 +1,15 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
+import itertools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
+from ..compat import compat_str, compat_HTTPError
 from ..utils import (
     determine_ext,
     int_or_none,
     parse_iso8601,
     try_get,
+    unescapeHTML,
+    ExtractorError,
 )
 
 
@@ -24,6 +24,20 @@ class RumbleEmbedIE(InfoExtractor):
             'title': 'WMAR 2 News Latest Headlines | October 20, 6pm',
             'timestamp': 1571611968,
             'upload_date': '20191020',
+        }
+    }, {
+        'url': 'https://rumble.com/embed/vslb7v',
+        'md5': '7418035de1a30a178b8af34dc2b6a52b',
+        'info_dict': {
+            'id': 'vslb7v',
+            'ext': 'mp4',
+            'title': 'Defense Sec. says US Commitment to NATO Defense \'Ironclad\'',
+            'timestamp': 1645142135,
+            'upload_date': '20220217',
+            'channel_url': 'https://rumble.com/c/CyberTechNews',
+            'channel': 'CTNews',
+            'thumbnail': 'https://sp.rmbl.ws/s8/6/7/i/9/h/7i9hd.OvCc.jpg',
+            'duration': 901,
         }
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
@@ -43,7 +57,7 @@ class RumbleEmbedIE(InfoExtractor):
         video = self._download_json(
             'https://rumble.com/embedJS/', video_id,
             query={'request': 'video', 'v': video_id})
-        title = video['title']
+        title = unescapeHTML(video['title'])
 
         formats = []
         for height, ua in (video.get('ua') or {}).items():
@@ -75,3 +89,36 @@ class RumbleEmbedIE(InfoExtractor):
             'channel_url': author.get('url'),
             'duration': int_or_none(video.get('duration')),
         }
+
+
+class RumbleChannelIE(InfoExtractor):
+    _VALID_URL = r'(?P<url>https?://(?:www\.)?rumble\.com/(?:c|user)/(?P<id>[^&?#$/]+))'
+
+    _TESTS = [{
+        'url': 'https://rumble.com/c/Styxhexenhammer666',
+        'playlist_mincount': 1160,
+        'info_dict': {
+            'id': 'Styxhexenhammer666',
+        },
+    }, {
+        'url': 'https://rumble.com/user/goldenpoodleharleyeuna',
+        'playlist_count': 4,
+        'info_dict': {
+            'id': 'goldenpoodleharleyeuna',
+        },
+    }]
+
+    def entries(self, url, playlist_id):
+        for page in itertools.count(1):
+            try:
+                webpage = self._download_webpage(f'{url}?page={page}', playlist_id, note='Downloading page %d' % page)
+            except ExtractorError as e:
+                if isinstance(e.cause, compat_HTTPError) and e.cause.code == 404:
+                    break
+                raise
+            for video_url in re.findall(r'class=video-item--a\s?href=([^>]+\.html)', webpage):
+                yield self.url_result('https://rumble.com' + video_url)
+
+    def _real_extract(self, url):
+        url, playlist_id = self._match_valid_url(url).groups()
+        return self.playlist_result(self.entries(url, playlist_id), playlist_id=playlist_id)

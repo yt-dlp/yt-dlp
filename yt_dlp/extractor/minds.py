@@ -1,10 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     clean_html,
+    format_field,
     int_or_none,
     str_or_none,
     strip_or_none,
@@ -120,7 +118,7 @@ class MindsIE(MindsBaseIE):
             'timestamp': int_or_none(entity.get('time_created')),
             'uploader': strip_or_none(owner.get('name')),
             'uploader_id': uploader_id,
-            'uploader_url': 'https://www.minds.com/' + uploader_id if uploader_id else None,
+            'uploader_url': format_field(uploader_id, template='https://www.minds.com/%s'),
             'view_count': int_or_none(entity.get('play:count')),
             'like_count': int_or_none(entity.get('thumbs:up:count')),
             'dislike_count': int_or_none(entity.get('thumbs:down:count')),
