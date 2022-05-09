@@ -4,7 +4,7 @@ from ..utils import int_or_none, parse_qs
 
 class ToggoIE(InfoExtractor):
     IE_NAME = 'toggo'
-    _VALID_URL = r'https?://(?:www\.)?toggo\.de/[^/?#]+/folge/(?P<id>[^/?#]+)'
+    _VALID_URL = r'https?://(?:www\.)?toggo\.de/(?:toggolino/)?[^/?#]+/folge/(?P<id>[^/?#]+)'
     _TESTS = [{
         'url': 'https://www.toggo.de/weihnachtsmann--co-kg/folge/ein-geschenk-fuer-zwei',
         'info_dict': {
