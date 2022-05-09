@@ -484,29 +484,7 @@ class TikTokIE(TikTokBaseIE):
             'repost_count': int,
             'comment_count': int,
         },
-    }, {
-        # hydration JSON is sent in a <script> element
-        'url': 'https://www.tiktok.com/@denidil6/video/7065799023130643713',
-        'info_dict': {
-            'id': '7065799023130643713',
-            'ext': 'mp4',
-            'title': '#denidil#денидил',
-            'description': '#denidil#денидил',
-            'uploader': 'denidil6',
-            'uploader_id': '7046664115636405250',
-            'uploader_url': 'https://www.tiktok.com/@MS4wLjABAAAAsvMSzFdQ4ikl3uR2TEJwMBbB2yZh2Zxwhx-WCo3rbDpAharE3GQCrFuJArI3C8QJ',
-            'artist': 'Holocron Music',
-            'album': 'Wolf Sounds (1 Hour) Enjoy the Company of the Animal That Is the Majestic King of the Night',
-            'track': 'Wolf Sounds (1 Hour) Enjoy the Company of the Animal That Is the Majestic King of the Night',
-            'timestamp': 1645134536,
-            'duration': 26,
-            'upload_date': '20220217',
-            'view_count': int,
-            'like_count': int,
-            'repost_count': int,
-            'comment_count': int,
-        },
-        'expected_warnings': ['Retrying with feed workaround', 'Unable to find video in feed']
+        'expected_warnings': ['Video not available', 'Creating a generic title']
     }, {
         # Auto-captions available
         'url': 'https://www.tiktok.com/@hankgreen1/video/7047596209028074758',
@@ -536,20 +514,9 @@ class TikTokIE(TikTokBaseIE):
         except ExtractorError as e:
             self.report_warning(f'{e.orig_msg}; Retrying with webpage')
 
-        def get_random_cookie():
-            """Creates a random cookie (name, value) pair compliant with RFC 6265"""
-            alnum = string.ascii_letters + string.digits
-            # text: printable not in whitespace
-            name_set = '!#$%&\'*+-.^_`|~' + alnum  # in text not in '()<>@,;:"/[]?={}\\'
-            value_set = '!#$%&\'()*+-./:<=>?@[]^_`{|}~' + alnum  # in text not in '",;\\'
-            name_length = random.randint(1, 4096 - 1)  # keep at least one byte for value
-            value_length = random.randint(1, 4096 - name_length)
-            return ''.join(random.choice(name_set) for _ in range(name_length)), \
-                   ''.join(random.choice(value_set) for _ in range(value_length))
-
-        self._set_cookie('www.tiktok.com', *get_random_cookie())
         # If we only call once, we get a 403 when downlaoding the video.
-        webpage = self._download_webpage(url, video_id, tries=2)
+        self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, note='Downloading video webpage')
         next_data = self._search_nextjs_data(webpage, video_id, default='{}')
 
         if next_data:
