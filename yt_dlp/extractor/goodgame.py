@@ -1,9 +1,6 @@
 from .common import InfoExtractor
 from ..utils import clean_html, traverse_obj
 
-_GOODGAME_API = 'https://api2.goodgame.ru/v2'
-_GOODGAME_HLS = 'https://hls.goodgame.ru'
-
 
 class GoodGameIE(InfoExtractor):
     IE_NAME = 'goodgame:stream'
