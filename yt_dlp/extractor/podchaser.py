@@ -12,6 +12,8 @@ from ..utils import (
 
 _VALID_URL_BASE = r'https?://(?:www\.)?podchaser\.com/podcasts/[\w-]+-'
 _API_BASE = 'https://api.podchaser.com'
+_PAGE_SIZE = 100
+
 
 def _extract_episode(podcast, episode):
     return {
@@ -27,6 +29,7 @@ def _extract_episode(podcast, episode):
         'tags': traverse_obj(podcast, ('tags', ..., 'text')),
         'series': podcast.get('title'),
     }
+
 
 class PodchaserBaseIE(InfoExtractor):
     pass
@@ -80,7 +83,6 @@ class PodchaserFeedIE(PodchaserBaseIE):
         },
         'playlist_mincount': 225
     }]
-    _PAGE_SIZE = 100
 
     @classmethod
     def suitable(cls, url):
@@ -88,8 +90,8 @@ class PodchaserFeedIE(PodchaserBaseIE):
 
     def _fetch_page(self, podcast_id, podcast, page):
         params = {
-            'start': page * self._PAGE_SIZE,
-            'count': self._PAGE_SIZE,
+            'start': page * _PAGE_SIZE,
+            'count': _PAGE_SIZE,
             'sort_order': 'SORT_ORDER_RECENT',
             'filters': {
                 'podcast_id': podcast_id
