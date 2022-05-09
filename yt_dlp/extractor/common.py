@@ -469,14 +469,18 @@ class InfoExtractor:
     _WORKING = True
     _NETRC_MACHINE = None
     IE_DESC = None
+    SEARCH_KEY = None
 
-    _LOGIN_HINTS = {
-        'any': 'Use --cookies, --cookies-from-browser, --username and --password, or --netrc to provide account credentials',
-        'cookies': (
-            'Use --cookies-from-browser or --cookies for the authentication. '
-            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
-        'password': 'Use --username and --password, or --netrc to provide account credentials',
-    }
+    def _login_hint(self, method=NO_DEFAULT, netrc=None):
+        password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        return {
+            None: '',
+            'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
+            'password': f'Use {password_hint}',
+            'cookies': (
+                'Use --cookies-from-browser or --cookies for the authentication. '
+                'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
+        }[method if method is not NO_DEFAULT else 'any' if self.supports_login() else 'cookies']
 
     def __init__(self, downloader=None):
         """Constructor. Receives an optional downloader (a YoutubeDL instance).
@@ -539,7 +543,7 @@ class InfoExtractor:
                 if username:
                     self._perform_login(username, password)
             elif self.get_param('username') and False not in (self.IE_DESC, self._NETRC_MACHINE):
-                self.report_warning(f'Login with password is not supported for this website. {self._LOGIN_HINTS["cookies"]}')
+                self.report_warning(f'Login with password is not supported for this website. {self._login_hint("cookies")}')
             self._real_initialize()
             self._ready = True
 
@@ -708,7 +712,7 @@ class InfoExtractor:
 
     @property
     def IE_NAME(self):
-        return compat_str(type(self).__name__[:-2])
+        return type(self).__name__[:-2]
 
     @staticmethod
     def __can_accept_status_code(err, expected_status):
@@ -1131,11 +1135,7 @@ class InfoExtractor:
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
             return
-        if method is NO_DEFAULT:
-            method = 'any' if self.supports_login() else 'cookies'
-        if method is not None:
-            assert method in self._LOGIN_HINTS, 'Invalid login method'
-            msg = f'{msg}. {self._LOGIN_HINTS[method]}'
+        msg += format_field(self._login_hint(method), template='. %s')
         raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
@@ -3652,6 +3652,29 @@ class InfoExtractor:
                 return True
             any_restricted = any_restricted or is_restricted
         return not any_restricted
+
+    def description(self, *, markdown=True, search_examples=None):
+        """Description of the extractor"""
+        desc = ''
+        if self._NETRC_MACHINE:
+            if markdown:
+                desc += f' [<abbr title="netrc machine"><em>{self._NETRC_MACHINE}</em></abbr>]'
+            else:
+                desc += f' [{self._NETRC_MACHINE}]'
+        if self.IE_DESC is False:
+            desc += ' [HIDDEN]'
+        elif self.IE_DESC:
+            desc += f' {self.IE_DESC}'
+        if self.SEARCH_KEY:
+            desc += f'; "{self.SEARCH_KEY}:" prefix'
+            if search_examples:
+                _COUNTS = ('', '5', '10', 'all')
+                desc += f' (Example: "{self.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
+        if not self.working():
+            desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
+
+        name = f' - **{self.IE_NAME}**' if markdown else self.IE_NAME
+        return f'{name}:{desc}' if desc else name
 
     def extract_subtitles(self, *args, **kwargs):
         if (self.get_param('writesubtitles', False)

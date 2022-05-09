@@ -38,14 +38,10 @@ def gen_extractors():
 
 
 def list_extractors(age_limit):
-    """
-    Return a list of extractors that are suitable for the given age,
-    sorted by extractor ID.
-    """
-
-    return sorted(
-        filter(lambda ie: ie.is_suitable(age_limit), gen_extractors()),
-        key=lambda ie: ie.IE_NAME.lower())
+    """Return a list of extractors that are suitable for the given age, sorted by extractor name"""
+    return sorted(filter(
+        lambda ie: ie.is_suitable(age_limit),
+        gen_extractors()), key=lambda ie: ie.IE_NAME.lower())
 
 
 def get_info_extractor(ie_name):
