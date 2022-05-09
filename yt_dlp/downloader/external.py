@@ -299,7 +299,7 @@ class Aria2cFD(ExternalFD):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
             stream, _ = self.sanitize_open(url_list_file, 'wb')
-            stream.write('\n'.join(url_list).encode('utf-8'))
+            stream.write('\n'.join(url_list).encode())
             stream.close()
             cmd += ['-i', url_list_file]
         else:

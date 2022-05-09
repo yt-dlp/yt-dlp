@@ -3173,7 +3173,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Eg: __2ABJjxzNo, ySuUZEjARPY
             is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) / duration < 500)
             if is_damaged:
-                self.report_warning(f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+                self.report_warning(
+                    f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
@@ -3222,6 +3223,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         skip_manifests = self._configuration_arg('skip')
         if not self.get_param('youtube_include_hls_manifest', True):
             skip_manifests.append('hls')
+        if not self.get_param('youtube_include_dash_manifest', True):
+            skip_manifests.append('dash')
         get_dash = 'dash' not in skip_manifests and (
             not is_live or live_from_start or self._configuration_arg('include_live_dash'))
         get_hls = not live_from_start and 'hls' not in skip_manifests

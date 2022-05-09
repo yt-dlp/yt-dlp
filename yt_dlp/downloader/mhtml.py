@@ -54,7 +54,7 @@ body > figure > img {
     def _escape_mime(s):
         return '=?utf-8?Q?' + (b''.join(
             bytes((b,)) if b >= 0x20 else b'=%02X' % b
-            for b in quopri.encodestring(s.encode('utf-8'), header=True)
+            for b in quopri.encodestring(s.encode(), header=True)
         )).decode('us-ascii') + '?='
 
     def _gen_cid(self, i, fragment, frag_boundary):
@@ -151,7 +151,7 @@ body > figure > img {
                 length=len(stub),
                 title=self._escape_mime(title),
                 stub=stub
-            ).encode('utf-8'))
+            ).encode())
             extra_state['header_written'] = True
 
         for i, fragment in enumerate(fragments):

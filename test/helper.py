@@ -92,7 +92,7 @@ def gettestcases(include_onlymatching=False):
         yield from ie.get_testcases(include_onlymatching)
 
 
-md5 = lambda s: hashlib.md5(s.encode('utf-8')).hexdigest()
+md5 = lambda s: hashlib.md5(s.encode()).hexdigest()
 
 
 def expect_value(self, got, expected, field):

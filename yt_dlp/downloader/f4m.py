@@ -412,7 +412,7 @@ class F4mFD(FragmentFD):
                     if box_type == b'mdat':
                         self._append_fragment(ctx, box_data)
                         break
-            except (compat_urllib_error.HTTPError, ) as err:
+            except compat_urllib_error.HTTPError as err:
                 if live and (err.code == 404 or err.code == 410):
                     # We didn't keep up with the live window. Continue
                     # with the next available fragment.

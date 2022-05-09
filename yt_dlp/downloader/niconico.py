@@ -51,4 +51,4 @@ class NiconicoDmcFD(FileDownloader):
                 with heartbeat_lock:
                     timer[0].cancel()
                     download_complete = True
-            return success
+        return success

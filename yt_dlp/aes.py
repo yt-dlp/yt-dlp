@@ -265,7 +265,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     NONCE_LENGTH_BYTES = 8
 
     data = bytes_to_intlist(compat_b64decode(data))
-    password = bytes_to_intlist(password.encode('utf-8'))
+    password = bytes_to_intlist(password.encode())
 
     key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))
     key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)

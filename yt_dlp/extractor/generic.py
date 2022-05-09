@@ -1030,20 +1030,6 @@ class GenericIE(InfoExtractor):
                 'filesize': 24687186,
             },
         },
-        {
-            'url': 'http://thoughtworks.wistia.com/medias/uxjb0lwrcz',
-            'md5': 'baf49c2baa8a7de5f3fc145a8506dcd4',
-            'info_dict': {
-                'id': 'uxjb0lwrcz',
-                'ext': 'mp4',
-                'title': 'Conversation about Hexagonal Rails Part 1',
-                'description': 'a Martin Fowler video from ThoughtWorks',
-                'duration': 1715.0,
-                'uploader': 'thoughtworks.wistia.com',
-                'timestamp': 1401832161,
-                'upload_date': '20140603',
-            },
-        },
         # Wistia standard embed (async)
         {
             'url': 'https://www.getdrip.com/university/brennan-dunn-drip-workshop/',

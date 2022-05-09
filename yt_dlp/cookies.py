@@ -283,10 +283,10 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
 
 
 def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, path, expires_utc, is_secure):
-    host_key = host_key.decode('utf-8')
-    name = name.decode('utf-8')
-    value = value.decode('utf-8')
-    path = path.decode('utf-8')
+    host_key = host_key.decode()
+    name = name.decode()
+    value = value.decode()
+    path = path.decode()
     is_encrypted = not value and encrypted_value
 
     if is_encrypted:
@@ -458,7 +458,7 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
             self._cookie_counts['other'] += 1
             # any other prefix means the data is DPAPI encrypted
             # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_win.cc
-            return _decrypt_windows_dpapi(encrypted_value, self._logger).decode('utf-8')
+            return _decrypt_windows_dpapi(encrypted_value, self._logger).decode()
 
 
 def _extract_safari_cookies(profile, logger):
@@ -521,7 +521,7 @@ class DataParser:
         while True:
             c = self.read_bytes(1)
             if c == b'\x00':
-                return b''.join(buffer).decode('utf-8')
+                return b''.join(buffer).decode()
             else:
                 buffer.append(c)
 
@@ -735,7 +735,7 @@ def _get_kwallet_network_wallet(logger):
             logger.warning('failed to read NetworkWallet')
             return default_wallet
         else:
-            network_wallet = stdout.decode('utf-8').strip()
+            network_wallet = stdout.decode().strip()
             logger.debug(f'NetworkWallet = "{network_wallet}"')
             return network_wallet
     except Exception as e:
@@ -873,7 +873,7 @@ def pbkdf2_sha1(password, salt, iterations, key_length):
 def _decrypt_aes_cbc(ciphertext, key, logger, initialization_vector=b' ' * 16):
     plaintext = unpad_pkcs7(aes_cbc_decrypt_bytes(ciphertext, key, initialization_vector))
     try:
-        return plaintext.decode('utf-8')
+        return plaintext.decode()
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie (AES-CBC) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
@@ -887,7 +887,7 @@ def _decrypt_aes_gcm(ciphertext, key, nonce, authentication_tag, logger):
         return None
 
     try:
-        return plaintext.decode('utf-8')
+        return plaintext.decode()
     except UnicodeDecodeError:
         logger.warning('failed to decrypt cookie (AES-GCM) because UTF-8 decoding failed. Possibly the key is wrong?', only_once=True)
         return None
@@ -939,7 +939,7 @@ def _open_database_copy(database_path, tmpdir):
 
 def _get_column_names(cursor, table_name):
     table_info = cursor.execute(f'PRAGMA table_info({table_name})').fetchall()
-    return [row[1].decode('utf-8') for row in table_info]
+    return [row[1].decode() for row in table_info]
 
 
 def _find_most_recently_used_file(root, filename, logger):
