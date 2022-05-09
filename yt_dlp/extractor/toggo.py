@@ -30,6 +30,9 @@ class ToggoIE(InfoExtractor):
     }, {
         'url': 'https://www.toggo.de/grizzy--die-lemminge/folge/ab-durch-die-wand-vogelfrei-rock\'n\'lemming',
         'only_matching': True,
+    }, {
+        'url': 'https://www.toggo.de/toggolino/paw-patrol/folge/der-wetter-zeppelin-der-chili-kochwettbewerb',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
