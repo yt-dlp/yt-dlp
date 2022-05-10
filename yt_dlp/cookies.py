@@ -83,9 +83,12 @@ def load_cookies(cookie_file, browser_specification, ydl):
         cookie_jars.append(extract_cookies_from_browser(browser_name, profile, YDLLogger(ydl), keyring=keyring))
 
     if cookie_file is not None:
-        cookie_file = expand_path(cookie_file)
+        is_filename = YoutubeDLCookieJar.is_path(cookie_file)
+        if is_filename:
+            cookie_file = expand_path(cookie_file)
+
         jar = YoutubeDLCookieJar(cookie_file)
-        if os.access(cookie_file, os.R_OK):
+        if not is_filename or os.access(cookie_file, os.R_OK):
             jar.load(ignore_discard=True, ignore_expires=True)
         cookie_jars.append(jar)
 
