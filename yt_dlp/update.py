@@ -49,7 +49,7 @@ def run_update(ydl):
     Returns whether the program should terminate
     """
 
-    JSON_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest'
+    JSON_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/tags'
 
     def report_error(msg, expected=False):
         ydl.report_error(msg, tb='' if expected else None)
@@ -74,7 +74,9 @@ def run_update(ydl):
 
     # Download and check versions info
     try:
-        version_info = ydl._opener.open(JSON_URL).read().decode()
+        tags = ydl._opener.open(JSON_URL).read().decode()
+        last_name = json.loads(tags)[0]['name']
+        version_info = ydl._opener.open(f'https://api.github.com/repos/yt-dlp/yt-dlp/releases/tags/{last_name}').read().decode()
         version_info = json.loads(version_info)
     except Exception:
         return report_network_error('obtain version info', delim='; Please try again later or')
