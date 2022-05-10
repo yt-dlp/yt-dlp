@@ -1881,8 +1881,7 @@ def write_string(s, out=None, encoding=None):
     assert isinstance(s, str)
     out = out or sys.stderr
 
-    from .compat import WINDOWS_VT_MODE  # Must be imported locally
-    if WINDOWS_VT_MODE:
+    if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
     if 'b' in getattr(out, 'mode', ''):
