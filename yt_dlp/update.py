@@ -49,7 +49,7 @@ def run_update(ydl):
     Returns whether the program should terminate
     """
 
-    JSON_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp/tags'
+    JSON_URL = 'https://api.github.com/repos/yt-dlp/yt-dlp'
 
     def report_error(msg, expected=False):
         ydl.report_error(msg, tb='' if expected else None)
@@ -61,7 +61,7 @@ def run_update(ydl):
         report_unable(f'write to {file}; Try running as administrator', True)
 
     def report_network_error(action, delim=';'):
-        report_unable(f'{action}{delim} Visit  https://github.com/yt-dlp/yt-dlp/releases/latest', True)
+        report_unable(f'{action}{delim} Visit https://github.com/yt-dlp/yt-dlp/tags', True)
 
     def calc_sha256sum(path):
         h = hashlib.sha256()
@@ -74,9 +74,8 @@ def run_update(ydl):
 
     # Download and check versions info
     try:
-        tags = ydl._opener.open(JSON_URL).read().decode()
-        last_name = json.loads(tags)[0]['name']
-        version_info = ydl._opener.open(f'https://api.github.com/repos/yt-dlp/yt-dlp/releases/tags/{last_name}').read().decode()
+        last_name = json.loads(ydl._opener.open(f'{JSON_URL}/tags').read().decode())[0]['name']
+        version_info = ydl._opener.open(f'{JSON_URL}/releases/tags/{last_name}').read().decode()
         version_info = json.loads(version_info)
     except Exception:
         return report_network_error('obtain version info', delim='; Please try again later or')
