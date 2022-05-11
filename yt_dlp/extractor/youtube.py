@@ -348,6 +348,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion',
         r'(?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion',
         r'(?:www\.)?hpniueoejy4opn7bc4ftgazyqjoeqwlvh2uiku2xqku6zpoa4bf5ruid\.onion',
+        # piped instances
+        r'(?:www\.)?piped\.kavin\.rocks',
+        r'(?:www\.)?piped\.silkky\.cloud',
+        r'(?:www\.)?piped\.tokhmi\.xyz',
+        r'(?:www\.)?piped\.moomoo\.me',
+        r'(?:www\.)?piped\.mha\.fi',
+        r'(?:www\.)?piped\.mint\.lgbt',
+        r'(?:www\.)?piped\.privacy\.com\.de',
+        r'(?:www\.)?il\.ax',
+
     )
 
     def _initialize_consent(self):
@@ -1046,6 +1056,33 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     IE_NAME = 'youtube'
     _TESTS = [
+        {
+        'url': 'https://piped.privacy.com.de/watch?v=BaW_jenozKc',
+        'info_dict': {
+                'id': 'BaW_jenozKc',
+                'ext': 'mp4',
+                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
+                'uploader': 'Philipp Hagemeister',
+                'uploader_id': 'phihag',
+                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/phihag',
+                'channel': 'Philipp Hagemeister',
+                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
+                'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
+                'upload_date': '20121002',
+                'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
+                'categories': ['Science & Technology'],
+                'tags': ['youtube-dl'],
+                'duration': 10,
+                'view_count': int,
+                'like_count': int,
+                'availability': 'public',
+                'playable_in_embed': True,
+                'thumbnail': 'https://i.ytimg.com/vi/BaW_jenozKc/maxresdefault.jpg',
+                'live_status': 'not_live',
+                'age_limit': 0,
+                'channel_follower_count': int
+            }
+    },
         {
             'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&t=1s&end=9',
             'info_dict': {
