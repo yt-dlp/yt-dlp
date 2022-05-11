@@ -41,7 +41,6 @@ class MashableIE(InfoExtractor):
             video_metadata = json.loads(matches.group(1))
             pattern = re.compile(r'https:\/\/vdist.aws.mashable.com\/cms/[0-9]{4}\/[0-9]{1,2}\/(.*-.*-.*)\/mp4\/.*')
             video_id = pattern.search(video_metadata['url']).group(1)
-            url = video_metadata['url']
             thumbnail_url = video_metadata.get('thumbnail_url')
             duration = float(video_metadata.get('duration'))
             m3u8_url = try_get(video_metadata, lambda x: x['transcoded_urls'][0])
