@@ -230,8 +230,6 @@ class IsmFD(FragmentFD):
     Download segments in a ISM manifest
     """
 
-    FD_NAME = 'ism'
-
     def real_download(self, filename, info_dict):
         segments = info_dict['fragments'][:1] if self.params.get(
             'test', False) else info_dict['fragments']

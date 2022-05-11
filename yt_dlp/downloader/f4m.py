@@ -256,8 +256,6 @@ class F4mFD(FragmentFD):
     A downloader for f4m manifests or AdobeHDS.
     """
 
-    FD_NAME = 'f4m'
-
     def _get_unencrypted_media(self, doc):
         media = doc.findall(_add_ns('media'))
         if not media:

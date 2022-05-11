@@ -9,8 +9,6 @@ from ..version import __version__ as YT_DLP_VERSION
 
 
 class MhtmlFD(FragmentFD):
-    FD_NAME = 'mhtml'
-
     _STYLESHEET = """\
 html, body {
     margin: 0;

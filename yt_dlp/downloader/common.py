@@ -98,6 +98,10 @@ class FileDownloader:
     def to_screen(self, *args, **kargs):
         self.ydl.to_screen(*args, quiet=self.params.get('quiet'), **kargs)
 
+    @property
+    def FD_NAME(self):
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', type(self).__name__[:-2]).lower()
+
     @staticmethod
     def format_seconds(seconds):
         time = timetuple_from_msec(seconds * 1000)

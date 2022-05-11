@@ -9,8 +9,6 @@ from ..utils import sanitized_Request
 class NiconicoDmcFD(FileDownloader):
     """ Downloading niconico douga from DMC with heartbeat """
 
-    FD_NAME = 'niconico_dmc'
-
     def real_download(self, filename, info_dict):
         self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
 

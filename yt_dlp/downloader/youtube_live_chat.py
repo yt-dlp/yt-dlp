@@ -10,8 +10,6 @@ from ..utils import RegexNotFoundError, dict_get, int_or_none, try_get
 class YoutubeLiveChatFD(FragmentFD):
     """ Downloads YouTube live chats fragment by fragment """
 
-    FD_NAME = 'youtube_live_chat'
-
     def real_download(self, filename, info_dict):
         video_id = info_dict['video_id']
         self.to_screen('[%s] Downloading live chat' % self.FD_NAME)
