@@ -135,7 +135,8 @@ def _extract_firefox_cookies(profile, logger):
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
-                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    if i % 100 == 0:
+                        progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
                     cookie = compat_cookiejar_Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
@@ -263,7 +264,8 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
                 table = cursor.fetchall()
                 total_cookie_count = len(table)
                 for i, line in enumerate(table):
-                    progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
+                    if i % 100 == 0:
+                        progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
                     is_encrypted, cookie = _process_chrome_cookie(decryptor, *line)
                     if not cookie:
                         failed_cookies += 1
@@ -566,7 +568,8 @@ def _parse_safari_cookies_page(data, jar, logger):
 
     with _create_progress_bar(logger) as progress_bar:
         for i, record_offset in enumerate(record_offsets):
-            progress_bar.print(f'Loading cookie {i: 6d}/{number_of_cookies: 6d}')
+            if i % 100 == 0:
+                progress_bar.print(f'Loading cookie {i: 6d}/{number_of_cookies: 6d}')
             p.skip_to(record_offset, 'space between records')
             record_length = _parse_safari_cookies_record(data[record_offset:], jar, logger)
             p.read_bytes(record_length)
@@ -952,7 +955,8 @@ def _find_most_recently_used_file(root, filename, logger):
         for curr_root, dirs, files in os.walk(root):
             for file in files:
                 i += 1
-                progress_bar.print(f'Searching for "{filename}": {i: 6d} files searched')
+                if i % 1000 == 0:
+                    progress_bar.print(f'Searching for "{filename}": {i: 6d} files searched')
                 if file == filename:
                     paths.append(os.path.join(curr_root, file))
     return None if not paths else max(paths, key=lambda path: os.lstat(path).st_mtime)
