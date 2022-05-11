@@ -427,7 +427,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      (e.g. 50k or 44.6m)
     --date DATE                      Download only videos uploaded on this date.
                                      The date can be "YYYYMMDD" or in the format
-                                     "(now|today)[+-][0-9](day|week|month|year)(s)?"
+                                     [now|today|yesterday][-N[day|week|month|year]].
+                                     Eg: --date today-2weeks
     --datebefore DATE                Download only videos uploaded on or before
                                      this date. The date formats accepted is the
                                      same as --date

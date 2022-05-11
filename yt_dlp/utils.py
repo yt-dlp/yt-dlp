@@ -1756,14 +1756,14 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
 
 
 def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
-    """
-    Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    R"""
+    Return a datetime object from a string.
+    Supported format:
+        (now|today|yesterday|DATE)([+-]\d+(microsecond|second|minute|hour|day|week|month|year)s?)?
 
-    format: string date format used to return datetime object from
-    precision: round the time portion of a datetime object.
-                auto|microsecond|second|minute|hour|day.
-                auto: round to the unit provided in date_str (if applicable).
+    @param format       strftime format of DATE
+    @param precision    Round the datetime object: auto|microsecond|second|minute|hour|day
+                        auto: round to the unit provided in date_str (if applicable).
     """
     auto_precision = False
     if precision == 'auto':
@@ -1775,7 +1775,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if date_str == 'yesterday':
         return today - datetime.timedelta(days=1)
     match = re.match(
-        r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)(s)?',
+        r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?',
         date_str)
     if match is not None:
         start_time = datetime_from_str(match.group('start'), precision, format)
@@ -1798,16 +1798,14 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
 
 
 def date_from_str(date_str, format='%Y%m%d', strict=False):
-    """
-    Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    R"""
+    Return a date object from a string using datetime_from_str
 
-    If "strict", only (now|today)[+-][0-9](day|week|month|year)(s)? is allowed
-
-    format: string date format used to return datetime object from
+    @param strict  Restrict allowed patterns to "YYYYMMDD" and
+                   (now|today|yesterday)(-\d+(day|week|month|year)s?)?
     """
-    if strict and not re.fullmatch(r'\d{8}|(now|today)[+-]\d+(day|week|month|year)(s)?', date_str):
-        raise ValueError(f'Invalid date format {date_str}')
+    if strict and not re.fullmatch(r'\d{8}|(now|today|yesterday)(-\d+(day|week|month|year)s?)?', date_str):
+        raise ValueError(f'Invalid date format "{date_str}"')
     return datetime_from_str(date_str, precision='microsecond', format=format).date()
 
 
