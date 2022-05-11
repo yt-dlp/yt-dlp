@@ -860,7 +860,7 @@ from .markiza import (
     MarkizaIE,
     MarkizaPageIE,
 )
-from .mashable import MashableExtractorIE
+from .mashable import MashableIE
 from .massengeschmacktv import MassengeschmackTVIE
 from .masters import MastersIE
 from .matchtv import MatchTVIE
