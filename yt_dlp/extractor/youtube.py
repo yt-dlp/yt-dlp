@@ -1055,35 +1055,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _GEO_BYPASS = False
 
     IE_NAME = 'youtube'
-    _TESTS = [
-        {
-        'url': 'https://piped.privacy.com.de/watch?v=BaW_jenozKc',
-        'info_dict': {
-                'id': 'BaW_jenozKc',
-                'ext': 'mp4',
-                'title': 'youtube-dl test video "\'/\\ä↭𝕐',
-                'uploader': 'Philipp Hagemeister',
-                'uploader_id': 'phihag',
-                'uploader_url': r're:https?://(?:www\.)?youtube\.com/user/phihag',
-                'channel': 'Philipp Hagemeister',
-                'channel_id': 'UCLqxVugv74EIW3VWh2NOa3Q',
-                'channel_url': r're:https?://(?:www\.)?youtube\.com/channel/UCLqxVugv74EIW3VWh2NOa3Q',
-                'upload_date': '20121002',
-                'description': 'md5:8fb536f4877b8a7455c2ec23794dbc22',
-                'categories': ['Science & Technology'],
-                'tags': ['youtube-dl'],
-                'duration': 10,
-                'view_count': int,
-                'like_count': int,
-                'availability': 'public',
-                'playable_in_embed': True,
-                'thumbnail': 'https://i.ytimg.com/vi/BaW_jenozKc/maxresdefault.jpg',
-                'live_status': 'not_live',
-                'age_limit': 0,
-                'channel_follower_count': int
-            }
-    },
-        {
+    _TESTS = [{
             'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&t=1s&end=9',
             'info_dict': {
                 'id': 'BaW_jenozKc',
