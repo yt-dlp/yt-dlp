@@ -2,24 +2,24 @@ import json
 import re
 
 from yt_dlp.utils import ExtractorError
-
 from .common import InfoExtractor
+
 
 class MashableExtractorIE(InfoExtractor):
     # _VALID_URL = r'https?://(?:www\.)?mashable\.com/video/(?P<id>[0-9]+)'
     _VALID_URL = r'https?://(?:www\.)?mashable\.com/video/(.*)'
     _TESTS = [{
-            'url': 'https://mashable.com/video/why-life-on-venus-is-better-than-mars',
-            'md5': 'f401a6db2b649d9733c7753474dd2a31',
-            'info_dict': {
-                'id': '50319e30-a4ce-084d',
-                'ext': 'mp4',
-                'duration': 257.0,
-                'title': 'MashableExtractor video #50319e30-a4ce-084d', # generic assigned by code
-                'thumbnail': r're:^https?://.*\.jpg$',
-                'description': 'Leave Mars to the ultra-rich. It’s Venus we should move to one day.',
-            }
-        },
+        'url': 'https://mashable.com/video/why-life-on-venus-is-better-than-mars',
+        'md5': 'f401a6db2b649d9733c7753474dd2a31',
+        'info_dict': {
+            'id': '50319e30-a4ce-084d',
+            'ext': 'mp4',
+            'duration': 257.0,
+            'title': 'MashableExtractor video #50319e30-a4ce-084d',  # generic assigned by code
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'description': 'Leave Mars to the ultra-rich. It’s Venus we should move to one day.',
+        }
+    },
         {
             'url': 'https://mashable.com/video/who-took-the-first-selfie-ever',
             'md5': '4e83f6efc988ffa242fe7254094b9774',
@@ -31,11 +31,10 @@ class MashableExtractorIE(InfoExtractor):
                 'thumbnail': r're:^https?://.*\.png$',
                 'description': 'Say cheese!',
             }
-        }]
+    }]
 
     def _real_extract(self, url):
         webpage = self._download_webpage(url, None)
-        
         pattern = re.compile(r'data: (.*),')
         matches = pattern.search(webpage)
         try:
