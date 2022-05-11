@@ -22,10 +22,10 @@ class GoodGameIE(InfoExtractor):
     def _real_extract(self, url):
         channel_id = self._match_id(url)
 
-        gg = self._download_json(f'https://api2.goodgame.ru/v2/streams/{channel_id}', channel_id)
+        response = self._download_json(f'https://api2.goodgame.ru/v2/streams/{channel_id}', channel_id)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(
-            f'https://hls.goodgame.ru/manifest/{gg["id"]}_master.m3u8',
+            f'https://hls.goodgame.ru/manifest/{response.get("id")}_master.m3u8',
             channel_id, 'mp4', m3u8_id='hls', live=True)
         self._sort_formats(formats)
 
@@ -33,8 +33,9 @@ class GoodGameIE(InfoExtractor):
             'id': channel_id,
             'formats': formats,
             'subtitles': subtitles,
-            'title': traverse_obj(gg, ('channel', 'title')),
-            'description': clean_html(traverse_obj(gg, ('channel', 'description'))),
-            'thumbnail': traverse_obj(gg, ('channel', 'thumb')),
+            'title': traverse_obj(response, ('channel', 'title')),
+            'description': clean_html(traverse_obj(response, ('channel', 'description'))),
+            'thumbnail': traverse_obj(response, ('channel', 'thumb')),
             'is_live': True,
+            'live_status': 'is_live' if response.get('status') == 'live' else 'not_live',
         }
