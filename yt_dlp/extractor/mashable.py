@@ -9,19 +9,8 @@ class MashableExtractorIE(InfoExtractor):
     # _VALID_URL = r'https?://(?:www\.)?mashable\.com/video/(?P<id>[0-9]+)'
     _VALID_URL = r'https?://(?:www\.)?mashable\.com/video/(.*)'
     _TESTS = [{
-            'url': 'https://mashable.com/video/who-took-the-first-selfie-ever',
-            'md5': '57885cced912e5813a3e6447278c8b8e',
-            'info_dict': {
-                'id': '5cee6e38-f9c8-5ceb',
-                'ext': 'mp4',
-                'duration': 63.0,
-                'title': 'Who took the first selfie ever?',
-                'thumbnail': r're:^https?://.*\.png$',
-                'description': 'Say cheese!',
-            }
-        },{
             'url': 'https://mashable.com/video/why-life-on-venus-is-better-than-mars',
-            'md5': '109054d8aa133d33fd46985d42f1195e',
+            'md5': 'f401a6db2b649d9733c7753474dd2a31',
             'info_dict': {
                 'id': '50319e30-a4ce-084d',
                 'ext': 'mp4',
@@ -29,6 +18,18 @@ class MashableExtractorIE(InfoExtractor):
                 'title': 'MashableExtractor video #50319e30-a4ce-084d', # generic assigned by code
                 'thumbnail': r're:^https?://.*\.jpg$',
                 'description': 'Leave Mars to the ultra-rich. It’s Venus we should move to one day.',
+            }
+        },
+        {
+            'url': 'https://mashable.com/video/who-took-the-first-selfie-ever',
+            'md5': '4e83f6efc988ffa242fe7254094b9774',
+            'info_dict': {
+                'id': '5cee6e38-f9c8-5ceb',
+                'ext': 'mp4',
+                'duration': 63.0,
+                'title': 'Who took the first selfie ever?',
+                'thumbnail': r're:^https?://.*\.png$',
+                'description': 'Say cheese!',
             }
         }]
 
@@ -44,6 +45,8 @@ class MashableExtractorIE(InfoExtractor):
             url = video_metadata['url']
             thumbnail_url = video_metadata['thumbnail_url']
             duration = float(video_metadata['duration'])
+            formats = self._extract_m3u8_formats(video_metadata['transcoded_urls'][0], video_id, 'mp4', 'm3u8_native')
+            self._sort_formats(formats)
         except (ValueError, IndexError) as e:
             raise ExtractorError(f"Could not parse video metadata from mashable: {e}")
 
@@ -57,4 +60,5 @@ class MashableExtractorIE(InfoExtractor):
             'description': self._og_search_description(webpage),
             'url': url,
             'thumbnail': thumbnail_url,
+            'formats': formats,
         }
