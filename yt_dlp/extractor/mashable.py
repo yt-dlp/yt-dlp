@@ -1,7 +1,7 @@
 import json
 import re
 
-from yt_dlp.utils import ExtractorError
+from yt_dlp.utils import ExtractorError, try_get
 from .common import InfoExtractor
 
 
@@ -42,12 +42,14 @@ class MashableExtractorIE(InfoExtractor):
             pattern = re.compile(r'https:\/\/vdist.aws.mashable.com\/cms/[0-9]{4}\/[0-9]{1,2}\/(.*-.*-.*)\/mp4\/.*')
             video_id = pattern.search(video_metadata['url']).group(1)
             url = video_metadata['url']
-            thumbnail_url = video_metadata['thumbnail_url']
-            duration = float(video_metadata['duration'])
-            formats = self._extract_m3u8_formats(video_metadata['transcoded_urls'][0], video_id, 'mp4', 'm3u8_native')
-            self._sort_formats(formats)
+            thumbnail_url = video_metadata.get('thumbnail_url')
+            duration = float(video_metadata.get('duration'))
+            m3u8_url = try_get(video_metadata, lambda x: x['transcoded_urls'][0])
+            if m3u8_url:
+                formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native')
+                self._sort_formats(formats)
         except (ValueError, IndexError) as e:
-            raise ExtractorError(f"Could not parse video metadata from mashable: {e}")
+            raise ExtractorError(f'Could not parse video metadata from mashable: {e}')
 
         title = video_metadata['title'] if video_metadata['title'] else ''
 
@@ -59,5 +61,5 @@ class MashableExtractorIE(InfoExtractor):
             'description': self._og_search_description(webpage),
             'url': url,
             'thumbnail': thumbnail_url,
-            'formats': formats,
+            'formats': formats if formats else None,
         }
