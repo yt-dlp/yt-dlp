@@ -1055,7 +1055,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     _GEO_BYPASS = False
 
     IE_NAME = 'youtube'
-    _TESTS = [{
+    _TESTS = [
+        {
             'url': 'https://www.youtube.com/watch?v=BaW_jenozKc&t=1s&end=9',
             'info_dict': {
                 'id': 'BaW_jenozKc',
