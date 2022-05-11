@@ -13,6 +13,21 @@ class GoodGameIE(InfoExtractor):
             'title': 'Кочетятр',
             'description': '',
             'thumbnail': r're:^https?://.*\.jpg$',
+            'live_status': 'not_live',
+        },
+        'params': {
+            'skip_download': 'm3u8',
+        },
+        'skip': 'HTTP Error 404: Not Found',
+    }, {
+        'url': 'https://goodgame.ru/channel/LampaRPG',
+        'info_dict': {
+            'id': 'LampaRPG',
+            'ext': 'mp4',
+            'title': r're:Рейтинговые герои.*$',
+            'description': str,
+            'thumbnail': r're:^https?://.*\.jpg$',
+            'live_status': 'is_live',
         },
         'params': {
             'skip_download': 'm3u8',
@@ -37,5 +52,5 @@ class GoodGameIE(InfoExtractor):
             'description': clean_html(traverse_obj(response, ('channel', 'description'))),
             'thumbnail': traverse_obj(response, ('channel', 'thumb')),
             'is_live': True,
-            'live_status': 'is_live' if response.get('status') == 'live' else 'not_live',
+            'live_status': 'is_live' if response.get('status') == 'Live' else 'not_live',
         }
