@@ -18,6 +18,7 @@ from ..utils import (
     url_or_none,
 )
 
+
 class DRTVIE(InfoExtractor):
     _VALID_URL = r'''(?x)
                     https?://

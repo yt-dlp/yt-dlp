@@ -40,6 +40,7 @@ from ..utils import (
     age_restricted,
     base_url,
     bug_reports_message,
+    classproperty,
     clean_html,
     determine_ext,
     determine_protocol,
@@ -710,9 +711,9 @@ class InfoExtractor:
         """A string for getting the InfoExtractor with get_info_extractor"""
         return cls.__name__[:-2]
 
-    @property
-    def IE_NAME(self):
-        return type(self).__name__[:-2]
+    @classproperty
+    def IE_NAME(cls):
+        return cls.__name__[:-2]
 
     @staticmethod
     def __can_accept_status_code(err, expected_status):
@@ -3624,56 +3625,57 @@ class InfoExtractor:
                 self._set_cookie(domain, cookie, value)
                 break
 
-    def get_testcases(self, include_onlymatching=False):
-        t = getattr(self, '_TEST', None)
+    @classmethod
+    def get_testcases(cls, include_onlymatching=False):
+        t = getattr(cls, '_TEST', None)
         if t:
-            assert not hasattr(self, '_TESTS'), \
-                '%s has _TEST and _TESTS' % type(self).__name__
+            assert not hasattr(cls, '_TESTS'), f'{cls.ie_key()}IE has _TEST and _TESTS'
             tests = [t]
         else:
-            tests = getattr(self, '_TESTS', [])
+            tests = getattr(cls, '_TESTS', [])
         for t in tests:
             if not include_onlymatching and t.get('only_matching', False):
                 continue
-            t['name'] = type(self).__name__[:-len('IE')]
+            t['name'] = cls.ie_key()
             yield t
 
-    def is_suitable(self, age_limit):
+    @classmethod
+    def is_suitable(cls, age_limit):
         """ Test whether the extractor is generally suitable for the given
         age limit (i.e. pornographic sites are not, all others usually are) """
 
         any_restricted = False
-        for tc in self.get_testcases(include_onlymatching=False):
+        for tc in cls.get_testcases(include_onlymatching=False):
             if tc.get('playlist', []):
                 tc = tc['playlist'][0]
-            is_restricted = age_restricted(
-                tc.get('info_dict', {}).get('age_limit'), age_limit)
+            is_restricted = age_restricted(tc.get('info_dict', {}).get('age_limit'), age_limit)
             if not is_restricted:
                 return True
             any_restricted = any_restricted or is_restricted
         return not any_restricted
 
-    def description(self, *, markdown=True, search_examples=None):
+    @classmethod
+    def description(cls, *, markdown=True, search_examples=None):
         """Description of the extractor"""
         desc = ''
-        if self._NETRC_MACHINE:
+        if cls._NETRC_MACHINE:
             if markdown:
-                desc += f' [<abbr title="netrc machine"><em>{self._NETRC_MACHINE}</em></abbr>]'
+                desc += f' [<abbr title="netrc machine"><em>{cls._NETRC_MACHINE}</em></abbr>]'
             else:
-                desc += f' [{self._NETRC_MACHINE}]'
-        if self.IE_DESC is False:
+                desc += f' [{cls._NETRC_MACHINE}]'
+        if cls.IE_DESC is False:
             desc += ' [HIDDEN]'
-        elif self.IE_DESC:
-            desc += f' {self.IE_DESC}'
-        if self.SEARCH_KEY:
-            desc += f'; "{self.SEARCH_KEY}:" prefix'
+        elif cls.IE_DESC:
+            desc += f' {cls.IE_DESC}'
+        if cls.SEARCH_KEY:
+            desc += f'; "{cls.SEARCH_KEY}:" prefix'
             if search_examples:
                 _COUNTS = ('', '5', '10', 'all')
-                desc += f' (Example: "{self.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
-        if not self.working():
+                desc += f' (Example: "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
+        if not cls.working():
             desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
 
-        name = f' - **{self.IE_NAME}**' if markdown else self.IE_NAME
+        name = f' - **{cls.IE_NAME}**' if markdown else cls.IE_NAME
         return f'{name}:{desc}' if desc else name
 
     def extract_subtitles(self, *args, **kwargs):
@@ -3849,6 +3851,6 @@ class SearchInfoExtractor(InfoExtractor):
         """Returns an iterator of search results"""
         raise NotImplementedError('This method must be implemented by subclasses')
 
-    @property
-    def SEARCH_KEY(self):
-        return self._SEARCH_KEY
+    @classproperty
+    def SEARCH_KEY(cls):
+        return cls._SEARCH_KEY
