@@ -90,7 +90,7 @@ class DRTVIE(InfoExtractor):
         },
         'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
     }, {
-        'url': 'https://www.dr.dk/radio/p4kbh/regionale-nyheder-kh4/p4-nyheder-2019-06-26-17-30-9',
+        'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/p4-nyheder-2019-06-26-17-30-9',
         'only_matching': True,
     }, {
         'url': 'https://www.dr.dk/drtv/se/bonderoeven_71769',
