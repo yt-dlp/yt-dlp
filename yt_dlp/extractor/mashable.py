@@ -6,7 +6,6 @@ from .common import InfoExtractor
 
 
 class MashableExtractorIE(InfoExtractor):
-    # _VALID_URL = r'https?://(?:www\.)?mashable\.com/video/(?P<id>[0-9]+)'
     _VALID_URL = r'https?://(?:www\.)?mashable\.com/video/(.*)'
     _TESTS = [{
         'url': 'https://mashable.com/video/why-life-on-venus-is-better-than-mars',
