@@ -2,14 +2,12 @@ import binascii
 import hashlib
 import re
 
-
-from .common import InfoExtractor
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
 from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     ExtractorError,
-    int_or_none,
     float_or_none,
+    int_or_none,
     mimetype2ext,
     str_or_none,
     try_get,
@@ -17,6 +15,7 @@ from ..utils import (
     update_url_query,
     url_or_none,
 )
+from .common import InfoExtractor
 
 
 class DRTVIE(InfoExtractor):
@@ -51,6 +50,7 @@ class DRTVIE(InfoExtractor):
             'release_year': 2016,
         },
         'expected_warnings': ['Unable to download f4m manifest'],
+        'skip': 'this video has been removed',
     }, {
         # embed
         'url': 'https://www.dr.dk/nyheder/indland/live-christianias-rydning-af-pusher-street-er-i-gang',
@@ -71,18 +71,24 @@ class DRTVIE(InfoExtractor):
         # with SignLanguage formats
         'url': 'https://www.dr.dk/tv/se/historien-om-danmark/-/historien-om-danmark-stenalder',
         'info_dict': {
-            'id': 'historien-om-danmark-stenalder',
+            'id': '00831690010',
             'ext': 'mp4',
             'title': 'Historien om Danmark: Stenalder',
             'description': 'md5:8c66dcbc1669bbc6f873879880f37f2a',
             'timestamp': 1546628400,
             'upload_date': '20190104',
-            'duration': 3502.56,
+            'duration': 3504.618,
             'formats': 'mincount:20',
+            'release_year': 2017,
+            'season_id': "urn:dr:mu:bundle:5afc03ad6187a4065ca5fd35",
+            'season_number': 1,
+            'season': "Historien om Danmark",
+            'series': "Historien om Danmark"
         },
         'params': {
             'skip_download': True,
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
     }, {
         'url': 'https://www.dr.dk/radio/p4kbh/regionale-nyheder-kh4/p4-nyheder-2019-06-26-17-30-9',
         'only_matching': True,
@@ -91,12 +97,18 @@ class DRTVIE(InfoExtractor):
         'info_dict': {
             'id': '00951930010',
             'ext': 'mp4',
-            'title': 'Bonderøven (1:8)',
-            'description': 'md5:3cf18fc0d3b205745d4505f896af8121',
-            'timestamp': 1546542000,
-            'upload_date': '20190103',
+            'title': 'Bonderøven 2019 (1:8)',
+            'description': 'md5:b6dcfe9b6f0bea6703e9a0092739a5bd',
+            'timestamp': 1603188600,
+            'upload_date': '20201020',
             'duration': 2576.6,
+            'season': 'Bonderøven 2019',
+            'season_id': 'urn:dr:mu:bundle:5c201667a11fa01ca4528ce5',
+            'release_year': 2019,
+            'season_number': 2019,
+            'series': 'Frank & Kastaniegaarden'
         },
+        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
             'skip_download': True,
         },
