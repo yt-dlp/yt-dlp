@@ -82,8 +82,8 @@ class DRTVIE(InfoExtractor):
             'release_year': 2017,
             'season_id': 'urn:dr:mu:bundle:5afc03ad6187a4065ca5fd35',
             'season_number': 1,
-            'season': "Historien om Danmark",
-            'series': "Historien om Danmark"
+            'season': 'Historien om Danmark',
+            'series': 'Historien om Danmark',
         },
         'params': {
             'skip_download': True,
