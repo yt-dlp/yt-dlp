@@ -358,7 +358,6 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?piped\.mha\.fi',
         r'(?:www\.)?piped\.mint\.lgbt',
         r'(?:www\.)?piped\.privacy\.com\.de',
-
     )
 
     def _initialize_consent(self):
