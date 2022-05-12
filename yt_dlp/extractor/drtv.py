@@ -80,7 +80,7 @@ class DRTVIE(InfoExtractor):
             'duration': 3504.618,
             'formats': 'mincount:20',
             'release_year': 2017,
-            'season_id': "urn:dr:mu:bundle:5afc03ad6187a4065ca5fd35",
+            'season_id': 'urn:dr:mu:bundle:5afc03ad6187a4065ca5fd35',
             'season_number': 1,
             'season': "Historien om Danmark",
             'series': "Historien om Danmark"
@@ -88,7 +88,6 @@ class DRTVIE(InfoExtractor):
         'params': {
             'skip_download': True,
         },
-        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest']
     }, {
         'url': 'https://www.dr.dk/lyd/p4kbh/regionale-nyheder-kh4/p4-nyheder-2019-06-26-17-30-9',
         'only_matching': True,
@@ -108,7 +107,6 @@ class DRTVIE(InfoExtractor):
             'season_number': 2019,
             'series': 'Frank & Kastaniegaarden'
         },
-        'expected_warnings': ['Ignoring subtitle tracks found in the HLS manifest'],
         'params': {
             'skip_download': True,
         },
@@ -124,7 +122,7 @@ class DRTVIE(InfoExtractor):
     }, {
         'url': 'https://www.dr.dk/lyd/p4aarhus/regionale-nyheder-ar4/regionale-nyheder-2022-05-05-12-30-3',
         'info_dict': {
-            'id': "urn:dr:mu:programcard:6265cb2571401424d0360113",
+            'id': 'urn:dr:mu:programcard:6265cb2571401424d0360113',
             'title': "Regionale nyheder",
             'ext': 'mp4',
             'duration': 120.043,
