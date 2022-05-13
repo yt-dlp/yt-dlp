@@ -4781,6 +4781,15 @@ def random_birthday(year_field, month_field, day_field):
     }
 
 
+def find_available_port(iface='') -> int:
+    try:
+        with socket.socket() as sock:
+            sock.bind((iface, 0))
+            return sock.getsockname()[1]
+    except OSError:
+        return None
+
+
 # Templates for internet shortcut files, which are plain text files.
 DOT_URL_LINK_TEMPLATE = '''\
 [InternetShortcut]

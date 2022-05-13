@@ -18,8 +18,11 @@ from ..utils import (
     determine_ext,
     encodeArgument,
     encodeFilename,
+    find_available_port,
     handle_youtubedl_headers,
     remove_end,
+    sanitized_Request,
+    try_get,
     traverse_obj,
 )
 
@@ -119,20 +122,18 @@ class ExternalFD(FragmentFD):
         self._debug_cmd(cmd)
 
         if 'fragments' not in info_dict:
-            p = Popen(cmd, stderr=subprocess.PIPE)
-            _, stderr = p.communicate_or_kill()
-            if p.returncode != 0:
+            _, stderr, retcode = self._call_process(cmd, info_dict)
+            if retcode == 0:
                 self.to_stderr(stderr.decode('utf-8', 'replace'))
-            return p.returncode
+            return retcode
 
         fragment_retries = self.params.get('fragment_retries', 0)
         skip_unavailable_fragments = self.params.get('skip_unavailable_fragments', True)
 
         count = 0
         while count <= fragment_retries:
-            p = Popen(cmd, stderr=subprocess.PIPE)
-            _, stderr = p.communicate_or_kill()
-            if p.returncode == 0:
+            _, stderr, retcode = self._call_process(cmd, info_dict)
+            if retcode == 0:
                 break
             # TODO: Decide whether to retry based on error code
             # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
@@ -166,6 +167,11 @@ class ExternalFD(FragmentFD):
         dest.close()
         self.try_remove(encodeFilename('%s.frag.urls' % tmpfilename))
         return 0
+
+    def _call_process(self, cmd, info_dict):
+        p = Popen(cmd, stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate_or_kill()
+        return stdout, stderr, p.returncode
 
 
 class CurlFD(ExternalFD):
@@ -246,6 +252,7 @@ class WgetFD(ExternalFD):
 class Aria2cFD(ExternalFD):
     AVAILABLE_OPT = '-v'
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'dash_frag_urls', 'm3u8_frag_urls')
+    _ENABLE_PROGRESS = True
 
     @staticmethod
     def supports_manifest(manifest):
@@ -276,6 +283,9 @@ class Aria2cFD(ExternalFD):
         cmd += self._bool_option('--show-console-readout', 'noprogress', 'false', 'true', '=')
         cmd += self._configuration_args()
 
+        if info_dict.get('__rpc_port'):
+            cmd += ['--enable-rpc', f'--rpc-listen-port={info_dict["__rpc_port"]}']
+
         # aria2c strips out spaces from the beginning/end of filenames and paths.
         # We work around this issue by adding a "./" to the beginning of the
         # filename and relative path, and adding a "/" at the end of the path.
@@ -305,6 +315,130 @@ class Aria2cFD(ExternalFD):
         else:
             cmd += ['--', info_dict['url']]
         return cmd
+
+    def _call_downloader(self, tmpfilename, info_dict):
+        info_dict.pop('__rpc_port', None)
+        if self._ENABLE_PROGRESS:
+            info_dict = info_dict.copy()
+            info_dict['__rpc_port'] = find_available_port() or 19190
+        return super()._call_downloader(tmpfilename, info_dict)
+
+    def _call_process(self, cmd, info_dict):
+        if '__rpc_port' not in info_dict:
+            return super()._call_process(cmd, info_dict)
+
+        from tempfile import TemporaryFile
+        import json
+        import uuid
+
+        rpc_port = info_dict['__rpc_port']
+        nr_frags = len(info_dict['fragments']) if 'fragments' in info_dict else -1
+
+        def aria2c_rpc(method, params):
+            # note: there's no need to be UUID (it can even a numeric value), but that's easier
+            sanitycheck = str(uuid.uuid4())
+            d = json.dumps({
+                'jsonrpc': '2.0',
+                'id': sanitycheck,
+                'method': method,
+                'params': params,
+            }).encode('utf-8')
+            request = sanitized_Request(
+                f'http://localhost:{rpc_port}/jsonrpc',
+                headers={
+                    'Content-Type': 'application/json',
+                    'Content-Length': f'{len(d)}',
+                },
+                data=d)
+            with self.ydl.urlopen(request) as r:
+                resp = json.load(r)
+            # failing at this assertion means that the RPC server went wrong
+            # (KeyEror includes)
+            assert resp['id'] == sanitycheck
+            return resp['result']
+
+        started = time.time()
+        status = {
+            'filename': info_dict.get('_filename'),
+            'status': 'downloading',
+            'elapsed': 0,
+            'downloaded_bytes': 0,
+        }
+        if nr_frags >= 0:
+            status.update({
+                'fragment_count': nr_frags,
+                'fragment_index': 0,
+            })
+        self._hook_progress(status, info_dict)
+
+        with TemporaryFile() as so, TemporaryFile() as se, \
+             Popen(cmd, stdout=so.fileno(), stderr=se.fileno()) as p:
+            # make a small wait so that RPC client can receive response,
+            # or the connection stalls infinitely
+            time.sleep(0.2)
+            retval = p.poll()
+            while retval is None:
+                try:
+                    # https://aria2.github.io/manual/en/html/libaria2.html#c.DOWNLOAD_WAITING
+                    # https://aria2.github.io/manual/en/html/aria2c.html#aria2.tellActive
+
+                    # use tellActive as we won't know the GID without reading stdout
+                    # that is a mess in Python
+                    aktiva = aria2c_rpc('aria2.tellActive', [])
+                    completed = aria2c_rpc('aria2.tellStopped', [0, abs(nr_frags)])
+                    if not aktiva and len(completed) == abs(nr_frags):
+                        # no active downloads, we'll exit the loop after shutdown
+                        aria2c_rpc('aria2.shutdown', [])
+                        retval = p.wait()
+                        break
+
+                    if nr_frags < 0:
+                        # single file
+                        active = aktiva[0]
+                        cl, ds, tl = int(active['completedLength']), int(active['downloadSpeed']), int(active['totalLength'])
+                        status.update({
+                            'downloaded_bytes': cl,
+                            'speed': ds,
+                            'eta': try_get(0, lambda x: (tl - cl) / ds),
+                            'total_bytes': tl,
+                        })
+                        continue
+
+                    # fragmented
+                    total_bytes = sum(map(int, traverse_obj([aktiva, completed], (..., ..., 'totalLength'), default=[])))
+                    if completed or aktiva:
+                        total_bytes = total_bytes * nr_frags / (len(completed) + len(aktiva))
+                    total_completed = sum(map(int, traverse_obj(completed, (..., 'totalLength'), default=[])))
+                    dled_aktiva = sum(map(int, traverse_obj(aktiva, (..., 'completedLength'), default=[])))
+                    total_speed = sum(map(float, traverse_obj(aktiva, (..., 'downloadSpeed'), default=[])))
+                    dl_all = dled_aktiva + total_completed
+
+                    status.update({
+                        'downloaded_bytes': dl_all,
+                        'speed': total_speed,
+                        'eta': try_get(0, lambda x: (total_bytes - dl_all) / total_speed),
+                        'total_bytes': total_bytes,
+                        'fragment_index': len(completed) + len(aktiva) // 2,
+                    })
+                finally:
+                    status.update({'elapsed': time.time() - started})
+                    self._hook_progress(status, info_dict)
+                    time.sleep(0.1)
+                    retval = p.poll()
+
+            if retval == 0:
+                status.update({
+                    'status': 'finished',
+                    'downloaded_bytes': status.get('total_bytes'),
+                })
+                self._hook_progress(status, info_dict)
+
+            so.seek(0)
+            se.seek(0)
+            # it's expected to be bytes here!
+            stdout, stderr = so.read(), se.read()
+
+            return stdout, stderr, retval
 
 
 class HttpieFD(ExternalFD):
