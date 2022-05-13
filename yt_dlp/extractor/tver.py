@@ -47,6 +47,12 @@ class TVerIE(InfoExtractor):
         self._PLATFORM_UID = traverse_obj(create_response, ('result', 'platform_uid'))
         self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
 
+    def _entries(self, series_id):
+        season_json = self._download_json(
+            f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}',
+            series_id,
+            headers={
+                'x-tver-platform-type': 'web'
             },
             note='Downloading JSON metadata [SeriesSeasons]')
         seasons = traverse_obj(season_json, ('result', 'contents'))
