@@ -4,8 +4,10 @@ from .common import InfoExtractor
 from ..utils import (
     determine_ext,
     ExtractorError,
-    try_get,
-    urlencode_postdata, int_or_none, str_or_none,
+    int_or_none,
+    str_or_none,
+    traverse_obj,
+    urlencode_postdata,
 )
 
 
@@ -13,18 +15,15 @@ class FreeTvBaseIE(InfoExtractor):
     def _get_api_response(self, content_id, postdata, resource_type):
         response = self._download_json(
             'https://www.freetv.com/wordpress/wp-admin/admin-ajax.php',
-            content_id, data=urlencode_postdata(postdata), fatal=False,
-            note='Downloading {} {} JSON'.format(content_id, resource_type))
-
-        if response is False:
-            raise ExtractorError("Couldn't get response", expected=True)
+            content_id, data=urlencode_postdata(postdata), fatal=True,
+            note=f'Downloading {content_id} {resource_type} JSON')
 
         if response.get('data') is False:
-            raise ExtractorError("Response doesn't contain {} data".format(resource_type), expected=True)
+            raise ExtractorError(f"Response doesn't contain {resource_type} data")
 
         return response
 
-    def _extract_video(self, content_id, action="olyott_video_play"):
+    def _extract_video(self, content_id, action='olyott_video_play'):
         api_response = self._get_api_response(
             content_id, resource_type='video',
             postdata={
@@ -32,28 +31,25 @@ class FreeTvBaseIE(InfoExtractor):
                 'contentID': content_id,
             })
 
-        video_id = try_get(api_response, lambda x: x['data']['displayMeta']['contentID'], expected_type=str)
-        title = try_get(api_response, lambda x: x['data']['displayMeta']['title'])
-        description = try_get(api_response, lambda x: x['data']['displayMeta']['desc'])
-        video_url = try_get(api_response, lambda x: x['data']['displayMeta']['streamURLVideo'], expected_type=str)
+        video_id = traverse_obj(api_response, ('data', 'displayMeta', 'contentID'), expected_type=str)
+        video_url = traverse_obj(api_response, ('data', 'displayMeta', 'streamURLVideo'), expected_type=str)
 
-        ext = determine_ext(video_url)
-        if ext != 'm3u8':
-            raise ExtractorError('No manifest was found', video_id=video_id, expected=True)
+        if determine_ext(video_url) != 'm3u8':
+            raise ExtractorError('Manifest was not found', video_id=video_id)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4')
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
+            'title': traverse_obj(api_response, ('data', 'displayMeta', 'title')),
+            'description': traverse_obj(api_response, ('data', 'displayMeta', 'desc')),
             'formats': formats,
             'subtitles': subtitles,
         }
 
     def _extract_series(self, display_id, season_ids, series_title, series_description,
-                        action="olyott_get_dynamic_series_content"):
+                        action='olyott_get_dynamic_series_content'):
         entries = []
         for season_id in season_ids:
             api_response = self._get_api_response(
@@ -62,46 +58,40 @@ class FreeTvBaseIE(InfoExtractor):
                     'action': action,
                     'contentID': season_id,
                     'type': 'list',
-                    'perPage': '1000'
+                    'perPage': '1000',
                 })
 
-            season_episodes = try_get(api_response, lambda x: x['data']['1'])
+            season_episodes = traverse_obj(api_response, ('data', '1'))
 
             if season_episodes is None:
-                raise ExtractorError("Response doesn't contain episode list", expected=True)
+                raise ExtractorError("Response doesn't contain episode list")
 
             for episode in season_episodes:
                 video_id = str_or_none(episode.get('contentID'))
                 video_url = episode.get('streamURL')
-                title = episode.get('fullTitle')
-                description = episode.get('description')
-                thumbnail = episode.get('thumbnail')
 
-                series_id = try_get(episode, lambda x: x['contentMeta']['displayMeta']['seriesID'])
-                season_id = try_get(episode, lambda x: x['contentMeta']['displayMeta']['seasonID'])
-                season_number = int_or_none(try_get(episode, lambda x: x['contentMeta']['displayMeta']['seasonNum']))
-                episode_number = int_or_none(try_get(episode, lambda x: x['contentMeta']['displayMeta']['episodeNum']))
-
-                ext = determine_ext(video_url)
-                if ext == "m3u8":
-                    formats, subtitles = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4', fatal=False)
+                if determine_ext(video_url) == 'm3u8':
+                    formats, subtitles = self._extract_m3u8_formats_and_subtitles(
+                        video_url, video_id, 'mp4', fatal=False)
                     self._sort_formats(formats)
 
                     entries.append({
                         'id': video_id,
-                        'title': title,
-                        'description': description,
+                        'title': episode.get('fullTitle'),
+                        'description': episode.get('description'),
                         'formats': formats,
                         'subtitles': subtitles,
-                        'thumbnail': thumbnail,
+                        'thumbnail': episode.get('thumbnail'),
                         'series': series_title,
-                        'series_id': series_id,
-                        'season_id': season_id,
-                        'season_number': season_number,
-                        'episode_number': episode_number,
+                        'series_id': traverse_obj(episode, ('contentMeta', 'displayMeta', 'seriesID')),
+                        'season_id': traverse_obj(episode, ('contentMeta', 'displayMeta', 'seasonID')),
+                        'season_number': int_or_none(
+                            traverse_obj(episode, ('contentMeta', 'displayMeta', 'seasonNum'))),
+                        'episode_number': int_or_none(
+                            traverse_obj(episode, ('contentMeta', 'displayMeta', 'episodeNum'))),
                     })
                 else:
-                    print("No manifest was found for video_id {}".format(video_id))
+                    self.report_warning("Manifest was not found", video_id)
 
         return self.playlist_result(entries, display_id, series_title, series_description)
 
