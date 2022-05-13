@@ -47,9 +47,37 @@ class TVerIE(InfoExtractor):
         self._PLATFORM_UID = traverse_obj(create_response, ('result', 'platform_uid'))
         self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
 
+            },
+            note='Downloading JSON metadata [SeriesSeasons]')
+        seasons = traverse_obj(season_json, ('result', 'contents'))
+        for season in seasons:
+            if traverse_obj(season, ('type')) != 'season':
+                continue
+            season_id = traverse_obj(season, ('content', 'id'))
+            episode_json = self._download_json(
+                f'https://platform-api.tver.jp/service/api/v1/callSeasonEpisodes/{season_id}',
+                season_id,
+                query={
+                    'platform_uid': self._PLATFORM_UID,
+                    'platform_token': self._PLATFORM_TOKEN,
+                }, headers={
+                    'x-tver-platform-type': 'web'
+                },
+                note='Downloading JSON metadata [SeasonEpisodes]')
+            episodes = traverse_obj(episode_json, ('result', 'contents'))
+            for episode in episodes:
+                episode_type = traverse_obj(episode, ('type'))
+                video_id = traverse_obj(episode, ('content', 'id'))
+                if episode_type == 'episode':
+                    yield self.url_result(
+                        f'https://tver.jp/episodes/{video_id}',
+                        TVerIE.ie_key(), video_id)
+
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        if video_type not in {'series', 'episodes'}:
+        if video_type == 'series':
+            return self.playlist_result(self._entries(video_id), video_id)
+        if video_type not in {'episodes'}:
             webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
                 (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
