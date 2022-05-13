@@ -1245,6 +1245,10 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
     def http_open(self, req):
         conn_class = compat_http_client.HTTPConnection
 
+        if urllib.parse.urlparse(req.get_full_url()).hostname in ('localhost', '127.0.0.1', 'fe00::0'):
+            # bypass proxies for localhost
+            req.headers.pop('Ytdl-socks-proxy', None)
+
         socks_proxy = req.headers.get('Ytdl-socks-proxy')
         if socks_proxy:
             conn_class = make_socks_conn_class(conn_class, socks_proxy)
