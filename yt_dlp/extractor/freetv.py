@@ -25,7 +25,12 @@ class FreeTvBaseIE(InfoExtractor):
         return response
 
     def _extract_video(self, content_id, action="olyott_video_play"):
-        api_response = self._get_api_response(content_id, {'action': action, 'contentID': content_id}, 'video')
+        api_response = self._get_api_response(
+            content_id, resource_type='video',
+            postdata={
+                'action': action,
+                'contentID': content_id,
+            })
 
         video_id = try_get(api_response, lambda x: x['data']['displayMeta']['contentID'], expected_type=str)
         title = try_get(api_response, lambda x: x['data']['displayMeta']['title'])
@@ -53,7 +58,12 @@ class FreeTvBaseIE(InfoExtractor):
         for season_id in season_ids:
             api_response = self._get_api_response(
                 season_id, resource_type='series',
-                postdata={'action': action, 'contentID': season_id, 'type': 'list', 'perPage': '1000'})
+                postdata={
+                    'action': action,
+                    'contentID': season_id,
+                    'type': 'list',
+                    'perPage': '1000'
+                })
 
             season_episodes = try_get(api_response, lambda x: x['data']['1'])
 
