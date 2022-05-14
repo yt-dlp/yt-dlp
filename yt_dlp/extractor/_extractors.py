@@ -1564,6 +1564,7 @@ from .samplefocus import SampleFocusIE
 from .sapo import SapoIE
 from .savefrom import SaveFromIE
 from .sbs import SBSIE
+from .screen9 import Screen9IE
 from .screencast import ScreencastIE
 from .screencastomatic import ScreencastOMaticIE
 from .scrippsnetworks import (
