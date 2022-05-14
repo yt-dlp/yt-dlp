@@ -2861,6 +2861,7 @@ class InfoExtractor:
                         }
                     elif content_type == 'text':
                         f = {
+                            'name': format_id,
                             'ext': mimetype2ext(mime_type),
                             'manifest_url': mpd_url,
                             'filesize': filesize,
