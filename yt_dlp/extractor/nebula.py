@@ -167,20 +167,16 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'lindsayellis',
                 'uploader': 'Lindsay Ellis',
                 'uploader_id': 'lindsayellis',
-
                 'timestamp': 1533009600,
                 'uploader_url': 'https://nebula.app/lindsayellis',
                 'series': 'Lindsay Ellis',
-                'average_rating': 0,
+                'average_rating': int,
                 'display_id': 'that-time-disney-remade-beauty-and-the-beast',
                 'channel_url': 'https://nebula.app/lindsayellis',
                 'creator': 'Lindsay Ellis',
                 'duration': 2212,
                 'view_count': int,
-                'thumbnail': 'https://dj423fildxgac.cloudfront.net/d45d597a-8a81-4580-bc8c-69ab4ec6a8f1.jpeg?height=720&',
-            },
-            'params': {
-                'usenetrc': True,
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
         {
@@ -197,19 +193,15 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'realengineering',
                 'uploader': 'Real Engineering',
                 'uploader_id': 'realengineering',
-
                 'view_count': int,
                 'series': 'Real Engineering',
-                'average_rating': 0,
+                'average_rating': int,
                 'display_id': 'the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
                 'creator': 'Real Engineering',
                 'duration': 841,
                 'channel_url': 'https://nebula.app/realengineering',
                 'uploader_url': 'https://nebula.app/realengineering',
-                'thumbnail': 'https://dj423fildxgac.cloudfront.net/1239f02b-c6aa-4c4c-ba11-581a1db181ce.jpeg?height=720&',
-            },
-            'params': {
-                'usenetrc': True,
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
             },
         },
         {
@@ -226,19 +218,15 @@ class NebulaIE(NebulaBaseIE):
                 'channel_id': 'tom-scott-presents-money',
                 'uploader': 'Tom Scott Presents: Money',
                 'uploader_id': 'tom-scott-presents-money',
-
                 'uploader_url': 'https://nebula.app/tom-scott-presents-money',
                 'duration': 825,
                 'channel_url': 'https://nebula.app/tom-scott-presents-money',
                 'view_count': int,
                 'series': 'Tom Scott Presents: Money',
                 'display_id': 'money-episode-1-the-draw',
-                'thumbnail': 'https://dj423fildxgac.cloudfront.net/516d7e3d-ba6d-4f76-ab07-c34bc1639800.jpeg?height=720&',
-                'average_rating': 0,
+                'thumbnail': r're:https://\w+\.cloudfront\.net/[\w-]+\.jpeg?.*',
+                'average_rating': int,
                 'creator': 'Tom Scott Presents: Money',
-            },
-            'params': {
-                'usenetrc': True,
             },
         },
         {
@@ -269,19 +257,14 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
             'info_dict': {
                 'id': 'myshows',
             },
-            'params': {
-                'usenetrc': True,
-            },
         },
     ]
 
-    CHANNEL_URL = 'https://content.watchnebula.com/library/video/?page_size=100'
-
     def _generate_playlist_entries(self):
-        next_url = self.CHANNEL_URL
+        next_url = 'https://content.watchnebula.com/library/video/?page_size=100'
         page_num = 1
         while next_url:
-            channel = self._call_nebula_api(next_url, 'subscriptions', auth_type='bearer',
+            channel = self._call_nebula_api(next_url, 'myshows', auth_type='bearer',
                                             note=f'Retrieving subscriptions page {page_num}')
             for episode in channel['results']:
                 yield self._build_video_info(episode)
@@ -289,15 +272,12 @@ class NebulaSubscriptionsIE(NebulaBaseIE):
             page_num += 1
 
     def _real_extract(self, url):
-        return self.playlist_result(
-            entries=self._generate_playlist_entries(),
-            playlist_id='myshows'
-        )
+        return self.playlist_result(self._generate_playlist_entries(), 'myshows')
 
 
 class NebulaChannelIE(NebulaBaseIE):
     IE_NAME = 'nebula:channel'
-    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!myshows)(?!videos/)(?P<id>[-\w]+)'
+    _VALID_URL = r'https?://(?:www\.)?(?:watchnebula\.com|nebula\.app)/(?!myshows|videos/)(?P<id>[-\w]+)'
     _TESTS = [
         {
             'url': 'https://nebula.app/tom-scott-presents-money',
@@ -307,9 +287,6 @@ class NebulaChannelIE(NebulaBaseIE):
                 'description': 'Tom Scott hosts a series all about trust, negotiation and money.',
             },
             'playlist_count': 5,
-            'params': {
-                'usenetrc': True,
-            },
         }, {
             'url': 'https://nebula.app/lindsayellis',
             'info_dict': {
@@ -317,10 +294,7 @@ class NebulaChannelIE(NebulaBaseIE):
                 'title': 'Lindsay Ellis',
                 'description': 'Enjoy these hottest of takes on Disney, Transformers, and Musicals.',
             },
-            'playlist_mincount': 10,
-            'params': {
-                'usenetrc': True,
-            },
+            'playlist_mincount': 100,
         },
     ]
 
