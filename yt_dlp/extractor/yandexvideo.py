@@ -6,6 +6,7 @@ from ..utils import (
     determine_ext,
     extract_attributes,
     int_or_none,
+    parse_qs,
     try_get,
     url_or_none,
     lowercase_escape,
@@ -234,7 +235,7 @@ class ZenYandexIE(InfoExtractor):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
         data_json = self._parse_json(
-            self._search_regex(r'data\s*=\s*({["\']_*serverState_*video.+?});', webpage, 'metadata'), id)
+            self._search_regex(r'(?m)data\s*=\s*({["\']_*serverState_*video.+?});$', webpage, 'metadata'), id)
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
                                          webpage, 'server state').replace('State', 'Settings')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
@@ -256,6 +257,7 @@ class ZenYandexIE(InfoExtractor):
             'formats': formats,
             'duration': int_or_none(video_json.get('duration')),
             'view_count': int_or_none(video_json.get('views')),
+            'timestamp': int_or_none(video_json.get('publicationDate')),
             'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
             'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
             'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
@@ -285,17 +287,34 @@ class ZenYandexChannelIE(InfoExtractor):
             if key.startswith('__serverState__'):
                 data_json = data_json[key]
         items = list(try_get(data_json, lambda x: x['feed']['items'], dict).values())
+        prev_next_page_id = None
         more = try_get(data_json, lambda x: x['links']['more']) or None
+        if more:
+            next_page_id = try_get(parse_qs(more), lambda x: x['next_page_id'][0]) or None
+        else:
+            next_page_id = None
+
         for page in itertools.count(1):
             for item in items:
                 video_id = item.get('publication_id') or item.get('publicationId')
                 video_url = item.get('link')
                 yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
-            if not more:
+            if (
+                    not more
+                    or len(items) == 0
+                    or (next_page_id and next_page_id == prev_next_page_id)
+                    or not next_page_id
+                ):
                 break
             data_json = self._download_json(more, id, note='Downloading Page %d' % page)
             items = data_json.get('items', [])
             more = try_get(data_json, lambda x: x['more']['link']) or None
+
+            prev_next_page_id = next_page_id
+            if more:
+                next_page_id = try_get(parse_qs(more), lambda x: x['next_page_id'][0]) or None
+            else:
+                next_page_id = None
 
     def _real_extract(self, url):
         id = self._match_id(url)
