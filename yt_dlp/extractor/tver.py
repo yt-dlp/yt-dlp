@@ -9,8 +9,24 @@ from ..utils import (
 )
 
 
-class TVerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|series|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
+class TVerBaseIE(InfoExtractor):
+    _PLATFORM_UID = None
+    _PLATFORM_TOKEN = None
+
+    def _real_initialize(self):
+        create_response = self._download_json(
+            'https://platform-api.tver.jp/v2/api/platform_users/browser/create', None,
+            note='Creating session', data=b'device_type=pc', headers={
+                'Origin': 'https://s.tver.jp',
+                'Referer': 'https://s.tver.jp/',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            })
+        self._PLATFORM_UID = traverse_obj(create_response, ('result', 'platform_uid'))
+        self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
+
+
+class TVerIE(TVerBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/(?:(?P<type>lp|corner|episodes?|feature|tokyo2020/video)/)+(?P<id>[a-zA-Z0-9]+)'
     _TESTS = [{
         'skip': 'videos are only available for 7 days',
         'url': 'https://tver.jp/episodes/ep83nf3w4p',
@@ -33,56 +49,9 @@ class TVerIE(InfoExtractor):
         'only_matching': True,
     }]
     BRIGHTCOVE_URL_TEMPLATE = 'http://players.brightcove.net/%s/default_default/index.html?videoId=%s'
-    _PLATFORM_UID = None
-    _PLATFORM_TOKEN = None
-
-    def _real_initialize(self):
-        create_response = self._download_json(
-            'https://platform-api.tver.jp/v2/api/platform_users/browser/create', None,
-            note='Creating session', data=b'device_type=pc', headers={
-                'Origin': 'https://s.tver.jp',
-                'Referer': 'https://s.tver.jp/',
-                'Content-Type': 'application/x-www-form-urlencoded',
-            })
-        self._PLATFORM_UID = traverse_obj(create_response, ('result', 'platform_uid'))
-        self._PLATFORM_TOKEN = traverse_obj(create_response, ('result', 'platform_token'))
-
-    def _entries(self, series_id):
-        season_json = self._download_json(
-            f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}',
-            series_id,
-            headers={
-                'x-tver-platform-type': 'web'
-            },
-            note='Downloading JSON metadata [SeriesSeasons]')
-        seasons = traverse_obj(season_json, ('result', 'contents'))
-        for season in seasons:
-            if traverse_obj(season, ('type')) != 'season':
-                continue
-            season_id = traverse_obj(season, ('content', 'id'))
-            episode_json = self._download_json(
-                f'https://platform-api.tver.jp/service/api/v1/callSeasonEpisodes/{season_id}',
-                season_id,
-                query={
-                    'platform_uid': self._PLATFORM_UID,
-                    'platform_token': self._PLATFORM_TOKEN,
-                }, headers={
-                    'x-tver-platform-type': 'web'
-                },
-                note='Downloading JSON metadata [SeasonEpisodes]')
-            episodes = traverse_obj(episode_json, ('result', 'contents'))
-            for episode in episodes:
-                episode_type = traverse_obj(episode, ('type'))
-                video_id = traverse_obj(episode, ('content', 'id'))
-                if episode_type == 'episode':
-                    yield self.url_result(
-                        f'https://tver.jp/episodes/{video_id}',
-                        TVerIE.ie_key(), video_id)
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        if video_type == 'series':
-            return self.playlist_result(self._entries(video_id), video_id)
         if video_type not in {'episodes'}:
             webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
@@ -134,3 +103,47 @@ class TVerIE(InfoExtractor):
                 self.BRIGHTCOVE_URL_TEMPLATE % (p_id, r_id), {'geo_countries': ['JP']}),
             'ie_key': 'BrightcoveNew',
         }
+
+
+class TVerSeriesIE(TVerBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?tver\.jp/series/(?P<id>[a-zA-Z0-9]+)'
+    _TESTS = [{
+        'url': 'https://tver.jp/series/srtxft431v',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        playlist = []
+        series_id = self._match_id(url)
+        season_json = self._download_json(
+            f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}',
+            series_id,
+            headers={
+                'x-tver-platform-type': 'web'
+            },
+            note='Downloading JSON metadata [SeriesSeasons]')
+        seasons = traverse_obj(season_json, ('result', 'contents'))
+        for season in seasons:
+            if traverse_obj(season, ('type')) != 'season':
+                continue
+            season_id = traverse_obj(season, ('content', 'id'))
+            episode_json = self._download_json(
+                f'https://platform-api.tver.jp/service/api/v1/callSeasonEpisodes/{season_id}',
+                season_id,
+                query={
+                    'platform_uid': self._PLATFORM_UID,
+                    'platform_token': self._PLATFORM_TOKEN,
+                },
+                headers={
+                    'x-tver-platform-type': 'web'
+                },
+                note='Downloading JSON metadata [SeasonEpisodes]')
+            episodes = traverse_obj(episode_json, ('result', 'contents'))
+            for episode in episodes:
+                episode_type = traverse_obj(episode, ('type'))
+                video_id = traverse_obj(episode, ('content', 'id'))
+                if episode_type == 'episode':
+                    playlist.append(self.url_result(
+                        f'https://tver.jp/episodes/{video_id}',
+                        TVerIE.ie_key(), video_id))
+        return self.playlist_result(playlist)
