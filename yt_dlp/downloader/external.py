@@ -348,6 +348,7 @@ class Aria2cFD(ExternalFD):
                 headers={
                     'Content-Type': 'application/json',
                     'Content-Length': f'{len(d)}',
+                    'Ytdl-request-proxy': '__noproxy__',
                 },
                 data=d)
             with self.ydl.urlopen(request) as r:
