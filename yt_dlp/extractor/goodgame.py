@@ -9,13 +9,16 @@ from ..utils import (
 
 class GoodGameIE(InfoExtractor):
     IE_NAME = 'goodgame:stream'
-    _VALID_URL = r'https?://goodgame\.ru/channel/(?P<id>[a-zA-Z0-9_]+)'
+    _VALID_URL = r'https?://goodgame\.ru/channel/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://goodgame.ru/channel/LampaRPG',
         'info_dict': {
             'id': '156878',
             'ext': 'mp4',
             'title': r're:Рейтинговые герои \d{4}-\d{2}-\d{2} \d{2}:\d{2}$',
+            'channel': 'Рейтинговые герои',
+            'channel_id': 'LampaRPG',
+            'channel_url': 'https://goodgame.ru/channel/LampaRPG',
             'description': 'md5:ca5faa69b5d9215afdc65caeca68e1f6',
             'thumbnail': r're:^https?://.*\.jpg$',
             'live_status': 'is_live',
@@ -39,10 +42,13 @@ class GoodGameIE(InfoExtractor):
 
         self._sort_formats(formats)
         return {
-            'id': traverse_obj(response, ('channel', 'gg_player_src')) or channel_name,
+            'id': response['channel']['gg_player_src'],
             'formats': formats,
             'subtitles': subtitles,
             'title': traverse_obj(response, ('channel', 'title')),
+            'channel': traverse_obj(response, ('channel', 'title')),
+            'channel_id': channel_name,
+            'channel_url': f'https://goodgame.ru/channel/{channel_name}',
             'description': clean_html(traverse_obj(response, ('channel', 'description'))),
             'thumbnail': traverse_obj(response, ('channel', 'thumb')),
             'is_live': True,
