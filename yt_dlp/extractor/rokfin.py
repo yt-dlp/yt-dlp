@@ -1,25 +1,32 @@
 import itertools
+import re
+import urllib.parse
 from datetime import datetime
 
 from .common import InfoExtractor
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    determine_ext,
     float_or_none,
     format_field,
     int_or_none,
     str_or_none,
     traverse_obj,
+    try_get,
+    unescapeHTML,
     unified_timestamp,
     url_or_none,
+    urlencode_postdata,
 )
-
 
 _API_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
 
 
 class RokfinIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>(?P<type>post|stream)/\d+)'
+    _NETRC_MACHINE = 'rokfin'
+    _AUTH_BASE = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect'
+    _access_mgmt_tokens = {}  # OAuth 2.0: RFC 6749, Sec. 1.4-5
     _TESTS = [{
         'url': 'https://www.rokfin.com/post/57548/Mitt-Romneys-Crazy-Solution-To-Climate-Change',
         'info_dict': {
@@ -83,8 +90,7 @@ class RokfinIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-
-        metadata = self._download_json(f'{_API_BASE_URL}{video_id}', video_id)
+        metadata = self._download_json_using_access_token(f'{_API_BASE_URL}{video_id}', video_id)
 
         scheduled = unified_timestamp(metadata.get('scheduledAt'))
         live_status = ('was_live' if metadata.get('stoppedAt')
@@ -159,6 +165,79 @@ class RokfinIE(InfoExtractor):
             if not raw_comments.get('content') or is_last or (page_n > pages_total if pages_total else is_last is not False):
                 return
 
+    def _perform_login(self, username, password):
+        # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1)
+        login_page = self._download_webpage(
+            f'{self._AUTH_BASE}/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Ffeed&response_mode=fragment&response_type=code&scope=openid',
+            None, note='loading login page', errnote='error loading login page')
+        authentication_point_url = unescapeHTML(self._search_regex(
+            r'<form\s+[^>]+action\s*=\s*"(https://secure\.rokfin\.com/auth/realms/rokfin-web/login-actions/authenticate\?[^"]+)"',
+            login_page, name='Authentication URL'))
+
+        resp_body = self._download_webpage(
+            authentication_point_url, None, note='logging in', fatal=False, expected_status=404,
+            data=urlencode_postdata({'username': username, 'password': password, 'rememberMe': 'off', 'credentialId': ''}))
+        if not self._authentication_active():
+            if re.search(r'(?i)(invalid\s+username\s+or\s+password)', resp_body or ''):
+                raise ExtractorError('invalid username/password', expected=True)
+            raise ExtractorError('Login failed')
+
+        urlh = self._request_webpage(
+            f'{self._AUTH_BASE}/auth', None,
+            note='granting user authorization', errnote='user authorization rejected by Rokfin',
+            query={
+                'client_id': 'web',
+                'prompt': 'none',
+                'redirect_uri': 'https://rokfin.com/silent-check-sso.html',
+                'response_mode': 'fragment',
+                'response_type': 'code',
+                'scope': 'openid',
+            })
+        self._access_mgmt_tokens = self._download_json(
+            f'{self._AUTH_BASE}/token', None,
+            note='getting access credentials', errnote='error getting access credentials',
+            data=urlencode_postdata({
+                'code': urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.geturl()).fragment).get('code')[0],
+                'client_id': 'web',
+                'grant_type': 'authorization_code',
+                'redirect_uri': 'https://rokfin.com/silent-check-sso.html'
+            }))
+
+    def _authentication_active(self):
+        return not (
+            {'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'}
+            - set(self._get_cookies(self._AUTH_BASE)))
+
+    def _get_auth_token(self):
+        return try_get(self._access_mgmt_tokens, lambda x: ' '.join([x['token_type'], x['access_token']]))
+
+    def _download_json_using_access_token(self, url_or_request, video_id, headers={}, query={}):
+        assert 'authorization' not in headers
+        headers = headers.copy()
+        auth_token = self._get_auth_token()
+        refresh_token = self._access_mgmt_tokens.get('refresh_token')
+        if auth_token:
+            headers['authorization'] = auth_token
+
+        json_string, urlh = self._download_webpage_handle(
+            url_or_request, video_id, headers=headers, query=query, expected_status=401)
+        if not auth_token or urlh.code != 401 or refresh_token is None:
+            return self._parse_json(json_string, video_id)
+
+        self._access_mgmt_tokens = self._download_json(
+            f'{self._AUTH_BASE}/token', video_id,
+            note='User authorization expired or canceled by Rokfin. Re-authorizing ...', errnote='Failed to re-authorize',
+            data=urlencode_postdata({
+                'grant_type': 'refresh_token',
+                'refresh_token': refresh_token,
+                'client_id': 'web'
+            }))
+        headers['authorization'] = self._get_auth_token()
+        if headers['authorization'] is None:
+            raise ExtractorError('User authorization lost', expected=True)
+
+        return self._download_json(url_or_request, video_id, headers=headers, query=query)
+
 
 class RokfinPlaylistBaseIE(InfoExtractor):
     _TYPES = {
@@ -182,6 +261,7 @@ class RokfinPlaylistBaseIE(InfoExtractor):
 
 class RokfinStackIE(RokfinPlaylistBaseIE):
     IE_NAME = 'rokfin:stack'
+    IE_DESC = 'Rokfin Stacks'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/stack/(?P<id>[^/]+)'
     _TESTS = [{
         'url': 'https://www.rokfin.com/stack/271/Tulsi-Gabbard-Portsmouth-Townhall-FULL--Feb-9-2020',
@@ -199,6 +279,7 @@ class RokfinStackIE(RokfinPlaylistBaseIE):
 
 class RokfinChannelIE(RokfinPlaylistBaseIE):
     IE_NAME = 'rokfin:channel'
+    IE_DESC = 'Rokfin Channels'
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?!((feed/?)|(discover/?)|(channels/?))$)(?P<id>[^/]+)/?$'
     _TESTS = [{
         'url': 'https://rokfin.com/TheConvoCouch',
