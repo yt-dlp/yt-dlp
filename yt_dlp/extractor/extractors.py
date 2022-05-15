@@ -1268,6 +1268,7 @@ from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
 )
+from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
 from .pokemon import (
     PokemonIE,
