@@ -260,7 +260,7 @@ class ZenYandexIE(InfoExtractor):
             'timestamp': int_or_none(video_json.get('publicationDate')),
             'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
             'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
-            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
+            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl'])
         }
 
 
@@ -280,13 +280,17 @@ class ZenYandexChannelIE(InfoExtractor):
         'playlist_mincount': 657,
     }]
 
-    def _entries(self, id, url):
-        webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
-        for key in data_json.keys():
-            if key.startswith('__serverState__'):
-                data_json = data_json[key]
+    def _entries(self, channel_title, webpage, data_json):
         items = list(try_get(data_json, lambda x: x['feed']['items'], dict).values())
+
+        if(len(items) == 0):
+            for match in re.findall(r'href="(?P<URL>https://zen.yandex.ru/video/watch/(?P<id>.+?)(\?rid=.+?)?)"', webpage):
+                items.append({
+                    'type':             'gif',
+                    'publication_id':   match[1],
+                    'link':             match[0]
+                    })
+
         prev_next_page_id = None
         more = try_get(data_json, lambda x: x['links']['more']) or None
         if more:
@@ -306,7 +310,7 @@ class ZenYandexChannelIE(InfoExtractor):
                     or not next_page_id
                 ):
                 break
-            data_json = self._download_json(more, id, note='Downloading Page %d' % page)
+            data_json = self._download_json(more, channel_title, note='Downloading Page %d' % page)
             items = data_json.get('items', [])
             more = try_get(data_json, lambda x: x['more']['link']) or None
 
@@ -318,4 +322,15 @@ class ZenYandexChannelIE(InfoExtractor):
 
     def _real_extract(self, url):
         id = self._match_id(url)
-        return self.playlist_result(self._entries(id, url), playlist_id=id)
+        webpage = self._download_webpage(url, id)
+        data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
+        for key in data_json.keys():
+            if key.startswith('__serverState__'):
+                data_json = data_json[key]
+        channel_title = try_get(data_json, lambda x: x['channel']['source']['title']) or id
+        channel_description  = try_get(data_json, lambda x: x['channel']['source']['description']) or None
+
+        return self.playlist_result(self._entries(channel_title, webpage, data_json),
+                                    playlist_id=id,
+                                    playlist_title=channel_title,
+                                    playlist_description=channel_description)
