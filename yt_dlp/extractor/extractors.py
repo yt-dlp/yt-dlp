@@ -591,6 +591,7 @@ from .go import GoIE
 from .godtube import GodTubeIE
 from .gofile import GofileIE
 from .golem import GolemIE
+from .goodgame import GoodGameIE
 from .googledrive import GoogleDriveIE
 from .googlepodcasts import (
     GooglePodcastsIE,
