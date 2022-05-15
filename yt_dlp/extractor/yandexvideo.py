@@ -295,7 +295,7 @@ class ZenYandexChannelIE(InfoExtractor):
             next_page_id = None
 
         for page in itertools.count(1):
-            for item in items:
+            for item in filter(lambda x: x.get('type') == 'gif', items):
                 video_id = item.get('publication_id') or item.get('publicationId')
                 video_url = item.get('link')
                 yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
