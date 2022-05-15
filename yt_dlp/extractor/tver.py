@@ -52,7 +52,7 @@ class TVerIE(TVerBaseIE):
 
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
-        if video_type not in {'episodes'}:
+        if video_type != 'episodes':
             webpage = self._download_webpage(url, video_id, note='Resolving to new URL')
             video_id = self._match_id(self._search_regex(
                 (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
@@ -115,16 +115,18 @@ class TVerSeriesIE(TVerBaseIE):
     def _real_extract(self, url):
         playlist = []
         series_id = self._match_id(url)
+        return self.playlist_result(self._entries(series_id))
+
+    def _entries(self, series_id):
         season_json = self._download_json(
             f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}',
             series_id,
             headers={
                 'x-tver-platform-type': 'web'
-            },
-            note='Downloading JSON metadata [SeriesSeasons]')
+            })
         seasons = traverse_obj(season_json, ('result', 'contents'))
         for season in seasons:
-            if traverse_obj(season, ('type')) != 'season':
+            if season.get('type') != 'season':
                 continue
             season_id = traverse_obj(season, ('content', 'id'))
             episode_json = self._download_json(
@@ -136,14 +138,12 @@ class TVerSeriesIE(TVerBaseIE):
                 },
                 headers={
                     'x-tver-platform-type': 'web'
-                },
-                note='Downloading JSON metadata [SeasonEpisodes]')
+                })
             episodes = traverse_obj(episode_json, ('result', 'contents'))
             for episode in episodes:
-                episode_type = traverse_obj(episode, ('type'))
+                episode_type = episode.get('type')
                 video_id = traverse_obj(episode, ('content', 'id'))
                 if episode_type == 'episode':
-                    playlist.append(self.url_result(
+                    yield self.url_result(
                         f'https://tver.jp/episodes/{video_id}',
-                        TVerIE.ie_key(), video_id))
-        return self.playlist_result(playlist)
+                        TVerIE.ie_key(), video_id)
