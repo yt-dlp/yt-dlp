@@ -7,7 +7,40 @@ from ..utils import (
 )
 
 
-class GoodGameIE(InfoExtractor):
+class GoodGameClipsIE(InfoExtractor):
+    IE_NAME = 'goodgame:clips'
+    _VALID_URL = r'https?://goodgame\.ru/clip/(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://goodgame.ru/clip/551240/?from=rec',
+        'info_dict': {
+            'id': '551240',
+            'ext': 'mp4',
+            'title': 'в моём лузе только Майкер виноват',
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
+    }, {
+        'url': 'https://goodgame.ru/clip/551045',
+        'info_dict': {
+            'id': '551045',
+            'ext': 'mp4',
+            'title': 'А что делать осталась минута',
+            'thumbnail': r're:^https?://.*\.jpg$',
+        },
+    }]
+
+    def _real_extract(self, url):
+        clip_id = self._match_id(url)
+        page = self._download_webpage(url, clip_id)
+
+        return {
+            'id': clip_id,
+            'url': self._og_search_video_url(page),
+            'title': self._og_search_title(page),
+            'thumbnail': self._og_search_thumbnail(page),
+        }
+
+
+class GoodGameStreamIE(InfoExtractor):
     IE_NAME = 'goodgame:stream'
     _VALID_URL = r'https?://goodgame\.ru/channel/(?P<id>\w+)'
     _TESTS = [{
