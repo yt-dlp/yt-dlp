@@ -1,13 +1,14 @@
 import functools
 import json
+
 from .common import InfoExtractor
 from ..utils import (
-    float_or_none,
     OnDemandPagedList,
+    float_or_none,
     str_or_none,
     str_to_int,
     traverse_obj,
-    unified_timestamp
+    unified_timestamp,
 )
 
 
