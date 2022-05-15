@@ -17,7 +17,7 @@ normalized_version = '.'.join(str(int(x)) for x in version.split('.'))
 
 pypi_release = json.loads(compat_urllib_request.urlopen(
     'https://pypi.org/pypi/yt-dlp/%s/json' % normalized_version
-).read().decode('utf-8'))
+).read().decode())
 
 tarball_file = next(x for x in pypi_release['urls'] if x['filename'].endswith('.tar.gz'))
 

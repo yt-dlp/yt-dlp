@@ -14,7 +14,7 @@ EPILOG_START = 'See full documentation'
 
 helptext = sys.stdin.read()
 if isinstance(helptext, bytes):
-    helptext = helptext.decode('utf-8')
+    helptext = helptext.decode()
 
 start, end = helptext.index(f'\n  {OPTIONS_START}'), helptext.index(f'\n{EPILOG_START}')
 options = re.sub(r'(?m)^  (\w.+)$', r'## \1', helptext[start + 1: end + 1])

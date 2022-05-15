@@ -312,7 +312,7 @@ class YoutubeDL:
                        has been filtered out.
     break_per_url:     Whether break_on_reject and break_on_existing
                        should act on each input URL as opposed to for the entire queue
-    cookiefile:        File name where cookies should be read from and dumped to
+    cookiefile:        File name or text stream from where cookies should be read and dumped to
     cookiesfrombrowser:  A tuple containing the name of the browser, the profile
                        name/pathfrom where cookies are loaded, and the name of the
                        keyring. Eg: ('chrome', ) or ('vivaldi', 'default', 'BASICTEXT')
@@ -773,9 +773,9 @@ class YoutubeDL:
         assert hasattr(self, '_output_process')
         assert isinstance(message, compat_str)
         line_count = message.count('\n') + 1
-        self._output_process.stdin.write((message + '\n').encode('utf-8'))
+        self._output_process.stdin.write((message + '\n').encode())
         self._output_process.stdin.flush()
-        res = ''.join(self._output_channel.readline().decode('utf-8')
+        res = ''.join(self._output_channel.readline().decode()
                       for _ in range(line_count))
         return res[:-len('\n')]
 
@@ -1181,7 +1181,7 @@ class YoutubeDL:
                 value = map(str, variadic(value) if '#' in flags else [value])
                 value, fmt = ' '.join(map(compat_shlex_quote, value)), str_fmt
             elif fmt[-1] == 'B':  # bytes
-                value = f'%{str_fmt}'.encode() % str(value).encode('utf-8')
+                value = f'%{str_fmt}'.encode() % str(value).encode()
                 value, fmt = value.decode('utf-8', 'ignore'), 's'
             elif fmt[-1] == 'U':  # unicode normalized
                 value, fmt = unicodedata.normalize(
@@ -2243,7 +2243,7 @@ class YoutubeDL:
                 return selector_function(ctx_copy)
             return final_selector
 
-        stream = io.BytesIO(format_spec.encode('utf-8'))
+        stream = io.BytesIO(format_spec.encode())
         try:
             tokens = list(_remove_unused_ops(tokenize.tokenize(stream.readline)))
         except tokenize.TokenError:
@@ -2335,12 +2335,16 @@ class YoutubeDL:
         # TODO: move sanitization here
         if is_video:
             # playlists are allowed to lack "title"
-            info_dict['fulltitle'] = info_dict.get('title')
-            if 'title' not in info_dict:
+            title = info_dict.get('title', NO_DEFAULT)
+            if title is NO_DEFAULT:
                 raise ExtractorError('Missing "title" field in extractor result',
                                      video_id=info_dict['id'], ie=info_dict['extractor'])
-            elif not info_dict.get('title'):
-                self.report_warning('Extractor failed to obtain "title". Creating a generic title instead')
+            info_dict['fulltitle'] = title
+            if not title:
+                if title == '':
+                    self.write_debug('Extractor gave empty title. Creating a generic title')
+                else:
+                    self.report_warning('Extractor failed to obtain "title". Creating a generic title instead')
                 info_dict['title'] = f'{info_dict["extractor"].replace(":", "-")} video #{info_dict["id"]}'
 
         if info_dict.get('duration') is not None:
@@ -2829,7 +2833,7 @@ class YoutubeDL:
             urls = '", "'.join(
                 (f['url'].split(',')[0] + ',<data>' if f['url'].startswith('data:') else f['url'])
                 for f in info.get('requested_formats', []) or [info])
-            self.write_debug('Invoking downloader on "%s"' % urls)
+            self.write_debug(f'Invoking {fd.FD_NAME} downloader on "{urls}"')
 
         # Note: Ideally info should be a deep-copied so that hooks cannot modify it.
         # But it may contain objects that are not deep-copyable
@@ -3190,7 +3194,8 @@ class YoutubeDL:
                     downloader = downloader.__name__ if downloader else None
 
                     if info_dict.get('requested_formats') is None:  # Not necessary if doing merger
-                        ffmpeg_fixup(downloader == 'HlsFD',
+                        ffmpeg_fixup(downloader == 'HlsFD' and not self.params.get('hls_use_mpegts')
+                                     or info_dict.get('is_live') and self.params.get('hls_use_mpegts') is None,
                                      'Possible MPEG-TS in MP4 container or malformed AAC timestamps',
                                      FFmpegFixupM3u8PP)
                         ffmpeg_fixup(info_dict.get('is_live') and downloader == 'DashSegmentsFD',
@@ -3695,10 +3700,10 @@ class YoutubeDL:
 
         # Not implemented
         if False and self.params.get('call_home'):
-            ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode('utf-8')
+            ipaddr = self.urlopen('https://yt-dl.org/ip').read().decode()
             write_debug('Public IP address: %s' % ipaddr)
             latest_version = self.urlopen(
-                'https://yt-dl.org/latest/version').read().decode('utf-8')
+                'https://yt-dl.org/latest/version').read().decode()
             if version_tuple(latest_version) > version_tuple(__version__):
                 self.report_warning(
                     'You are using an outdated version (newest version: %s)! '

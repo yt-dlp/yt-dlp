@@ -9,8 +9,6 @@ from ..utils import sanitized_Request
 class NiconicoDmcFD(FileDownloader):
     """ Downloading niconico douga from DMC with heartbeat """
 
-    FD_NAME = 'niconico_dmc'
-
     def real_download(self, filename, info_dict):
         self.to_screen('[%s] Downloading from DMC' % self.FD_NAME)
 
@@ -51,4 +49,4 @@ class NiconicoDmcFD(FileDownloader):
                 with heartbeat_lock:
                     timer[0].cancel()
                     download_complete = True
-            return success
+        return success

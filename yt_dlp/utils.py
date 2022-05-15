@@ -737,8 +737,8 @@ def extract_basic_auth(url):
         parts.hostname if parts.port is None
         else '%s:%d' % (parts.hostname, parts.port))))
     auth_payload = base64.b64encode(
-        ('%s:%s' % (parts.username, parts.password or '')).encode('utf-8'))
-    return url, 'Basic ' + auth_payload.decode('utf-8')
+        ('%s:%s' % (parts.username, parts.password or '')).encode())
+    return url, f'Basic {auth_payload.decode()}'
 
 
 def sanitized_Request(url, *args, **kwargs):
@@ -917,6 +917,8 @@ def make_HTTPS_handler(params, **kwargs):
     context.check_hostname = opts_check_certificate
     if params.get('legacyserverconnect'):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
+        # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
+        context.set_ciphers('DEFAULT')
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
         if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
@@ -930,9 +932,6 @@ def make_HTTPS_handler(params, **kwargs):
             except ssl.SSLError:
                 # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
                 if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                    # Create a new context to discard any certificates that were already loaded
-                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                    context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
                     for storename in ('CA', 'ROOT'):
                         _ssl_load_windows_store_certs(context, storename)
                 context.set_default_verify_paths()
@@ -1340,7 +1339,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             location = resp.headers.get('Location')
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
-                location = location.encode('iso-8859-1').decode('utf-8')
+                location = location.encode('iso-8859-1').decode()
                 location_escaped = escape_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
@@ -1414,9 +1413,14 @@ class YoutubeDLHTTPSHandler(compat_urllib_request.HTTPSHandler):
             conn_class = make_socks_conn_class(conn_class, socks_proxy)
             del req.headers['Ytdl-socks-proxy']
 
-        return self.do_open(functools.partial(
-            _create_http_connection, self, conn_class, True),
-            req, **kwargs)
+        try:
+            return self.do_open(
+                functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
+        except urllib.error.URLError as e:
+            if (isinstance(e.reason, ssl.SSLError)
+                    and getattr(e.reason, 'reason', None) == 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
+                raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect')
+            raise
 
 
 class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
@@ -1434,6 +1438,26 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
     _CookieFileEntry = collections.namedtuple(
         'CookieFileEntry',
         ('domain_name', 'include_subdomains', 'path', 'https_only', 'expires_at', 'name', 'value'))
+
+    def __init__(self, filename=None, *args, **kwargs):
+        super().__init__(None, *args, **kwargs)
+        if self.is_path(filename):
+            filename = os.fspath(filename)
+        self.filename = filename
+
+    @staticmethod
+    def is_path(file):
+        return isinstance(file, (str, bytes, os.PathLike))
+
+    @contextlib.contextmanager
+    def open(self, file, *, write=False):
+        if self.is_path(file):
+            with open(file, 'w' if write else 'r', encoding='utf-8') as f:
+                yield f
+        else:
+            if write:
+                file.truncate(0)
+            yield file
 
     def save(self, filename=None, ignore_discard=False, ignore_expires=False):
         """
@@ -1454,7 +1478,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             if cookie.expires is None:
                 cookie.expires = 0
 
-        with open(filename, 'w', encoding='utf-8') as f:
+        with self.open(filename, write=True) as f:
             f.write(self._HEADER)
             now = time.time()
             for cookie in self:
@@ -1510,7 +1534,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             return line
 
         cf = io.StringIO()
-        with open(filename, encoding='utf-8') as f:
+        with self.open(filename) as f:
             for line in f:
                 try:
                     cf.write(prepare_line(line))
@@ -1732,14 +1756,14 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
 
 
 def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
-    """
-    Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    R"""
+    Return a datetime object from a string.
+    Supported format:
+        (now|today|yesterday|DATE)([+-]\d+(microsecond|second|minute|hour|day|week|month|year)s?)?
 
-    format: string date format used to return datetime object from
-    precision: round the time portion of a datetime object.
-                auto|microsecond|second|minute|hour|day.
-                auto: round to the unit provided in date_str (if applicable).
+    @param format       strftime format of DATE
+    @param precision    Round the datetime object: auto|microsecond|second|minute|hour|day
+                        auto: round to the unit provided in date_str (if applicable).
     """
     auto_precision = False
     if precision == 'auto':
@@ -1751,7 +1775,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if date_str == 'yesterday':
         return today - datetime.timedelta(days=1)
     match = re.match(
-        r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)(s)?',
+        r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?',
         date_str)
     if match is not None:
         start_time = datetime_from_str(match.group('start'), precision, format)
@@ -1774,16 +1798,14 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
 
 
 def date_from_str(date_str, format='%Y%m%d', strict=False):
-    """
-    Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    R"""
+    Return a date object from a string using datetime_from_str
 
-    If "strict", only (now|today)[+-][0-9](day|week|month|year)(s)? is allowed
-
-    format: string date format used to return datetime object from
+    @param strict  Restrict allowed patterns to "YYYYMMDD" and
+                   (now|today|yesterday)(-\d+(day|week|month|year)s?)?
     """
-    if strict and not re.fullmatch(r'\d{8}|(now|today)[+-]\d+(day|week|month|year)(s)?', date_str):
-        raise ValueError(f'Invalid date format {date_str}')
+    if strict and not re.fullmatch(r'\d{8}|(now|today|yesterday)(-\d+(day|week|month|year)s?)?', date_str):
+        raise ValueError(f'Invalid date format "{date_str}"')
     return datetime_from_str(date_str, precision='microsecond', format=format).date()
 
 
@@ -1877,8 +1899,7 @@ def write_string(s, out=None, encoding=None):
     assert isinstance(s, str)
     out = out or sys.stderr
 
-    from .compat import WINDOWS_VT_MODE  # Must be imported locally
-    if WINDOWS_VT_MODE:
+    if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
     if 'b' in getattr(out, 'mode', ''):
@@ -2305,7 +2326,7 @@ def setproctitle(title):
         # a bytestring, but since unicode_literals turns
         # every string into a unicode string, it fails.
         return
-    title_bytes = title.encode('utf-8')
+    title_bytes = title.encode()
     buf = ctypes.create_string_buffer(len(title_bytes))
     buf.value = title_bytes
     try:
@@ -2347,13 +2368,13 @@ def base_url(url):
 
 def urljoin(base, path):
     if isinstance(path, bytes):
-        path = path.decode('utf-8')
+        path = path.decode()
     if not isinstance(path, compat_str) or not path:
         return None
     if re.match(r'^(?:[a-zA-Z][a-zA-Z0-9+-.]*:)?//', path):
         return path
     if isinstance(base, bytes):
-        base = base.decode('utf-8')
+        base = base.decode()
     if not isinstance(base, compat_str) or not re.match(
             r'^(?:https?:)?//', base):
         return None
@@ -2553,49 +2574,48 @@ def get_exe_version(exe, args=['--version'],
 
 
 class LazyList(collections.abc.Sequence):
-    ''' Lazy immutable list from an iterable
-    Note that slices of a LazyList are lists and not LazyList'''
+    """Lazy immutable list from an iterable
+    Note that slices of a LazyList are lists and not LazyList"""
 
     class IndexError(IndexError):
         pass
 
     def __init__(self, iterable, *, reverse=False, _cache=None):
-        self.__iterable = iter(iterable)
-        self.__cache = [] if _cache is None else _cache
-        self.__reversed = reverse
+        self._iterable = iter(iterable)
+        self._cache = [] if _cache is None else _cache
+        self._reversed = reverse
 
     def __iter__(self):
-        if self.__reversed:
+        if self._reversed:
             # We need to consume the entire iterable to iterate in reverse
             yield from self.exhaust()
             return
-        yield from self.__cache
-        for item in self.__iterable:
-            self.__cache.append(item)
+        yield from self._cache
+        for item in self._iterable:
+            self._cache.append(item)
             yield item
 
-    def __exhaust(self):
-        self.__cache.extend(self.__iterable)
-        # Discard the emptied iterable to make it pickle-able
-        self.__iterable = []
-        return self.__cache
+    def _exhaust(self):
+        self._cache.extend(self._iterable)
+        self._iterable = []  # Discard the emptied iterable to make it pickle-able
+        return self._cache
 
     def exhaust(self):
-        ''' Evaluate the entire iterable '''
-        return self.__exhaust()[::-1 if self.__reversed else 1]
+        """Evaluate the entire iterable"""
+        return self._exhaust()[::-1 if self._reversed else 1]
 
     @staticmethod
-    def __reverse_index(x):
+    def _reverse_index(x):
         return None if x is None else -(x + 1)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
-            if self.__reversed:
-                idx = slice(self.__reverse_index(idx.start), self.__reverse_index(idx.stop), -(idx.step or 1))
+            if self._reversed:
+                idx = slice(self._reverse_index(idx.start), self._reverse_index(idx.stop), -(idx.step or 1))
             start, stop, step = idx.start, idx.stop, idx.step or 1
         elif isinstance(idx, int):
-            if self.__reversed:
-                idx = self.__reverse_index(idx)
+            if self._reversed:
+                idx = self._reverse_index(idx)
             start, stop, step = idx, idx, 0
         else:
             raise TypeError('indices must be integers or slices')
@@ -2604,35 +2624,35 @@ class LazyList(collections.abc.Sequence):
                 or (stop is None and step > 0)):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
-            self.__exhaust()
+            self._exhaust()
             try:
-                return self.__cache[idx]
+                return self._cache[idx]
             except IndexError as e:
                 raise self.IndexError(e) from e
-        n = max(start or 0, stop or 0) - len(self.__cache) + 1
+        n = max(start or 0, stop or 0) - len(self._cache) + 1
         if n > 0:
-            self.__cache.extend(itertools.islice(self.__iterable, n))
+            self._cache.extend(itertools.islice(self._iterable, n))
         try:
-            return self.__cache[idx]
+            return self._cache[idx]
         except IndexError as e:
             raise self.IndexError(e) from e
 
     def __bool__(self):
         try:
-            self[-1] if self.__reversed else self[0]
+            self[-1] if self._reversed else self[0]
         except self.IndexError:
             return False
         return True
 
     def __len__(self):
-        self.__exhaust()
-        return len(self.__cache)
+        self._exhaust()
+        return len(self._cache)
 
     def __reversed__(self):
-        return type(self)(self.__iterable, reverse=not self.__reversed, _cache=self.__cache)
+        return type(self)(self._iterable, reverse=not self._reversed, _cache=self._cache)
 
     def __copy__(self):
-        return type(self)(self.__iterable, reverse=self.__reversed, _cache=self.__cache)
+        return type(self)(self._iterable, reverse=self._reversed, _cache=self._cache)
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
@@ -2846,9 +2866,9 @@ def _multipart_encode_impl(data, boundary):
     for k, v in data.items():
         out += b'--' + boundary.encode('ascii') + b'\r\n'
         if isinstance(k, compat_str):
-            k = k.encode('utf-8')
+            k = k.encode()
         if isinstance(v, compat_str):
-            v = v.encode('utf-8')
+            v = v.encode()
         # RFC 2047 requires non-ASCII field names to be encoded, while RFC 7578
         # suggests sending UTF-8 directly. Firefox sends UTF-8, too
         content = b'Content-Disposition: form-data; name="' + k + b'"\r\n\r\n' + v + b'\r\n'
@@ -4737,7 +4757,7 @@ def write_xattr(path, key, value):
             'Couldn\'t find a tool to set the xattrs. Install either the python "xattr" or "pyxattr" modules or the '
             + ('"xattr" binary' if sys.platform != 'linux' else 'GNU "attr" package (which contains the "setfattr" tool)'))
 
-    value = value.decode('utf-8')
+    value = value.decode()
     try:
         p = Popen(
             [exe, '-w', key, value, path] if exe == 'xattr' else [exe, '-n', key, '-v', value, path],
@@ -4816,7 +4836,7 @@ def iri_to_uri(iri):
             net_location += ':' + urllib.parse.quote(iri_parts.password, safe=r"!$%&'()*+,~")
         net_location += '@'
 
-    net_location += iri_parts.hostname.encode('idna').decode('utf-8')  # Punycode for Unicode hostnames.
+    net_location += iri_parts.hostname.encode('idna').decode()  # Punycode for Unicode hostnames.
     # The 'idna' encoding produces ASCII text.
     if iri_parts.port is not None and iri_parts.port != 80:
         net_location += ':' + str(iri_parts.port)
@@ -5059,9 +5079,9 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     }
     if headers:
         header_data.update(headers)
-    header_b64 = base64.b64encode(json.dumps(header_data).encode('utf-8'))
-    payload_b64 = base64.b64encode(json.dumps(payload_data).encode('utf-8'))
-    h = hmac.new(key.encode('utf-8'), header_b64 + b'.' + payload_b64, hashlib.sha256)
+    header_b64 = base64.b64encode(json.dumps(header_data).encode())
+    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
+    h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
     signature_b64 = base64.b64encode(h.digest())
     token = header_b64 + b'.' + payload_b64 + b'.' + signature_b64
     return token
@@ -5301,6 +5321,7 @@ def merge_headers(*dicts):
 
 class classproperty:
     def __init__(self, f):
+        functools.update_wrapper(self, f)
         self.f = f
 
     def __get__(self, _, cls):

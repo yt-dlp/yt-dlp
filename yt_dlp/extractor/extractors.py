@@ -601,7 +601,11 @@ from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
-from .gronkh import GronkhIE
+from .gronkh import (
+    GronkhIE,
+    GronkhFeedIE,
+    GronkhVodsIE
+)
 from .groupon import GrouponIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
@@ -1014,7 +1018,8 @@ from .ndr import (
 from .ndtv import NDTVIE
 from .nebula import (
     NebulaIE,
-    NebulaCollectionIE,
+    NebulaSubscriptionsIE,
+    NebulaChannelIE,
 )
 from .nerdcubed import NerdCubedFeedIE
 from .netzkino import NetzkinoIE
@@ -1263,6 +1268,7 @@ from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
 )
+from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
 from .pokemon import (
     PokemonIE,
@@ -2159,6 +2165,10 @@ from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,
     ZingMp3AlbumIE,
+    ZingMp3ChartHomeIE,
+    ZingMp3WeekChartIE,
+    ZingMp3ChartMusicVideoIE,
+    ZingMp3UserIE,
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE

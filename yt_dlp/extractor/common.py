@@ -40,6 +40,7 @@ from ..utils import (
     age_restricted,
     base_url,
     bug_reports_message,
+    classproperty,
     clean_html,
     determine_ext,
     determine_protocol,
@@ -103,7 +104,9 @@ class InfoExtractor:
     For a video, the dictionaries must include the following fields:
 
     id:             Video identifier.
-    title:          Video title, unescaped.
+    title:          Video title, unescaped. Set to an empty string if video has
+                    no title as opposed to "None" which signifies that the
+                    extractor failed to obtain a title
 
     Additionally, it must contain either a formats entry or a url one:
 
@@ -467,14 +470,18 @@ class InfoExtractor:
     _WORKING = True
     _NETRC_MACHINE = None
     IE_DESC = None
+    SEARCH_KEY = None
 
-    _LOGIN_HINTS = {
-        'any': 'Use --cookies, --cookies-from-browser, --username and --password, or --netrc to provide account credentials',
-        'cookies': (
-            'Use --cookies-from-browser or --cookies for the authentication. '
-            'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
-        'password': 'Use --username and --password, or --netrc to provide account credentials',
-    }
+    def _login_hint(self, method=NO_DEFAULT, netrc=None):
+        password_hint = f'--username and --password, or --netrc ({netrc or self._NETRC_MACHINE}) to provide account credentials'
+        return {
+            None: '',
+            'any': f'Use --cookies, --cookies-from-browser, {password_hint}',
+            'password': f'Use {password_hint}',
+            'cookies': (
+                'Use --cookies-from-browser or --cookies for the authentication. '
+                'See  https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl  for how to manually pass cookies'),
+        }[method if method is not NO_DEFAULT else 'any' if self.supports_login() else 'cookies']
 
     def __init__(self, downloader=None):
         """Constructor. Receives an optional downloader (a YoutubeDL instance).
@@ -537,7 +544,7 @@ class InfoExtractor:
                 if username:
                     self._perform_login(username, password)
             elif self.get_param('username') and False not in (self.IE_DESC, self._NETRC_MACHINE):
-                self.report_warning(f'Login with password is not supported for this website. {self._LOGIN_HINTS["cookies"]}')
+                self.report_warning(f'Login with password is not supported for this website. {self._login_hint("cookies")}')
             self._real_initialize()
             self._ready = True
 
@@ -704,9 +711,9 @@ class InfoExtractor:
         """A string for getting the InfoExtractor with get_info_extractor"""
         return cls.__name__[:-2]
 
-    @property
-    def IE_NAME(self):
-        return compat_str(type(self).__name__[:-2])
+    @classproperty
+    def IE_NAME(cls):
+        return cls.__name__[:-2]
 
     @staticmethod
     def __can_accept_status_code(err, expected_status):
@@ -1129,11 +1136,7 @@ class InfoExtractor:
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
             return
-        if method is NO_DEFAULT:
-            method = 'any' if self.supports_login() else 'cookies'
-        if method is not None:
-            assert method in self._LOGIN_HINTS, 'Invalid login method'
-            msg = f'{msg}. {self._LOGIN_HINTS[method]}'
+        msg += format_field(self._login_hint(method), template='. %s')
         raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
@@ -3622,34 +3625,58 @@ class InfoExtractor:
                 self._set_cookie(domain, cookie, value)
                 break
 
-    def get_testcases(self, include_onlymatching=False):
-        t = getattr(self, '_TEST', None)
+    @classmethod
+    def get_testcases(cls, include_onlymatching=False):
+        t = getattr(cls, '_TEST', None)
         if t:
-            assert not hasattr(self, '_TESTS'), \
-                '%s has _TEST and _TESTS' % type(self).__name__
+            assert not hasattr(cls, '_TESTS'), f'{cls.ie_key()}IE has _TEST and _TESTS'
             tests = [t]
         else:
-            tests = getattr(self, '_TESTS', [])
+            tests = getattr(cls, '_TESTS', [])
         for t in tests:
             if not include_onlymatching and t.get('only_matching', False):
                 continue
-            t['name'] = type(self).__name__[:-len('IE')]
+            t['name'] = cls.ie_key()
             yield t
 
-    def is_suitable(self, age_limit):
+    @classmethod
+    def is_suitable(cls, age_limit):
         """ Test whether the extractor is generally suitable for the given
         age limit (i.e. pornographic sites are not, all others usually are) """
 
         any_restricted = False
-        for tc in self.get_testcases(include_onlymatching=False):
+        for tc in cls.get_testcases(include_onlymatching=False):
             if tc.get('playlist', []):
                 tc = tc['playlist'][0]
-            is_restricted = age_restricted(
-                tc.get('info_dict', {}).get('age_limit'), age_limit)
+            is_restricted = age_restricted(tc.get('info_dict', {}).get('age_limit'), age_limit)
             if not is_restricted:
                 return True
             any_restricted = any_restricted or is_restricted
         return not any_restricted
+
+    @classmethod
+    def description(cls, *, markdown=True, search_examples=None):
+        """Description of the extractor"""
+        desc = ''
+        if cls._NETRC_MACHINE:
+            if markdown:
+                desc += f' [<abbr title="netrc machine"><em>{cls._NETRC_MACHINE}</em></abbr>]'
+            else:
+                desc += f' [{cls._NETRC_MACHINE}]'
+        if cls.IE_DESC is False:
+            desc += ' [HIDDEN]'
+        elif cls.IE_DESC:
+            desc += f' {cls.IE_DESC}'
+        if cls.SEARCH_KEY:
+            desc += f'; "{cls.SEARCH_KEY}:" prefix'
+            if search_examples:
+                _COUNTS = ('', '5', '10', 'all')
+                desc += f' (Example: "{cls.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(search_examples)}")'
+        if not cls.working():
+            desc += ' (**Currently broken**)' if markdown else ' (Currently broken)'
+
+        name = f' - **{cls.IE_NAME}**' if markdown else cls.IE_NAME
+        return f'{name}:{desc}' if desc else name
 
     def extract_subtitles(self, *args, **kwargs):
         if (self.get_param('writesubtitles', False)
@@ -3824,6 +3851,6 @@ class SearchInfoExtractor(InfoExtractor):
         """Returns an iterator of search results"""
         raise NotImplementedError('This method must be implemented by subclasses')
 
-    @property
-    def SEARCH_KEY(self):
-        return self._SEARCH_KEY
+    @classproperty
+    def SEARCH_KEY(cls):
+        return cls._SEARCH_KEY

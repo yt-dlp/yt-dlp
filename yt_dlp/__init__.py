@@ -5,14 +5,13 @@ __license__ = 'Public Domain'
 
 import itertools
 import os
-import random
 import re
 import sys
 
 from .compat import compat_getpass, compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
-from .extractor import gen_extractors, list_extractors
+from .extractor import GenericIE, list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
@@ -75,29 +74,29 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
+    out = ''
     if opts.list_extractors:
-        for ie in list_extractors(opts.age_limit):
-            write_string(ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n', out=sys.stdout)
-            matchedUrls = [url for url in urls if ie.suitable(url)]
-            for mu in matchedUrls:
-                write_string('  ' + mu + '\n', out=sys.stdout)
+        urls = dict.fromkeys(urls, False)
+        for ie in list_extractor_classes(opts.age_limit):
+            out += ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n'
+            if ie == GenericIE:
+                matched_urls = [url for url, matched in urls.items() if not matched]
+            else:
+                matched_urls = tuple(filter(ie.suitable, urls.keys()))
+                urls.update(dict.fromkeys(matched_urls, True))
+            out += ''.join(f'  {url}\n' for url in matched_urls)
     elif opts.list_extractor_descriptions:
-        for ie in list_extractors(opts.age_limit):
-            if not ie.working():
-                continue
-            if ie.IE_DESC is False:
-                continue
-            desc = ie.IE_DESC or ie.IE_NAME
-            if getattr(ie, 'SEARCH_KEY', None) is not None:
-                _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
-                _COUNTS = ('', '5', '10', 'all')
-                desc += f'; "{ie.SEARCH_KEY}:" prefix (Example: "{ie.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(_SEARCHES)}")'
-            write_string(desc + '\n', out=sys.stdout)
+        _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
+        out = '\n'.join(
+            ie.description(markdown=False, search_examples=_SEARCHES)
+            for ie in list_extractor_classes(opts.age_limit) if ie.working() and ie.IE_DESC is not False)
     elif opts.ap_list_mso:
-        table = [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()]
-        write_string('Supported TV Providers:\n' + render_table(['mso', 'mso name'], table) + '\n', out=sys.stdout)
+        out = 'Supported TV Providers:\n%s\n' % render_table(
+            ['mso', 'mso name'],
+            [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()])
     else:
         return False
+    write_string(out, out=sys.stdout)
     return True
 
 
@@ -869,6 +868,7 @@ def main(argv=None):
         sys.exit(f'\nERROR: {e}')
 
 
+from .extractor import gen_extractors, list_extractors
 __all__ = [
     'main',
     'YoutubeDL',

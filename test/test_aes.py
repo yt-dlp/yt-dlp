@@ -81,19 +81,19 @@ class TestAES(unittest.TestCase):
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_decrypt_text(self):
-        password = intlist_to_bytes(self.key).decode('utf-8')
+        password = intlist_to_bytes(self.key).decode()
         encrypted = base64.b64encode(
             intlist_to_bytes(self.iv[:8])
             + b'\x17\x15\x93\xab\x8d\x80V\xcdV\xe0\t\xcdo\xc2\xa5\xd8ksM\r\xe27N\xae'
-        ).decode('utf-8')
+        ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 16))
         self.assertEqual(decrypted, self.secret_msg)
 
-        password = intlist_to_bytes(self.key).decode('utf-8')
+        password = intlist_to_bytes(self.key).decode()
         encrypted = base64.b64encode(
             intlist_to_bytes(self.iv[:8])
             + b'\x0b\xe6\xa4\xd9z\x0e\xb8\xb9\xd0\xd4i_\x85\x1d\x99\x98_\xe5\x80\xe7.\xbf\xa5\x83'
-        ).decode('utf-8')
+        ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 32))
         self.assertEqual(decrypted, self.secret_msg)
 

@@ -74,7 +74,7 @@ def run_update(ydl):
 
     # Download and check versions info
     try:
-        version_info = ydl._opener.open(JSON_URL).read().decode('utf-8')
+        version_info = ydl._opener.open(JSON_URL).read().decode()
         version_info = json.loads(version_info)
     except Exception:
         return report_network_error('obtain version info', delim='; Please try again later or')
@@ -118,7 +118,7 @@ def run_update(ydl):
             {}).get('browser_download_url')
         if not urlh:
             return None
-        hash_data = ydl._opener.open(urlh).read().decode('utf-8')
+        hash_data = ydl._opener.open(urlh).read().decode()
         return dict(ln.split()[::-1] for ln in hash_data.splitlines()).get(filename)
 
     if not os.access(filename, os.W_OK):

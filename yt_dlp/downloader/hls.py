@@ -329,7 +329,7 @@ class HlsFD(FragmentFD):
                             continue
                     block.write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             def fin_fragments():
                 dedup_window = extra_state.get('webvtt_dedup_window')
@@ -340,7 +340,7 @@ class HlsFD(FragmentFD):
                 for cue in dedup_window:
                     webvtt.CueBlock.from_json(cue).write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             self.download_and_append_fragments(
                 ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)
