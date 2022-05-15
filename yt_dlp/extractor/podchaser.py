@@ -10,34 +10,10 @@ from ..utils import (
     unified_timestamp
 )
 
-_VALID_URL_BASE = r'https?://(?:www\.)?podchaser\.com/podcasts/[\w-]+-'
-_API_BASE = 'https://api.podchaser.com'
-_PAGE_SIZE = 100
 
-
-def _extract_episode(podcast, episode):
-    return {
-        'id': str(episode.get('id')),
-        'title': episode.get('title'),
-        'description': episode.get('description'),
-        'url': episode.get('audio_url'),
-        'thumbnail': episode.get('image_url'),
-        'duration': str_to_int(episode.get('length')),
-        'timestamp': unified_timestamp(episode.get('air_date')),
-        'rating': float_or_none(episode.get('rating')),
-        'categories': list(set(traverse_obj(podcast, (('summary', None), 'categories', ..., 'text')))),
-        'tags': traverse_obj(podcast, ('tags', ..., 'text')),
-        'series': podcast.get('title'),
-    }
-
-
-class PodchaserBaseIE(InfoExtractor):
-    pass
-
-
-class PodchaserIE(PodchaserBaseIE):
-    IE_NAME = 'Podchaser'
-    _VALID_URL = fr'{_VALID_URL_BASE}(?P<podcast_id>\d+)/episodes/[\w-]+-(?P<id>\d+)'
+class PodchaserIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?podchaser\.com/podcasts/[\w-]+-(?P<podcast_id>\d+)(?:/episodes/[\w-]+-(?P<id>\d+))?'
+    _PAGE_SIZE = 100
     _TESTS = [{
         'url': 'https://www.podchaser.com/podcasts/cum-town-36924/episodes/ep-285-freeze-me-off-104365585',
         'info_dict': {
@@ -54,19 +30,7 @@ class PodchaserIE(PodchaserBaseIE):
             'upload_date': '20211110',
             'rating': 4.0
         }
-    }]
-
-    def _real_extract(self, url):
-        podcast_id, episode_id = self._match_valid_url(url).group('podcast_id', 'id')
-        podcast = self._download_json(f'{_API_BASE}/podcasts/{podcast_id}', podcast_id)
-        episode = self._download_json(f'{_API_BASE}/episodes/{episode_id}', episode_id)
-        return _extract_episode(podcast, episode)
-
-
-class PodchaserFeedIE(PodchaserBaseIE):
-    IE_NAME = 'Podchaser:feed'
-    _VALID_URL = fr'{_VALID_URL_BASE}(?P<id>\d+)'
-    _TESTS = [{
+    }, {
         'url': 'https://www.podchaser.com/podcasts/the-bone-zone-28853',
         'info_dict': {
             'id': '28853',
@@ -84,34 +48,49 @@ class PodchaserFeedIE(PodchaserBaseIE):
         'playlist_mincount': 225
     }]
 
-    @classmethod
-    def suitable(cls, url):
-        return super().suitable(url) and not PodchaserIE.suitable(url)
+    @staticmethod
+    def _parse_episode(episode, podcast):
+        return {
+            'id': str(episode.get('id')),
+            'title': episode.get('title'),
+            'description': episode.get('description'),
+            'url': episode.get('audio_url'),
+            'thumbnail': episode.get('image_url'),
+            'duration': str_to_int(episode.get('length')),
+            'timestamp': unified_timestamp(episode.get('air_date')),
+            'rating': float_or_none(episode.get('rating')),
+            'categories': list(set(traverse_obj(podcast, (('summary', None), 'categories', ..., 'text')))),
+            'tags': traverse_obj(podcast, ('tags', ..., 'text')),
+            'series': podcast.get('title'),
+        }
+
+    def _call_api(self, path, *args, **kwargs):
+        return self._download_json(f'https://api.podchaser.com/{path}', *args, **kwargs)
 
     def _fetch_page(self, podcast_id, podcast, page):
-        params = {
-            'start': page * _PAGE_SIZE,
-            'count': _PAGE_SIZE,
-            'sort_order': 'SORT_ORDER_RECENT',
-            'filters': {
-                'podcast_id': podcast_id
-            },
-            'options': {}
-        }
-        json_response = self._download_json(
-            f'{_API_BASE}/list/episode', podcast_id,
+        json_response = self._call_api(
+            'list/episode', podcast_id,
             headers={'Content-Type': 'application/json;charset=utf-8'},
-            data=json.dumps(params).encode())
-        episodes = json_response.get('entities')
-        for episode in episodes:
-            yield _extract_episode(podcast, episode)
+            data=json.dumps({
+                'start': page * self._PAGE_SIZE,
+                'count': self._PAGE_SIZE,
+                'sort_order': 'SORT_ORDER_RECENT',
+                'filters': {
+                    'podcast_id': podcast_id
+                },
+                'options': {}
+            }).encode())
+
+        for episode in json_response['entities']:
+            yield self._parse_episode(episode, podcast)
 
     def _real_extract(self, url):
-        podcast_id = self._match_id(url)
-        podcast = self._download_json(f'https://api.podchaser.com/podcasts/{podcast_id}', podcast_id)
+        podcast_id, episode_id = self._match_valid_url(url).group('podcast_id', 'id')
+        podcast = self._call_api(f'podcasts/{podcast_id}', episode_id or podcast_id)
+        if not episode_id:
+            return self.playlist_result(
+                OnDemandPagedList(functools.partial(self._fetch_page, podcast_id, podcast), self._PAGE_SIZE),
+                str_or_none(podcast.get('id')), podcast.get('title'), podcast.get('description'))
 
-        entries = OnDemandPagedList(
-            functools.partial(self._fetch_page, podcast_id, podcast), _PAGE_SIZE)
-
-        return self.playlist_result(
-            entries, str_or_none(podcast.get('id')), podcast.get('title'), podcast.get('description'))
+        episode = self._call_api(f'episodes/{episode_id}', episode_id)
+        return self._parse_episode(episode, podcast)
