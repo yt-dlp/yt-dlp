@@ -113,7 +113,6 @@ class TVerSeriesIE(TVerBaseIE):
     }]
 
     def _real_extract(self, url):
-        playlist = []
         series_id = self._match_id(url)
         return self.playlist_result(self._entries(series_id))
 
