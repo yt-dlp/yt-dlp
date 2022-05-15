@@ -26,7 +26,7 @@ _API_BASE_URL = 'https://prod-api-v2.production.rokfin.com/api/v2/public/'
 class RokfinIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?rokfin\.com/(?P<id>(?P<type>post|stream)/\d+)'
     _NETRC_MACHINE = 'rokfin'
-    _TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7 = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/token'
+    _AUTH_BASE = 'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect'
     _access_mgmt_tokens = {}  # OAuth 2.0: RFC 6749, Sec. 1.4-5
     _TESTS = [{
         'url': 'https://www.rokfin.com/post/57548/Mitt-Romneys-Crazy-Solution-To-Climate-Change',
@@ -169,7 +169,7 @@ class RokfinIE(InfoExtractor):
     def _perform_login(self, username, password):
         # https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth (Sec. 3.1)
         login_page = self._download_webpage(
-            'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Ffeed&response_mode=fragment&response_type=code&scope=openid',
+            f'{self._AUTH_BASE}/auth?client_id=web&redirect_uri=https%3A%2F%2Frokfin.com%2Ffeed&response_mode=fragment&response_type=code&scope=openid',
             None, note='loading login page', errnote='error loading login page')
         authentication_point_url = unescapeHTML(self._search_regex(
             r'<form\s+[^>]+action\s*=\s*"(https://secure\.rokfin\.com/auth/realms/rokfin-web/login-actions/authenticate\?[^"]+)"',
@@ -184,7 +184,7 @@ class RokfinIE(InfoExtractor):
             raise ExtractorError('Login failed')
 
         urlh = self._request_webpage(
-            'https://secure.rokfin.com/auth/realms/rokfin-web/protocol/openid-connect/auth', None,
+            f'{self._AUTH_BASE}/auth', None,
             note='granting user authorization', errnote='user authorization rejected by Rokfin',
             query={
                 'client_id': 'web',
@@ -195,7 +195,7 @@ class RokfinIE(InfoExtractor):
                 'scope': 'openid',
             })
         self._access_mgmt_tokens = self._download_json(
-            self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, None,
+            f'{self._AUTH_BASE}/token', None,
             note='getting access credentials', errnote='error getting access credentials',
             data=urlencode_postdata({
                 'code': urllib.parse.parse_qs(urllib.parse.urldefrag(urlh.geturl()).fragment).get('code')[0],
@@ -204,8 +204,10 @@ class RokfinIE(InfoExtractor):
                 'redirect_uri': 'https://rokfin.com/silent-check-sso.html'
             }))
 
-    def _authentication_active(self):  # TODO
-        return not ({'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'} - set([cookie.name for cookie in self._downloader.cookiejar]))
+    def _authentication_active(self):
+        return not (
+            {'KEYCLOAK_IDENTITY', 'KEYCLOAK_IDENTITY_LEGACY', 'KEYCLOAK_SESSION', 'KEYCLOAK_SESSION_LEGACY'}
+            - set(self._get_cookies(self._AUTH_BASE)))
 
     def _get_auth_token(self):
         return try_get(self._access_mgmt_tokens, lambda x: ' '.join([x['token_type'], x['access_token']]))
@@ -224,7 +226,7 @@ class RokfinIE(InfoExtractor):
             return self._parse_json(json_string, video_id)
 
         self._access_mgmt_tokens = self._download_json(
-            self._TOKEN_DISTRIBUTION_POINT_URL_STEP_6_7, video_id,
+            f'{self._AUTH_BASE}/token', video_id,
             note='User authorization expired or canceled by Rokfin. Re-authorizing ...', errnote='Failed to re-authorize',
             data=urlencode_postdata({
                 'grant_type': 'refresh_token',
