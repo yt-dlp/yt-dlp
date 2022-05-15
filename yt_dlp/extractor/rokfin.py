@@ -1,9 +1,10 @@
 import itertools
+import json
 import re
 import urllib.parse
 from datetime import datetime
 
-from .common import InfoExtractor
+from .common import InfoExtractor, SearchInfoExtractor
 from ..utils import (
     ExtractorError,
     determine_ext,
@@ -334,3 +335,76 @@ class RokfinChannelIE(RokfinPlaylistBaseIE):
         return self.playlist_result(
             self._entries(channel_id, channel_name, self._TABS[tab]),
             f'{channel_id}-{tab}', f'{channel_name} - {tab.title()}', str_or_none(channel_info.get('description')))
+
+
+class RokfinSearchIE(SearchInfoExtractor):
+    IE_NAME = 'rokfin:search'
+    IE_DESC = 'Rokfin Search'
+    _SEARCH_KEY = 'rkfnsearch'
+    _TYPES = {
+        'video': (('id', 'raw'), 'post'),
+        'audio': (('id', 'raw'), 'post'),
+        'stream': (('content_id', 'raw'), 'stream'),
+        'dead_stream': (('content_id', 'raw'), 'stream'),
+        'stack': (('content_id', 'raw'), 'stack'),
+    }
+    _TESTS = [{
+        'url': 'rkfnsearch5:"zelenko"',
+        'playlist_count': 5,
+        'info_dict': {
+            'id': '"zelenko"',
+            'title': '"zelenko"',
+        }
+    }]
+    _db_url = None
+    _db_access_key = None
+
+    def _real_initialize(self):
+        self._db_url, self._db_access_key = self._downloader.cache.load(self.ie_key(), 'auth', default=(None, None))
+        if not self._db_url:
+            self._get_db_access_credentials()
+
+    def _search_results(self, query):
+        total_pages = None
+        for page_number in itertools.count(1):
+            search_results = self._run_search_query(
+                query, data={'query': query, 'page': {'size': 100, 'current': page_number}},
+                note=f'Downloading page {page_number}{format_field(total_pages, template=" of ~%s")}')
+            total_pages = traverse_obj(search_results, ('meta', 'page', 'total_pages'), expected_type=int_or_none)
+
+            for result in search_results.get('results') or []:
+                video_id_key, video_type = self._TYPES.get(traverse_obj(result, ('content_type', 'raw')), (None, None))
+                video_id = traverse_obj(result, video_id_key, expected_type=int_or_none)
+                if video_id and video_type:
+                    yield self.url_result(url=f'https://rokfin.com/{video_type}/{video_id}')
+            if not search_results.get('results'):
+                return
+
+    def _run_search_query(self, video_id, data, **kwargs):
+        data = json.dumps(data).encode()
+        for attempt in range(2):
+            search_results = self._download_json(
+                self._db_url, video_id, data=data, fatal=(attempt == 1),
+                headers={'authorization': self._db_access_key}, **kwargs)
+            if search_results:
+                return search_results
+            self.write_debug('Updating access credentials')
+            self._get_db_access_credentials(video_id)
+
+    def _get_db_access_credentials(self, video_id=None):
+        auth_data = {'SEARCH_KEY': None, 'ENDPOINT_BASE': None}
+        notfound_err_page = self._download_webpage(
+            'https://rokfin.com/discover', video_id, expected_status=404, note='Downloading home page')
+        for js_file_path in re.findall(r'<script\b[^>]*\ssrc\s*=\s*"(/static/js/[^">]+)"', notfound_err_page):
+            js_content = self._download_webpage(
+                f'https://rokfin.com{js_file_path}', video_id, note='Downloading JavaScript file', fatal=False)
+            auth_data.update(re.findall(
+                rf'REACT_APP_({"|".join(auth_data.keys())})\s*:\s*"([^"]+)"', js_content or ''))
+            if not all(auth_data.values()):
+                continue
+
+            self._db_url = url_or_none(f'{auth_data["ENDPOINT_BASE"]}/api/as/v1/engines/rokfin-search/search.json')
+            self._db_access_key = f'Bearer {auth_data["SEARCH_KEY"]}'
+            self._downloader.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
+            return
+        raise ExtractorError('Unable to extract access credentials')
