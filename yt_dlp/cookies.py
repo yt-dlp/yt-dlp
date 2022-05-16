@@ -282,7 +282,7 @@ def _extract_chrome_cookies(browser_name, profile, keyring, logger):
             else:
                 failed_message = ''
             logger.info(f'Extracted {len(jar)} cookies from {browser_name}{failed_message}')
-            counts = decryptor.cookie_counts.copy()
+            counts = decryptor._cookie_counts.copy()
             counts['unencrypted'] = unencrypted_cookies
             logger.debug(f'cookie version breakdown: {counts}')
             return jar
@@ -340,7 +340,7 @@ class ChromeCookieDecryptor:
         raise NotImplementedError('Must be implemented by sub classes')
 
     @property
-    def cookie_counts(self):
+    def _cookie_counts(self):
         raise NotImplementedError('Must be implemented by sub classes')
 
 
@@ -368,10 +368,6 @@ class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):
         # values from
         # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_linux.cc
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1, key_length=16)
-
-    @property
-    def cookie_counts(self):
-        return self._cookie_counts
 
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
@@ -406,10 +402,6 @@ class MacChromeCookieDecryptor(ChromeCookieDecryptor):
         # https://chromium.googlesource.com/chromium/src/+/refs/heads/main/components/os_crypt/os_crypt_mac.mm
         return pbkdf2_sha1(password, salt=b'saltysalt', iterations=1003, key_length=16)
 
-    @property
-    def cookie_counts(self):
-        return self._cookie_counts
-
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]
         ciphertext = encrypted_value[3:]
@@ -434,10 +426,6 @@ class WindowsChromeCookieDecryptor(ChromeCookieDecryptor):
         self._logger = logger
         self._v10_key = _get_windows_v10_key(browser_root, logger)
         self._cookie_counts = {'v10': 0, 'other': 0}
-
-    @property
-    def cookie_counts(self):
-        return self._cookie_counts
 
     def decrypt(self, encrypted_value):
         version = encrypted_value[:3]

@@ -4106,7 +4106,7 @@ class GenericIE(InfoExtractor):
             entries.append(entry_info_dict)
 
         if len(entries) == 1:
-            return entries[0]
+            return merge_dicts(entries[0], info_dict)
         else:
             for num, e in enumerate(entries, start=1):
                 # 'url' results don't have a title

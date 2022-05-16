@@ -13,7 +13,7 @@ body:
           required: true
         - label: I've verified that I'm running yt-dlp version **2022.04.08** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true
-        - label: I've checked that all provided URLs are alive and playable in a browser
+        - label: I've checked that all provided URLs are playable in a browser with the same IP and same login details
           required: true
         - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues including closed ones. DO NOT post duplicates
           required: true

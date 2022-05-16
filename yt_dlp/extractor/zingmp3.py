@@ -59,7 +59,7 @@ class ZingMp3BaseIE(InfoExtractor):
         return (resp or {}).get('data') or {}
 
     def _real_initialize(self):
-        if not self.get_param('cookiefile') and not self.get_param('cookiesfrombrowser'):
+        if not self._cookies_passed:
             self._request_webpage(
                 self._api_url('bai-hat', {'id': ''}), None, note='Updating cookies')
 
