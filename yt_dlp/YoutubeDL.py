@@ -3234,9 +3234,6 @@ class YoutubeDL:
                 res = func(*args, **kwargs)
             except UnavailableVideoError as e:
                 self.report_error(e)
-            except MaxDownloadsReached as e:
-                self.to_screen(f'[info] {e}')
-                raise
             except DownloadCancelled as e:
                 self.to_screen(f'[info] {e}')
                 if not self.params.get('break_per_url'):
