@@ -119,30 +119,21 @@ class TVerSeriesIE(TVerBaseIE):
     def _entries(self, series_id):
         season_json = self._download_json(
             f'https://service-api.tver.jp/api/v1/callSeriesSeasons/{series_id}',
-            series_id,
-            headers={
+            series_id, headers={
                 'x-tver-platform-type': 'web'
             })
-        seasons = traverse_obj(season_json, ('result', 'contents'))
-        for season in seasons:
-            if season.get('type') != 'season':
-                continue
+        for season in traverse_obj(season_json, ('result', 'contents', lambda _, s: s['type'] == 'season')):
             season_id = traverse_obj(season, ('content', 'id'))
             episode_json = self._download_json(
                 f'https://platform-api.tver.jp/service/api/v1/callSeasonEpisodes/{season_id}',
-                season_id,
-                query={
+                season_id, query={
                     'platform_uid': self._PLATFORM_UID,
                     'platform_token': self._PLATFORM_TOKEN,
-                },
-                headers={
+                }, headers={
                     'x-tver-platform-type': 'web'
                 })
             episodes = traverse_obj(episode_json, ('result', 'contents'))
             for episode in episodes:
-                episode_type = episode.get('type')
-                video_id = traverse_obj(episode, ('content', 'id'))
-                if episode_type == 'episode':
-                    yield self.url_result(
-                        f'https://tver.jp/episodes/{video_id}',
-                        TVerIE.ie_key(), video_id)
+                if episode.get('type') == 'episode':
+                    video_id = traverse_obj(episode, ('content', 'id'))
+                    yield self.url_result(f'https://tver.jp/episodes/{video_id}', TVerIE, video_id)
