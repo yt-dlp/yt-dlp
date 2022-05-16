@@ -114,7 +114,7 @@ class TVerSeriesIE(TVerBaseIE):
 
     def _real_extract(self, url):
         series_id = self._match_id(url)
-        return self.playlist_result(self._entries(series_id))
+        return self.playlist_result(self._entries(series_id), series_id)
 
     def _entries(self, series_id):
         season_json = self._download_json(
