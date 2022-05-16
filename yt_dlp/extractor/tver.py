@@ -128,6 +128,6 @@ class TVerSeriesIE(TVerBaseIE):
                     'platform_uid': self._PLATFORM_UID,
                     'platform_token': self._PLATFORM_TOKEN,
                 })
-            episodes = traverse_obj(episode_json, ('result', 'contents', lambda _, e: e['type'] == 'episode', 'content', 'id')
+            episodes = traverse_obj(episode_json, ('result', 'contents', lambda _, e: e['type'] == 'episode', 'content', 'id'))
             for video_id in episodes:
                 yield self.url_result(f'https://tver.jp/episodes/{video_id}', TVerIE, video_id)
