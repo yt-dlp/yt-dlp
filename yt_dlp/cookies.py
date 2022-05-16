@@ -336,11 +336,9 @@ class ChromeCookieDecryptor:
         - KeyStorageLinux::CreateService
     """
 
-    def decrypt(self, encrypted_value):
-        raise NotImplementedError('Must be implemented by sub classes')
+    _cookie_counts = {}
 
-    @property
-    def _cookie_counts(self):
+    def decrypt(self, encrypted_value):
         raise NotImplementedError('Must be implemented by sub classes')
 
 
