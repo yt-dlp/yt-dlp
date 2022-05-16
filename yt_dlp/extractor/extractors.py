@@ -545,8 +545,8 @@ from .frontendmasters import (
     FrontendMastersCourseIE
 )
 from .freetv import (
+    FreeTvIE,
     FreeTvMoviesIE,
-    FreeTvSeriesIE,
 )
 from .fujitv import FujiTVFODPlus7IE
 from .funimation import (
