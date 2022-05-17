@@ -2954,7 +2954,7 @@ class GenericIE(InfoExtractor):
         if vimeo_urls:
             return self.playlist_from_matches(vimeo_urls, video_id, video_title, ie=VimeoIE.ie_key())
 
-        vhx_url = VHXEmbedIE._extract_url(webpage)
+        vhx_url = VHXEmbedIE._extract_url(url, webpage)
         if vhx_url:
             return self.url_result(vhx_url, VHXEmbedIE.ie_key())
 
