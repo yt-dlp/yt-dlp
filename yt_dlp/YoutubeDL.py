@@ -806,7 +806,7 @@ class YoutubeDL:
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
-            self._write_string(f'{self._bidi_workaround(message)}\n' , self._out_files.error, only_once=only_once)
+            self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.error, only_once=only_once)
 
     def _send_console_code(self, code):
         if compat_os_name == 'nt' or not self._out_files.console:
