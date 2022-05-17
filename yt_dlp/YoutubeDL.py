@@ -545,17 +545,18 @@ class YoutubeDL:
         self.cache = Cache(self)
 
         windows_enable_vt_mode()
-        self._out_files = {
-            'error': sys.stderr,
-            'print': sys.stderr if self.params.get('logtostderr') else sys.stdout,
-            'console': None if compat_os_name == 'nt' else next(
+        stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
+        self._out_files = Namespace(
+            out=stdout,
+            error=sys.stderr,
+            screen=sys.stderr if self.params.get('quiet') else stdout,
+            console=None if compat_os_name == 'nt' else next(
                 filter(supports_terminal_sequences, (sys.stderr, sys.stdout)), None)
-        }
-        self._out_files['screen'] = sys.stderr if self.params.get('quiet') else self._out_files['print']
-        self._allow_colors = {
-            type_: not self.params.get('no_color') and supports_terminal_sequences(self._out_files[type_])
-            for type_ in ('screen', 'error')
-        }
+        )
+        self._allow_colors = Namespace(**{
+            type_: not self.params.get('no_color') and supports_terminal_sequences(stream)
+            for type_, stream in self._out_files.items_ if type_ != 'console'
+        })
 
         if sys.version_info < (3, 6):
             self.report_warning(
@@ -612,14 +613,8 @@ class YoutubeDL:
                 import pty
                 master, slave = pty.openpty()
                 width = compat_get_terminal_size().columns
-                if width is None:
-                    width_args = []
-                else:
-                    width_args = ['-w', str(width)]
-                sp_kwargs = dict(
-                    stdin=subprocess.PIPE,
-                    stdout=slave,
-                    stderr=self._out_files['error'])
+                width_args = [] if width is None else ['-w', str(width)]
+                sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': self._out_files.error}
                 try:
                     self._output_process = Popen(['bidiv'] + width_args, **sp_kwargs)
                 except OSError:
@@ -792,7 +787,7 @@ class YoutubeDL:
             self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. Use "YoutubeDL.to_screen" instead')
         self._write_string(
             '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
-            self._out_files['print'])
+            self._out_files.out)
 
     def to_screen(self, message, skip_eol=False, quiet=None):
         """Print message to screen if not in quiet mode"""
@@ -803,7 +798,7 @@ class YoutubeDL:
             return
         self._write_string(
             '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
-            self._out_files['screen'])
+            self._out_files.screen)
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
@@ -811,12 +806,12 @@ class YoutubeDL:
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
-            self._write_string('%s\n' % self._bidi_workaround(message), self._out_files['error'], only_once=only_once)
+            self._write_string(f'{self._bidi_workaround(message)}\n' , self._out_files.error, only_once=only_once)
 
     def _send_console_code(self, code):
-        if compat_os_name == 'nt' or not self._out_files['console']:
+        if compat_os_name == 'nt' or not self._out_files.console:
             return
-        self._write_string(code, self._out_files['console'])
+        self._write_string(code, self._out_files.console)
 
     def to_console_title(self, message):
         if not self.params.get('consoletitle', False):
@@ -906,13 +901,14 @@ class YoutubeDL:
                 text = fallback
         return format_text(text, f) if allow_colors else text if fallback is None else fallback
 
+    def _format_out(self, *args, **kwargs):
+        return self._format_text(self._out_files.out, self._allow_colors.out, *args, **kwargs)
+
     def _format_screen(self, *args, **kwargs):
-        return self._format_text(
-            self._out_files['screen'], self._allow_colors['screen'], *args, **kwargs)
+        return self._format_text(self._out_files.screen, self._allow_colors.screen, *args, **kwargs)
 
     def _format_err(self, *args, **kwargs):
-        return self._format_text(
-            self._out_files['error'], self._allow_colors['error'], *args, **kwargs)
+        return self._format_text(self._out_files.error, self._allow_colors.error, *args, **kwargs)
 
     def report_warning(self, message, only_once=False):
         '''
@@ -3438,7 +3434,7 @@ class YoutubeDL:
 
     def _list_format_headers(self, *headers):
         if self.params.get('listformats_table', True) is not False:
-            return [self._format_screen(header, self.Styles.HEADERS) for header in headers]
+            return [self._format_out(header, self.Styles.HEADERS) for header in headers]
         return headers
 
     def _format_note(self, fdict):
@@ -3516,10 +3512,10 @@ class YoutubeDL:
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
             return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
 
-        delim = self._format_screen('\u2502', self.Styles.DELIM, '|', test_encoding=True)
+        delim = self._format_out('\u2502', self.Styles.DELIM, '|', test_encoding=True)
         table = [
             [
-                self._format_screen(format_field(f, 'format_id'), self.Styles.ID),
+                self._format_out(format_field(f, 'format_id'), self.Styles.ID),
                 format_field(f, 'ext'),
                 format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
                 format_field(f, 'fps', '\t%d'),
@@ -3531,15 +3527,15 @@ class YoutubeDL:
                 delim,
                 format_field(f, 'vcodec', default='unknown').replace(
                     'none', 'images' if f.get('acodec') == 'none'
-                            else self._format_screen('audio only', self.Styles.SUPPRESS)),
+                            else self._format_out('audio only', self.Styles.SUPPRESS)),
                 format_field(f, 'vbr', '\t%dk'),
                 format_field(f, 'acodec', default='unknown').replace(
                     'none', '' if f.get('vcodec') == 'none'
-                            else self._format_screen('video only', self.Styles.SUPPRESS)),
+                            else self._format_out('video only', self.Styles.SUPPRESS)),
                 format_field(f, 'abr', '\t%dk'),
                 format_field(f, 'asr', '\t%dHz'),
                 join_nonempty(
-                    self._format_screen('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
+                    self._format_out('UNSUPPORTED', 'light red') if f.get('ext') in ('f4f', 'f4m') else None,
                     format_field(f, 'language', '[%s]'),
                     join_nonempty(format_field(f, 'format_note'),
                                   format_field(f, 'container', ignore=(None, f.get('ext'))),
@@ -3552,7 +3548,7 @@ class YoutubeDL:
 
         return render_table(
             header_line, table, hide_empty=True,
-            delim=self._format_screen('\u2500', self.Styles.DELIM, '-', test_encoding=True))
+            delim=self._format_out('\u2500', self.Styles.DELIM, '-', test_encoding=True))
 
     def render_thumbnails_table(self, info_dict):
         thumbnails = list(info_dict.get('thumbnails') or [])
@@ -3610,11 +3606,14 @@ class YoutubeDL:
                 ret += ' (No VT)' if WINDOWS_VT_MODE is False else ' (No ANSI)'
             return ret
 
-        encoding_str = 'Encodings: locale %s, fs %s, out %s, err %s, pref %s' % (
+        encoding_str = 'Encodings: locale %s, fs %s, pref %s, %s' % (
             locale.getpreferredencoding(),
             sys.getfilesystemencoding(),
-            get_encoding(self._out_files['screen']), get_encoding(self._out_files['error']),
-            self.get_encoding())
+            self.get_encoding(),
+            ', '.join(
+                f'{key} {get_encoding(stream)}' for key, stream in self._out_files.items_
+                if stream is not None and key != 'console')
+        )
 
         logger = self.params.get('logger')
         if logger:
