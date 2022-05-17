@@ -943,6 +943,12 @@ def make_HTTPS_handler(params, **kwargs):
                 password=params.get('client_certificate_password'))
         except ssl.SSLError:
             raise YoutubeDLError('Unable to load client certificate')
+    # Some servers may reject https connection if alpn is not set
+    # See: https://bugs.python.org/issue40968
+    try:
+        context.set_alpn_protocols(['http/1.1'])
+    except (AttributeError, NotImplementedError):
+        pass
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
