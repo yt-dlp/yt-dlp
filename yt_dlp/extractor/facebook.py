@@ -55,7 +55,7 @@ class FacebookIE(InfoExtractor):
                         )|
                     facebook:
                 )
-                (?P<id>[0-9]+)
+                (?P<id>[a-zA-Z0-9]+)
                 '''
     _LOGIN_URL = 'https://www.facebook.com/login.php?next=http%3A%2F%2Ffacebook.com%2Fhome.php&login_attempt=1'
     _CHECKPOINT_URL = 'https://www.facebook.com/checkpoint/?next=http%3A%2F%2Ffacebook.com%2Fhome.php&_fb_noscript=1'
