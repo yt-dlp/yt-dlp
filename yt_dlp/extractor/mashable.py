@@ -14,7 +14,7 @@ class MashableIE(InfoExtractor):
             'id': '50319e30-a4ce-084d',
             'ext': 'mp4',
             'duration': 257.0,
-            'title': 'Mashable video #50319e30-a4ce-084d',  # generic assigned by code
+            'title': 'The ultimate case for living on Venus',
             'thumbnail': r're:^https?://.*\.jpg$',
             'description': 'Leave Mars to the ultra-rich. It’s Venus we should move to one day.',
         }
@@ -35,22 +35,22 @@ class MashableIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        pattern = re.compile(r'data: (.*),')
-        matches = pattern.search(webpage)
-        try:
-            video_metadata = json.loads(matches.group(1))
-            pattern = re.compile(r'https:\/\/vdist.aws.mashable.com\/cms/[0-9]{4}\/[0-9]{1,2}\/(.*-.*-.*)\/mp4\/.*')
-            video_id = pattern.search(video_metadata['url']).group(1)
-            thumbnail_url = video_metadata.get('thumbnail_url')
-            duration = float(video_metadata.get('duration'))
-            m3u8_url = try_get(video_metadata, lambda x: x['transcoded_urls'][0])
-            if m3u8_url:
-                formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native')
-                self._sort_formats(formats)
-        except (ValueError, IndexError) as e:
-            raise ExtractorError(f'Could not parse video metadata from mashable: {e}')
+        data_pattern = re.compile(r'data: (.*),')
+        video_metadata = self._parse_json(self._search_regex(data_pattern, webpage, display_id), display_id)
 
-        title = video_metadata['title'] if video_metadata['title'] else ''
+        video_id_pattern = re.compile(r'https://vdist.aws.mashable.com/cms/[0-9]{4}/[0-9]{1,2}/([0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b)/mp4/.*')
+        video_id = self._search_regex(video_id_pattern, video_metadata.get('url'), display_id)
+        thumbnail_url = video_metadata.get('thumbnail_url')
+        duration = float(video_metadata.get('duration'))
+        m3u8_url = try_get(video_metadata, lambda x: x['transcoded_urls'][0])
+        if m3u8_url:
+            formats = self._extract_m3u8_formats(m3u8_url, video_id, 'mp4', 'm3u8_native')
+            self._sort_formats(formats)
+
+        title = video_metadata.get('title')
+        if not title:
+            # Grab title from the webpage instead
+            title = self._og_search_title(webpage)
 
         return {
             'id': video_id,
