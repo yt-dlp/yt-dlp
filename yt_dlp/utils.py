@@ -5324,9 +5324,6 @@ class classproperty:
 
 class Namespace:
     """Immutable namespace"""
-    @property
-    def items_(self):
-        return self._dict.items()
 
     def __init__(self, **kwargs):
         self._dict = kwargs
@@ -5334,8 +5331,14 @@ class Namespace:
     def __getattr__(self, attr):
         return self._dict[attr]
 
+    def __contains__(self, item):
+        return item in self._dict.values()
+
+    def __iter__(self):
+        return iter(self._dict.items())
+
     def __repr__(self):
-        return f'{type(self).__name__}({", ".join(f"{k}={v}" for k, v in self.items_)})'
+        return f'{type(self).__name__}({", ".join(f"{k}={v}" for k, v in self)})'
 
 
 # Deprecated

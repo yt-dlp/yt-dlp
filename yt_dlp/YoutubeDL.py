@@ -555,7 +555,7 @@ class YoutubeDL:
         )
         self._allow_colors = Namespace(**{
             type_: not self.params.get('no_color') and supports_terminal_sequences(stream)
-            for type_, stream in self._out_files.items_ if type_ != 'console'
+            for type_, stream in self._out_files if type_ != 'console'
         })
 
         if sys.version_info < (3, 6):
@@ -3611,7 +3611,7 @@ class YoutubeDL:
             sys.getfilesystemencoding(),
             self.get_encoding(),
             ', '.join(
-                f'{key} {get_encoding(stream)}' for key, stream in self._out_files.items_
+                f'{key} {get_encoding(stream)}' for key, stream in self._out_files
                 if stream is not None and key != 'console')
         )
 
