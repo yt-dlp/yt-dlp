@@ -1,7 +1,6 @@
-import json
 import re
 
-from ..utils import ExtractorError, try_get
+from ..utils import try_get
 from .common import InfoExtractor
 
 
