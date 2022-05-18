@@ -284,19 +284,18 @@ class ZenYandexChannelIE(InfoExtractor):
         'playlist_mincount': 657,
     }]
 
-    def _entries(self, channel_title, webpage, data_json):
-        items = list(try_get(data_json, lambda x: x['feed']['items'], dict).values())
+    def _entries(self, channel_title, server_state_json, server_settings_json):
+        items = list(try_get(server_state_json, lambda x: x['feed']['items'], dict).values())
 
         if(len(items) == 0):
-            for match in re.findall(r'href="(?P<URL>https://zen.yandex.ru/video/watch/(?P<id>.+?)(\?rid=.+?)?)"', webpage):
-                items.append({
-                    'type': 'gif',
-                    'publication_id': match[1],
-                    'link': match[0]
-                })
+            items = list(try_get(server_settings_json, lambda x: x['exportData']['items']))
 
         prev_next_page_id = None
-        more = try_get(data_json, lambda x: x['links']['more']) or None
+        more = try_get(
+            server_state_json, lambda x: x['links']['more']
+        ) or try_get(
+            server_settings_json, lambda x: x['exportData']['more']['link']) or None
+
         if more:
             next_page_id = try_get(parse_qs(more), lambda x: x['next_page_id'][0]) or None
         else:
@@ -328,13 +327,18 @@ class ZenYandexChannelIE(InfoExtractor):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
         data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
+        server_state_json = None
+        server_settings_json = None
         for key in data_json.keys():
             if key.startswith('__serverState__'):
-                data_json = data_json[key]
-        channel_title = try_get(data_json, lambda x: x['channel']['source']['title']) or id
-        channel_description = try_get(data_json, lambda x: x['channel']['source']['description']) or None
+                server_state_json = data_json[key]
+            if key.startswith('__serverSettings__'):
+                server_settings_json = data_json[key]
 
-        return self.playlist_result(self._entries(channel_title, webpage, data_json),
+        channel_title = try_get(server_state_json, lambda x: x['channel']['source']['title']) or id
+        channel_description = try_get(server_state_json, lambda x: x['channel']['source']['description']) or None
+
+        return self.playlist_result(self._entries(channel_title, server_state_json, server_settings_json),
                                     playlist_id=id,
                                     playlist_title=channel_title,
                                     playlist_description=channel_description)
