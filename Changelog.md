@@ -785,7 +785,7 @@
 * [build] Improvements
     * Build standalone MacOS packages by [smplayer-dev](https://github.com/smplayer-dev)
     * Release windows exe built with `py2exe`
-    * Enable lazy-extractors in releases. 
+    * Enable lazy-extractors in releases
         * Set env var `YTDLP_NO_LAZY_EXTRACTORS` to forcefully disable this (experimental)
     * Clean up error reporting in update
     * Refactor `pyinst.py`, misc cleanup and improve docs
@@ -1393,7 +1393,7 @@
 * [youtube] Non-fatal alert reporting for unavailable videos page by [coletdjnz](https://github.com/coletdjnz)
 * [twitcasting] Websocket support by [nao20010128nao](https://github.com/nao20010128nao)
 * [mediasite] Extract slides by [fstirlitz](https://github.com/fstirlitz)
-* [funimation] Extract subtitles 
+* [funimation] Extract subtitles
 * [pornhub] Extract `cast`
 * [hotstar] Use server time for authentication instead of local time
 * [EmbedThumbnail] Fix for already downloaded thumbnail
@@ -1489,7 +1489,7 @@
 
 ### 2021.05.20
 
-* **Youtube improvements**: 
+* **Youtube improvements**:
     * Support youtube music `MP`, `VL` and `browse` pages
     * Extract more formats for youtube music by [craftingmod](https://github.com/craftingmod), [coletdjnz](https://github.com/coletdjnz) and [pukkandan](https://github.com/pukkandan)
     * Extract multiple subtitles in same language by [pukkandan](https://github.com/pukkandan) and [tpikonen](https://github.com/tpikonen)
@@ -2031,7 +2031,7 @@
 * **Format Sort:** Added `--format-sort` (`-S`), `--format-sort-force` (`--S-force`) - See [Sorting Formats](README.md#sorting-formats) for details
 * **Format Selection:** See [Format Selection](README.md#format-selection) for details
     * New format selectors: `best*`, `worst*`, `bestvideo*`, `bestaudio*`, `worstvideo*`, `worstaudio*`
-    * Changed video format sorting to show video only files and video+audio files together.
+    * Changed video format sorting to show video only files and video+audio files together
     * Added `--video-multistreams`, `--no-video-multistreams`, `--audio-multistreams`, `--no-audio-multistreams`
     * Added `b`,`w`,`v`,`a` as alias for `best`, `worst`, `video` and `audio` respectively
 * Shortcut Options: Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by [h-h-h-h](https://github.com/h-h-h-h) - See [Internet Shortcut Options](README.md#internet-shortcut-options) for details

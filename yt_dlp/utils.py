@@ -714,7 +714,9 @@ def sanitize_path(s, force=False):
 def sanitize_url(url):
     # Prepend protocol-less URLs with `http:` scheme in order to mitigate
     # the number of unwanted failures due to missing protocol
-    if url.startswith('//'):
+    if url is None:
+        return
+    elif url.startswith('//'):
         return 'http:%s' % url
     # Fix some common typos seen so far
     COMMON_TYPOS = (
