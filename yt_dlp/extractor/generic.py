@@ -2527,6 +2527,21 @@ class GenericIE(InfoExtractor):
                 'upload_date': '20220504',
             },
         },
+        {
+            # Webpage contains double BOM
+            'url': 'https://www.filmarkivet.se/movies/paris-d-moll/',
+            'md5': 'df02cadc719dcc63d43288366f037754',
+            'info_dict': {
+                'id': 'paris-d-moll',
+                'ext': 'mp4',
+                'upload_date': '20220518',
+                'title': 'Paris d-moll',
+                'description': 'md5:319e37ea5542293db37e1e13072fe330',
+                'thumbnail': 'https://www.filmarkivet.se/wp-content/uploads/parisdmoll2.jpg',
+                'timestamp': 1652833414,
+                'age_limit': 0,
+            }
+        }
     ]
 
     def report_following_redirect(self, new_url):
