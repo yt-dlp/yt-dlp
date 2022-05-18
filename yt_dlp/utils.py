@@ -4166,6 +4166,9 @@ class ISO3166Utils:
         'YE': 'Yemen',
         'ZM': 'Zambia',
         'ZW': 'Zimbabwe',
+        # Not ISO 3166 codes, but used for IP blocks
+        'AP': 'Asia/Pacific Region',
+        'EU': 'Europe',
     }
 
     @classmethod
