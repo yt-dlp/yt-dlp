@@ -42,7 +42,7 @@ PYTHON ?= /usr/bin/env python3
 SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then echo /etc; else echo $(PREFIX)/etc; fi)
 
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
-MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
+MARKDOWN = $(shell if [ "$(pandoc -v | head -n1 | cut -d" " -f2 | head -c1)" = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
 	mkdir -p $(DESTDIR)$(BINDIR)
@@ -55,6 +55,13 @@ install: lazy-extractors yt-dlp yt-dlp.1 completions
 	install -m644 completions/zsh/_yt-dlp $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
 	mkdir -p $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d
 	install -m644 completions/fish/yt-dlp.fish $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
+
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/yt-dlp
+	rm -f $(DESTDIR)$(MANDIR)/man1/yt-dlp.1
+	rm -f $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
+	rm -f $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
+	rm -f $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
 
 codetest:
 	flake8 .

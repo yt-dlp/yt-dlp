@@ -31,6 +31,7 @@ from ..utils import (
     NO_DEFAULT,
     ExtractorError,
     bug_reports_message,
+    classproperty,
     clean_html,
     datetime_from_str,
     dict_get,
@@ -348,6 +349,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         r'(?:www\.)?kbjggqkzv65ivcqj6bumvp337z6264huv5kpkwuv6gu5yjiskvan7fad\.onion',
         r'(?:www\.)?grwp24hodrefzvjjuccrkw3mjq4tzhaaq32amf33dzpmuxe7ilepcmad\.onion',
         r'(?:www\.)?hpniueoejy4opn7bc4ftgazyqjoeqwlvh2uiku2xqku6zpoa4bf5ruid\.onion',
+        # piped instances from https://github.com/TeamPiped/Piped/wiki/Instances
+        r'(?:www\.)?piped\.kavin\.rocks',
+        r'(?:www\.)?piped\.silkky\.cloud',
+        r'(?:www\.)?piped\.tokhmi\.xyz',
+        r'(?:www\.)?piped\.moomoo\.me',
+        r'(?:www\.)?il\.ax',
+        r'(?:www\.)?piped\.syncpundit\.com',
+        r'(?:www\.)?piped\.mha\.fi',
+        r'(?:www\.)?piped\.mint\.lgbt',
+        r'(?:www\.)?piped\.privacy\.com\.de',
     )
 
     def _initialize_consent(self):
@@ -383,9 +394,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._check_login_required()
 
     def _check_login_required(self):
-        if (self._LOGIN_REQUIRED
-                and self.get_param('cookiefile') is None
-                and self.get_param('cookiesfrombrowser') is None):
+        if self._LOGIN_REQUIRED and not self._cookies_passed:
             self.raise_login_required('Login details are needed to download this content', method='cookies')
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
@@ -3173,7 +3182,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Eg: __2ABJjxzNo, ySuUZEjARPY
             is_damaged = try_get(fmt, lambda x: float(x['approxDurationMs']) / duration < 500)
             if is_damaged:
-                self.report_warning(f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
+                self.report_warning(
+                    f'{video_id}: Some formats are possibly damaged. They will be deprioritized', only_once=True)
             dct = {
                 'asr': int_or_none(fmt.get('audioSampleRate')),
                 'filesize': int_or_none(fmt.get('contentLength')),
@@ -3183,7 +3193,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                               ' (default)' if language_preference > 0 else ''),
                     fmt.get('qualityLabel') or quality.replace('audio_quality_', ''),
                     throttled and 'THROTTLED', is_damaged and 'DAMAGED', delim=', '),
-                'source_preference': -10 if throttled else -1,
+                # Format 22 is likely to be damaged. See https://github.com/yt-dlp/yt-dlp/issues/3372
+                'source_preference': -10 if throttled else -5 if itag == '22' else -1,
                 'fps': int_or_none(fmt.get('fps')) or None,
                 'height': height,
                 'quality': q(quality),
@@ -3221,6 +3232,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         skip_manifests = self._configuration_arg('skip')
         if not self.get_param('youtube_include_hls_manifest', True):
             skip_manifests.append('hls')
+        if not self.get_param('youtube_include_dash_manifest', True):
+            skip_manifests.append('dash')
         get_dash = 'dash' not in skip_manifests and (
             not is_live or live_from_start or self._configuration_arg('include_live_dash'))
         get_hls = not live_from_start and 'hls' not in skip_manifests
@@ -4267,8 +4280,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             start = next((i for i, v in enumerate(videos) if v['id'] == last_id), -1) + 1
             if start >= len(videos):
                 return
-            for video in videos[start:]:
-                yield video
+            yield from videos[start:]
             first_id = first_id or videos[0]['id']
             last_id = videos[-1]['id']
             watch_endpoint = try_get(
@@ -5777,16 +5789,17 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
 class YoutubeFeedsInfoExtractor(InfoExtractor):
     """
     Base class for feed extractors
-    Subclasses must define the _FEED_NAME property.
+    Subclasses must re-define the _FEED_NAME property.
     """
     _LOGIN_REQUIRED = True
+    _FEED_NAME = 'feeds'
 
     def _real_initialize(self):
         YoutubeBaseInfoExtractor._check_login_required(self)
 
-    @property
+    @classproperty
     def IE_NAME(self):
-        return 'youtube:%s' % self._FEED_NAME
+        return f'youtube:{self._FEED_NAME}'
 
     def _real_extract(self, url):
         return self.url_result(

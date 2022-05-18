@@ -51,7 +51,7 @@ class BaseTestSubtitles(unittest.TestCase):
         for sub_info in subtitles.values():
             if sub_info.get('data') is None:
                 uf = self.DL.urlopen(sub_info['url'])
-                sub_info['data'] = uf.read().decode('utf-8')
+                sub_info['data'] = uf.read().decode()
         return {l: sub_info['data'] for l, sub_info in subtitles.items()}
 
 

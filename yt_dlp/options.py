@@ -435,9 +435,8 @@ def create_parser():
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded on this date. '
-            'The date can be "YYYYMMDD" or in the format '
-            '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
+            'Download only videos uploaded on this date. The date can be "YYYYMMDD" or in the format '
+            '[now|today|yesterday][-N[day|week|month|year]]. Eg: --date today-2weeks'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
@@ -512,11 +511,11 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Make --break-on-existing and --break-on-reject act only on the current input URL')
+        help='Make --break-on-existing, --break-on-reject and --max-downloads act only on the current input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
-        help='--break-on-existing and --break-on-reject terminates the entire download queue')
+        help='--break-on-existing and similar options terminates the entire download queue')
     selection.add_option(
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,

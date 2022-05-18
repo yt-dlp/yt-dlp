@@ -10,8 +10,6 @@ from ..utils import RegexNotFoundError, dict_get, int_or_none, try_get
 class YoutubeLiveChatFD(FragmentFD):
     """ Downloads YouTube live chats fragment by fragment """
 
-    FD_NAME = 'youtube_live_chat'
-
     def real_download(self, filename, info_dict):
         video_id = info_dict['video_id']
         self.to_screen('[%s] Downloading live chat' % self.FD_NAME)
@@ -47,7 +45,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     replay_chat_item_action = action['replayChatItemAction']
                     offset = int(replay_chat_item_action['videoOffsetTimeMsec'])
                 processed_fragment.extend(
-                    json.dumps(action, ensure_ascii=False).encode('utf-8') + b'\n')
+                    json.dumps(action, ensure_ascii=False).encode() + b'\n')
             if offset is not None:
                 continuation = try_get(
                     live_chat_continuation,
@@ -89,7 +87,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     'isLive': True,
                 }
                 processed_fragment.extend(
-                    json.dumps(pseudo_action, ensure_ascii=False).encode('utf-8') + b'\n')
+                    json.dumps(pseudo_action, ensure_ascii=False).encode() + b'\n')
             continuation_data_getters = [
                 lambda x: x['continuations'][0]['invalidationContinuationData'],
                 lambda x: x['continuations'][0]['timedContinuationData'],
@@ -183,7 +181,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     request_data['context']['clickTracking'] = {'clickTrackingParams': click_tracking_params}
                 headers = ie.generate_api_headers(ytcfg=ytcfg, visitor_data=visitor_data)
                 headers.update({'content-type': 'application/json'})
-                fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode('utf-8') + b'\n'
+                fragment_request_data = json.dumps(request_data, ensure_ascii=False).encode() + b'\n'
                 success, continuation_id, offset, click_tracking_params = download_and_parse_fragment(
                     url, frag_index, fragment_request_data, headers)
             else:

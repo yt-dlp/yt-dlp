@@ -140,7 +140,7 @@ def _build_proxy_handler(name):
             self.send_response(200)
             self.send_header('Content-Type', 'text/plain; charset=utf-8')
             self.end_headers()
-            self.wfile.write('{self.proxy_name}: {self.path}'.format(self=self).encode('utf-8'))
+            self.wfile.write(f'{self.proxy_name}: {self.path}'.encode())
     return HTTPTestRequestHandler
 
 
@@ -167,12 +167,12 @@ class TestProxy(unittest.TestCase):
             'geo_verification_proxy': geo_proxy,
         })
         url = 'http://foo.com/bar'
-        response = ydl.urlopen(url).read().decode('utf-8')
+        response = ydl.urlopen(url).read().decode()
         self.assertEqual(response, f'normal: {url}')
 
         req = compat_urllib_request.Request(url)
         req.add_header('Ytdl-request-proxy', geo_proxy)
-        response = ydl.urlopen(req).read().decode('utf-8')
+        response = ydl.urlopen(req).read().decode()
         self.assertEqual(response, f'geo: {url}')
 
     def test_proxy_with_idn(self):
@@ -180,7 +180,7 @@ class TestProxy(unittest.TestCase):
             'proxy': f'127.0.0.1:{self.port}',
         })
         url = 'http://中文.tw/'
-        response = ydl.urlopen(url).read().decode('utf-8')
+        response = ydl.urlopen(url).read().decode()
         # b'xn--fiq228c' is '中文'.encode('idna')
         self.assertEqual(response, 'normal: http://xn--fiq228c.tw/')
 

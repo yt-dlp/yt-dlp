@@ -70,8 +70,7 @@ class HotStarBaseIE(InfoExtractor):
                 'x-platform-code': 'PCTV',
             })
 
-    def _call_api_v2(self, path, video_id, st=None):
-        cookies = self._get_cookies(self._BASE_URL)
+    def _call_api_v2(self, path, video_id, st=None, cookies=None):
         return self._call_api_impl(
             f'{path}/content/{video_id}', video_id, st=st, cookies=cookies, query={
                 'desired-config': 'audio_channel:stereo|container:fmp4|dynamic_range:hdr|encryption:plain|ladder:tv|package:dash|resolution:fhd|subs-tag:HotstarVIP|video_codec:h265',
@@ -160,6 +159,7 @@ class HotStarIE(HotStarBaseIE):
     def _real_extract(self, url):
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         video_type = self._TYPE.get(video_type, video_type)
+        cookies = self._get_cookies(url)  # Cookies before any request
 
         video_data = self._call_api(f'o/v1/{video_type}/detail', video_id)['body']['results']['item']
         if not self.get_param('allow_unplayable_formats') and video_data.get('drmProtected'):
@@ -173,7 +173,7 @@ class HotStarIE(HotStarBaseIE):
         headers = {'Referer': f'{self._BASE_URL}/in'}
 
         # change to v2 in the future
-        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st)['playBackSets']
+        playback_sets = self._call_api_v2('play/v1/playback', video_id, st=st, cookies=cookies)['playBackSets']
         for playback_set in playback_sets:
             if not isinstance(playback_set, dict):
                 continue

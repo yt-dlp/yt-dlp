@@ -7,7 +7,7 @@ import subprocess
 import time
 
 from .common import AudioConversionError, PostProcessor
-from ..compat import compat_str
+from ..compat import imghdr
 from ..utils import (
     ISO639Utils,
     Popen,
@@ -27,6 +27,7 @@ from ..utils import (
     traverse_obj,
     variadic,
     write_json_file,
+    write_string,
 )
 
 EXT_TO_OUT_FORMATS = {
@@ -1030,8 +1031,8 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
         self.to_screen('Chapter %03d; Destination: %s' % (number, destination))
         return (
             destination,
-            ['-ss', compat_str(chapter['start_time']),
-             '-t', compat_str(chapter['end_time'] - chapter['start_time'])])
+            ['-ss', str(chapter['start_time']),
+             '-t', str(chapter['end_time'] - chapter['start_time'])])
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
@@ -1059,18 +1060,16 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
         super().__init__(downloader)
         self.format = format
 
-    @staticmethod
-    def is_webp(path):
-        with open(encodeFilename(path), 'rb') as f:
-            b = f.read(12)
-        return b[0:4] == b'RIFF' and b[8:] == b'WEBP'
+    @classmethod
+    def is_webp(cls, path):
+        write_string(f'DeprecationWarning: {cls.__module__}.{cls.__name__}.is_webp is deprecated')
+        return imghdr.what(path) == 'webp'
 
     def fixup_webp(self, info, idx=-1):
         thumbnail_filename = info['thumbnails'][idx]['filepath']
         _, thumbnail_ext = os.path.splitext(thumbnail_filename)
         if thumbnail_ext:
-            thumbnail_ext = thumbnail_ext[1:].lower()
-            if thumbnail_ext != 'webp' and self.is_webp(thumbnail_filename):
+            if thumbnail_ext.lower() != '.webp' and imghdr.what(thumbnail_filename) == 'webp':
                 self.to_screen('Correcting thumbnail "%s" extension to webp' % thumbnail_filename)
                 webp_filename = replace_extension(thumbnail_filename, 'webp')
                 os.replace(thumbnail_filename, webp_filename)

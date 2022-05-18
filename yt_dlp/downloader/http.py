@@ -1,5 +1,6 @@
 import os
 import random
+import socket
 import ssl
 import time
 
@@ -18,7 +19,13 @@ from ..utils import (
     write_xattr,
 )
 
-RESPONSE_READ_EXCEPTIONS = (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException)
+RESPONSE_READ_EXCEPTIONS = (
+    TimeoutError,
+    socket.timeout,  # compat: py < 3.10
+    ConnectionError,
+    ssl.SSLError,
+    compat_http_client.HTTPException
+)
 
 
 class HttpFD(FileDownloader):
@@ -150,7 +157,7 @@ class HttpFD(FileDownloader):
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
                 ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
-            except (compat_urllib_error.HTTPError, ) as err:
+            except compat_urllib_error.HTTPError as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
                     try:
@@ -158,7 +165,7 @@ class HttpFD(FileDownloader):
                         ctx.data = self.ydl.urlopen(
                             sanitized_Request(url, request_data, headers))
                         content_length = ctx.data.info()['Content-Length']
-                    except (compat_urllib_error.HTTPError, ) as err:
+                    except compat_urllib_error.HTTPError as err:
                         if err.code < 500 or err.code >= 600:
                             raise
                     else:
@@ -268,7 +275,7 @@ class HttpFD(FileDownloader):
 
                     if self.params.get('xattr_set_filesize', False) and data_len is not None:
                         try:
-                            write_xattr(ctx.tmpfilename, 'user.ytdl.filesize', str(data_len).encode('utf-8'))
+                            write_xattr(ctx.tmpfilename, 'user.ytdl.filesize', str(data_len).encode())
                         except (XAttrUnavailableError, XAttrMetadataError) as err:
                             self.report_error('unable to set filesize xattr: %s' % str(err))
 
