@@ -823,6 +823,8 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      from the requested languages. (Eg:
                                      --sub-langs all,-live_chat) Use --list-subs
                                      for a list of available language tags
+                                     when without this option, default to download
+                                     "en"(if available) or the first available one 
 
 ## Authentication Options:
     -u, --username USERNAME          Login with this account ID
