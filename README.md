@@ -472,9 +472,10 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      a file that is in the archive
     --break-on-reject                Stop the download process when encountering
                                      a file that has been filtered out
-    --break-per-input                Make --break-on-existing and --break-on-
-                                     reject act only on the current input URL
-    --no-break-per-input             --break-on-existing and --break-on-reject
+    --break-per-input                Make --break-on-existing, --break-on-reject
+                                     and --max-downloads act only on the current
+                                     input URL
+    --no-break-per-input             --break-on-existing and similar options
                                      terminates the entire download queue
     --skip-playlist-after-errors N   Number of allowed failures until the rest
                                      of the playlist is skipped
