@@ -5094,10 +5094,12 @@ def jwt_decode_hs256(jwt):
     return payload_data
 
 
+WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+
+
 @functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        from .compat import WINDOWS_VT_MODE  # Must be imported locally
         if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
@@ -5106,6 +5108,21 @@ def supports_terminal_sequences(stream):
         return stream.isatty()
     except BaseException:
         return False
+
+
+def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+    if compat_os_name != 'nt':
+        return
+    global WINDOWS_VT_MODE
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    try:
+        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
+    except Exception:
+        return
+
+    WINDOWS_VT_MODE = True
+    supports_terminal_sequences.cache_clear()
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')
