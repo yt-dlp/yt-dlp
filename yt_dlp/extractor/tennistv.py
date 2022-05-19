@@ -114,9 +114,6 @@ class TennisTVIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        title = self._html_search_regex((r'<title>(.+?)</title>', *self._og_regexes('title')),
-                                        webpage, 'Title', fatal=False)
-
         entryid = self._search_regex(r'data-entry-id=["\']([^"\']+)', webpage, 'entryID')
 
         session_json = self._download_session_json(video_id, entryid)
@@ -155,4 +152,7 @@ class TennisTVIE(InfoExtractor):
             'timestamp': unified_timestamp(self._html_search_regex(
                 r'<span itemprop="description" content=["\']([^"\']+)["\']>', webpage, 'upload time')),
             'subtitles': subtitles,
+            'series': self._html_search_regex(r'data-series\s*?=\s*?"(.*?)"', webpage, 'series', fatal=False), 
+            'season': self._html_search_regex(r'data-tournament-city\s*?=\s*?"(.*?)"', webpage, 'season', fatal=False), 
+            'episode': self._html_search_regex(r'data-round\s*?=\s*?"(.*?)"', webpage, 'round', fatal=False), 
         }
