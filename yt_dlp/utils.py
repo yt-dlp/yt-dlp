@@ -11,7 +11,6 @@ import datetime
 import email.header
 import email.utils
 import errno
-import functools
 import gzip
 import hashlib
 import hmac
@@ -39,8 +38,8 @@ import urllib.parse
 import xml.etree.ElementTree
 import zlib
 
+from .compat import asyncio, functools  # Modules
 from .compat import (
-    asyncio,
     compat_chr,
     compat_cookiejar,
     compat_etree_fromstring,
@@ -248,6 +247,7 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<jso
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
 
+@functools.cache
 def preferredencoding():
     """Get preferred encoding.
 
@@ -1883,6 +1883,7 @@ def platform_name():
     return res
 
 
+@functools.cache
 def get_windows_version():
     ''' Get Windows version. None if it's not running on Windows '''
     if compat_os_name == 'nt':
@@ -2079,6 +2080,7 @@ class locked_file:
         return iter(self.f)
 
 
+@functools.cache
 def get_filesystem_encoding():
     encoding = sys.getfilesystemencoding()
     return encoding if encoding is not None else 'utf-8'
@@ -5092,6 +5094,7 @@ def jwt_decode_hs256(jwt):
     return payload_data
 
 
+@functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
         from .compat import WINDOWS_VT_MODE  # Must be imported locally

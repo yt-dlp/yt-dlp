@@ -7,11 +7,12 @@ import sys
 import traceback
 from zipimport import zipimporter
 
-from .compat import compat_realpath
+from .compat import compat_realpath, functools
 from .utils import Popen, encode_compat_str, write_string
 from .version import __version__
 
 
+@functools.cache
 def detect_variant():
     if hasattr(sys, 'frozen'):
         prefix = 'mac' if sys.platform == 'darwin' else 'win'
