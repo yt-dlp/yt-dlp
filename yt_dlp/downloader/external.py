@@ -142,6 +142,7 @@ class ExternalFD(FragmentFD):
                 self.to_screen(
                     '[%s] Got error. Retrying fragments (attempt %d of %s)...'
                     % (self.get_basename(), count, self.format_retries(fragment_retries)))
+                self.sleep_retry('fragment', count)
         if count > fragment_retries:
             if not skip_unavailable_fragments:
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)

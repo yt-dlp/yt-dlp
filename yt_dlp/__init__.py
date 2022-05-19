@@ -247,6 +247,28 @@ def validate_options(opts):
     opts.extractor_retries = parse_retries('extractor', opts.extractor_retries)
     opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
 
+    # Retry sleep function
+    def parse_sleep_func(expr):
+        NUMBER_RE = r'\d+(?:\.\d+)?'
+        op, start, limit, step, *_ = tuple(re.fullmatch(
+            rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE}))?(?::({NUMBER_RE}))?',
+            expr.strip()).groups()) + (None, None)
+
+        if op == 'exp':
+            return lambda n: min(float(start) * (float(step or 2) ** n), float(limit or 'inf'))
+        else:
+            default_step = start if op or limit else 0
+            return lambda n: min(float(start) + float(step or default_step) * n, float(limit or 'inf'))
+
+    for key, expr in opts.retry_sleep.items():
+        if not expr:
+            del opts.retry_sleep[key]
+            continue
+        try:
+            opts.retry_sleep[key] = parse_sleep_func(expr)
+        except AttributeError as e:
+            raise ValueError(f'invalid {key} retry sleep expression {expr!r}: {e}')
+
     # Bytes
     def parse_bytes(name, value):
         if value is None:
@@ -694,6 +716,7 @@ def parse_options(argv=None):
         'file_access_retries': opts.file_access_retries,
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
+        'retry_sleep_functions': opts.retry_sleep,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
         'keep_fragments': opts.keep_fragments,
         'concurrent_fragment_downloads': opts.concurrent_fragment_downloads,
