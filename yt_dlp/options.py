@@ -1,7 +1,10 @@
+import collections
+import contextlib
 import optparse
 import os.path
 import re
 import shlex
+import string
 import sys
 
 from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
@@ -15,6 +18,7 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
+from .update import detect_variant
 from .utils import (
     OUTTMPL_TYPES,
     POSTPROCESS_WHEN,
@@ -29,15 +33,9 @@ from .version import __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
-    parser = create_parser()
-    root = Config(parser)
-
+    root = Config(create_parser())
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
-    if overrideArguments:
-        root.append_config(overrideArguments, label='Override')
-    else:
-        root.append_config(sys.argv[1:], label='Command-line')
 
     def _readUserConf(package_name, default=[]):
         # .config
@@ -73,7 +71,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     def add_config(label, path, user=False):
         """ Adds config and returns whether to continue """
-        if root.parse_args()[0].ignoreconfig:
+        if root.parse_known_args()[0].ignoreconfig:
             return False
         # Multiple package names can be given here
         # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
@@ -92,22 +90,44 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     def load_configs():
         yield not ignore_config_files
         yield add_config('Portable', get_executable_path())
-        yield add_config('Home', expand_path(root.parse_args()[0].paths.get('home', '')).strip())
+        yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
         yield add_config('User', None, user=True)
         yield add_config('System', '/etc')
 
-    if all(load_configs()):
-        # If ignoreconfig is found inside the system configuration file,
-        # the user configuration is removed
-        if root.parse_args()[0].ignoreconfig:
-            user_conf = next((i for i, conf in enumerate(root.configs) if conf.label == 'User'), None)
-            if user_conf is not None:
-                root.configs.pop(user_conf)
+    opts = optparse.Values({'verbose': True, 'print_help': False})
+    try:
+        if overrideArguments:
+            root.append_config(overrideArguments, label='Override')
+        else:
+            root.append_config(sys.argv[1:], label='Command-line')
 
-    opts, args = root.parse_args()
-    if opts.verbose:
-        write_string(f'\n{root}'.replace('\n| ', '\n[debug] ')[1:] + '\n')
-    return parser, opts, args
+        if all(load_configs()):
+            # If ignoreconfig is found inside the system configuration file,
+            # the user configuration is removed
+            if root.parse_known_args()[0].ignoreconfig:
+                user_conf = next((i for i, conf in enumerate(root.configs) if conf.label == 'User'), None)
+                if user_conf is not None:
+                    root.configs.pop(user_conf)
+
+        opts, args = root.parse_args()
+    except optparse.OptParseError:
+        with contextlib.suppress(optparse.OptParseError):
+            opts, _ = root.parse_known_args(strict=False)
+        raise
+    except (SystemExit, KeyboardInterrupt):
+        opts.verbose = False
+        raise
+    finally:
+        verbose = opts.verbose and f'\n{root}'.replace('\n| ', '\n[debug] ')[1:]
+        if verbose:
+            write_string(f'{verbose}\n')
+        if opts.print_help:
+            if verbose:
+                write_string('\n')
+            root.parser.print_help()
+    if opts.print_help:
+        sys.exit()
+    return root.parser, opts, args
 
 
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
@@ -133,16 +153,40 @@ class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
 
 class _YoutubeDLOptionParser(optparse.OptionParser):
     # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    ALIAS_TRIGGER_LIMIT = 100
 
     def __init__(self):
         super().__init__(
-            prog='yt-dlp',
+            prog='yt-dlp' if detect_variant() == 'source' else None,
             version=__version__,
             usage='%prog [OPTIONS] URL [URL...]',
             epilog='See full documentation at  https://github.com/yt-dlp/yt-dlp#readme',
             formatter=_YoutubeDLHelpFormatter(),
             conflict_handler='resolve',
         )
+
+    _UNKNOWN_OPTION = (optparse.BadOptionError, optparse.AmbiguousOptionError)
+    _BAD_OPTION = optparse.OptionValueError
+
+    def parse_known_args(self, args=None, values=None, strict=True):
+        """Same as parse_args, but ignore unknown switches. Similar to argparse.parse_known_args"""
+        self.rargs, self.largs = self._get_args(args), []
+        self.values = values or self.get_default_values()
+        while self.rargs:
+            try:
+                self._process_args(self.largs, self.rargs, self.values)
+            except optparse.OptParseError as err:
+                if isinstance(err, self._UNKNOWN_OPTION):
+                    self.largs.append(err.opt_str)
+                elif strict:
+                    if isinstance(err, self._BAD_OPTION):
+                        self.error(str(err))
+                    raise
+        return self.check_values(self.values, self.largs)
+
+    def error(self, msg):
+        msg = f'{self.get_prog_name()}: error: {msg.strip()}\n'
+        raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
 
     def _get_args(self, args):
         return sys.argv[1:] if args is None else list(args)
@@ -223,11 +267,44 @@ def create_parser():
         setattr(parser.values, option.dest, out_dict)
 
     parser = _YoutubeDLOptionParser()
+    alias_group = optparse.OptionGroup(parser, 'Aliases')
+    Formatter = string.Formatter()
+
+    def _create_alias(option, opt_str, value, parser):
+        aliases, opts = value
+        try:
+            nargs = len({i if f == '' else f
+                         for i, (_, f, _, _) in enumerate(Formatter.parse(opts)) if f is not None})
+            opts.format(*map(str, range(nargs)))  # validate
+        except Exception as err:
+            raise optparse.OptionValueError(f'wrong {opt_str} OPTIONS formatting; {err}')
+        if alias_group not in parser.option_groups:
+            parser.add_option_group(alias_group)
+
+        aliases = (x if x.startswith('-') else f'--{x}' for x in map(str.strip, aliases.split(',')))
+        try:
+            alias_group.add_option(
+                *aliases, help=opts, nargs=nargs, type='str' if nargs else None,
+                dest='_triggered_aliases', default=collections.defaultdict(int),
+                metavar=' '.join(f'ARG{i}' for i in range(nargs)), action='callback',
+                callback=_alias_callback, callback_kwargs={'opts': opts, 'nargs': nargs})
+        except Exception as err:
+            raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
+
+    def _alias_callback(option, opt_str, value, parser, opts, nargs):
+        counter = getattr(parser.values, option.dest)
+        counter[opt_str] += 1
+        if counter[opt_str] > parser.ALIAS_TRIGGER_LIMIT:
+            raise optparse.OptionValueError(f'Alias {opt_str} exceeded invocation limit')
+        if nargs == 1:
+            value = [value]
+        assert (nargs == 0 and value is None) or len(value) == nargs
+        parser.rargs[:0] = shlex.split(
+            opts if value is None else opts.format(*map(shlex.quote, value)))
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
-        '-h', '--help',
-        action='help',
+        '-h', '--help', dest='print_help', action='store_true',
         help='Print this help text and exit')
     general.add_option(
         '--version',
@@ -344,6 +421,18 @@ def create_parser():
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
             'configurations by reverting some of the changes made in yt-dlp. '
             'See "Differences in default behavior" for details'))
+    general.add_option(
+        '--alias', metavar='ALIASES OPTIONS', dest='_', type='str', nargs=2,
+        action='callback', callback=_create_alias,
+        help=(
+            'Create aliases for an option string. Unless an alias starts with a dash "-", it is prefixed with "--". '
+            'Arguments are parsed according to the Python string formatting mini-language. '
+            'Eg: --alias get-audio,-X "-S=aext:{0},abr -x --audio-format {0}" creates options '
+            '"--get-audio" and "-X" that takes an argument (ARG0) and expands to '
+            '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
+            'Alias options can trigger more aliases; so be carefull to avoid defining recursive options. '
+            f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
+            'This option can be used multiple times'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
     network.add_option(

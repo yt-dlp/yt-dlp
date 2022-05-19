@@ -381,6 +381,22 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                      configurations by reverting some of the
                                      changes made in yt-dlp. See "Differences in
                                      default behavior" for details
+    --alias ALIASES OPTIONS          Create aliases for an option string. Unless
+                                     an alias starts with a dash "-", it is
+                                     prefixed with "--". Arguments are parsed
+                                     according to the Python string formatting
+                                     mini-language. Eg: --alias get-audio,-X
+                                     "-S=aext:{0},abr -x --audio-format {0}"
+                                     creates options "--get-audio" and "-X" that
+                                     takes an argument (ARG0) and expands to
+                                     "-S=aext:ARG0,abr -x --audio-format ARG0".
+                                     All defined aliases are listed in the
+                                     --help output. Alias options can trigger
+                                     more aliases; so be carefull to avoid
+                                     defining recursive options. As a safety
+                                     measure, each alias may be triggered a
+                                     maximum of 100 times. This option can be
+                                     used multiple times
 
 ## Network Options:
     --proxy URL                      Use the specified HTTP/HTTPS/SOCKS proxy.

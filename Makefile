@@ -92,7 +92,7 @@ yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	chmod a+x yt-dlp
 
 README.md: yt_dlp/*.py yt_dlp/*/*.py
-	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --help | $(PYTHON) devscripts/make_readme.py
+	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
 
 CONTRIBUTING.md: README.md
 	$(PYTHON) devscripts/make_contributing.py README.md CONTRIBUTING.md
