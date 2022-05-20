@@ -55,7 +55,7 @@ class InaIE(InfoExtractor):
             'id': video_id,
             'url': api_response['resourceUrl'],
             'ext': {'video': 'mp4', 'audio': 'mp3'}.get(api_response.get('type')),
-            'title': api_response['title'],
+            'title': api_response.get('title'),
             'description': api_response.get('description'),
             'upload_date': unified_strdate(api_response.get('dateOfBroadcast')),
             'duration': api_response.get('duration'),
