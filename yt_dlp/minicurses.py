@@ -57,8 +57,8 @@ def format_text(text, f):
 
     if not tokens:
         fg_color = ''
-    elif tokens[-1] not in _COLORS:
-        raise SyntaxError(f'{tokens[-1]} in {f!r} must be a color')
+    elif tokens[-1] not in _COLORS and tokens[-1] not in _TEXT_STYLES:
+        raise SyntaxError(f'{tokens[-1]} in {f!r} must be a color or style')
     else:
         fg_color = f'3{_COLORS["DEFAULT"]}'
         if tokens[-1] in _COLORS:
