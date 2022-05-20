@@ -2877,8 +2877,13 @@ class YoutubeDL:
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
+        def check_max_downloads():
+            if self._num_downloads >= float(self.params.get('max_downloads') or 'inf'):
+                raise MaxDownloadsReached()
+
         if self.params.get('simulate'):
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
+            check_max_downloads()
             return
 
         if full_filename is None:
@@ -3221,10 +3226,7 @@ class YoutubeDL:
 
         # Make sure the info_dict was modified in-place
         assert info_dict is original_infodict
-
-        max_downloads = self.params.get('max_downloads')
-        if max_downloads is not None and self._num_downloads >= int(max_downloads):
-            raise MaxDownloadsReached()
+        check_max_downloads()
 
     def __download_wrapper(self, func):
         @functools.wraps(func)
