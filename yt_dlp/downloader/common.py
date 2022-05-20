@@ -18,8 +18,8 @@ from ..utils import (
     decodeArgument,
     encodeFilename,
     error_to_compat_str,
+    float_or_none,
     format_bytes,
-    int_or_none,
     sanitize_open,
     shell_quote,
     timeconvert,
@@ -406,9 +406,9 @@ class FileDownloader:
 
     def sleep_retry(self, retry_type, count):
         sleep_func = self.params.get('retry_sleep_functions', {}).get(retry_type)
-        delay = int_or_none(sleep_func(n=count - 1)) if sleep_func else None
+        delay = float_or_none(sleep_func(n=count - 1)) if sleep_func else None
         if delay:
-            self.__to_screen(f'Sleeping {delay} seconds ...')
+            self.__to_screen(f'Sleeping {delay:.2f} seconds ...')
             time.sleep(delay)
         return sleep_func is not None
 
