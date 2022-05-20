@@ -427,9 +427,7 @@ def validate_options(opts):
     def report_deprecation(val, old, new=None):
         if not val:
             return
-        deprecation_warnings.append(
-            f'{old} is deprecated and may be removed in a future version. Use {new} instead' if new
-            else f'{old} is deprecated and may not work as expected')
+        deprecation_warnings.append((val, old, new))
 
     report_deprecation(opts.sponskrub, '--sponskrub', '--sponsorblock-mark or --sponsorblock-remove')
     report_deprecation(not opts.prefer_ffmpeg, '--prefer-avconv', 'ffmpeg')

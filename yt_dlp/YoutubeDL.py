@@ -586,8 +586,12 @@ class YoutubeDL:
 
         for msg in self.params.get('_warnings', []):
             self.report_warning(msg)
-        for msg in self.params.get('_deprecation_warnings', []):
-            self.deprecation_warning(msg)
+        for val, old, new in self.params.get('_deprecation_warnings', []):
+            self.deprecation_warning(
+                f'{self._format_err(old, self.Styles.OPTION)} is deprecated and may be removed '
+                f'in a future version. Use {self._format_err(new, self.Styles.DEMAND)} instead'
+                if new else f'{self._format_err(old, self.Styles.OPTION)} is deprecated and may '
+                            'not work as expected')
 
         if 'list-formats' in self.params.get('compat_opts', []):
             self.params['listformats_table'] = False
