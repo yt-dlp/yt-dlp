@@ -1,8 +1,9 @@
 from .common import InfoExtractor
+from ..utils import unified_strdate
 
 
 class InaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www|m)\.)?ina\.fr/.*(?:video|audio)/(?P<id>[\w\d_]+).*'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?ina\.fr/(?:[^/]+/)?(?:video|audio)/(?P<id>\w+)'
     _TESTS = [{
         'url': 'https://www.ina.fr/video/I12055569/francois-hollande-je-crois-que-c-est-clair-video.html',
         'md5': 'c5a09e5cb5604ed10709f06e7a377dda',
@@ -11,7 +12,7 @@ class InaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'François Hollande "Je crois que c\'est clair"',
             'description': 'md5:08201f1c86fb250611f0ba415d21255a',
-            'date': 're:2007-07-12T.*',
+            'upload_date': '20070712',
             'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/3c4/I12055569.jpeg',
         }
     }, {
@@ -34,7 +35,7 @@ class InaIE(InfoExtractor):
             'ext': 'mp4',
             'title': 'Les jeux électroniques',
             'description': 'md5:e09f7683dad1cc60b74950490127d233',
-            'date': 're:1982-12-04T.*',
+            'upload_date': '19821204',
             'duration': 657,
             'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/203/CPB8205116303.jpeg',
         }
@@ -44,18 +45,19 @@ class InaIE(InfoExtractor):
         video_id = self._match_id(url).upper()
         webpage = self._download_webpage(url, video_id)
 
-        api_url = self._html_search_regex(r'asset-details-url=["\'](?P<api_url>[^"\']+)', webpage, 'api_url')
-        api_url = api_url.replace(video_id, f'{video_id}.json')
+        api_url = self._html_search_regex(
+            r'asset-details-url\s*=\s*["\'](?P<api_url>[^"\']+)',
+            webpage, 'api_url').replace(video_id, f'{video_id}.json')
 
         api_response = self._download_json(api_url, video_id)
 
         return {
             'id': video_id,
             'url': api_response['resourceUrl'],
-            'ext': "mp4" if api_response['type'] == "video" else "mp3",
+            'ext': {'video': 'mp4', 'audio': 'mp3'}.get(api_response.get('type')),
             'title': api_response['title'],
             'description': api_response.get('description'),
-            'date': api_response.get('dateOfBroadcast'),
+            'upload_date': unified_strdate(api_response.get('dateOfBroadcast')),
             'duration': api_response.get('duration'),
             'thumbnail': api_response.get('resourceThumbnail'),
         }
