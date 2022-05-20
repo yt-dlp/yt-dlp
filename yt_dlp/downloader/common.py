@@ -11,6 +11,7 @@ from ..minicurses import (
     MultilinePrinter,
     QuietMultilinePrinter,
 )
+from ..compat import functools
 from ..utils import (
     NUMBER_RE,
     LockingUnsupportedError,
@@ -102,7 +103,7 @@ class FileDownloader:
 
     __to_screen = to_screen
 
-    @property
+    @functools.cached_property
     def FD_NAME(self):
         return re.sub(r'(?<!^)(?=[A-Z])', '_', type(self).__name__[:-2]).lower()
 

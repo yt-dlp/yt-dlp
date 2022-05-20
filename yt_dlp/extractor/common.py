@@ -11,6 +11,7 @@ import sys
 import time
 import xml.etree.ElementTree
 
+from ..compat import functools, re
 from ..compat import (
     compat_cookiejar_Cookie,
     compat_cookies_SimpleCookie,
@@ -25,7 +26,6 @@ from ..compat import (
     compat_urllib_parse_urlencode,
     compat_urllib_request,
     compat_urlparse,
-    re,
 )
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
@@ -3748,7 +3748,7 @@ class InfoExtractor:
     def _get_automatic_captions(self, *args, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
 
-    @property
+    @functools.cached_property
     def _cookies_passed(self):
         """Whether cookies have been passed to YoutubeDL"""
         return self.get_param('cookiefile') is not None or self.get_param('cookiesfrombrowser') is not None
