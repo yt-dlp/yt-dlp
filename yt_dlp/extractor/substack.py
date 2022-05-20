@@ -1,13 +1,8 @@
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    ExtractorError,
-    traverse_obj,
-)
 
 
 class SubstackIE(InfoExtractor):
-    _VALID_URL = r'https?://(?P<username>[\w\d-]+).substack\.com/p/(?P<id>[\w\d-]+).*'
+    _VALID_URL = r'https?://(?P<username>[\w-]+)\.substack\.com/p/(?P<id>[\w-]+)'
     _TESTS = [{
         'url': 'https://haleynahman.substack.com/p/i-made-a-vlog?s=r',
         'md5': 'f27e4fc6252001d48d479f45e65cdfd5',
@@ -36,7 +31,7 @@ class SubstackIE(InfoExtractor):
         'info_dict': {
             'id': 'mussels-with-black-bean-sauce-recipe',
             'ext': 'mp4',
-            'title': "Mussels with Black Bean Sauce: Recipe of the Week #7",
+            'title': 'Mussels with Black Bean Sauce: Recipe of the Week #7',
             'description': 'md5:b96234a2906c7d854d5229818d889515',
             'thumbnail': 'md5:e30bfaa9da40e82aa62354263a9dd232',
             'uploader': 'andrewzimmern',
@@ -45,12 +40,11 @@ class SubstackIE(InfoExtractor):
 
     def _extract_video_formats(self, video_id, username):
         formats, subtitles = [], []
-        for video_format in ['hls', 'mp4']:
-            video_url = f"https://{username}.substack.com/api/v1/video/upload/{video_id}/src?type={video_format}"
+        for video_format in ('hls', 'mp4'):
+            video_url = f'https://{username}.substack.com/api/v1/video/upload/{video_id}/src?type={video_format}'
 
             if video_format == 'hls':
-                fmts, subs = self._extract_m3u8_formats_and_subtitles(
-                    video_url, video_id, 'mp4', fatal=False)
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(video_url, video_id, 'mp4', fatal=False)
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
@@ -67,24 +61,19 @@ class SubstackIE(InfoExtractor):
 
         webpage = self._download_webpage(url, display_id)
 
-        preloads = self._parse_json(
-            self._html_search_regex(r'<script[^>]*>\s*window\._preloads\s*=\s*({.+})\s*</script>', webpage, 'preloads'),
-            video_id=display_id)
+        post_info = self._parse_json(
+            self._html_search_regex(
+                r'<script[^>]*>\s*window\._preloads\s*=\s*({.+?})\s*</script>', webpage, 'preloads'),
+            video_id=display_id)['post']
 
-        post_info = preloads['post']
         post_type = post_info.get('type')
-
-        formats, subtitles = [], []
-        if post_type == "podcast":
-            formats.append({
-                'url': post_info.get('podcast_url'),
-                'ext': determine_ext(post_info.get('podcast_url')),
-            })
-        elif post_type == "video":
-            video_id = traverse_obj(post_info, ('videoUpload', 'id'))
-            formats, subtitles = self._extract_video_formats(video_id, username)
+        formats, subtitles = [], {}
+        if post_type == 'podcast':
+            formats, subtitles = [{'url': post_info['podcast_url']}], {}
+        elif post_type == 'video':
+            formats, subtitles = self._extract_video_formats(post_info['videoUpload']['id'], username)
         else:
-            raise ExtractorError(f"Page type '{post_type}' is not supported")
+            self.raise_no_formats(f"Page type '{post_type}' is not supported")
 
         return {
             'id': display_id,
