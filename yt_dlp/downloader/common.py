@@ -11,11 +11,11 @@ from ..minicurses import (
     MultilinePrinter,
     QuietMultilinePrinter,
 )
-from ..compat import functools
 from ..utils import (
     NUMBER_RE,
     LockingUnsupportedError,
     Namespace,
+    classproperty,
     decodeArgument,
     encodeFilename,
     error_to_compat_str,
@@ -103,9 +103,9 @@ class FileDownloader:
 
     __to_screen = to_screen
 
-    @functools.cached_property
-    def FD_NAME(self):
-        return re.sub(r'(?<!^)(?=[A-Z])', '_', type(self).__name__[:-2]).lower()
+    @classproperty
+    def FD_NAME(cls):
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__[:-2]).lower()
 
     @staticmethod
     def format_seconds(seconds):
