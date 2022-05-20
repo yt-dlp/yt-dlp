@@ -74,6 +74,7 @@ from .teachable import TeachableIE
 from .ted import TedEmbedIE
 from .theplatform import ThePlatformIE
 from .threeqsdn import ThreeQSDNIE
+from .tiktok import TikTokIE
 from .tnaflix import TNAFlixNetworkEmbedIE
 from .tube8 import Tube8IE
 from .tunein import TuneInBaseIE
@@ -3755,6 +3756,11 @@ class GenericIE(InfoExtractor):
         ruutu_urls = RuutuIE._extract_urls(webpage)
         if ruutu_urls:
             return self.playlist_from_matches(ruutu_urls, video_id, video_title)
+
+        # Look for Tiktok embeds
+        tiktok_urls = TikTokIE._extract_urls(webpage)
+        if tiktok_urls:
+            return self.playlist_from_matches(tiktok_urls, video_id, video_title)
 
         # Look for HTML5 media
         entries = self._parse_html5_media_entries(url, webpage, video_id, m3u8_id='hls')
