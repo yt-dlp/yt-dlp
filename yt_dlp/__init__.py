@@ -849,22 +849,16 @@ def _real_main(argv=None):
     with YoutubeDL(ydl_opts) as ydl:
         actual_use = all_urls or opts.load_info_filename
 
-        # Remove cache dir
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        # Update version
-        if opts.update_self:
+        if opts.update_self and run_update(ydl) and actual_use:
             # If updater returns True, exit. Required for windows
-            if run_update(ydl):
-                if actual_use:
-                    return 100, 'ERROR: The program must exit for the update to complete'
-                return
+            return 100, 'ERROR: The program must exit for the update to complete'
 
-        # Maybe do nothing
         if not actual_use:
             if opts.update_self or opts.rm_cachedir:
-                return
+                return ydl._download_retcode
 
             ydl.warn_if_short_id(sys.argv[1:] if argv is None else argv)
             parser.error(
