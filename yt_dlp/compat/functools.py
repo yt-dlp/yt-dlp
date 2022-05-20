@@ -20,5 +20,7 @@ except NameError:
             self.func = func
 
         def __get__(self, instance, _):
+            if instance is None:
+                return self
             setattr(instance, self.func.__name__, self.func(instance))
             return getattr(instance, self.func.__name__)
