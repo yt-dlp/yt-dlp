@@ -2,7 +2,6 @@ import base64
 import calendar
 import copy
 import datetime
-import functools
 import hashlib
 import itertools
 import json
@@ -16,6 +15,7 @@ import time
 import traceback
 
 from .common import InfoExtractor, SearchInfoExtractor
+from ..compat import functools
 from ..compat import (
     compat_chr,
     compat_HTTPError,
@@ -534,7 +534,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
             expected_type=str)
 
-    @property
+    @functools.cached_property
     def is_authenticated(self):
         return bool(self._generate_sapisidhash_header())
 
@@ -4402,7 +4402,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             check_get_keys='contents', fatal=False, ytcfg=ytcfg,
             note='Downloading API JSON with unavailable videos')
 
-    @property
+    @functools.cached_property
     def skip_webpage(self):
         return 'webpage' in self._configuration_arg('skip', ie_key=YoutubeTabIE.ie_key())
 
