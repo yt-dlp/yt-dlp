@@ -7,7 +7,7 @@ class SubstackIE(InfoExtractor):
         'url': 'https://haleynahman.substack.com/p/i-made-a-vlog?s=r',
         'md5': 'f27e4fc6252001d48d479f45e65cdfd5',
         'info_dict': {
-            'id': 'i-made-a-vlog',
+            'id': '47660949',
             'ext': 'mp4',
             'title': 'I MADE A VLOG',
             'description': 'md5:10c01ff93439a62e70ce963b2aa0b7f6',
@@ -18,7 +18,7 @@ class SubstackIE(InfoExtractor):
         'url': 'https://haleynahman.substack.com/p/-dear-danny-i-found-my-boyfriends?s=r',
         'md5': '0a63eacec877a1171a62cfa69710fcea',
         'info_dict': {
-            'id': '-dear-danny-i-found-my-boyfriends',
+            'id': '51045592',
             'ext': 'mpga',
             'title': "🎧 Dear Danny: I found my boyfriend's secret Twitter account",
             'description': 'md5:a57f2439319e56e0af92dd0c95d75797',
@@ -29,7 +29,7 @@ class SubstackIE(InfoExtractor):
         'url': 'https://andrewzimmern.substack.com/p/mussels-with-black-bean-sauce-recipe',
         'md5': 'fd3c07077b02444ff0130715b5f632bb',
         'info_dict': {
-            'id': 'mussels-with-black-bean-sauce-recipe',
+            'id': '47368578',
             'ext': 'mp4',
             'title': 'Mussels with Black Bean Sauce: Recipe of the Week #7',
             'description': 'md5:b96234a2906c7d854d5229818d889515',
@@ -39,7 +39,7 @@ class SubstackIE(InfoExtractor):
     }]
 
     def _extract_video_formats(self, video_id, username):
-        formats, subtitles = [], []
+        formats, subtitles = [], {}
         for video_format in ('hls', 'mp4'):
             video_url = f'https://{username}.substack.com/api/v1/video/upload/{video_id}/src?type={video_format}'
 
@@ -48,17 +48,15 @@ class SubstackIE(InfoExtractor):
                 formats.extend(fmts)
                 self._merge_subtitles(subs, target=subtitles)
             else:
-                formats.extend([{
+                formats.append({
                     'url': video_url,
                     'ext': video_format,
-                }])
+                })
 
         return formats, subtitles
 
     def _real_extract(self, url):
-        display_id = self._match_id(url)
-        username = self._match_valid_url(url).group('username')
-
+        display_id, username = self._match_valid_url(url).group('id', 'username')
         webpage = self._download_webpage(url, display_id)
 
         post_info = self._parse_json(
@@ -75,8 +73,9 @@ class SubstackIE(InfoExtractor):
         else:
             self.raise_no_formats(f"Page type '{post_type}' is not supported")
 
+        self._sort_formats(formats)
         return {
-            'id': display_id,
+            'id': str(post_info['id']),
             'formats': formats,
             'subtitles': subtitles,
             'title': post_info.get('title'),
