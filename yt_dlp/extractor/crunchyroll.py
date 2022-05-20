@@ -728,11 +728,12 @@ class CrunchyrollBetaBaseIE(CrunchyrollBaseIE):
                 headers={
                     'Authorization': auth_response['token_type'] + ' ' + auth_response['access_token']
                 })
-            bucket = policy_response['cms']['bucket']
+            cms = traverse_obj(policy_response, 'cms_beta', 'cms')
+            bucket = cms['bucket']
             params = {
-                'Policy': policy_response['cms']['policy'],
-                'Signature': policy_response['cms']['signature'],
-                'Key-Pair-Id': policy_response['cms']['key_pair_id']
+                'Policy': cms['policy'],
+                'Signature': cms['signature'],
+                'Key-Pair-Id': cms['key_pair_id']
             }
             locale = traverse_obj(initial_state, ('localization', 'locale'))
             if locale:
