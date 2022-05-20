@@ -1,5 +1,6 @@
 import os
 import random
+import socket
 import ssl
 import time
 
@@ -18,7 +19,13 @@ from ..utils import (
     write_xattr,
 )
 
-RESPONSE_READ_EXCEPTIONS = (TimeoutError, ConnectionError, ssl.SSLError, compat_http_client.HTTPException)
+RESPONSE_READ_EXCEPTIONS = (
+    TimeoutError,
+    socket.timeout,  # compat: py < 3.10
+    ConnectionError,
+    ssl.SSLError,
+    compat_http_client.HTTPException
+)
 
 
 class HttpFD(FileDownloader):

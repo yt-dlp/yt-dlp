@@ -56,6 +56,13 @@ install: lazy-extractors yt-dlp yt-dlp.1 completions
 	mkdir -p $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d
 	install -m644 completions/fish/yt-dlp.fish $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
 
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/yt-dlp
+	rm -f $(DESTDIR)$(MANDIR)/man1/yt-dlp.1
+	rm -f $(DESTDIR)$(SHAREDIR)/bash-completion/completions/yt-dlp
+	rm -f $(DESTDIR)$(SHAREDIR)/zsh/site-functions/_yt-dlp
+	rm -f $(DESTDIR)$(SHAREDIR)/fish/vendor_completions.d/yt-dlp.fish
+
 codetest:
 	flake8 .
 
@@ -85,7 +92,7 @@ yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	chmod a+x yt-dlp
 
 README.md: yt_dlp/*.py yt_dlp/*/*.py
-	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --help | $(PYTHON) devscripts/make_readme.py
+	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
 
 CONTRIBUTING.md: README.md
 	$(PYTHON) devscripts/make_contributing.py README.md CONTRIBUTING.md

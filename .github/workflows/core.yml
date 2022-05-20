@@ -8,14 +8,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04]
-        # py3.9 is in quick-test
-        python-version: [3.7, 3.8, 3.10-dev, pypy-3.6, pypy-3.7]
+        os: [ubuntu-latest]
+        # CPython 3.9 is in quick-test
+        python-version: ['3.6', '3.7', '3.10', 3.11-dev, pypy-3.6, pypy-3.7, pypy-3.8, pypy-3.9]
         run-tests-ext: [sh]
         include:
         # atleast one of the tests must be in windows
         - os: windows-latest
-          python-version: 3.6
+          python-version: 3.8
           run-tests-ext: bat
     steps:
     - uses: actions/checkout@v2

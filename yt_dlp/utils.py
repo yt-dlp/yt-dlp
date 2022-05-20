@@ -11,7 +11,6 @@ import datetime
 import email.header
 import email.utils
 import errno
-import functools
 import gzip
 import hashlib
 import hmac
@@ -39,8 +38,8 @@ import urllib.parse
 import xml.etree.ElementTree
 import zlib
 
+from .compat import asyncio, functools  # Modules
 from .compat import (
-    asyncio,
     compat_chr,
     compat_cookiejar,
     compat_etree_fromstring,
@@ -248,6 +247,7 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<jso
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
 
+@functools.cache
 def preferredencoding():
     """Get preferred encoding.
 
@@ -714,7 +714,9 @@ def sanitize_path(s, force=False):
 def sanitize_url(url):
     # Prepend protocol-less URLs with `http:` scheme in order to mitigate
     # the number of unwanted failures due to missing protocol
-    if url.startswith('//'):
+    if url is None:
+        return
+    elif url.startswith('//'):
         return 'http:%s' % url
     # Fix some common typos seen so far
     COMMON_TYPOS = (
@@ -1446,6 +1448,10 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
         self.filename = filename
 
     @staticmethod
+    def _true_or_false(cndn):
+        return 'TRUE' if cndn else 'FALSE'
+
+    @staticmethod
     def is_path(file):
         return isinstance(file, (str, bytes, os.PathLike))
 
@@ -1459,57 +1465,47 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 file.truncate(0)
             yield file
 
-    def save(self, filename=None, ignore_discard=False, ignore_expires=False):
+    def _really_save(self, f, ignore_discard=False, ignore_expires=False):
+        now = time.time()
+        for cookie in self:
+            if (not ignore_discard and cookie.discard
+                    or not ignore_expires and cookie.is_expired(now)):
+                continue
+            name, value = cookie.name, cookie.value
+            if value is None:
+                # cookies.txt regards 'Set-Cookie: foo' as a cookie
+                # with no name, whereas http.cookiejar regards it as a
+                # cookie with no value.
+                name, value = '', name
+            f.write('%s\n' % '\t'.join((
+                cookie.domain,
+                self._true_or_false(cookie.domain.startswith('.')),
+                cookie.path,
+                self._true_or_false(cookie.secure),
+                str_or_none(cookie.expires, default=''),
+                name, value
+            )))
+
+    def save(self, filename=None, *args, **kwargs):
         """
         Save cookies to a file.
+        Code is taken from CPython 3.6
+        https://github.com/python/cpython/blob/8d999cbf4adea053be6dbb612b9844635c4dfb8e/Lib/http/cookiejar.py#L2091-L2117 """
 
-        Most of the code is taken from CPython 3.8 and slightly adapted
-        to support cookie files with UTF-8 in both python 2 and 3.
-        """
         if filename is None:
             if self.filename is not None:
                 filename = self.filename
             else:
                 raise ValueError(compat_cookiejar.MISSING_FILENAME_TEXT)
 
-        # Store session cookies with `expires` set to 0 instead of an empty
-        # string
+        # Store session cookies with `expires` set to 0 instead of an empty string
         for cookie in self:
             if cookie.expires is None:
                 cookie.expires = 0
 
         with self.open(filename, write=True) as f:
             f.write(self._HEADER)
-            now = time.time()
-            for cookie in self:
-                if not ignore_discard and cookie.discard:
-                    continue
-                if not ignore_expires and cookie.is_expired(now):
-                    continue
-                if cookie.secure:
-                    secure = 'TRUE'
-                else:
-                    secure = 'FALSE'
-                if cookie.domain.startswith('.'):
-                    initial_dot = 'TRUE'
-                else:
-                    initial_dot = 'FALSE'
-                if cookie.expires is not None:
-                    expires = compat_str(cookie.expires)
-                else:
-                    expires = ''
-                if cookie.value is None:
-                    # cookies.txt regards 'Set-Cookie: foo' as a cookie
-                    # with no name, whereas http.cookiejar regards it as a
-                    # cookie with no value.
-                    name = ''
-                    value = cookie.name
-                else:
-                    name = cookie.name
-                    value = cookie.value
-                f.write(
-                    '\t'.join([cookie.domain, initial_dot, cookie.path,
-                               secure, expires, name, value]) + '\n')
+            self._really_save(f, *args, **kwargs)
 
     def load(self, filename=None, ignore_discard=False, ignore_expires=False):
         """Load cookies from a file."""
@@ -1887,6 +1883,7 @@ def platform_name():
     return res
 
 
+@functools.cache
 def get_windows_version():
     ''' Get Windows version. None if it's not running on Windows '''
     if compat_os_name == 'nt':
@@ -2083,6 +2080,7 @@ class locked_file:
         return iter(self.f)
 
 
+@functools.cache
 def get_filesystem_encoding():
     encoding = sys.getfilesystemencoding()
     return encoding if encoding is not None else 'utf-8'
@@ -3296,14 +3294,13 @@ def is_html(first_bytes):
         (b'\xff\xfe', 'utf-16-le'),
         (b'\xfe\xff', 'utf-16-be'),
     ]
-    for bom, enc in BOMS:
-        if first_bytes.startswith(bom):
-            s = first_bytes[len(bom):].decode(enc, 'replace')
-            break
-    else:
-        s = first_bytes.decode('utf-8', 'replace')
 
-    return re.match(r'^\s*<', s)
+    encoding = 'utf-8'
+    for bom, enc in BOMS:
+        while first_bytes.startswith(bom):
+            encoding, first_bytes = enc, first_bytes[len(bom):]
+
+    return re.match(r'^\s*<', first_bytes.decode(encoding, 'replace'))
 
 
 def determine_protocol(info_dict):
@@ -4171,6 +4168,9 @@ class ISO3166Utils:
         'YE': 'Yemen',
         'ZM': 'Zambia',
         'ZW': 'Zimbabwe',
+        # Not ISO 3166 codes, but used for IP blocks
+        'AP': 'Asia/Pacific Region',
+        'EU': 'Europe',
     }
 
     @classmethod
@@ -5103,9 +5103,12 @@ def jwt_decode_hs256(jwt):
     return payload_data
 
 
+WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+
+
+@functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        from .compat import WINDOWS_VT_MODE  # Must be imported locally
         if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
@@ -5114,6 +5117,21 @@ def supports_terminal_sequences(stream):
         return stream.isatty()
     except BaseException:
         return False
+
+
+def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+    if compat_os_name != 'nt':
+        return
+    global WINDOWS_VT_MODE
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    try:
+        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
+    except Exception:
+        return
+
+    WINDOWS_VT_MODE = True
+    supports_terminal_sequences.cache_clear()
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')
@@ -5167,11 +5185,12 @@ def parse_http_range(range):
 
 class Config:
     own_args = None
+    parsed_args = None
     filename = None
     __initialized = False
 
     def __init__(self, parser, label=None):
-        self._parser, self.label = parser, label
+        self.parser, self.label = parser, label
         self._loaded_paths, self.configs = set(), []
 
     def init(self, args=None, filename=None):
@@ -5184,14 +5203,16 @@ class Config:
                 return False
             self._loaded_paths.add(location)
 
-        self.__initialized = True
-        self.own_args, self.filename = args, filename
-        for location in self._parser.parse_args(args)[0].config_locations or []:
+        self.own_args, self.__initialized = args, True
+        opts, _ = self.parser.parse_known_args(args)
+        self.parsed_args, self.filename = args, filename
+
+        for location in opts.config_locations or []:
             location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
             if not os.path.exists(location):
-                self._parser.error(f'config location {location} does not exist')
+                self.parser.error(f'config location {location} does not exist')
             self.append_config(self.read_file(location), location)
         return True
 
@@ -5237,7 +5258,7 @@ class Config:
         return opts
 
     def append_config(self, *args, label=None):
-        config = type(self)(self._parser, label)
+        config = type(self)(self.parser, label)
         config._loaded_paths = self._loaded_paths
         if config.init(*args):
             self.configs.append(config)
@@ -5246,10 +5267,13 @@ class Config:
     def all_args(self):
         for config in reversed(self.configs):
             yield from config.all_args
-        yield from self.own_args or []
+        yield from self.parsed_args or []
+
+    def parse_known_args(self, **kwargs):
+        return self.parser.parse_known_args(self.all_args, **kwargs)
 
     def parse_args(self):
-        return self._parser.parse_args(self.all_args)
+        return self.parser.parse_args(self.all_args)
 
 
 class WebSocketsWrapper():
@@ -5337,8 +5361,23 @@ class classproperty:
         return self.f(cls)
 
 
-def Namespace(**kwargs):
-    return collections.namedtuple('Namespace', kwargs)(**kwargs)
+class Namespace:
+    """Immutable namespace"""
+
+    def __init__(self, **kwargs):
+        self._dict = kwargs
+
+    def __getattr__(self, attr):
+        return self._dict[attr]
+
+    def __contains__(self, item):
+        return item in self._dict.values()
+
+    def __iter__(self):
+        return iter(self._dict.items())
+
+    def __repr__(self):
+        return f'{type(self).__name__}({", ".join(f"{k}={v}" for k, v in self)})'
 
 
 # Deprecated

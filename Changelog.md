@@ -11,6 +11,124 @@
 -->
 
 
+### 2022.05.18
+
+* Add support for SSL client certificate authentication by [coletdjnz](https://github.com/coletdjnz), [dirkf](https://github.com/dirkf)
+    * Adds `--client-certificate`, `--client-certificate-key`, `--client-certificate-password`
+* Add `--match-filter -` to interactively ask for each video
+* `--max-downloads` should obey `--break-per-input`
+* Allow use of weaker ciphers with `--legacy-server-connect`
+* Don't imply `-s` for later stages of `-O`
+* Fix `--date today`
+* Fix `--skip-unavailable-fragments`
+* Fix color in `-q -F`
+* Fix redirect HTTP method handling by [coletdjnz](https://github.com/coletdjnz)
+* Improve `--clean-infojson`
+* Remove warning for videos with an empty title
+* Run `FFmpegFixupM3u8PP` for live-streams if needed
+* Show name of downloader in verbose log
+* [cookies] Allow `cookiefile` to be a text stream
+* [cookies] Report progress when importing cookies
+* [downloader/ffmpeg] Specify headers for each URL by [elyse0](https://github.com/elyse0)
+* [fragment] Do not change chunk-size when `--test`
+* [fragment] Make single thread download work for `--live-from-start` by [Lesmiscore](https://github.com/Lesmiscore)
+* [hls] Fix `byte_range` for `EXT-X-MAP` fragment by [fstirlitz](https://github.com/fstirlitz)
+* [http] Fix retrying on read timeout by [coletdjnz](https://github.com/coletdjnz)
+* [ffmpeg] Fix features detection
+* [EmbedSubtitle] Enable for more video extensions
+* [EmbedThumbnail] Disable thumbnail conversion for mkv by [evansp](https://github.com/evansp)
+* [EmbedThumbnail] Do not obey `-k`
+* [EmbedThumbnail] Do not remove id3v1 tags
+* [FFmpegMetadata] Remove `\0` from metadata
+* [FFmpegMetadata] Remove filename from attached info-json
+* [FixupM3u8] Obey `--hls-prefer-mpegts`
+* [Sponsorblock] Don't crash when duration is unknown
+* [XAttrMetadata] Refactor and document dependencies
+* [extractor] Document netrc machines
+* [extractor] Update `manifest_url`s after redirect by [elyse0](https://github.com/elyse0)
+* [extractor] Update dash `manifest_url` after redirects by [elyse0](https://github.com/elyse0)
+* [extractor] Use `classmethod`/`property` where possible
+* [generic] Refactor `_extract_rss`
+* [utils] `is_html`: Handle double BOM
+* [utils] `locked_file`: Ignore illegal seek on `truncate` by [jakeogh](https://github.com/jakeogh)
+* [utils] `sanitize_path`: Fix when path is empty string
+* [utils] `write_string`: Workaround newline issue in `conhost`
+* [utils] `certifi`: Make sure the pem file exists
+* [utils] Fix `WebSocketsWrapper`
+* [utils] `locked_file`: Do not give executable bits for newly created files by [Lesmiscore](https://github.com/Lesmiscore)
+* [utils] `YoutubeDLCookieJar`: Detect and reject JSON file by [Lesmiscore](https://github.com/Lesmiscore)
+* [test] Convert warnings into errors and fix some existing warnings by [fstirlitz](https://github.com/fstirlitz)
+* [dependencies] Create module with all dependency imports
+* [compat] Split into sub-modules by [fstirlitz](https://github.com/fstirlitz), [pukkandan](https://github.com/pukkandan)
+* [compat] Implement `compat.imghdr`
+* [build] Add `make uninstall` by [MrRawes](https://github.com/MrRawes)
+* [build] Avoid use of `install -D`
+* [build] Fix `Makefile` by [putnam](https://github.com/putnam)
+* [build] Fix `--onedir` on macOS
+* [build] Add more test-runners
+* [cleanup] Deprecate some compat vars by [fstirlitz](https://github.com/fstirlitz), [pukkandan](https://github.com/pukkandan)
+* [cleanup] Remove unused code paths, extractors, scripts and tests by [fstirlitz](https://github.com/fstirlitz)
+* [cleanup] Upgrade syntax (`pyupgrade`) and sort imports (`isort`)
+* [cleanup, docs, build] Misc fixes
+* [BilibiliLive] Add extractor by [HE7086](https://github.com/HE7086), [pukkandan](https://github.com/pukkandan)
+* [Fifa] Add Extractor by [Bricio](https://github.com/Bricio)
+* [goodgame] Add extractor by [nevack](https://github.com/nevack)
+* [gronkh] Add playlist extractors by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [icareus] Add extractor by [tpikonen](https://github.com/tpikonen), [pukkandan](https://github.com/pukkandan)
+* [iwara] Add playlist extractors by [i6t](https://github.com/i6t)
+* [Likee] Add extractor by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [masters] Add extractor by [m4tu4g](https://github.com/m4tu4g)
+* [nebula] Add support for subscriptions by [hheimbuerger](https://github.com/hheimbuerger)
+* [Podchaser] Add extractors by [connercsbn](https://github.com/connercsbn)
+* [rokfin:search] Add extractor by [P-reducible](https://github.com/P-reducible), [pukkandan](https://github.com/pukkandan)
+* [youtube] Add `:ytnotifications` extractor by [krichbanana](https://github.com/krichbanana)
+* [youtube] Add YoutubeStoriesIE (`ytstories:<channel UCID>`) by [coletdjnz](https://github.com/coletdjnz)
+* [ZingMp3] Add chart and user extractors by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [adn] Update AES key by [elyse0](https://github.com/elyse0)
+* [adobepass] Allow cookies for authenticating MSO
+* [bandcamp] Exclude merch links by [Yipten](https://github.com/Yipten)
+* [chingari] Fix archiving and tests
+* [DRTV] Improve `_VALID_URL` by [vertan](https://github.com/vertan)
+* [facebook] Improve thumbnail extraction by [Wikidepia](https://github.com/Wikidepia)
+* [fc2] Stop heatbeating once FFmpeg finishes by [Lesmiscore](https://github.com/Lesmiscore)
+* [Gofile] Fix extraction and support password-protected links by [mehq](https://github.com/mehq)
+* [hotstar, cleanup] Refactor extractors
+* [InfoQ] Don't fail on missing audio format by [evansp](https://github.com/evansp)
+* [Jamendo] Extract more metadata by [evansp](https://github.com/evansp)
+* [kaltura] Update API calls by [flashdagger](https://github.com/flashdagger)
+* [KhanAcademy] Fix extractor by [rand-net](https://github.com/rand-net)
+* [LCI] Fix extractor by [MarwenDallel](https://github.com/MarwenDallel)
+* [lrt] Support livestreams by [GiedriusS](https://github.com/GiedriusS)
+* [niconico] Set `expected_protocol` to a public field
+* [Niconico] Support 2FA by [ekangmonyet](https://github.com/ekangmonyet)
+* [Olympics] Fix format extension
+* [openrec:movie] Enable fallback for /movie/ URLs
+* [PearVideo] Add fallback for formats by [hatienl0i261299](https://github.com/hatienl0i261299)
+* [radiko] Fix extractor by [Lesmiscore](https://github.com/Lesmiscore)
+* [rai] Add `release_year`
+* [reddit] Prevent infinite loop
+* [rokfin] Implement login by [P-reducible](https://github.com/P-reducible), [pukkandan](https://github.com/pukkandan)
+* [ruutu] Support hs.fi embeds by [tpikonen](https://github.com/tpikonen), [pukkandan](https://github.com/pukkandan)
+* [spotify] Detect iframe embeds by [fstirlitz](https://github.com/fstirlitz)
+* [telegram] Fix metadata extraction
+* [tmz, cleanup] Update tests by [diegorodriguezv](https://github.com/diegorodriguezv)
+* [toggo] Fix `_VALID_URL` by [ca-za](https://github.com/ca-za)
+* [trovo] Update to new API by [nyuszika7h](https://github.com/nyuszika7h)
+* [TVer] Improve extraction by [Lesmiscore](https://github.com/Lesmiscore)
+* [twitcasting] Pass headers for each formats by [Lesmiscore](https://github.com/Lesmiscore)
+* [VideocampusSachsen] Improve extractor by [FestplattenSchnitzel](https://github.com/FestplattenSchnitzel)
+* [vimeo] Fix extractors
+* [wat] Fix extraction of multi-language videos and subtitles by [elyse0](https://github.com/elyse0)
+* [wistia] Fix `_VALID_URL` by [dirkf](https://github.com/dirkf)
+* [youtube, cleanup] Minor refactoring by [coletdjnz](https://github.com/coletdjnz), [pukkandan](https://github.com/pukkandan)
+* [youtube] Added piped instance urls by [JordanWeatherby](https://github.com/JordanWeatherby)
+* [youtube] Deprioritize auto-generated thumbnails
+* [youtube] Deprioritize format 22 (often damaged)
+* [youtube] Fix episode metadata extraction
+* [zee5] Fix extractor by [Ashish0804](https://github.com/Ashish0804)
+* [zingmp3, cleanup] Refactor extractors
+
+
 ### 2022.04.08
 
 * Use certificates from `certifi` if installed by [coletdjnz](https://github.com/coletdjnz)
@@ -785,7 +903,7 @@
 * [build] Improvements
     * Build standalone MacOS packages by [smplayer-dev](https://github.com/smplayer-dev)
     * Release windows exe built with `py2exe`
-    * Enable lazy-extractors in releases. 
+    * Enable lazy-extractors in releases
         * Set env var `YTDLP_NO_LAZY_EXTRACTORS` to forcefully disable this (experimental)
     * Clean up error reporting in update
     * Refactor `pyinst.py`, misc cleanup and improve docs
@@ -1393,7 +1511,7 @@
 * [youtube] Non-fatal alert reporting for unavailable videos page by [coletdjnz](https://github.com/coletdjnz)
 * [twitcasting] Websocket support by [nao20010128nao](https://github.com/nao20010128nao)
 * [mediasite] Extract slides by [fstirlitz](https://github.com/fstirlitz)
-* [funimation] Extract subtitles 
+* [funimation] Extract subtitles
 * [pornhub] Extract `cast`
 * [hotstar] Use server time for authentication instead of local time
 * [EmbedThumbnail] Fix for already downloaded thumbnail
@@ -1489,7 +1607,7 @@
 
 ### 2021.05.20
 
-* **Youtube improvements**: 
+* **Youtube improvements**:
     * Support youtube music `MP`, `VL` and `browse` pages
     * Extract more formats for youtube music by [craftingmod](https://github.com/craftingmod), [coletdjnz](https://github.com/coletdjnz) and [pukkandan](https://github.com/pukkandan)
     * Extract multiple subtitles in same language by [pukkandan](https://github.com/pukkandan) and [tpikonen](https://github.com/tpikonen)
@@ -2031,7 +2149,7 @@
 * **Format Sort:** Added `--format-sort` (`-S`), `--format-sort-force` (`--S-force`) - See [Sorting Formats](README.md#sorting-formats) for details
 * **Format Selection:** See [Format Selection](README.md#format-selection) for details
     * New format selectors: `best*`, `worst*`, `bestvideo*`, `bestaudio*`, `worstvideo*`, `worstaudio*`
-    * Changed video format sorting to show video only files and video+audio files together.
+    * Changed video format sorting to show video only files and video+audio files together
     * Added `--video-multistreams`, `--no-video-multistreams`, `--audio-multistreams`, `--no-audio-multistreams`
     * Added `b`,`w`,`v`,`a` as alias for `best`, `worst`, `video` and `audio` respectively
 * Shortcut Options: Added `--write-link`, `--write-url-link`, `--write-webloc-link`, `--write-desktop-link` by [h-h-h-h](https://github.com/h-h-h-h) - See [Internet Shortcut Options](README.md#internet-shortcut-options) for details

@@ -394,9 +394,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._check_login_required()
 
     def _check_login_required(self):
-        if (self._LOGIN_REQUIRED
-                and self.get_param('cookiefile') is None
-                and self.get_param('cookiesfrombrowser') is None):
+        if self._LOGIN_REQUIRED and not self._cookies_passed:
             self.raise_login_required('Login details are needed to download this content', method='cookies')
 
     _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
@@ -4282,8 +4280,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             start = next((i for i, v in enumerate(videos) if v['id'] == last_id), -1) + 1
             if start >= len(videos):
                 return
-            for video in videos[start:]:
-                yield video
+            yield from videos[start:]
             first_id = first_id or videos[0]['id']
             last_id = videos[-1]['id']
             watch_endpoint = try_get(

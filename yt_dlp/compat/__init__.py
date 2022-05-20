@@ -1,6 +1,4 @@
-import contextlib
 import os
-import subprocess
 import sys
 import warnings
 import xml.etree.ElementTree as etree
@@ -74,17 +72,3 @@ if compat_os_name in ('nt', 'ce'):
         return userhome + path[i:]
 else:
     compat_expanduser = os.path.expanduser
-
-
-WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
-
-
-def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
-    if compat_os_name != 'nt':
-        return
-    global WINDOWS_VT_MODE
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    with contextlib.suppress(Exception):
-        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
-        WINDOWS_VT_MODE = True

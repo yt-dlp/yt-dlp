@@ -1,28 +1,26 @@
 import itertools
+import json
 import random
+import re
 import string
 import time
-import json
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlparse
-)
+from ..compat import compat_urllib_parse_unquote, compat_urllib_parse_urlparse
 from ..utils import (
     ExtractorError,
     HEADRequest,
+    LazyList,
     UnsupportedError,
     get_first,
     int_or_none,
     join_nonempty,
-    LazyList,
+    qualities,
     srt_subtitles_timecode,
     str_or_none,
     traverse_obj,
     try_get,
     url_or_none,
-    qualities,
 )
 
 
@@ -35,6 +33,10 @@ class TikTokBaseIE(InfoExtractor):
     _UPLOADER_URL_FORMAT = 'https://www.tiktok.com/@%s'
     _WEBPAGE_HOST = 'https://www.tiktok.com/'
     QUALITIES = ('360p', '540p', '720p', '1080p')
+
+    @staticmethod
+    def _create_url(user_id, video_id):
+        return f'https://www.tiktok.com/@{user_id or "_"}/video/{video_id}'
 
     def _call_api_impl(self, ep, query, manifest_app_version, video_id, fatal=True,
                        note='Downloading API JSON', errnote='Unable to download API page'):
@@ -361,7 +363,7 @@ class TikTokBaseIE(InfoExtractor):
 
 
 class TikTokIE(TikTokBaseIE):
-    _VALID_URL = r'https?://www\.tiktok\.com/@[\w\.-]+/video/(?P<id>\d+)'
+    _VALID_URL = r'https?://www\.tiktok\.com/(?:embed|@(?P<user_id>[\w\.-]+)/video)/(?P<id>\d+)'
 
     _TESTS = [{
         'url': 'https://www.tiktok.com/@leenabhushan/video/6748451240264420610',
@@ -466,7 +468,7 @@ class TikTokIE(TikTokBaseIE):
         'info_dict': {
             'id': '7059698374567611694',
             'ext': 'mp4',
-            'title': 'tiktok video #7059698374567611694',
+            'title': 'TikTok video #7059698374567611694',
             'description': '',
             'uploader': 'pokemonlife22',
             'creator': 'Pokemon',
@@ -490,6 +492,11 @@ class TikTokIE(TikTokBaseIE):
         'only_matching': True
     }]
 
+    @classmethod
+    def _extract_urls(cls, webpage):
+        return [mobj.group('url') for mobj in re.finditer(
+            rf'<(?:script|iframe)[^>]+\bsrc=(["\'])(?P<url>{cls._VALID_URL})', webpage)]
+
     def _extract_aweme_app(self, aweme_id):
         try:
             aweme_detail = self._call_api('aweme/detail', {'aweme_id': aweme_id}, aweme_id,
@@ -506,7 +513,8 @@ class TikTokIE(TikTokBaseIE):
         return self._parse_aweme_video_app(aweme_detail)
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        video_id, user_id = self._match_valid_url(url).group('id', 'user_id')
+        url = self._create_url(user_id, video_id)
 
         try:
             return self._extract_aweme_app(video_id)
