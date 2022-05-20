@@ -798,7 +798,12 @@ class YoutubeDL:
     def to_stdout(self, message, skip_eol=False, quiet=None):
         """Print message to stdout"""
         if quiet is not None:
-            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. Use "YoutubeDL.to_screen" instead')
+            self.deprecation_warning(
+                '"YoutubeDL.%(to_stdout)s" no longer accepts the argument quiet. Use "YoutubeDL.'
+                '%(to_screen)s" instead' % {
+                    'to_stdout': self._format_err("to_stdout", self.Styles.OPTION),
+                    'to_screen': self._format_err("to_screen", self.Styles.DEMAND)
+                })
         self._write_string(
             '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
             self._out_files['print'])
