@@ -3226,7 +3226,7 @@ class YoutubeDL:
                         if pp.available:
                             info_dict['__postprocessors'].append(pp)
                         else:
-                            self.report_warning(f'{self._format_err(vid, self.Styles.ID)}: {msg}.'
+                            self.report_warning(f'{self._format_err(vid, self.Styles.ID)}: {msg}. '
                                                 f'Install {self._format_err("ffmpeg", self.Styles.REQUIREMENT)} to fix '
                                                 'this automatically')
 
