@@ -1566,6 +1566,7 @@ from .soundgasm import (
 from .southpark import (
     SouthParkIE,
     SouthParkDeIE,
+    SouthParkLatIE,
     SouthParkDkIE,
     SouthParkEsIE,
     SouthParkNlIE
