@@ -82,17 +82,11 @@ class RTPIE(InfoExtractor):
             if f_dash is not None:
                 formats.extend(self._extract_mpd_formats(
                     f_dash, video_id, mpd_id='dash', headers=self.__HEADERS))
-
-            for fmt in formats:
-                fmt.update({
-                    'http_headers': self.__HEADERS,
-                })
         else:
             formats.append({
                 'format_id': 'f',
                 'url': f,
                 'vcodec': 'none' if config.get('mediaType') == 'audio' else None,
-                'http_headers': self.__HEADERS,
             })
 
         subtitles = {}
@@ -112,4 +106,5 @@ class RTPIE(InfoExtractor):
             'description': self._html_search_meta(['description', 'twitter:description'], webpage),
             'thumbnail': config.get('poster') or self._og_search_thumbnail(webpage),
             'subtitles': subtitles,
+            'http_headers': self.__HEADERS,
         }
