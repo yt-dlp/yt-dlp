@@ -77,12 +77,12 @@ class RumbleEmbedIE(InfoExtractor):
                     formats.append(f)
         self._sort_formats(formats)
 
-        subtitles = {}
-        for lang, sub_info in video.get('cc', {}).items():
-            subtitles.setdefault(lang, []).append({
+        subtitles = {
+            lang: [{
                 'url': sub_info['path'],
-                'name': sub_info.get('language', ''),
-            })
+                'name': sub_info.get('language') or '',
+            }] for lang, sub_info in (video.get('cc') or {}).items() if sub_info.get('path')
+        }
 
         author = video.get('author') or {}
 
