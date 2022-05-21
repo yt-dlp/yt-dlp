@@ -45,12 +45,13 @@ _FILE_SUFFIXES = {
     'py2exe': '_min.exe',
     'win32_exe': '.exe',
     'darwin_exe': '_macos',
+    'linux_exe': '_linux',
 }
 
 _NON_UPDATEABLE_REASONS = {
     **{variant: None for variant in _FILE_SUFFIXES},  # Updatable
     **{variant: f'Auto-update is not supported for unpackaged {name} executable; Re-download the latest release'
-       for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS'}.items()},
+       for variant, name in {'win32_dir': 'Windows', 'darwin_dir': 'MacOS', 'linux_dir': 'Linux'}.items()},
     'source': 'You cannot update when running from source code; Use git to pull the latest changes',
     'unknown': 'It looks like you installed yt-dlp with a package manager, pip or setup.py; Use that to update',
     'other': 'It looks like you are using an unofficial build of yt-dlp; Build the executable again',

@@ -63,7 +63,7 @@ def exe(onedir):
     """@returns (name, path)"""
     name = '_'.join(filter(None, (
         'yt-dlp',
-        OS_NAME == 'darwin' and 'macos',
+        {'win32': '', 'darwin': 'macos'}.get(OS_NAME, OS_NAME),
         ARCH == '32' and 'x86'
     )))
     return name, ''.join(filter(None, (
