@@ -23,6 +23,11 @@ class CuriosityStreamBaseIE(InfoExtractor):
 
     def _call_api(self, path, video_id, query=None):
         headers = {}
+        if not self._auth_token:
+            cookie = self._get_cookies("https://curiositystream.com").get("auth_token")
+            if cookie:
+                self.to_screen("Using auth info from cookie.")
+                self._auth_token = cookie.value
         if self._auth_token:
             headers['X-Auth-Token'] = self._auth_token
         result = self._download_json(
