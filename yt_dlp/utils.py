@@ -4881,15 +4881,15 @@ def random_uuidv4():
     return re.sub(r'[xy]', lambda x: _HEX_TABLE[random.randint(0, 15)], 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx')
 
 
-def make_dir(path, to_screen=None):
+def make_dir(path, error_callback=None):
     try:
         dn = os.path.dirname(path)
         if dn and not os.path.exists(dn):
             os.makedirs(dn)
         return True
     except OSError as err:
-        if callable(to_screen) is not None:
-            to_screen('unable to create directory ' + error_to_compat_str(err))
+        if callable(error_callback) is not None:
+            error_callback(err)
         return False
 
 

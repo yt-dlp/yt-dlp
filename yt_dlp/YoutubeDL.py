@@ -1658,7 +1658,9 @@ class YoutubeDL:
             raise Exception('Invalid result type: %s' % result_type)
 
     def _ensure_dir_exists(self, path):
-        return make_dir(path, self.report_error)
+        return make_dir(path, lambda err: self.report_error(
+            'unable to create directory '
+            + self._format_err(error_to_compat_str(err), self.Styles.ERROR)))
 
     @staticmethod
     def _playlist_infodict(ie_result, **kwargs):
