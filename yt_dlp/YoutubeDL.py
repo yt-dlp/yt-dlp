@@ -3904,7 +3904,9 @@ class YoutubeDL:
                 with open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
                     descfile.write(ie_result['description'])
             except OSError:
-                self.report_error(f'Cannot write {label} description file {descfn}')
+                self.report_error(
+                    f'Cannot write {self._format_err(label, self.Styles.KEY)} '
+                    f'description file {self._format_err(descfn, self.Styles.FILENAME)}')
                 return None
         return True
 
