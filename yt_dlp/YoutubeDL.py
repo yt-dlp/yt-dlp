@@ -3207,13 +3207,17 @@ class YoutubeDL:
                 return
             except OSError as err:
                 raise UnavailableVideoError(err)
-            except (ContentTooShortError, ) as err:
+            except ContentTooShortError as err:
                 self.report_error('content too short (expected %(err)s bytes and '
                                   'served %(downloaded)s' % {
                                       'err': self._format_err(err.expected, self.Styles.ERROR),
                                       'downloaded': self._format_err(err.downloaded,
                                                                      self.Styles.EMPHASIS)
                                   })
+                return
+            except Exception as err:
+                self.report_error('unexpected error happened: '
+                                  f'{self._format_err(err, self.Styles.ERROR)}')
                 return
 
             if success and full_filename != '-':
