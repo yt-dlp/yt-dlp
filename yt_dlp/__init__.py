@@ -251,7 +251,7 @@ def validate_options(opts):
     def parse_sleep_func(expr):
         NUMBER_RE = r'\d+(?:\.\d+)?'
         op, start, limit, step, *_ = tuple(re.fullmatch(
-            rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE}))?(?::({NUMBER_RE}))?',
+            rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE})?)?(?::({NUMBER_RE}))?',
             expr.strip()).groups()) + (None, None)
 
         if op == 'exp':
@@ -266,8 +266,8 @@ def validate_options(opts):
             continue
         try:
             opts.retry_sleep[key] = parse_sleep_func(expr)
-        except AttributeError as e:
-            raise ValueError(f'invalid {key} retry sleep expression {expr!r}: {e}')
+        except AttributeError:
+            raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
     def parse_bytes(name, value):
