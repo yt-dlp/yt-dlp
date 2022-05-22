@@ -3296,7 +3296,8 @@ class YoutubeDL:
                     for ph in self._post_hooks:
                         ph(info_dict['filepath'])
                 except Exception as err:
-                    self.report_error('post hooks: %s' % str(err))
+                    self.report_error('post hooks: %s' %
+                                      self._format_err(str(err), self.Styles.ERROR))
                     return
                 info_dict['__write_download_archive'] = True
 
