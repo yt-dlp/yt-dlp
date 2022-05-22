@@ -3201,7 +3201,8 @@ class YoutubeDL:
                 info_dict['__finaldir'] = os.path.dirname(os.path.abspath(encodeFilename(full_filename)))
 
             except network_exceptions as err:
-                self.report_error('unable to download video data: %s' % error_to_compat_str(err))
+                self.report_error('unable to download video data: %s' %
+                                  self._format_err(error_to_compat_str(err), self.Styles.ERROR))
                 return
             except OSError as err:
                 raise UnavailableVideoError(err)
