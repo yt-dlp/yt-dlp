@@ -1419,7 +1419,8 @@ class YoutubeDL:
                 break
             return self.__extract_info(url, self.get_info_extractor(ie_key), download, extra_info, process)
         else:
-            self.report_error('no suitable InfoExtractor for URL %s' % url)
+            self.report_error('no suitable InfoExtractor for URL %s' %
+                              self._format_err(url, self.Styles.URL))
 
     def __handle_extraction_exceptions(func):
         @functools.wraps(func)
