@@ -3289,7 +3289,8 @@ class YoutubeDL:
                 try:
                     replace_info_dict(self.post_process(dl_filename, info_dict, files_to_move))
                 except PostProcessingError as err:
-                    self.report_error('Postprocessing: %s' % str(err))
+                    self.report_error('Postprocessing: %s' %
+                                      self._format_err(str(err), self.Styles.ERROR))
                     return
                 try:
                     for ph in self._post_hooks:
