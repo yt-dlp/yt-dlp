@@ -2976,7 +2976,8 @@ class YoutubeDL:
                 except (KeyError, TypeError):
                     self.report_warning('There are no annotations to write.')
                 except OSError:
-                    self.report_error('Cannot write annotations file: ' + annofn)
+                    self.report_error('Cannot write annotations file: %s' %
+                                      self._format_err(annofn, self.Styles.FILENAME))
                     return
 
         # Write internet shortcut files
