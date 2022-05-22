@@ -1839,8 +1839,11 @@ class YoutubeDL:
             if not entry_result:
                 failures += 1
             if failures >= max_failures:
-                self.report_error(
-                    'Skipping the remaining entries in playlist "%s" since %d items failed extraction' % (playlist, failures))
+                self.report_error('Skipping the remaining entries in playlist "%(playlist)s" since '
+                                  '%(failures)s items failed extraction' % {
+                                      'playlist': self._format_err(playlist, self.Styles.ID),
+                                      'failures': self._format_err(failures, self.Styles.EMPHASIS)
+                                  })
                 break
             playlist_results.append(entry_result)
         ie_result['entries'] = playlist_results
