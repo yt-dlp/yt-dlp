@@ -4904,9 +4904,9 @@ def make_dir(path, to_screen=None):
 
 
 def get_executable_path():
-    from .update import get_variant_and_executable_path
+    from .update import _get_variant_and_executable_path
 
-    return os.path.abspath(get_variant_and_executable_path()[1])
+    return os.path.dirname(os.path.abspath(_get_variant_and_executable_path()[1]))
 
 
 def load_plugins(name, suffix, namespace):
