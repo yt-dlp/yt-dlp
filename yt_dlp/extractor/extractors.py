@@ -1036,7 +1036,6 @@ from .neteasemusic import (
 from .netverse import (
     NetverseIE,
     NetversePlaylistIE,
-    NetverseVideoIE,
 )
 from .newgrounds import (
     NewgroundsIE,
