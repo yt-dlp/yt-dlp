@@ -1033,6 +1033,7 @@ from .neteasemusic import (
     NetEaseMusicProgramIE,
     NetEaseMusicDjRadioIE,
 )
+from .netverse import NetverseIE
 from .newgrounds import (
     NewgroundsIE,
     NewgroundsPlaylistIE,
