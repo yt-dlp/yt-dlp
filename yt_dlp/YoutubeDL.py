@@ -3880,7 +3880,8 @@ class YoutubeDL:
             write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
             return True
         except OSError:
-            self.report_error(f'Cannot write {label} metadata to JSON file {infofn}')
+            self.report_error(f'Cannot write {self._format_err(label, self.Styles.KEY)} metadata '
+                              f'to JSON file {self._format_err(infofn, self.Styles.FILENAME)}')
             return None
 
     def _write_description(self, label, ie_result, descfn):
