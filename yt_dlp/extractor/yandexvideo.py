@@ -285,7 +285,7 @@ class ZenYandexChannelIE(InfoExtractor):
     }]
 
     def _entries(self, channel_title, server_state_json, server_settings_json):
-        items = list(try_get(server_state_json, lambda x: x['feed']['items'], dict).values())
+        items = list((try_get(server_state_json, lambda x: x['feed']['items'], dict) or {}).values())
 
         if(len(items) == 0):
             items = list(try_get(server_settings_json, lambda x: x['exportData']['items']))
@@ -306,13 +306,10 @@ class ZenYandexChannelIE(InfoExtractor):
                 video_id = item.get('publication_id') or item.get('publicationId')
                 video_url = item.get('link')
                 yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
-            if (
-                not more
-                or len(items) == 0
-                or (next_page_id and next_page_id == prev_next_page_id)
-                or not next_page_id
-            ):
+
+            if any([not more, len(items) == 0, next_page_id and next_page_id == prev_next_page_id, not next_page_id]):
                 break
+
             data_json = self._download_json(more, channel_title, note='Downloading Page %d' % page)
             items = data_json.get('items', [])
             more = try_get(data_json, lambda x: x['more']['link']) or None
@@ -334,6 +331,8 @@ class ZenYandexChannelIE(InfoExtractor):
                 server_state_json = data_json[key]
             if key.startswith('__serverSettings__'):
                 server_settings_json = data_json[key]
+            if server_state_json and server_settings_json:
+                break
 
         channel_title = try_get(server_state_json, lambda x: x['channel']['source']['title']) or id
         channel_description = try_get(server_state_json, lambda x: x['channel']['source']['description']) or None
