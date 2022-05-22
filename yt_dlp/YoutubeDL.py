@@ -3045,6 +3045,7 @@ class YoutubeDL:
         else:
             # Download
             info_dict.setdefault('__postprocessors', [])
+            success = False
             try:
 
                 def existing_video_file(*filepaths):
