@@ -3033,7 +3033,7 @@ class YoutubeDL:
             new_info, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
             replace_info_dict(new_info)
         except PostProcessingError as err:
-            self.report_error('Preprocessing: %s' % str(err))
+            self.report_error(f'Preprocessing: {self._format_err(str(err), self.Styles.ERROR)}')
             return
 
         if self.params.get('skip_download'):
