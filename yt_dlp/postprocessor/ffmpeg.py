@@ -7,7 +7,7 @@ import subprocess
 import time
 
 from .common import AudioConversionError, PostProcessor
-from ..compat import imghdr
+from ..compat import functools, imghdr
 from ..utils import (
     ISO639Utils,
     Popen,
@@ -18,6 +18,7 @@ from ..utils import (
     dfxp2srt,
     encodeArgument,
     encodeFilename,
+    filter_dict,
     float_or_none,
     is_outdated_version,
     orderedSet,
@@ -62,14 +63,15 @@ class FFmpegPostProcessorError(PostProcessingError):
 class FFmpegPostProcessor(PostProcessor):
     def __init__(self, downloader=None):
         PostProcessor.__init__(self, downloader)
-        self._determine_executables()
+        self._prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
+        self._paths = self._determine_executables()
 
     def check_version(self):
         if not self.available:
             raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
 
         required_version = '10-0' if self.basename == 'avconv' else '1.0'
-        if is_outdated_version(self._versions[self.basename], required_version):
+        if is_outdated_version(self._version, required_version):
             self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
                                 f'to version {required_version} or newer if you encounter any errors')
 
@@ -82,88 +84,99 @@ class FFmpegPostProcessor(PostProcessor):
     def get_versions(downloader=None):
         return FFmpegPostProcessor.get_versions_and_features(downloader)[0]
 
-    _version_cache, _features_cache = {}, {}
+    _ffmpeg_to_avconv = {'ffmpeg': 'avconv', 'ffprobe': 'avprobe'}
 
     def _determine_executables(self):
-        programs = ['avprobe', 'avconv', 'ffmpeg', 'ffprobe']
+        programs = [*self._ffmpeg_to_avconv.keys(), *self._ffmpeg_to_avconv.values()]
 
-        def get_ffmpeg_version(path, prog):
-            if path in self._version_cache:
-                self._versions[prog], self._features = self._version_cache[path], self._features_cache.get(path, {})
-                return
-            out = _get_exe_version_output(path, ['-bsfs'], to_screen=self.write_debug)
-            ver = detect_exe_version(out) if out else False
-            if ver:
-                regexs = [
-                    r'(?:\d+:)?([0-9.]+)-[0-9]+ubuntu[0-9.]+$',  # Ubuntu, see [1]
-                    r'n([0-9.]+)$',  # Arch Linux
-                    # 1. http://www.ducea.com/2006/06/17/ubuntu-package-version-naming-explanation/
-                ]
-                for regex in regexs:
-                    mobj = re.match(regex, ver)
-                    if mobj:
-                        ver = mobj.group(1)
-            self._versions[prog] = self._version_cache[path] = ver
-            if prog != 'ffmpeg' or not out:
-                return
-
-            mobj = re.search(r'(?m)^\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
-            lavf_runtime_version = mobj.group('runtime').replace(' ', '') if mobj else None
-            self._features = self._features_cache[path] = {
-                'fdk': '--enable-libfdk-aac' in out,
-                'setts': 'setts' in out.splitlines(),
-                'needs_adtstoasc': is_outdated_version(lavf_runtime_version, '57.56.100', False),
-            }
-
-        self.basename = None
-        self.probe_basename = None
-        self._paths = None
-        self._versions = None
-        self._features = {}
-
-        prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
         location = self.get_param('ffmpeg_location')
         if location is None:
-            self._paths = {p: p for p in programs}
+            return {p: p for p in programs}
+
+        if not os.path.exists(location):
+            self.report_warning(f'ffmpeg-location {location} does not exist! Continuing without ffmpeg')
+            return {}
+        elif os.path.isdir(location):
+            dirname, basename = location, None
         else:
-            if not os.path.exists(location):
-                self.report_warning(
-                    'ffmpeg-location %s does not exist! '
-                    'Continuing without ffmpeg.' % (location))
-                self._versions = {}
-                return
-            elif os.path.isdir(location):
-                dirname, basename = location, None
-            else:
-                basename = os.path.splitext(os.path.basename(location))[0]
-                basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
-                dirname = os.path.dirname(os.path.abspath(location))
-                if basename in ('ffmpeg', 'ffprobe'):
-                    prefer_ffmpeg = True
+            basename = os.path.splitext(os.path.basename(location))[0]
+            basename = next((p for p in programs if basename.startswith(p)), 'ffmpeg')
+            dirname = os.path.dirname(os.path.abspath(location))
+            if basename in self._ffmpeg_to_avconv.keys():
+                self._prefer_ffmpeg = True
 
-            self._paths = {
-                p: os.path.join(dirname, p) for p in programs}
-            if basename:
-                self._paths[basename] = location
+        paths = {p: os.path.join(dirname, p) for p in programs}
+        if basename:
+            paths[basename] = location
+        return paths
 
-        self._versions = {}
-        # NB: probe must be first for _features to be poulated correctly
-        executables = {'probe_basename': ('ffprobe', 'avprobe'), 'basename': ('ffmpeg', 'avconv')}
-        if prefer_ffmpeg is False:
-            executables = {k: v[::-1] for k, v in executables.items()}
-        for var, prefs in executables.items():
-            for p in prefs:
-                get_ffmpeg_version(self._paths[p], p)
-                if self._versions[p]:
-                    setattr(self, var, p)
-                    break
+    _version_cache, _features_cache = {None: None}, {}
 
-        if self.basename == 'avconv':
+    def _get_ffmpeg_version(self, prog):
+        path = self._paths.get(prog)
+        if path in self._version_cache:
+            return self._version_cache[path], self._features_cache.get(path, {})
+        out = _get_exe_version_output(path, ['-bsfs'], to_screen=self.write_debug)
+        ver = detect_exe_version(out) if out else False
+        if ver:
+            regexs = [
+                r'(?:\d+:)?([0-9.]+)-[0-9]+ubuntu[0-9.]+$',  # Ubuntu, see [1]
+                r'n([0-9.]+)$',  # Arch Linux
+                # 1. http://www.ducea.com/2006/06/17/ubuntu-package-version-naming-explanation/
+            ]
+            for regex in regexs:
+                mobj = re.match(regex, ver)
+                if mobj:
+                    ver = mobj.group(1)
+        self._version_cache[path] = ver
+        if prog != 'ffmpeg' or not out:
+            return ver, {}
+
+        mobj = re.search(r'(?m)^\s+libavformat\s+(?:[0-9. ]+)\s+/\s+(?P<runtime>[0-9. ]+)', out)
+        lavf_runtime_version = mobj.group('runtime').replace(' ', '') if mobj else None
+        self._features_cache[path] = features = {
+            'fdk': '--enable-libfdk-aac' in out,
+            'setts': 'setts' in out.splitlines(),
+            'needs_adtstoasc': is_outdated_version(lavf_runtime_version, '57.56.100', False),
+        }
+        return ver, features
+
+    @property
+    def _versions(self):
+        return filter_dict({self.basename: self._version, self.probe_basename: self._probe_version})
+
+    @functools.cached_property
+    def basename(self):
+        self._version  # run property
+        return self.basename
+
+    @functools.cached_property
+    def probe_basename(self):
+        self._probe_version  # run property
+        return self.probe_basename
+
+    def _get_version(self, kind):
+        executables = (kind, self._ffmpeg_to_avconv[kind])
+        if not self._prefer_ffmpeg:
+            executables = reversed(executables)
+        basename, version, features = next(filter(
+            lambda x: x[1], ((p, *self._get_ffmpeg_version(p)) for p in executables)), (None, None, {}))
+        if kind == 'ffmpeg':
+            self.basename, self._features = basename, features
+        else:
+            self.probe_basename = basename
+        if basename == self._ffmpeg_to_avconv[kind]:
             self.deprecation_warning(
-                'Support for avconv is deprecated and may be removed in a future version. Use ffmpeg instead')
-        if self.probe_basename == 'avprobe':
-            self.deprecation_warning(
-                'Support for avprobe is deprecated and may be removed in a future version. Use ffprobe instead')
+                f'Support for {self._ffmpeg_to_avconv[kind]} is deprecated and may be removed in a future version. Use {kind} instead')
+        return version
+
+    @functools.cached_property
+    def _version(self):
+        return self._get_version('ffmpeg')
+
+    @functools.cached_property
+    def _probe_version(self):
+        return self._get_version('ffprobe')
 
     @property
     def available(self):
@@ -171,7 +184,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def executable(self):
-        return self._paths[self.basename]
+        return self._paths.get(self.basename)
 
     @property
     def probe_available(self):
@@ -179,7 +192,7 @@ class FFmpegPostProcessor(PostProcessor):
 
     @property
     def probe_executable(self):
-        return self._paths[self.probe_basename]
+        return self._paths.get(self.probe_basename)
 
     @staticmethod
     def stream_copy_opts(copy=True, *, ext=None):
