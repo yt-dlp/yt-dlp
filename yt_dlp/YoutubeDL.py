@@ -3956,7 +3956,10 @@ class YoutubeDL:
                 sub_info['filepath'] = sub_filename
                 ret.append((sub_filename, sub_filename_final))
             except (DownloadError, ExtractorError, IOError, OSError, ValueError) + network_exceptions as err:
-                msg = f'Unable to download video subtitles for {sub_lang!r}: {err}'
+                msg = 'Unable to download video subtitles for %(lang)s: %(err)s' % {
+                    'lang': self._format_err(repr(sub_lang), self.Styles.KEY),
+                    'err': self._format_err(err, self.Styles.ERROR)
+                }
                 if self.params.get('ignoreerrors') is not True:  # False or 'only_download'
                     if not self.params.get('ignoreerrors'):
                         self.report_error(msg)
