@@ -5,18 +5,22 @@ from ..utils import (
 )
 
 class NetverseBaseIE(InfoExtractor):
-    def get_required_json(self, url):
+    def get_required_json(self, url, data = None):
         match = self._match_valid_url(url).groupdict()
         display_id,  sites_type = match["display_id"], match["type"]
 
-        if sites_type == "watch":
+        if sites_type == "watch" or sites_type == "video":
             media_api_url = f"https://api.netverse.id/medias/api/v2/watchvideo/{display_id}"
         
         elif sites_type == "webseries":
             media_api_url = f"https://api.netverse.id/medias/api/v2/webseries/{display_id}"
         
+        json_data = self._download_json(media_api_url, display_id, data = data)
 
-        return self._download_json(media_api_url, display_id)
+        if json_data.get("error"):
+            raise ExtractorError(json_data.get("message"))
+
+        return json_data
     
     def get_access_id(self, dailymotion_url):
         return dailymotion_url.split("/")[-1]
@@ -40,7 +44,7 @@ class NetverseBaseIE(InfoExtractor):
             
 
 class NetverseIE(NetverseBaseIE):
-    _VALID_URL = r'https://www\.netverse\.id/(?P<type>watch)/(?P<display_id>[^/?#&]+)'
+    _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
     # Netverse Watch
     _TESTS = [{
         'url' : 'https://www.netverse.id/watch/waktu-indonesia-bercanda-edisi-spesial-lebaran-2016',
@@ -51,7 +55,7 @@ class NetverseIE(NetverseBaseIE):
             "title" : "Waktu Indonesia Bercanda - Edisi Spesial Lebaran 2016",
             "ext" : "mp4",
             "season" : "Season 2016",
-            "description" : "Mau ketawa-tiwi sambil asah otak? Waktu Indonesia Bercanda jawabannya. Kemampuan logika kalian akan diuji oleh Cak Lontong di kuis-kuis yang bikin gemes. Siap-siap bercanda ya karena ini waktunya Indonesia Bercanda.",
+            "description" : "md5:fc27747c0aa85067b6967c816f01617c",
             "thumbnail" : "https://vplayed-uat.s3-ap-southeast-1.amazonaws.com/images/webseries/thumbnails/2021/11/619cfce45c827.jpeg",
             "episode_number" : 22,
             "series" : "Waktu Indonesia Bercanda",
@@ -65,15 +69,37 @@ class NetverseIE(NetverseBaseIE):
             "title" : "Jadoo Seorang Model",
             "ext" : "mp4",
             "season" : "Season 2",
-            "description" : "Kisah Jadoo yang cerdas dan penuh kasih bersama keluarga dan teman-teman membuat pemirsa tertawa terbahak-bahak.",
+            'description': 'md5:c616e8e59d3edf2d3d506e3736120d99',
             "thumbnail" : "https://storage.googleapis.com/netprime-live/images/webseries/thumbnails/2021/11/619cf63f105d3.jpeg",
             "episode_number" : 2,
             "series" : "Hello Jadoo",
             "episode" : "Episode 2",}
+        },{
+        # non www host
+        "url" : "https://netverse.id/watch/tetangga-baru",
+        "info_dict" :{
+            "id" : "x8278vk",
+            "ext" : "mp4",
+            "access_id" : "k4CNGz7V0HJ7vfwZbXy",
+            "title" : "Tetangga Baru",
+            "season" : "Season 1",
+            "description" : "md5:ed6dd355bed84d139b1154c3d8d65957",
+            "thumbnail" : "https://vplayed-uat.s3-ap-southeast-1.amazonaws.com/images/webseries/thumbnails/2021/11/619cfd9d32c5f.jpeg",
+            "episode_number" : 1,
+            "series" : "Tetangga Masa Gitu",
+            "episode" : "Episode 1",
+        }},{  
+        ## /video url
+        "url" : "https://www.netverse.id/video/pg067482-hellojadoo-season1",
+        "title" : "Namaku Choi Jadoo",
+        "info_dict" : {
+            "id" : "x887jzz",
+            "ext" : "mp4",
+            }
         }]
     
     def _real_extract(self, url):
-        program_json = self.get_required_json(url)
+        program_json = self.get_required_json(url = url)
 
         videos = traverse_obj(program_json,("response","videos"))
 
@@ -90,8 +116,8 @@ class NetverseIE(NetverseBaseIE):
         # actually the video itself in daily motion, but in private
         # Maybe need to refactor
         access_id, real_video_json = self._call_metadata_api_from_video_url(video_url)
-    
-        video_id = real_video_json.get('id')
+        
+        video_id = real_video_json.get("id")
         
         # For m3u8 
         m3u8_file = traverse_obj(real_video_json, ("qualities","auto"))
@@ -121,58 +147,17 @@ class NetverseIE(NetverseBaseIE):
 
         }
 
-class NetverseVideoIE(NetverseBaseIE):
-    _VALID_URL = r'https://www\.netverse\.id/(?P<type>video)/(?P<display_id>[^/?#&]+)'
-    _TEST = {
-        "url" : "https://www.netverse.id/video/pg067482-hellojadoo-season1"
-    }
-    def _real_extract(self, url):
-        program_json = self.get_required_json(url)
-
-        video = traverse_obj(program_json,("response","video_info"))
-
-        title = video.get("title")
-        description = video.get("description")
-        video_url = video.get("dailymotion_url")
-        season_name = video.get("season_name")
-        episode_order = video.get("episode_order")
-
-        program_detail = video.get("program_detail")
-        series_name = program_detail.get("title")
-        thumbnail_image = video.get("thumbnail_image")
-
-        # actually the video itself in daily motion, but in private
-        # Maybe need to refactor
-        access_id, real_video_json = self._call_metadata_api_from_video_url(video_url)
-        video_id = real_video_json.get('id')
-        
-        # For m3u8 
-        m3u8_file = traverse_obj(real_video_json, ("qualities","auto"))
-
-        for format in m3u8_file:
-            video_url = format.get("url")
-            if video_url is None:
-                continue
-            self.video_format = self._extract_m3u8_formats(video_url, video_id = video_id)
-
-    
-        self._sort_formats(self.video_format)
-        return {
-            "id" : video_id,
-            "access_id" : access_id,
-            "formats" : self.video_format,
-            "title" : title,
-            "season" : season_name,
-            "thumbnail" : thumbnail_image,
-            "description" : description,
-            "episode_number" : episode_order,
-            "series" : series_name,
-
-        }
-
 class NetversePlaylistIE(NetverseBaseIE):
-    _VALID_URL = r'https://www\.netverse\.id/(?P<type>webseries)/(?P<display_id>[^/?#&]+)'
-
+    _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>webseries)/(?P<display_id>[^/?#&]+)'
+    _TEST = {
+        "url" : "https://netverse.id/webseries/tetangga-masa-gitu",
+        "title" : "Tetangga Masa Gitu",
+        "info_dict" : {
+            "_type" : "playlist", # expected playlist, got None 
+            "id" : "16",
+            "ext" : "mp4",
+        }
+    }
     def _real_extract(self, url):
         playlist_data = self.get_required_json(url)
 
@@ -180,13 +165,20 @@ class NetversePlaylistIE(NetverseBaseIE):
 
         series_name = webseries_info.get("title")
 
-        videos = traverse_obj(webseries_info, ("related", "data"))
+        videos = traverse_obj(playlist_data, ("response", "related", "data"))
 
+        entries = []
         for video in videos :
-            pass
+            video_url = f"https://www.netverse.id/video/{video.get('slug')}"
+
+            entry = self.url_result(video_url, NetverseIE)
+            entries.append(entry)
         
         return {
-            "_type" : "playlist"
+            "_type" : "playlist",
+            "title" : series_name,
+            "id" : webseries_info.get("video_webseries_detail_id") ,
+            "entries" : entries,
         }
 
 
