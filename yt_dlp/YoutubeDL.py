@@ -1272,7 +1272,9 @@ class YoutubeDL:
 
             return filename
         except ValueError as err:
-            self.report_error('Error in output template: ' + str(err) + ' (encoding: ' + repr(preferredencoding()) + ')')
+            self.report_error('Error in output template: %(err)s (encoding: %(pref-enc)s)' % {
+                'err': self._format_err(str(err), self.Styles.ERROR),
+                'pref-enc': repr(preferredencoding())})
             return None
 
     def prepare_filename(self, info_dict, dir_type='', *, outtmpl=None, warn=False):
