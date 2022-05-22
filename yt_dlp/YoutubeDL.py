@@ -3945,7 +3945,8 @@ class YoutubeDL:
                     ret.append((sub_filename, sub_filename_final))
                     continue
                 except OSError:
-                    self.report_error(f'Cannot write video subtitles file {sub_filename}')
+                    self.report_error('Cannot write video subtitles file %s' %
+                                      self._format_err(sub_filename, self.Styles.FILENAME))
                     return None
 
             try:
