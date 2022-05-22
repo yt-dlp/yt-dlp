@@ -905,7 +905,6 @@ class YoutubeDL:
         URL='light blue',
         EMPHASIS='light blue',
         REQUIREMENT='light blue',
-        PROMINENT='light blue',
         FILENAME='green',
         KEY='green',
         ID='green',
