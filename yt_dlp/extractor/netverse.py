@@ -122,7 +122,7 @@ class NetverseIE(NetverseBaseIE):
             if video_url is None:
                 continue
             self.video_format = self._extract_m3u8_formats(video_url, video_id=video_id)
-       
+# noqa W293     
         episode = f'Episode {episode_order}'
 
         self._sort_formats(self.video_format)
