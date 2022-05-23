@@ -45,10 +45,9 @@ class NetverseBaseIE(InfoExtractor):
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
-    # Netverse Watch
     _TESTS = [{
+        # Watch video
         'url': 'https://www.netverse.id/watch/waktu-indonesia-bercanda-edisi-spesial-lebaran-2016',
-        # 'only_matching' : True,
         'info_dict': {
             'access_id': 'k4yhqUwINAGtmHx3NkL',
             'id': 'x82urb7',
@@ -117,6 +116,7 @@ class NetverseIE(NetverseBaseIE):
         # For m3u8
         m3u8_file = traverse_obj(real_video_json, ('qualities', 'auto'))
 
+        # got error in the end of '-F' option
         for format in m3u8_file:
             video_url = format.get('url')
             if video_url is None:
