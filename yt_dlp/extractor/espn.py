@@ -287,26 +287,26 @@ class ESPNCricInfoIE(InfoExtractor):
 class WatchESPNIE(AdobePassIE):
     _VALID_URL = r'https://www.espn.com/watch/player/_/id/(?P<id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})'
     _TESTS = [{
-        'url': 'https://www.espn.com/watch/player/_/id/6eee6cb0-1795-49e3-84ea-766b517e0309',
+        'url': 'https://www.espn.com/watch/player/_/id/ba7d17da-453b-4697-bf92-76a99f61642b',
         'info_dict': {
-            'id': '6eee6cb0-1795-49e3-84ea-766b517e0309',
+            'id': 'ba7d17da-453b-4697-bf92-76a99f61642b',
             'ext': 'mp4',
-            'title': 'Miami vs. #2 Duke',
-            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/6eee6cb0-1795-49e3-84ea-766b517e0309/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
+            'title': 'Serbia vs. Turkey',
+            'thumbnail': 'https://artwork.api.espn.com/artwork/collections/media/ba7d17da-453b-4697-bf92-76a99f61642b/default?width=640&apikey=1ngjw23osgcis1i1vbj96lmfqs',
         },
         'params': {
             'skip_download': True,
         },
     }, {
-        'url': 'https://www.espn.com/watch/player/_/id/bd1f3d12-0654-47d9-852e-71b85ea695c7',
+        'url': 'https://www.espn.com/watch/player/_/id/4e9b5bd1-4ceb-4482-9d28-1dd5f30d2f34',
         'info_dict': {
-            'id': 'bd1f3d12-0654-47d9-852e-71b85ea695c7',
+            'id': '4e9b5bd1-4ceb-4482-9d28-1dd5f30d2f34',
             'ext': 'mp4',
-            'title': 'Tue, 1/11 - ESPN FC',
+            'title': 'Real Madrid vs. Real Betis (LaLiga)',
             'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
         },
         'params': {
-            'skip_download': True,
+            'only_matching': True,
         },
     }]
 
