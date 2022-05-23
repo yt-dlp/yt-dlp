@@ -3965,7 +3965,7 @@ class YoutubeDL:
                 if self.params.get('ignoreerrors') is not True:  # False or 'only_download'
                     if not self.params.get('ignoreerrors'):
                         self.report_error(msg)
-                    raise DownloadError(msg)
+                    raise DownloadError(f'Unable to download video subtitles for {sub_lang!r}: {err}')
                 self.report_warning(msg)
         return ret
 
