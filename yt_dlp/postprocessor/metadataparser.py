@@ -1,37 +1,37 @@
 import re
 
-from enum import Enum
-
 from .common import PostProcessor
+from ..utils import Namespace
 
 
 class MetadataParserPP(PostProcessor):
-    class Actions(Enum):
-        INTERPRET = 'interpretter'
-        REPLACE = 'replacer'
-
     def __init__(self, downloader, actions):
-        PostProcessor.__init__(self, downloader)
+        super().__init__(downloader)
         self._actions = []
         for f in actions:
-            action = f[0]
-            assert isinstance(action, self.Actions)
-            self._actions.append(getattr(self, action.value)(*f[1:]))
+            action, *args = f
+            assert action in self.Actions
+            self._actions.append(action(self, *args))
 
     @classmethod
     def validate_action(cls, action, *data):
-        ''' Each action can be:
+        """Each action can be:
                 (Actions.INTERPRET, from, to) OR
                 (Actions.REPLACE, field, search, replace)
-        '''
-        if not isinstance(action, cls.Actions):
+        """
+        if action not in cls.Actions:
             raise ValueError(f'{action!r} is not a valid action')
-        getattr(cls, action.value)(cls, *data)
+        action(cls, *data)  # So this can raise error to validate
 
     @staticmethod
     def field_to_template(tmpl):
         if re.match(r'[a-zA-Z_]+$', tmpl):
             return f'%({tmpl})s'
+
+        from ..YoutubeDL import YoutubeDL
+        err = YoutubeDL.validate_outtmpl(tmpl)
+        if err:
+            raise err
         return tmpl
 
     @staticmethod
@@ -66,7 +66,7 @@ class MetadataParserPP(PostProcessor):
             self.write_debug(f'Searching for {out_re.pattern!r} in {template!r}')
             match = out_re.search(data_to_parse)
             if match is None:
-                self.report_warning(f'Could not interpret {inp!r} as {out!r}')
+                self.to_screen(f'Could not interpret {inp!r} as {out!r}')
                 return
             for attribute, value in match.groupdict().items():
                 info[attribute] = value
@@ -80,7 +80,7 @@ class MetadataParserPP(PostProcessor):
         def f(info):
             val = info.get(field)
             if val is None:
-                self.report_warning(f'Video does not have a {field}')
+                self.to_screen(f'Video does not have a {field}')
                 return
             elif not isinstance(val, str):
                 self.report_warning(f'Cannot replace in field {field} since it is a {type(val).__name__}')
@@ -94,6 +94,8 @@ class MetadataParserPP(PostProcessor):
 
         search_re = re.compile(search)
         return f
+
+    Actions = Namespace(INTERPRET=interpretter, REPLACE=replacer)
 
 
 class MetadataFromFieldPP(MetadataParserPP):

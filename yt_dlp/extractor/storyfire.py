@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 
 from .common import InfoExtractor
 from ..utils import (
-    # HEADRequest,
+    format_field,
     int_or_none,
     OnDemandPagedList,
     smuggle_url,
@@ -26,18 +23,6 @@ class StoryFireBaseIE(InfoExtractor):
             r'https?://player\.vimeo\.com/external/(\d+)',
             video['vimeoVideoURL'], 'vimeo id')
 
-        # video_url = self._request_webpage(
-        #    HEADRequest(video['vimeoVideoURL']), video_id).geturl()
-        # formats = []
-        # for v_url, suffix in [(video_url, '_sep'), (video_url.replace('/sep/video/', '/video/'), '')]:
-        #    formats.extend(self._extract_m3u8_formats(
-        #        v_url, video_id, 'mp4', 'm3u8_native',
-        #        m3u8_id='hls' + suffix, fatal=False))
-        #    formats.extend(self._extract_mpd_formats(
-        #        v_url.replace('.m3u8', '.mpd'), video_id,
-        #        mpd_id='dash' + suffix, fatal=False))
-        # self._sort_formats(formats)
-
         uploader_id = video.get('hostID')
 
         return {
@@ -51,7 +36,6 @@ class StoryFireBaseIE(InfoExtractor):
                         'Referer': 'https://storyfire.com/',
                     }
                 }),
-            # 'formats': formats,
             'thumbnail': video.get('storyImage'),
             'view_count': int_or_none(video.get('views')),
             'like_count': int_or_none(video.get('likesCount')),
@@ -60,7 +44,7 @@ class StoryFireBaseIE(InfoExtractor):
             'timestamp': int_or_none(video.get('publishDate')),
             'uploader': video.get('username'),
             'uploader_id': uploader_id,
-            'uploader_url': 'https://storyfire.com/user/%s/video' % uploader_id if uploader_id else None,
+            'uploader_url': format_field(uploader_id, template='https://storyfire.com/user/%s/video'),
             'episode_number': int_or_none(video.get('episodeNumber') or video.get('episode_number')),
         }
 

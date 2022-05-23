@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
@@ -21,10 +20,7 @@ class RoosterTeethBaseIE(InfoExtractor):
     _API_BASE = 'https://svod-be.roosterteeth.com'
     _API_BASE_URL = f'{_API_BASE}/api/v1'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
+    def _perform_login(self, username, password):
         if self._get_cookies(self._API_BASE_URL).get('rt_access_token'):
             return
 
@@ -46,9 +42,6 @@ class RoosterTeethBaseIE(InfoExtractor):
                     if error:
                         msg += ': ' + error
             self.report_warning(msg)
-
-    def _real_initialize(self):
-        self._login()
 
     def _extract_video_info(self, data):
         thumbnails = []

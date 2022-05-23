@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     clean_html,
     ExtractorError,
+    format_field,
     get_element_by_class,
     int_or_none,
     parse_iso8601,
@@ -22,11 +19,7 @@ class VidioBaseIE(InfoExtractor):
     _LOGIN_URL = 'https://www.vidio.com/users/login'
     _NETRC_MACHINE = 'vidio'
 
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         def is_logged_in():
             res = self._download_json(
                 'https://www.vidio.com/interactions.json', None, 'Checking if logged in', fatal=False) or {}
@@ -62,10 +55,9 @@ class VidioBaseIE(InfoExtractor):
                     'Unable to log in: %s. %s' % (reason, clean_html(subreason)), expected=True)
             raise ExtractorError('Unable to log in')
 
-    def _real_initialize(self):
+    def _initialize_pre_login(self):
         self._api_key = self._download_json(
             'https://www.vidio.com/auth', None, data=b'')['api_key']
-        self._login()
 
     def _call_api(self, url, video_id, note=None):
         return self._download_json(url, video_id, note=note, headers={
@@ -160,7 +152,7 @@ class VidioIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(video.get('created_at')),
             'uploader_id': username,
-            'uploader_url': 'https://www.vidio.com/@' + username if username else None,
+            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
             'channel': channel.get('name'),
             'channel_id': str_or_none(channel.get('id')),
             'view_count': get_count('view_count'),
@@ -291,5 +283,5 @@ class VidioLiveIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
             'uploader_id': username,
-            'uploader_url': 'https://www.vidio.com/@' + username if username else None,
+            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
         }

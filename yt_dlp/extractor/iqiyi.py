@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import hashlib
 import itertools
 import re
@@ -10,15 +7,29 @@ from .common import InfoExtractor
 from ..compat import (
     compat_str,
     compat_urllib_parse_urlencode,
+    compat_urllib_parse_unquote
 )
+from .openload import PhantomJSwrapper
 from ..utils import (
     clean_html,
     decode_packed_codes,
+    ExtractorError,
+    float_or_none,
+    format_field,
     get_element_by_id,
     get_element_by_attribute,
-    ExtractorError,
+    int_or_none,
+    js_to_json,
     ohdave_rsa_encrypt,
+    parse_age_limit,
+    parse_duration,
+    parse_iso8601,
+    parse_resolution,
+    qualities,
     remove_start,
+    str_or_none,
+    traverse_obj,
+    urljoin,
 )
 
 
@@ -227,9 +238,6 @@ class IqiyiIE(InfoExtractor):
         '18': 7,    # 1080p
     }
 
-    def _real_initialize(self):
-        self._login()
-
     @staticmethod
     def _rsa_fun(data):
         # public key extracted from http://static.iqiyi.com/js/qiyiV2/20160129180840/jobs/i18n/i18nIndex.js
@@ -238,12 +246,7 @@ class IqiyiIE(InfoExtractor):
 
         return ohdave_rsa_encrypt(data, e, N)
 
-    def _login(self):
-        username, password = self._get_login_info()
-
-        # No authentication to be performed
-        if not username:
-            return True
+    def _perform_login(self, username, password):
 
         data = self._download_json(
             'http://kylin.iqiyi.com/get_token', None,
@@ -392,3 +395,359 @@ class IqiyiIE(InfoExtractor):
             'title': title,
             'formats': formats,
         }
+
+
+class IqIE(InfoExtractor):
+    IE_NAME = 'iq.com'
+    IE_DESC = 'International version of iQiyi'
+    _VALID_URL = r'https?://(?:www\.)?iq\.com/play/(?:[\w%-]*-)?(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.iq.com/play/one-piece-episode-1000-1ma1i6ferf4',
+        'md5': '2d7caf6eeca8a32b407094b33b757d39',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '1ma1i6ferf4',
+            'title': '航海王 第1000集',
+            'description': 'Subtitle available on Sunday 4PM（GMT+8）.',
+            'duration': 1430,
+            'timestamp': 1637488203,
+            'upload_date': '20211121',
+            'episode_number': 1000,
+            'episode': 'Episode 1000',
+            'series': 'One Piece',
+            'age_limit': 13,
+            'average_rating': float,
+        },
+        'params': {
+            'format': '500',
+        },
+        'expected_warnings': ['format is restricted']
+    }, {
+        # VIP-restricted video
+        'url': 'https://www.iq.com/play/mermaid-in-the-fog-2021-gbdpx13bs4',
+        'only_matching': True
+    }]
+    _BID_TAGS = {
+        '100': '240P',
+        '200': '360P',
+        '300': '480P',
+        '500': '720P',
+        '600': '1080P',
+        '610': '1080P50',
+        '700': '2K',
+        '800': '4K',
+    }
+    _LID_TAGS = {
+        '1': 'zh_CN',
+        '2': 'zh_TW',
+        '3': 'en',
+        '18': 'th',
+        '21': 'my',
+        '23': 'vi',
+        '24': 'id',
+        '26': 'es',
+        '28': 'ar',
+    }
+
+    _DASH_JS = '''
+        console.log(page.evaluate(function() {
+            var tvid = "%(tvid)s"; var vid = "%(vid)s"; var src = "%(src)s";
+            var uid = "%(uid)s"; var dfp = "%(dfp)s"; var mode = "%(mode)s"; var lang = "%(lang)s";
+            var bid_list = %(bid_list)s; var ut_list = %(ut_list)s; var tm = new Date().getTime();
+            var cmd5x_func = %(cmd5x_func)s; var cmd5x_exporter = {}; cmd5x_func({}, cmd5x_exporter, {}); var cmd5x = cmd5x_exporter.cmd5x;
+            var authKey = cmd5x(cmd5x('') + tm + '' + tvid);
+            var k_uid = Array.apply(null, Array(32)).map(function() {return Math.floor(Math.random() * 15).toString(16)}).join('');
+            var dash_paths = {};
+            bid_list.forEach(function(bid) {
+                var query = {
+                    'tvid': tvid,
+                    'bid': bid,
+                    'ds': 1,
+                    'vid': vid,
+                    'src': src,
+                    'vt': 0,
+                    'rs': 1,
+                    'uid': uid,
+                    'ori': 'pcw',
+                    'ps': 1,
+                    'k_uid': k_uid,
+                    'pt': 0,
+                    'd': 0,
+                    's': '',
+                    'lid': '',
+                    'slid': 0,
+                    'cf': '',
+                    'ct': '',
+                    'authKey': authKey,
+                    'k_tag': 1,
+                    'ost': 0,
+                    'ppt': 0,
+                    'dfp': dfp,
+                    'prio': JSON.stringify({
+                        'ff': 'f4v',
+                        'code': 2
+                    }),
+                    'k_err_retries': 0,
+                    'up': '',
+                    'su': 2,
+                    'applang': lang,
+                    'sver': 2,
+                    'X-USER-MODE': mode,
+                    'qd_v': 2,
+                    'tm': tm,
+                    'qdy': 'a',
+                    'qds': 0,
+                    'k_ft1': 141287244169348,
+                    'k_ft4': 34359746564,
+                    'k_ft5': 1,
+                    'bop': JSON.stringify({
+                        'version': '10.0',
+                        'dfp': dfp
+                    }),
+                };
+                var enc_params = [];
+                for (var prop in query) {
+                    enc_params.push(encodeURIComponent(prop) + '=' + encodeURIComponent(query[prop]));
+                }
+                ut_list.forEach(function(ut) {
+                    enc_params.push('ut=' + ut);
+                })
+                var dash_path = '/dash?' + enc_params.join('&'); dash_path += '&vf=' + cmd5x(dash_path);
+                dash_paths[bid] = dash_path;
+            });
+            return JSON.stringify(dash_paths);
+        }));
+        saveAndExit();
+    '''
+
+    def _extract_vms_player_js(self, webpage, video_id):
+        player_js_cache = self._downloader.cache.load('iq', 'player_js')
+        if player_js_cache:
+            return player_js_cache
+        webpack_js_url = self._proto_relative_url(self._search_regex(
+            r'<script src="((?:https?)?//stc.iqiyipic.com/_next/static/chunks/webpack-\w+\.js)"', webpage, 'webpack URL'))
+        webpack_js = self._download_webpage(webpack_js_url, video_id, note='Downloading webpack JS', errnote='Unable to download webpack JS')
+        webpack_map1, webpack_map2 = [self._parse_json(js_map, video_id, transform_source=js_to_json) for js_map in self._search_regex(
+            r'\(({[^}]*})\[\w+\][^\)]*\)\s*\+\s*["\']\.["\']\s*\+\s*({[^}]*})\[\w+\]\+["\']\.js', webpack_js, 'JS locations', group=(1, 2))]
+        for module_index in reversed(list(webpack_map2.keys())):
+            module_js = self._download_webpage(
+                f'https://stc.iqiyipic.com/_next/static/chunks/{webpack_map1.get(module_index, module_index)}.{webpack_map2[module_index]}.js',
+                video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
+            if 'vms request' in module_js:
+                self._downloader.cache.store('iq', 'player_js', module_js)
+                return module_js
+        raise ExtractorError('Unable to extract player JS')
+
+    def _extract_cmd5x_function(self, webpage, video_id):
+        return self._search_regex(r',\s*(function\s*\([^\)]*\)\s*{\s*var _qda.+_qdc\(\)\s*})\s*,',
+                                  self._extract_vms_player_js(webpage, video_id), 'signature function')
+
+    def _update_bid_tags(self, webpage, video_id):
+        extracted_bid_tags = self._parse_json(
+            self._search_regex(
+                r'arguments\[1\][^,]*,\s*function\s*\([^\)]*\)\s*{\s*"use strict";?\s*var \w=({.+}})\s*,\s*\w\s*=\s*{\s*getNewVd',
+                self._extract_vms_player_js(webpage, video_id), 'video tags', default=''),
+            video_id, transform_source=js_to_json, fatal=False)
+        if not extracted_bid_tags:
+            return
+        self._BID_TAGS = {
+            bid: traverse_obj(extracted_bid_tags, (bid, 'value'), expected_type=str, default=self._BID_TAGS.get(bid))
+            for bid in extracted_bid_tags.keys()
+        }
+
+    def _get_cookie(self, name, default=None):
+        cookie = self._get_cookies('https://iq.com/').get(name)
+        return cookie.value if cookie else default
+
+    def _real_extract(self, url):
+        video_id = self._match_id(url)
+        webpage = self._download_webpage(url, video_id)
+        self._update_bid_tags(webpage, video_id)
+
+        next_props = self._search_nextjs_data(webpage, video_id)['props']
+        page_data = next_props['initialState']['play']
+        video_info = page_data['curVideoInfo']
+
+        uid = traverse_obj(
+            self._parse_json(
+                self._get_cookie('I00002', '{}'), video_id, transform_source=compat_urllib_parse_unquote, fatal=False),
+            ('data', 'uid'), default=0)
+
+        if uid:
+            vip_data = self._download_json(
+                'https://pcw-api.iq.com/api/vtype', video_id, note='Downloading VIP data', errnote='Unable to download VIP data', query={
+                    'batch': 1,
+                    'platformId': 3,
+                    'modeCode': self._get_cookie('mod', 'intl'),
+                    'langCode': self._get_cookie('lang', 'en_us'),
+                    'deviceId': self._get_cookie('QC005', '')
+                }, fatal=False)
+            ut_list = traverse_obj(vip_data, ('data', 'all_vip', ..., 'vipType'), expected_type=str_or_none, default=[])
+        else:
+            ut_list = ['0']
+
+        # bid 0 as an initial format checker
+        dash_paths = self._parse_json(PhantomJSwrapper(self).get(
+            url, html='<!DOCTYPE html>', video_id=video_id, note2='Executing signature code', jscode=self._DASH_JS % {
+                'tvid': video_info['tvId'],
+                'vid': video_info['vid'],
+                'src': traverse_obj(next_props, ('initialProps', 'pageProps', 'ptid'),
+                                    expected_type=str, default='04022001010011000000'),
+                'uid': uid,
+                'dfp': self._get_cookie('dfp', ''),
+                'mode': self._get_cookie('mod', 'intl'),
+                'lang': self._get_cookie('lang', 'en_us'),
+                'bid_list': '[' + ','.join(['0', *self._BID_TAGS.keys()]) + ']',
+                'ut_list': '[' + ','.join(ut_list) + ']',
+                'cmd5x_func': self._extract_cmd5x_function(webpage, video_id),
+            })[1].strip(), video_id)
+
+        formats, subtitles = [], {}
+        initial_format_data = self._download_json(
+            urljoin('https://cache-video.iq.com', dash_paths['0']), video_id,
+            note='Downloading initial video format info', errnote='Unable to download initial video format info')['data']
+
+        preview_time = traverse_obj(
+            initial_format_data, ('boss_ts', (None, 'data'), ('previewTime', 'rtime')), expected_type=float_or_none, get_all=False)
+        if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
+            self.report_warning('This preview video is limited%s' % format_field(preview_time, template=' to %s seconds'))
+
+        # TODO: Extract audio-only formats
+        for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):
+            dash_path = dash_paths.get(bid)
+            if not dash_path:
+                self.report_warning(f'Unknown format id: {bid}. It is currently not being extracted')
+                continue
+            format_data = traverse_obj(self._download_json(
+                urljoin('https://cache-video.iq.com', dash_path), video_id,
+                note=f'Downloading format data for {self._BID_TAGS[bid]}', errnote='Unable to download format data',
+                fatal=False), 'data', expected_type=dict)
+
+            video_format = traverse_obj(format_data, ('program', 'video', lambda _, v: str(v['bid']) == bid),
+                                        expected_type=dict, default=[], get_all=False) or {}
+            extracted_formats = []
+            if video_format.get('m3u8Url'):
+                extracted_formats.extend(self._extract_m3u8_formats(
+                    urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['m3u8Url']),
+                    'mp4', m3u8_id=bid, fatal=False))
+            if video_format.get('mpdUrl'):
+                # TODO: Properly extract mpd hostname
+                extracted_formats.extend(self._extract_mpd_formats(
+                    urljoin(format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'), video_format['mpdUrl']),
+                    mpd_id=bid, fatal=False))
+            if video_format.get('m3u8'):
+                ff = video_format.get('ff', 'ts')
+                if ff == 'ts':
+                    m3u8_formats, _ = self._parse_m3u8_formats_and_subtitles(
+                        video_format['m3u8'], ext='mp4', m3u8_id=bid, fatal=False)
+                    extracted_formats.extend(m3u8_formats)
+                elif ff == 'm4s':
+                    mpd_data = traverse_obj(
+                        self._parse_json(video_format['m3u8'], video_id, fatal=False), ('payload', ..., 'data'), expected_type=str)
+                    if not mpd_data:
+                        continue
+                    mpd_formats, _ = self._parse_mpd_formats_and_subtitles(
+                        mpd_data, bid, format_data.get('dm3u8', 'https://cache-m.iq.com/dc/dt/'))
+                    extracted_formats.extend(mpd_formats)
+                else:
+                    self.report_warning(f'{ff} formats are currently not supported')
+
+            if not extracted_formats:
+                if video_format.get('s'):
+                    self.report_warning(f'{self._BID_TAGS[bid]} format is restricted')
+                else:
+                    self.report_warning(f'Unable to extract {self._BID_TAGS[bid]} format')
+            for f in extracted_formats:
+                f.update({
+                    'quality': qualities(list(self._BID_TAGS.keys()))(bid),
+                    'format_note': self._BID_TAGS[bid],
+                    **parse_resolution(video_format.get('scrsz'))
+                })
+            formats.extend(extracted_formats)
+
+        self._sort_formats(formats)
+
+        for sub_format in traverse_obj(initial_format_data, ('program', 'stl', ...), expected_type=dict, default=[]):
+            lang = self._LID_TAGS.get(str_or_none(sub_format.get('lid')), sub_format.get('_name'))
+            subtitles.setdefault(lang, []).extend([{
+                'ext': format_ext,
+                'url': urljoin(initial_format_data.get('dstl', 'http://meta.video.iqiyi.com'), sub_format[format_key])
+            } for format_key, format_ext in [('srt', 'srt'), ('webvtt', 'vtt')] if sub_format.get(format_key)])
+
+        extra_metadata = page_data.get('albumInfo') if video_info.get('albumId') and page_data.get('albumInfo') else video_info
+        return {
+            'id': video_id,
+            'title': video_info['name'],
+            'formats': formats,
+            'subtitles': subtitles,
+            'description': video_info.get('mergeDesc'),
+            'duration': parse_duration(video_info.get('len')),
+            'age_limit': parse_age_limit(video_info.get('rating')),
+            'average_rating': traverse_obj(page_data, ('playScoreInfo', 'score'), expected_type=float_or_none),
+            'timestamp': parse_iso8601(video_info.get('isoUploadDate')),
+            'categories': traverse_obj(extra_metadata, ('videoTagMap', ..., ..., 'name'), expected_type=str),
+            'cast': traverse_obj(extra_metadata, ('actorArr', ..., 'name'), expected_type=str),
+            'episode_number': int_or_none(video_info.get('order')) or None,
+            'series': video_info.get('albumName'),
+        }
+
+
+class IqAlbumIE(InfoExtractor):
+    IE_NAME = 'iq.com:album'
+    _VALID_URL = r'https?://(?:www\.)?iq\.com/album/(?:[\w%-]*-)?(?P<id>\w+)'
+    _TESTS = [{
+        'url': 'https://www.iq.com/album/one-piece-1999-1bk9icvr331',
+        'info_dict': {
+            'id': '1bk9icvr331',
+            'title': 'One Piece',
+            'description': 'Subtitle available on Sunday 4PM（GMT+8）.'
+        },
+        'playlist_mincount': 238
+    }, {
+        # Movie/single video
+        'url': 'https://www.iq.com/album/九龙城寨-2021-22yjnij099k',
+        'info_dict': {
+            'ext': 'mp4',
+            'id': '22yjnij099k',
+            'title': '九龙城寨',
+            'description': 'md5:8a09f50b8ba0db4dc69bc7c844228044',
+            'duration': 5000,
+            'timestamp': 1641911371,
+            'upload_date': '20220111',
+            'series': '九龙城寨',
+            'cast': ['Shi Yan Neng', 'Yu Lang', 'Peter  lv', 'Sun Zi Jun', 'Yang Xiao Bo'],
+            'age_limit': 13,
+            'average_rating': float,
+        },
+        'expected_warnings': ['format is restricted']
+    }]
+
+    def _entries(self, album_id_num, page_ranges, album_id=None, mode_code='intl', lang_code='en_us'):
+        for page_range in page_ranges:
+            page = self._download_json(
+                f'https://pcw-api.iq.com/api/episodeListSource/{album_id_num}', album_id,
+                note=f'Downloading video list episodes {page_range.get("msg", "")}',
+                errnote='Unable to download video list', query={
+                    'platformId': 3,
+                    'modeCode': mode_code,
+                    'langCode': lang_code,
+                    'endOrder': page_range['to'],
+                    'startOrder': page_range['from']
+                })
+            for video in page['data']['epg']:
+                yield self.url_result('https://www.iq.com/play/%s' % (video.get('playLocSuffix') or video['qipuIdStr']),
+                                      IqIE.ie_key(), video.get('qipuIdStr'), video.get('name'))
+
+    def _real_extract(self, url):
+        album_id = self._match_id(url)
+        webpage = self._download_webpage(url, album_id)
+        next_data = self._search_nextjs_data(webpage, album_id)
+        album_data = next_data['props']['initialState']['album']['videoAlbumInfo']
+
+        if album_data.get('videoType') == 'singleVideo':
+            return self.url_result('https://www.iq.com/play/%s' % album_id, IqIE.ie_key())
+        return self.playlist_result(
+            self._entries(album_data['albumId'], album_data['totalPageRange'], album_id,
+                          traverse_obj(next_data, ('props', 'initialProps', 'pageProps', 'modeCode')),
+                          traverse_obj(next_data, ('props', 'initialProps', 'pageProps', 'langCode'))),
+            album_id, album_data.get('name'), album_data.get('desc'))

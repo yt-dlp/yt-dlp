@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import base64
 import json
 import re
@@ -408,9 +406,7 @@ class NBCNewsIE(ThePlatformIE):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
 
-        data = self._parse_json(self._search_regex(
-            r'<script[^>]+id="__NEXT_DATA__"[^>]*>({.+?})</script>',
-            webpage, 'bootstrap json'), video_id)['props']['initialState']
+        data = self._search_nextjs_data(webpage, video_id)['props']['initialState']
         video_data = try_get(data, lambda x: x['video']['current'], dict)
         if not video_data:
             video_data = data['article']['content'][0]['primaryMedia']['video']
@@ -583,7 +579,7 @@ class NBCOlympicsStreamIE(AdobePassIE):
         for f in formats:
             # -http_seekable requires ffmpeg 4.3+ but it doesnt seem possible to
             # download with ffmpeg without this option
-            f['_ffmpeg_args'] = ['-seekable', '0', '-http_seekable', '0', '-icy', '0']
+            f['downloader_options'] = {'ffmpeg_args': ['-seekable', '0', '-http_seekable', '0', '-icy', '0']}
         self._sort_formats(formats)
 
         return {

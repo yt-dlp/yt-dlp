@@ -1,18 +1,19 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-import hashlib
+import re
 
 from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
-    compat_urllib_request,
-    compat_urlparse,
 )
+from ..dependencies import websockets
 from ..utils import (
     ExtractorError,
+    WebSocketsWrapper,
+    js_to_json,
     sanitized_Request,
+    traverse_obj,
+    update_url_query,
     urlencode_postdata,
+    urljoin,
 )
 
 
@@ -82,41 +83,33 @@ class FC2IE(InfoExtractor):
             self._downloader.cookiejar.clear_session_cookies()  # must clear
             self._login()
 
-        title = 'FC2 video %s' % video_id
-        thumbnail = None
+        title, thumbnail, description = None, None, None
         if webpage is not None:
-            title = self._og_search_title(webpage)
+            title = self._html_search_regex(
+                (r'<h2\s+class="videoCnt_title">([^<]+?)</h2>',
+                 r'\s+href="[^"]+"\s*title="([^"]+?)"\s*rel="nofollow">\s*<img',
+                 # there's two matches in the webpage
+                 r'\s+href="[^"]+"\s*title="([^"]+?)"\s*rel="nofollow">\s*\1'),
+                webpage,
+                'title', fatal=False)
             thumbnail = self._og_search_thumbnail(webpage)
-        refer = url.replace('/content/', '/a/content/') if '/a/content/' not in url else url
+            description = self._og_search_description(webpage, default=None)
 
-        mimi = hashlib.md5((video_id + '_gGddgPfeaf_gzyr').encode('utf-8')).hexdigest()
-
-        info_url = (
-            'http://video.fc2.com/ginfo.php?mimi={1:s}&href={2:s}&v={0:s}&fversion=WIN%2011%2C6%2C602%2C180&from=2&otag=0&upid={0:s}&tk=null&'.
-            format(video_id, mimi, compat_urllib_request.quote(refer, safe=b'').replace('.', '%2E')))
-
-        info_webpage = self._download_webpage(
-            info_url, video_id, note='Downloading info page')
-        info = compat_urlparse.parse_qs(info_webpage)
-
-        if 'err_code' in info:
-            # most of the time we can still download wideo even if err_code is 403 or 602
-            self.report_warning(
-                'Error code was: %s... but still trying' % info['err_code'][0])
-
-        if 'filepath' not in info:
-            raise ExtractorError('Cannot download file. Are you logged in?')
-
-        video_url = info['filepath'][0] + '?mid=' + info['mid'][0]
-        title_info = info.get('title')
-        if title_info:
-            title = title_info[0]
+        vidplaylist = self._download_json(
+            'https://video.fc2.com/api/v3/videoplaylist/%s?sh=1&fs=0' % video_id, video_id,
+            note='Downloading info page')
+        vid_url = traverse_obj(vidplaylist, ('playlist', 'nq'))
+        if not vid_url:
+            raise ExtractorError('Unable to extract video URL')
+        vid_url = urljoin('https://video.fc2.com/', vid_url)
 
         return {
             'id': video_id,
             'title': title,
-            'url': video_url,
-            'ext': 'flv',
+            'url': vid_url,
+            'ext': 'mp4',
+            'protocol': 'm3u8_native',
+            'description': description,
             'thumbnail': thumbnail,
         }
 
@@ -156,4 +149,146 @@ class FC2EmbedIE(InfoExtractor):
             'url': 'fc2:%s' % video_id,
             'title': title,
             'thumbnail': thumbnail,
+        }
+
+
+class FC2LiveIE(InfoExtractor):
+    _VALID_URL = r'https?://live\.fc2\.com/(?P<id>\d+)'
+    IE_NAME = 'fc2:live'
+
+    _TESTS = [{
+        'url': 'https://live.fc2.com/57892267/',
+        'info_dict': {
+            'id': '57892267',
+            'title': 'どこまで・・・',
+            'uploader': 'あつあげ',
+            'uploader_id': '57892267',
+            'thumbnail': r're:https?://.+fc2.+',
+        },
+        'skip': 'livestream',
+    }]
+
+    def _real_extract(self, url):
+        if not websockets:
+            raise ExtractorError('websockets library is not available. Please install it.', expected=True)
+        video_id = self._match_id(url)
+        webpage = self._download_webpage('https://live.fc2.com/%s/' % video_id, video_id)
+
+        self._set_cookie('live.fc2.com', 'js-player_size', '1')
+
+        member_api = self._download_json(
+            'https://live.fc2.com/api/memberApi.php', video_id, data=urlencode_postdata({
+                'channel': '1',
+                'profile': '1',
+                'user': '1',
+                'streamid': video_id
+            }), note='Requesting member info')
+
+        control_server = self._download_json(
+            'https://live.fc2.com/api/getControlServer.php', video_id, note='Downloading ControlServer data',
+            data=urlencode_postdata({
+                'channel_id': video_id,
+                'mode': 'play',
+                'orz': '',
+                'channel_version': member_api['data']['channel_data']['version'],
+                'client_version': '2.1.0\n [1]',
+                'client_type': 'pc',
+                'client_app': 'browser_hls',
+                'ipv6': '',
+            }), headers={'X-Requested-With': 'XMLHttpRequest'})
+        self._set_cookie('live.fc2.com', 'l_ortkn', control_server['orz_raw'])
+
+        ws_url = update_url_query(control_server['url'], {'control_token': control_server['control_token']})
+        playlist_data = None
+
+        self.to_screen('%s: Fetching HLS playlist info via WebSocket' % video_id)
+        ws = WebSocketsWrapper(ws_url, {
+            'Cookie': str(self._get_cookies('https://live.fc2.com/'))[12:],
+            'Origin': 'https://live.fc2.com',
+            'Accept': '*/*',
+            'User-Agent': self.get_param('http_headers')['User-Agent'],
+        })
+
+        self.write_debug('[debug] Sending HLS server request')
+
+        while True:
+            recv = ws.recv()
+            if not recv:
+                continue
+            data = self._parse_json(recv, video_id, fatal=False)
+            if not data or not isinstance(data, dict):
+                continue
+
+            if data.get('name') == 'connect_complete':
+                break
+        ws.send(r'{"name":"get_hls_information","arguments":{},"id":1}')
+
+        while True:
+            recv = ws.recv()
+            if not recv:
+                continue
+            data = self._parse_json(recv, video_id, fatal=False)
+            if not data or not isinstance(data, dict):
+                continue
+            if data.get('name') == '_response_' and data.get('id') == 1:
+                self.write_debug('[debug] Goodbye.')
+                playlist_data = data
+                break
+            elif self._downloader.params.get('verbose', False):
+                if len(recv) > 100:
+                    recv = recv[:100] + '...'
+                self.to_screen('[debug] Server said: %s' % recv)
+
+        if not playlist_data:
+            raise ExtractorError('Unable to fetch HLS playlist info via WebSocket')
+
+        formats = []
+        for name, playlists in playlist_data['arguments'].items():
+            if not isinstance(playlists, list):
+                continue
+            for pl in playlists:
+                if pl.get('status') == 0 and 'master_playlist' in pl.get('url'):
+                    formats.extend(self._extract_m3u8_formats(
+                        pl['url'], video_id, ext='mp4', m3u8_id=name, live=True,
+                        headers={
+                            'Origin': 'https://live.fc2.com',
+                            'Referer': url,
+                        }))
+
+        self._sort_formats(formats)
+        for fmt in formats:
+            fmt.update({
+                'protocol': 'fc2_live',
+                'ws': ws,
+            })
+
+        title = self._html_search_meta(('og:title', 'twitter:title'), webpage, 'live title', fatal=False)
+        if not title:
+            title = self._html_extract_title(webpage, 'html title', fatal=False)
+            if title:
+                # remove service name in <title>
+                title = re.sub(r'\s+-\s+.+$', '', title)
+        uploader = None
+        if title:
+            match = self._search_regex(r'^(.+?)\s*\[(.+?)\]$', title, 'title and uploader', default=None, group=(1, 2))
+            if match and all(match):
+                title, uploader = match
+
+        live_info_view = self._search_regex(r'(?s)liveInfoView\s*:\s*({.+?}),\s*premiumStateView', webpage, 'user info', fatal=False) or None
+        if live_info_view:
+            # remove jQuery code from object literal
+            live_info_view = re.sub(r'\$\(.+?\)[^,]+,', '"",', live_info_view)
+            live_info_view = self._parse_json(js_to_json(live_info_view), video_id)
+
+        return {
+            'id': video_id,
+            'title': title or traverse_obj(live_info_view, 'title'),
+            'description': self._html_search_meta(
+                ('og:description', 'twitter:description'),
+                webpage, 'live description', fatal=False) or traverse_obj(live_info_view, 'info'),
+            'formats': formats,
+            'uploader': uploader or traverse_obj(live_info_view, 'name'),
+            'uploader_id': video_id,
+            'thumbnail': traverse_obj(live_info_view, 'thumb'),
+            'is_live': True,
         }

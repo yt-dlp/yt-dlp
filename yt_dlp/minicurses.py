@@ -1,7 +1,7 @@
 import functools
 from threading import Lock
-from .utils import supports_terminal_sequences, write_string
 
+from .utils import supports_terminal_sequences, write_string
 
 CONTROL_SEQUENCES = {
     'DOWN': '\n',
@@ -69,6 +69,7 @@ def format_text(text, f):
             raise SyntaxError(f'Invalid format {" ".join(tokens)!r} in {f!r}')
 
     if fg_color or bg_color:
+        text = text.replace(CONTROL_SEQUENCES['RESET'], f'{fg_color}{bg_color}')
         return f'{fg_color}{bg_color}{text}{CONTROL_SEQUENCES["RESET"]}'
     else:
         return text
@@ -178,4 +179,4 @@ class MultilinePrinter(MultilinePrinterBase):
                 *text, CONTROL_SEQUENCES['ERASE_LINE'],
                 f'{CONTROL_SEQUENCES["UP"]}{CONTROL_SEQUENCES["ERASE_LINE"]}' * self.maximum)
         else:
-            self.write(*text, ' ' * self._lastlength)
+            self.write('\r', ' ' * self._lastlength, '\r')

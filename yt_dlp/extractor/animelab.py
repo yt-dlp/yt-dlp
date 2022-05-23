@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 from ..utils import (
@@ -15,24 +12,20 @@ from ..compat import compat_HTTPError
 
 
 class AnimeLabBaseIE(InfoExtractor):
-    _LOGIN_REQUIRED = True
     _LOGIN_URL = 'https://www.animelab.com/login'
     _NETRC_MACHINE = 'animelab'
+    _LOGGED_IN = False
 
-    def _login(self):
-        def is_logged_in(login_webpage):
-            return 'Sign In' not in login_webpage
+    def _is_logged_in(self, login_page=None):
+        if not self._LOGGED_IN:
+            if not login_page:
+                login_page = self._download_webpage(self._LOGIN_URL, None, 'Downloading login page')
+            AnimeLabBaseIE._LOGGED_IN = 'Sign In' not in login_page
+        return self._LOGGED_IN
 
-        login_page = self._download_webpage(
-            self._LOGIN_URL, None, 'Downloading login page')
-
-        # Check if already logged in
-        if is_logged_in(login_page):
+    def _perform_login(self, username, password):
+        if self._is_logged_in():
             return
-
-        (username, password) = self._get_login_info()
-        if username is None and self._LOGIN_REQUIRED:
-            self.raise_login_required('Login is required to access any AnimeLab content')
 
         login_form = {
             'email': username,
@@ -47,27 +40,19 @@ class AnimeLabBaseIE(InfoExtractor):
         except ExtractorError as e:
             if isinstance(e.cause, compat_HTTPError) and e.cause.code == 400:
                 raise ExtractorError('Unable to log in (wrong credentials?)', expected=True)
-            else:
-                raise
+            raise
 
-        # if login was successful
-        if is_logged_in(response):
-            return
-
-        raise ExtractorError('Unable to login (cannot verify if logged in)')
+        if not self._is_logged_in(response):
+            raise ExtractorError('Unable to login (cannot verify if logged in)')
 
     def _real_initialize(self):
-        self._login()
+        if not self._is_logged_in():
+            self.raise_login_required('Login is required to access any AnimeLab content')
 
 
 class AnimeLabIE(AnimeLabBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animelab\.com/player/(?P<id>[^/]+)'
 
-    # the following tests require authentication, but a free account will suffice
-    # just set 'usenetrc' to true in test/local_parameters.json if you use a .netrc file
-    # or you can set 'username' and 'password' there
-    # the tests also select a specific format so that the same video is downloaded
-    # regardless of whether the user is premium or not (needs testing on a premium account)
     _TEST = {
         'url': 'https://www.animelab.com/player/fullmetal-alchemist-brotherhood-episode-42',
         'md5': '05bde4b91a5d1ff46ef5b94df05b0f7f',
@@ -86,9 +71,9 @@ class AnimeLabIE(AnimeLabBaseIE):
             'season_id': '38',
         },
         'params': {
+            # Ensure the same video is downloaded whether the user is premium or not
             'format': '[format_id=21711_yeshardsubbed_ja-JP][height=480]',
         },
-        'skip': 'All AnimeLab content requires authentication',
     }
 
     def _real_extract(self, url):

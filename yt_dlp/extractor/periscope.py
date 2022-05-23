@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -33,7 +30,7 @@ class PeriscopeBaseIE(InfoExtractor):
 
         return {
             'id': broadcast.get('id') or video_id,
-            'title': self._live_title(title) if is_live else title,
+            'title': title,
             'timestamp': parse_iso8601(broadcast.get('created_at')),
             'uploader': uploader,
             'uploader_id': broadcast.get('user_id') or broadcast.get('username'),

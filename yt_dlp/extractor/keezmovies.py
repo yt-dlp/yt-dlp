@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -8,6 +6,7 @@ from ..compat import compat_urllib_parse_unquote
 from ..utils import (
     determine_ext,
     ExtractorError,
+    format_field,
     int_or_none,
     str_to_int,
     strip_or_none,
@@ -69,7 +68,7 @@ class KeezMoviesIE(InfoExtractor):
                     video_url, title, 32).decode('utf-8')
             formats.append({
                 'url': format_url,
-                'format_id': '%dp' % height if height else None,
+                'format_id': format_field(height, template='%dp'),
                 'height': height,
                 'tbr': tbr,
             })

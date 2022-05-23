@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import hashlib
 import json
@@ -8,6 +5,7 @@ import random
 import re
 import time
 
+from .anvato_token_generator import NFLTokenGenerator
 from .common import InfoExtractor
 from ..aes import aes_encrypt
 from ..compat import compat_str
@@ -21,16 +19,6 @@ from ..utils import (
     unescapeHTML,
     unsmuggle_url,
 )
-
-# This import causes a ModuleNotFoundError on some systems for unknown reason.
-# See issues:
-# https://github.com/yt-dlp/yt-dlp/issues/35
-# https://github.com/ytdl-org/youtube-dl/issues/27449
-# https://github.com/animelover1984/youtube-dl/issues/17
-try:
-    from .anvato_token_generator import NFLTokenGenerator
-except ImportError:
-    NFLTokenGenerator = None
 
 
 def md5_text(s):

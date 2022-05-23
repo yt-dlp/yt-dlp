@@ -1,38 +1,43 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import copy
 import json
-
 from test.helper import FakeYDL, assertRegexpMatches
+
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name, compat_setenv, compat_str, compat_urllib_error
+from yt_dlp.compat import (
+    compat_os_name,
+    compat_setenv,
+    compat_str,
+    compat_urllib_error,
+)
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
-from yt_dlp.utils import ExtractorError, int_or_none, match_filter_func, LazyList
+from yt_dlp.utils import (
+    ExtractorError,
+    LazyList,
+    int_or_none,
+    match_filter_func,
+)
 
 TEST_URL = 'http://localhost/sample.mp4'
 
 
 class YDL(FakeYDL):
     def __init__(self, *args, **kwargs):
-        super(YDL, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.downloaded_info_dicts = []
         self.msgs = []
 
     def process_info(self, info_dict):
-        info_dict = info_dict.copy()
-        info_dict.pop('__original_infodict', None)
-        self.downloaded_info_dicts.append(info_dict)
+        self.downloaded_info_dicts.append(info_dict.copy())
 
     def to_screen(self, msg):
         self.msgs.append(msg)
@@ -553,11 +558,11 @@ class TestYoutubeDL(unittest.TestCase):
         def s_formats(lang, autocaption=False):
             return [{
                 'ext': ext,
-                'url': 'http://localhost/video.%s.%s' % (lang, ext),
+                'url': f'http://localhost/video.{lang}.{ext}',
                 '_auto': autocaption,
             } for ext in ['vtt', 'srt', 'ass']]
-        subtitles = dict((l, s_formats(l)) for l in ['en', 'fr', 'es'])
-        auto_captions = dict((l, s_formats(l, True)) for l in ['it', 'pt', 'es'])
+        subtitles = {l: s_formats(l) for l in ['en', 'fr', 'es']}
+        auto_captions = {l: s_formats(l, True) for l in ['it', 'pt', 'es']}
         info_dict = {
             'id': 'test',
             'title': 'Test',
@@ -582,7 +587,7 @@ class TestYoutubeDL(unittest.TestCase):
         result = get_info({'writesubtitles': True})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['en']))
+        self.assertEqual(set(subs.keys()), {'en'})
         self.assertTrue(subs['en'].get('data') is None)
         self.assertEqual(subs['en']['ext'], 'ass')
 
@@ -593,39 +598,39 @@ class TestYoutubeDL(unittest.TestCase):
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['es', 'fr', 'it']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'fr']))
+        self.assertEqual(set(subs.keys()), {'es', 'fr'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['all', '-en']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'fr']))
+        self.assertEqual(set(subs.keys()), {'es', 'fr'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['en', 'fr', '-en']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['fr']))
+        self.assertEqual(set(subs.keys()), {'fr'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['-en', 'en']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['en']))
+        self.assertEqual(set(subs.keys()), {'en'})
 
         result = get_info({'writesubtitles': True, 'subtitleslangs': ['e.+']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'en']))
+        self.assertEqual(set(subs.keys()), {'es', 'en'})
 
         result = get_info({'writesubtitles': True, 'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'pt']))
+        self.assertEqual(set(subs.keys()), {'es', 'pt'})
         self.assertFalse(subs['es']['_auto'])
         self.assertTrue(subs['pt']['_auto'])
 
         result = get_info({'writeautomaticsub': True, 'subtitleslangs': ['es', 'pt']})
         subs = result['requested_subtitles']
         self.assertTrue(subs)
-        self.assertEqual(set(subs.keys()), set(['es', 'pt']))
+        self.assertEqual(set(subs.keys()), {'es', 'pt'})
         self.assertTrue(subs['es']['_auto'])
         self.assertTrue(subs['pt']['_auto'])
 
@@ -656,7 +661,7 @@ class TestYoutubeDL(unittest.TestCase):
         'duration': 100000,
         'playlist_index': 1,
         'playlist_autonumber': 2,
-        '_last_playlist_index': 100,
+        '__last_playlist_index': 100,
         'n_entries': 10,
         'formats': [{'id': 'id 1'}, {'id': 'id 2'}, {'id': 'id 3'}]
     }
@@ -820,6 +825,8 @@ class TestYoutubeDL(unittest.TestCase):
         test('%(id&foo)s.bar', 'foo.bar')
         test('%(title&foo)s.bar', 'NA.bar')
         test('%(title&foo|baz)s.bar', 'baz.bar')
+        test('%(x,id&foo|baz)s.bar', 'foo.bar')
+        test('%(x,title&foo|baz)s.bar', 'baz.bar')
 
         # Laziness
         def gen():
@@ -898,20 +905,6 @@ class TestYoutubeDL(unittest.TestCase):
         os.unlink(filename)
 
     def test_match_filter(self):
-        class FilterYDL(YDL):
-            def __init__(self, *args, **kwargs):
-                super(FilterYDL, self).__init__(*args, **kwargs)
-                self.params['simulate'] = True
-
-            def process_info(self, info_dict):
-                super(YDL, self).process_info(info_dict)
-
-            def _match_entry(self, info_dict, incomplete=False):
-                res = super(FilterYDL, self)._match_entry(info_dict, incomplete)
-                if res is None:
-                    self.downloaded_info_dicts.append(info_dict.copy())
-                return res
-
         first = {
             'id': '1',
             'url': TEST_URL,
@@ -939,7 +932,7 @@ class TestYoutubeDL(unittest.TestCase):
         videos = [first, second]
 
         def get_videos(filter_=None):
-            ydl = FilterYDL({'match_filter': filter_})
+            ydl = YDL({'match_filter': filter_, 'simulate': True})
             for v in videos:
                 ydl.process_ie_result(v, download=True)
             return [v['id'] for v in ydl.downloaded_info_dicts]
@@ -947,7 +940,7 @@ class TestYoutubeDL(unittest.TestCase):
         res = get_videos()
         self.assertEqual(res, ['1', '2'])
 
-        def f(v):
+        def f(v, incomplete):
             if v['id'] == '1':
                 return None
             else:
@@ -1096,7 +1089,7 @@ class TestYoutubeDL(unittest.TestCase):
 
         class _YDL(YDL):
             def __init__(self, *args, **kwargs):
-                super(_YDL, self).__init__(*args, **kwargs)
+                super().__init__(*args, **kwargs)
 
             def trouble(self, s, tb=None):
                 pass

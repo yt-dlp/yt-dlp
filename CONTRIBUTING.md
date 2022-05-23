@@ -11,6 +11,7 @@
     - [Is anyone going to need the feature?](#is-anyone-going-to-need-the-feature)
     - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
     - [Are you willing to share account details if needed?](#are-you-willing-to-share-account-details-if-needed)
+    - [Is the website primarily used for piracy](#is-the-website-primarily-used-for-piracy)
 - [DEVELOPER INSTRUCTIONS](#developer-instructions)
     - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
     - [Adding support for a new site](#adding-support-for-a-new-site)
@@ -19,10 +20,12 @@
         - [Provide fallbacks](#provide-fallbacks)
         - [Regular expressions](#regular-expressions)
         - [Long lines policy](#long-lines-policy)
+        - [Quotes](#quotes)
         - [Inline values](#inline-values)
         - [Collapse fallbacks](#collapse-fallbacks)
         - [Trailing parentheses](#trailing-parentheses)
         - [Use convenience conversion and parsing functions](#use-convenience-conversion-and-parsing-functions)
+    - [My pull request is labeled pending-fixes](#my-pull-request-is-labeled-pending-fixes)
 - [EMBEDDING YT-DLP](README.md#embedding-yt-dlp)
 
 
@@ -31,9 +34,9 @@
 
 Bugs and suggestions should be reported at: [yt-dlp/yt-dlp/issues](https://github.com/yt-dlp/yt-dlp/issues). Unless you were prompted to or there is another pertinent reason (e.g. GitHub fails to accept the bug report), please do not send bug reports via personal email. For discussions, join us in our [discord server](https://discord.gg/H5MNcFW63r).
 
-**Please include the full output of yt-dlp when run with `-Uv`**, i.e. **add** `-Uv` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
+**Please include the full output of yt-dlp when run with `-vU`**, i.e. **add** `-vU` flag to **your command line**, copy the **whole** output and post it in the issue body wrapped in \`\`\` for better formatting. It should look similar to this:
 ```
-$ yt-dlp -Uv <your command line>
+$ yt-dlp -vU <your command line>
 [debug] Command-line config: ['-v', 'demo.com']
 [debug] Encodings: locale UTF-8, fs utf-8, out utf-8, pref UTF-8
 [debug] yt-dlp version 2021.09.25 (zip)
@@ -64,7 +67,7 @@ So please elaborate on what feature you are requesting, or what bug you want to 
 
 If your report is shorter than two lines, it is almost certainly missing some of these, which makes it hard for us to respond to it. We're often too polite to close the issue outright, but the missing info makes misinterpretation likely. We often get frustrated by these issues, since the only possible way for us to move forward on them is to ask for clarification over and over.
 
-For bug reports, this means that your report should contain the **complete** output of yt-dlp when called with the `-Uv` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
+For bug reports, this means that your report should contain the **complete** output of yt-dlp when called with the `-vU` flag. The error message you get for (most) bugs even says so, but you would not believe how many of our bug reports do not contain this information.
 
 If the error is `ERROR: Unable to extract ...` and you cannot reproduce it from multiple countries, add `--write-pages` and upload the `.dump` files you get [somewhere](https://gist.github.com).
 
@@ -112,7 +115,7 @@ If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-
 
 ### Are you willing to share account details if needed?
 
-The maintainers and potential contributors of the project often do not have an account for the website you are asking support for. So any developer interested in solving your issue may ask you for account details. It is your personal discression whether you are willing to share the account in order for the developer to try and solve your issue. However, if you are unwilling or unable to provide details, they obviously cannot work on the issue and it cannot be solved unless some developer who both has an account and is willing/able to contribute decides to solve it.
+The maintainers and potential contributors of the project often do not have an account for the website you are asking support for. So any developer interested in solving your issue may ask you for account details. It is your personal discretion whether you are willing to share the account in order for the developer to try and solve your issue. However, if you are unwilling or unable to provide details, they obviously cannot work on the issue and it cannot be solved unless some developer who both has an account and is willing/able to contribute decides to solve it.
 
 By sharing an account with anyone, you agree to bear all risks associated with it. The maintainers and yt-dlp can't be held responsible for any misuse of the credentials.
 
@@ -121,6 +124,10 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 - Look for people with `Member` (maintainers of the project) or `Contributor` (people who have previously contributed code) tag on their messages.
 - Change the password before sharing the account to something random (use [this](https://passwordsgenerator.net/) if you don't have a random password generator).
 - Change the password after receiving the account back.
+
+### Is the website primarily used for piracy?
+
+We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in deep fake. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
 
 
 
@@ -171,7 +178,6 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
     ```python
-    # coding: utf-8
     from .common import InfoExtractor
     
     
@@ -209,7 +215,7 @@ After you have ensured this site is distributing its content legally, you can fo
             }
     ```
 1. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
-1. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
+1. Run `python test/test_download.py TestDownload.test_YourExtractor` (note that `YourExtractor` doesn't end with `IE`). This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
 1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
 1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
@@ -251,7 +257,11 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
  - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatibility reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While all extractors must return a `title`, they must also allow it's extraction to be non-fatal.
+
+For pornographic sites, appropriate `age_limit` must also be returned.
+
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
@@ -364,21 +374,21 @@ When extracting metadata try to do so from multiple sources. For example if `tit
 
 #### Example
 
-Say `meta` from the previous example has a `title` and you are about to extract it. Since `title` is a mandatory meta field you should end up with something like:
+Say `meta` from the previous example has a `title` and you are about to extract it like:
 
 ```python
-title = meta['title']
+title = meta.get('title')
 ```
 
-If `title` disappears from `meta` in future due to some changes on the hoster's side the extraction would fail since `title` is mandatory. That's expected.
+If `title` disappears from `meta` in future due to some changes on the hoster's side the title extraction would fail.
 
-Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback scenario:
+Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback like:
 
 ```python
 title = meta.get('title') or self._og_search_title(webpage)
 ```
 
-This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`.
+This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`, making the extractor more robust.
 
 
 ### Regular expressions
@@ -452,9 +462,13 @@ Here the presence or absence of other attributes including `style` is irrelevent
 
 ### Long lines policy
 
-There is a soft limit to keep lines of code under 100 characters long. This means it should be respected if possible and if it does not make readability and code maintenance worse. Sometimes, it may be reasonable to go upto 120 characters and sometimes even 80 can be unreadable. Keep in mind that this is not a hard limit and is just one of many tools to make the code more readable
+There is a soft limit to keep lines of code under 100 characters long. This means it should be respected if possible and if it does not make readability and code maintenance worse. Sometimes, it may be reasonable to go upto 120 characters and sometimes even 80 can be unreadable. Keep in mind that this is not a hard limit and is just one of many tools to make the code more readable.
 
 For example, you should **never** split long string literals like URLs or some other often copied entities over multiple lines to fit this limit:
+
+Conversely, don't unecessarily split small lines further. As a rule of thumb, if removing the line split keeps the code under 80 characters, it should be a single line.
+
+##### Examples
 
 Correct:
 
@@ -469,6 +483,47 @@ Incorrect:
 'PLMYEtVRpaqY00V9W81Cwmzp6N6vZqfUKD4'
 ```
 
+Correct:
+
+```python
+uploader = traverse_obj(info, ('uploader', 'name'), ('author', 'fullname'))
+```
+
+Incorrect:
+
+```python
+uploader = traverse_obj(
+    info,
+    ('uploader', 'name'),
+    ('author', 'fullname'))
+```
+
+Correct:
+
+```python
+formats = self._extract_m3u8_formats(
+    m3u8_url, video_id, 'mp4', 'm3u8_native', m3u8_id='hls',
+    note='Downloading HD m3u8 information', errnote='Unable to download HD m3u8 information')
+```
+
+Incorrect:
+
+```python
+formats = self._extract_m3u8_formats(m3u8_url,
+                                     video_id,
+                                     'mp4',
+                                     'm3u8_native',
+                                     m3u8_id='hls',
+                                     note='Downloading HD m3u8 information',
+                                     errnote='Unable to download HD m3u8 information')
+```
+
+
+### Quotes
+
+Always use single quotes for strings (even if the string has `'`) and double quotes for docstrings. Use `'''` only for multi-line strings. An exception can be made if a string has multiple single quotes in it and escaping makes it significantly harder to read. For f-strings, use you can use double quotes on the inside. But avoid f-strings that have too many quotes inside.
+
+
 ### Inline values
 
 Extracting variables is acceptable for reducing code duplication and improving readability of complex expressions. However, you should avoid extracting variables used only once and moving them to opposite parts of the extractor file, which makes reading the linear flow difficult.
@@ -478,13 +533,13 @@ Extracting variables is acceptable for reducing code duplication and improving r
 Correct:
 
 ```python
-title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
+title = self._html_search_regex(r'<h1>([^<]+)</h1>', webpage, 'title')
 ```
 
 Incorrect:
 
 ```python
-TITLE_RE = r'<title>([^<]+)</title>'
+TITLE_RE = r'<h1>([^<]+)</h1>'
 # ...some lines of code...
 title = self._html_search_regex(TITLE_RE, webpage, 'title')
 ```
@@ -518,25 +573,66 @@ Methods supporting list of patterns are: `_search_regex`, `_html_search_regex`, 
 
 ### Trailing parentheses
 
-Always move trailing parentheses after the last argument.
+Always move trailing parentheses used for grouping/functions after the last argument. On the other hand, literal list/tuple/dict/set should closed be in a new line. Generators and list/dict comprehensions may use either style
 
-Note that this *does not* apply to braces `}` or square brackets `]` both of which should closed be in a new line
-
-#### Example
+#### Examples
 
 Correct:
 
 ```python
+url = try_get(
+    info,
     lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
     list)
+```
+Correct:
+
+```python
+url = try_get(info,
+              lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
+              list)
 ```
 
 Incorrect:
 
 ```python
+url = try_get(
+    info,
     lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
     list,
 )
+```
+
+Correct:
+
+```python
+f = {
+    'url': url,
+    'format_id': format_id,
+}
+```
+
+Incorrect:
+
+```python
+f = {'url': url,
+     'format_id': format_id}
+```
+
+Correct:
+
+```python
+formats = [process_formats(f) for f in format_data
+           if f.get('type') in ('hls', 'dash', 'direct') and f.get('downloadable')]
+```
+
+Correct:
+
+```python
+formats = [
+    process_formats(f) for f in format_data
+    if f.get('type') in ('hls', 'dash', 'direct') and f.get('downloadable')
+]
 ```
 
 
@@ -546,7 +642,7 @@ Wrap all extracted numeric data into safe functions from [`yt_dlp/utils.py`](yt_
 
 Use `url_or_none` for safe URL processing.
 
-Use `try_get`, `dict_get` and `traverse_obj` for safe metadata extraction from parsed JSON.
+Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
 
 Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
 
@@ -566,6 +662,10 @@ description = video.get('summary')
 duration = float_or_none(video.get('durationMs'), scale=1000)
 view_count = int_or_none(video.get('views'))
 ```
+
+# My pull request is labeled pending-fixes
+
+The `pending-fixes` label is added when there are changes requested to a PR. When the necessary changes are made, the label should be removed. However, despite our best efforts, it may sometimes happen that the maintainer did not see the changes or forgot to remove the label. If your PR is still marked as `pending-fixes` a few days after all requested changes have been made, feel free to ping the maintainer who labeled your issue and ask them to re-review and remove the label.
 
 
 

@@ -1,5 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
 import re
 
 from ..utils import parse_duration
@@ -49,7 +47,7 @@ class Rule34VideoIE(InfoExtractor):
                 'quality': quality,
             })
 
-        title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
+        title = self._html_extract_title(webpage)
         thumbnail = self._html_search_regex(r'preview_url:\s+\'([^\']+)\'', webpage, 'thumbnail', default=None)
         duration = self._html_search_regex(r'"icon-clock"></i>\s+<span>((?:\d+:?)+)', webpage, 'duration', default=None)
 

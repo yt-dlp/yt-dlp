@@ -1,4 +1,3 @@
-from __future__ import unicode_literals
 import json
 
 
@@ -245,10 +244,6 @@ class VrtNUIE(GigyaBaseIE):
             'upload_date': '20200727',
         },
         'skip': 'This video is only available for registered users',
-        'params': {
-            'username': '<snip>',
-            'password': '<snip>',
-        },
         'expected_warnings': ['is not a supported codec'],
     }, {
         # Only available via new API endpoint
@@ -264,24 +259,13 @@ class VrtNUIE(GigyaBaseIE):
             'episode_number': 5,
         },
         'skip': 'This video is only available for registered users',
-        'params': {
-            'username': '<snip>',
-            'password': '<snip>',
-        },
         'expected_warnings': ['Unable to download asset JSON', 'is not a supported codec', 'Unknown MIME type'],
     }]
     _NETRC_MACHINE = 'vrtnu'
     _APIKEY = '3_0Z2HujMtiWq_pkAjgnS2Md2E11a1AwZjYiBETtwNE-EoEHDINgtnvcAOpNgmrVGy'
     _CONTEXT_ID = 'R3595707040'
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         auth_info = self._gigya_login({
             'APIKey': self._APIKEY,
             'targetEnv': 'jssdk',

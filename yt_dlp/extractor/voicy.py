@@ -1,5 +1,4 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import itertools
 
 from .common import InfoExtractor
 from ..compat import compat_str
@@ -11,8 +10,6 @@ from ..utils import (
     unified_strdate,
     unsmuggle_url,
 )
-
-import itertools
 
 
 class VoicyBaseIE(InfoExtractor):
@@ -108,7 +105,7 @@ class VoicyChannelIE(VoicyBaseIE):
 
     @classmethod
     def suitable(cls, url):
-        return not VoicyIE.suitable(url) and super(VoicyChannelIE, cls).suitable(url)
+        return not VoicyIE.suitable(url) and super().suitable(url)
 
     def _entries(self, channel_id):
         pager = ''

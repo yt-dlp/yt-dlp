@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import itertools
 import math
@@ -18,6 +15,7 @@ from ..utils import (
     clean_html,
     determine_ext,
     ExtractorError,
+    format_field,
     int_or_none,
     merge_dicts,
     NO_DEFAULT,
@@ -431,7 +429,7 @@ class PornHubIE(PornHubBaseIE):
                     default=None))
             formats.append({
                 'url': format_url,
-                'format_id': '%dp' % height if height else None,
+                'format_id': format_field(height, template='%dp'),
                 'height': height,
             })
 

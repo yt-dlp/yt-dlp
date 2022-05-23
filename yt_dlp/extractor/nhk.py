@@ -1,8 +1,13 @@
-from __future__ import unicode_literals
-
+import re
 
 from .common import InfoExtractor
-from ..utils import urljoin
+from ..utils import (
+    parse_duration,
+    traverse_obj,
+    unescapeHTML,
+    unified_timestamp,
+    urljoin
+)
 
 
 class NhkBaseIE(InfoExtractor):
@@ -176,3 +181,145 @@ class NhkVodProgramIE(NhkBaseIE):
             program_title = entries[0].get('series')
 
         return self.playlist_result(entries, program_id, program_title)
+
+
+class NhkForSchoolBangumiIE(InfoExtractor):
+    _VALID_URL = r'https?://www2\.nhk\.or\.jp/school/movie/(?P<type>bangumi|clip)\.cgi\?das_id=(?P<id>[a-zA-Z0-9_-]+)'
+    _TESTS = [{
+        'url': 'https://www2.nhk.or.jp/school/movie/bangumi.cgi?das_id=D0005150191_00000',
+        'info_dict': {
+            'id': 'D0005150191_00003',
+            'title': 'にている かな',
+            'duration': 599.999,
+            'timestamp': 1396414800,
+
+            'upload_date': '20140402',
+            'ext': 'mp4',
+
+            'chapters': 'count:12'
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+        program_type, video_id = self._match_valid_url(url).groups()
+
+        webpage = self._download_webpage(
+            f'https://www2.nhk.or.jp/school/movie/{program_type}.cgi?das_id={video_id}', video_id)
+
+        # searches all variables
+        base_values = {g.group(1): g.group(2) for g in re.finditer(r'var\s+([a-zA-Z_]+)\s*=\s*"([^"]+?)";', webpage)}
+        # and programObj values too
+        program_values = {g.group(1): g.group(3) for g in re.finditer(r'(?:program|clip)Obj\.([a-zA-Z_]+)\s*=\s*(["\'])([^"]+?)\2;', webpage)}
+        # extract all chapters
+        chapter_durations = [parse_duration(g.group(1)) for g in re.finditer(r'chapterTime\.push\(\'([0-9:]+?)\'\);', webpage)]
+        chapter_titles = [' '.join([g.group(1) or '', unescapeHTML(g.group(2))]).strip() for g in re.finditer(r'<div class="cpTitle"><span>(scene\s*\d+)?</span>([^<]+?)</div>', webpage)]
+
+        # this is how player_core.js is actually doing (!)
+        version = base_values.get('r_version') or program_values.get('version')
+        if version:
+            video_id = f'{video_id.split("_")[0]}_{version}'
+
+        formats = self._extract_m3u8_formats(
+            f'https://nhks-vh.akamaihd.net/i/das/{video_id[0:8]}/{video_id}_V_000.f4v/master.m3u8',
+            video_id, ext='mp4', m3u8_id='hls')
+        self._sort_formats(formats)
+
+        duration = parse_duration(base_values.get('r_duration'))
+
+        chapters = None
+        if chapter_durations and chapter_titles and len(chapter_durations) == len(chapter_titles):
+            start_time = chapter_durations
+            end_time = chapter_durations[1:] + [duration]
+            chapters = [{
+                'start_time': s,
+                'end_time': e,
+                'title': t,
+            } for s, e, t in zip(start_time, end_time, chapter_titles)]
+
+        return {
+            'id': video_id,
+            'title': program_values.get('name'),
+            'duration': parse_duration(base_values.get('r_duration')),
+            'timestamp': unified_timestamp(base_values['r_upload']),
+            'formats': formats,
+            'chapters': chapters,
+        }
+
+
+class NhkForSchoolSubjectIE(InfoExtractor):
+    IE_DESC = 'Portal page for each school subjects, like Japanese (kokugo, 国語) or math (sansuu/suugaku or 算数・数学)'
+    KNOWN_SUBJECTS = (
+        'rika', 'syakai', 'kokugo',
+        'sansuu', 'seikatsu', 'doutoku',
+        'ongaku', 'taiiku', 'zukou',
+        'gijutsu', 'katei', 'sougou',
+        'eigo', 'tokkatsu',
+        'tokushi', 'sonota',
+    )
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>%s)/?(?:[\?#].*)?$' % '|'.join(re.escape(s) for s in KNOWN_SUBJECTS)
+
+    _TESTS = [{
+        'url': 'https://www.nhk.or.jp/school/sougou/',
+        'info_dict': {
+            'id': 'sougou',
+            'title': '総合的な学習の時間',
+        },
+        'playlist_mincount': 16,
+    }, {
+        'url': 'https://www.nhk.or.jp/school/rika/',
+        'info_dict': {
+            'id': 'rika',
+            'title': '理科',
+        },
+        'playlist_mincount': 15,
+    }]
+
+    def _real_extract(self, url):
+        subject_id = self._match_id(url)
+        webpage = self._download_webpage(url, subject_id)
+
+        return self.playlist_from_matches(
+            re.finditer(rf'href="((?:https?://www\.nhk\.or\.jp)?/school/{re.escape(subject_id)}/[^/]+/)"', webpage),
+            subject_id,
+            self._html_search_regex(r'(?s)<span\s+class="subjectName">\s*<img\s*[^<]+>\s*([^<]+?)</span>', webpage, 'title', fatal=False),
+            lambda g: urljoin(url, g.group(1)))
+
+
+class NhkForSchoolProgramListIE(InfoExtractor):
+    _VALID_URL = r'https?://www\.nhk\.or\.jp/school/(?P<id>(?:%s)/[a-zA-Z0-9_-]+)' % (
+        '|'.join(re.escape(s) for s in NhkForSchoolSubjectIE.KNOWN_SUBJECTS)
+    )
+    _TESTS = [{
+        'url': 'https://www.nhk.or.jp/school/sougou/q/',
+        'info_dict': {
+            'id': 'sougou/q',
+            'title': 'Ｑ～こどものための哲学',
+        },
+        'playlist_mincount': 20,
+    }]
+
+    def _real_extract(self, url):
+        program_id = self._match_id(url)
+
+        webpage = self._download_webpage(f'https://www.nhk.or.jp/school/{program_id}/', program_id)
+
+        title = (self._og_search_title(webpage)
+                 or self._html_extract_title(webpage)
+                 or self._html_search_regex(r'<h3>([^<]+?)とは？\s*</h3>', webpage, 'title', fatal=False))
+        title = re.sub(r'\s*\|\s*NHK\s+for\s+School\s*$', '', title) if title else None
+        description = self._html_search_regex(
+            r'(?s)<div\s+class="programDetail\s*">\s*<p>[^<]+</p>',
+            webpage, 'description', fatal=False, group=0)
+
+        bangumi_list = self._download_json(
+            f'https://www.nhk.or.jp/school/{program_id}/meta/program.json', program_id)
+        # they're always bangumi
+        bangumis = [
+            self.url_result(f'https://www2.nhk.or.jp/school/movie/bangumi.cgi?das_id={x}')
+            for x in traverse_obj(bangumi_list, ('part', ..., 'part-video-dasid')) or []]
+
+        return self.playlist_result(bangumis, program_id, title, description)

@@ -1,11 +1,8 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..compat import compat_str
 from ..utils import (
     determine_ext,
+    format_field,
     int_or_none,
     unified_timestamp,
 )
@@ -92,7 +89,7 @@ class VineIE(InfoExtractor):
 
         username = data.get('username')
 
-        alt_title = 'Vine by %s' % username if username else None
+        alt_title = format_field(username, template='Vine by %s')
 
         return {
             'id': video_id,

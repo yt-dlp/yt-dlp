@@ -1,10 +1,5 @@
-from __future__ import unicode_literals
-
 from ..compat import compat_str
-from ..utils import (
-    determine_protocol,
-    NO_DEFAULT
-)
+from ..utils import NO_DEFAULT, determine_protocol
 
 
 def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=None, to_stdout=False):
@@ -29,20 +24,18 @@ def get_suitable_downloader(info_dict, params={}, default=NO_DEFAULT, protocol=N
 # Some of these require get_suitable_downloader
 from .common import FileDownloader
 from .dash import DashSegmentsFD
+from .external import FFmpegFD, get_external_downloader
 from .f4m import F4mFD
+from .fc2 import FC2LiveFD
 from .hls import HlsFD
 from .http import HttpFD
-from .rtmp import RtmpFD
-from .rtsp import RtspFD
 from .ism import IsmFD
 from .mhtml import MhtmlFD
 from .niconico import NiconicoDmcFD
+from .rtmp import RtmpFD
+from .rtsp import RtspFD
 from .websocket import WebSocketFragmentFD
 from .youtube_live_chat import YoutubeLiveChatFD
-from .external import (
-    get_external_downloader,
-    FFmpegFD,
-)
 
 PROTOCOL_MAP = {
     'rtmp': RtmpFD,
@@ -58,6 +51,7 @@ PROTOCOL_MAP = {
     'ism': IsmFD,
     'mhtml': MhtmlFD,
     'niconico_dmc': NiconicoDmcFD,
+    'fc2_live': FC2LiveFD,
     'websocket_frag': WebSocketFragmentFD,
     'youtube_live_chat': YoutubeLiveChatFD,
     'youtube_live_chat_replay': YoutubeLiveChatFD,
@@ -117,7 +111,7 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
             return FFmpegFD
         elif (external_downloader or '').lower() == 'native':
             return HlsFD
-        elif get_suitable_downloader(
+        elif protocol == 'm3u8_native' and get_suitable_downloader(
                 info_dict, params, None, protocol='m3u8_frag_urls', to_stdout=info_dict['to_stdout']):
             return HlsFD
         elif params.get('hls_prefer_native') is True:

@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import base64
+
 from yt_dlp.aes import (
-    aes_decrypt,
-    aes_encrypt,
-    aes_ecb_encrypt,
-    aes_ecb_decrypt,
+    BLOCK_SIZE_BYTES,
     aes_cbc_decrypt,
     aes_cbc_decrypt_bytes,
     aes_cbc_encrypt,
     aes_ctr_decrypt,
     aes_ctr_encrypt,
+    aes_decrypt,
+    aes_decrypt_text,
+    aes_ecb_decrypt,
+    aes_ecb_encrypt,
+    aes_encrypt,
     aes_gcm_decrypt_and_verify,
     aes_gcm_decrypt_and_verify_bytes,
-    aes_decrypt_text,
-    BLOCK_SIZE_BYTES,
 )
-from yt_dlp.compat import compat_pycrypto_AES
+from yt_dlp.dependencies import Cryptodome_AES
 from yt_dlp.utils import bytes_to_intlist, intlist_to_bytes
-import base64
 
 # the encrypted data can be generate with 'devscripts/generate_aes_testdata.py'
 
@@ -45,7 +45,7 @@ class TestAES(unittest.TestCase):
         data = b'\x97\x92+\xe5\x0b\xc3\x18\x91ky9m&\xb3\xb5@\xe6\x27\xc2\x96.\xc8u\x88\xab9-[\x9e|\xf1\xcd'
         decrypted = intlist_to_bytes(aes_cbc_decrypt(bytes_to_intlist(data), self.key, self.iv))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
-        if compat_pycrypto_AES:
+        if Cryptodome_AES:
             decrypted = aes_cbc_decrypt_bytes(data, intlist_to_bytes(self.key), intlist_to_bytes(self.iv))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
@@ -75,25 +75,25 @@ class TestAES(unittest.TestCase):
         decrypted = intlist_to_bytes(aes_gcm_decrypt_and_verify(
             bytes_to_intlist(data), self.key, bytes_to_intlist(authentication_tag), self.iv[:12]))
         self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
-        if compat_pycrypto_AES:
+        if Cryptodome_AES:
             decrypted = aes_gcm_decrypt_and_verify_bytes(
                 data, intlist_to_bytes(self.key), authentication_tag, intlist_to_bytes(self.iv[:12]))
             self.assertEqual(decrypted.rstrip(b'\x08'), self.secret_msg)
 
     def test_decrypt_text(self):
-        password = intlist_to_bytes(self.key).decode('utf-8')
+        password = intlist_to_bytes(self.key).decode()
         encrypted = base64.b64encode(
             intlist_to_bytes(self.iv[:8])
             + b'\x17\x15\x93\xab\x8d\x80V\xcdV\xe0\t\xcdo\xc2\xa5\xd8ksM\r\xe27N\xae'
-        ).decode('utf-8')
+        ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 16))
         self.assertEqual(decrypted, self.secret_msg)
 
-        password = intlist_to_bytes(self.key).decode('utf-8')
+        password = intlist_to_bytes(self.key).decode()
         encrypted = base64.b64encode(
             intlist_to_bytes(self.iv[:8])
             + b'\x0b\xe6\xa4\xd9z\x0e\xb8\xb9\xd0\xd4i_\x85\x1d\x99\x98_\xe5\x80\xe7.\xbf\xa5\x83'
-        ).decode('utf-8')
+        ).decode()
         decrypted = (aes_decrypt_text(encrypted, password, 32))
         self.assertEqual(decrypted, self.secret_msg)
 

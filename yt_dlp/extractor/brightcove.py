@@ -1,9 +1,7 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import re
 import struct
+import xml.etree.ElementTree
 
 from .adobepass import AdobePassIE
 from .common import InfoExtractor
@@ -12,7 +10,6 @@ from ..compat import (
     compat_HTTPError,
     compat_parse_qs,
     compat_urlparse,
-    compat_xml_parse_error,
 )
 from ..utils import (
     clean_html,
@@ -166,7 +163,7 @@ class BrightcoveLegacyIE(InfoExtractor):
 
         try:
             object_doc = compat_etree_fromstring(object_str.encode('utf-8'))
-        except compat_xml_parse_error:
+        except xml.etree.ElementTree.ParseError:
             return
 
         fv_el = find_xpath_attr(object_doc, './param', 'name', 'flashVars')
