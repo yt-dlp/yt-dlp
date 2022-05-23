@@ -1,15 +1,11 @@
 import re
 import base64
 import json
+import urllib
 
 from .common import InfoExtractor
 from .adobepass import AdobePassIE
 from .once import OnceIE
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_quote_plus,
-    compat_urllib_parse_urlencode
-)
 from ..utils import (
     determine_ext,
     dict_get,
@@ -121,7 +117,7 @@ class ESPNIE(OnceIE):
             for source_id, source in source.items():
                 if source_id == 'alert':
                     continue
-                elif isinstance(source, compat_str):
+                elif isinstance(source, str):
                     extract_source(source, base_source_id)
                 elif isinstance(source, dict):
                     traverse_source(
@@ -316,7 +312,7 @@ class WatchESPNIE(AdobePassIE):
         if 'Authorization' not in headers:
             headers['Authorization'] = 'Bearer ' + self._API_KEY
         if path == 'token':
-            data = compat_urllib_parse_urlencode(payload).encode('utf-8')
+            data = urllib.parse.urlencode(payload).encode('utf-8')
         else:
             data = json.dumps(payload).encode('utf-8')
         return self._download_json(
