@@ -559,8 +559,11 @@ class YoutubeDL:
 
         if sys.version_info < (3, 6):
             self.report_warning(
-                f'Python version {self._format_err("%d.%d" % sys.version_info[:2], self.Styles.DEMAND)} is not '
-                'supported! Please update to Python 3.6 or above')
+                'Python version %(old)s is not supported! '
+                'Please update to Python %(new)s' % {
+                    'old': self._format_err("%d.%d" % sys.version_info[:2], self.Styles.ERROR),
+                    'new': self._format_err('3.6 or above', self.Styles.DEMAND)
+                })
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
