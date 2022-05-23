@@ -9,7 +9,8 @@ tar: yt-dlp.tar.gz
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
 # make pypi-files && python setup.py sdist
-pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites completions yt-dlp.1 devscripts/* test/*
+pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
+	        completions yt-dlp.1 requirements.txt setup.cfg devscripts/* test/*
 
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
@@ -91,10 +92,10 @@ yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	rm yt-dlp.zip
 	chmod a+x yt-dlp
 
-README.md: yt_dlp/*.py yt_dlp/*/*.py
+README.md: yt_dlp/*.py yt_dlp/*/*.py devscripts/make_readme.py
 	COLUMNS=80 $(PYTHON) yt_dlp/__main__.py --ignore-config --help | $(PYTHON) devscripts/make_readme.py
 
-CONTRIBUTING.md: README.md
+CONTRIBUTING.md: README.md devscripts/make_contributing.py
 	$(PYTHON) devscripts/make_contributing.py README.md CONTRIBUTING.md
 
 issuetemplates: devscripts/make_issue_template.py .github/ISSUE_TEMPLATE_tmpl/1_broken_site.yml .github/ISSUE_TEMPLATE_tmpl/2_site_support_request.yml .github/ISSUE_TEMPLATE_tmpl/3_site_feature_request.yml .github/ISSUE_TEMPLATE_tmpl/4_bug_report.yml .github/ISSUE_TEMPLATE_tmpl/5_feature_request.yml yt_dlp/version.py
@@ -111,7 +112,7 @@ supportedsites:
 README.txt: README.md
 	pandoc -f $(MARKDOWN) -t plain README.md -o README.txt
 
-yt-dlp.1: README.md
+yt-dlp.1: README.md devscripts/prepare_manpage.py
 	$(PYTHON) devscripts/prepare_manpage.py yt-dlp.1.temp.md
 	pandoc -s -f $(MARKDOWN) -t man yt-dlp.1.temp.md -o yt-dlp.1
 	rm -f yt-dlp.1.temp.md
@@ -147,7 +148,7 @@ yt-dlp.tar.gz: all
 		CONTRIBUTING.md Collaborators.md CONTRIBUTORS AUTHORS \
 		Makefile MANIFEST.in yt-dlp.1 README.txt completions \
 		setup.py setup.cfg yt-dlp yt_dlp requirements.txt \
-		devscripts test tox.ini pytest.ini
+		devscripts test
 
 AUTHORS: .mailmap
 	git shortlog -s -n | cut -f2 | sort > AUTHORS

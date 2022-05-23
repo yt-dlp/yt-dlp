@@ -2,12 +2,12 @@ import binascii
 import io
 import re
 
+from . import get_suitable_downloader
 from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
 from ..compat import compat_urlparse
 from ..dependencies import Cryptodome_AES
-from ..downloader import get_suitable_downloader
 from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
 

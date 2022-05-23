@@ -5,24 +5,8 @@ import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-OS_NAME = platform.system()
-if OS_NAME == 'Windows':
-    from PyInstaller.utils.win32.versioninfo import (
-        FixedFileInfo,
-        SetVersion,
-        StringFileInfo,
-        StringStruct,
-        StringTable,
-        VarFileInfo,
-        VarStruct,
-        VSVersionInfo,
-    )
-elif OS_NAME == 'Darwin':
-    pass
-else:
-    raise Exception(f'{OS_NAME} is not supported')
 
-ARCH = platform.architecture()[0][:2]
+OS_NAME, ARCH = sys.platform, platform.architecture()[0][:2]
 
 
 def main():
@@ -33,10 +17,7 @@ def main():
     if not onedir and '-F' not in opts and '--onefile' not in opts:
         opts.append('--onefile')
 
-    name = 'yt-dlp%s' % ('_macos' if OS_NAME == 'Darwin' else '_x86' if ARCH == '32' else '')
-    final_file = ''.join((
-        'dist/', f'{name}/' if onedir else '', name, '.exe' if OS_NAME == 'Windows' else ''))
-
+    name, final_file = exe(onedir)
     print(f'Building yt-dlp v{version} {ARCH}bit for {OS_NAME} with options {opts}')
     print('Remember to update the version using  "devscripts/update-version.py"')
     if not os.path.isfile('yt_dlp/extractor/lazy_extractors.py'):
@@ -79,6 +60,21 @@ def read_version(fname):
         return locals()['__version__']
 
 
+def exe(onedir):
+    """@returns (name, path)"""
+    name = '_'.join(filter(None, (
+        'yt-dlp',
+        OS_NAME == 'darwin' and 'macos',
+        ARCH == '32' and 'x86'
+    )))
+    return name, ''.join(filter(None, (
+        'dist/',
+        onedir and f'{name}/',
+        name,
+        OS_NAME == 'win32' and '.exe'
+    )))
+
+
 def version_to_list(version):
     version_list = version.split('.')
     return list(map(int, version_list)) + [0] * (4 - len(version_list))
@@ -114,6 +110,17 @@ def set_version_info(exe, version):
 
 
 def windows_set_version(exe, version):
+    from PyInstaller.utils.win32.versioninfo import (
+        FixedFileInfo,
+        SetVersion,
+        StringFileInfo,
+        StringStruct,
+        StringTable,
+        VarFileInfo,
+        VarStruct,
+        VSVersionInfo,
+    )
+
     version_list = version_to_list(version)
     suffix = '_x86' if ARCH == '32' else ''
     SetVersion(exe, VSVersionInfo(
