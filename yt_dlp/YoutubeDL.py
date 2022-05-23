@@ -3005,7 +3005,7 @@ class YoutubeDL:
                         template_vars['filename'] = linkfn[:-(len(link_type) + 1)]
                     linkfile.write(LINK_TEMPLATES[link_type] % template_vars)
             except OSError:
-                self.report_error('Cannot write internet shortcut %(link)s' %
+                self.report_error('Cannot write internet shortcut %s' %
                                   self._format_err(linkfn, self.Styles.FILENAME))
                 return False
             return True
