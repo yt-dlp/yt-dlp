@@ -1038,6 +1038,7 @@ class YoutubeDL:
     def _copy_infodict(info_dict):
         info_dict = dict(info_dict)
         info_dict.pop('__postprocessors', None)
+        info_dict.pop('__pending_error', None)
         return info_dict
 
     def prepare_outtmpl(self, outtmpl, info_dict, sanitize=False):
@@ -1529,6 +1530,7 @@ class YoutubeDL:
                 self.add_extra_info(info_copy, extra_info)
                 info_copy, _ = self.pre_process(info_copy)
                 self.__forced_printings(info_copy, self.prepare_filename(info_copy), incomplete=True)
+                self._raise_pending_errors(info_copy)
                 if self.params.get('force_write_download_archive', False):
                     self.record_download_archive(info_copy)
                 return ie_result
@@ -1536,6 +1538,7 @@ class YoutubeDL:
         if result_type == 'video':
             self.add_extra_info(ie_result, extra_info)
             ie_result = self.process_video_result(ie_result, download=download)
+            self._raise_pending_errors(ie_result)
             additional_urls = (ie_result or {}).get('additional_urls')
             if additional_urls:
                 # TODO: Improve MetadataParserPP to allow setting a list
@@ -2273,7 +2276,7 @@ class YoutubeDL:
     def _calc_headers(self, info_dict):
         res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
 
-        cookies = self._calc_cookies(info_dict)
+        cookies = self._calc_cookies(info_dict['url'])
         if cookies:
             res['Cookie'] = cookies
 
@@ -2284,8 +2287,8 @@ class YoutubeDL:
 
         return res
 
-    def _calc_cookies(self, info_dict):
-        pr = sanitized_Request(info_dict['url'])
+    def _calc_cookies(self, url):
+        pr = sanitized_Request(url)
         self.cookiejar.add_cookie_header(pr)
         return pr.get_header('Cookie')
 
@@ -2382,6 +2385,11 @@ class YoutubeDL:
         for field in ('chapter', 'season', 'episode'):
             if info_dict.get('%s_number' % field) is not None and not info_dict.get(field):
                 info_dict[field] = '%s %d' % (field.capitalize(), info_dict['%s_number' % field])
+
+    def _raise_pending_errors(self, info):
+        err = info.pop('__pending_error', None)
+        if err:
+            self.report_error(err, tb=False)
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
@@ -2588,7 +2596,7 @@ class YoutubeDL:
         if list_only:
             # Without this printing, -F --print-json will not work
             self.__forced_printings(info_dict, self.prepare_filename(info_dict), incomplete=True)
-            return
+            return info_dict
 
         format_selector = self.format_selector
         if format_selector is None:
@@ -2643,6 +2651,7 @@ class YoutubeDL:
                     self.process_info(new_info)
                 except MaxDownloadsReached:
                     max_downloads_reached = True
+                self._raise_pending_errors(new_info)
                 # Remove copied info
                 for key, val in tuple(new_info.items()):
                     if info_dict.get(key) == val:
@@ -2877,8 +2886,13 @@ class YoutubeDL:
         # Forced printings
         self.__forced_printings(info_dict, full_filename, incomplete=('format' not in info_dict))
 
+        def check_max_downloads():
+            if self._num_downloads >= float(self.params.get('max_downloads') or 'inf'):
+                raise MaxDownloadsReached()
+
         if self.params.get('simulate'):
             info_dict['__write_download_archive'] = self.params.get('force_write_download_archive')
+            check_max_downloads()
             return
 
         if full_filename is None:
@@ -2982,12 +2996,8 @@ class YoutubeDL:
             info_dict.clear()
             info_dict.update(new_info)
 
-        try:
-            new_info, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
-            replace_info_dict(new_info)
-        except PostProcessingError as err:
-            self.report_error('Preprocessing: %s' % str(err))
-            return
+        new_info, files_to_move = self.pre_process(info_dict, 'before_dl', files_to_move)
+        replace_info_dict(new_info)
 
         if self.params.get('skip_download'):
             info_dict['filepath'] = temp_filename
@@ -3042,7 +3052,7 @@ class YoutubeDL:
                                 and info_dict.get('thumbnails')
                                 # check with type instead of pp_key, __name__, or isinstance
                                 # since we dont want any custom PPs to trigger this
-                                and any(type(pp) == EmbedThumbnailPP for pp in self._pps['post_process'])):
+                                and any(type(pp) == EmbedThumbnailPP for pp in self._pps['post_process'])):  # noqa: E721
                             info_dict['ext'] = 'mkv'
                             self.report_warning(
                                 'webm doesn\'t support embedding a thumbnail, mkv will be used')
@@ -3147,6 +3157,7 @@ class YoutubeDL:
                 self.report_error(f'content too short (expected {err.expected} bytes and served {err.downloaded})')
                 return
 
+            self._raise_pending_errors(info_dict)
             if success and full_filename != '-':
 
                 def fixup():
@@ -3216,15 +3227,10 @@ class YoutubeDL:
                     return
                 info_dict['__write_download_archive'] = True
 
+        assert info_dict is original_infodict  # Make sure the info_dict was modified in-place
         if self.params.get('force_write_download_archive'):
             info_dict['__write_download_archive'] = True
-
-        # Make sure the info_dict was modified in-place
-        assert info_dict is original_infodict
-
-        max_downloads = self.params.get('max_downloads')
-        if max_downloads is not None and self._num_downloads >= int(max_downloads):
-            raise MaxDownloadsReached()
+        check_max_downloads()
 
     def __download_wrapper(self, func):
         @functools.wraps(func)
@@ -3367,7 +3373,12 @@ class YoutubeDL:
     def pre_process(self, ie_info, key='pre_process', files_to_move=None):
         info = dict(ie_info)
         info['__files_to_move'] = files_to_move or {}
-        info = self.run_all_pps(key, info)
+        try:
+            info = self.run_all_pps(key, info)
+        except PostProcessingError as err:
+            msg = f'Preprocessing: {err}'
+            info.setdefault('__pending_error', msg)
+            self.report_error(msg, is_error=False)
         return info, info.pop('__files_to_move', None)
 
     def post_process(self, filename, info, files_to_move=None):

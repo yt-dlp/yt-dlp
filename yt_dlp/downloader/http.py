@@ -136,20 +136,18 @@ class HttpFD(FileDownloader):
                 if has_range:
                     content_range = ctx.data.headers.get('Content-Range')
                     content_range_start, content_range_end, content_len = parse_http_range(content_range)
-                    if content_range_start is not None and range_start == content_range_start:
-                        # Content-Range is present and matches requested Range, resume is possible
-                        accept_content_len = (
+                    # Content-Range is present and matches requested Range, resume is possible
+                    if range_start == content_range_start and (
                             # Non-chunked download
                             not ctx.chunk_size
                             # Chunked download and requested piece or
                             # its part is promised to be served
                             or content_range_end == range_end
-                            or content_len < range_end)
-                        if accept_content_len:
-                            ctx.content_len = content_len
-                            if content_len or req_end:
-                                ctx.data_len = min(content_len or req_end, req_end or content_len) - (req_start or 0)
-                            return
+                            or content_len < range_end):
+                        ctx.content_len = content_len
+                        if content_len or req_end:
+                            ctx.data_len = min(content_len or req_end, req_end or content_len) - (req_start or 0)
+                        return
                     # Content-Range is either not present or invalid. Assuming remote webserver is
                     # trying to send the whole file, resume is not possible, so wiping the local file
                     # and performing entire redownload

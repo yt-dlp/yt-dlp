@@ -165,18 +165,11 @@ class FragmentFD(FileDownloader):
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
-        dl = HttpQuietDownloader(
-            self.ydl,
-            {
-                'continuedl': self.params.get('continuedl', True),
-                'quiet': self.params.get('quiet'),
-                'noprogress': True,
-                'ratelimit': self.params.get('ratelimit'),
-                'retries': self.params.get('retries', 0),
-                'nopart': self.params.get('nopart', False),
-                'test': False,
-            }
-        )
+        dl = HttpQuietDownloader(self.ydl, {
+            **self.params,
+            'noprogress': True,
+            'test': False,
+        })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
         resume_len = 0
