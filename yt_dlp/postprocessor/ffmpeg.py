@@ -284,12 +284,12 @@ class FFmpegPostProcessor(PostProcessor):
             if fatal:
                 raise PostProcessingError(f'Unable to determine video duration: {e.msg}')
 
-    def _duration_mismatch(self, d1, d2):
+    def _duration_mismatch(self, d1, d2, tolerance=2):
         if not d1 or not d2:
             return None
         # The duration is often only known to nearest second. So there can be <1sec disparity natually.
         # Further excuse an additional <1sec difference.
-        return abs(d1 - d2) > 2
+        return abs(d1 - d2) > tolerance
 
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
