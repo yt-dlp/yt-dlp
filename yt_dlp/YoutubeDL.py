@@ -982,7 +982,8 @@ class YoutubeDL:
     def report_file_delete(self, file_name):
         """Report that existing file will be deleted."""
         try:
-            self.to_screen('Deleting existing file %s' % file_name)
+            self.to_screen('Deleting existing file %s' %
+                           self._format_screen(file_name, self.Styles.FILENAME))
         except UnicodeEncodeError:
             self.to_screen('Deleting existing file')
 
