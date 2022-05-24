@@ -5163,6 +5163,12 @@ def parse_http_range(range):
     return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
 
 
+def read_stdin(what):
+    eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
+    write_string(f'Reading {what} from STDIN - EOF ({eof}) to end:\n')
+    return sys.stdin
+
+
 class Config:
     own_args = None
     parsed_args = None
@@ -5188,6 +5194,9 @@ class Config:
         self.parsed_args, self.filename = args, filename
 
         for location in opts.config_locations or []:
+            if location == '-':
+                self.append_config(shlex.split(read_stdin('options'), comments=True), label='stdin')
+                continue
             location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
