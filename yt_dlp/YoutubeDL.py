@@ -796,9 +796,17 @@ class YoutubeDL:
             return
         if (self.params.get('quiet') if quiet is None else quiet) and not self.params.get('verbose'):
             return
+
+        out_file = self._out_files['screen']
+
+        # in case we need to output the subtitles to stdout, then redirect all the
+        # messages to stderr
+        if self.params.get('outtmpl', {}).get('subtitle', '') == "-":
+            out_file = self._out_files['error']
+
         self._write_string(
             '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
-            self._out_files['screen'])
+            out_file)
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
