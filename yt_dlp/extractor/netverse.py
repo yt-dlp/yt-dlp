@@ -117,7 +117,6 @@ class NetverseIE(NetverseBaseIE):
         # For m3u8
         m3u8_file = traverse_obj(real_video_json, ('qualities', 'auto'))
 
-        # got error in the end of '-F' option
         for format in m3u8_file:
             video_url = format.get('url')
             if video_url is None:
