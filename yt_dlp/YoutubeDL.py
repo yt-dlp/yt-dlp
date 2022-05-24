@@ -1389,7 +1389,7 @@ class YoutubeDL:
             break_opt, break_err = 'break_on_reject', RejectedVideoReached
         if reason is not None:
             if not silent:
-                self.to_screen('[download] ' + reason)
+                self.to_screen(f'{self.Channels.DOWNLOAD(self._format_screen)} {reason}')
             if self.params.get(break_opt, False):
                 raise break_err()
         return reason
