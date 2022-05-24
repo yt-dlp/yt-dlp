@@ -3847,7 +3847,7 @@ class YoutubeDL:
                     # Use newline='' to prevent conversion of newline characters
                     # See https://github.com/ytdl-org/youtube-dl/issues/10268
                     with sanitize_open(sub_filename, 'w', encoding='utf-8', newline='')[0] as subfile:
-                        subfile.write(sub_info['data'])
+                        subfile.write(sub_info['data'].encode())
                     add_subtitle_path(sub_info, sub_filename, sub_filename_final)
                     continue
                 except OSError:
