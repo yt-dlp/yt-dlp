@@ -3,17 +3,9 @@ import heapq
 import os
 
 from .common import PostProcessor
-from .ffmpeg import (
-    FFmpegPostProcessor,
-    FFmpegSubtitlesConvertorPP
-)
+from .ffmpeg import FFmpegPostProcessor, FFmpegSubtitlesConvertorPP
 from .sponsorblock import SponsorBlockPP
-from ..utils import (
-    orderedSet,
-    PostProcessingError,
-    prepend_extension,
-)
-
+from ..utils import PostProcessingError, orderedSet, prepend_extension
 
 _TINY_CHAPTER_DURATION = 1
 DEFAULT_SPONSORBLOCK_CHAPTER_TITLE = '[SponsorBlock]: %(category_names)l'
@@ -40,13 +32,13 @@ class ModifyChaptersPP(FFmpegPostProcessor):
 
         real_duration = self._get_real_video_duration(info['filepath'])
         if not chapters:
-            chapters = [{'start_time': 0, 'end_time': real_duration, 'title': info['title']}]
+            chapters = [{'start_time': 0, 'end_time': info.get('duration') or real_duration, 'title': info['title']}]
 
         info['chapters'], cuts = self._remove_marked_arrange_sponsors(chapters + sponsor_chapters)
         if not cuts:
             return [], info
 
-        if self._duration_mismatch(real_duration, info.get('duration')):
+        if self._duration_mismatch(real_duration, info.get('duration'), 1):
             if not self._duration_mismatch(real_duration, info['chapters'][-1]['end_time']):
                 self.to_screen(f'Skipping {self.pp_key()} since the video appears to be already cut')
                 return [], info
@@ -322,7 +314,7 @@ class ModifyChaptersPP(FFmpegPostProcessor):
         self.to_screen(f'Removing chapters from {filename}')
         self.concat_files([in_file] * len(concat_opts), out_file, concat_opts)
         if in_file != filename:
-            os.remove(in_file)
+            self._delete_downloaded_files(in_file, msg=None)
         return out_file
 
     @staticmethod

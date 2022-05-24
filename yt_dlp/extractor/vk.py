@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import collections
 import re
 
@@ -593,7 +590,6 @@ class VKWallPostIE(VKBaseIE):
         }],
         'params': {
             'skip_download': True,
-            'usenetrc': True,
         },
         'skip': 'Requires vk account credentials',
     }, {
@@ -604,9 +600,6 @@ class VKWallPostIE(VKBaseIE):
             'title': 'Сергей Горбунов - Wall post 85155021_6319',
         },
         'playlist_count': 1,
-        'params': {
-            'usenetrc': True,
-        },
         'skip': 'Requires vk account credentials',
     }, {
         # wall page URL

@@ -1,14 +1,11 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 import time
+import urllib.error
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_kwargs,
     compat_urlparse,
     compat_getpass
 )
@@ -1365,7 +1362,7 @@ class AdobePassIE(InfoExtractor):
         headers.update(kwargs.get('headers', {}))
         kwargs['headers'] = headers
         return super(AdobePassIE, self)._download_webpage_handle(
-            *args, **compat_kwargs(kwargs))
+            *args, **kwargs)
 
     @staticmethod
     def _get_mvpd_resource(provider_id, title, guid, rating):
@@ -1439,27 +1436,29 @@ class AdobePassIE(InfoExtractor):
             if authn_token and is_expired(authn_token, 'simpleTokenExpires'):
                 authn_token = None
             if not authn_token:
-                # TODO add support for other TV Providers
                 mso_id = self.get_param('ap_mso')
+                if mso_id:
+                    username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
+                    if not username or not password:
+                        raise_mvpd_required()
+                    mso_info = MSO_INFO[mso_id]
+
+                    provider_redirect_page_res = self._download_webpage_handle(
+                        self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
+                        'Downloading Provider Redirect Page', query={
+                            'noflash': 'true',
+                            'mso_id': mso_id,
+                            'requestor_id': requestor_id,
+                            'no_iframe': 'false',
+                            'domain_name': 'adobe.com',
+                            'redirect_url': url,
+                        })
+                elif not self._cookies_passed:
+                    raise_mvpd_required()
+
                 if not mso_id:
-                    raise_mvpd_required()
-                username, password = self._get_login_info('ap_username', 'ap_password', mso_id)
-                if not username or not password:
-                    raise_mvpd_required()
-                mso_info = MSO_INFO[mso_id]
-
-                provider_redirect_page_res = self._download_webpage_handle(
-                    self._SERVICE_PROVIDER_TEMPLATE % 'authenticate/saml', video_id,
-                    'Downloading Provider Redirect Page', query={
-                        'noflash': 'true',
-                        'mso_id': mso_id,
-                        'requestor_id': requestor_id,
-                        'no_iframe': 'false',
-                        'domain_name': 'adobe.com',
-                        'redirect_url': url,
-                    })
-
-                if mso_id == 'Comcast_SSO':
+                    pass
+                elif mso_id == 'Comcast_SSO':
                     # Comcast page flow varies by video site and whether you
                     # are on Comcast's network.
                     provider_redirect_page, urlh = provider_redirect_page_res
@@ -1715,12 +1714,17 @@ class AdobePassIE(InfoExtractor):
                     if mso_id != 'Rogers':
                         post_form(mvpd_confirm_page_res, 'Confirming Login')
 
-                session = self._download_webpage(
-                    self._SERVICE_PROVIDER_TEMPLATE % 'session', video_id,
-                    'Retrieving Session', data=urlencode_postdata({
-                        '_method': 'GET',
-                        'requestor_id': requestor_id,
-                    }), headers=mvpd_headers)
+                try:
+                    session = self._download_webpage(
+                        self._SERVICE_PROVIDER_TEMPLATE % 'session', video_id,
+                        'Retrieving Session', data=urlencode_postdata({
+                            '_method': 'GET',
+                            'requestor_id': requestor_id,
+                        }), headers=mvpd_headers)
+                except ExtractorError as e:
+                    if not mso_id and isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 401:
+                        raise_mvpd_required()
+                    raise
                 if '<pendingLogout' in session:
                     self._downloader.cache.store(self._MVPD_CACHE, requestor_id, {})
                     count += 1

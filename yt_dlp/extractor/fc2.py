@@ -1,19 +1,15 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
 from ..compat import (
     compat_parse_qs,
 )
+from ..dependencies import websockets
 from ..utils import (
     ExtractorError,
     WebSocketsWrapper,
-    has_websockets,
     js_to_json,
     sanitized_Request,
-    std_headers,
     traverse_obj,
     update_url_query,
     urlencode_postdata,
@@ -173,7 +169,7 @@ class FC2LiveIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        if not has_websockets:
+        if not websockets:
             raise ExtractorError('websockets library is not available. Please install it.', expected=True)
         video_id = self._match_id(url)
         webpage = self._download_webpage('https://live.fc2.com/%s/' % video_id, video_id)
@@ -210,7 +206,7 @@ class FC2LiveIE(InfoExtractor):
             'Cookie': str(self._get_cookies('https://live.fc2.com/'))[12:],
             'Origin': 'https://live.fc2.com',
             'Accept': '*/*',
-            'User-Agent': std_headers['User-Agent'],
+            'User-Agent': self.get_param('http_headers')['User-Agent'],
         })
 
         self.write_debug('[debug] Sending HLS server request')

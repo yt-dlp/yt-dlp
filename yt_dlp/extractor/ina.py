@@ -1,26 +1,19 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..utils import (
-    determine_ext,
-    int_or_none,
-    strip_or_none,
-    xpath_attr,
-    xpath_text,
-)
+from ..utils import unified_strdate
 
 
 class InaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:(?:www|m)\.)?ina\.fr/(?:video|audio)/(?P<id>[A-Z0-9_]+)'
+    _VALID_URL = r'https?://(?:(?:www|m)\.)?ina\.fr/(?:[^/]+/)?(?:video|audio)/(?P<id>\w+)'
     _TESTS = [{
-        'url': 'http://www.ina.fr/video/I12055569/francois-hollande-je-crois-que-c-est-clair-video.html',
-        'md5': 'a667021bf2b41f8dc6049479d9bb38a3',
+        'url': 'https://www.ina.fr/video/I12055569/francois-hollande-je-crois-que-c-est-clair-video.html',
+        'md5': 'c5a09e5cb5604ed10709f06e7a377dda',
         'info_dict': {
             'id': 'I12055569',
             'ext': 'mp4',
             'title': 'François Hollande "Je crois que c\'est clair"',
-            'description': 'md5:3f09eb072a06cb286b8f7e4f77109663',
+            'description': 'md5:08201f1c86fb250611f0ba415d21255a',
+            'upload_date': '20070712',
+            'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/3c4/I12055569.jpeg',
         }
     }, {
         'url': 'https://www.ina.fr/video/S806544_001/don-d-organes-des-avancees-mais-d-importants-besoins-video.html',
@@ -34,53 +27,37 @@ class InaIE(InfoExtractor):
     }, {
         'url': 'http://m.ina.fr/video/I12055569',
         'only_matching': True,
+    }, {
+        'url': 'https://www.ina.fr/ina-eclaire-actu/video/cpb8205116303/les-jeux-electroniques',
+        'md5': '4b8284a9a3a184fdc7e744225b8251e7',
+        'info_dict': {
+            'id': 'CPB8205116303',
+            'ext': 'mp4',
+            'title': 'Les jeux électroniques',
+            'description': 'md5:e09f7683dad1cc60b74950490127d233',
+            'upload_date': '19821204',
+            'duration': 657,
+            'thumbnail': 'https://cdn-hub.ina.fr/notice/690x517/203/CPB8205116303.jpeg',
+        }
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
-        info_doc = self._download_xml(
-            'http://player.ina.fr/notices/%s.mrss' % video_id, video_id)
-        item = info_doc.find('channel/item')
-        title = xpath_text(item, 'title', fatal=True)
-        media_ns_xpath = lambda x: self._xpath_ns(x, 'http://search.yahoo.com/mrss/')
-        content = item.find(media_ns_xpath('content'))
+        video_id = self._match_id(url).upper()
+        webpage = self._download_webpage(url, video_id)
 
-        get_furl = lambda x: xpath_attr(content, media_ns_xpath(x), 'url')
-        formats = []
-        for q, w, h in (('bq', 400, 300), ('mq', 512, 384), ('hq', 768, 576)):
-            q_url = get_furl(q)
-            if not q_url:
-                continue
-            formats.append({
-                'format_id': q,
-                'url': q_url,
-                'width': w,
-                'height': h,
-            })
-        if not formats:
-            furl = get_furl('player') or content.attrib['url']
-            ext = determine_ext(furl)
-            formats = [{
-                'url': furl,
-                'vcodec': 'none' if ext == 'mp3' else None,
-                'ext': ext,
-            }]
+        api_url = self._html_search_regex(
+            r'asset-details-url\s*=\s*["\'](?P<api_url>[^"\']+)',
+            webpage, 'api_url').replace(video_id, f'{video_id}.json')
 
-        thumbnails = []
-        for thumbnail in content.findall(media_ns_xpath('thumbnail')):
-            thumbnail_url = thumbnail.get('url')
-            if not thumbnail_url:
-                continue
-            thumbnails.append({
-                'url': thumbnail_url,
-                'height': int_or_none(thumbnail.get('height')),
-                'width': int_or_none(thumbnail.get('width')),
-            })
+        api_response = self._download_json(api_url, video_id)
 
         return {
             'id': video_id,
-            'formats': formats,
-            'title': title,
-            'description': strip_or_none(xpath_text(item, 'description')),
-            'thumbnails': thumbnails,
+            'url': api_response['resourceUrl'],
+            'ext': {'video': 'mp4', 'audio': 'mp3'}.get(api_response.get('type')),
+            'title': api_response.get('title'),
+            'description': api_response.get('description'),
+            'upload_date': unified_strdate(api_response.get('dateOfBroadcast')),
+            'duration': api_response.get('duration'),
+            'thumbnail': api_response.get('resourceThumbnail'),
         }

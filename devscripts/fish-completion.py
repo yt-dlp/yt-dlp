@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 import optparse
 import os
-from os.path import dirname as dirn
 import sys
 
-sys.path.insert(0, dirn(dirn((os.path.abspath(__file__)))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import yt_dlp
 from yt_dlp.utils import shell_quote
 
@@ -46,5 +44,5 @@ def build_completion(opt_parser):
         f.write(filled_template)
 
 
-parser = yt_dlp.parseOpts()[0]
+parser = yt_dlp.parseOpts(ignore_config_files=True)[0]
 build_completion(parser)

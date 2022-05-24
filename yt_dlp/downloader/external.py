@@ -1,5 +1,4 @@
-from __future__ import unicode_literals
-
+import enum
 import os.path
 import re
 import subprocess
@@ -7,30 +6,34 @@ import sys
 import time
 
 from .fragment import FragmentFD
-from ..compat import (
-    compat_setenv,
-    compat_str,
-)
-from ..postprocessor.ffmpeg import FFmpegPostProcessor, EXT_TO_OUT_FORMATS
+from ..compat import functools  # isort: split
+from ..compat import compat_setenv
+from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
+    Popen,
+    _configuration_args,
+    check_executable,
     classproperty,
+    cli_bool_option,
     cli_option,
     cli_valueless_option,
-    cli_bool_option,
-    _configuration_args,
     determine_ext,
-    encodeFilename,
     encodeArgument,
+    encodeFilename,
     handle_youtubedl_headers,
-    check_executable,
-    Popen,
     remove_end,
+    traverse_obj,
 )
+
+
+class Features(enum.Enum):
+    TO_STDOUT = enum.auto()
+    MULTIPLE_FORMATS = enum.auto()
 
 
 class ExternalFD(FragmentFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps')
-    can_download_to_stdout = False
+    SUPPORTED_FEATURES = ()
 
     def real_download(self, filename, info_dict):
         self.report_destination(filename)
@@ -56,7 +59,7 @@ class ExternalFD(FragmentFD):
             }
             if filename != '-':
                 fsize = os.path.getsize(encodeFilename(tmpfilename))
-                self.to_screen('\r[%s] Downloaded %s bytes' % (self.get_basename(), fsize))
+                self.to_screen(f'\r[{self.get_basename()}] Downloaded {fsize} bytes')
                 self.try_rename(tmpfilename, filename)
                 status.update({
                     'downloaded_bytes': fsize,
@@ -78,7 +81,7 @@ class ExternalFD(FragmentFD):
     def EXE_NAME(cls):
         return cls.get_basename()
 
-    @property
+    @functools.cached_property
     def exe(self):
         return self.EXE_NAME
 
@@ -94,9 +97,11 @@ class ExternalFD(FragmentFD):
 
     @classmethod
     def supports(cls, info_dict):
-        return (
-            (cls.can_download_to_stdout or not info_dict.get('to_stdout'))
-            and info_dict['protocol'] in cls.SUPPORTED_PROTOCOLS)
+        return all((
+            not info_dict.get('to_stdout') or Features.TO_STDOUT in cls.SUPPORTED_FEATURES,
+            '+' not in info_dict['protocol'] or Features.MULTIPLE_FORMATS in cls.SUPPORTED_FEATURES,
+            all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+')),
+        ))
 
     @classmethod
     def can_download(cls, info_dict, path=None):
@@ -146,6 +151,7 @@ class ExternalFD(FragmentFD):
                 self.to_screen(
                     '[%s] Got error. Retrying fragments (attempt %d of %s)...'
                     % (self.get_basename(), count, self.format_retries(fragment_retries)))
+                self.sleep_retry('fragment', count)
         if count > fragment_retries:
             if not skip_unavailable_fragments:
                 self.report_error('Giving up after %s fragment retries' % fragment_retries)
@@ -157,7 +163,7 @@ class ExternalFD(FragmentFD):
             fragment_filename = '%s-Frag%d' % (tmpfilename, frag_index)
             try:
                 src, _ = self.sanitize_open(fragment_filename, 'rb')
-            except IOError as err:
+            except OSError as err:
                 if skip_unavailable_fragments and frag_index > 1:
                     self.report_skip_fragment(frag_index, err)
                     continue
@@ -179,7 +185,7 @@ class CurlFD(ExternalFD):
         cmd = [self.exe, '--location', '-o', tmpfilename, '--compressed']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', '%s: %s' % (key, val)]
+                cmd += ['--header', f'{key}: {val}']
 
         cmd += self._bool_option('--continue-at', 'continuedl', '-', '0')
         cmd += self._valueless_option('--silent', 'noprogress')
@@ -216,7 +222,7 @@ class AxelFD(ExternalFD):
         cmd = [self.exe, '-o', tmpfilename]
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['-H', '%s: %s' % (key, val)]
+                cmd += ['-H', f'{key}: {val}']
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
         return cmd
@@ -229,7 +235,7 @@ class WgetFD(ExternalFD):
         cmd = [self.exe, '-O', tmpfilename, '-nv', '--no-cookies', '--compression=auto']
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', '%s: %s' % (key, val)]
+                cmd += ['--header', f'{key}: {val}']
         cmd += self._option('--limit-rate', 'ratelimit')
         retry = self._option('--tries', 'retries')
         if len(retry) == 2:
@@ -240,7 +246,7 @@ class WgetFD(ExternalFD):
         proxy = self.params.get('proxy')
         if proxy:
             for var in ('http_proxy', 'https_proxy'):
-                cmd += ['--execute', '%s=%s' % (var, proxy)]
+                cmd += ['--execute', f'{var}={proxy}']
         cmd += self._valueless_option('--no-check-certificate', 'nocheckcertificate')
         cmd += self._configuration_args()
         cmd += ['--', info_dict['url']]
@@ -271,7 +277,7 @@ class Aria2cFD(ExternalFD):
 
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['--header', '%s: %s' % (key, val)]
+                cmd += ['--header', f'{key}: {val}']
         cmd += self._option('--max-overall-download-limit', 'ratelimit')
         cmd += self._option('--interface', 'source_address')
         cmd += self._option('--all-proxy', 'proxy')
@@ -289,10 +295,10 @@ class Aria2cFD(ExternalFD):
         dn = os.path.dirname(tmpfilename)
         if dn:
             if not os.path.isabs(dn):
-                dn = '.%s%s' % (os.path.sep, dn)
+                dn = f'.{os.path.sep}{dn}'
             cmd += ['--dir', dn + os.path.sep]
         if 'fragments' not in info_dict:
-            cmd += ['--out', '.%s%s' % (os.path.sep, os.path.basename(tmpfilename))]
+            cmd += ['--out', f'.{os.path.sep}{os.path.basename(tmpfilename)}']
         cmd += ['--auto-file-renaming=false']
 
         if 'fragments' in info_dict:
@@ -303,7 +309,7 @@ class Aria2cFD(ExternalFD):
                 fragment_filename = '%s-Frag%d' % (os.path.basename(tmpfilename), frag_index)
                 url_list.append('%s\n\tout=%s' % (fragment['url'], fragment_filename))
             stream, _ = self.sanitize_open(url_list_file, 'wb')
-            stream.write('\n'.join(url_list).encode('utf-8'))
+            stream.write('\n'.join(url_list).encode())
             stream.close()
             cmd += ['-i', url_list_file]
         else:
@@ -320,23 +326,19 @@ class HttpieFD(ExternalFD):
 
         if info_dict.get('http_headers') is not None:
             for key, val in info_dict['http_headers'].items():
-                cmd += ['%s:%s' % (key, val)]
+                cmd += [f'{key}:{val}']
         return cmd
 
 
 class FFmpegFD(ExternalFD):
     SUPPORTED_PROTOCOLS = ('http', 'https', 'ftp', 'ftps', 'm3u8', 'm3u8_native', 'rtsp', 'rtmp', 'rtmp_ffmpeg', 'mms', 'http_dash_segments')
-    can_download_to_stdout = True
+    SUPPORTED_FEATURES = (Features.TO_STDOUT, Features.MULTIPLE_FORMATS)
 
     @classmethod
     def available(cls, path=None):
         # TODO: Fix path for ffmpeg
         # Fixme: This may be wrong when --ffmpeg-location is used
         return FFmpegPostProcessor().available
-
-    @classmethod
-    def supports(cls, info_dict):
-        return all(proto in cls.SUPPORTED_PROTOCOLS for proto in info_dict['protocol'].split('+'))
 
     def on_process_started(self, proc, stdin):
         """ Override this in subclasses  """
@@ -368,9 +370,11 @@ class FFmpegFD(ExternalFD):
         if not self.params.get('verbose'):
             args += ['-hide_banner']
 
-        args += info_dict.get('_ffmpeg_args', [])
+        args += traverse_obj(info_dict, ('downloader_options', 'ffmpeg_args'), default=[])
 
-        # This option exists only for compatibility. Extractors should use `_ffmpeg_args` instead
+        # These exists only for compatibility. Extractors should use
+        # info_dict['downloader_options']['ffmpeg_args'] instead
+        args += info_dict.get('_ffmpeg_args') or []
         seekable = info_dict.get('_seekable')
         if seekable is not None:
             # setting -seekable prevents ffmpeg from guessing if the server
@@ -382,18 +386,20 @@ class FFmpegFD(ExternalFD):
 
         # start_time = info_dict.get('start_time') or 0
         # if start_time:
-        #     args += ['-ss', compat_str(start_time)]
+        #     args += ['-ss', str(start_time)]
         # end_time = info_dict.get('end_time')
         # if end_time:
-        #     args += ['-t', compat_str(end_time - start_time)]
+        #     args += ['-t', str(end_time - start_time)]
 
-        if info_dict.get('http_headers') is not None and re.match(r'^https?://', urls[0]):
-            # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
-            # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
-            headers = handle_youtubedl_headers(info_dict['http_headers'])
-            args += [
+        http_headers = None
+        if info_dict.get('http_headers'):
+            youtubedl_headers = handle_youtubedl_headers(info_dict['http_headers'])
+            http_headers = [
+                # Trailing \r\n after each HTTP header is important to prevent warning from ffmpeg/avconv:
+                # [http @ 00000000003d2fa0] No trailing CRLF found in HTTP header.
                 '-headers',
-                ''.join('%s: %s\r\n' % (key, val) for key, val in headers.items())]
+                ''.join(f'{key}: {val}\r\n' for key, val in youtubedl_headers.items())
+            ]
 
         env = None
         proxy = self.params.get('proxy')
@@ -442,10 +448,15 @@ class FFmpegFD(ExternalFD):
             if isinstance(conn, list):
                 for entry in conn:
                     args += ['-rtmp_conn', entry]
-            elif isinstance(conn, compat_str):
+            elif isinstance(conn, str):
                 args += ['-rtmp_conn', conn]
 
         for i, url in enumerate(urls):
+            # We need to specify headers for each http input stream
+            # otherwise, it will only be applied to the first.
+            # https://github.com/yt-dlp/yt-dlp/issues/2696
+            if http_headers is not None and re.match(r'^https?://', url):
+                args += http_headers
             args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
 
         args += ['-c', 'copy']
@@ -455,7 +466,7 @@ class FFmpegFD(ExternalFD):
                 args.extend(['-map', f'{i}:{stream_number}'])
 
         if self.params.get('test', False):
-            args += ['-fs', compat_str(self._TEST_FILE_SIZE)]
+            args += ['-fs', str(self._TEST_FILE_SIZE)]
 
         ext = info_dict['ext']
         if protocol in ('m3u8', 'm3u8_native'):

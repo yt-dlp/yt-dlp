@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from .vimeo import VHXEmbedIE
 from ..utils import (
@@ -138,7 +137,7 @@ class DropoutIE(InfoExtractor):
         return {
             '_type': 'url_transparent',
             'ie_key': VHXEmbedIE.ie_key(),
-            'url': embed_url,
+            'url': VHXEmbedIE._smuggle_referrer(embed_url, 'https://www.dropout.tv'),
             'id': self._search_regex(r'embed\.vhx\.tv/videos/(.+?)\?', embed_url, 'id'),
             'display_id': display_id,
             'title': title,

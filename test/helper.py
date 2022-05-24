@@ -1,26 +1,16 @@
-from __future__ import unicode_literals
-
 import errno
-import io
 import hashlib
 import json
 import os.path
 import re
-import types
 import ssl
 import sys
+import types
 
 import yt_dlp.extractor
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import (
-    compat_os_name,
-    compat_str,
-)
-from yt_dlp.utils import (
-    preferredencoding,
-    write_string,
-)
-
+from yt_dlp.compat import compat_os_name, compat_str
+from yt_dlp.utils import preferredencoding, write_string
 
 if 'pytest' in sys.modules:
     import pytest
@@ -35,10 +25,10 @@ def get_params(override=None):
                                    'parameters.json')
     LOCAL_PARAMETERS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                          'local_parameters.json')
-    with io.open(PARAMETERS_FILE, encoding='utf-8') as pf:
+    with open(PARAMETERS_FILE, encoding='utf-8') as pf:
         parameters = json.load(pf)
     if os.path.exists(LOCAL_PARAMETERS_FILE):
-        with io.open(LOCAL_PARAMETERS_FILE, encoding='utf-8') as pf:
+        with open(LOCAL_PARAMETERS_FILE, encoding='utf-8') as pf:
             parameters.update(json.load(pf))
     if override:
         parameters.update(override)
@@ -63,8 +53,8 @@ def report_warning(message):
         _msg_header = '\033[0;33mWARNING:\033[0m'
     else:
         _msg_header = 'WARNING:'
-    output = '%s %s\n' % (_msg_header, message)
-    if 'b' in getattr(sys.stderr, 'mode', '') or sys.version_info[0] < 3:
+    output = f'{_msg_header} {message}\n'
+    if 'b' in getattr(sys.stderr, 'mode', ''):
         output = output.encode(preferredencoding())
     sys.stderr.write(output)
 
@@ -74,7 +64,7 @@ class FakeYDL(YoutubeDL):
         # Different instances of the downloader can't share the same dictionary
         # some test set the "sublang" parameter, which would break the md5 checks.
         params = get_params(override=override)
-        super(FakeYDL, self).__init__(params, auto_init=False)
+        super().__init__(params, auto_init=False)
         self.result = []
 
     def to_screen(self, s, skip_eol=None):
@@ -99,11 +89,10 @@ class FakeYDL(YoutubeDL):
 
 def gettestcases(include_onlymatching=False):
     for ie in yt_dlp.extractor.gen_extractors():
-        for tc in ie.get_testcases(include_onlymatching):
-            yield tc
+        yield from ie.get_testcases(include_onlymatching)
 
 
-md5 = lambda s: hashlib.md5(s.encode('utf-8')).hexdigest()
+md5 = lambda s: hashlib.md5(s.encode()).hexdigest()
 
 
 def expect_value(self, got, expected, field):
@@ -113,33 +102,30 @@ def expect_value(self, got, expected, field):
 
         self.assertTrue(
             isinstance(got, compat_str),
-            'Expected a %s object, but got %s for field %s' % (
-                compat_str.__name__, type(got).__name__, field))
+            f'Expected a {compat_str.__name__} object, but got {type(got).__name__} for field {field}')
         self.assertTrue(
             match_rex.match(got),
-            'field %s (value: %r) should match %r' % (field, got, match_str))
+            f'field {field} (value: {got!r}) should match {match_str!r}')
     elif isinstance(expected, compat_str) and expected.startswith('startswith:'):
         start_str = expected[len('startswith:'):]
         self.assertTrue(
             isinstance(got, compat_str),
-            'Expected a %s object, but got %s for field %s' % (
-                compat_str.__name__, type(got).__name__, field))
+            f'Expected a {compat_str.__name__} object, but got {type(got).__name__} for field {field}')
         self.assertTrue(
             got.startswith(start_str),
-            'field %s (value: %r) should start with %r' % (field, got, start_str))
+            f'field {field} (value: {got!r}) should start with {start_str!r}')
     elif isinstance(expected, compat_str) and expected.startswith('contains:'):
         contains_str = expected[len('contains:'):]
         self.assertTrue(
             isinstance(got, compat_str),
-            'Expected a %s object, but got %s for field %s' % (
-                compat_str.__name__, type(got).__name__, field))
+            f'Expected a {compat_str.__name__} object, but got {type(got).__name__} for field {field}')
         self.assertTrue(
             contains_str in got,
-            'field %s (value: %r) should contain %r' % (field, got, contains_str))
+            f'field {field} (value: {got!r}) should contain {contains_str!r}')
     elif isinstance(expected, type):
         self.assertTrue(
             isinstance(got, expected),
-            'Expected type %r for field %s, but got value %r of type %r' % (expected, field, got, type(got)))
+            f'Expected type {expected!r} for field {field}, but got value {got!r} of type {type(got)!r}')
     elif isinstance(expected, dict) and isinstance(got, dict):
         expect_dict(self, got, expected)
     elif isinstance(expected, list) and isinstance(got, list):
@@ -159,13 +145,12 @@ def expect_value(self, got, expected, field):
         if isinstance(expected, compat_str) and expected.startswith('md5:'):
             self.assertTrue(
                 isinstance(got, compat_str),
-                'Expected field %s to be a unicode object, but got value %r of type %r' % (field, got, type(got)))
+                f'Expected field {field} to be a unicode object, but got value {got!r} of type {type(got)!r}')
             got = 'md5:' + md5(got)
         elif isinstance(expected, compat_str) and re.match(r'^(?:min|max)?count:\d+', expected):
             self.assertTrue(
                 isinstance(got, (list, dict)),
-                'Expected field %s to be a list or a dict, but it is of type %s' % (
-                    field, type(got).__name__))
+                f'Expected field {field} to be a list or a dict, but it is of type {type(got).__name__}')
             op, _, expected_num = expected.partition(':')
             expected_num = int(expected_num)
             if op == 'mincount':
@@ -185,7 +170,7 @@ def expect_value(self, got, expected, field):
             return
         self.assertEqual(
             expected, got,
-            'Invalid value for field %s, expected %r, got %r' % (field, expected, got))
+            f'Invalid value for field {field}, expected {expected!r}, got {got!r}')
 
 
 def expect_dict(self, got_dict, expected_dict):
@@ -260,13 +245,13 @@ def expect_info_dict(self, got_dict, expected_dict):
         info_dict_str = ''
         if len(missing_keys) != len(expected_dict):
             info_dict_str += ''.join(
-                '    %s: %s,\n' % (_repr(k), _repr(v))
+                f'    {_repr(k)}: {_repr(v)},\n'
                 for k, v in test_info_dict.items() if k not in missing_keys)
 
             if info_dict_str:
                 info_dict_str += '\n'
         info_dict_str += ''.join(
-            '    %s: %s,\n' % (_repr(k), _repr(test_info_dict[k]))
+            f'    {_repr(k)}: {_repr(test_info_dict[k])},\n'
             for k in missing_keys)
         write_string(
             '\n\'info_dict\': {\n' + info_dict_str + '},\n', out=sys.stderr)
@@ -295,21 +280,21 @@ def assertRegexpMatches(self, text, regexp, msg=None):
 def assertGreaterEqual(self, got, expected, msg=None):
     if not (got >= expected):
         if msg is None:
-            msg = '%r not greater than or equal to %r' % (got, expected)
+            msg = f'{got!r} not greater than or equal to {expected!r}'
         self.assertTrue(got >= expected, msg)
 
 
 def assertLessEqual(self, got, expected, msg=None):
     if not (got <= expected):
         if msg is None:
-            msg = '%r not less than or equal to %r' % (got, expected)
+            msg = f'{got!r} not less than or equal to {expected!r}'
         self.assertTrue(got <= expected, msg)
 
 
 def assertEqual(self, got, expected, msg=None):
     if not (got == expected):
         if msg is None:
-            msg = '%r not equal to %r' % (got, expected)
+            msg = f'{got!r} not equal to {expected!r}'
         self.assertTrue(got == expected, msg)
 
 

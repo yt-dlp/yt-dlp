@@ -1,4 +1,3 @@
-# coding: utf-8
 import json
 
 from .common import InfoExtractor
@@ -53,8 +52,8 @@ class StreamCZIE(InfoExtractor):
 
     def _extract_formats(self, spl_url, video):
         for ext, pref, streams in (
-                ('ts', -1, traverse_obj(video, ('http_stream', 'qualities'))),
-                ('mp4', 1, video.get('mp4'))):
+                ('ts', -1, traverse_obj(video, ('http_stream', 'qualities')) or {}),
+                ('mp4', 1, video.get('mp4') or {})):
             for format_id, stream in streams.items():
                 if not stream.get('url'):
                     continue

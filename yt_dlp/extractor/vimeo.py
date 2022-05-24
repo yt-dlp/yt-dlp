@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import functools
 import re
@@ -8,7 +5,6 @@ import itertools
 
 from .common import InfoExtractor
 from ..compat import (
-    compat_kwargs,
     compat_HTTPError,
     compat_str,
     compat_urlparse,
@@ -43,6 +39,18 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     _NETRC_MACHINE = 'vimeo'
     _LOGIN_REQUIRED = False
     _LOGIN_URL = 'https://vimeo.com/log_in'
+
+    @staticmethod
+    def _smuggle_referrer(url, referrer_url):
+        return smuggle_url(url, {'http_headers': {'Referer': referrer_url}})
+
+    def _unsmuggle_headers(self, url):
+        """@returns (url, smuggled_data, headers)"""
+        url, data = unsmuggle_url(url, {})
+        headers = self.get_param('http_headers').copy()
+        if 'http_headers' in data:
+            headers.update(data['http_headers'])
+        return url, data, headers
 
     def _perform_login(self, username, password):
         webpage = self._download_webpage(
@@ -109,7 +117,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
     def _extract_vimeo_config(self, webpage, video_id, *args, **kwargs):
         vimeo_config = self._search_regex(
             r'vimeo\.config\s*=\s*(?:({.+?})|_extend\([^,]+,\s+({.+?})\));',
-            webpage, 'vimeo config', *args, **compat_kwargs(kwargs))
+            webpage, 'vimeo config', *args, **kwargs)
         if vimeo_config:
             return self._parse_json(vimeo_config, video_id)
 
@@ -123,7 +131,7 @@ class VimeoBaseInfoExtractor(InfoExtractor):
 
     def _parse_config(self, config, video_id):
         video_data = config['video']
-        video_title = video_data['title']
+        video_title = video_data.get('title')
         live_event = video_data.get('live_event') or {}
         is_live = live_event.get('status') == 'started'
         request = config.get('request') or {}
@@ -722,10 +730,6 @@ class VimeoIE(VimeoBaseInfoExtractor):
     ]
 
     @staticmethod
-    def _smuggle_referrer(url, referrer_url):
-        return smuggle_url(url, {'http_headers': {'Referer': referrer_url}})
-
-    @staticmethod
     def _extract_urls(url, webpage):
         urls = []
         # Look for embedded (iframe) Vimeo player
@@ -758,8 +762,8 @@ class VimeoIE(VimeoBaseInfoExtractor):
             'Content-Type': 'application/x-www-form-urlencoded',
         })
         checked = self._download_json(
-            url + '/check-password', video_id,
-            'Verifying the password', data=data, headers=headers)
+            f'{compat_urlparse.urlsplit(url)._replace(query=None).geturl()}/check-password',
+            video_id, 'Verifying the password', data=data, headers=headers)
         if checked is False:
             raise ExtractorError('Wrong video password', expected=True)
         return checked
@@ -834,10 +838,7 @@ class VimeoIE(VimeoBaseInfoExtractor):
                 raise
 
     def _real_extract(self, url):
-        url, data = unsmuggle_url(url, {})
-        headers = self.get_param('http_headers').copy()
-        if 'http_headers' in data:
-            headers.update(data['http_headers'])
+        url, data, headers = self._unsmuggle_headers(url)
         if 'Referer' not in headers:
             headers['Referer'] = url
 
@@ -1337,7 +1338,7 @@ class VimeoReviewIE(VimeoBaseInfoExtractor):
 
 class VimeoWatchLaterIE(VimeoChannelIE):
     IE_NAME = 'vimeo:watchlater'
-    IE_DESC = 'Vimeo watch later list, "vimeowatchlater" keyword (requires authentication)'
+    IE_DESC = 'Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)'
     _VALID_URL = r'https://vimeo\.com/(?:home/)?watchlater|:vimeowatchlater'
     _TITLE = 'Watch Later'
     _LOGIN_REQUIRED = True
@@ -1387,14 +1388,15 @@ class VHXEmbedIE(VimeoBaseInfoExtractor):
     _VALID_URL = r'https?://embed\.vhx\.tv/videos/(?P<id>\d+)'
 
     @staticmethod
-    def _extract_url(webpage):
+    def _extract_url(url, webpage):
         mobj = re.search(
             r'<iframe[^>]+src="(https?://embed\.vhx\.tv/videos/\d+[^"]*)"', webpage)
-        return unescapeHTML(mobj.group(1)) if mobj else None
+        return VimeoIE._smuggle_referrer(unescapeHTML(mobj.group(1)), url) if mobj else None
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        webpage = self._download_webpage(url, video_id)
+        url, _, headers = self._unsmuggle_headers(url)
+        webpage = self._download_webpage(url, video_id, headers=headers)
         config_url = self._parse_json(self._search_regex(
             r'window\.OTTData\s*=\s*({.+})', webpage,
             'ott data'), video_id, js_to_json)['config_url']

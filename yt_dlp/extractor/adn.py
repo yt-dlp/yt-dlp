@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import binascii
 import json
@@ -85,7 +82,7 @@ class ADNIE(InfoExtractor):
         # http://animedigitalnetwork.fr/components/com_vodvideo/videojs/adn-vjs.min.js
         dec_subtitles = unpad_pkcs7(aes_cbc_decrypt_bytes(
             compat_b64decode(enc_subtitles[24:]),
-            binascii.unhexlify(self._K + 'ab9f52f5baae7c72'),
+            binascii.unhexlify(self._K + '7fac1178830cfe0c'),
             compat_b64decode(enc_subtitles[:24])))
         subtitles_json = self._parse_json(dec_subtitles.decode(), None, fatal=False)
         if not subtitles_json:

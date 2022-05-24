@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-from datetime import datetime
-import sys
 import subprocess
+import sys
+from datetime import datetime
 
-
-with open('yt_dlp/version.py', 'rt') as f:
+with open('yt_dlp/version.py') as f:
     exec(compile(f.read(), 'yt_dlp/version.py', 'exec'))
 old_version = locals()['__version__']
 

@@ -1,33 +1,31 @@
 #!/usr/bin/env python3
-from __future__ import unicode_literals
-
 # Allow direct execution
 import os
 import sys
 import unittest
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import FakeYDL, md5, is_download_test
-
+from test.helper import FakeYDL, is_download_test, md5
 
 from yt_dlp.extractor import (
-    YoutubeIE,
+    NPOIE,
+    NRKTVIE,
+    PBSIE,
+    CeskaTelevizeIE,
+    ComedyCentralIE,
     DailymotionIE,
+    DemocracynowIE,
+    LyndaIE,
+    RaiPlayIE,
+    RTVEALaCartaIE,
     TedTalkIE,
+    ThePlatformFeedIE,
+    ThePlatformIE,
+    VikiIE,
     VimeoIE,
     WallaIE,
-    CeskaTelevizeIE,
-    LyndaIE,
-    NPOIE,
-    PBSIE,
-    ComedyCentralIE,
-    NRKTVIE,
-    RaiPlayIE,
-    VikiIE,
-    ThePlatformIE,
-    ThePlatformFeedIE,
-    RTVEALaCartaIE,
-    DemocracynowIE,
+    YoutubeIE,
 )
 
 
@@ -53,8 +51,8 @@ class BaseTestSubtitles(unittest.TestCase):
         for sub_info in subtitles.values():
             if sub_info.get('data') is None:
                 uf = self.DL.urlopen(sub_info['url'])
-                sub_info['data'] = uf.read().decode('utf-8')
-        return dict((l, sub_info['data']) for l, sub_info in subtitles.items())
+                sub_info['data'] = uf.read().decode()
+        return {l: sub_info['data'] for l, sub_info in subtitles.items()}
 
 
 @is_download_test
@@ -163,7 +161,7 @@ class TestVimeoSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['de', 'en', 'es', 'fr']))
+        self.assertEqual(set(subtitles.keys()), {'de', 'en', 'es', 'fr'})
         self.assertEqual(md5(subtitles['en']), '8062383cf4dec168fc40a088aa6d5888')
         self.assertEqual(md5(subtitles['fr']), 'b6191146a6c5d3a452244d853fde6dc8')
 
@@ -186,7 +184,7 @@ class TestWallaSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['heb']))
+        self.assertEqual(set(subtitles.keys()), {'heb'})
         self.assertEqual(md5(subtitles['heb']), 'e758c5d7cb982f6bef14f377ec7a3920')
 
     def test_nosubtitles(self):
@@ -208,7 +206,7 @@ class TestCeskaTelevizeSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['cs']))
+        self.assertEqual(set(subtitles.keys()), {'cs'})
         self.assertTrue(len(subtitles['cs']) > 20000)
 
     def test_nosubtitles(self):
@@ -229,7 +227,7 @@ class TestLyndaSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), '09bbe67222259bed60deaa26997d73a7')
 
 
@@ -242,7 +240,7 @@ class TestNPOSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['nl']))
+        self.assertEqual(set(subtitles.keys()), {'nl'})
         self.assertEqual(md5(subtitles['nl']), 'fc6435027572b63fb4ab143abd5ad3f4')
 
 
@@ -252,13 +250,13 @@ class TestMTVSubtitles(BaseTestSubtitles):
     IE = ComedyCentralIE
 
     def getInfoDict(self):
-        return super(TestMTVSubtitles, self).getInfoDict()['entries'][0]
+        return super().getInfoDict()['entries'][0]
 
     def test_allsubtitles(self):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), '78206b8d8a0cfa9da64dc026eea48961')
 
 
@@ -271,7 +269,7 @@ class TestNRKSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['no']))
+        self.assertEqual(set(subtitles.keys()), {'no'})
         self.assertEqual(md5(subtitles['no']), '544fa917d3197fcbee64634559221cc2')
 
 
@@ -284,7 +282,7 @@ class TestRaiPlaySubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['it']))
+        self.assertEqual(set(subtitles.keys()), {'it'})
         self.assertEqual(md5(subtitles['it']), 'b1d90a98755126b61e667567a1f6680a')
 
     def test_subtitles_array_key(self):
@@ -292,7 +290,7 @@ class TestRaiPlaySubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['it']))
+        self.assertEqual(set(subtitles.keys()), {'it'})
         self.assertEqual(md5(subtitles['it']), '4b3264186fbb103508abe5311cfcb9cd')
 
 
@@ -305,7 +303,7 @@ class TestVikiSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), '53cb083a5914b2d84ef1ab67b880d18a')
 
 
@@ -320,7 +318,7 @@ class TestThePlatformSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), '97e7670cbae3c4d26ae8bcc7fdd78d4b')
 
 
@@ -333,7 +331,7 @@ class TestThePlatformFeedSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), '48649a22e82b2da21c9a67a395eedade')
 
 
@@ -348,7 +346,7 @@ class TestRtveSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['es']))
+        self.assertEqual(set(subtitles.keys()), {'es'})
         self.assertEqual(md5(subtitles['es']), '69e70cae2d40574fb7316f31d6eb7fca')
 
 
@@ -361,7 +359,7 @@ class TestDemocracynowSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), 'acaca989e24a9e45a6719c9b3d60815c')
 
     def test_subtitles_in_page(self):
@@ -369,7 +367,7 @@ class TestDemocracynowSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
         self.assertEqual(md5(subtitles['en']), 'acaca989e24a9e45a6719c9b3d60815c')
 
 
@@ -382,7 +380,7 @@ class TestPBSSubtitles(BaseTestSubtitles):
         self.DL.params['writesubtitles'] = True
         self.DL.params['allsubtitles'] = True
         subtitles = self.getSubtitles()
-        self.assertEqual(set(subtitles.keys()), set(['en']))
+        self.assertEqual(set(subtitles.keys()), {'en'})
 
     def test_subtitles_dfxp_format(self):
         self.DL.params['writesubtitles'] = True

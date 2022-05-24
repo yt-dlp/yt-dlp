@@ -1,29 +1,19 @@
-from __future__ import division, unicode_literals
-
+import concurrent.futures
+import contextlib
 import http.client
 import json
 import math
 import os
 import time
 
-try:
-    import concurrent.futures
-    can_threaded_download = True
-except ImportError:
-    can_threaded_download = False
-
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import (
-    compat_os_name,
-    compat_urllib_error,
-    compat_struct_pack,
-)
+from ..compat import compat_os_name, compat_struct_pack, compat_urllib_error
 from ..utils import (
     DownloadError,
-    error_to_compat_str,
     encodeFilename,
+    error_to_compat_str,
     sanitized_Request,
     traverse_obj,
 )
@@ -33,9 +23,7 @@ class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
         pass
 
-    def report_retry(self, err, count, retries):
-        super().to_screen(
-            f'[download] Got server HTTP error: {err}. Retrying (attempt {count} of {self.format_retries(retries)}) ...')
+    console_title = to_screen
 
 
 class FragmentFD(FileDownloader):
@@ -78,6 +66,7 @@ class FragmentFD(FileDownloader):
         self.to_screen(
             '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
+        self.sleep_retry('fragment', count)
 
     def report_skip_fragment(self, frag_index, err=None):
         err = f' {err};' if err else ''
@@ -131,7 +120,7 @@ class FragmentFD(FileDownloader):
             'request_data': request_data,
             'ctx_id': ctx.get('ctx_id'),
         }
-        success = ctx['dl'].download(fragment_filename, fragment_info_dict)
+        success, _ = ctx['dl'].download(fragment_filename, fragment_info_dict)
         if not success:
             return False
         if fragment_info_dict.get('filetime'):
@@ -140,6 +129,8 @@ class FragmentFD(FileDownloader):
         return True
 
     def _read_fragment(self, ctx):
+        if not ctx.get('fragment_filename_sanitized'):
+            return None
         try:
             down, frag_sanitized = self.sanitize_open(ctx['fragment_filename_sanitized'], 'rb')
         except FileNotFoundError:
@@ -172,21 +163,13 @@ class FragmentFD(FileDownloader):
                 total_frags_str += ' (not including %d ad)' % ad_frags
         else:
             total_frags_str = 'unknown (live)'
-        self.to_screen(
-            '[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
+        self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
-        dl = HttpQuietDownloader(
-            self.ydl,
-            {
-                'continuedl': self.params.get('continuedl', True),
-                'quiet': self.params.get('quiet'),
-                'noprogress': True,
-                'ratelimit': self.params.get('ratelimit'),
-                'retries': self.params.get('retries', 0),
-                'nopart': self.params.get('nopart', False),
-                'test': self.params.get('test', False),
-            }
-        )
+        dl = HttpQuietDownloader(self.ydl, {
+            **self.params,
+            'noprogress': True,
+            'test': False,
+        })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
         resume_len = 0
@@ -315,10 +298,8 @@ class FragmentFD(FileDownloader):
             if self.params.get('updatetime', True):
                 filetime = ctx.get('fragment_filetime')
                 if filetime:
-                    try:
+                    with contextlib.suppress(Exception):
                         os.utime(ctx['filename'], (time.time(), filetime))
-                    except Exception:
-                        pass
             downloaded_bytes = os.path.getsize(encodeFilename(ctx['filename']))
 
         self._hook_progress({
@@ -342,8 +323,7 @@ class FragmentFD(FileDownloader):
                 total_frags_str += ' (not including %d ad)' % ad_frags
         else:
             total_frags_str = 'unknown (live)'
-        self.to_screen(
-            '[%s] Total fragments: %s' % (self.FD_NAME, total_frags_str))
+        self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
 
         tmpfilename = self.temp_name(ctx['filename'])
 
@@ -508,8 +488,7 @@ class FragmentFD(FileDownloader):
 
         max_workers = math.ceil(
             self.params.get('concurrent_fragment_downloads', 1) / ctx.get('max_progress', 1))
-        if can_threaded_download and max_workers > 1:
-
+        if max_workers > 1:
             def _download_fragment(fragment):
                 ctx_copy = ctx.copy()
                 download_fragment(fragment, ctx_copy)
@@ -527,8 +506,14 @@ class FragmentFD(FileDownloader):
             for fragment in fragments:
                 if not interrupt_trigger[0]:
                     break
-                download_fragment(fragment, ctx)
-                result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
+                try:
+                    download_fragment(fragment, ctx)
+                    result = append_fragment(
+                        decrypt_fragment(fragment, self._read_fragment(ctx)), fragment['frag_index'], ctx)
+                except KeyboardInterrupt:
+                    if info_dict.get('is_live'):
+                        break
+                    raise
                 if not result:
                     return False
 

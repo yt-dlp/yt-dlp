@@ -1,33 +1,42 @@
 #!/usr/bin/env python3
-# coding: utf-8
 import os.path
-import warnings
 import sys
+import warnings
 
 try:
-    from setuptools import setup, Command, find_packages
+    from setuptools import Command, find_packages, setup
     setuptools_available = True
 except ImportError:
-    from distutils.core import setup, Command
+    from distutils.core import Command, setup
     setuptools_available = False
 from distutils.spawn import spawn
 
-# Get the version from yt_dlp/version.py without importing the package
-exec(compile(open('yt_dlp/version.py').read(), 'yt_dlp/version.py', 'exec'))
 
+def read(fname):
+    with open(fname, encoding='utf-8') as f:
+        return f.read()
+
+
+# Get the version from yt_dlp/version.py without importing the package
+def read_version(fname):
+    exec(compile(read(fname), fname, 'exec'))
+    return locals()['__version__']
+
+
+VERSION = read_version('yt_dlp/version.py')
 
 DESCRIPTION = 'A youtube-dl fork with additional features and patches'
 
 LONG_DESCRIPTION = '\n\n'.join((
     'Official repository: <https://github.com/yt-dlp/yt-dlp>',
     '**PS**: Some links in this document will not work since this is a copy of the README.md from Github',
-    open('README.md', encoding='utf-8').read()))
+    read('README.md')))
 
-REQUIREMENTS = open('requirements.txt', encoding='utf-8').read().splitlines()
+REQUIREMENTS = read('requirements.txt').splitlines()
 
 
 if sys.argv[1:2] == ['py2exe']:
-    import py2exe
+    import py2exe  # noqa: F401
     warnings.warn(
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'The recommended way is to use "pyinst.py" to build using pyinstaller')
@@ -35,11 +44,11 @@ if sys.argv[1:2] == ['py2exe']:
         'console': [{
             'script': './yt_dlp/__main__.py',
             'dest_base': 'yt-dlp',
-            'version': __version__,
+            'version': VERSION,
             'description': DESCRIPTION,
             'comments': LONG_DESCRIPTION.split('\n')[0],
             'product_name': 'yt-dlp',
-            'product_version': __version__,
+            'product_version': VERSION,
         }],
         'options': {
             'py2exe': {
@@ -49,6 +58,8 @@ if sys.argv[1:2] == ['py2exe']:
                 'dist_dir': './dist',
                 'excludes': ['Crypto', 'Cryptodome'],  # py2exe cannot import Crypto
                 'dll_excludes': ['w9xpopen.exe', 'crypt32.dll'],
+                # Modules that are only imported dynamically must be added here
+                'includes': ['yt_dlp.compat._legacy'],
             }
         },
         'zipfile': None
@@ -106,7 +117,7 @@ else:
 
 setup(
     name='yt-dlp',
-    version=__version__,
+    version=VERSION,
     maintainer='pukkandan',
     maintainer_email='pukkandan.ytdlp@gmail.com',
     description=DESCRIPTION,
@@ -116,7 +127,7 @@ setup(
     packages=packages,
     install_requires=REQUIREMENTS,
     project_urls={
-        'Documentation': 'https://yt-dlp.readthedocs.io',
+        'Documentation': 'https://github.com/yt-dlp/yt-dlp#readme',
         'Source': 'https://github.com/yt-dlp/yt-dlp',
         'Tracker': 'https://github.com/yt-dlp/yt-dlp/issues',
         'Funding': 'https://github.com/yt-dlp/yt-dlp/blob/master/Collaborators.md#collaborators',

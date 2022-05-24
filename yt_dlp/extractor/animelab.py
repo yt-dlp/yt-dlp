@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 
 from ..utils import (
@@ -56,11 +53,6 @@ class AnimeLabBaseIE(InfoExtractor):
 class AnimeLabIE(AnimeLabBaseIE):
     _VALID_URL = r'https?://(?:www\.)?animelab\.com/player/(?P<id>[^/]+)'
 
-    # the following tests require authentication, but a free account will suffice
-    # just set 'usenetrc' to true in test/local_parameters.json if you use a .netrc file
-    # or you can set 'username' and 'password' there
-    # the tests also select a specific format so that the same video is downloaded
-    # regardless of whether the user is premium or not (needs testing on a premium account)
     _TEST = {
         'url': 'https://www.animelab.com/player/fullmetal-alchemist-brotherhood-episode-42',
         'md5': '05bde4b91a5d1ff46ef5b94df05b0f7f',
@@ -79,9 +71,9 @@ class AnimeLabIE(AnimeLabBaseIE):
             'season_id': '38',
         },
         'params': {
+            # Ensure the same video is downloaded whether the user is premium or not
             'format': '[format_id=21711_yeshardsubbed_ja-JP][height=480]',
         },
-        'skip': 'All AnimeLab content requires authentication',
     }
 
     def _real_extract(self, url):

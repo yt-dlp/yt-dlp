@@ -1,52 +1,21 @@
 #!/usr/bin/env python3
-# coding: utf-8
-
 f'You are using an unsupported version of Python. Only Python versions 3.6 and above are supported by yt-dlp'  # noqa: F541
 
 __license__ = 'Public Domain'
 
-import codecs
-import io
 import itertools
+import optparse
 import os
-import random
 import re
 import sys
 
-from .options import parseOpts
-from .compat import (
-    compat_getpass,
-    compat_os_name,
-    compat_shlex_quote,
-    workaround_optparse_bug9161,
-)
+from .compat import compat_getpass, compat_os_name, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .utils import (
-    DateRange,
-    decodeOption,
-    DownloadCancelled,
-    DownloadError,
-    expand_path,
-    float_or_none,
-    GeoUtils,
-    int_or_none,
-    match_filter_func,
-    NO_DEFAULT,
-    parse_duration,
-    preferredencoding,
-    read_batch_urls,
-    render_table,
-    SameFileError,
-    setproctitle,
-    std_headers,
-    traverse_obj,
-    write_string,
-)
-from .update import run_update
 from .downloader import FileDownloader
-from .extractor import gen_extractors, list_extractors
-from .extractor.common import InfoExtractor
+from .extractor import GenericIE, list_extractor_classes
 from .extractor.adobepass import MSO_INFO
+from .extractor.common import InfoExtractor
+from .options import parseOpts
 from .postprocessor import (
     FFmpegExtractAudioPP,
     FFmpegSubtitlesConvertorPP,
@@ -56,7 +25,37 @@ from .postprocessor import (
     MetadataFromFieldPP,
     MetadataParserPP,
 )
+from .update import run_update
+from .utils import (
+    NO_DEFAULT,
+    POSTPROCESS_WHEN,
+    DateRange,
+    DownloadCancelled,
+    DownloadError,
+    GeoUtils,
+    SameFileError,
+    decodeOption,
+    expand_path,
+    float_or_none,
+    int_or_none,
+    match_filter_func,
+    parse_duration,
+    preferredencoding,
+    read_batch_urls,
+    render_table,
+    setproctitle,
+    std_headers,
+    traverse_obj,
+    variadic,
+    write_string,
+)
 from .YoutubeDL import YoutubeDL
+
+
+def _exit(status=0, *args):
+    for msg in args:
+        sys.stderr.write(msg)
+    raise SystemExit(status)
 
 
 def get_urls(urls, batchfile, verbose):
@@ -69,14 +68,13 @@ def get_urls(urls, batchfile, verbose):
                     'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
                 batchfd = sys.stdin
             else:
-                batchfd = io.open(
-                    expand_path(batchfile),
-                    'r', encoding='utf-8', errors='ignore')
+                batchfd = open(
+                    expand_path(batchfile), encoding='utf-8', errors='ignore')
             batch_urls = read_batch_urls(batchfd)
             if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
-        except IOError:
-            sys.exit('ERROR: batch file %s could not be read' % batchfile)
+        except OSError:
+            _exit(f'ERROR: batch file {batchfile} could not be read')
     _enc = preferredencoding()
     return [
         url.strip().decode(_enc, 'ignore') if isinstance(url, bytes) else url.strip()
@@ -84,29 +82,29 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
+    out = ''
     if opts.list_extractors:
-        for ie in list_extractors(opts.age_limit):
-            write_string(ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n', out=sys.stdout)
-            matchedUrls = [url for url in urls if ie.suitable(url)]
-            for mu in matchedUrls:
-                write_string('  ' + mu + '\n', out=sys.stdout)
+        urls = dict.fromkeys(urls, False)
+        for ie in list_extractor_classes(opts.age_limit):
+            out += ie.IE_NAME + (' (CURRENTLY BROKEN)' if not ie.working() else '') + '\n'
+            if ie == GenericIE:
+                matched_urls = [url for url, matched in urls.items() if not matched]
+            else:
+                matched_urls = tuple(filter(ie.suitable, urls.keys()))
+                urls.update(dict.fromkeys(matched_urls, True))
+            out += ''.join(f'  {url}\n' for url in matched_urls)
     elif opts.list_extractor_descriptions:
-        for ie in list_extractors(opts.age_limit):
-            if not ie.working():
-                continue
-            if ie.IE_DESC is False:
-                continue
-            desc = ie.IE_DESC or ie.IE_NAME
-            if getattr(ie, 'SEARCH_KEY', None) is not None:
-                _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
-                _COUNTS = ('', '5', '10', 'all')
-                desc += f'; "{ie.SEARCH_KEY}:" prefix (Example: "{ie.SEARCH_KEY}{random.choice(_COUNTS)}:{random.choice(_SEARCHES)}")'
-            write_string(desc + '\n', out=sys.stdout)
+        _SEARCHES = ('cute kittens', 'slithering pythons', 'falling cat', 'angry poodle', 'purple fish', 'running tortoise', 'sleeping bunny', 'burping cow')
+        out = '\n'.join(
+            ie.description(markdown=False, search_examples=_SEARCHES)
+            for ie in list_extractor_classes(opts.age_limit) if ie.working() and ie.IE_DESC is not False)
     elif opts.ap_list_mso:
-        table = [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()]
-        write_string('Supported TV Providers:\n' + render_table(['mso', 'mso name'], table) + '\n', out=sys.stdout)
+        out = 'Supported TV Providers:\n%s\n' % render_table(
+            ['mso', 'mso name'],
+            [[mso_id, mso_info['name']] for mso_id, mso_info in MSO_INFO.items()])
     else:
         return False
+    write_string(out, out=sys.stdout)
     return True
 
 
@@ -248,6 +246,28 @@ def validate_options(opts):
     opts.fragment_retries = parse_retries('fragment', opts.fragment_retries)
     opts.extractor_retries = parse_retries('extractor', opts.extractor_retries)
     opts.file_access_retries = parse_retries('file access', opts.file_access_retries)
+
+    # Retry sleep function
+    def parse_sleep_func(expr):
+        NUMBER_RE = r'\d+(?:\.\d+)?'
+        op, start, limit, step, *_ = tuple(re.fullmatch(
+            rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE})?)?(?::({NUMBER_RE}))?',
+            expr.strip()).groups()) + (None, None)
+
+        if op == 'exp':
+            return lambda n: min(float(start) * (float(step or 2) ** n), float(limit or 'inf'))
+        else:
+            default_step = start if op or limit else 0
+            return lambda n: min(float(start) + float(step or default_step) * n, float(limit or 'inf'))
+
+    for key, expr in opts.retry_sleep.items():
+        if not expr:
+            del opts.retry_sleep[key]
+            continue
+        try:
+            opts.retry_sleep[key] = parse_sleep_func(expr)
+        except AttributeError:
+            raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
     def parse_bytes(name, value):
@@ -407,13 +427,15 @@ def validate_options(opts):
     # Conflicting options
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
-    report_conflict('--exec-before-download', 'exec_before_dl_cmd', '"--exec before_dl:"', 'exec_cmd', opts.exec_cmd.get('before_dl'))
+    report_conflict('--exec-before-download', 'exec_before_dl_cmd',
+                    '"--exec before_dl:"', 'exec_cmd', val2=opts.exec_cmd.get('before_dl'))
     report_conflict('--id', 'useid', '--output', 'outtmpl', val2=opts.outtmpl.get('default'))
     report_conflict('--remux-video', 'remuxvideo', '--recode-video', 'recodevideo')
     report_conflict('--sponskrub', 'sponskrub', '--remove-chapters', 'remove_chapters')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-mark', 'sponsorblock_mark')
     report_conflict('--sponskrub', 'sponskrub', '--sponsorblock-remove', 'sponsorblock_remove')
-    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters', val1=opts.sponskrub and opts.sponskrub_cut)
+    report_conflict('--sponskrub-cut', 'sponskrub_cut', '--split-chapter', 'split_chapters',
+                    val1=opts.sponskrub and opts.sponskrub_cut)
 
     # Conflicts with --allow-unplayable-formats
     report_conflict('--add-metadata', 'addmetadata')
@@ -422,7 +444,7 @@ def validate_options(opts):
     report_conflict('--embed-subs', 'embedsubtitles')
     report_conflict('--embed-thumbnail', 'embedthumbnail')
     report_conflict('--extract-audio', 'extractaudio')
-    report_conflict('--fixup', 'fixup', val1=(opts.fixup or '').lower() in ('', 'never', 'ignore'), default='never')
+    report_conflict('--fixup', 'fixup', val1=opts.fixup not in (None, 'never', 'ignore'), default='never')
     report_conflict('--recode-video', 'recodevideo')
     report_conflict('--remove-chapters', 'remove_chapters', default=[])
     report_conflict('--remux-video', 'remuxvideo')
@@ -626,11 +648,11 @@ def parse_options(argv=None):
 
     postprocessors = list(get_postprocessors(opts))
 
-    any_getting = (any(opts.forceprint.values()) or opts.dumpjson or opts.dump_single_json
-                   or opts.geturl or opts.gettitle or opts.getid or opts.getthumbnail
-                   or opts.getdescription or opts.getfilename or opts.getformat or opts.getduration)
-
-    any_printing = opts.print_json
+    print_only = bool(opts.forceprint) and all(k not in opts.forceprint for k in POSTPROCESS_WHEN[2:])
+    any_getting = any(getattr(opts, k) for k in (
+        'dumpjson', 'dump_single_json', 'getdescription', 'getduration', 'getfilename',
+        'getformat', 'getid', 'getthumbnail', 'gettitle', 'geturl'
+    ))
 
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
@@ -648,7 +670,10 @@ def parse_options(argv=None):
         'ap_mso': opts.ap_mso,
         'ap_username': opts.ap_username,
         'ap_password': opts.ap_password,
-        'quiet': (opts.quiet or any_getting or any_printing),
+        'client_certificate': opts.client_certificate,
+        'client_certificate_key': opts.client_certificate_key,
+        'client_certificate_password': opts.client_certificate_password,
+        'quiet': opts.quiet or any_getting or opts.print_json or bool(opts.forceprint),
         'no_warnings': opts.no_warnings,
         'forceurl': opts.geturl,
         'forcetitle': opts.gettitle,
@@ -663,7 +688,7 @@ def parse_options(argv=None):
         'forcejson': opts.dumpjson or opts.print_json,
         'dump_single_json': opts.dump_single_json,
         'force_write_download_archive': opts.force_write_download_archive,
-        'simulate': (any_getting or None) if opts.simulate is None else opts.simulate,
+        'simulate': (print_only or any_getting or None) if opts.simulate is None else opts.simulate,
         'skip_download': opts.skip_download,
         'format': opts.format,
         'allow_unplayable_formats': opts.allow_unplayable_formats,
@@ -691,6 +716,7 @@ def parse_options(argv=None):
         'file_access_retries': opts.file_access_retries,
         'fragment_retries': opts.fragment_retries,
         'extractor_retries': opts.extractor_retries,
+        'retry_sleep_functions': opts.retry_sleep,
         'skip_unavailable_fragments': opts.skip_unavailable_fragments,
         'keep_fragments': opts.keep_fragments,
         'concurrent_fragment_downloads': opts.concurrent_fragment_downloads,
@@ -807,13 +833,6 @@ def parse_options(argv=None):
 
 
 def _real_main(argv=None):
-    # Compatibility fixes for Windows
-    if sys.platform == 'win32':
-        # https://github.com/ytdl-org/youtube-dl/issues/820
-        codecs.register(lambda name: codecs.lookup('utf-8') if name == 'cp65001' else None)
-
-    workaround_optparse_bug9161()
-
     setproctitle('yt-dlp')
 
     parser, opts, all_urls, ydl_opts = parse_options(argv)
@@ -822,63 +841,60 @@ def _real_main(argv=None):
     if opts.dump_user_agent:
         ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
         write_string(f'{ua}\n', out=sys.stdout)
-        sys.exit(0)
+        return
 
     if print_extractor_information(opts, all_urls):
-        sys.exit(0)
+        return
 
     with YoutubeDL(ydl_opts) as ydl:
         actual_use = all_urls or opts.load_info_filename
 
-        # Remove cache dir
         if opts.rm_cachedir:
             ydl.cache.remove()
 
-        # Update version
-        if opts.update_self:
+        if opts.update_self and run_update(ydl) and actual_use:
             # If updater returns True, exit. Required for windows
-            if run_update(ydl):
-                if actual_use:
-                    sys.exit('ERROR: The program must exit for the update to complete')
-                sys.exit()
+            return 100, 'ERROR: The program must exit for the update to complete'
 
-        # Maybe do nothing
         if not actual_use:
             if opts.update_self or opts.rm_cachedir:
-                sys.exit()
+                return ydl._download_retcode
 
             ydl.warn_if_short_id(sys.argv[1:] if argv is None else argv)
             parser.error(
                 'You must provide at least one URL.\n'
                 'Type yt-dlp --help to see a list of all options.')
 
+        parser.destroy()
         try:
             if opts.load_info_filename is not None:
-                retcode = ydl.download_with_info_file(expand_path(opts.load_info_filename))
+                return ydl.download_with_info_file(expand_path(opts.load_info_filename))
             else:
-                retcode = ydl.download(all_urls)
+                return ydl.download(all_urls)
         except DownloadCancelled:
             ydl.to_screen('Aborting remaining downloads')
-            retcode = 101
-
-    sys.exit(retcode)
+            return 101
 
 
 def main(argv=None):
     try:
-        _real_main(argv)
+        _exit(*variadic(_real_main(argv)))
     except DownloadError:
-        sys.exit(1)
+        _exit(1)
     except SameFileError as e:
-        sys.exit(f'ERROR: {e}')
+        _exit(f'ERROR: {e}')
     except KeyboardInterrupt:
-        sys.exit('\nERROR: Interrupted by user')
+        _exit('\nERROR: Interrupted by user')
     except BrokenPipeError as e:
         # https://docs.python.org/3/library/signal.html#note-on-sigpipe
         devnull = os.open(os.devnull, os.O_WRONLY)
         os.dup2(devnull, sys.stdout.fileno())
-        sys.exit(f'\nERROR: {e}')
+        _exit(f'\nERROR: {e}')
+    except optparse.OptParseError as e:
+        _exit(2, f'\n{e}')
 
+
+from .extractor import gen_extractors, list_extractors
 
 __all__ = [
     'main',

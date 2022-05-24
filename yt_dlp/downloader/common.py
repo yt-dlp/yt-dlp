@@ -1,31 +1,36 @@
-from __future__ import division, unicode_literals
-
+import contextlib
+import errno
 import os
+import random
 import re
 import time
-import random
-import errno
 
+from ..minicurses import (
+    BreaklineStatusPrinter,
+    MultilineLogger,
+    MultilinePrinter,
+    QuietMultilinePrinter,
+)
 from ..utils import (
+    NUMBER_RE,
+    LockingUnsupportedError,
+    Namespace,
+    classproperty,
     decodeArgument,
     encodeFilename,
     error_to_compat_str,
+    float_or_none,
     format_bytes,
-    LockingUnsupportedError,
+    join_nonempty,
     sanitize_open,
     shell_quote,
     timeconvert,
     timetuple_from_msec,
-)
-from ..minicurses import (
-    MultilineLogger,
-    MultilinePrinter,
-    QuietMultilinePrinter,
-    BreaklineStatusPrinter
+    try_call,
 )
 
 
-class FileDownloader(object):
+class FileDownloader:
     """File Downloader class.
 
     File downloader objects are the ones responsible of downloading the
@@ -40,6 +45,7 @@ class FileDownloader(object):
     verbose:            Print additional info to stdout.
     quiet:              Do not print messages to stdout.
     ratelimit:          Download speed limit, in bytes/sec.
+    continuedl:         Attempt to continue downloads if possible
     throttledratelimit: Assume the download is being throttled below this speed (bytes/sec)
     retries:            Number of times to retry for HTTP error 5xx
     file_access_retries:   Number of times to retry on file access error
@@ -63,6 +69,7 @@ class FileDownloader(object):
                         useful for bypassing bandwidth throttling imposed by
                         a webserver (experimental)
     progress_template:  See YoutubeDL.py
+    retry_sleep_functions: See YoutubeDL.py
 
     Subclasses of this one must re-define the real_download method.
     """
@@ -72,20 +79,49 @@ class FileDownloader(object):
 
     def __init__(self, ydl, params):
         """Create a FileDownloader object with the given options."""
-        self.ydl = ydl
+        self._set_ydl(ydl)
         self._progress_hooks = []
         self.params = params
         self._prepare_multiline_status()
         self.add_progress_hook(self.report_progress)
 
+    def _set_ydl(self, ydl):
+        self.ydl = ydl
+
+        for func in (
+            'deprecation_warning',
+            'report_error',
+            'report_file_already_downloaded',
+            'report_warning',
+            'to_console_title',
+            'to_stderr',
+            'trouble',
+            'write_debug',
+        ):
+            if not hasattr(self, func):
+                setattr(self, func, getattr(ydl, func))
+
+    def to_screen(self, *args, **kargs):
+        self.ydl.to_screen(*args, quiet=self.params.get('quiet'), **kargs)
+
+    __to_screen = to_screen
+
+    @classproperty
+    def FD_NAME(cls):
+        return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__[:-2]).lower()
+
     @staticmethod
     def format_seconds(seconds):
+        if seconds is None:
+            return ' Unknown'
         time = timetuple_from_msec(seconds * 1000)
         if time.hours > 99:
             return '--:--:--'
         if not time.hours:
             return '%02d:%02d' % time[1:-1]
         return '%02d:%02d:%02d' % time[:-1]
+
+    format_eta = format_seconds
 
     @staticmethod
     def calc_percent(byte_counter, data_len):
@@ -95,11 +131,7 @@ class FileDownloader(object):
 
     @staticmethod
     def format_percent(percent):
-        if percent is None:
-            return '---.-%'
-        elif percent == 100:
-            return '100%'
-        return '%6s' % ('%3.1f%%' % percent)
+        return '  N/A%' if percent is None else f'{percent:>5.1f}%'
 
     @staticmethod
     def calc_eta(start, now, total, current):
@@ -114,12 +146,6 @@ class FileDownloader(object):
         return int((float(total) - float(current)) / rate)
 
     @staticmethod
-    def format_eta(eta):
-        if eta is None:
-            return '--:--'
-        return FileDownloader.format_seconds(eta)
-
-    @staticmethod
     def calc_speed(start, now, bytes):
         dif = now - start
         if bytes == 0 or dif < 0.001:  # One millisecond
@@ -128,13 +154,11 @@ class FileDownloader(object):
 
     @staticmethod
     def format_speed(speed):
-        if speed is None:
-            return '%10s' % '---b/s'
-        return '%10s' % ('%s/s' % format_bytes(speed))
+        return ' Unknown B/s' if speed is None else f'{format_bytes(speed):>10s}/s'
 
     @staticmethod
     def format_retries(retries):
-        return 'inf' if retries == float('inf') else '%.0f' % retries
+        return 'inf' if retries == float('inf') else int(retries)
 
     @staticmethod
     def best_block_size(elapsed_time, bytes):
@@ -152,33 +176,12 @@ class FileDownloader(object):
     @staticmethod
     def parse_bytes(bytestr):
         """Parse a string indicating a byte quantity into an integer."""
-        matchobj = re.match(r'(?i)^(\d+(?:\.\d+)?)([kMGTPEZY]?)$', bytestr)
+        matchobj = re.match(rf'(?i)^({NUMBER_RE})([kMGTPEZY]?)$', bytestr)
         if matchobj is None:
             return None
         number = float(matchobj.group(1))
         multiplier = 1024.0 ** 'bkmgtpezy'.index(matchobj.group(2).lower())
         return int(round(number * multiplier))
-
-    def to_screen(self, *args, **kargs):
-        self.ydl.to_screen(*args, quiet=self.params.get('quiet'), **kargs)
-
-    def to_stderr(self, message):
-        self.ydl.to_stderr(message)
-
-    def to_console_title(self, message):
-        self.ydl.to_console_title(message)
-
-    def trouble(self, *args, **kargs):
-        self.ydl.trouble(*args, **kargs)
-
-    def report_warning(self, *args, **kargs):
-        self.ydl.report_warning(*args, **kargs)
-
-    def report_error(self, *args, **kargs):
-        self.ydl.report_error(*args, **kargs)
-
-    def write_debug(self, *args, **kargs):
-        self.ydl.write_debug(*args, **kargs)
 
     def slow_down(self, start_time, now, byte_counter):
         """Sleep if the download speed is over the rate limit."""
@@ -219,7 +222,7 @@ class FileDownloader(object):
                 while True:
                     try:
                         return func(self, *args, **kwargs)
-                    except (IOError, OSError) as err:
+                    except OSError as err:
                         retry = retry + 1
                         if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
                             if not fatal:
@@ -229,7 +232,8 @@ class FileDownloader(object):
                         self.to_screen(
                             f'[download] Unable to {action} file due to file access error. '
                             f'Retrying (attempt {retry} of {self.format_retries(file_access_retries)}) ...')
-                        time.sleep(0.01)
+                        if not self.sleep_retry('file_access', retry):
+                            time.sleep(0.01)
             return inner
         return outer
 
@@ -265,10 +269,8 @@ class FileDownloader(object):
         # Ignore obviously invalid dates
         if filetime == 0:
             return
-        try:
+        with contextlib.suppress(Exception):
             os.utime(filename, (time.time(), filetime))
-        except Exception:
-            pass
         return filetime
 
     def report_destination(self, filename):
@@ -281,26 +283,26 @@ class FileDownloader(object):
         elif self.ydl.params.get('logger'):
             self._multiline = MultilineLogger(self.ydl.params['logger'], lines)
         elif self.params.get('progress_with_newline'):
-            self._multiline = BreaklineStatusPrinter(self.ydl._out_files['screen'], lines)
+            self._multiline = BreaklineStatusPrinter(self.ydl._out_files.screen, lines)
         else:
-            self._multiline = MultilinePrinter(self.ydl._out_files['screen'], lines, not self.params.get('quiet'))
+            self._multiline = MultilinePrinter(self.ydl._out_files.screen, lines, not self.params.get('quiet'))
         self._multiline.allow_colors = self._multiline._HAVE_FULLCAP and not self.params.get('no_color')
 
     def _finish_multiline_status(self):
         self._multiline.end()
 
-    _progress_styles = {
-        'downloaded_bytes': 'light blue',
-        'percent': 'light blue',
-        'eta': 'yellow',
-        'speed': 'green',
-        'elapsed': 'bold white',
-        'total_bytes': '',
-        'total_bytes_estimate': '',
-    }
+    ProgressStyles = Namespace(
+        downloaded_bytes='light blue',
+        percent='light blue',
+        eta='yellow',
+        speed='green',
+        elapsed='bold white',
+        total_bytes='',
+        total_bytes_estimate='',
+    )
 
     def _report_progress_status(self, s, default_template):
-        for name, style in self._progress_styles.items():
+        for name, style in self.ProgressStyles:
             name = f'_{name}_str'
             if name not in s:
                 continue
@@ -324,63 +326,52 @@ class FileDownloader(object):
             self._multiline.stream, self._multiline.allow_colors, *args, **kwargs)
 
     def report_progress(self, s):
+        def with_fields(*tups, default=''):
+            for *fields, tmpl in tups:
+                if all(s.get(f) is not None for f in fields):
+                    return tmpl
+            return default
+
         if s['status'] == 'finished':
             if self.params.get('noprogress'):
                 self.to_screen('[download] Download completed')
-            msg_template = '100%%'
-            if s.get('total_bytes') is not None:
-                s['_total_bytes_str'] = format_bytes(s['total_bytes'])
-                msg_template += ' of %(_total_bytes_str)s'
-            if s.get('elapsed') is not None:
-                s['_elapsed_str'] = self.format_seconds(s['elapsed'])
-                msg_template += ' in %(_elapsed_str)s'
-            s['_percent_str'] = self.format_percent(100)
-            self._report_progress_status(s, msg_template)
-            return
+            s.update({
+                '_total_bytes_str': format_bytes(s.get('total_bytes')),
+                '_elapsed_str': self.format_seconds(s.get('elapsed')),
+                '_percent_str': self.format_percent(100),
+            })
+            self._report_progress_status(s, join_nonempty(
+                '100%%',
+                with_fields(('total_bytes', 'of %(_total_bytes_str)s')),
+                with_fields(('elapsed', 'in %(_elapsed_str)s')),
+                delim=' '))
 
         if s['status'] != 'downloading':
             return
 
-        if s.get('eta') is not None:
-            s['_eta_str'] = self.format_eta(s['eta'])
-        else:
-            s['_eta_str'] = 'Unknown'
+        s.update({
+            '_eta_str': self.format_eta(s.get('eta')),
+            '_speed_str': self.format_speed(s.get('speed')),
+            '_percent_str': self.format_percent(try_call(
+                lambda: 100 * s['downloaded_bytes'] / s['total_bytes'],
+                lambda: 100 * s['downloaded_bytes'] / s['total_bytes_estimate'],
+                lambda: s['downloaded_bytes'] == 0 and 0)),
+            '_total_bytes_str': format_bytes(s.get('total_bytes')),
+            '_total_bytes_estimate_str': format_bytes(s.get('total_bytes_estimate')),
+            '_downloaded_bytes_str': format_bytes(s.get('downloaded_bytes')),
+            '_elapsed_str': self.format_seconds(s.get('elapsed')),
+        })
 
-        if s.get('total_bytes') and s.get('downloaded_bytes') is not None:
-            s['_percent_str'] = self.format_percent(100 * s['downloaded_bytes'] / s['total_bytes'])
-        elif s.get('total_bytes_estimate') and s.get('downloaded_bytes') is not None:
-            s['_percent_str'] = self.format_percent(100 * s['downloaded_bytes'] / s['total_bytes_estimate'])
-        else:
-            if s.get('downloaded_bytes') == 0:
-                s['_percent_str'] = self.format_percent(0)
-            else:
-                s['_percent_str'] = 'Unknown %'
+        msg_template = with_fields(
+            ('total_bytes', '%(_percent_str)s of %(_total_bytes_str)s at %(_speed_str)s ETA %(_eta_str)s'),
+            ('total_bytes_estimate', '%(_percent_str)s of ~%(_total_bytes_estimate_str)s at %(_speed_str)s ETA %(_eta_str)s'),
+            ('downloaded_bytes', 'elapsed', '%(_downloaded_bytes_str)s at %(_speed_str)s (%(_elapsed_str)s)'),
+            ('downloaded_bytes', '%(_downloaded_bytes_str)s at %(_speed_str)s'),
+            default='%(_percent_str)s at %(_speed_str)s ETA %(_eta_str)s')
 
-        if s.get('speed') is not None:
-            s['_speed_str'] = self.format_speed(s['speed'])
-        else:
-            s['_speed_str'] = 'Unknown speed'
-
-        if s.get('total_bytes') is not None:
-            s['_total_bytes_str'] = format_bytes(s['total_bytes'])
-            msg_template = '%(_percent_str)s of %(_total_bytes_str)s at %(_speed_str)s ETA %(_eta_str)s'
-        elif s.get('total_bytes_estimate') is not None:
-            s['_total_bytes_estimate_str'] = format_bytes(s['total_bytes_estimate'])
-            msg_template = '%(_percent_str)s of ~%(_total_bytes_estimate_str)s at %(_speed_str)s ETA %(_eta_str)s'
-        else:
-            if s.get('downloaded_bytes') is not None:
-                s['_downloaded_bytes_str'] = format_bytes(s['downloaded_bytes'])
-                if s.get('elapsed'):
-                    s['_elapsed_str'] = self.format_seconds(s['elapsed'])
-                    msg_template = '%(_downloaded_bytes_str)s at %(_speed_str)s (%(_elapsed_str)s)'
-                else:
-                    msg_template = '%(_downloaded_bytes_str)s at %(_speed_str)s'
-            else:
-                msg_template = '%(_percent_str)s at %(_speed_str)s ETA %(_eta_str)s'
-        if s.get('fragment_index') and s.get('fragment_count'):
-            msg_template += ' (frag %(fragment_index)s/%(fragment_count)s)'
-        elif s.get('fragment_index'):
-            msg_template += ' (frag %(fragment_index)s)'
+        msg_template += with_fields(
+            ('fragment_index', 'fragment_count', ' (frag %(fragment_index)s/%(fragment_count)s)'),
+            ('fragment_index', ' (frag %(fragment_index)s)'))
         self._report_progress_status(s, msg_template)
 
     def report_resuming_byte(self, resume_len):
@@ -389,17 +380,22 @@ class FileDownloader(object):
 
     def report_retry(self, err, count, retries):
         """Report retry in case of HTTP error 5xx"""
-        self.to_screen(
+        self.__to_screen(
             '[download] Got server HTTP error: %s. Retrying (attempt %d of %s) ...'
             % (error_to_compat_str(err), count, self.format_retries(retries)))
-
-    def report_file_already_downloaded(self, *args, **kwargs):
-        """Report file has already been fully downloaded."""
-        return self.ydl.report_file_already_downloaded(*args, **kwargs)
+        self.sleep_retry('http', count)
 
     def report_unable_to_resume(self):
         """Report it was impossible to resume download."""
         self.to_screen('[download] Unable to resume')
+
+    def sleep_retry(self, retry_type, count):
+        sleep_func = self.params.get('retry_sleep_functions', {}).get(retry_type)
+        delay = float_or_none(sleep_func(n=count - 1)) if sleep_func else None
+        if delay:
+            self.__to_screen(f'Sleeping {delay:.2f} seconds ...')
+            time.sleep(delay)
+        return sleep_func is not None
 
     @staticmethod
     def supports_manifest(manifest):
@@ -435,25 +431,16 @@ class FileDownloader(object):
                 self._finish_multiline_status()
                 return True, False
 
-        if subtitle is False:
-            min_sleep_interval = self.params.get('sleep_interval')
-            if min_sleep_interval:
-                max_sleep_interval = self.params.get('max_sleep_interval', min_sleep_interval)
-                sleep_interval = random.uniform(min_sleep_interval, max_sleep_interval)
-                self.to_screen(
-                    '[download] Sleeping %s seconds ...' % (
-                        int(sleep_interval) if sleep_interval.is_integer()
-                        else '%.2f' % sleep_interval))
-                time.sleep(sleep_interval)
+        if subtitle:
+            sleep_interval = self.params.get('sleep_interval_subtitles') or 0
         else:
-            sleep_interval_sub = 0
-            if type(self.params.get('sleep_interval_subtitles')) is int:
-                sleep_interval_sub = self.params.get('sleep_interval_subtitles')
-            if sleep_interval_sub > 0:
-                self.to_screen(
-                    '[download] Sleeping %s seconds ...' % (
-                        sleep_interval_sub))
-                time.sleep(sleep_interval_sub)
+            min_sleep_interval = self.params.get('sleep_interval') or 0
+            sleep_interval = random.uniform(
+                min_sleep_interval, self.params.get('max_sleep_interval') or min_sleep_interval)
+        if sleep_interval > 0:
+            self.to_screen(f'[download] Sleeping {sleep_interval:.2f} seconds ...')
+            time.sleep(sleep_interval)
+
         ret = self.real_download(filename, info_dict)
         self._finish_multiline_status()
         return ret, True
@@ -486,4 +473,4 @@ class FileDownloader(object):
         if exe is None:
             exe = os.path.basename(str_args[0])
 
-        self.write_debug('%s command line: %s' % (exe, shell_quote(str_args)))
+        self.write_debug(f'{exe} command line: {shell_quote(str_args)}')
