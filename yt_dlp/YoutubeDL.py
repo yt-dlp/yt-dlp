@@ -1601,8 +1601,10 @@ class YoutubeDL:
                 # TODO: Improve MetadataParserPP to allow setting a list
                 if isinstance(additional_urls, compat_str):
                     additional_urls = [additional_urls]
-                self.to_screen(
-                    '[info] %s: %d additional URL(s) requested' % (ie_result['id'], len(additional_urls)))
+                self.to_screen('%(prefix)s %(id)s: %(n_url)d additional URL(s) requested' % {
+                    'prefix': self.Channels.INFO(self._format_screen),
+                    'id': self._format_screen(ie_result['id'], self.Styles.ID),
+                    'n_url': self._format_screen(len(additional_urls), self.Styles.EMPHASIS)})
                 self.write_debug('Additional URLs: "%s"' % '", "'.join(additional_urls))
                 ie_result['additional_entries'] = [
                     self.extract_info(
