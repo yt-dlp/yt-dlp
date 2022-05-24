@@ -4,44 +4,38 @@ from ..utils import (
     ExtractorError,
     # GeoRestrictedError,
 )
+from urllib.parse import urlsplit
 
 
 class NetverseBaseIE(InfoExtractor):
+    _ENDPOINTS = {
+        'watch': 'watchvideo',
+        'video': 'watchvideo',
+        'webseries': 'webseries',
+    }
+
     def get_required_json(self, url, data=None):
-        match = self._match_valid_url(url).groupdict()
-        display_id, sites_type = match['display_id'], match['type']
+        display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
 
-        if sites_type == 'watch' or sites_type == 'video':
-            media_api_url = f'https://api.netverse.id/medias/api/v2/watchvideo/{display_id}'
-        elif sites_type == 'webseries':
-            media_api_url = f'https://api.netverse.id/medias/api/v2/webseries/{display_id}'
-
-        json_data = self._download_json(media_api_url, display_id, data=data)
+        json_data = self._download_json(
+            f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}',
+            display_id, data=data)
 
         if json_data.get('error'):
-            raise ExtractorError(json_data.get('message'))
+            raise ExtractorError(f'{self.IE_NAME} said: {json_data.get("message")}')
 
         return json_data
 
-    def get_access_id(self, dailymotion_url):
-        return dailymotion_url.split('/')[-1]
-
-    def _call_metadata_api_from_video_url(self, dailymotion_url):
-        access_id = self.get_access_id(dailymotion_url)
-        metadata_json = self._call_metadata_api(access_id)
+    def _call_metadata_api_from_video_url(self, dailymotion_url, req_file_type='video', query={}):
+        access_id = urlsplit(dailymotion_url).path.split('/')[-1]
+        required_query = {
+            'embedder': 'https://www.netverse.id',
+            **query,
+        }
+        metadata_json = self._download_json(
+            f'https://www.dailymotion.com/player/metadata/{req_file_type}/{access_id}',
+            access_id, query=required_query)
         return access_id, metadata_json
-
-    def _call_metadata_api(self, access_id, req_file_type='video', query=None):
-        video_metadata_api_url = f'https://www.dailymotion.com/player/metadata/{req_file_type}/{access_id}'
-
-        if query is None:
-            required_query = {
-                'embedder': 'https://www.netverse.id'
-            }
-        else:
-            required_query = query
-
-        return self._download_json(video_metadata_api_url, access_id, query=required_query)
 
 
 class NetverseIE(NetverseBaseIE):
@@ -60,7 +54,7 @@ class NetverseIE(NetverseBaseIE):
             'episode_number': 22,
             'series': 'Waktu Indonesia Bercanda',
             'episode': 'Episode 22',
-        }}, { # noqa
+        }}, {
         # series
         'url': 'https://www.netverse.id/watch/jadoo-seorang-model',
         'info_dict': {
@@ -74,7 +68,7 @@ class NetverseIE(NetverseBaseIE):
             'episode_number': 2,
             'series': 'Hello Jadoo',
             'episode': 'Episode 2', }
-        }, {  # noqa
+        }, {
         # non www host
         'url': 'https://netverse.id/watch/tetangga-baru',
         'info_dict': {
@@ -88,56 +82,61 @@ class NetverseIE(NetverseBaseIE):
             'episode_number': 1,
             'series': 'Tetangga Masa Gitu',
             'episode': 'Episode 1',
-        }}, { # noqa
+        }}, {
         # /video url
         'url': 'https://www.netverse.id/video/pg067482-hellojadoo-season1',
         'title': 'Namaku Choi Jadoo',
         'info_dict': {
             'id': 'x887jzz',
             'ext': 'mp4',
-            } # noqa
-        }]  # noqa
+            'thumbnail': 'https://storage.googleapis.com/netprime-live/images/webseries/thumbnails/2021/11/619cf63f105d3.jpeg',
+            'season': 'Season 1',
+            'episode_number': 1,
+            'description': 'md5:c616e8e59d3edf2d3d506e3736120d99',
+            'title': 'Namaku Choi Jadoo',
+            'series': 'Hello Jadoo',
+            'access_id': 'x887jzz',
+            'episode': 'Episode 1',
+            }
+        }]
 
     def _real_extract(self, url):
         program_json = self.get_required_json(url=url)
 
         videos = traverse_obj(program_json, ('response', 'videos'))
-
         video_url = videos.get('dailymotion_url')
         episode_order = videos.get('episode_order')
 
-        program_detail = videos.get('program_detail')
-
-        # actually the video itself in daily motion, but in private
+        # actually the video itself in dailymotion, but in private
         # Maybe need to refactor
         access_id, real_video_json = self._call_metadata_api_from_video_url(video_url)
-
         video_id = real_video_json.get('id')
 
         # For m3u8
         m3u8_file = traverse_obj(real_video_json, ('qualities', 'auto'))
 
+        video_format, subtitles = [], {}
         for format in m3u8_file:
             video_url = format.get('url')
             if video_url is None:
                 continue
-            self.video_format = self._extract_m3u8_formats(video_url, video_id=video_id)
-# noqa W293
-        episode = f'Episode {episode_order}'
+            fmt, sub = self._extract_m3u8_formats_and_subtitles(video_url, video_id=video_id)
+            video_format.extend(fmt)
+            self._merge_subtitles(sub, target=subtitles)
 
-        self._sort_formats(self.video_format)
+        episode = f'Episode {episode_order}'
+        self._sort_formats(video_format)
         return {
             'id': video_id,
             'access_id': access_id,
-            'formats': self.video_format,
+            'formats': video_format,
             'title': videos.get('title'),
             'season': videos.get('season_name'),
-            'thumbnail': program_detail.get('thumbnail_image'),
-            'description': program_detail.get('description'),
+            'thumbnail': traverse_obj(videos, ('program_detail','thumbnail_image')),
+            'description': traverse_obj(videos, ('program_detail','description')),
             'episode_number': videos.get('episode_order'),
-            'series': program_detail.get('title'),
-            'episode': episode,
-
+            'series': traverse_obj(videos, ("program_detail", "title")),
+            'episode': episode,  # the test always complain about episode if didn't exists
         }
 
 
@@ -157,10 +156,12 @@ class NetversePlaylistIE(NetverseBaseIE):
 
     def _real_extract(self, url):
         playlist_data = self.get_required_json(url)
-
         webseries_info = traverse_obj(playlist_data, ('response', 'webseries_info'))
-
         videos = traverse_obj(playlist_data, ('response', 'related', 'data'))
+
+        # at the moment, i didn't know how to use playlist_from_matches
+        # so i will let the old code uncommented.
+        # self.playlist_from_matches(matches)
 
         entries = []
         for video in videos:
