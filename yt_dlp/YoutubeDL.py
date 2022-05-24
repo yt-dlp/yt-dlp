@@ -1438,7 +1438,9 @@ class YoutubeDL:
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
-                self.to_screen(f'[{ie_key}] {temp_id}: has already been recorded in the archive')
+                self.to_screen(f'{self.Channels.EXTRACTOR(self._format_screen, ie_key)} '
+                               f'{self._format_screen(temp_id, self.Styles.ID)}: '
+                               'has already been recorded in the archive')
                 if self.params.get('break_on_existing', False):
                     raise ExistingVideoReached()
                 break
