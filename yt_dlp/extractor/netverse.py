@@ -123,7 +123,7 @@ class NetverseIE(NetverseBaseIE):
             if video_url is None:
                 continue
             self.video_format = self._extract_m3u8_formats(video_url, video_id=video_id)
-# noqa W293     
+# noqa W293
         episode = f'Episode {episode_order}'
 
         self._sort_formats(self.video_format)
@@ -146,12 +146,11 @@ class NetversePlaylistIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>webseries)/(?P<display_id>[^/?#&]+)'
     _TEST = {
         'url': 'https://netverse.id/webseries/tetangga-masa-gitu',
-        'title': 'Tetangga Masa Gitu',
         'info_dict': {
-            # '_type': 'playlist',  # expected playlist, got None
-            'id': '16',
-            'ext': 'mp4',
+            'id': 16,
+            'title': 'Tetangga Masa Gitu',
         },
+        'playlist_mincount': 10,
         'params': {
             'skip_download': True,
         }
@@ -171,9 +170,6 @@ class NetversePlaylistIE(NetverseBaseIE):
             entry = self.url_result(video_url, NetverseIE)
             entries.append(entry)
 
-        return {
-            '_type': 'playlist',
-            'title': webseries_info.get('title'),
-            'id': webseries_info.get('video_webseries_detail_id'),
-            'entries': entries,
-        }
+        return self.playlist_result(
+            entries, webseries_info.get('video_webseries_detail_id'), webseries_info.get('title')
+        )
