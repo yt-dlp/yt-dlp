@@ -991,10 +991,12 @@ class YoutubeDL:
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
         try:
-            self.to_screen('[download] %s has already been downloaded' %
-                           self._format_screen(file_name, self.Styles.FILENAME))
+            self.to_screen('%(prefix)s %(filename)s has already been downloaded' % {
+                'prefix': self.Channels.DOWNLOAD(self._format_screen),
+                'filename': self._format_screen(file_name, self.Styles.FILENAME)})
         except UnicodeEncodeError:
-            self.to_screen('[download] The file has already been downloaded')
+            self.to_screen('%s The file has already been downloaded' %
+                           self.Channels.DOWNLOAD(self._format_screen))
 
     def report_file_delete(self, file_name):
         """Report that existing file will be deleted."""
