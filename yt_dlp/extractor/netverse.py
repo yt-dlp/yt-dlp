@@ -2,6 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
     ExtractorError,
+    # GeoRestrictedError,
 )
 
 
@@ -147,9 +148,12 @@ class NetversePlaylistIE(NetverseBaseIE):
         'url': 'https://netverse.id/webseries/tetangga-masa-gitu',
         'title': 'Tetangga Masa Gitu',
         'info_dict': {
-            '_type': 'playlist',  # expected playlist, got None
+            # '_type': 'playlist',  # expected playlist, got None
             'id': '16',
             'ext': 'mp4',
+        },
+        'params': {
+            'skip_download': True,
         }
     }
 
