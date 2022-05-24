@@ -990,10 +990,12 @@ class YoutubeDL:
     def raise_no_formats(self, info, forced=False, *, msg=None):
         has_drm = info.get('_has_drm')
         ignored, expected = self.params.get('ignore_no_formats_error'), bool(msg)
+        has_msg = msg is not None
         msg = (msg or has_drm and f'This video is {self._format_err("DRM protected", self.Styles.ERROR)}'
                or 'No video formats found!')
+        err_msg = msg if has_msg or not has_drm else 'This video is DRM protected'
         if forced or not ignored:
-            raise ExtractorError(msg, video_id=info['id'], ie=info['extractor'],
+            raise ExtractorError(err_msg, video_id=info['id'], ie=info['extractor'],
                                  expected=has_drm or ignored or expected)
         else:
             self.report_warning(msg)
