@@ -791,6 +791,14 @@ class YoutubeDL:
                       for _ in range(line_count))
         return res[:-len('\n')]
 
+    @staticmethod
+    def _make_channel_prefix(style, name=None):
+        def wrapped(format_function, prefix=name):
+            if prefix is None:
+                raise ValueError('No channel prefix was given')
+            return f'[{format_function(prefix, style)}]'
+        return wrapped
+
     def _write_string(self, message, out=None, only_once=False):
         if only_once:
             if message in self._printed_messages:
@@ -915,6 +923,15 @@ class YoutubeDL:
         ERROR='red',
         WARNING='yellow',
         SUPPRESS='light black',
+    )
+
+    Channels = Namespace(
+        EXTRACTOR=_make_channel_prefix(Styles.ID),
+        POSTPROCESSOR=_make_channel_prefix(Styles.REQUIREMENT),
+        DEBUG=_make_channel_prefix(Styles.WARNING, name='debug'),
+        INFO=_make_channel_prefix(Styles.EMPHASIS, name='info'),
+        DOWNLOAD=_make_channel_prefix(Styles.ERROR, name='download'),
+        WAIT=_make_channel_prefix(Styles.SUPPRESS, name='wait')
     )
 
     def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
