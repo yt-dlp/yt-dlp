@@ -358,8 +358,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     defined in the current file
     --config-locations PATH         Location of the main configuration file;
                                     either the path to the config or its
-                                    containing directory. Can be used multiple
-                                    times and inside other configuration files
+                                    containing directory ("-" for stdin). Can be
+                                    used multiple times and inside other
+                                    configuration files
     --flat-playlist                 Do not extract the videos of a playlist,
                                     only list them
     --no-flat-playlist              Extract the videos of a playlist
