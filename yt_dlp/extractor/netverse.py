@@ -15,11 +15,11 @@ class NetverseBaseIE(InfoExtractor):
     }
 
     def get_required_json(self, url, data=None):
-        display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
+        self.display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
 
         json_data = self._download_json(
-            f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}',
-            display_id, data=data)
+            f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{self.display_id}',
+            self.display_id, data=data)
 
         if json_data.get('error'):
             raise ExtractorError(f'{self.IE_NAME} said: {json_data.get("message")}')
@@ -34,7 +34,7 @@ class NetverseBaseIE(InfoExtractor):
         }
         metadata_json = self._download_json(
             f'https://www.dailymotion.com/player/metadata/{req_file_type}/{access_id}',
-            access_id, query=required_query)
+            self.display_id, query=required_query)
         return access_id, metadata_json
 
 
@@ -120,7 +120,7 @@ class NetverseIE(NetverseBaseIE):
             video_url = format.get('url')
             if video_url is None:
                 continue
-            fmt, sub = self._extract_m3u8_formats_and_subtitles(video_url, video_id=video_id)
+            fmt, sub = self._extract_m3u8_formats_and_subtitles(video_url, video_id=self.display_id)
             video_format.extend(fmt)
             self._merge_subtitles(sub, target=subtitles)
 
@@ -132,11 +132,11 @@ class NetverseIE(NetverseBaseIE):
             'formats': video_format,
             'title': videos.get('title'),
             'season': videos.get('season_name'),
-            'thumbnail': traverse_obj(videos, ('program_detail','thumbnail_image')),
-            'description': traverse_obj(videos, ('program_detail','description')),
+            'thumbnail': traverse_obj(videos, ('program_detail', 'thumbnail_image')),
+            'description': traverse_obj(videos, ('program_detail', 'description')),
             'episode_number': videos.get('episode_order'),
             'series': traverse_obj(videos, ("program_detail", "title")),
-            'episode': episode,  # the test always complain about episode if didn't exists
+            'episode': episode,  # the test always complain about episode if it didn't exists
         }
 
 
