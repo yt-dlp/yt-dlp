@@ -1222,7 +1222,7 @@ class InfoExtractor:
         elif default is not NO_DEFAULT:
             return default
         elif fatal:
-            raise RegexNotFoundError('Unable to extract %s' % _name)
+            raise RegexNotFoundError('Unable to extract %s' % name)
         else:
             self.report_warning('unable to extract %s' % _name + bug_reports_message())
             return None
