@@ -1759,7 +1759,7 @@ Line 1
 
         def test(ll, idx, val, cache):
             self.assertEqual(ll[idx], val)
-            self.assertEqual(getattr(ll, '_LazyList__cache'), list(cache))
+            self.assertEqual(ll._cache, list(cache))
 
         ll = LazyList(range(10))
         test(ll, 0, 0, range(1))

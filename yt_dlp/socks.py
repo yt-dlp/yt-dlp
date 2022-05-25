@@ -149,11 +149,11 @@ class sockssocket(socket.socket):
 
         packet = compat_struct_pack('!BBH', SOCKS4_VERSION, Socks4Command.CMD_CONNECT, port) + ipaddr
 
-        username = (self._proxy.username or '').encode('utf-8')
+        username = (self._proxy.username or '').encode()
         packet += username + b'\x00'
 
         if is_4a and self._proxy.remote_dns:
-            packet += destaddr.encode('utf-8') + b'\x00'
+            packet += destaddr.encode() + b'\x00'
 
         self.sendall(packet)
 
@@ -192,8 +192,8 @@ class sockssocket(socket.socket):
             raise Socks5Error(Socks5Auth.AUTH_NO_ACCEPTABLE)
 
         if method == Socks5Auth.AUTH_USER_PASS:
-            username = self._proxy.username.encode('utf-8')
-            password = self._proxy.password.encode('utf-8')
+            username = self._proxy.username.encode()
+            password = self._proxy.password.encode()
             packet = compat_struct_pack('!B', SOCKS5_USER_AUTH_VERSION)
             packet += self._len_and_data(username) + self._len_and_data(password)
             self.sendall(packet)
@@ -216,7 +216,7 @@ class sockssocket(socket.socket):
         reserved = 0
         packet = compat_struct_pack('!BBB', SOCKS5_VERSION, Socks5Command.CMD_CONNECT, reserved)
         if ipaddr is None:
-            destaddr = destaddr.encode('utf-8')
+            destaddr = destaddr.encode()
             packet += compat_struct_pack('!B', Socks5AddressType.ATYP_DOMAINNAME)
             packet += self._len_and_data(destaddr)
         else:

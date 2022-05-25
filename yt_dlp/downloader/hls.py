@@ -2,12 +2,12 @@ import binascii
 import io
 import re
 
+from . import get_suitable_downloader
 from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
 from ..compat import compat_urlparse
 from ..dependencies import Cryptodome_AES
-from ..downloader import get_suitable_downloader
 from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
 
@@ -191,6 +191,14 @@ class HlsFD(FragmentFD):
                     if extra_query:
                         frag_url = update_url_query(frag_url, extra_query)
 
+                    if map_info.get('BYTERANGE'):
+                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
+                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
+                        byte_range = {
+                            'start': sub_range_start,
+                            'end': sub_range_start + int(splitted_byte_range[0]),
+                        }
+
                     fragments.append({
                         'frag_index': frag_index,
                         'url': frag_url,
@@ -199,14 +207,6 @@ class HlsFD(FragmentFD):
                         'media_sequence': media_sequence
                     })
                     media_sequence += 1
-
-                    if map_info.get('BYTERANGE'):
-                        splitted_byte_range = map_info.get('BYTERANGE').split('@')
-                        sub_range_start = int(splitted_byte_range[1]) if len(splitted_byte_range) == 2 else byte_range['end']
-                        byte_range = {
-                            'start': sub_range_start,
-                            'end': sub_range_start + int(splitted_byte_range[0]),
-                        }
 
                 elif line.startswith('#EXT-X-KEY'):
                     decrypt_url = decrypt_info.get('URI')
@@ -329,7 +329,7 @@ class HlsFD(FragmentFD):
                             continue
                     block.write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             def fin_fragments():
                 dedup_window = extra_state.get('webvtt_dedup_window')
@@ -340,7 +340,7 @@ class HlsFD(FragmentFD):
                 for cue in dedup_window:
                     webvtt.CueBlock.from_json(cue).write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             self.download_and_append_fragments(
                 ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)

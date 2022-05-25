@@ -151,7 +151,7 @@ def write_piff_header(stream, params):
         sample_entry_payload += u16.pack(0x18)  # depth
         sample_entry_payload += s16.pack(-1)  # pre defined
 
-        codec_private_data = binascii.unhexlify(params['codec_private_data'].encode('utf-8'))
+        codec_private_data = binascii.unhexlify(params['codec_private_data'].encode())
         if fourcc in ('H264', 'AVC1'):
             sps, pps = codec_private_data.split(u32.pack(1))[1:]
             avcc_payload = u8.pack(1)  # configuration version
@@ -229,8 +229,6 @@ class IsmFD(FragmentFD):
     """
     Download segments in a ISM manifest
     """
-
-    FD_NAME = 'ism'
 
     def real_download(self, filename, info_dict):
         segments = info_dict['fragments'][:1] if self.params.get(

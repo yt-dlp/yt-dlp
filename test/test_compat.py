@@ -7,6 +7,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+from yt_dlp import compat
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_expanduser,
@@ -21,6 +22,12 @@ from yt_dlp.compat import (
 
 
 class TestCompat(unittest.TestCase):
+    def test_compat_passthrough(self):
+        with self.assertWarns(DeprecationWarning):
+            compat.compat_basestring
+
+        compat.asyncio.events  # Must not raise error
+
     def test_compat_getenv(self):
         test_str = 'тест'
         compat_setenv('yt_dlp_COMPAT_GETENV', test_str)
@@ -83,7 +90,7 @@ class TestCompat(unittest.TestCase):
                 <foo><bar>spam</bar></foo>
             </root>
         '''
-        doc = compat_etree_fromstring(xml.encode('utf-8'))
+        doc = compat_etree_fromstring(xml.encode())
         self.assertTrue(isinstance(doc.attrib['foo'], compat_str))
         self.assertTrue(isinstance(doc.attrib['spam'], compat_str))
         self.assertTrue(isinstance(doc.find('normal').text, compat_str))

@@ -92,6 +92,12 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         if self._downloader:
             return self._downloader.write_debug(text, *args, **kwargs)
 
+    def _delete_downloaded_files(self, *files_to_delete, **kwargs):
+        if self._downloader:
+            return self._downloader._delete_downloaded_files(*files_to_delete, **kwargs)
+        for filename in set(filter(None, files_to_delete)):
+            os.remove(filename)
+
     def get_param(self, name, default=None, *args, **kwargs):
         if self._downloader:
             return self._downloader.params.get(name, default, *args, **kwargs)

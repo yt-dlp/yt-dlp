@@ -168,6 +168,7 @@ from .bilibili import (
     BilibiliChannelIE,
     BiliIntlIE,
     BiliIntlSeriesIE,
+    BiliLiveIE,
 )
 from .biobiochiletv import BioBioChileTVIE
 from .bitchute import (
@@ -500,6 +501,7 @@ from .fc2 import (
     FC2LiveIE,
 )
 from .fczenit import FczenitIE
+from .fifa import FifaIE
 from .filmmodu import FilmmoduIE
 from .filmon import (
     FilmOnIE,
@@ -589,6 +591,7 @@ from .go import GoIE
 from .godtube import GodTubeIE
 from .gofile import GofileIE
 from .golem import GolemIE
+from .goodgame import GoodGameIE
 from .googledrive import GoogleDriveIE
 from .googlepodcasts import (
     GooglePodcastsIE,
@@ -599,7 +602,11 @@ from .gopro import GoProIE
 from .goshgay import GoshgayIE
 from .gotostage import GoToStageIE
 from .gputechconf import GPUTechConfIE
-from .gronkh import GronkhIE
+from .gronkh import (
+    GronkhIE,
+    GronkhFeedIE,
+    GronkhVodsIE
+)
 from .groupon import GrouponIE
 from .hbo import HBOIE
 from .hearthisat import HearThisAtIE
@@ -616,6 +623,7 @@ from .hitrecord import HitRecordIE
 from .hotnewhiphop import HotNewHipHopIE
 from .hotstar import (
     HotStarIE,
+    HotStarPrefixIE,
     HotStarPlaylistIE,
     HotStarSeriesIE,
 )
@@ -639,6 +647,7 @@ from .hungama import (
     HungamaAlbumPlaylistIE,
 )
 from .hypem import HypemIE
+from .icareus import IcareusIE
 from .ichinanalive import (
     IchinanaLiveIE,
     IchinanaLiveClipIE,
@@ -698,7 +707,11 @@ from .ivi import (
     IviCompilationIE
 )
 from .ivideon import IvideonIE
-from .iwara import IwaraIE
+from .iwara import (
+    IwaraIE,
+    IwaraPlaylistIE,
+    IwaraUserIE,
+)
 from .izlesene import IzleseneIE
 from .jable import (
     JableIE,
@@ -784,6 +797,10 @@ from .lifenews import (
     LifeNewsIE,
     LifeEmbedIE,
 )
+from .likee import (
+    LikeeIE,
+    LikeeUserIE
+)
 from .limelight import (
     LimelightMediaIE,
     LimelightChannelIE,
@@ -812,7 +829,10 @@ from .lnkgo import (
 )
 from .localnews8 import LocalNews8IE
 from .lovehomeporn import LoveHomePornIE
-from .lrt import LRTIE
+from .lrt import (
+    LRTVODIE,
+    LRTStreamIE
+)
 from .lynda import (
     LyndaIE,
     LyndaCourseIE
@@ -842,6 +862,7 @@ from .markiza import (
     MarkizaPageIE,
 )
 from .massengeschmacktv import MassengeschmackTVIE
+from .masters import MastersIE
 from .matchtv import MatchTVIE
 from .mdr import MDRIE
 from .medaltv import MedalTVIE
@@ -998,7 +1019,8 @@ from .ndr import (
 from .ndtv import NDTVIE
 from .nebula import (
     NebulaIE,
-    NebulaCollectionIE,
+    NebulaSubscriptionsIE,
+    NebulaChannelIE,
 )
 from .nerdcubed import NerdCubedFeedIE
 from .netzkino import NetzkinoIE
@@ -1247,6 +1269,7 @@ from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
 )
+from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
 from .pokemon import (
     PokemonIE,
@@ -1382,6 +1405,7 @@ from .rokfin import (
     RokfinIE,
     RokfinStackIE,
     RokfinChannelIE,
+    RokfinSearchIE,
 )
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE
@@ -1883,10 +1907,7 @@ from .vice import (
 from .vidbit import VidbitIE
 from .viddler import ViddlerIE
 from .videa import VideaIE
-from .videocampus_sachsen import (
-    VideocampusSachsenIE,
-    VideocampusSachsenEmbedIE,
-)
+from .videocampus_sachsen import VideocampusSachsenIE
 from .videodetective import VideoDetectiveIE
 from .videofyme import VideofyMeIE
 from .videomore import (
@@ -2110,6 +2131,7 @@ from .youtube import (
     YoutubeSearchURLIE,
     YoutubeMusicSearchURLIE,
     YoutubeSubscriptionsIE,
+    YoutubeStoriesIE,
     YoutubeTruncatedIDIE,
     YoutubeTruncatedURLIE,
     YoutubeYtBeIE,
@@ -2144,6 +2166,10 @@ from .zhihu import ZhihuIE
 from .zingmp3 import (
     ZingMp3IE,
     ZingMp3AlbumIE,
+    ZingMp3ChartHomeIE,
+    ZingMp3WeekChartIE,
+    ZingMp3ChartMusicVideoIE,
+    ZingMp3UserIE,
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
