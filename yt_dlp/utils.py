@@ -34,6 +34,7 @@ import sys
 import tempfile
 import time
 import traceback
+import types
 import urllib.parse
 import xml.etree.ElementTree
 import zlib
@@ -397,14 +398,14 @@ def get_element_html_by_attribute(attribute, value, html, **kargs):
 def get_elements_by_class(class_name, html, **kargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_by_attribute(
-        'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
+        'class', r'[^\'"]*(?<=[\'"\s])%s(?=[\'"\s])[^\'"]*' % re.escape(class_name),
         html, escape_value=False)
 
 
 def get_elements_html_by_class(class_name, html):
     """Return the html of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_html_by_attribute(
-        'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
+        'class', r'[^\'"]*(?<=[\'"\s])%s(?=[\'"\s])[^\'"]*' % re.escape(class_name),
         html, escape_value=False)
 
 
@@ -3404,16 +3405,15 @@ def _match_one(filter_part, dct, incomplete):
     else:
         is_incomplete = lambda k: k in incomplete
 
-    operator_rex = re.compile(r'''(?x)\s*
+    operator_rex = re.compile(r'''(?x)
         (?P<key>[a-z_]+)
         \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
         (?:
             (?P<quote>["\'])(?P<quotedstrval>.+?)(?P=quote)|
             (?P<strval>.+?)
         )
-        \s*$
         ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))
-    m = operator_rex.search(filter_part)
+    m = operator_rex.fullmatch(filter_part.strip())
     if m:
         m = m.groupdict()
         unnegated_op = COMPARISON_OPERATORS[m['op']]
@@ -3449,11 +3449,10 @@ def _match_one(filter_part, dct, incomplete):
         '': lambda v: (v is True) if isinstance(v, bool) else (v is not None),
         '!': lambda v: (v is False) if isinstance(v, bool) else (v is None),
     }
-    operator_rex = re.compile(r'''(?x)\s*
+    operator_rex = re.compile(r'''(?x)
         (?P<op>%s)\s*(?P<key>[a-z_]+)
-        \s*$
         ''' % '|'.join(map(re.escape, UNARY_OPERATORS.keys())))
-    m = operator_rex.search(filter_part)
+    m = operator_rex.fullmatch(filter_part.strip())
     if m:
         op = UNARY_OPERATORS[m.group('op')]
         actual_value = dct.get(m.group('key'))
@@ -5395,23 +5394,15 @@ class classproperty:
         return self.func(cls)
 
 
-class Namespace:
+class Namespace(types.SimpleNamespace):
     """Immutable namespace"""
 
-    def __init__(self, **kwargs):
-        self._dict = kwargs
-
-    def __getattr__(self, attr):
-        return self._dict[attr]
-
-    def __contains__(self, item):
-        return item in self._dict.values()
-
     def __iter__(self):
-        return iter(self._dict.items())
+        return iter(self.__dict__.values())
 
-    def __repr__(self):
-        return f'{type(self).__name__}({", ".join(f"{k}={v}" for k, v in self)})'
+    @property
+    def items_(self):
+        return self.__dict__.items()
 
 
 # Deprecated

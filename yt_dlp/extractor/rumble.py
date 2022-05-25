@@ -24,6 +24,11 @@ class RumbleEmbedIE(InfoExtractor):
             'title': 'WMAR 2 News Latest Headlines | October 20, 6pm',
             'timestamp': 1571611968,
             'upload_date': '20191020',
+            'channel_url': 'https://rumble.com/c/WMAR',
+            'channel': 'WMAR',
+            'thumbnail': 'https://sp.rmbl.ws/s8/1/5/M/z/1/5Mz1a.OvCc-small-WMAR-2-News-Latest-Headline.jpg',
+            'duration': 234,
+            'uploader': 'WMAR',
         }
     }, {
         'url': 'https://rumble.com/embed/vslb7v',
@@ -38,6 +43,7 @@ class RumbleEmbedIE(InfoExtractor):
             'channel': 'CTNews',
             'thumbnail': 'https://sp.rmbl.ws/s8/6/7/i/9/h/7i9hd.OvCc.jpg',
             'duration': 901,
+            'uploader': 'CTNews',
         }
     }, {
         'url': 'https://rumble.com/embed/ufe9n.v5pv5f',
@@ -96,6 +102,7 @@ class RumbleEmbedIE(InfoExtractor):
             'channel': author.get('name'),
             'channel_url': author.get('url'),
             'duration': int_or_none(video.get('duration')),
+            'uploader': author.get('name'),
         }
 
 
