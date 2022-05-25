@@ -17,7 +17,7 @@ class TestYoutubeDLCookieJar(unittest.TestCase):
         tf = tempfile.NamedTemporaryFile(delete=False)
         try:
             cookiejar.save(filename=tf.name, ignore_discard=True, ignore_expires=True)
-            temp = tf.read().decode('utf-8')
+            temp = tf.read().decode()
             self.assertTrue(re.search(
                 r'www\.foobar\.foobar\s+FALSE\s+/\s+TRUE\s+0\s+YoutubeDLExpiresEmpty\s+YoutubeDLExpiresEmptyValue', temp))
             self.assertTrue(re.search(

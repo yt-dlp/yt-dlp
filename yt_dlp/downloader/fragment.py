@@ -25,10 +25,6 @@ class HttpQuietDownloader(HttpFD):
 
     console_title = to_screen
 
-    def report_retry(self, err, count, retries):
-        super().to_screen(
-            f'[download] Got server HTTP error: {err}. Retrying (attempt {count} of {self.format_retries(retries)}) ...')
-
 
 class FragmentFD(FileDownloader):
     """
@@ -70,6 +66,7 @@ class FragmentFD(FileDownloader):
         self.to_screen(
             '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
+        self.sleep_retry('fragment', count)
 
     def report_skip_fragment(self, frag_index, err=None):
         err = f' {err};' if err else ''
@@ -168,18 +165,11 @@ class FragmentFD(FileDownloader):
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
-        dl = HttpQuietDownloader(
-            self.ydl,
-            {
-                'continuedl': self.params.get('continuedl', True),
-                'quiet': self.params.get('quiet'),
-                'noprogress': True,
-                'ratelimit': self.params.get('ratelimit'),
-                'retries': self.params.get('retries', 0),
-                'nopart': self.params.get('nopart', False),
-                'test': False,
-            }
-        )
+        dl = HttpQuietDownloader(self.ydl, {
+            **self.params,
+            'noprogress': True,
+            'test': False,
+        })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
         resume_len = 0

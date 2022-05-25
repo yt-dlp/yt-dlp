@@ -37,15 +37,17 @@ def gen_extractors():
     return [klass() for klass in gen_extractor_classes()]
 
 
-def list_extractors(age_limit):
-    """
-    Return a list of extractors that are suitable for the given age,
-    sorted by extractor ID.
-    """
+def list_extractor_classes(age_limit=None):
+    """Return a list of extractors that are suitable for the given age, sorted by extractor name"""
+    yield from sorted(filter(
+        lambda ie: ie.is_suitable(age_limit) and ie != GenericIE,  # noqa: F405
+        gen_extractor_classes()), key=lambda ie: ie.IE_NAME.lower())
+    yield GenericIE  # noqa: F405
 
-    return sorted(
-        filter(lambda ie: ie.is_suitable(age_limit), gen_extractors()),
-        key=lambda ie: ie.IE_NAME.lower())
+
+def list_extractors(age_limit=None):
+    """Return a list of extractor instances that are suitable for the given age, sorted by extractor name"""
+    return [ie() for ie in list_extractor_classes(age_limit)]
 
 
 def get_info_extractor(ie_name):

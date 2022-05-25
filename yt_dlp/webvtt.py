@@ -346,7 +346,7 @@ def parse_fragment(frag_content):
     a bytes object containing the raw contents of a WebVTT file.
     """
 
-    parser = _MatchParser(frag_content.decode('utf-8'))
+    parser = _MatchParser(frag_content.decode())
 
     yield Magic.parse(parser)
 

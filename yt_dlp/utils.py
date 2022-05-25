@@ -11,7 +11,6 @@ import datetime
 import email.header
 import email.utils
 import errno
-import functools
 import gzip
 import hashlib
 import hmac
@@ -39,8 +38,8 @@ import urllib.parse
 import xml.etree.ElementTree
 import zlib
 
+from .compat import asyncio, functools  # isort: split
 from .compat import (
-    asyncio,
     compat_chr,
     compat_cookiejar,
     compat_etree_fromstring,
@@ -248,6 +247,7 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<jso
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
 
+@functools.cache
 def preferredencoding():
     """Get preferred encoding.
 
@@ -362,14 +362,14 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
     return n.attrib[key]
 
 
-def get_element_by_id(id, html):
+def get_element_by_id(id, html, **kwargs):
     """Return the content of the tag with the specified ID in the passed HTML document"""
-    return get_element_by_attribute('id', id, html)
+    return get_element_by_attribute('id', id, html, **kwargs)
 
 
-def get_element_html_by_id(id, html):
+def get_element_html_by_id(id, html, **kwargs):
     """Return the html of the tag with the specified ID in the passed HTML document"""
-    return get_element_html_by_attribute('id', id, html)
+    return get_element_html_by_attribute('id', id, html, **kwargs)
 
 
 def get_element_by_class(class_name, html):
@@ -384,17 +384,17 @@ def get_element_html_by_class(class_name, html):
     return retval[0] if retval else None
 
 
-def get_element_by_attribute(attribute, value, html, escape_value=True):
-    retval = get_elements_by_attribute(attribute, value, html, escape_value)
+def get_element_by_attribute(attribute, value, html, **kwargs):
+    retval = get_elements_by_attribute(attribute, value, html, **kwargs)
     return retval[0] if retval else None
 
 
-def get_element_html_by_attribute(attribute, value, html, escape_value=True):
-    retval = get_elements_html_by_attribute(attribute, value, html, escape_value)
+def get_element_html_by_attribute(attribute, value, html, **kargs):
+    retval = get_elements_html_by_attribute(attribute, value, html, **kargs)
     return retval[0] if retval else None
 
 
-def get_elements_by_class(class_name, html):
+def get_elements_by_class(class_name, html, **kargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_by_attribute(
         'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
@@ -714,7 +714,9 @@ def sanitize_path(s, force=False):
 def sanitize_url(url):
     # Prepend protocol-less URLs with `http:` scheme in order to mitigate
     # the number of unwanted failures due to missing protocol
-    if url.startswith('//'):
+    if url is None:
+        return
+    elif url.startswith('//'):
         return 'http:%s' % url
     # Fix some common typos seen so far
     COMMON_TYPOS = (
@@ -737,8 +739,8 @@ def extract_basic_auth(url):
         parts.hostname if parts.port is None
         else '%s:%d' % (parts.hostname, parts.port))))
     auth_payload = base64.b64encode(
-        ('%s:%s' % (parts.username, parts.password or '')).encode('utf-8'))
-    return url, 'Basic ' + auth_payload.decode('utf-8')
+        ('%s:%s' % (parts.username, parts.password or '')).encode())
+    return url, f'Basic {auth_payload.decode()}'
 
 
 def sanitized_Request(url, *args, **kwargs):
@@ -917,6 +919,8 @@ def make_HTTPS_handler(params, **kwargs):
     context.check_hostname = opts_check_certificate
     if params.get('legacyserverconnect'):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
+        # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
+        context.set_ciphers('DEFAULT')
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
         if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
@@ -930,9 +934,6 @@ def make_HTTPS_handler(params, **kwargs):
             except ssl.SSLError:
                 # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
                 if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                    # Create a new context to discard any certificates that were already loaded
-                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                    context.check_hostname, context.verify_mode = True, ssl.CERT_REQUIRED
                     for storename in ('CA', 'ROOT'):
                         _ssl_load_windows_store_certs(context, storename)
                 context.set_default_verify_paths()
@@ -1340,7 +1341,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
             location = resp.headers.get('Location')
             if location:
                 # As of RFC 2616 default charset is iso-8859-1 that is respected by python 3
-                location = location.encode('iso-8859-1').decode('utf-8')
+                location = location.encode('iso-8859-1').decode()
                 location_escaped = escape_url(location)
                 if location != location_escaped:
                     del resp.headers['Location']
@@ -1414,9 +1415,14 @@ class YoutubeDLHTTPSHandler(compat_urllib_request.HTTPSHandler):
             conn_class = make_socks_conn_class(conn_class, socks_proxy)
             del req.headers['Ytdl-socks-proxy']
 
-        return self.do_open(functools.partial(
-            _create_http_connection, self, conn_class, True),
-            req, **kwargs)
+        try:
+            return self.do_open(
+                functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
+        except urllib.error.URLError as e:
+            if (isinstance(e.reason, ssl.SSLError)
+                    and getattr(e.reason, 'reason', None) == 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
+                raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect')
+            raise
 
 
 class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
@@ -1435,57 +1441,71 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
         'CookieFileEntry',
         ('domain_name', 'include_subdomains', 'path', 'https_only', 'expires_at', 'name', 'value'))
 
-    def save(self, filename=None, ignore_discard=False, ignore_expires=False):
+    def __init__(self, filename=None, *args, **kwargs):
+        super().__init__(None, *args, **kwargs)
+        if self.is_path(filename):
+            filename = os.fspath(filename)
+        self.filename = filename
+
+    @staticmethod
+    def _true_or_false(cndn):
+        return 'TRUE' if cndn else 'FALSE'
+
+    @staticmethod
+    def is_path(file):
+        return isinstance(file, (str, bytes, os.PathLike))
+
+    @contextlib.contextmanager
+    def open(self, file, *, write=False):
+        if self.is_path(file):
+            with open(file, 'w' if write else 'r', encoding='utf-8') as f:
+                yield f
+        else:
+            if write:
+                file.truncate(0)
+            yield file
+
+    def _really_save(self, f, ignore_discard=False, ignore_expires=False):
+        now = time.time()
+        for cookie in self:
+            if (not ignore_discard and cookie.discard
+                    or not ignore_expires and cookie.is_expired(now)):
+                continue
+            name, value = cookie.name, cookie.value
+            if value is None:
+                # cookies.txt regards 'Set-Cookie: foo' as a cookie
+                # with no name, whereas http.cookiejar regards it as a
+                # cookie with no value.
+                name, value = '', name
+            f.write('%s\n' % '\t'.join((
+                cookie.domain,
+                self._true_or_false(cookie.domain.startswith('.')),
+                cookie.path,
+                self._true_or_false(cookie.secure),
+                str_or_none(cookie.expires, default=''),
+                name, value
+            )))
+
+    def save(self, filename=None, *args, **kwargs):
         """
         Save cookies to a file.
+        Code is taken from CPython 3.6
+        https://github.com/python/cpython/blob/8d999cbf4adea053be6dbb612b9844635c4dfb8e/Lib/http/cookiejar.py#L2091-L2117 """
 
-        Most of the code is taken from CPython 3.8 and slightly adapted
-        to support cookie files with UTF-8 in both python 2 and 3.
-        """
         if filename is None:
             if self.filename is not None:
                 filename = self.filename
             else:
                 raise ValueError(compat_cookiejar.MISSING_FILENAME_TEXT)
 
-        # Store session cookies with `expires` set to 0 instead of an empty
-        # string
+        # Store session cookies with `expires` set to 0 instead of an empty string
         for cookie in self:
             if cookie.expires is None:
                 cookie.expires = 0
 
-        with open(filename, 'w', encoding='utf-8') as f:
+        with self.open(filename, write=True) as f:
             f.write(self._HEADER)
-            now = time.time()
-            for cookie in self:
-                if not ignore_discard and cookie.discard:
-                    continue
-                if not ignore_expires and cookie.is_expired(now):
-                    continue
-                if cookie.secure:
-                    secure = 'TRUE'
-                else:
-                    secure = 'FALSE'
-                if cookie.domain.startswith('.'):
-                    initial_dot = 'TRUE'
-                else:
-                    initial_dot = 'FALSE'
-                if cookie.expires is not None:
-                    expires = compat_str(cookie.expires)
-                else:
-                    expires = ''
-                if cookie.value is None:
-                    # cookies.txt regards 'Set-Cookie: foo' as a cookie
-                    # with no name, whereas http.cookiejar regards it as a
-                    # cookie with no value.
-                    name = ''
-                    value = cookie.name
-                else:
-                    name = cookie.name
-                    value = cookie.value
-                f.write(
-                    '\t'.join([cookie.domain, initial_dot, cookie.path,
-                               secure, expires, name, value]) + '\n')
+            self._really_save(f, *args, **kwargs)
 
     def load(self, filename=None, ignore_discard=False, ignore_expires=False):
         """Load cookies from a file."""
@@ -1510,7 +1530,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             return line
 
         cf = io.StringIO()
-        with open(filename, encoding='utf-8') as f:
+        with self.open(filename) as f:
             for line in f:
                 try:
                     cf.write(prepare_line(line))
@@ -1732,14 +1752,14 @@ def subtitles_filename(filename, sub_lang, sub_format, expected_real_ext=None):
 
 
 def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
-    """
-    Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    R"""
+    Return a datetime object from a string.
+    Supported format:
+        (now|today|yesterday|DATE)([+-]\d+(microsecond|second|minute|hour|day|week|month|year)s?)?
 
-    format: string date format used to return datetime object from
-    precision: round the time portion of a datetime object.
-                auto|microsecond|second|minute|hour|day.
-                auto: round to the unit provided in date_str (if applicable).
+    @param format       strftime format of DATE
+    @param precision    Round the datetime object: auto|microsecond|second|minute|hour|day
+                        auto: round to the unit provided in date_str (if applicable).
     """
     auto_precision = False
     if precision == 'auto':
@@ -1751,7 +1771,7 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
     if date_str == 'yesterday':
         return today - datetime.timedelta(days=1)
     match = re.match(
-        r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)(s)?',
+        r'(?P<start>.+)(?P<sign>[+-])(?P<time>\d+)(?P<unit>microsecond|second|minute|hour|day|week|month|year)s?',
         date_str)
     if match is not None:
         start_time = datetime_from_str(match.group('start'), precision, format)
@@ -1774,16 +1794,14 @@ def datetime_from_str(date_str, precision='auto', format='%Y%m%d'):
 
 
 def date_from_str(date_str, format='%Y%m%d', strict=False):
-    """
-    Return a datetime object from a string in the format YYYYMMDD or
-    (now|today|yesterday|date)[+-][0-9](microsecond|second|minute|hour|day|week|month|year)(s)?
+    R"""
+    Return a date object from a string using datetime_from_str
 
-    If "strict", only (now|today)[+-][0-9](day|week|month|year)(s)? is allowed
-
-    format: string date format used to return datetime object from
+    @param strict  Restrict allowed patterns to "YYYYMMDD" and
+                   (now|today|yesterday)(-\d+(day|week|month|year)s?)?
     """
-    if strict and not re.fullmatch(r'\d{8}|(now|today)[+-]\d+(day|week|month|year)(s)?', date_str):
-        raise ValueError(f'Invalid date format {date_str}')
+    if strict and not re.fullmatch(r'\d{8}|(now|today|yesterday)(-\d+(day|week|month|year)s?)?', date_str):
+        raise ValueError(f'Invalid date format "{date_str}"')
     return datetime_from_str(date_str, precision='microsecond', format=format).date()
 
 
@@ -1865,6 +1883,7 @@ def platform_name():
     return res
 
 
+@functools.cache
 def get_windows_version():
     ''' Get Windows version. None if it's not running on Windows '''
     if compat_os_name == 'nt':
@@ -1877,19 +1896,17 @@ def write_string(s, out=None, encoding=None):
     assert isinstance(s, str)
     out = out or sys.stderr
 
-    from .compat import WINDOWS_VT_MODE  # Must be imported locally
-    if WINDOWS_VT_MODE:
+    if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
+    enc = None
     if 'b' in getattr(out, 'mode', ''):
-        byt = s.encode(encoding or preferredencoding(), 'ignore')
-        out.write(byt)
+        enc = encoding or preferredencoding()
     elif hasattr(out, 'buffer'):
+        out = out.buffer
         enc = encoding or getattr(out, 'encoding', None) or preferredencoding()
-        byt = s.encode(enc, 'ignore')
-        out.buffer.write(byt)
-    else:
-        out.write(s)
+
+    out.write(s.encode(enc, 'ignore') if enc else s)
     out.flush()
 
 
@@ -2062,6 +2079,7 @@ class locked_file:
         return iter(self.f)
 
 
+@functools.cache
 def get_filesystem_encoding():
     encoding = sys.getfilesystemencoding()
     return encoding if encoding is not None else 'utf-8'
@@ -2305,7 +2323,7 @@ def setproctitle(title):
         # a bytestring, but since unicode_literals turns
         # every string into a unicode string, it fails.
         return
-    title_bytes = title.encode('utf-8')
+    title_bytes = title.encode()
     buf = ctypes.create_string_buffer(len(title_bytes))
     buf.value = title_bytes
     try:
@@ -2347,13 +2365,13 @@ def base_url(url):
 
 def urljoin(base, path):
     if isinstance(path, bytes):
-        path = path.decode('utf-8')
+        path = path.decode()
     if not isinstance(path, compat_str) or not path:
         return None
     if re.match(r'^(?:[a-zA-Z][a-zA-Z0-9+-.]*:)?//', path):
         return path
     if isinstance(base, bytes):
-        base = base.decode('utf-8')
+        base = base.decode()
     if not isinstance(base, compat_str) or not re.match(
             r'^(?:https?:)?//', base):
         return None
@@ -2553,49 +2571,48 @@ def get_exe_version(exe, args=['--version'],
 
 
 class LazyList(collections.abc.Sequence):
-    ''' Lazy immutable list from an iterable
-    Note that slices of a LazyList are lists and not LazyList'''
+    """Lazy immutable list from an iterable
+    Note that slices of a LazyList are lists and not LazyList"""
 
     class IndexError(IndexError):
         pass
 
     def __init__(self, iterable, *, reverse=False, _cache=None):
-        self.__iterable = iter(iterable)
-        self.__cache = [] if _cache is None else _cache
-        self.__reversed = reverse
+        self._iterable = iter(iterable)
+        self._cache = [] if _cache is None else _cache
+        self._reversed = reverse
 
     def __iter__(self):
-        if self.__reversed:
+        if self._reversed:
             # We need to consume the entire iterable to iterate in reverse
             yield from self.exhaust()
             return
-        yield from self.__cache
-        for item in self.__iterable:
-            self.__cache.append(item)
+        yield from self._cache
+        for item in self._iterable:
+            self._cache.append(item)
             yield item
 
-    def __exhaust(self):
-        self.__cache.extend(self.__iterable)
-        # Discard the emptied iterable to make it pickle-able
-        self.__iterable = []
-        return self.__cache
+    def _exhaust(self):
+        self._cache.extend(self._iterable)
+        self._iterable = []  # Discard the emptied iterable to make it pickle-able
+        return self._cache
 
     def exhaust(self):
-        ''' Evaluate the entire iterable '''
-        return self.__exhaust()[::-1 if self.__reversed else 1]
+        """Evaluate the entire iterable"""
+        return self._exhaust()[::-1 if self._reversed else 1]
 
     @staticmethod
-    def __reverse_index(x):
+    def _reverse_index(x):
         return None if x is None else -(x + 1)
 
     def __getitem__(self, idx):
         if isinstance(idx, slice):
-            if self.__reversed:
-                idx = slice(self.__reverse_index(idx.start), self.__reverse_index(idx.stop), -(idx.step or 1))
+            if self._reversed:
+                idx = slice(self._reverse_index(idx.start), self._reverse_index(idx.stop), -(idx.step or 1))
             start, stop, step = idx.start, idx.stop, idx.step or 1
         elif isinstance(idx, int):
-            if self.__reversed:
-                idx = self.__reverse_index(idx)
+            if self._reversed:
+                idx = self._reverse_index(idx)
             start, stop, step = idx, idx, 0
         else:
             raise TypeError('indices must be integers or slices')
@@ -2604,35 +2621,35 @@ class LazyList(collections.abc.Sequence):
                 or (stop is None and step > 0)):
             # We need to consume the entire iterable to be able to slice from the end
             # Obviously, never use this with infinite iterables
-            self.__exhaust()
+            self._exhaust()
             try:
-                return self.__cache[idx]
+                return self._cache[idx]
             except IndexError as e:
                 raise self.IndexError(e) from e
-        n = max(start or 0, stop or 0) - len(self.__cache) + 1
+        n = max(start or 0, stop or 0) - len(self._cache) + 1
         if n > 0:
-            self.__cache.extend(itertools.islice(self.__iterable, n))
+            self._cache.extend(itertools.islice(self._iterable, n))
         try:
-            return self.__cache[idx]
+            return self._cache[idx]
         except IndexError as e:
             raise self.IndexError(e) from e
 
     def __bool__(self):
         try:
-            self[-1] if self.__reversed else self[0]
+            self[-1] if self._reversed else self[0]
         except self.IndexError:
             return False
         return True
 
     def __len__(self):
-        self.__exhaust()
-        return len(self.__cache)
+        self._exhaust()
+        return len(self._cache)
 
     def __reversed__(self):
-        return type(self)(self.__iterable, reverse=not self.__reversed, _cache=self.__cache)
+        return type(self)(self._iterable, reverse=not self._reversed, _cache=self._cache)
 
     def __copy__(self):
-        return type(self)(self.__iterable, reverse=self.__reversed, _cache=self.__cache)
+        return type(self)(self._iterable, reverse=self._reversed, _cache=self._cache)
 
     def __repr__(self):
         # repr and str should mimic a list. So we exhaust the iterable
@@ -2846,9 +2863,9 @@ def _multipart_encode_impl(data, boundary):
     for k, v in data.items():
         out += b'--' + boundary.encode('ascii') + b'\r\n'
         if isinstance(k, compat_str):
-            k = k.encode('utf-8')
+            k = k.encode()
         if isinstance(v, compat_str):
-            v = v.encode('utf-8')
+            v = v.encode()
         # RFC 2047 requires non-ASCII field names to be encoded, while RFC 7578
         # suggests sending UTF-8 directly. Firefox sends UTF-8, too
         content = b'Content-Disposition: form-data; name="' + k + b'"\r\n\r\n' + v + b'\r\n'
@@ -2952,7 +2969,7 @@ TV_PARENTAL_GUIDELINES = {
 
 def parse_age_limit(s):
     # isinstance(False, int) is True. So type() must be used instead
-    if type(s) is int:
+    if type(s) is int:  # noqa: E721
         return s if 0 <= s <= 21 else None
     elif not isinstance(s, str):
         return None
@@ -3276,14 +3293,13 @@ def is_html(first_bytes):
         (b'\xff\xfe', 'utf-16-le'),
         (b'\xfe\xff', 'utf-16-be'),
     ]
-    for bom, enc in BOMS:
-        if first_bytes.startswith(bom):
-            s = first_bytes[len(bom):].decode(enc, 'replace')
-            break
-    else:
-        s = first_bytes.decode('utf-8', 'replace')
 
-    return re.match(r'^\s*<', s)
+    encoding = 'utf-8'
+    for bom, enc in BOMS:
+        while first_bytes.startswith(bom):
+            encoding, first_bytes = enc, first_bytes[len(bom):]
+
+    return re.match(r'^\s*<', first_bytes.decode(encoding, 'replace'))
 
 
 def determine_protocol(info_dict):
@@ -3639,26 +3655,21 @@ def dfxp2srt(dfxp_data):
     return ''.join(out)
 
 
-def cli_option(params, command_option, param):
+def cli_option(params, command_option, param, separator=None):
     param = params.get(param)
-    if param:
-        param = compat_str(param)
-    return [command_option, param] if param is not None else []
+    return ([] if param is None
+            else [command_option, str(param)] if separator is None
+            else [f'{command_option}{separator}{param}'])
 
 
 def cli_bool_option(params, command_option, param, true_value='true', false_value='false', separator=None):
     param = params.get(param)
-    if param is None:
-        return []
-    assert isinstance(param, bool)
-    if separator:
-        return [command_option + separator + (true_value if param else false_value)]
-    return [command_option, true_value if param else false_value]
+    assert param in (True, False, None)
+    return cli_option({True: true_value, False: false_value}, command_option, param, separator)
 
 
 def cli_valueless_option(params, command_option, param, expected_value=True):
-    param = params.get(param)
-    return [command_option] if param == expected_value else []
+    return [command_option] if params.get(param) == expected_value else []
 
 
 def cli_configuration_args(argdict, keys, default=[], use_compat=True):
@@ -4151,6 +4162,9 @@ class ISO3166Utils:
         'YE': 'Yemen',
         'ZM': 'Zambia',
         'ZW': 'Zimbabwe',
+        # Not ISO 3166 codes, but used for IP blocks
+        'AP': 'Asia/Pacific Region',
+        'EU': 'Europe',
     }
 
     @classmethod
@@ -4737,7 +4751,7 @@ def write_xattr(path, key, value):
             'Couldn\'t find a tool to set the xattrs. Install either the python "xattr" or "pyxattr" modules or the '
             + ('"xattr" binary' if sys.platform != 'linux' else 'GNU "attr" package (which contains the "setfattr" tool)'))
 
-    value = value.decode('utf-8')
+    value = value.decode()
     try:
         p = Popen(
             [exe, '-w', key, value, path] if exe == 'xattr' else [exe, '-n', key, '-v', value, path],
@@ -4816,7 +4830,7 @@ def iri_to_uri(iri):
             net_location += ':' + urllib.parse.quote(iri_parts.password, safe=r"!$%&'()*+,~")
         net_location += '@'
 
-    net_location += iri_parts.hostname.encode('idna').decode('utf-8')  # Punycode for Unicode hostnames.
+    net_location += iri_parts.hostname.encode('idna').decode()  # Punycode for Unicode hostnames.
     # The 'idna' encoding produces ASCII text.
     if iri_parts.port is not None and iri_parts.port != 80:
         net_location += ':' + str(iri_parts.port)
@@ -4890,14 +4904,9 @@ def make_dir(path, to_screen=None):
 
 
 def get_executable_path():
-    from zipimport import zipimporter
-    if hasattr(sys, 'frozen'):  # Running from PyInstaller
-        path = os.path.dirname(sys.executable)
-    elif isinstance(__loader__, zipimporter):  # Running from ZIP
-        path = os.path.join(os.path.dirname(__file__), '../..')
-    else:
-        path = os.path.join(os.path.dirname(__file__), '..')
-    return os.path.abspath(path)
+    from .update import _get_variant_and_executable_path
+
+    return os.path.dirname(os.path.abspath(_get_variant_and_executable_path()[1]))
 
 
 def load_plugins(name, suffix, namespace):
@@ -5059,9 +5068,9 @@ def jwt_encode_hs256(payload_data, key, headers={}):
     }
     if headers:
         header_data.update(headers)
-    header_b64 = base64.b64encode(json.dumps(header_data).encode('utf-8'))
-    payload_b64 = base64.b64encode(json.dumps(payload_data).encode('utf-8'))
-    h = hmac.new(key.encode('utf-8'), header_b64 + b'.' + payload_b64, hashlib.sha256)
+    header_b64 = base64.b64encode(json.dumps(header_data).encode())
+    payload_b64 = base64.b64encode(json.dumps(payload_data).encode())
+    h = hmac.new(key.encode(), header_b64 + b'.' + payload_b64, hashlib.sha256)
     signature_b64 = base64.b64encode(h.digest())
     token = header_b64 + b'.' + payload_b64 + b'.' + signature_b64
     return token
@@ -5074,9 +5083,12 @@ def jwt_decode_hs256(jwt):
     return payload_data
 
 
+WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+
+
+@functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        from .compat import WINDOWS_VT_MODE  # Must be imported locally
         if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
@@ -5085,6 +5097,21 @@ def supports_terminal_sequences(stream):
         return stream.isatty()
     except BaseException:
         return False
+
+
+def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+    if compat_os_name != 'nt':
+        return
+    global WINDOWS_VT_MODE
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    try:
+        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
+    except Exception:
+        return
+
+    WINDOWS_VT_MODE = True
+    supports_terminal_sequences.cache_clear()
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')
@@ -5138,11 +5165,12 @@ def parse_http_range(range):
 
 class Config:
     own_args = None
+    parsed_args = None
     filename = None
     __initialized = False
 
     def __init__(self, parser, label=None):
-        self._parser, self.label = parser, label
+        self.parser, self.label = parser, label
         self._loaded_paths, self.configs = set(), []
 
     def init(self, args=None, filename=None):
@@ -5155,14 +5183,16 @@ class Config:
                 return False
             self._loaded_paths.add(location)
 
-        self.__initialized = True
-        self.own_args, self.filename = args, filename
-        for location in self._parser.parse_args(args)[0].config_locations or []:
+        self.own_args, self.__initialized = args, True
+        opts, _ = self.parser.parse_known_args(args)
+        self.parsed_args, self.filename = args, filename
+
+        for location in opts.config_locations or []:
             location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
             if not os.path.exists(location):
-                self._parser.error(f'config location {location} does not exist')
+                self.parser.error(f'config location {location} does not exist')
             self.append_config(self.read_file(location), location)
         return True
 
@@ -5208,7 +5238,7 @@ class Config:
         return opts
 
     def append_config(self, *args, label=None):
-        config = type(self)(self._parser, label)
+        config = type(self)(self.parser, label)
         config._loaded_paths = self._loaded_paths
         if config.init(*args):
             self.configs.append(config)
@@ -5217,10 +5247,13 @@ class Config:
     def all_args(self):
         for config in reversed(self.configs):
             yield from config.all_args
-        yield from self.own_args or []
+        yield from self.parsed_args or []
+
+    def parse_known_args(self, **kwargs):
+        return self.parser.parse_known_args(self.all_args, **kwargs)
 
     def parse_args(self):
-        return self._parser.parse_args(self.all_args)
+        return self.parser.parse_args(self.all_args)
 
 
 class WebSocketsWrapper():
@@ -5300,15 +5333,33 @@ def merge_headers(*dicts):
 
 
 class classproperty:
-    def __init__(self, f):
-        self.f = f
+    """classmethod(property(func)) that works in py < 3.9"""
+
+    def __init__(self, func):
+        functools.update_wrapper(self, func)
+        self.func = func
 
     def __get__(self, _, cls):
-        return self.f(cls)
+        return self.func(cls)
 
 
-def Namespace(**kwargs):
-    return collections.namedtuple('Namespace', kwargs)(**kwargs)
+class Namespace:
+    """Immutable namespace"""
+
+    def __init__(self, **kwargs):
+        self._dict = kwargs
+
+    def __getattr__(self, attr):
+        return self._dict[attr]
+
+    def __contains__(self, item):
+        return item in self._dict.values()
+
+    def __iter__(self):
+        return iter(self._dict.items())
+
+    def __repr__(self):
+        return f'{type(self).__name__}({", ".join(f"{k}={v}" for k, v in self)})'
 
 
 # Deprecated

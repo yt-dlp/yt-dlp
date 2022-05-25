@@ -2,12 +2,12 @@ import binascii
 import io
 import re
 
+from . import get_suitable_downloader
 from .external import FFmpegFD
 from .fragment import FragmentFD
 from .. import webvtt
 from ..compat import compat_urlparse
 from ..dependencies import Cryptodome_AES
-from ..downloader import get_suitable_downloader
 from ..utils import bug_reports_message, parse_m3u8_attributes, update_url_query
 
 
@@ -329,7 +329,7 @@ class HlsFD(FragmentFD):
                             continue
                     block.write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             def fin_fragments():
                 dedup_window = extra_state.get('webvtt_dedup_window')
@@ -340,7 +340,7 @@ class HlsFD(FragmentFD):
                 for cue in dedup_window:
                     webvtt.CueBlock.from_json(cue).write_into(output)
 
-                return output.getvalue().encode('utf-8')
+                return output.getvalue().encode()
 
             self.download_and_append_fragments(
                 ctx, fragments, info_dict, pack_func=pack_fragment, finish_func=fin_fragments)

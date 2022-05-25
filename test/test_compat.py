@@ -90,7 +90,7 @@ class TestCompat(unittest.TestCase):
                 <foo><bar>spam</bar></foo>
             </root>
         '''
-        doc = compat_etree_fromstring(xml.encode('utf-8'))
+        doc = compat_etree_fromstring(xml.encode())
         self.assertTrue(isinstance(doc.attrib['foo'], compat_str))
         self.assertTrue(isinstance(doc.attrib['spam'], compat_str))
         self.assertTrue(isinstance(doc.find('normal').text, compat_str))
