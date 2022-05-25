@@ -1,3 +1,6 @@
+from __future__ import division, unicode_literals
+from subprocess import Popen
+
 import contextlib
 import errno
 import os
