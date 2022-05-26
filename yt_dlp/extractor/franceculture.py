@@ -2,7 +2,7 @@ import json
 import re
 
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, traverse_obj
 
 
 class FranceCultureIE(InfoExtractor):
@@ -48,20 +48,20 @@ class FranceCultureIE(InfoExtractor):
                 'uploader',
                 default=None,
             ),
-            'upload_date': ''.join(
-                re.search(
-                    r'"datePublished":"(\d{4})-(\d{2})-(\d{2})T',  # type: ignore
-                    webpage,  # type: ignore
-                ).groups()
-            ),
+            'upload_date': ''.join(self._search_regex(
+                r'"datePublished":"(\d{4})-(\d{2})-(\d{2})T',  # type: ignore
+                webpage,  # type: ignore
+                'timestamp',
+                fatal=False, group=(1, 2, 3)))
         }
 
-        video_data = json.loads(
+        video_data = self._parse_json(
             self._search_regex(  # type: ignore
                 r'({"@type":"AudioObject","contentUrl":"[^"]+","duration":"[^"]+","encodingFormat":"mp3","potentialAction":{"@type":"Action","name":"ListenAction"}})',
                 webpage,
                 'video data',
-            )
+            ),
+            display_id
         )
         video_url = video_data['contentUrl']
         ext = video_data['encodingFormat']
