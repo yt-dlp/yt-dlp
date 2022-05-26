@@ -1,7 +1,5 @@
-import re
-
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, parse_duration
 
 
 class FranceCultureIE(InfoExtractor):
@@ -65,27 +63,7 @@ class FranceCultureIE(InfoExtractor):
         video_url = video_data['contentUrl']
         ext = video_data['encodingFormat']
 
-        # 'P0Y0M0DT0H38M28S'
-        duration = sum(
-            [
-                durations[0] * durations[1]
-                for durations in zip(
-                    [
-                        int(duration)
-                        for duration in re.split(r'[PYMDTOHMS]', video_data['duration'])
-                        if duration
-                    ],
-                    [
-                        365 * 60 * 60 * 24,  # how many seconds in a year
-                        30 * 60 * 60 * 24,  # how many seconds in a month
-                        60 * 60 * 24,  # how many seconds in a day
-                        60 * 60,  # how many seconds in an hour
-                        60,  # how many second an in minute
-                        1,  # how many seconds in a second
-                    ],
-                )
-            ]
-        )
+        duration = parse_duration(video_data['duration'])
 
         return {
             'display_id': display_id,
