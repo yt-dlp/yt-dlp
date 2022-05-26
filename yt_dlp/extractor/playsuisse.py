@@ -60,28 +60,35 @@ class PlaySuisseIE(InfoExtractor):
     _GRAPHQL_QUERY = '''
         query AssetWatch($assetId: ID!) {
             assetV2(id: $assetId) {
-                name
-                description
-                duration
-                episodeNumber
-                seasonNumber
-                seriesName
-                medias {
-                    type
-                    url
+                ...Asset
+                episodes {
+                    ...Asset
                 }
-                thumbnail16x9 {
-                    ...ImageDetails
-                }
-                thumbnail2x3 {
-                    ...ImageDetails
-                }
-                thumbnail16x9WithTitle {
-                    ...ImageDetails
-                }
-                thumbnail2x3WithTitle {
-                    ...ImageDetails
-                }
+            }
+        }
+        fragment Asset on AssetV2 {
+            id
+            name
+            description
+            duration
+            episodeNumber
+            seasonNumber
+            seriesName
+            medias {
+                type
+                url
+            }
+            thumbnail16x9 {
+                ...ImageDetails
+            }
+            thumbnail2x3 {
+                ...ImageDetails
+            }
+            thumbnail16x9WithTitle {
+                ...ImageDetails
+            }
+            thumbnail2x3WithTitle {
+                ...ImageDetails
             }
         }
         fragment ImageDetails on AssetImage {
@@ -106,19 +113,26 @@ class PlaySuisseIE(InfoExtractor):
     def _real_extract(self, url):
         media_id = self._match_id(url)
         media_data = self._get_media_data(media_id)
+        info = self._extract_single(media_data)
+        if media_data.get('episodes'):
+            info['_type'] = "playlist"
+            info['entries'] = [self._extract_single(episode) for episode in media_data["episodes"]]
+        return info
+
+    def _extract_single(self, media_data):
         thumbnails = traverse_obj(media_data, lambda k, _: k.startswith('thumbnail'))
 
         formats, subtitles = [], {}
-        for media in media_data['medias']:
+        for media in traverse_obj(media_data, 'medias', default=[]):
             if not media.get('url') or media.get('type') != 'HLS':
                 continue
             f, subs = self._extract_m3u8_formats_and_subtitles(
-                media['url'], media_id, 'mp4', 'm3u8_native', m3u8_id='HLS', fatal=False)
+                media['url'], media_data['id'], 'mp4', 'm3u8_native', m3u8_id='HLS', fatal=False)
             formats.extend(f)
             self._merge_subtitles(subs, target=subtitles)
 
         return {
-            'id': media_id,
+            'id': media_data['id'],
             'title': media_data.get('name'),
             'description': media_data.get('description'),
             'thumbnails': thumbnails,
