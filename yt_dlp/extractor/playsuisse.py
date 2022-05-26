@@ -2,7 +2,7 @@
 import json
 
 from .common import InfoExtractor
-from ..utils import int_or_none
+from ..utils import int_or_none, traverse_obj
 
 
 class PlaySuisseIE(InfoExtractor):
@@ -10,47 +10,62 @@ class PlaySuisseIE(InfoExtractor):
     _TESTS = [
         {
             'url': 'https://www.playsuisse.ch/watch/763211/0',
-            'md5': '0d716b7a16c3e6ab784ef817ee9a20c1',
+            'md5': '82df2a470b2dfa60c2d33772a8a60cf8',
             'info_dict': {
                 'id': '763211',
                 'ext': 'mp4',
                 'title': 'Knochen',
-                'description': 'md5:8ea7a8076ba000cd9e8bc132fd0afdd8'
+                'description': 'md5:8ea7a8076ba000cd9e8bc132fd0afdd8',
+                'duration': 3344,
+                'series': 'Wilder',
+                'season': 'Season 1',
+                'season_number': 1,
+                'episode': 'Knochen',
+                'episode_number': 1,
+                'thumbnail': 'md5:9260abe0c0ec9b69914d0a10d54c5878'
             }
         },
         {
             'url': 'https://www.playsuisse.ch/watch/808675/0',
-            'md5': '7c59b60aadd84b3e36d46dea01125442',
+            'md5': '818b94c1d2d7c4beef953f12cb8f3e75',
             'info_dict': {
                 'id': '808675',
                 'ext': 'mp4',
                 'title': 'Der Läufer',
-                'description': 'md5:9f61265c7e6dcc3e046137a792b275fd'
+                'description': 'md5:9f61265c7e6dcc3e046137a792b275fd',
+                'duration': 5280,
+                'episode': 'Der Läufer',
+                'thumbnail': 'md5:44af7d65ee02bbba4576b131868bb783'
             }
         },
         {
             'url': 'https://www.playsuisse.ch/watch/817193/0',
-            'md5': 'eff6791c38784543f6d87a58bfe5de15',
+            'md5': '1d6c066f92cd7fffd8b28a53526d6b59',
             'info_dict': {
                 'id': '817193',
                 'ext': 'mp4',
                 'title': 'Die Einweihungsparty',
+                'description': 'md5:91ebf04d3a42cb3ab70666acf750a930',
+                'duration': 1380,
                 'series': 'Nr. 47',
+                'season': 'Season 1',
                 'season_number': 1,
                 'episode': 'Die Einweihungsparty',
                 'episode_number': 1,
-                'description': 'md5:91ebf04d3a42cb3ab70666acf750a930'
+                'thumbnail': 'md5:637585fb106e3a4bcd991958924c7e44'
             }
         }
     ]
 
     _GRAPHQL_QUERY = '''
         query AssetWatch($assetId: ID!) {
-            asset(assetId: $assetId) {
+            assetV2(id: $assetId) {
                 name
                 description
                 duration
                 episodeNumber
+                seasonNumber
+                seriesName
                 medias {
                     type
                     url
@@ -69,7 +84,7 @@ class PlaySuisseIE(InfoExtractor):
                 }
             }
         }
-        fragment ImageDetails on Image {
+        fragment ImageDetails on AssetImage {
             id
             url
         }'''
@@ -86,16 +101,12 @@ class PlaySuisseIE(InfoExtractor):
             }).encode('utf-8'),
             headers={'Content-Type': 'application/json', 'locale': 'de'})
 
-        return response['data']['asset']
+        return response['data']['assetV2']
 
     def _real_extract(self, url):
         media_id = self._match_id(url)
         media_data = self._get_media_data(media_id)
-
-        thumbnails = [{
-            'id': thumb['id'],
-            'url': thumb['url']
-        } for key, thumb in media_data.items() if key.startswith('thumbnail') and thumb is not None]
+        thumbnails = traverse_obj(media_data, lambda k, _: k.startswith('thumbnail'))
 
         formats, subtitles = [], {}
         for media in media_data['medias']:
