@@ -3414,6 +3414,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or get_first(microformats, 'lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
 
+        if get_first(video_details, 'isPostLiveDvr'):
+            self.write_debug('Video is in Post-Live Manifestless mode')
+            if duration or 0 > 4 * 3600:
+                self.report_warning(
+                    'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
+                    'This is a known issue and patches are welcome')
+
         live_broadcast_details, is_live, streaming_data, formats = self._list_formats(
             video_id, microformats, video_details, player_responses, player_url, duration)
 
