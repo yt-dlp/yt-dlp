@@ -610,8 +610,7 @@ class InfoExtractor:
 
             if ip_block:
                 self._x_forwarded_for_ip = GeoUtils.random_ipv4(ip_block)
-                self._downloader.write_debug(
-                    '[debug] Using fake IP %s as X-Forwarded-For' % self._x_forwarded_for_ip)
+                self.write_debug(f'Using fake IP {self._x_forwarded_for_ip} as X-Forwarded-For')
                 return
 
             # Path 2: bypassing based on country code

@@ -27,7 +27,7 @@ class CuriosityStreamBaseIE(InfoExtractor):
             auth_cookie = self._get_cookies('https://curiositystream.com').get('auth_token')
             if auth_cookie:
                 self.write_debug('Obtained auth_token cookie')
-                self._auth_token = cookie.value
+                self._auth_token = auth_cookie.value
         if self._auth_token:
             headers['X-Auth-Token'] = self._auth_token
         result = self._download_json(
