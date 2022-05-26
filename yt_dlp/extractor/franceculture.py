@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import int_or_none, parse_duration
+from ..utils import int_or_none, parse_duration, unified_strdate
 
 
 class FranceCultureIE(InfoExtractor):
@@ -45,12 +45,12 @@ class FranceCultureIE(InfoExtractor):
                 'uploader',
                 default=None,
             ),
-            'upload_date': ''.join(self._search_regex(
-                r'"datePublished":"(\d{4})-(\d{2})-(\d{2})T',  # type: ignore
-                webpage,  # type: ignore
+            'upload_date': unified_strdate(self._search_regex(
+                r'"datePublished":"([^"]+)',
+                webpage,
                 'timestamp',
-                fatal=False, group=(1, 2, 3)))
-        }
+                fatal=False))
+            }
 
         video_data = self._parse_json(
             self._search_regex(  # type: ignore
