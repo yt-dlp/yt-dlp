@@ -2,7 +2,7 @@ from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
     ExtractorError,
-    # GeoRestrictedError,
+    GeoRestrictedError,
 )
 from urllib.parse import urlsplit
 
@@ -21,8 +21,13 @@ class NetverseBaseIE(InfoExtractor):
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}',
             display_id, data=data)
 
-        if json_data.get('error'):
-            raise ExtractorError(f'{self.IE_NAME} said: {json_data.get("message")}')
+        # adapted from dailymotion.py
+        error = json_data.get('error')
+        if error:
+            # See https://developer.dailymotion.com/api#access-error
+            if error.get('code') == "DM007":
+                raise GeoRestrictedError(error.get("title") or error.get("raw_message"))
+            raise ExtractorError(f'{self.IE_NAME} said: {error.get("title") or error.get("raw_message")}')
 
         return display_id, json_data
 
@@ -30,7 +35,7 @@ class NetverseBaseIE(InfoExtractor):
         access_id = urlsplit(dailymotion_url).path.split('/')[-1]
         required_query = {
             'embedder': 'https://www.netverse.id',
-            **query,        
+            **query,
         }
         metadata_json = self._download_json(
             f'https://www.dailymotion.com/player/metadata/{req_file_type}/{access_id}',
@@ -166,7 +171,7 @@ class NetversePlaylistIE(NetverseBaseIE):
         entries = []
         for video in videos:
             vid_url = video.get('slug')
-            
+
             if vid_url is not None:
                 video_url = f'https://www.netverse.id/video/{vid_url}'
                 entry = self.url_result(video_url, NetverseIE)
