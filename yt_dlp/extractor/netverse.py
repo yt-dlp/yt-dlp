@@ -111,6 +111,13 @@ class NetverseIE(NetverseBaseIE):
         videos = traverse_obj(program_json, ('response', 'videos'))
         video_url = videos.get('dailymotion_url')
         episode_order = videos.get('episode_order')
+        playlist_id = traverse_obj(videos, ('program_detail','slug'))
+
+        if playlist_id:
+            if self._yes_playlist(playlist_id, display_id):
+                return self.url_result(
+                    f'https://netverse.id/webseries/{playlist_id}',
+                    NetversePlaylistIE, playlist_id)
 
         # actually the video itself in dailymotion, but in private
         # Maybe need to refactor
