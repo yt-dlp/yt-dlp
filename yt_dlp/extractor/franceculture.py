@@ -50,7 +50,7 @@ class FranceCultureIE(InfoExtractor):
                 webpage,
                 'timestamp',
                 fatal=False))
-            }
+        }
 
         video_data = self._parse_json(
             self._search_regex(  # type: ignore
