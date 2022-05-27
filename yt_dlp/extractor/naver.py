@@ -371,8 +371,8 @@ class NaverNowIE(NaverBaseIE):
         page = 0
         entries = []
         while True:
-            show_vod_info = self._call_api(
-                f'/vod-shows/{show_id}', show_id,
+            show_vod_info = self._download_json(
+                f'{self._API_URL}/vod-shows/{show_id}', show_id,
                 query={'offset': page * self._PAGE_SIZE, 'limit': self._PAGE_SIZE},
                 note=f'Downloading JSON vod list for show {show_id} - page {page}'
             ).get('response', {}).get('result', {})
@@ -388,8 +388,8 @@ class NaverNowIE(NaverBaseIE):
         page = 0
         entries = []
         while True:
-            highlights_videos = self._call_api(
-                f'/shows/{show_id}/highlights/videos/', show_id,
+            highlights_videos = self._download_json(
+                f'{self._API_URL}/shows/{show_id}/highlights/videos/', show_id,
                 query={'offset': page * self._PAGE_SIZE, 'limit': self._PAGE_SIZE},
                 note=f'Downloading JSON highlights for show {show_id} - page {page}')
 
