@@ -991,8 +991,8 @@ from .nationalgeographic import (
 from .naver import (
     NaverIE,
     NaverLiveIE,
+    NaverNowIE,
 )
-from .navernow import NaverNowIE
 from .nba import (
     NBAWatchEmbedIE,
     NBAWatchIE,
