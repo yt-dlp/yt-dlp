@@ -63,7 +63,7 @@ class YDLLogger:
         # Do not print to files/pipes, loggers, or when --no-progress is used
         if not self._ydl or self._ydl.params.get('noprogress') or self._ydl.params.get('logger'):
             return
-        file = self._ydl._out_files['error']
+        file = self._ydl._out_files.error
         try:
             if not file.isatty():
                 return

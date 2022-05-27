@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-import os
 import optparse
+import os
 import sys
 from inspect import getsource
 

@@ -55,3 +55,10 @@ compat_xml_parse_error = etree.ParseError
 compat_xpath = lambda xpath: xpath
 compat_zip = zip
 workaround_optparse_bug9161 = lambda: None
+
+
+def __getattr__(name):
+    if name in ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'):
+        from .. import utils
+        return getattr(utils, name)
+    raise AttributeError(name)

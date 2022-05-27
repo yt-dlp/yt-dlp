@@ -11,6 +11,7 @@ import sys
 import time
 import xml.etree.ElementTree
 
+from ..compat import functools, re  # isort: split
 from ..compat import (
     compat_cookiejar_Cookie,
     compat_cookies_SimpleCookie,
@@ -25,7 +26,6 @@ from ..compat import (
     compat_urllib_parse_urlencode,
     compat_urllib_request,
     compat_urlparse,
-    re,
 )
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
@@ -1343,7 +1343,7 @@ class InfoExtractor:
         return self._og_search_property('url', html, **kargs)
 
     def _html_extract_title(self, html, name='title', *, fatal=False, **kwargs):
-        return self._html_search_regex(r'(?s)<title>([^<]+)</title>', html, name, fatal=fatal, **kwargs)
+        return self._html_search_regex(r'(?s)<title\b[^>]*>([^<]+)</title>', html, name, fatal=fatal, **kwargs)
 
     def _html_search_meta(self, name, html, display_name=None, fatal=False, **kwargs):
         name = variadic(name)
@@ -1509,8 +1509,9 @@ class InfoExtractor:
                 'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
-                'thumbnails': [{'url': url_or_none(url)}
-                               for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))],
+                'thumbnails': [{'url': url}
+                               for url in variadic(traverse_obj(e, 'thumbnailUrl', 'thumbnailURL'))
+                               if url_or_none(url)],
                 'duration': parse_duration(e.get('duration')),
                 'timestamp': unified_timestamp(e.get('uploadDate')),
                 # author can be an instance of 'Organization' or 'Person' types.
@@ -2803,13 +2804,18 @@ class InfoExtractor:
                     mime_type = representation_attrib['mimeType']
                     content_type = representation_attrib.get('contentType', mime_type.split('/')[0])
 
-                    codecs = parse_codecs(representation_attrib.get('codecs', ''))
+                    codec_str = representation_attrib.get('codecs', '')
+                    # Some kind of binary subtitle found in some youtube livestreams
+                    if mime_type == 'application/x-rawcc':
+                        codecs = {'scodec': codec_str}
+                    else:
+                        codecs = parse_codecs(codec_str)
                     if content_type not in ('video', 'audio', 'text'):
                         if mime_type == 'image/jpeg':
                             content_type = mime_type
-                        elif codecs['vcodec'] != 'none':
+                        elif codecs.get('vcodec', 'none') != 'none':
                             content_type = 'video'
-                        elif codecs['acodec'] != 'none':
+                        elif codecs.get('acodec', 'none') != 'none':
                             content_type = 'audio'
                         elif codecs.get('scodec', 'none') != 'none':
                             content_type = 'text'
@@ -3596,9 +3602,7 @@ class InfoExtractor:
 
     def _get_cookies(self, url):
         """ Return a compat_cookies_SimpleCookie with the cookies for the url """
-        req = sanitized_Request(url)
-        self._downloader.cookiejar.add_cookie_header(req)
-        return compat_cookies_SimpleCookie(req.get_header('Cookie'))
+        return compat_cookies_SimpleCookie(self._downloader._calc_cookies(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """
@@ -3742,7 +3746,7 @@ class InfoExtractor:
     def _get_automatic_captions(self, *args, **kwargs):
         raise NotImplementedError('This method must be implemented by subclasses')
 
-    @property
+    @functools.cached_property
     def _cookies_passed(self):
         """Whether cookies have been passed to YoutubeDL"""
         return self.get_param('cookiefile') is not None or self.get_param('cookiesfrombrowser') is not None

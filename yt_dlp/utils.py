@@ -11,7 +11,6 @@ import datetime
 import email.header
 import email.utils
 import errno
-import functools
 import gzip
 import hashlib
 import hmac
@@ -39,8 +38,8 @@ import urllib.parse
 import xml.etree.ElementTree
 import zlib
 
+from .compat import asyncio, functools  # isort: split
 from .compat import (
-    asyncio,
     compat_chr,
     compat_cookiejar,
     compat_etree_fromstring,
@@ -248,6 +247,7 @@ JSON_LD_RE = r'(?is)<script[^>]+type=(["\']?)application/ld\+json\1[^>]*>(?P<jso
 NUMBER_RE = r'\d+(?:\.\d+)?'
 
 
+@functools.cache
 def preferredencoding():
     """Get preferred encoding.
 
@@ -362,14 +362,14 @@ def xpath_attr(node, xpath, key, name=None, fatal=False, default=NO_DEFAULT):
     return n.attrib[key]
 
 
-def get_element_by_id(id, html):
+def get_element_by_id(id, html, **kwargs):
     """Return the content of the tag with the specified ID in the passed HTML document"""
-    return get_element_by_attribute('id', id, html)
+    return get_element_by_attribute('id', id, html, **kwargs)
 
 
-def get_element_html_by_id(id, html):
+def get_element_html_by_id(id, html, **kwargs):
     """Return the html of the tag with the specified ID in the passed HTML document"""
-    return get_element_html_by_attribute('id', id, html)
+    return get_element_html_by_attribute('id', id, html, **kwargs)
 
 
 def get_element_by_class(class_name, html):
@@ -384,17 +384,17 @@ def get_element_html_by_class(class_name, html):
     return retval[0] if retval else None
 
 
-def get_element_by_attribute(attribute, value, html, escape_value=True):
-    retval = get_elements_by_attribute(attribute, value, html, escape_value)
+def get_element_by_attribute(attribute, value, html, **kwargs):
+    retval = get_elements_by_attribute(attribute, value, html, **kwargs)
     return retval[0] if retval else None
 
 
-def get_element_html_by_attribute(attribute, value, html, escape_value=True):
-    retval = get_elements_html_by_attribute(attribute, value, html, escape_value)
+def get_element_html_by_attribute(attribute, value, html, **kargs):
+    retval = get_elements_html_by_attribute(attribute, value, html, **kargs)
     return retval[0] if retval else None
 
 
-def get_elements_by_class(class_name, html):
+def get_elements_by_class(class_name, html, **kargs):
     """Return the content of all tags with the specified class in the passed HTML document as a list"""
     return get_elements_by_attribute(
         'class', r'[^\'"]*\b%s\b[^\'"]*' % re.escape(class_name),
@@ -714,7 +714,9 @@ def sanitize_path(s, force=False):
 def sanitize_url(url):
     # Prepend protocol-less URLs with `http:` scheme in order to mitigate
     # the number of unwanted failures due to missing protocol
-    if url.startswith('//'):
+    if url is None:
+        return
+    elif url.startswith('//'):
         return 'http:%s' % url
     # Fix some common typos seen so far
     COMMON_TYPOS = (
@@ -1887,6 +1889,7 @@ def platform_name():
     return res
 
 
+@functools.cache
 def get_windows_version():
     ''' Get Windows version. None if it's not running on Windows '''
     if compat_os_name == 'nt':
@@ -1902,15 +1905,14 @@ def write_string(s, out=None, encoding=None):
     if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
+    enc = None
     if 'b' in getattr(out, 'mode', ''):
-        byt = s.encode(encoding or preferredencoding(), 'ignore')
-        out.write(byt)
+        enc = encoding or preferredencoding()
     elif hasattr(out, 'buffer'):
+        out = out.buffer
         enc = encoding or getattr(out, 'encoding', None) or preferredencoding()
-        byt = s.encode(enc, 'ignore')
-        out.buffer.write(byt)
-    else:
-        out.write(s)
+
+    out.write(s.encode(enc, 'ignore') if enc else s)
     out.flush()
 
 
@@ -2083,6 +2085,7 @@ class locked_file:
         return iter(self.f)
 
 
+@functools.cache
 def get_filesystem_encoding():
     encoding = sys.getfilesystemencoding()
     return encoding if encoding is not None else 'utf-8'
@@ -2972,7 +2975,7 @@ TV_PARENTAL_GUIDELINES = {
 
 def parse_age_limit(s):
     # isinstance(False, int) is True. So type() must be used instead
-    if type(s) is int:
+    if type(s) is int:  # noqa: E721
         return s if 0 <= s <= 21 else None
     elif not isinstance(s, str):
         return None
@@ -3296,14 +3299,13 @@ def is_html(first_bytes):
         (b'\xff\xfe', 'utf-16-le'),
         (b'\xfe\xff', 'utf-16-be'),
     ]
-    for bom, enc in BOMS:
-        if first_bytes.startswith(bom):
-            s = first_bytes[len(bom):].decode(enc, 'replace')
-            break
-    else:
-        s = first_bytes.decode('utf-8', 'replace')
 
-    return re.match(r'^\s*<', s)
+    encoding = 'utf-8'
+    for bom, enc in BOMS:
+        while first_bytes.startswith(bom):
+            encoding, first_bytes = enc, first_bytes[len(bom):]
+
+    return re.match(r'^\s*<', first_bytes.decode(encoding, 'replace'))
 
 
 def determine_protocol(info_dict):
@@ -3659,26 +3661,21 @@ def dfxp2srt(dfxp_data):
     return ''.join(out)
 
 
-def cli_option(params, command_option, param):
+def cli_option(params, command_option, param, separator=None):
     param = params.get(param)
-    if param:
-        param = compat_str(param)
-    return [command_option, param] if param is not None else []
+    return ([] if param is None
+            else [command_option, str(param)] if separator is None
+            else [f'{command_option}{separator}{param}'])
 
 
 def cli_bool_option(params, command_option, param, true_value='true', false_value='false', separator=None):
     param = params.get(param)
-    if param is None:
-        return []
-    assert isinstance(param, bool)
-    if separator:
-        return [command_option + separator + (true_value if param else false_value)]
-    return [command_option, true_value if param else false_value]
+    assert param in (True, False, None)
+    return cli_option({True: true_value, False: false_value}, command_option, param, separator)
 
 
 def cli_valueless_option(params, command_option, param, expected_value=True):
-    param = params.get(param)
-    return [command_option] if param == expected_value else []
+    return [command_option] if params.get(param) == expected_value else []
 
 
 def cli_configuration_args(argdict, keys, default=[], use_compat=True):
@@ -4171,6 +4168,9 @@ class ISO3166Utils:
         'YE': 'Yemen',
         'ZM': 'Zambia',
         'ZW': 'Zimbabwe',
+        # Not ISO 3166 codes, but used for IP blocks
+        'AP': 'Asia/Pacific Region',
+        'EU': 'Europe',
     }
 
     @classmethod
@@ -4910,14 +4910,9 @@ def make_dir(path, to_screen=None):
 
 
 def get_executable_path():
-    from zipimport import zipimporter
-    if hasattr(sys, 'frozen'):  # Running from PyInstaller
-        path = os.path.dirname(sys.executable)
-    elif isinstance(__loader__, zipimporter):  # Running from ZIP
-        path = os.path.join(os.path.dirname(__file__), '../..')
-    else:
-        path = os.path.join(os.path.dirname(__file__), '..')
-    return os.path.abspath(path)
+    from .update import _get_variant_and_executable_path
+
+    return os.path.dirname(os.path.abspath(_get_variant_and_executable_path()[1]))
 
 
 def load_plugins(name, suffix, namespace):
@@ -5094,9 +5089,12 @@ def jwt_decode_hs256(jwt):
     return payload_data
 
 
+WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
+
+
+@functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        from .compat import WINDOWS_VT_MODE  # Must be imported locally
         if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
             return False
     elif not os.getenv('TERM'):
@@ -5105,6 +5103,21 @@ def supports_terminal_sequences(stream):
         return stream.isatty()
     except BaseException:
         return False
+
+
+def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
+    if compat_os_name != 'nt':
+        return
+    global WINDOWS_VT_MODE
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    try:
+        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
+    except Exception:
+        return
+
+    WINDOWS_VT_MODE = True
+    supports_terminal_sequences.cache_clear()
 
 
 _terminal_sequences_re = re.compile('\033\\[[^m]+m')
@@ -5158,11 +5171,12 @@ def parse_http_range(range):
 
 class Config:
     own_args = None
+    parsed_args = None
     filename = None
     __initialized = False
 
     def __init__(self, parser, label=None):
-        self._parser, self.label = parser, label
+        self.parser, self.label = parser, label
         self._loaded_paths, self.configs = set(), []
 
     def init(self, args=None, filename=None):
@@ -5175,14 +5189,16 @@ class Config:
                 return False
             self._loaded_paths.add(location)
 
-        self.__initialized = True
-        self.own_args, self.filename = args, filename
-        for location in self._parser.parse_args(args)[0].config_locations or []:
+        self.own_args, self.__initialized = args, True
+        opts, _ = self.parser.parse_known_args(args)
+        self.parsed_args, self.filename = args, filename
+
+        for location in opts.config_locations or []:
             location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
             if not os.path.exists(location):
-                self._parser.error(f'config location {location} does not exist')
+                self.parser.error(f'config location {location} does not exist')
             self.append_config(self.read_file(location), location)
         return True
 
@@ -5228,7 +5244,7 @@ class Config:
         return opts
 
     def append_config(self, *args, label=None):
-        config = type(self)(self._parser, label)
+        config = type(self)(self.parser, label)
         config._loaded_paths = self._loaded_paths
         if config.init(*args):
             self.configs.append(config)
@@ -5237,10 +5253,13 @@ class Config:
     def all_args(self):
         for config in reversed(self.configs):
             yield from config.all_args
-        yield from self.own_args or []
+        yield from self.parsed_args or []
+
+    def parse_known_args(self, **kwargs):
+        return self.parser.parse_known_args(self.all_args, **kwargs)
 
     def parse_args(self):
-        return self._parser.parse_args(self.all_args)
+        return self.parser.parse_args(self.all_args)
 
 
 class WebSocketsWrapper():
@@ -5320,16 +5339,33 @@ def merge_headers(*dicts):
 
 
 class classproperty:
-    def __init__(self, f):
-        functools.update_wrapper(self, f)
-        self.f = f
+    """classmethod(property(func)) that works in py < 3.9"""
+
+    def __init__(self, func):
+        functools.update_wrapper(self, func)
+        self.func = func
 
     def __get__(self, _, cls):
-        return self.f(cls)
+        return self.func(cls)
 
 
-def Namespace(**kwargs):
-    return collections.namedtuple('Namespace', kwargs)(**kwargs)
+class Namespace:
+    """Immutable namespace"""
+
+    def __init__(self, **kwargs):
+        self._dict = kwargs
+
+    def __getattr__(self, attr):
+        return self._dict[attr]
+
+    def __contains__(self, item):
+        return item in self._dict.values()
+
+    def __iter__(self):
+        return iter(self._dict.items())
+
+    def __repr__(self):
+        return f'{type(self).__name__}({", ".join(f"{k}={v}" for k, v in self)})'
 
 
 # Deprecated
