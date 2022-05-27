@@ -949,7 +949,7 @@ def make_HTTPS_handler(params, **kwargs):
     # See: https://bugs.python.org/issue40968
     try:
         context.set_alpn_protocols(['http/1.1'])
-    except (AttributeError, NotImplementedError):
+    except NotImplementedError:
         pass
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
