@@ -2715,6 +2715,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 for contents in content_list
             ))), [])
 
+    @staticmethod
+    def _extract_chapters_from_description(description, duration):
+        chapters = [{'start_time': 0}]
+        for timestamp, title in re.findall(
+                r'(?m)^((?:\d+:)?\d{1,2}:\d{2})\b\W*\s(.+?)\s*$', description or ''):
+            start = parse_duration(timestamp)
+            if start and title and chapters[-1]['start_time'] < start < duration:
+                chapters[-1]['end_time'] = start
+                chapters.append({
+                    'start_time': start,
+                    'title': title,
+                })
+        chapters[-1]['end_time'] = duration
+        return chapters[1:]
+
     def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration):
         chapters = []
         last_chapter = {'start_time': 0}
@@ -3668,6 +3683,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             info['chapters'] = (
                 self._extract_chapters_from_json(initial_data, duration)
                 or self._extract_chapters_from_engagement_panel(initial_data, duration)
+                or self._extract_chapters_from_description(video_description, duration)
                 or None)
 
         contents = traverse_obj(
