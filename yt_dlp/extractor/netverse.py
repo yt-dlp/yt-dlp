@@ -42,7 +42,7 @@ class NetverseBaseIE(InfoExtractor):
             display_id, query=required_query)
         return access_id, metadata_json
 
-
+# ERROR : got_dict = None ?
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
@@ -113,12 +113,7 @@ class NetverseIE(NetverseBaseIE):
         episode_order = videos.get('episode_order')
         playlist_id = traverse_obj(videos, ('program_detail','slug'))
 
-        if playlist_id:
-            if self._yes_playlist(playlist_id, display_id):
-                return self.url_result(
-                    f'https://netverse.id/webseries/{playlist_id}',
-                    NetversePlaylistIE, playlist_id)
-
+       
         # actually the video itself in dailymotion, but in private
         # Maybe need to refactor
         access_id, real_video_json = self._call_metadata_api_from_video_url(video_url, display_id)
@@ -138,6 +133,13 @@ class NetverseIE(NetverseBaseIE):
 
         episode = f'Episode {episode_order}'
         self._sort_formats(video_format)
+        
+        if playlist_id:
+            if self._yes_playlist(playlist_id, display_id):
+                return self.url_result(
+                    f'https://netverse.id/webseries/{playlist_id}',
+                    NetversePlaylistIE, playlist_id)
+
         return {
             'id': video_id,
             'access_id': access_id,
@@ -157,7 +159,7 @@ class NetversePlaylistIE(NetverseBaseIE):
     _TEST = {
         'url': 'https://netverse.id/webseries/tetangga-masa-gitu',
         'info_dict': {
-            'id': 16,
+            'id': 'tetangga-masa-gitu',
             'title': 'Tetangga Masa Gitu',
         },
         'playlist_mincount': 10,
@@ -170,7 +172,8 @@ class NetversePlaylistIE(NetverseBaseIE):
         display_id, playlist_data = self.get_required_json(url)
         webseries_info = traverse_obj(playlist_data, ('response', 'webseries_info'))
         videos = traverse_obj(playlist_data, ('response', 'related', 'data'))
-
+        # TODO : list all playlist based on page number
+        playlist_current_page = traverse_obj(playlist_data, ('response', 'related', 'current_page'))
         # at the moment, i didn't know how to use playlist_from_matches
         # so i will let the old code uncommented.
         # self.playlist_from_matches(matches)
@@ -185,5 +188,5 @@ class NetversePlaylistIE(NetverseBaseIE):
                 entries.append(entry)
 
         return self.playlist_result(
-            entries, webseries_info.get('video_webseries_detail_id'), webseries_info.get('title')
+            entries, webseries_info.get('slug'), webseries_info.get('title')
         )
