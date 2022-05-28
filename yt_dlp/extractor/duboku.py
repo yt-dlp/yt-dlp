@@ -63,7 +63,6 @@ class DubokuIE(InfoExtractor):
             'title': 'contains:白色月光',
             'season_number': 1,
             'episode_number': 1,
-
             'season': 'Season 1',
             'episode_id': '1',
             'season_id': '1',
@@ -81,7 +80,6 @@ class DubokuIE(InfoExtractor):
             'title': 'contains:第1集',
             'season_number': 1,
             'episode_number': 1,
-
             'episode': 'Episode 1',
             'season': 'Season 1',
             'episode_id': '1',
