@@ -34,9 +34,13 @@ from ..utils import (
 conn = stomp.Connection([('rabbitmq', 61613)])
 conn.connect('guest', 'guest', wait=True) # whatever nerd
 def amqp_hook(response):
-    id = response["info_dict"]["id"]
-    # TODO: website granularity for queues
-    conn.send(body=json.dumps(response), destination=f'/queue/{id}')
+    try:
+        print(response)
+        id = response["info_dict"]["id"]
+        # TODO: website granularity for queues
+        conn.send(body=json.dumps(response), destination=f'/queue/{id}')
+    except Exception as e:
+        print(f'Failed to send amqp message. Exception: {e}')
 
 class FileDownloader:
     """File Downloader class.
