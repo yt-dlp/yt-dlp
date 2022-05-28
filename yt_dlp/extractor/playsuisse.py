@@ -1,4 +1,3 @@
-# coding: utf-8
 import json
 
 from .common import InfoExtractor
@@ -115,8 +114,10 @@ class PlaySuisseIE(InfoExtractor):
         media_data = self._get_media_data(media_id)
         info = self._extract_single(media_data)
         if media_data.get('episodes'):
-            info['_type'] = "playlist"
-            info['entries'] = [self._extract_single(episode) for episode in media_data["episodes"]]
+            info.update({
+                '_type': 'playlist',
+                'entries': map(self._extract_single, media_data['episodes']),
+            })
         return info
 
     def _extract_single(self, media_data):
@@ -127,7 +128,7 @@ class PlaySuisseIE(InfoExtractor):
             if not media.get('url') or media.get('type') != 'HLS':
                 continue
             f, subs = self._extract_m3u8_formats_and_subtitles(
-                media['url'], media_data['id'], 'mp4', 'm3u8_native', m3u8_id='HLS', fatal=False)
+                media['url'], media_data['id'], 'mp4', m3u8_id='HLS', fatal=False)
             formats.extend(f)
             self._merge_subtitles(subs, target=subtitles)
 
