@@ -51,11 +51,11 @@ def _get_element_by_tag_and_attrib(html, tag=None, attribute=None, value=None, e
 
 class DubokuIE(InfoExtractor):
     IE_NAME = 'duboku'
-    IE_DESC = 'www.duboku.co'
+    IE_DESC = 'www.duboku.io'
 
-    _VALID_URL = r'(?:https?://[^/]+\.duboku\.co/vodplay/)(?P<id>[0-9]+-[0-9-]+)\.html.*'
+    _VALID_URL = r'(?:https?://[^/]+\.duboku\.io/vodplay/)(?P<id>[0-9]+-[0-9-]+)\.html.*'
     _TESTS = [{
-        'url': 'https://www.duboku.co/vodplay/1575-1-1.html',
+        'url': 'https://w.duboku.io/vodplay/1575-1-1.html',
         'info_dict': {
             'id': '1575-1-1',
             'ext': 'ts',
@@ -68,7 +68,7 @@ class DubokuIE(InfoExtractor):
             'skip_download': 'm3u8 download',
         },
     }, {
-        'url': 'https://www.duboku.co/vodplay/1588-1-1.html',
+        'url': 'https://w.duboku.io/vodplay/1588-1-1.html',
         'info_dict': {
             'id': '1588-1-1',
             'ext': 'ts',
@@ -91,7 +91,7 @@ class DubokuIE(InfoExtractor):
         season_id = temp[1]
         episode_id = temp[2]
 
-        webpage_url = 'https://www.duboku.co/vodplay/%s.html' % video_id
+        webpage_url = 'https://w.duboku.io/vodplay/%s.html' % video_id
         webpage_html = self._download_webpage(webpage_url, video_id)
 
         # extract video url
@@ -124,12 +124,13 @@ class DubokuIE(InfoExtractor):
         data_from = player_data.get('from')
 
         # if it is an embedded iframe, maybe it's an external source
+        headers = {'Referer': webpage_url}
         if data_from == 'iframe':
             # use _type url_transparent to retain the meaningful details
             # of the video.
             return {
                 '_type': 'url_transparent',
-                'url': smuggle_url(data_url, {'http_headers': {'Referer': webpage_url}}),
+                'url': smuggle_url(data_url, {'http_headers': headers}),
                 'id': video_id,
                 'title': title,
                 'series': series_title,
@@ -139,7 +140,7 @@ class DubokuIE(InfoExtractor):
                 'episode_id': episode_id,
             }
 
-        formats = self._extract_m3u8_formats(data_url, video_id, 'mp4')
+        formats = self._extract_m3u8_formats(data_url, video_id, 'mp4', headers=headers)
 
         return {
             'id': video_id,
@@ -150,31 +151,31 @@ class DubokuIE(InfoExtractor):
             'episode_number': int_or_none(episode_id),
             'episode_id': episode_id,
             'formats': formats,
-            'http_headers': {'Referer': 'https://www.duboku.co/static/player/videojs.html'}
+            'http_headers': {'Referer': 'https://w.duboku.io/'}
         }
 
 
 class DubokuPlaylistIE(InfoExtractor):
     IE_NAME = 'duboku:list'
-    IE_DESC = 'www.duboku.co entire series'
+    IE_DESC = 'www.duboku.io entire series'
 
-    _VALID_URL = r'(?:https?://[^/]+\.duboku\.co/voddetail/)(?P<id>[0-9]+)\.html.*'
+    _VALID_URL = r'(?:https?://[^/]+\.duboku\.io/voddetail/)(?P<id>[0-9]+)\.html.*'
     _TESTS = [{
-        'url': 'https://www.duboku.co/voddetail/1575.html',
+        'url': 'https://w.duboku.io/voddetail/1575.html',
         'info_dict': {
             'id': 'startswith:1575',
             'title': '白色月光',
         },
         'playlist_count': 12,
     }, {
-        'url': 'https://www.duboku.co/voddetail/1554.html',
+        'url': 'https://w.duboku.io/voddetail/1554.html',
         'info_dict': {
             'id': 'startswith:1554',
             'title': '以家人之名',
         },
         'playlist_mincount': 30,
     }, {
-        'url': 'https://www.duboku.co/voddetail/1554.html#playlist2',
+        'url': 'https://w.duboku.io/voddetail/1554.html#playlist2',
         'info_dict': {
             'id': '1554#playlist2',
             'title': '以家人之名',
@@ -189,7 +190,7 @@ class DubokuPlaylistIE(InfoExtractor):
         series_id = mobj.group('id')
         fragment = compat_urlparse.urlparse(url).fragment
 
-        webpage_url = 'https://www.duboku.co/voddetail/%s.html' % series_id
+        webpage_url = 'https://w.duboku.io/voddetail/%s.html' % series_id
         webpage_html = self._download_webpage(webpage_url, series_id)
 
         # extract title
@@ -234,6 +235,6 @@ class DubokuPlaylistIE(InfoExtractor):
         # return url results
         return self.playlist_result([
             self.url_result(
-                compat_urlparse.urljoin('https://www.duboku.co', x['href']),
+                compat_urlparse.urljoin('https://w.duboku.io', x['href']),
                 ie=DubokuIE.ie_key(), video_title=x.get('title'))
             for x in playlist], series_id + '#' + playlist_id, title)
