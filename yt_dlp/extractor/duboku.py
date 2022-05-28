@@ -58,11 +58,16 @@ class DubokuIE(InfoExtractor):
         'url': 'https://w.duboku.io/vodplay/1575-1-1.html',
         'info_dict': {
             'id': '1575-1-1',
-            'ext': 'ts',
+            'ext': 'mp4',
             'series': '白色月光',
             'title': 'contains:白色月光',
             'season_number': 1,
             'episode_number': 1,
+
+            'season': 'Season 1',
+            'episode_id': '1',
+            'season_id': '1',
+            'episode': 'Episode 1',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -71,11 +76,16 @@ class DubokuIE(InfoExtractor):
         'url': 'https://w.duboku.io/vodplay/1588-1-1.html',
         'info_dict': {
             'id': '1588-1-1',
-            'ext': 'ts',
+            'ext': 'mp4',
             'series': '亲爱的自己',
-            'title': 'contains:预告片',
+            'title': 'contains:第1集',
             'season_number': 1,
             'episode_number': 1,
+
+            'episode': 'Episode 1',
+            'season': 'Season 1',
+            'episode_id': '1',
+            'season_id': '1',
         },
         'params': {
             'skip_download': 'm3u8 download',
@@ -174,13 +184,6 @@ class DubokuPlaylistIE(InfoExtractor):
             'title': '以家人之名',
         },
         'playlist_mincount': 30,
-    }, {
-        'url': 'https://w.duboku.io/voddetail/1554.html#playlist2',
-        'info_dict': {
-            'id': '1554#playlist2',
-            'title': '以家人之名',
-        },
-        'playlist_mincount': 27,
     }]
 
     def _real_extract(self, url):
