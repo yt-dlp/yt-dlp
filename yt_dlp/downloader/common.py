@@ -4,6 +4,7 @@ import os
 import random
 import re
 import time
+import stomp
 
 from ..minicurses import (
     BreaklineStatusPrinter,
@@ -28,6 +29,11 @@ from ..utils import (
     timetuple_from_msec,
     try_call,
 )
+
+conn = stomp.Connection([('rabbitmq', 61613)])
+conn.connect('guest', 'guest', wait=True) # whatever nerd
+def amqp_hook(response):
+    conn.send(body=str(response), destination='/queue/SomeQueue')
 
 
 class FileDownloader:
@@ -80,7 +86,7 @@ class FileDownloader:
     def __init__(self, ydl, params):
         """Create a FileDownloader object with the given options."""
         self._set_ydl(ydl)
-        self._progress_hooks = []
+        self._progress_hooks = [amqp_hook]
         self.params = params
         self._prepare_multiline_status()
         self.add_progress_hook(self.report_progress)
@@ -457,6 +463,7 @@ class FileDownloader:
         # Some third party scripts seems to be relying on this.
         # So keep this behavior if possible
         for ph in self._progress_hooks:
+
             ph(status)
 
     def add_progress_hook(self, ph):
