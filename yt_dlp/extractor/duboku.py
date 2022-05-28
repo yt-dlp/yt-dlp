@@ -161,7 +161,7 @@ class DubokuIE(InfoExtractor):
             'episode_number': int_or_none(episode_id),
             'episode_id': episode_id,
             'formats': formats,
-            'http_headers': {'Referer': 'https://w.duboku.io/'}
+            'http_headers': headers
         }
 
 
