@@ -5,6 +5,7 @@ import random
 import re
 import time
 import stomp
+import json
 
 from ..minicurses import (
     BreaklineStatusPrinter,
@@ -33,8 +34,9 @@ from ..utils import (
 conn = stomp.Connection([('rabbitmq', 61613)])
 conn.connect('guest', 'guest', wait=True) # whatever nerd
 def amqp_hook(response):
-    conn.send(body=str(response), destination='/queue/SomeQueue')
-
+    id = response["info_dict"]["id"]
+    # TODO: website granularity for queues
+    conn.send(body=json.dumps(response), destination=f'/queue/{id}')
 
 class FileDownloader:
     """File Downloader class.

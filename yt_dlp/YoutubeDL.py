@@ -23,7 +23,6 @@ import tokenize
 import traceback
 import unicodedata
 import urllib.request
-import stomp
 
 from string import ascii_letters
 
