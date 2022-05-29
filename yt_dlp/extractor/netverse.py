@@ -1,3 +1,4 @@
+import functools
 from .common import InfoExtractor
 from ..utils import (
     traverse_obj,
@@ -171,8 +172,8 @@ class NetversePlaylistIE(NetverseBaseIE):
         }
     }
 
-    def parse_playlist(self, playlist_json):
-        entry_result = []
+    def parse_playlist(self, url, playlist_page):
+        display_id, playlist_json = self.get_required_json(url, query={'page': playlist_page})
         videos = traverse_obj(playlist_json, ('response', 'related', 'data'))
         
         for video in videos:
@@ -181,10 +182,19 @@ class NetversePlaylistIE(NetverseBaseIE):
             if vid_url is not None:
                 video_url = f'https://www.netverse.id/video/{vid_url}'
                 
-                entry = self.url_result(video_url, NetverseIE)
-                entry_result.append(entry)
+                yield self.url_result(video_url, NetverseIE)
+    
+    def parse_playlist_old(self, playlist_json):
+        videos = traverse_obj(playlist_json, ('response', 'related', 'data'))
+        
+        for video in videos:
+            vid_url = video.get('slug')
 
-        return entry_result
+            if vid_url is not None:
+                video_url = f'https://www.netverse.id/video/{vid_url}'
+                
+                yield self.url_result(video_url, NetverseIE)
+                
 
     def _real_extract(self, url):
         display_id, playlist_data = self.get_required_json(url)
@@ -196,14 +206,16 @@ class NetversePlaylistIE(NetverseBaseIE):
         # at the moment, i didn't know how to use playlist_from_matches
         # so i will let the old code uncommented.
         # self.playlist_from_matches(matches)
+        
+        entries = OnDemandPagedList(functools.partial(self.parse_playlist, url), 10)
 
-        entries = []
-        page = 0
-        while (page < playlist_last_page - 1):
-            _, playlist_page_json = self.get_required_json(url, query={'page': f'{page + 1}'})
-            entries.extend(self.parse_playlist(playlist_page_json))
+        # entries = []
+        # page = 0
+        # while (page < playlist_last_page - 1):
+        #     _, playlist_page_json = self.get_required_json(url, query={'page': f'{page + 1}'})
+        #     entries.extend(self.parse_playlist_old(playlist_page_json))
 
-            page += 1
+        #     page += 1
 
         # entries = []
         # for video in videos:
