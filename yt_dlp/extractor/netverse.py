@@ -3,6 +3,7 @@ from ..utils import (
     traverse_obj,
     ExtractorError,
     GeoRestrictedError,
+    OnDemandPagedList,
 )
 from urllib.parse import urlsplit
 
@@ -14,12 +15,12 @@ class NetverseBaseIE(InfoExtractor):
         'webseries': 'webseries',
     }
 
-    def get_required_json(self, url, data=None):
+    def get_required_json(self, url, data=None, query={}):
         display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
 
         json_data = self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}',
-            display_id, data=data)
+            display_id, data=data, query=query)
 
         # adapted from dailymotion.py
         error = json_data.get('error')
@@ -86,8 +87,11 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': 'https://vplayed-uat.s3-ap-southeast-1.amazonaws.com/images/webseries/thumbnails/2021/11/619cfd9d32c5f.jpeg',
             'episode_number': 1,
             'series': 'Tetangga Masa Gitu',
-            'episode': 'Episode 1',
-        }}, {
+            'episode': 'Episode 1', },
+        'params': {
+            'noplaylist': True,
+        }
+            }, {
         # /video url
         'url': 'https://www.netverse.id/video/pg067482-hellojadoo-season1',
         'title': 'Namaku Choi Jadoo',
@@ -111,9 +115,8 @@ class NetverseIE(NetverseBaseIE):
         videos = traverse_obj(program_json, ('response', 'videos'))
         video_url = videos.get('dailymotion_url')
         episode_order = videos.get('episode_order')
-        playlist_id = traverse_obj(videos, ('program_detail','slug'))
+        playlist_id = traverse_obj(videos, ('program_detail', 'slug'))
 
-       
         # actually the video itself in dailymotion, but in private
         # Maybe need to refactor
         access_id, real_video_json = self._call_metadata_api_from_video_url(video_url, display_id)
@@ -168,24 +171,48 @@ class NetversePlaylistIE(NetverseBaseIE):
         }
     }
 
-    def _real_extract(self, url):
-        display_id, playlist_data = self.get_required_json(url)
-        webseries_info = traverse_obj(playlist_data, ('response', 'webseries_info'))
-        videos = traverse_obj(playlist_data, ('response', 'related', 'data'))
-        # TODO : list all playlist based on page number
-        playlist_current_page = traverse_obj(playlist_data, ('response', 'related', 'current_page'))
-        # at the moment, i didn't know how to use playlist_from_matches
-        # so i will let the old code uncommented.
-        # self.playlist_from_matches(matches)
-
-        entries = []
+    def parse_playlist(self, playlist_json):
+        entry_result = []
+        videos = traverse_obj(playlist_json, ('response', 'related', 'data'))
+        
         for video in videos:
             vid_url = video.get('slug')
 
             if vid_url is not None:
                 video_url = f'https://www.netverse.id/video/{vid_url}'
+                
                 entry = self.url_result(video_url, NetverseIE)
-                entries.append(entry)
+                entry_result.append(entry)
+
+        return entry_result
+
+    def _real_extract(self, url):
+        display_id, playlist_data = self.get_required_json(url)
+        webseries_info = traverse_obj(playlist_data, ('response', 'webseries_info'))
+        # TODO : list all playlist based on page number
+        playlist_last_page = traverse_obj(playlist_data, ('response', 'related', 'last_page'))
+        playlist_next_page = traverse_obj(playlist_data, ('response', 'related', 'next_page_url'))
+        #print(playlist_next_page)
+        # at the moment, i didn't know how to use playlist_from_matches
+        # so i will let the old code uncommented.
+        # self.playlist_from_matches(matches)
+
+        entries = []
+        page = 0
+        while (page < playlist_last_page - 1):
+            _, playlist_page_json = self.get_required_json(url, query={'page': f'{page + 1}'})
+            entries.extend(self.parse_playlist(playlist_page_json))
+
+            page += 1
+
+        # entries = []
+        # for video in videos:
+        #     vid_url = video.get('slug')
+
+        #     if vid_url is not None:
+        #         video_url = f'https://www.netverse.id/video/{vid_url}'
+        #         entry = self.url_result(video_url, NetverseIE)
+        #         entries.append(entry)
 
         return self.playlist_result(
             entries, webseries_info.get('slug'), webseries_info.get('title')
