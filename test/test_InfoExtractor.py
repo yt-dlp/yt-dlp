@@ -509,7 +509,8 @@ class TestInfoExtractor(unittest.TestCase):
             self.ie._parse_html5_media_entries(
                 'https://0000.studio',
                 r'''
-                <video src="https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92" controls="controls" type="video/mp4" preload="metadata" autoplay="autoplay" playsinline class="object-contain">
+                <video src="https://d1ggyt9m8pwf3g.cloudfront.net/protected/ap-northeast-1:1864af40-28d5-492b-b739-b32314b1a527/archive/clip/838db6a7-8973-4cd6-840d-8517e4093c92"
+                    controls="controls" type="video/mp4" preload="metadata" autoplay="autoplay" playsinline class="object-contain">
                 </video>
                 ''', None)[0],
             {
