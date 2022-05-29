@@ -108,7 +108,7 @@ class NebulaBaseIE(InfoExtractor):
         channel_slug = episode['channel_slug']
         channel_title = episode['channel_title']
         return {
-            'id': episode['id'],
+            'id': episode['zype_id'],
             'display_id': episode['slug'],
             'formats': fmts,
             'subtitles': subs,
@@ -143,7 +143,7 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.app/videos/that-time-disney-remade-beauty-and-the-beast',
             'md5': '14944cfee8c7beeea106320c47560efc',
             'info_dict': {
-                'id': 'video_episode:84ed544d-4afd-4723-8cd5-2b95261f0abf',
+                'id': '5c271b40b13fd613090034fd',
                 'ext': 'mp4',
                 'title': 'That Time Disney Remade Beauty and the Beast',
                 'description': 'Note: this video was originally posted on YouTube with the sponsor read included. We weren’t able to remove it without reducing video quality, so it’s presented here in its original context.',
@@ -167,7 +167,7 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.app/videos/the-logistics-of-d-day-landing-craft-how-the-allies-got-ashore',
             'md5': 'd05739cf6c38c09322422f696b569c23',
             'info_dict': {
-                'id': 'video_episode:7e623145-1b44-4ca3-aa0b-ed25a247ea34',
+                'id': '5e7e78171aaf320001fbd6be',
                 'ext': 'mp4',
                 'title': 'Landing Craft - How The Allies Got Ashore',
                 'description': r're:^In this episode we explore the unsung heroes of D-Day, the landing craft.',
@@ -190,7 +190,7 @@ class NebulaIE(NebulaBaseIE):
             'url': 'https://nebula.app/videos/money-episode-1-the-draw',
             'md5': 'ebe28a7ad822b9ee172387d860487868',
             'info_dict': {
-                'id': 'video_episode:b96c5714-9e2b-4ec3-b3f1-20f6e89cc553',
+                'id': '5e779ebdd157bc0001d1c75a',
                 'ext': 'mp4',
                 'title': 'Episode 1: The Draw',
                 'description': r'contains:There’s free money on offer… if the players can all work together.',
