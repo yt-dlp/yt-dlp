@@ -397,8 +397,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if self._LOGIN_REQUIRED and not self._cookies_passed:
             self.raise_login_required('Login details are needed to download this content', method='cookies')
 
-    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
+    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+})\s*;'
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
     def _get_default_ytcfg(self, client='web'):
@@ -2212,28 +2212,54 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }, {
             # Story. Requires specific player params to work.
             # Note: stories get removed after some period of time
-            'url': 'https://www.youtube.com/watch?v=yN3x1t3sieA',
+            'url': 'https://www.youtube.com/watch?v=vv8qTUWmulI',
             'info_dict': {
-                'id': 'yN3x1t3sieA',
+                'id': 'vv8qTUWmulI',
                 'ext': 'mp4',
-                'uploader': 'Linus Tech Tips',
-                'duration': 13,
-                'channel': 'Linus Tech Tips',
-                'playable_in_embed': True,
-                'tags': [],
-                'age_limit': 0,
-                'uploader_url': 'http://www.youtube.com/user/LinusTechTips',
-                'upload_date': '20220402',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/yN3x1t3sieA/maxresdefault.webp',
+                'availability': 'unlisted',
+                'view_count': int,
+                'channel_id': 'UCzIZ8HrzDgc-pNQDUG6avBA',
+                'upload_date': '20220526',
+                'categories': ['Education'],
                 'title': 'Story',
+                'channel': 'IT\'S HISTORY',
+                'description': '',
+                'uploader_id': 'BlastfromthePast',
+                'duration': 12,
+                'uploader': 'IT\'S HISTORY',
+                'playable_in_embed': True,
+                'age_limit': 0,
                 'live_status': 'not_live',
-                'uploader_id': 'LinusTechTips',
+                'tags': [],
+                'thumbnail': 'https://i.ytimg.com/vi_webp/vv8qTUWmulI/maxresdefault.webp',
+                'uploader_url': 'http://www.youtube.com/user/BlastfromthePast',
+                'channel_url': 'https://www.youtube.com/channel/UCzIZ8HrzDgc-pNQDUG6avBA',
+            }
+        }, {
+            'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
+            'info_dict': {
+                'id': 'tjjjtzRLHvA',
+                'ext': 'mp4',
+                'title': 'ハッシュタグ無し };if window.ytcsi',
+                'upload_date': '20220323',
+                'like_count': int,
+                'availability': 'unlisted',
+                'channel': 'nao20010128nao',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/tjjjtzRLHvA/maxresdefault.webp',
+                'age_limit': 0,
+                'uploader': 'nao20010128nao',
+                'uploader_id': 'nao20010128nao',
+                'categories': ['Music'],
                 'view_count': int,
                 'description': '',
-                'channel_id': 'UCXuqSBlHAE6Xw-yeJA0Tunw',
-                'categories': ['Science & Technology'],
-                'channel_url': 'https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw',
-                'availability': 'unlisted',
+                'channel_url': 'https://www.youtube.com/channel/UCdqltm_7iv1Vs6kp6Syke5A',
+                'channel_id': 'UCdqltm_7iv1Vs6kp6Syke5A',
+                'live_status': 'not_live',
+                'playable_in_embed': True,
+                'channel_follower_count': int,
+                'duration': 6,
+                'tags': [],
+                'uploader_url': 'http://www.youtube.com/user/nao20010128nao',
             }
         }
     ]
@@ -2754,7 +2780,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
             (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             regex), webpage, name, default='{}'), video_id, fatal=False)
+             regex), webpage, name, default='{}'), video_id, fatal=False, lenient=True)
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
