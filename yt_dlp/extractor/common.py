@@ -3189,7 +3189,8 @@ class InfoExtractor:
                 return f
             return {}
 
-        def _media_formats(src, cur_media_type, type_info={}):
+        def _media_formats(src, cur_media_type, type_info=None):
+            type_info = type_info or {}
             full_url = absolute_url(src)
             ext = type_info.get('ext') or determine_ext(full_url)
             if ext == 'm3u8':
@@ -3207,6 +3208,7 @@ class InfoExtractor:
                 formats = [{
                     'url': full_url,
                     'vcodec': 'none' if cur_media_type == 'audio' else None,
+                    'ext': ext,
                 }]
             return is_plain_url, formats
 
@@ -3233,7 +3235,8 @@ class InfoExtractor:
             media_attributes = extract_attributes(media_tag)
             src = strip_or_none(media_attributes.get('src'))
             if src:
-                _, formats = _media_formats(src, media_type)
+                f = parse_content_type(media_attributes.get('type'))
+                _, formats = _media_formats(src, media_type, f)
                 media_info['formats'].extend(formats)
             media_info['thumbnail'] = absolute_url(media_attributes.get('poster'))
             if media_content:
