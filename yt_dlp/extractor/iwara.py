@@ -172,18 +172,49 @@ class IwaraUserIE(IwaraBaseIE):
     IE_NAME = 'iwara:user'
 
     _TESTS = [{
-        'url': 'https://ecchi.iwara.tv/users/CuteMMD',
+        # cond: videos < 40
+        'note': 'number of all videos page is just 1 page',
+        'url': 'https://ecchi.iwara.tv/users/infinityyukarip',
         'info_dict': {
-            'id': 'CuteMMD',
+            'title': 'Uploaded videos from Infinity_YukariP',
+            'id': 'infinityyukarip',
+            'uploader': 'Infinity_YukariP',
+            'uploader_id': 'infinityyukarip',
         },
-        'playlist_mincount': 198,
+        'playlist_mincount': 39,
     }, {
-        # urlencoded
-        'url': 'https://ecchi.iwara.tv/users/%E5%92%95%E5%98%BF%E5%98%BF',
+        # cond: videos < 10?
+        'note': 'no even all videos page',
+        'url': 'https://ecchi.iwara.tv/users/mmd-quintet',
         'info_dict': {
-            'id': '咕嘿嘿',
+            'title': 'Uploaded videos from mmd quintet',
+            'id': 'mmd-quintet',
+            'uploader': 'mmd quintet',
+            'uploader_id': 'mmd-quintet',
         },
-        'playlist_mincount': 141,
+        'playlist_mincount': 6,
+    }, {
+        # cond: videos > 40
+        'note': 'has paging',
+        'url': 'https://ecchi.iwara.tv/users/theblackbirdcalls',
+        'info_dict': {
+            'title': 'Uploaded videos from TheBlackbirdCalls',
+            'id': 'theblackbirdcalls',
+            'uploader': 'TheBlackbirdCalls',
+            'uploader_id': 'theblackbirdcalls',
+        },
+        'playlist_mincount': 420,
+    }, {
+        # cond: foreign chars in URL
+        'note': 'foreign chars in URL',
+        'url': 'https://ecchi.iwara.tv/users/ぶた丼',
+        'info_dict': {
+            'title': 'Uploaded videos from ぶた丼',
+            'id': 'ぶた丼',
+            'uploader': 'ぶた丼',
+            'uploader_id': 'ぶた丼',
+        },
+        'playlist_mincount': 170,
     }]
 
     def _entries(self, playlist_id, base_url):
