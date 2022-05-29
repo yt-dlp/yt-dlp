@@ -225,6 +225,7 @@ class IwaraUserIE(IwaraBaseIE):
         if not videos_url:
             # if not, we already know all videos
             yield from self._extract_playlist(base_url, webpage)
+            return
 
         videos_url = urljoin(base_url, videos_url)
 
