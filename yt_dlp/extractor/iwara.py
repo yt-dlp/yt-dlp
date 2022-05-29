@@ -1,3 +1,4 @@
+import itertools
 import re
 import urllib
 
@@ -185,23 +186,32 @@ class IwaraUserIE(IwaraBaseIE):
         'playlist_mincount': 141,
     }]
 
-    def _entries(self, playlist_id, base_url, webpage):
-        yield from self._extract_playlist(base_url, webpage)
+    def _entries(self, playlist_id, base_url):
+        # we first probe users' profile page for existence of More videos page
+        webpage = self._download_webpage(
+            f'{base_url}/users/{playlist_id}', playlist_id)
+        videos_url = self._search_regex(r'<a href="(/users/[^/]+/videos)(?:\?[^"]*)?">', webpage, 'all videos url', default=None)
+        if not videos_url:
+            # if not, we already know all videos
+            yield from self._extract_playlist(base_url, webpage)
 
-        page_urls = re.findall(
-            r'class="pager-item"[^>]*>\s*<a[^<]+href="([^"]+)', webpage)
+        videos_url = urljoin(base_url, videos_url)
 
-        for n, path in enumerate(page_urls, 2):
+        # let's proceed with paging
+        for n in itertools.count(1):
+            page = self._download_webpage(
+                videos_url, playlist_id, note=f'Downloading playlist page {n}',
+                query={'page': str(n - 1)} if n > 1 else {})
             yield from self._extract_playlist(
-                base_url, self._download_webpage(
-                    urljoin(base_url, path), playlist_id, note=f'Downloading playlist page {n}'))
+                base_url, page)
+
+            if not 'page=%d' % (n + 1) in page:
+                # stop if there are no more pages
+                break
 
     def _real_extract(self, url):
         playlist_id, base_url = self._match_valid_url(url).group('id', 'base_url')
         playlist_id = urllib.parse.unquote(playlist_id)
 
-        webpage = self._download_webpage(
-            f'{base_url}/users/{playlist_id}/videos', playlist_id)
-
         return self.playlist_result(
-            self._entries(playlist_id, base_url, webpage), playlist_id)
+            self._entries(playlist_id, base_url), playlist_id)
