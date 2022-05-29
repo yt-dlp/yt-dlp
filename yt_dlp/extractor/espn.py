@@ -302,7 +302,7 @@ class WatchESPNIE(AdobePassIE):
             'thumbnail': 'https://s.secure.espncdn.com/stitcher/artwork/collections/media/bd1f3d12-0654-47d9-852e-71b85ea695c7/16x9.jpg?timestamp=202201112217&showBadge=true&cb=12&package=ESPN_PLUS',
         },
         'params': {
-            'only_matching': True,
+            'skip_download': True,
         },
     }]
 
@@ -310,13 +310,13 @@ class WatchESPNIE(AdobePassIE):
 
     def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
         if 'Authorization' not in headers:
-            headers['Authorization'] = 'Bearer ' + self._API_KEY
+            headers['Authorization'] = 'Bearer %s' % self._API_KEY
         if path == 'token':
             data = urllib.parse.urlencode(payload).encode('utf-8')
         else:
             data = json.dumps(payload).encode('utf-8')
         return self._download_json(
-            'https://espn.api.edge.bamgrid.com/' + path,
+            'https://espn.api.edge.bamgrid.com/%s' % path,
             video_id, data=data, headers=headers)
 
     def _real_extract(self, url):
