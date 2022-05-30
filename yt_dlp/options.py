@@ -366,8 +366,8 @@ def create_parser():
         '--config-locations',
         dest='config_locations', metavar='PATH', action='append',
         help=(
-            'Location of the main configuration file; either the path to the config or its containing directory. '
-            'Can be used multiple times and inside other configuration files'))
+            'Location of the main configuration file; either the path to the config or its containing directory '
+            '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -1634,8 +1634,8 @@ def create_parser():
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
             'Force keyframes around chapters when removing/splitting them. '
-            'The resulting video may have fewer artifacts around the cuts, '
-            'but is very slow due to needing a re-encode'))
+            'This is slow due to needing a re-encode, but '
+            'the resulting video may have fewer artifacts around the cuts'))
     postproc.add_option(
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',

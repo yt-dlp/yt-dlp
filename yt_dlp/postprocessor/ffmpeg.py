@@ -66,15 +66,6 @@ class FFmpegPostProcessor(PostProcessor):
         self._prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
         self._paths = self._determine_executables()
 
-    def check_version(self):
-        if not self.available:
-            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
-
-        required_version = '10-0' if self.basename == 'avconv' else '1.0'
-        if is_outdated_version(self._version, required_version):
-            self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
-                                f'to version {required_version} or newer if you encounter any errors')
-
     @staticmethod
     def get_versions_and_features(downloader=None):
         pp = FFmpegPostProcessor(downloader)
@@ -205,6 +196,15 @@ class FFmpegPostProcessor(PostProcessor):
         if ext in ('mp4', 'mov', 'm4a'):
             yield from ('-c:s', 'mov_text')
 
+    def check_version(self):
+        if not self.available:
+            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
+
+        required_version = '10-0' if self.basename == 'avconv' else '1.0'
+        if is_outdated_version(self._version, required_version):
+            self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
+                                f'to version {required_version} or newer if you encounter any errors')
+
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
             raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
@@ -284,12 +284,12 @@ class FFmpegPostProcessor(PostProcessor):
             if fatal:
                 raise PostProcessingError(f'Unable to determine video duration: {e.msg}')
 
-    def _duration_mismatch(self, d1, d2):
+    def _duration_mismatch(self, d1, d2, tolerance=2):
         if not d1 or not d2:
             return None
         # The duration is often only known to nearest second. So there can be <1sec disparity natually.
         # Further excuse an additional <1sec difference.
-        return abs(d1 - d2) > 2
+        return abs(d1 - d2) > tolerance
 
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(

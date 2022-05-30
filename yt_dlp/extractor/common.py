@@ -610,8 +610,7 @@ class InfoExtractor:
 
             if ip_block:
                 self._x_forwarded_for_ip = GeoUtils.random_ipv4(ip_block)
-                self._downloader.write_debug(
-                    '[debug] Using fake IP %s as X-Forwarded-For' % self._x_forwarded_for_ip)
+                self.write_debug(f'Using fake IP {self._x_forwarded_for_ip} as X-Forwarded-For')
                 return
 
             # Path 2: bypassing based on country code
@@ -1034,11 +1033,19 @@ class InfoExtractor:
             expected_status=expected_status)
         return res if res is False else res[0]
 
-    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True):
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, lenient=False):
         if transform_source:
             json_string = transform_source(json_string)
         try:
-            return json.loads(json_string, strict=False)
+            try:
+                return json.loads(json_string, strict=False)
+            except json.JSONDecodeError as e:
+                if not lenient:
+                    raise
+                try:
+                    return json.loads(json_string[:e.pos], strict=False)
+                except ValueError:
+                    raise e
         except ValueError as ve:
             errmsg = '%s: Failed to parse JSON ' % video_id
             if fatal:
@@ -3190,7 +3197,8 @@ class InfoExtractor:
                 return f
             return {}
 
-        def _media_formats(src, cur_media_type, type_info={}):
+        def _media_formats(src, cur_media_type, type_info=None):
+            type_info = type_info or {}
             full_url = absolute_url(src)
             ext = type_info.get('ext') or determine_ext(full_url)
             if ext == 'm3u8':
@@ -3208,6 +3216,7 @@ class InfoExtractor:
                 formats = [{
                     'url': full_url,
                     'vcodec': 'none' if cur_media_type == 'audio' else None,
+                    'ext': ext,
                 }]
             return is_plain_url, formats
 
@@ -3234,7 +3243,8 @@ class InfoExtractor:
             media_attributes = extract_attributes(media_tag)
             src = strip_or_none(media_attributes.get('src'))
             if src:
-                _, formats = _media_formats(src, media_type)
+                f = parse_content_type(media_attributes.get('type'))
+                _, formats = _media_formats(src, media_type, f)
                 media_info['formats'].extend(formats)
             media_info['thumbnail'] = absolute_url(media_attributes.get('poster'))
             if media_content:
