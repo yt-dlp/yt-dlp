@@ -2,6 +2,7 @@ from .fragment import FragmentFD
 import gzip
 import json
 
+
 class IqAudioFragmentFD(FragmentFD):
     """
     Downloads a list of audio fragments, the first fragment is always a gzipped header.
@@ -17,7 +18,7 @@ class IqAudioFragmentFD(FragmentFD):
             jsonObject = json.loads(content, strict=False)
 
             return jsonObject['l']
-        
+
         return None
 
     def real_download(self, filename, info_dict):
