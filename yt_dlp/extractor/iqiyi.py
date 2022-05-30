@@ -662,9 +662,11 @@ class IqIE(InfoExtractor):
         next_props = self._search_nextjs_data(webpage, video_id)['props']
         page_data = next_props['initialState']['play']
         video_info = page_data['curVideoInfo']
-        regionsAllowed = video_info['regionsAllowed']
+        regions_allowed = video_info['regionsAllowed']
 
-        self.to_screen(f'{video_id}: Regions allowed to access this content: {regionsAllowed}')
+        # This is useful if you are trying to access some content and don't know what regions it is available on
+        # You can then use a VPN or something for the right region to access it.
+        self.to_screen(f'{video_id}: Regions allowed to access this content: {regions_allowed}')
 
         uid = traverse_obj(
             self._parse_json(
