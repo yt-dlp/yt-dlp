@@ -791,14 +791,6 @@ class YoutubeDL:
                       for _ in range(line_count))
         return res[:-len('\n')]
 
-    @staticmethod
-    def _make_channel_prefix(style, name=None):
-        def wrapped(format_function, prefix=name):
-            if prefix is None:
-                raise ValueError('No channel prefix was given')
-            return f'[{format_function(prefix, style)}]'
-        return wrapped
-
     def _write_string(self, message, out=None, only_once=False):
         if only_once:
             if message in self._printed_messages:
@@ -926,12 +918,12 @@ class YoutubeDL:
     )
 
     Channels = Namespace(
-        EXTRACTOR=_make_channel_prefix(Styles.ID),
-        POSTPROCESSOR=_make_channel_prefix(Styles.REQUIREMENT),
-        DEBUG=_make_channel_prefix(Styles.WARNING, name='debug'),
-        INFO=_make_channel_prefix(Styles.EMPHASIS, name='info'),
-        DOWNLOAD=_make_channel_prefix(Styles.ERROR, name='download'),
-        WAIT=_make_channel_prefix(Styles.SUPPRESS, name='wait')
+        EXTRACTOR=Styles.ID,
+        POSTPROCESSOR=Styles.REQUIREMENT,
+        DEBUG=('debug', Styles.WARNING),
+        INFO=('info', Styles.EMPHASIS),
+        DOWNLOAD=('download', Styles.ERROR),
+        WAIT=('wait', Styles.SUPPRESS)
     )
 
     def _format_text(self, handle, allow_colors, text, f, fallback=None, *, test_encoding=False):
@@ -991,12 +983,12 @@ class YoutubeDL:
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
         try:
-            self.to_screen('%(prefix)s %(filename)s has already been downloaded' % {
-                'prefix': self.Channels.DOWNLOAD(self._format_screen),
+            self.to_screen('[%(prefix)s] %(filename)s has already been downloaded' % {
+                'prefix': self._format_screen(*self.Channels.DOWNLOAD),
                 'filename': self._format_screen(file_name, self.Styles.FILENAME)})
         except UnicodeEncodeError:
-            self.to_screen('%s The file has already been downloaded' %
-                           self.Channels.DOWNLOAD(self._format_screen))
+            self.to_screen('[%s] The file has already been downloaded' %
+                           self._format_screen(*self.Channels.DOWNLOAD))
 
     def report_file_delete(self, file_name):
         """Report that existing file will be deleted."""
@@ -1389,7 +1381,7 @@ class YoutubeDL:
             break_opt, break_err = 'break_on_reject', RejectedVideoReached
         if reason is not None:
             if not silent:
-                self.to_screen(f'{self.Channels.DOWNLOAD(self._format_screen)} {reason}')
+                self.to_screen(f'[{self._format_screen(*self.Channels.DOWNLOAD)}] {reason}')
             if self.params.get(break_opt, False):
                 raise break_err()
         return reason
@@ -1438,7 +1430,7 @@ class YoutubeDL:
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
-                self.to_screen(f'{self.Channels.EXTRACTOR(self._format_screen, ie_key)} '
+                self.to_screen(f'[{self._format_screen(ie_key, self.Channels.EXTRACTOR)}] '
                                f'{self._format_screen(temp_id, self.Styles.ID)}: '
                                'has already been recorded in the archive')
                 if self.params.get('break_on_existing', False):
@@ -1503,8 +1495,8 @@ class YoutubeDL:
         elif (diff or 0) <= 0:
             self.report_warning('Video should already be available according to extracted info')
         diff = min(max(diff or 0, min_wait or 0), max_wait or float('inf'))
-        self.to_screen(f'{self.Channels.WAIT(self._format_screen)} Waiting for {format_dur(diff)} - '
-                       'Press Ctrl+C to try now')
+        self.to_screen(f'[{self._format_screen(*self.Channels.WAIT)}] Waiting for {format_dur(diff)} '
+                       '- Press Ctrl+C to try now')
 
         wait_till = time.time() + diff
         try:
@@ -1601,8 +1593,8 @@ class YoutubeDL:
                 # TODO: Improve MetadataParserPP to allow setting a list
                 if isinstance(additional_urls, compat_str):
                     additional_urls = [additional_urls]
-                self.to_screen('%(prefix)s %(id)s: %(n_url)d additional URL(s) requested' % {
-                    'prefix': self.Channels.INFO(self._format_screen),
+                self.to_screen('[%(prefix)s] %(id)s: %(n_url)d additional URL(s) requested' % {
+                    'prefix': self._format_screen(*self.Channels.INFO),
                     'id': self._format_screen(ie_result['id'], self.Styles.ID),
                     'n_url': self._format_screen(len(additional_urls), self.Styles.EMPHASIS)})
                 self.write_debug('Additional URLs: "%s"' % '", "'.join(additional_urls))
