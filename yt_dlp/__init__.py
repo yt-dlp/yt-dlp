@@ -9,7 +9,7 @@ import os
 import re
 import sys
 
-from .compat import compat_getpass, compat_os_name, compat_shlex_quote
+from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
 from .extractor import GenericIE, list_extractor_classes
@@ -42,6 +42,7 @@ from .utils import (
     parse_duration,
     preferredencoding,
     read_batch_urls,
+    read_stdin,
     render_table,
     setproctitle,
     std_headers,
@@ -63,14 +64,9 @@ def get_urls(urls, batchfile, verbose):
     batch_urls = []
     if batchfile is not None:
         try:
-            if batchfile == '-':
-                write_string('Reading URLs from stdin - EOF (%s) to end:\n' % (
-                    'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
-                batchfd = sys.stdin
-            else:
-                batchfd = open(
-                    expand_path(batchfile), encoding='utf-8', errors='ignore')
-            batch_urls = read_batch_urls(batchfd)
+            batch_urls = read_batch_urls(
+                read_stdin('URLs') if batchfile == '-'
+                else open(expand_path(batchfile), encoding='utf-8', errors='ignore'))
             if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
         except OSError:
@@ -251,7 +247,7 @@ def validate_options(opts):
     def parse_sleep_func(expr):
         NUMBER_RE = r'\d+(?:\.\d+)?'
         op, start, limit, step, *_ = tuple(re.fullmatch(
-            rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE}))?(?::({NUMBER_RE}))?',
+            rf'(?:(linear|exp)=)?({NUMBER_RE})(?::({NUMBER_RE})?)?(?::({NUMBER_RE}))?',
             expr.strip()).groups()) + (None, None)
 
         if op == 'exp':
@@ -266,8 +262,8 @@ def validate_options(opts):
             continue
         try:
             opts.retry_sleep[key] = parse_sleep_func(expr)
-        except AttributeError as e:
-            raise ValueError(f'invalid {key} retry sleep expression {expr!r}: {e}')
+        except AttributeError:
+            raise ValueError(f'invalid {key} retry sleep expression {expr!r}')
 
     # Bytes
     def parse_bytes(name, value):

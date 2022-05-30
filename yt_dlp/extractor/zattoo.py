@@ -220,7 +220,7 @@ class ZattooPlatformBaseIE(InfoExtractor):
             'id': channel_name,
             'title': channel_name,
             'is_live': True,
-            'format': formats,
+            'formats': formats,
             'subtitles': subtitles
         }
 

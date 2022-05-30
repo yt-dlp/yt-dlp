@@ -1,4 +1,3 @@
-from ..compat import compat_str
 from ..utils import NO_DEFAULT, determine_protocol
 
 
@@ -91,7 +90,7 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     info_dict['protocol'] = protocol
     downloaders = params.get('external_downloader')
     external_downloader = (
-        downloaders if isinstance(downloaders, compat_str) or downloaders is None
+        downloaders if isinstance(downloaders, str) or downloaders is None
         else downloaders.get(shorten_protocol_name(protocol, True), downloaders.get('default')))
 
     if external_downloader is None:
