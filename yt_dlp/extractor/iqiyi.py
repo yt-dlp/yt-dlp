@@ -662,6 +662,9 @@ class IqIE(InfoExtractor):
         next_props = self._search_nextjs_data(webpage, video_id)['props']
         page_data = next_props['initialState']['play']
         video_info = page_data['curVideoInfo']
+        regionsAllowed = video_info['regionsAllowed']
+
+        self.to_screen(f'{video_id}: Regions allowed to access this content: {regionsAllowed}')
 
         uid = traverse_obj(
             self._parse_json(
@@ -732,7 +735,7 @@ class IqIE(InfoExtractor):
                 audio_fragments = []
                 for url in signed_urls:
                     fragment = {
-                        'url': traverse_obj(self._download_json(url, video_id, note='Resolving audio fragment url', errnote='Unable to resolve fragment URL', fatal=False), 'l', expected_type=str)
+                        'url': url
                     }
                     audio_fragments.append(fragment)
 

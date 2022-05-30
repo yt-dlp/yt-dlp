@@ -1,6 +1,7 @@
 from .fragment import FragmentFD
 import gzip
-
+import json
+from ..utils import network_exceptions
 
 class IqAudioFragmentFD(FragmentFD):
     """
@@ -9,13 +10,29 @@ class IqAudioFragmentFD(FragmentFD):
 
     FD_NAME = 'IqAudioFragmentDownloader'
 
+    def resolve_fragment(self, url):
+        response = self.ydl.urlopen(url)
+        if response != None:
+            response_bytes = response.read()
+            content = response_bytes.decode('utf-8', 'replace')
+            jsonObject = json.loads(content, strict=False)
+
+            return jsonObject['l']
+        
+        return None
+
     def real_download(self, filename, info_dict):
         fragments = []
         total_frags = 0
         for frag in info_dict['fragments']:
+            resolved_url = self.resolve_fragment(frag['url'])
+            if resolved_url == None:
+                self.report_error("Audio fragment couldn't be resolved.")
+                return False
+
             fragments.append({
                 'frag_index': total_frags,
-                'url': frag['url']
+                'url': self.resolve_fragment(frag['url'])
             })
             total_frags += 1
 
