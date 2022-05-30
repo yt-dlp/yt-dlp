@@ -237,7 +237,7 @@ class IwaraUserIE(IwaraBaseIE):
             yield from self._extract_playlist(
                 base_url, page)
 
-            if not 'page=%d' % (n + 1) in page:
+            if f'page={n}' not in page:
                 # stop if there are no more pages
                 break
 
