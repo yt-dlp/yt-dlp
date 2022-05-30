@@ -470,11 +470,15 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
+        api_hostname = (self._configuration_arg('innertube_host', [''], ie_key=YoutubeIE.ie_key())[0]
+                        or api_hostname or self._get_innertube_host(default_client))
+        api_key = (self._configuration_arg('innertube_key', [''], ie_key=YoutubeIE.ie_key())[0]
+                   or api_key or self._extract_api_key(default_client=default_client))
         return self._download_json(
-            f'https://{api_hostname or self._get_innertube_host(default_client)}/youtubei/v1/{ep}',
+            f'https://{api_hostname}/youtubei/v1/{ep}',
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
             data=json.dumps(data).encode('utf8'), headers=real_headers,
-            query={'key': api_key or self._extract_api_key(), 'prettyPrint': 'false'})
+            query={'key': api_key, 'prettyPrint': 'false'})
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
         data = self._search_regex(
