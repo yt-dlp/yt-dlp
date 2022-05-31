@@ -149,7 +149,7 @@ class VevoIE(VevoBaseIE):
 
                 formats.append({
                     'url': version_url,
-                    'format_id': 'http-%s-%s' % (version, video_version['quality']),
+                    'format_id': f'http-{version}-{video_version.get("quality")}',
                     'vcodec': m.group('vcodec'),
                     'acodec': m.group('acodec'),
                     'vbr': int(m.group('vbr')),
