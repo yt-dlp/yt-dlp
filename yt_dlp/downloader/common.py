@@ -329,7 +329,11 @@ class FileDownloader:
             self._multiline.stream, self._multiline.allow_colors, *args, **kwargs)
 
     def report_progress(self, s):
-        Process=Popen('pos=`awk "NR==1 {print; exit}" posfile`; total=`awk "NR==2 {print; exit}" posfile`; curr="%s"; final="%s"; progressBar `echo "frac=($curr/$final+$pos)*10000; scale=0; frac/1" | bc -l` $((total*10000))' % (str(s.get('downloaded_bytes')),str(s.get('total_bytes')),), shell=True)
+        if os.path.basename(os.getcwd()) == "NA":
+            Process=Popen('curr="%s"; final="%s"; progressBar $curr $final' % (str(s.get('downloaded_bytes')),str(s.get('total_bytes')),), shell=True)
+        else:
+            Process=Popen('pos=`awk "NR==1 {print; exit}" posfile`; total=`awk "NR==2 {print; exit}" posfile`; curr="%s"; final="%s"; progressBar `echo "frac=($curr/$final+$pos)*10000; scale=0; frac/1" | bc -l` $((total*10000))' % (str(s.get('downloaded_bytes')),str(s.get('total_bytes')),), shell=True)
+
         def with_fields(*tups, default=''):
             for *fields, tmpl in tups:
                 if all(s.get(f) is not None for f in fields):

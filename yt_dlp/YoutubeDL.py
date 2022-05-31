@@ -1774,8 +1774,11 @@ class YoutubeDL:
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
-            Process=subprocess.Popen('progressBar %s %s' % (str(i-1),str(n_entries),), shell=True)
-            Process=subprocess.Popen('echo "%s" > posfile; echo "%s" >> posfile' % (str(i-1),str(n_entries),), shell=True)
+
+            if os.path.basename(os.getcwd()) != "NA":
+                Process=subprocess.Popen('progressBar %s %s' % (str(i-1),str(n_entries),), shell=True)
+                Process=subprocess.Popen('echo "%s" > posfile; echo "%s" >> posfile' % (str(i-1),str(n_entries),), shell=True)
+            
             playlist_index, entry = entry_tuple
             if 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
