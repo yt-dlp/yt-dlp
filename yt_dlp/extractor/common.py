@@ -75,7 +75,6 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
     update_Request,
-    update_url_query,
     url_basename,
     url_or_none,
     urljoin,
@@ -724,6 +723,11 @@ class InfoExtractor:
         else:
             return err.code in variadic(expected_status)
 
+    def _create_request(self, url_or_request, data=None, headers={}, query={}):
+        if not isinstance(url_or_request, compat_urllib_request.Request):
+            url_or_request = sanitized_Request(url_or_request)
+        return update_Request(url_or_request, data=data, headers=headers, query=query)
+
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
         Return the response handle.
@@ -755,16 +759,8 @@ class InfoExtractor:
             if 'X-Forwarded-For' not in headers:
                 headers['X-Forwarded-For'] = self._x_forwarded_for_ip
 
-        if isinstance(url_or_request, compat_urllib_request.Request):
-            url_or_request = update_Request(
-                url_or_request, data=data, headers=headers, query=query)
-        else:
-            if query:
-                url_or_request = update_url_query(url_or_request, query)
-            if data is not None or headers:
-                url_or_request = sanitized_Request(url_or_request, data, headers)
         try:
-            return self._downloader.urlopen(url_or_request)
+            return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))
         except network_exceptions as err:
             if isinstance(err, compat_urllib_error.HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
@@ -876,40 +872,44 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
+    def _request_dump_filename(self, url, video_id):
+        basen = f'{video_id}_{url}'
+        trim_length = self.get_param('trim_file_name') or 240
+        if len(basen) > trim_length:
+            h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
+            basen = basen[:trim_length - len(h)] + h
+        filename = sanitize_filename(f'{basen}.dump', restricted=True)
+        # Working around MAX_PATH limitation on Windows (see
+        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
+        if compat_os_name == 'nt':
+            absfilepath = os.path.abspath(filename)
+            if len(absfilepath) > 259:
+                filename = fR'\\?\{absfilepath}'
+        return filename
+
+    def __decode_webpage(self, webpage_bytes, encoding, headers):
+        if not encoding:
+            encoding = self._guess_encoding_from_content(headers.get('Content-Type', ''), webpage_bytes)
+        try:
+            return webpage_bytes.decode(encoding, 'replace')
+        except LookupError:
+            return webpage_bytes.decode('utf-8', 'replace')
+
     def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True, prefix=None, encoding=None):
-        content_type = urlh.headers.get('Content-Type', '')
         webpage_bytes = urlh.read()
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
-        if not encoding:
-            encoding = self._guess_encoding_from_content(content_type, webpage_bytes)
         if self.get_param('dump_intermediate_pages', False):
             self.to_screen('Dumping request to ' + urlh.geturl())
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
-        if self.get_param('write_pages', False):
-            basen = f'{video_id}_{urlh.geturl()}'
-            trim_length = self.get_param('trim_file_name') or 240
-            if len(basen) > trim_length:
-                h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
-                basen = basen[:trim_length - len(h)] + h
-            raw_filename = basen + '.dump'
-            filename = sanitize_filename(raw_filename, restricted=True)
-            self.to_screen('Saving request to ' + filename)
-            # Working around MAX_PATH limitation on Windows (see
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-            if compat_os_name == 'nt':
-                absfilepath = os.path.abspath(filename)
-                if len(absfilepath) > 259:
-                    filename = '\\\\?\\' + absfilepath
+        if self.get_param('write_pages'):
+            filename = self._request_dump_filename(video_id, urlh.geturl())
+            self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
 
-        try:
-            content = webpage_bytes.decode(encoding, 'replace')
-        except LookupError:
-            content = webpage_bytes.decode('utf-8', 'replace')
-
+        content = self.__decode_webpage(webpage_bytes, encoding, urlh.headers)
         self.__check_blocked(content)
 
         return content
@@ -967,9 +967,21 @@ class InfoExtractor:
             content, urlh = res
             return parse(self, content, video_id, transform_source, fatal), urlh
 
-        def download_content(
-                self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None, *args, **kwargs):
-            args = [url_or_request, video_id, note, errnote, transform_source, *args]
+        def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
+                             fatal=True, encoding=None, data=None, headers={}, query={}, *args, **kwargs):
+            if self.get_param('load_pages'):
+                url_or_request = self._create_request(url_or_request, data, headers, query)
+                filename = self._request_dump_filename(url_or_request.full_url, video_id)
+                self.to_screen(f'Loading request from {filename}')
+                try:
+                    with open(filename, 'rb') as dumpf:
+                        webpage_bytes = dumpf.read()
+                except OSError as e:
+                    self.report_warning(f'Unable to load request from disk: {e}')
+                else:
+                    content = self.__decode_webpage(webpage_bytes, encoding, url_or_request.headers)
+                    return parse(self, content, video_id, transform_source, fatal)
+            args = [url_or_request, video_id, note, errnote, transform_source, fatal, encoding, data, headers, query, *args]
             if parser is None:
                 args.pop(4)  # transform_source
             # The method is fetched by name so subclasses can override _download_..._handle
