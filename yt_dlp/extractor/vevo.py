@@ -33,6 +33,7 @@ class VevoIE(VevoBaseIE):
            https?://cache\.vevo\.com/m/html/embed\.html\?video=|
            https?://videoplayer\.vevo\.com/embed/embedded\?videoId=|
            https?://embed\.vevo\.com/.*?[?&]isrc=|
+           https?://tv\.vevo\.com/watch/artist/(?:[^/]+)/|
            vevo:)
         (?P<id>[^&?#]+)'''
 
@@ -138,6 +139,7 @@ class VevoIE(VevoBaseIE):
                     fatal=False))
             else:
                 m = re.search(r'''(?xi)
+                    _(?P<quality>[a-z0-9]+)
                     _(?P<width>[0-9]+)x(?P<height>[0-9]+)
                     _(?P<vcodec>[a-z0-9]+)
                     _(?P<vbr>[0-9]+)
@@ -149,7 +151,7 @@ class VevoIE(VevoBaseIE):
 
                 formats.append({
                     'url': version_url,
-                    'format_id': f'http-{version}-{video_version.get("quality")}',
+                    'format_id': f'http-{version}-{video_version.get("quality", m.group("quality"))}',
                     'vcodec': m.group('vcodec'),
                     'acodec': m.group('acodec'),
                     'vbr': int(m.group('vbr')),
