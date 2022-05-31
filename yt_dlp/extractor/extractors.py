@@ -1275,7 +1275,6 @@ from .podomatic import PodomaticIE
 from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
-    PokemonSoundLibraryIE,
 )
 from .pokergo import (
     PokerGoIE,
