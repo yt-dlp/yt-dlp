@@ -1033,12 +1033,19 @@ class InfoExtractor:
             expected_status=expected_status)
         return res if res is False else res[0]
 
-    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True):
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, lenient=False):
         if transform_source:
             json_string = transform_source(json_string)
         try:
-            return json.loads(json_string, strict=False)
-        except ValueError as ve:
+            try:
+                return json.loads(json_string, strict=False)
+            except json.JSONDecodeError as e:
+                if not lenient:
+                    raise
+                try:
+                    return json.loads(json_string[:e.pos], strict=False)
+                except ValueError:
+                    raise e        except ValueError as ve:
             errmsg = '%s: Failed to parse JSON ' % video_id
             if fatal:
                 raise ExtractorError(errmsg, cause=ve)
