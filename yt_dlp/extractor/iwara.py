@@ -172,8 +172,7 @@ class IwaraUserIE(IwaraBaseIE):
     IE_NAME = 'iwara:user'
 
     _TESTS = [{
-        # cond: videos < 40
-        'note': 'number of all videos page is just 1 page',
+        'note': 'number of all videos page is just 1 page. less than 40 videos',
         'url': 'https://ecchi.iwara.tv/users/infinityyukarip',
         'info_dict': {
             'title': 'Uploaded videos from Infinity_YukariP',
@@ -183,8 +182,7 @@ class IwaraUserIE(IwaraBaseIE):
         },
         'playlist_mincount': 39,
     }, {
-        # cond: videos < 10?
-        'note': 'no even all videos page',
+        'note': 'no even all videos page. probably less than 10 videos',
         'url': 'https://ecchi.iwara.tv/users/mmd-quintet',
         'info_dict': {
             'title': 'Uploaded videos from mmd quintet',
@@ -194,8 +192,7 @@ class IwaraUserIE(IwaraBaseIE):
         },
         'playlist_mincount': 6,
     }, {
-        # cond: videos > 40
-        'note': 'has paging',
+        'note': 'has paging. more than 40 videos',
         'url': 'https://ecchi.iwara.tv/users/theblackbirdcalls',
         'info_dict': {
             'title': 'Uploaded videos from TheBlackbirdCalls',
@@ -205,8 +202,7 @@ class IwaraUserIE(IwaraBaseIE):
         },
         'playlist_mincount': 420,
     }, {
-        # cond: foreign chars in URL
-        'note': 'foreign chars in URL',
+        'note': 'foreign chars in URL. there must be foreign characters in URL',
         'url': 'https://ecchi.iwara.tv/users/ぶた丼',
         'info_dict': {
             'title': 'Uploaded videos from ぶた丼',
@@ -218,18 +214,15 @@ class IwaraUserIE(IwaraBaseIE):
     }]
 
     def _entries(self, playlist_id, base_url):
-        # we first probe users' profile page for existence of More videos page
         webpage = self._download_webpage(
             f'{base_url}/users/{playlist_id}', playlist_id)
-        videos_url = self._search_regex(r'<a href="(/users/[^/]+/videos)(?:\?[^"]*)?">', webpage, 'all videos url', default=None)
+        videos_url = self._search_regex(r'<a href="(/users/[^/]+/videos)(?:\?[^"]+)?">', webpage, 'all videos url', default=None)
         if not videos_url:
-            # if not, we already know all videos
             yield from self._extract_playlist(base_url, webpage)
             return
 
         videos_url = urljoin(base_url, videos_url)
 
-        # let's proceed with paging
         for n in itertools.count(1):
             page = self._download_webpage(
                 videos_url, playlist_id, note=f'Downloading playlist page {n}',
@@ -238,7 +231,6 @@ class IwaraUserIE(IwaraBaseIE):
                 base_url, page)
 
             if f'page={n}' not in page:
-                # stop if there are no more pages
                 break
 
     def _real_extract(self, url):
