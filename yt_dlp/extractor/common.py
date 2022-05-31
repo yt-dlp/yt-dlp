@@ -1046,6 +1046,8 @@ class InfoExtractor:
                     return json.loads(json_string[:e.pos], strict=False)
                 except ValueError:
                     raise e        except ValueError as ve:
+                    raise e
+        except ValueError as ve:
             errmsg = '%s: Failed to parse JSON ' % video_id
             if fatal:
                 raise ExtractorError(errmsg, cause=ve)
