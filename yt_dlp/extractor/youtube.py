@@ -2780,7 +2780,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
             (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             regex), webpage, name, default='{}'), video_id, fatal=False)
+             regex), webpage, name, default='{}'), video_id, fatal=False, lenient=True)
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
