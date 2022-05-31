@@ -791,8 +791,35 @@ class InfoExtractor:
         """
         Return a tuple (page content as string, URL handle).
 
-        See _download_webpage docstring for arguments specification.
+        Arguments:
+        url_or_request -- plain text URL as a string or
+            a compat_urllib_request.Requestobject
+        video_id -- Video/playlist/item identifier (string)
+
+        Keyword arguments:
+        note -- note printed before downloading (string)
+        errnote -- note printed in case of an error (string)
+        fatal -- flag denoting whether error should be considered fatal,
+            i.e. whether it should cause ExtractionError to be raised,
+            otherwise a warning will be reported and extraction continued
+        encoding -- encoding for a page content decoding, guessed automatically
+            when not explicitly specified
+        data -- POST data (bytes)
+        headers -- HTTP headers (dict)
+        query -- URL query (dict)
+        expected_status -- allows to accept failed HTTP requests (non 2xx
+            status code) by explicitly specifying a set of accepted status
+            codes. Can be any of the following entities:
+                - an integer type specifying an exact failed status code to
+                  accept
+                - a list or a tuple of integer types specifying a list of
+                  failed status codes to accept
+                - a callable accepting an actual failed status code and
+                  returning True if it should be accepted
+            Note that this argument does not affect success status codes (2xx)
+            which are always accepted.
         """
+
         # Strip hashes from the URL (#1038)
         if isinstance(url_or_request, (compat_str, str)):
             url_or_request = url_or_request.partition('#')[0]
@@ -887,102 +914,6 @@ class InfoExtractor:
 
         return content
 
-    def _download_webpage(
-            self, url_or_request, video_id, note=None, errnote=None,
-            fatal=True, tries=1, timeout=5, encoding=None, data=None,
-            headers={}, query={}, expected_status=None):
-        """
-        Return the data of the page as a string.
-
-        Arguments:
-        url_or_request -- plain text URL as a string or
-            a compat_urllib_request.Requestobject
-        video_id -- Video/playlist/item identifier (string)
-
-        Keyword arguments:
-        note -- note printed before downloading (string)
-        errnote -- note printed in case of an error (string)
-        fatal -- flag denoting whether error should be considered fatal,
-            i.e. whether it should cause ExtractionError to be raised,
-            otherwise a warning will be reported and extraction continued
-        tries -- number of tries
-        timeout -- sleep interval between tries
-        encoding -- encoding for a page content decoding, guessed automatically
-            when not explicitly specified
-        data -- POST data (bytes)
-        headers -- HTTP headers (dict)
-        query -- URL query (dict)
-        expected_status -- allows to accept failed HTTP requests (non 2xx
-            status code) by explicitly specifying a set of accepted status
-            codes. Can be any of the following entities:
-                - an integer type specifying an exact failed status code to
-                  accept
-                - a list or a tuple of integer types specifying a list of
-                  failed status codes to accept
-                - a callable accepting an actual failed status code and
-                  returning True if it should be accepted
-            Note that this argument does not affect success status codes (2xx)
-            which are always accepted.
-        """
-
-        success = False
-        try_count = 0
-        while success is False:
-            try:
-                res = self._download_webpage_handle(
-                    url_or_request, video_id, note, errnote, fatal,
-                    encoding=encoding, data=data, headers=headers, query=query,
-                    expected_status=expected_status)
-                success = True
-            except compat_http_client.IncompleteRead as e:
-                try_count += 1
-                if try_count >= tries:
-                    raise e
-                self._sleep(timeout, video_id)
-        if res is False:
-            return res
-        else:
-            content, _ = res
-            return content
-
-    def _download_xml_handle(
-            self, url_or_request, video_id, note='Downloading XML',
-            errnote='Unable to download XML', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return a tuple (xml as an xml.etree.ElementTree.Element, URL handle).
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_webpage_handle(
-            url_or_request, video_id, note, errnote, fatal=fatal,
-            encoding=encoding, data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        if res is False:
-            return res
-        xml_string, urlh = res
-        return self._parse_xml(
-            xml_string, video_id, transform_source=transform_source,
-            fatal=fatal), urlh
-
-    def _download_xml(
-            self, url_or_request, video_id,
-            note='Downloading XML', errnote='Unable to download XML',
-            transform_source=None, fatal=True, encoding=None,
-            data=None, headers={}, query={}, expected_status=None):
-        """
-        Return the xml as an xml.etree.ElementTree.Element.
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_xml_handle(
-            url_or_request, video_id, note=note, errnote=errnote,
-            transform_source=transform_source, fatal=fatal, encoding=encoding,
-            data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        return res if res is False else res[0]
-
     def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True):
         if transform_source:
             xml_string = transform_source(xml_string)
@@ -994,44 +925,6 @@ class InfoExtractor:
                 raise ExtractorError(errmsg, cause=ve)
             else:
                 self.report_warning(errmsg + str(ve))
-
-    def _download_json_handle(
-            self, url_or_request, video_id, note='Downloading JSON metadata',
-            errnote='Unable to download JSON metadata', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return a tuple (JSON object, URL handle).
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_webpage_handle(
-            url_or_request, video_id, note, errnote, fatal=fatal,
-            encoding=encoding, data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        if res is False:
-            return res
-        json_string, urlh = res
-        return self._parse_json(
-            json_string, video_id, transform_source=transform_source,
-            fatal=fatal), urlh
-
-    def _download_json(
-            self, url_or_request, video_id, note='Downloading JSON metadata',
-            errnote='Unable to download JSON metadata', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return the JSON object as a dict.
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_json_handle(
-            url_or_request, video_id, note=note, errnote=errnote,
-            transform_source=transform_source, fatal=fatal, encoding=encoding,
-            data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        return res if res is False else res[0]
 
     def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, lenient=False):
         if transform_source:
@@ -1058,43 +951,83 @@ class InfoExtractor:
             data[data.find('{'):data.rfind('}') + 1],
             video_id, transform_source, fatal)
 
-    def _download_socket_json_handle(
-            self, url_or_request, video_id, note='Polling socket',
-            errnote='Unable to poll socket', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return a tuple (JSON object, URL handle).
+    def __create_download_methods(name, parser, note, errnote, return_value):
 
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_webpage_handle(
-            url_or_request, video_id, note, errnote, fatal=fatal,
-            encoding=encoding, data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        if res is False:
-            return res
-        webpage, urlh = res
-        return self._parse_socket_response_as_json(
-            webpage, video_id, transform_source=transform_source,
-            fatal=fatal), urlh
+        def parse(ie, content, *args, **kwargs):
+            if parser is None:
+                return content
+            # parser is fetched by name so subclasses can override it
+            return getattr(ie, parser)(content, *args, **kwargs)
 
-    def _download_socket_json(
-            self, url_or_request, video_id, note='Polling socket',
-            errnote='Unable to poll socket', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return the JSON object as a dict.
+        def download_handle(self, url_or_request, video_id, note=note, errnote=errnote,
+                            transform_source=None, fatal=True, *args, **kwargs):
+            res = self._download_webpage_handle(url_or_request, video_id, note, errnote, fatal, *args, **kwargs)
+            if res is False:
+                return res
+            content, urlh = res
+            return parse(self, content, video_id, transform_source, fatal), urlh
 
-        See _download_webpage docstring for arguments specification.
+        def download_content(
+                self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None, *args, **kwargs):
+            args = [url_or_request, video_id, note, errnote, transform_source, *args]
+            if parser is None:
+                args.pop(4)  # transform_source
+            # The method is fetched by name so subclasses can override _download_..._handle
+            res = getattr(self, download_handle.__name__)(*args, **kwargs)
+            return res if res is False else res[0]
+
+        def impersonate(func, name, return_value):
+            func.__name__, func.__qualname__ = name, f'InfoExtractor.{name}'
+            func.__doc__ = f'''
+                @param transform_source     Apply this transformation before parsing
+                @returns                    {return_value}
+
+                See _download_webpage_handle docstring for other arguments specification
+            '''
+
+        impersonate(download_handle, f'_download_{name}_handle', f'({return_value}, URL handle)')
+        impersonate(download_content, f'_download_{name}', f'{return_value}')
+        return download_handle, download_content
+
+    _download_xml_handle, _download_xml = __create_download_methods(
+        'xml', '_parse_xml', 'Downloading XML', 'Unable to download XML', 'xml as an xml.etree.ElementTree.Element')
+    _download_json_handle, _download_json = __create_download_methods(
+        'json', '_parse_json', 'Downloading JSON metadata', 'Unable to download JSON metadata', 'JSON object as a dict')
+    _download_socket_json_handle, _download_socket_json = __create_download_methods(
+        'socket_json', '_parse_socket_response_as_json', 'Polling socket', 'Unable to poll socket', 'JSON object as a dict')
+    __download_webpage = __create_download_methods('webpage', None, None, None, 'data of the page as a string')[1]
+
+    def _download_webpage(
+            self, url_or_request, video_id, note=None, errnote=None,
+            fatal=True, tries=1, timeout=NO_DEFAULT, *args, **kwargs):
         """
-        res = self._download_socket_json_handle(
-            url_or_request, video_id, note=note, errnote=errnote,
-            transform_source=transform_source, fatal=fatal, encoding=encoding,
-            data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        return res if res is False else res[0]
+        Return the data of the page as a string.
+
+        Keyword arguments:
+        tries -- number of tries
+        timeout -- sleep interval between tries
+
+        See _download_webpage_handle docstring for other arguments specification.
+        """
+
+        R''' # NB: These are unused; should they be deprecated?
+        if tries != 1:
+            self._downloader.deprecation_warning('tries argument is deprecated in InfoExtractor._download_webpage')
+        if timeout is NO_DEFAULT:
+            timeout = 5
+        else:
+            self._downloader.deprecation_warning('timeout argument is deprecated in InfoExtractor._download_webpage')
+        '''
+
+        try_count = 0
+        while True:
+            try:
+                return self.__download_webpage(url_or_request, video_id, note, errnote, None, fatal, *args, **kwargs)
+            except compat_http_client.IncompleteRead as e:
+                try_count += 1
+                if try_count >= tries:
+                    raise e
+                self._sleep(timeout, video_id)
 
     def report_warning(self, msg, video_id=None, *args, only_once=False, **kwargs):
         idstr = format_field(video_id, template='%s: ')
