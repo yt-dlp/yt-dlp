@@ -58,7 +58,10 @@ from .animelab import (
     AnimeLabIE,
     AnimeLabShowsIE,
 )
-from .amazon import AmazonStoreIE
+from .amazon import (
+    AmazonStoreIE,
+    AmazonTrailerIE,
+)
 from .americastestkitchen import (
     AmericasTestKitchenIE,
     AmericasTestKitchenSeasonIE,
