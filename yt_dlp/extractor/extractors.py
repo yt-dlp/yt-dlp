@@ -54,10 +54,6 @@ from .alura import (
     AluraCourseIE
 )
 from .amcnetworks import AMCNetworksIE
-from .animelab import (
-    AnimeLabIE,
-    AnimeLabShowsIE,
-)
 from .amazon import AmazonStoreIE
 from .americastestkitchen import (
     AmericasTestKitchenIE,
