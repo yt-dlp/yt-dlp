@@ -148,7 +148,7 @@ class VevoIE(VevoBaseIE):
         'url': 'https://embed.vevo.com/?isrc=USH5V1923499&partnerId=4d61b777-8023-4191-9ede-497ed6c24647&partnerAdCode=',
         'only_matching': True,
     }, {
-        'url': 'ttps://tv.vevo.com/watch/artist/janet-jackson/US0450100550',
+        'url': 'https://tv.vevo.com/watch/artist/janet-jackson/US0450100550',
         'only_matching': True,
     }]
     _VERSIONS = {
