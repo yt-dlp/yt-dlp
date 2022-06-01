@@ -2442,8 +2442,9 @@ class YoutubeDL:
                 if title == '':
                     self.write_debug('Extractor gave empty title. Creating a generic title')
                 else:
-                    self.report_warning(f'Extractor failed to obtain "{self._format_err("title", self.Styles.DEMAND)}". '
-                                        'Creating a generic title instead')
+                    self.report_warning('Extractor failed to obtain "%(title)s". '
+                                        'Creating a generic title instead' % {
+                                            'title': self._format_err("title", self.Styles.KEY)})
                 info_dict['title'] = f'{info_dict["extractor"].replace(":", "-")} video #{info_dict["id"]}'
 
         if info_dict.get('duration') is not None:
