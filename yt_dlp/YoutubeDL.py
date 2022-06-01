@@ -3040,7 +3040,9 @@ class YoutubeDL:
                 self.report_warning('There are no annotations to write.')
             else:
                 try:
-                    self.to_screen('[info] Writing video annotations to: ' + annofn)
+                    self.to_screen('[%(info)s] Writing video annotations to: %(filename)s' % {
+                        'info': self._format_screen(*self.Channels.INFO),
+                        'filename': self._format_screen(annofn, self.Styles.FILENAME)})
                     with open(encodeFilename(annofn), 'w', encoding='utf-8') as annofile:
                         annofile.write(info_dict['annotations'])
                 except (KeyError, TypeError):
