@@ -3961,7 +3961,9 @@ class YoutubeDL:
         elif not self._ensure_dir_exists(infofn):
             return None
         elif not overwrite and os.path.exists(infofn):
-            self.to_screen(f'[info] {label.title()} metadata is already present')
+            self.to_screen('[%(info)s] %(title)s metadata is already present' % {
+                'info': self._format_screen(*self.Channels.INFO),
+                'title': label.title()})
             return 'exists'
 
         self.to_screen(f'[info] Writing {label} metadata as JSON to: {infofn}')
