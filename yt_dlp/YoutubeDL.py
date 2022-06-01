@@ -1490,12 +1490,12 @@ class YoutubeDL:
             return
 
         format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
-        last_msg = ''
+        last_len = 0
 
         def progress(msg):
-            nonlocal last_msg
-            self.to_screen(msg + ' ' * (len(last_msg) - len(msg)) + '\r', skip_eol=True)
-            last_msg = msg
+            nonlocal last_len
+            self.to_screen(f'{msg:<{max(last_len - len(msg), 0)}}\r', skip_eol=True)
+            last_len = len(msg)
 
         min_wait, max_wait = self.params.get('wait_for_video')
         diff = try_get(ie_result, lambda x: x['release_timestamp'] - time.time())
