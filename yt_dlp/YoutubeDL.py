@@ -3395,7 +3395,9 @@ class YoutubeDL:
             except UnavailableVideoError as e:
                 self.report_error(self._format_err(e, self.Styles.ERROR))
             except MaxDownloadsReached as e:
-                self.to_screen(f'[info] {e}')
+                self.to_screen('[%(info)s] %(err)s' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'err': self._format_screen(e, self.Styles.ERROR)})
                 raise
             except DownloadCancelled as e:
                 self.to_screen(f'[info] {e}')
