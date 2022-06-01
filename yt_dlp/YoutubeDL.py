@@ -3996,7 +3996,10 @@ class YoutubeDL:
             return False
         else:
             try:
-                self.to_screen(f'[info] Writing {label} description to: {descfn}')
+                self.to_screen('[%(info)s] Writing %(label)s description to: %(filename)s' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'label': label,
+                    'filename': self._format_screen(descfn, self.Styles.FILENAME)})
                 with open(encodeFilename(descfn), 'w', encoding='utf-8') as descfile:
                     descfile.write(ie_result['description'])
             except OSError:
