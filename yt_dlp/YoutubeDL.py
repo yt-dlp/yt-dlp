@@ -4020,7 +4020,8 @@ class YoutubeDL:
 
         sub_filename_base = self.prepare_filename(info_dict, 'subtitle')
         if not sub_filename_base:
-            self.to_screen('[info] Skipping writing video subtitles')
+            self.to_screen('[%(info)s] Skipping writing video subtitles' % {
+                'info': self._format_screen(*self.Channels.INFO)})
             return ret
         for sub_lang, sub_info in subtitles.items():
             sub_format = sub_info['ext']
