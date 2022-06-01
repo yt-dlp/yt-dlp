@@ -3966,7 +3966,10 @@ class YoutubeDL:
                 'title': label.title()})
             return 'exists'
 
-        self.to_screen(f'[info] Writing {label} metadata as JSON to: {infofn}')
+        self.to_screen('[%(info)s] Writing %(label)s metadata as JSON to: %(filename)s' % {
+            'info': self._format_screen(*self.Channels.INFO),
+            'label': label,
+            'filename': self._format_screen(infofn, self.Styles.FILENAME)})
         try:
             write_json_file(self.sanitize_info(ie_result, self.params.get('clean_infojson', True)), infofn)
             return True
