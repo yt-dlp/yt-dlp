@@ -3034,7 +3034,8 @@ class YoutubeDL:
             if not self._ensure_dir_exists(encodeFilename(annofn)):
                 return
             if not self.params.get('overwrites', True) and os.path.exists(encodeFilename(annofn)):
-                self.to_screen('[info] Video annotations are already present')
+                self.to_screen('[%(info)s] Video annotations are already present' % {
+                               'info': self._format_screen(*self.Channels.INFO)})
             elif not info_dict.get('annotations'):
                 self.report_warning('There are no annotations to write.')
             else:
