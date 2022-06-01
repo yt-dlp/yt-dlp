@@ -1476,7 +1476,8 @@ class YoutubeDL:
                                       tb=e.format_traceback())
                 except Exception as e:
                     if self.params.get('ignoreerrors'):
-                        self.report_error(str(e), tb=encode_compat_str(traceback.format_exc()))
+                        self.report_error(self._format_err(str(e), self.Styles.ERROR),
+                                          tb=encode_compat_str(traceback.format_exc()))
                     else:
                         raise
                 break
