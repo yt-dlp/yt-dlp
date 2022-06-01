@@ -1657,9 +1657,10 @@ class YoutubeDL:
             # (see https://github.com/ytdl-org/youtube-dl/issues/27833)
             webpage_url = ie_result['webpage_url']
             if webpage_url in self._playlist_urls:
-                self.to_screen(
-                    '[download] Skipping already downloaded playlist: %s'
-                    % ie_result.get('title') or ie_result.get('id'))
+                self.to_screen('[%(download)s] Skipping already downloaded playlist: %(id)s' % {
+                    'download': self._format_screen(*self.Channels.DOWNLOAD),
+                    'id': self._format_screen(ie_result.get('title') or ie_result.get('id'),
+                                              self.Styles.ID)})
                 return
 
             self._playlist_level += 1
