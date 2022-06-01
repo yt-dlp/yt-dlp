@@ -3487,7 +3487,8 @@ class YoutubeDL:
             try:
                 os.remove(filename)
             except OSError:
-                self.report_warning(f'Unable to delete file {filename}')
+                self.report_warning('Unable to delete file %(filename)s' % {
+                    'filename': self._format_err(filename, self.Styles.FILENAME)})
             if filename in info.get('__files_to_move', []):  # NB: Delete even if None
                 del info['__files_to_move'][filename]
 
