@@ -1980,7 +1980,9 @@ class YoutubeDL:
 
     def _check_formats(self, formats):
         for f in formats:
-            self.to_screen('[info] Testing format %s' % f['format_id'])
+            self.to_screen('[%(info)s] Testing format %(format)s' % {
+                'info': self._format_screen(*self.Channels.INFO),
+                'format': f['format_id']})
             path = self.get_output_path('temp')
             if not self._ensure_dir_exists(f'{path}/'):
                 continue
