@@ -2405,7 +2405,14 @@ class YoutubeDL:
                 try:
                     self.urlopen(HEADRequest(t['url']))
                 except network_exceptions as err:
-                    self.to_screen(f'[info] Unable to connect to thumbnail {t["id"]} URL {t["url"]!r} - {err}. Skipping...')
+                    self.to_screen('[%(info)s] Unable to connect to thumbnail '
+                                   '%(id)s URL %(url)s - %(err)s. %(skip)s' % {
+                                       'info': self._format_screen(*self.Channels.INFO),
+                                       'id': self._format_screen(t['id'], self.Styles.ID),
+                                       'url': self._format_screen('%r' % t['url'], self.Styles.URL),
+                                       'err': self._format_screen(err, self.Styles.ERROR),
+                                       'skip': self._format_screen('Skipping...',
+                                                                   self.Styles.WARNING)})
                     continue
                 yield t
 
