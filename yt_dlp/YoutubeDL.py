@@ -3751,9 +3751,14 @@ class YoutubeDL:
     def __list_table(self, video_id, name, func, *args):
         table = func(*args)
         if not table:
-            self.to_screen(f'{video_id} has no {name}')
+            self.to_screen('%(id)s has no %(key)s' % {
+                'id': self._format_screen(video_id, self.Styles.ID),
+                'key': self._format_screen(name, self.Styles.KEY)})
             return
-        self.to_screen(f'[info] Available {name} for {video_id}:')
+        self.to_screen('[%(info)s] Available %(key)s for %(id)s:' % {
+            'info': self._format_screen(*self.Channels.INFO),
+            'key': self._format_screen(name, self.Styles.KEY),
+            'id': self._format_screen(video_id, self.Styles.ID)})
         self.to_stdout(table)
 
     def list_formats(self, info_dict):
