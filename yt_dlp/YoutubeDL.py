@@ -1997,8 +1997,8 @@ class YoutubeDL:
                     try:
                         os.remove(temp_file.name)
                     except OSError:
-                        self.report_warning('Unable to delete temporary file '
-                                            f'"{self._format_err(temp_file.name, self.Styles.FILENAME)}"')
+                        self.report_warning('Unable to delete temporary file "%s"' %
+                                            self._format_err(temp_file.name, self.Styles.FILENAME))
             if success:
                 yield f
             else:
@@ -3346,7 +3346,7 @@ class YoutubeDL:
 
                     if info_dict.get('requested_formats') is None:  # Not necessary if doing merger
                         ffmpeg_fixup(downloader == 'HlsFD',
-                                     f'Possible {self._format_err("MPEG - TS", self.Styles.EMPHASIS)} in '
+                                     f'Possible {self._format_err("MPEG-TS", self.Styles.EMPHASIS)} in '
                                      f'{self._format_err("MP4", self.Styles.EMPHASIS)} container or '
                                      f'malformed {self._format_err("AAC", self.Styles.EMPHASIS)} timestamps',
                                      FFmpegFixupM3u8PP)
