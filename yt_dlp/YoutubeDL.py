@@ -3400,7 +3400,9 @@ class YoutubeDL:
                     'err': self._format_screen(e, self.Styles.ERROR)})
                 raise
             except DownloadCancelled as e:
-                self.to_screen(f'[info] {e}')
+                self.to_screen('[%(info)s] %(err)s' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'err': self._format_screen(e, self.Styles.ERROR)})
                 if not self.params.get('break_per_url'):
                     raise
             else:
