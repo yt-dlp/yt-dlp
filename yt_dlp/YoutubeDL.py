@@ -1852,8 +1852,10 @@ class YoutubeDL:
             playlist_index, entry = entry_tuple
             if 'playlist-index' in self.params.get('compat_opts', []):
                 playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
-            self.to_screen('[download] Downloading video %s of %s' % (
-                self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
+            self.to_screen('[%(download)s] Downloading video %(current)s of %(total)s' % {
+                'download': self._format_screen(*self.Channels.DOWNLOAD),
+                'current': self._format_screen(i, self.Styles.ID),
+                'total': self._format_screen(n_entries, self.Styles.EMPHASIS)})
             # This __x_forwarded_for_ip thing is a bit ugly but requires
             # minimal changes
             if x_forwarded_for:
