@@ -1758,13 +1758,15 @@ class YoutubeDL:
         ie_entries = ie_result['entries']
         if isinstance(ie_entries, list):
             playlist_count = len(ie_entries)
-            msg = f'Collected {playlist_count} videos; downloading %d of them'
+            msg = 'Collected %(count)s videos; downloading %(num)s of them' % {
+                'count': self._format_screen(playlist_count, self.Styles.EMPHASIS),
+                'num': self._format_screen("%d", self.Styles.EMPHASIS)}
             ie_result['playlist_count'] = ie_result.get('playlist_count') or playlist_count
 
             def get_entry(i):
                 return ie_entries[i - 1]
         else:
-            msg = 'Downloading %d videos'
+            msg = f'Downloading {self._format_screen("%d", self.Styles.EMPHASIS)} videos'
             if not isinstance(ie_entries, (PagedList, LazyList)):
                 ie_entries = LazyList(ie_entries)
             elif isinstance(ie_entries, InAdvancePagedList):
@@ -1840,7 +1842,10 @@ class YoutubeDL:
 
         x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
 
-        self.to_screen(f'[{ie_result["extractor"]}] playlist {playlist}: {msg % n_entries}')
+        self.to_screen('[%(ext_id)s] playlist %(playlist)s: %(message)s' % {
+            'ext_id': self._format_screen(ie_result["extractor"], self.Channels.EXTRACTOR),
+            'playlist': self._format_screen(playlist, self.Styles.ID),
+            'message': msg % n_entries})
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
