@@ -2399,7 +2399,9 @@ class YoutubeDL:
 
         def check_thumbnails(thumbnails):
             for t in thumbnails:
-                self.to_screen(f'[info] Testing thumbnail {t["id"]}')
+                self.to_screen('[%(info)s] Testing thumbnail %(id)s' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'id': self._format_screen(t['id'], self.Styles.ID)})
                 try:
                     self.urlopen(HEADRequest(t['url']))
                 except network_exceptions as err:
