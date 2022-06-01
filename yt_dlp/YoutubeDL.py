@@ -4029,7 +4029,11 @@ class YoutubeDL:
             sub_filename_final = subtitles_filename(sub_filename_base, sub_lang, sub_format, info_dict.get('ext'))
             existing_sub = self.existing_file((sub_filename_final, sub_filename))
             if existing_sub:
-                self.to_screen(f'[info] Video subtitle {sub_lang}.{sub_format} is already present')
+                self.to_screen('[%(info)s] Video subtitle %(filename)s is already present' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'filename': self._format_screen(f'{sub_lang}.{sub_format}',
+                                                    self.Styles.FILENAME)
+                })
                 sub_info['filepath'] = existing_sub
                 ret.append((existing_sub, sub_filename_final))
                 continue
