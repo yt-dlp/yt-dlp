@@ -1466,8 +1466,10 @@ class YoutubeDL:
                     msg = e.msg
                     if e.countries:
                         msg += '\nThis video is available in %s.' % ', '.join(
-                            map(ISO3166Utils.short2full, e.countries))
-                    msg += '\nYou might want to use a VPN or a proxy server (with --proxy) to workaround.'
+                            map(lambda c: self._format_err(ISO3166Utils.short2full, self.Styles.ID),
+                                e.countries))
+                    msg += '\nYou might want to use a VPN or a proxy server (with ' \
+                           f'{self._format_err("--proxy", self.Styles.OPTION)}) to workaround.'
                     self.report_error(msg)
                 except ExtractorError as e:  # An error we somewhat expected
                     self.report_error(str(e), e.format_traceback())
