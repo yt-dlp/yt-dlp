@@ -3440,8 +3440,10 @@ class YoutubeDL:
                 self.to_stderr('\r')
             webpage_url = info.get('webpage_url')
             if webpage_url is not None:
-                self.report_warning(f'The info failed to download: {e}; trying '
-                                    f'with URL {self._format_err(webpage_url, self.Styles.URL)}')
+                self.report_warning('The info failed to download: %(err)s; '
+                                    'trying with URL %(url)s' % {
+                                        'err': self._format_err(e, self.Styles.ERROR),
+                                        'url': self._format_err(webpage_url, self.Styles.URL)})
                 return self.download([webpage_url])
             else:
                 raise
