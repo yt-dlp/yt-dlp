@@ -4038,7 +4038,9 @@ class YoutubeDL:
                 ret.append((existing_sub, sub_filename_final))
                 continue
 
-            self.to_screen(f'[info] Writing video subtitles to: {sub_filename}')
+            self.to_screen('[%(info)s] Writing video subtitles to: %(filename)s' % {
+                'info': self._format_screen(*self.Channels.INFO),
+                'filename': self._format_screen(sub_filename, self.Styles.FILENAME)})
             if sub_info.get('data') is not None:
                 try:
                     # Use newline='' to prevent conversion of newline characters
