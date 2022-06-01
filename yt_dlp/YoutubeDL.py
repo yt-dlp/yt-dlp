@@ -1505,8 +1505,9 @@ class YoutubeDL:
         elif (diff or 0) <= 0:
             self.report_warning('Video should already be available according to extracted info')
         diff = min(max(diff or 0, min_wait or 0), max_wait or float('inf'))
-        self.to_screen(f'[{self._format_screen(*self.Channels.WAIT)}] Waiting for {format_dur(diff)} '
-                       '- Press Ctrl+C to try now')
+        self.to_screen('[%(wait)s] Waiting for %(diff)s - Press Ctrl+C to try now' % {
+            'wait': self._format_screen(*self.Channels.WAIT),
+            'diff': self._format_screen(format_dur(diff), self.Styles.EMPHASIS)})
 
         wait_till = time.time() + diff
         try:
