@@ -1472,7 +1472,8 @@ class YoutubeDL:
                            f'{self._format_err("--proxy", self.Styles.OPTION)}) to workaround.'
                     self.report_error(msg)
                 except ExtractorError as e:  # An error we somewhat expected
-                    self.report_error(str(e), e.format_traceback())
+                    self.report_error(self._format_err(str(e), self.Styles.ERROR),
+                                      tb=e.format_traceback())
                 except Exception as e:
                     if self.params.get('ignoreerrors'):
                         self.report_error(str(e), tb=encode_compat_str(traceback.format_exc()))
