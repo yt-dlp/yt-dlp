@@ -1901,7 +1901,9 @@ class YoutubeDL:
             return
 
         ie_result = self.run_all_pps('playlist', ie_result)
-        self.to_screen(f'[download] Finished downloading playlist: {playlist}')
+        self.to_screen('[%(download)s] Finished downloading playlist: %(playlist)s' % {
+            'download': self._format_screen(*self.Channels.DOWNLOAD),
+            'playlist': self._format_screen(playlist, self.Styles.ID)})
         return ie_result
 
     @__handle_extraction_exceptions
