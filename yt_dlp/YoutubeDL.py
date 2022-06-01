@@ -3988,7 +3988,9 @@ class YoutubeDL:
         elif not self._ensure_dir_exists(descfn):
             return None
         elif not self.params.get('overwrites', True) and os.path.exists(descfn):
-            self.to_screen(f'[info] {label.title()} description is already present')
+            self.to_screen('[%(info)s] %(title)s description is already present' % {
+                'info': self._format_screen(*self.Channels.INFO),
+                'title': label.title()})
         elif ie_result.get('description') is None:
             self.report_warning(f'There\'s no {self._format_err(label, self.Styles.KEY)} description to write')
             return False
