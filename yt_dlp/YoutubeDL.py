@@ -1516,7 +1516,9 @@ class YoutubeDL:
                 if diff <= 0:
                     progress('')
                     raise ReExtractInfo('[wait] Wait period ended', expected=True)
-                progress(f'[wait] Remaining time until next attempt: {self._format_screen(format_dur(diff), self.Styles.EMPHASIS)}')
+                progress('[%(wait)s] Remaining time until next attempt: %(diff)s' % {
+                    'wait': self._format_screen(*self.Channels.WAIT),
+                    'diff': self._format_screen(format_dur(diff), self.Styles.EMPHASIS)})
                 time.sleep(1)
         except KeyboardInterrupt:
             progress('')
