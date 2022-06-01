@@ -2738,9 +2738,12 @@ class YoutubeDL:
         best_format = formats_to_download[-1]
         if download:
             if best_format:
-                self.to_screen(
-                    f'[info] {info_dict["id"]}: Downloading {len(formats_to_download)} format(s): '
-                    + ', '.join([f['format_id'] for f in formats_to_download]))
+                self.to_screen('[%(info)s] %(id)s: Downloading %(num)s format(s): %(formats)s' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'id': self._format_screen(info_dict['id'], self.Styles.ID),
+                    'num': self._format_screen('%d' % len(formats_to_download),
+                                               self.Styles.EMPHASIS),
+                    'formats': ', '.join(f['format_id'] for f in formats_to_download)})
             max_downloads_reached = False
             for i, fmt in enumerate(formats_to_download):
                 formats_to_download[i] = new_info = self._copy_infodict(info_dict)
