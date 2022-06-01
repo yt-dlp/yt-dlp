@@ -4103,7 +4103,9 @@ class YoutubeDL:
                 t['filepath'] = existing_thumb
                 ret.append((existing_thumb, thumb_filename_final))
             else:
-                self.to_screen(f'[info] Downloading {thumb_display_id} ...')
+                self.to_screen('[%(info)s] Downloading %(id)s ...' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'id': self._format_err(thumb_display_id, self.Styles.ID)})
                 try:
                     uf = self.urlopen(sanitized_Request(t['url'], headers=t.get('http_headers', {})))
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
