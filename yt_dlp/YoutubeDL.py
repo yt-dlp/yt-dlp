@@ -1717,7 +1717,9 @@ class YoutubeDL:
     def __process_playlist(self, ie_result, download):
         # We process each entry in the playlist
         playlist = ie_result.get('title') or ie_result.get('id')
-        self.to_screen('[download] Downloading playlist: %s' % playlist)
+        self.to_screen('[%(download)s] Downloading playlist: %(playlist)s' % {
+            'download': self._format_screen(*self.Channels.DOWNLOAD),
+            'playlist': self._format_screen(playlist, self.Styles.ID)})
 
         if 'entries' not in ie_result:
             raise EntryNotInPlaylist('There are no entries')
