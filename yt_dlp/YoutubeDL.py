@@ -4095,8 +4095,11 @@ class YoutubeDL:
 
             existing_thumb = self.existing_file((thumb_filename_final, thumb_filename))
             if existing_thumb:
-                self.to_screen('[info] %s is already present' % (
-                    thumb_display_id if multiple else f'{label} thumbnail').capitalize())
+                self.to_screen('[%(info)s] %(id)s is already present' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'id': self._format_err((thumb_display_id if multiple
+                                            else f'{label} thumbnail').capitalize(),
+                                           self.Styles.ID)})
                 t['filepath'] = existing_thumb
                 ret.append((existing_thumb, thumb_filename_final))
             else:
