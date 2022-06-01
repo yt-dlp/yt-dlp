@@ -3068,7 +3068,10 @@ class YoutubeDL:
                     'type': self._format_screen(f'.{link_type}', self.Styles.FILENAME)})
                 return True
             try:
-                self.to_screen(f'[info] Writing internet shortcut (.{link_type}) to: {linkfn}')
+                self.to_screen('[%(info)s] Writing internet shortcut (.%(type)s) to: %(filename)s' %
+                               {'info': self._format_screen(*self.Channels.INFO),
+                                'type': self._format_screen(f'.{link_type}', self.Styles.FILENAME),
+                                'filename': self._format_screen(linkfn, self.Styles.FILENAME)})
                 with open(encodeFilename(to_high_limit_path(linkfn)), 'w', encoding='utf-8',
                           newline='\r\n' if link_type == 'url' else '\n') as linkfile:
                     template_vars = {'url': url}
