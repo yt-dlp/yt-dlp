@@ -983,12 +983,12 @@ class YoutubeDL:
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
         try:
-            self.to_screen('[%(prefix)s] %(filename)s has already been downloaded' % {
-                'prefix': self._format_screen(*self.Channels.DOWNLOAD),
+            self.to_screen('[%(download)s] %(filename)s has already been downloaded' % {
+                'download': self._format_screen(*self.Channels.DOWNLOAD),
                 'filename': self._format_screen(file_name, self.Styles.FILENAME)})
         except UnicodeEncodeError:
-            self.to_screen('[%s] The file has already been downloaded' %
-                           self._format_screen(*self.Channels.DOWNLOAD))
+            self.to_screen('[%(download)s] The file has already been downloaded' % {
+                           'download': self._format_screen(*self.Channels.DOWNLOAD)})
 
     def report_file_delete(self, file_name):
         """Report that existing file will be deleted."""
@@ -1430,9 +1430,9 @@ class YoutubeDL:
 
             temp_id = ie.get_temp_id(url)
             if temp_id is not None and self.in_download_archive({'id': temp_id, 'ie_key': ie_key}):
-                self.to_screen(f'[{self._format_screen(ie_key, self.Channels.EXTRACTOR)}] '
-                               f'{self._format_screen(temp_id, self.Styles.ID)}: '
-                               'has already been recorded in the archive')
+                self.to_screen('[%(ext_id)s] %(id)s: has already been recorded in the archive' % {
+                    'ext_id': self._format_screen(ie_key, self.Channels.EXTRACTOR),
+                    'id': self._format_screen(temp_id, self.Styles.ID)})
                 if self.params.get('break_on_existing', False):
                     raise ExistingVideoReached()
                 break
@@ -1593,8 +1593,8 @@ class YoutubeDL:
                 # TODO: Improve MetadataParserPP to allow setting a list
                 if isinstance(additional_urls, compat_str):
                     additional_urls = [additional_urls]
-                self.to_screen('[%(prefix)s] %(id)s: %(n_url)d additional URL(s) requested' % {
-                    'prefix': self._format_screen(*self.Channels.INFO),
+                self.to_screen('[%(info)s] %(id)s: %(n_url)d additional URL(s) requested' % {
+                    'info': self._format_screen(*self.Channels.INFO),
                     'id': self._format_screen(ie_result['id'], self.Styles.ID),
                     'n_url': self._format_screen(len(additional_urls), self.Styles.EMPHASIS)})
                 self.write_debug('Additional URLs: "%s"' % '", "'.join(additional_urls))
