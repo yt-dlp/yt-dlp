@@ -3063,7 +3063,9 @@ class YoutubeDL:
             if not self._ensure_dir_exists(encodeFilename(linkfn)):
                 return False
             if self.params.get('overwrites', True) and os.path.exists(encodeFilename(linkfn)):
-                self.to_screen(f'[info] Internet shortcut (.{link_type}) is already present')
+                self.to_screen('[%(info)s] Internet shortcut (%(type)s) is already present' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'type': self._format_screen(f'.{link_type}', self.Styles.FILENAME)})
                 return True
             try:
                 self.to_screen(f'[info] Writing internet shortcut (.{link_type}) to: {linkfn}')
