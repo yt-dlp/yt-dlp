@@ -3524,7 +3524,10 @@ class YoutubeDL:
                 infodict['__files_to_move'].setdefault(f, '')
         else:
             self._delete_downloaded_files(
-                *files_to_delete, info=infodict, msg='Deleting original file %s (pass -k to keep)')
+                *files_to_delete, info=infodict,
+                msg='Deleting original file %(filename)s (pass %(k)s to keep)' % {
+                    'filename': self._format_screen("%s", self.Styles.FILENAME),
+                    'k': self._format_screen("-k", self.Styles.OPTION)})
         return infodict
 
     def run_all_pps(self, key, info, *, additional_pps=None):
