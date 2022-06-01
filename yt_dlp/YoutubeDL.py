@@ -2870,7 +2870,10 @@ class YoutubeDL:
         for tmpl, file_tmpl in self.params['print_to_file'].get(key, []):
             filename = self.prepare_filename(info_dict, outtmpl=file_tmpl)
             tmpl = format_tmpl(tmpl)
-            self.to_screen(f'[info] Writing {tmpl!r} to: {filename}')
+            self.to_screen('[%(info)s] Writing %(template)r to: %(filename)s' % {
+                'info': self._format_screen(*self.Channels.INFO),
+                'template': tmpl,
+                'filename': self._format_screen(filename, self.Styles.FILENAME)})
             if self._ensure_dir_exists(filename):
                 with open(filename, 'a', encoding='utf-8') as f:
                     f.write(self.evaluate_outtmpl(tmpl, info_copy) + '\n')
