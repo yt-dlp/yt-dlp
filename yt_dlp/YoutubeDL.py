@@ -2002,7 +2002,10 @@ class YoutubeDL:
             if success:
                 yield f
             else:
-                self.to_screen('[info] Unable to download format %s. Skipping...' % f['format_id'])
+                self.to_screen('[%(info)s] Unable to download format %(format)s. %(skip)s...' % {
+                    'info': self._format_screen(*self.Channels.INFO),
+                    'format': f['format_id'],
+                    'skip': self._format_screen('Skipping...', self.Styles.WARNING)})
 
     def _default_format_spec(self, info_dict, download=True):
 
