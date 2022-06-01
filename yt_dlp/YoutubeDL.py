@@ -4108,7 +4108,10 @@ class YoutubeDL:
                     'id': self._format_err(thumb_display_id, self.Styles.ID)})
                 try:
                     uf = self.urlopen(sanitized_Request(t['url'], headers=t.get('http_headers', {})))
-                    self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
+                    self.to_screen('[%(info)s] Writing %(id)s to: %(filename)s' % {
+                        'info': self._format_screen(*self.Channels.INFO),
+                        'id': self._format_screen(thumb_display_id, self.Styles.ID),
+                        'filename': self._format_screen(thumb_filename, self.Styles.FILENAME)})
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)
                     ret.append((thumb_filename, thumb_filename_final))
