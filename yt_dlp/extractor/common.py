@@ -1501,7 +1501,6 @@ class InfoExtractor:
         def extract_video_object(e):
             assert e['@type'] == 'VideoObject'
             author = e.get('author')
-            embed_url = url_or_none(e.get('embedUrl'))
             info.update({
                 'url': traverse_obj(e, 'contentUrl', 'embedUrl', expected_type=url_or_none),
                 'title': unescapeHTML(e.get('name')),
