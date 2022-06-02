@@ -647,14 +647,14 @@ class NiconicoSeriesIE(InfoExtractor):
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
         },
-        'playlist_mincount': 10,  # as of 2022/06/01
+        'playlist_mincount': 10,
     }, {
         'url': 'https://www.nicovideo.jp/series/12312/',
         'info_dict': {
             'id': '12312',
             'title': 'バトルスピリッツ　お勧めカード紹介(調整中)',
         },
-        'playlist_mincount': 103,  # as of 2022/06/01
+        'playlist_mincount': 103,
     }, {
         'url': 'https://nico.ms/series/203559',
         'only_matching': True,
