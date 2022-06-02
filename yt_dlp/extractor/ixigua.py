@@ -3,6 +3,7 @@ from ..utils import (
     get_element_by_id,
     js_to_json,
     traverse_obj,
+    ExtractorError,
 )
 import base64
 
@@ -15,14 +16,16 @@ class IxiguaIE(InfoExtractor):
             'id' : 'v0d004g10000c4d1t7jc77ub4g3o88b0',
             'ext' : 'mp4',
         }
-        
-        
     }
     
     def _get_json_data(self, webpage, video_id):
         js_data = get_element_by_id("SSR_HYDRATED_DATA", webpage) 
         #json_string = js_to_json(str(js_data), "window._SSR_HYDRATED_DATA")
         print(js_data)
+        
+        if not js_data:
+            raise ExtractorError(f'{self.IE_NAME} said: json data got {js_data}',)
+        
         json_string = js_to_json(str(js_data))
         #print(json_string)
         return self._parse_json(json_string, video_id)
