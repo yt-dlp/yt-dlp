@@ -712,6 +712,7 @@ from .iwara import (
     IwaraPlaylistIE,
     IwaraUserIE,
 )
+from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
 from .jable import (
     JableIE,
