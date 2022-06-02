@@ -9,7 +9,7 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm asking a question and **not** reporting a bug/feature request
+        - label: I'm asking a question and **not** reporting a bug or requesting a feature
           required: true
         - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
           required: true
