@@ -180,7 +180,7 @@ class MotherlessPaginatedIE(InfoExtractor, ABC):
 
 
 class MotherlessGroupIE(MotherlessPaginatedIE):
-    _VALID_URL = r'https?://(?:www\.)?motherless\.com/gv?/(?P<id>[a-z0-9_]+)'
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/gv/(?P<id>[a-z0-9_]+)'
     _TESTS = [{
         'url': 'http://motherless.com/gv/movie_scenes',
         'info_dict': {
@@ -209,7 +209,7 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
 
 
 class MotherlessGalleryIE(MotherlessPaginatedIE):
-    _VALID_URL = r'https?://(?:www\.)?motherless\.com/GV?(?P<id>[A-F0-9]+)'
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/GV(?P<id>[A-F0-9]+)'
     _TESTS = [{
         'url': 'https://motherless.com/GV338999F',
         'info_dict': {
