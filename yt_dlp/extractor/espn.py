@@ -311,7 +311,7 @@ class WatchESPNIE(AdobePassIE):
     def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
         if 'Authorization' not in headers:
             headers['Authorization'] = f'Bearer {self._API_KEY}'
-            parse = urllib.parse.urlencode if path == 'token' else json.dumps
+        parse = urllib.parse.urlencode if path == 'token' else json.dumps
         return self._download_json(
             f'https://espn.api.edge.bamgrid.com/{path}', video_id, headers=headers, data=parse(payload).encode())
 
@@ -336,7 +336,6 @@ class WatchESPNIE(AdobePassIE):
                     'deviceProfile': 'tv',
                     'attributes': {},
                 })['assertion']
-
             token = self._call_bamgrid_api(
                 'token', video_id, payload={
                     'subject_token': assertion,
@@ -351,7 +350,6 @@ class WatchESPNIE(AdobePassIE):
                     'Authorization': token,
                     'Content-Type': 'application/json; charset=UTF-8'
                 })['assertion']
-
             token = self._call_bamgrid_api(
                 'token', video_id, payload={
                     'subject_token': assertion,
@@ -366,7 +364,6 @@ class WatchESPNIE(AdobePassIE):
                     'Accept': 'application/vnd.media-service+json; version=5',
                     'Authorization': token
                 })
-
             m3u8_url, headers = playback['stream']['complete'][0]['url'], {'authorization': token}
 
         # TV Provider required
@@ -387,6 +384,6 @@ class WatchESPNIE(AdobePassIE):
             'title': video_data.get('name'),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': video_data.get('posterHref')
+            'thumbnail': video_data.get('posterHref'),
             'http_headers': headers,
         }
