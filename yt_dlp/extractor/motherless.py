@@ -246,3 +246,60 @@ class MotherlessGroupIE(InfoExtractor):
             'description': description,
             'entries': playlist
         }
+
+
+class MotherlessGalleryIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?motherless\.com/GV?(?P<id>[A-F0-9]+)'
+    _TESTS = [{
+        'url': 'https://motherless.com/G338999F',
+        'info_dict': {
+            'id': '338999F',
+            'title': 'Random',
+        },
+        'playlist_mincount': 220,
+    }, {
+        'url': 'https://motherless.com/GVABD6213',
+        'info_dict': {
+            'id': 'ABD6213',
+            'title': 'Cuties',
+        },
+        'playlist_mincount': 1,
+    }, {
+        'url': 'https://motherless.com/GBCF7622',
+        'info_dict': {
+            'id': 'BCF7622',
+            'title': 'Vintage',
+        },
+        'playlist_mincount': 0,
+    }]
+
+    PAGE_SIZE = 60
+
+    def _extract_entries(self, webpage, base):
+        for mobj in re.finditer(r'href=".*(?P<href>\/[A-F0-9]+)"\s+title="(?P<title>[^"]+)', webpage):
+            video_url = compat_urlparse.urljoin(base, mobj.group("href"))
+            video_id = MotherlessIE.get_temp_id(video_url)
+
+            if video_id:
+                yield self.url_result(
+                    video_url, ie=MotherlessIE.ie_key(), video_id=video_id,
+                    video_title=mobj.group('title'))
+
+    def _real_extract(self, url):
+        gallery_id = self._match_id(url)
+        url = compat_urlparse.urljoin(url, f'/GV{gallery_id}')
+        webpage = self._download_webpage(url, gallery_id)
+        title = self._html_extract_title(webpage).split("|")[0].strip()
+        page_count = self._int(self._search_regex(
+            r'(\d+)</a><a[^>]+rel="next">',
+            webpage, 'page_count', default=1), 'page_count')
+
+        def _get_page(idx):
+            webpage = self._download_webpage(
+                url, gallery_id, query={'page': idx + 1},
+                note=f'Downloading page {idx + 1}/{page_count}')
+
+            yield from self._extract_entries(webpage, url)
+
+        return self.playlist_result(
+            InAdvancePagedList(_get_page, page_count, MotherlessGalleryIE.PAGE_SIZE), gallery_id, title)
