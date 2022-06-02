@@ -1,5 +1,7 @@
 import json
+import time
 
+from .common import InfoExtractor
 from .turner import TurnerBaseIE
 from ..utils import (
     determine_ext,
@@ -9,11 +11,13 @@ from ..utils import (
     parse_age_limit,
     parse_iso8601,
     strip_or_none,
+    traverse_obj,
     try_get,
 )
 
 
-class AdultSwimIE(TurnerBaseIE):
+class AdultSwimVideoIE(TurnerBaseIE):
+    IE_NAME = 'adultswim:video'
     _VALID_URL = r'https?://(?:www\.)?adultswim\.com/videos/(?P<show_path>[^/?#]+)(?:/(?P<episode_path>[^/?#]+))?'
 
     _TESTS = [{
@@ -196,3 +200,104 @@ class AdultSwimIE(TurnerBaseIE):
             return self.playlist_result(
                 entries, show_path, show_data.get('title'),
                 strip_or_none(show_data.get('metaDescription')))
+
+
+class AdultSwimStreamIE(InfoExtractor):
+    IE_NAME = 'adultswim:stream'
+    _VALID_URL = r'https?://(?:www\.)?adultswim\.com/streams/(?P<id>[^/?#]+)'
+    
+    _TESTS = [{
+        'url': 'https://www.adultswim.com/streams/rick-and-morty',
+        'info_dict': {
+            'id': 'rick-and-morty',
+            'ext': 'mp4',
+            'title': 'Rick and Morty',
+            'description': 'An infinite loop of Rick and Morty. You\'re welcome. (Marathon available in select regions)',
+            'series': 'Rick and Morty',
+            # Live episode changes periodically
+            'season': str,
+            'episode': str,
+            'season_number': int,
+            'episode_number': int,
+        },
+        'params': {
+            # m3u8 download
+            'skip_download': True,
+        },
+    }]
+
+    def _real_extract(self, url):
+
+        stream_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, stream_id)
+        stream_data_json = self._search_regex(r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(?P<json>[^<]+)', webpage, 'stream data json', group='json')
+
+        remote_ts_json = self._download_json('https://www.adultswim.com/api/schedule/live/', stream_id, 'Downloading server timestamp', fatal=False)
+        timestamp = remote_ts_json.get("timestamp") or time.time() * 10**3
+
+
+        if stream_data_json:
+
+            stream_data = self._parse_json(stream_data_json, stream_id, fatal=False)
+
+            if stream_data:
+                if not stream_id:
+                    stream_id = traverse_obj(stream_data, ('query', 'stream'))
+
+                root = traverse_obj(stream_data, ('props', '__REDUX_STATE__')) or {}
+                stream = {}
+                
+                for s in root.get('streams') or []:
+                    if s.get('id') == stream_id:
+                        stream = s
+                        break
+
+                title = stream.get('title')
+                description = stream.get('description')
+
+                vod_to_live_id = stream.get('vod_to_live_id')
+                episodes_data = traverse_obj(root, ('marathon', vod_to_live_id))
+                live_episode_data = {}
+
+                start_time = None
+                for e in episodes_data:
+                    start_time = start_time or e.get('startTime')
+                    duration = e.get('duration') * 10**3
+                    
+                    if start_time < timestamp and timestamp < start_time + duration:
+                        live_episode_data = e
+                        break
+
+                    # If currently in an in-between episode pause live episode is considered the one after that pause
+                    s = e.get('startTime')
+                    if s:
+                        start_time = s + duration
+                    else:
+                        start_time = None
+
+                episode = live_episode_data.get('episodeName')
+                episode_number = live_episode_data.get('episodeNumber')
+                season_number = live_episode_data.get('seasonNumber')
+            
+        
+        
+        formats = self._extract_m3u8_formats(
+            'https://adultswim-vodlive.cdn.turner.com/live/%s/stream_de.m3u8?hdnts=' % stream_id, 
+            stream_id)
+
+
+        info = {
+            'id': stream_id,
+            'title': title,
+            'description': description,
+            'series': title,
+            'episode': episode,
+            'season_number': season_number,
+            'episode_number': episode_number,
+            'formats': formats,
+        }
+
+        print(info)
+
+        return info
