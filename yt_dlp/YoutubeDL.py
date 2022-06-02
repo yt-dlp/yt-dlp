@@ -974,7 +974,9 @@ class YoutubeDL:
         '''Log debug message or Print message to stderr'''
         if not self.params.get('verbose', False):
             return
-        message = '[debug] %s' % message
+        message = '[%(debug)s] %(message)s' % {
+            'debug': self._format_err(*self.Channels.DEBUG),
+            'message': message}
         if self.params.get('logger'):
             self.params['logger'].debug(message)
         else:
