@@ -51,6 +51,15 @@ class NprIE(InfoExtractor):
         # multimedia, no formats, stream
         'url': 'https://www.npr.org/2020/02/14/805476846/laura-stevenson-tiny-desk-concert',
         'only_matching': True,
+    }, {
+        'url': 'https://www.npr.org/2022/03/15/1084896560/bonobo-tiny-desk-home-concert',
+        'info_dict': {
+            'id': '1086468851',
+            'ext': 'mp4',
+            'title': 'Bonobo: Tiny Desk (Home) Concert',
+            'duration': 1061,
+            'thumbnail': r're:^https?://media.npr.org/assets/img/.*\.jpg$',
+        },
     }]
 
     def _real_extract(self, url):
