@@ -67,8 +67,7 @@ class NprIE(InfoExtractor):
 
         # Fetch the JSON-LD from the npr page.
         json_ld = self._search_json_ld(
-            self._download_webpage(url, playlist_id), playlist_id,
-            'NewsArticle', fatal=False)
+            self._download_webpage(url, playlist_id), playlist_id, 'NewsArticle', fatal=False)
 
         KNOWN_FORMATS = ('threegp', 'm3u8', 'smil', 'mp4', 'mp3')
         quality = qualities(KNOWN_FORMATS)
@@ -116,11 +115,8 @@ class NprIE(InfoExtractor):
                     stream_url, stream_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
 
-            if (len(formats) == 0 and len(json_ld.get('formats', [])) > 0
-                    and json_ld.get('formats')[0].get('url', None)):
-                formats.extend(self._extract_m3u8_formats(
-                    json_ld.get('formats')[0].get('url'), media_id, 'mp4', 'm3u8_native',
-                    m3u8_id='hls', fatal=False))
+            if not formats and json_ld.get('url'):
+                formats.extend(self._extract_m3u8_formats(json_ld['url'], media_id, 'mp4', m3u8_id='hls', fatal=False))
 
             self._sort_formats(formats)
 

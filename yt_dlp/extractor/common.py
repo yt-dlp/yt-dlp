@@ -1503,7 +1503,7 @@ class InfoExtractor:
             author = e.get('author')
             embed_url = url_or_none(e.get('embedUrl'))
             info.update({
-                'url': url_or_none(e.get('contentUrl')),
+                'url': traverse_obj(e, 'contentUrl', 'embedUrl', expected_type=url_or_none),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': [{'url': url_or_none(url)}
@@ -1521,8 +1521,6 @@ class InfoExtractor:
                 'height': int_or_none(e.get('height')),
                 'view_count': int_or_none(e.get('interactionCount')),
             })
-            if embed_url:
-                info.update({'formats': [{'url': embed_url}]})
             extract_interaction_statistic(e)
             extract_chapter_information(e)
 
