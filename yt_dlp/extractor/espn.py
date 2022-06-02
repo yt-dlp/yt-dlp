@@ -310,27 +310,22 @@ class WatchESPNIE(AdobePassIE):
 
     def _call_bamgrid_api(self, path, video_id, payload=None, headers={}):
         if 'Authorization' not in headers:
-            headers['Authorization'] = 'Bearer %s' % self._API_KEY
-        if path == 'token':
-            data = urllib.parse.urlencode(payload).encode('utf-8')
-        else:
-            data = json.dumps(payload).encode('utf-8')
+            headers['Authorization'] = f'Bearer {self._API_KEY}'
+            parse = urllib.parse.urlencode if path == 'token' else json.dumps
         return self._download_json(
-            'https://espn.api.edge.bamgrid.com/%s' % path,
-            video_id, data=data, headers=headers)
+            f'https://espn.api.edge.bamgrid.com/{path}', video_id, headers=headers, data=parse(payload).encode())
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         video_data = self._download_json(
-            'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/playback/event?id=%s' % video_id, video_id)['playbackState']
-        title = video_data['name']
+            f'https://watch-cdn.product.api.espn.com/api/product/v3/watchespn/web/playback/event?id={video_id}',
+            video_id)['playbackState']
 
         # ESPN+ subscription required, through cookies
         if video_data.get('sourceId') == 'ESPN_DTC':
             cookie = self._get_cookies(url).get('ESPN-ONESITE.WEB-PROD.token')
             if not cookie:
-                raise self.raise_login_required(method='cookies')
-            id_token = cookie.value.split('|')[1]
+                self.raise_login_required(method='cookies')
 
             assertion = self._call_bamgrid_api(
                 'devices', video_id,
@@ -351,7 +346,7 @@ class WatchESPNIE(AdobePassIE):
                 })['access_token']
 
             assertion = self._call_bamgrid_api(
-                'accounts/grant', video_id, payload={'id_token': id_token},
+                'accounts/grant', video_id, payload={'id_token': cookie.value.split('|')[1]},
                 headers={
                     'Authorization': token,
                     'Content-Type': 'application/json; charset=UTF-8'
@@ -372,27 +367,26 @@ class WatchESPNIE(AdobePassIE):
                     'Authorization': token
                 })
 
-            m3u8_url, m3u8_headers = playback['stream']['complete'][0]['url'], {'authorization': token}
+            m3u8_url, headers = playback['stream']['complete'][0]['url'], {'authorization': token}
 
         # TV Provider required
         else:
             resource = self._get_mvpd_resource('ESPN', title, video_id, None)
-            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode('utf-8')
+            auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode()
 
             asset = self._download_json(
-                'https://watch.auth.api.espn.com/video/auth/media/%s/asset?apikey=uiqlbgzdwuru14v627vdusswb' % video_id,
-                video_id, data=(
-                    'adobeToken=%s&drmSupport=HLS' % urllib.parse.quote_plus(base64.b64encode(auth))).encode())
+                f'https://watch.auth.api.espn.com/video/auth/media/{video_id}/asset?apikey=uiqlbgzdwuru14v627vdusswb',
+                video_id, data=f'adobeToken={urllib.parse.quote_plus(base64.b64encode(auth)).encode()}&drmSupport=HLS')
             m3u8_url, m3u8_headers = asset['stream'], {}
 
-        formats = self._extract_m3u8_formats(
-            m3u8_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls')
+        formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
         self._sort_formats(formats)
 
         return {
             'id': video_id,
-            'title': title,
+            'title': video_data.get('name'),
             'formats': formats,
-            'http_headers': m3u8_headers,
+            'subtitles': subtitles,
             'thumbnail': video_data.get('posterHref')
+            'http_headers': headers,
         }
