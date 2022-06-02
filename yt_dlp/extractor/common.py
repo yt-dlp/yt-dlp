@@ -1098,7 +1098,10 @@ class InfoExtractor:
         self._downloader.to_screen(f'[{self.IE_NAME}] {msg}', *args, **kwargs)
 
     def write_debug(self, msg, *args, **kwargs):
-        self._downloader.write_debug(f'[{self.IE_NAME}] {msg}', *args, **kwargs)
+        self._downloader.write_debug('[%(ext_id)s] %(msg)s' % {
+            'ext_id': self._downloader._format_err(self.IE_NAME,
+                                                   self._downloader.Channels.EXTRACTOR),
+            'msg': msg}, *args, **kwargs)
 
     def get_param(self, name, default=None, *args, **kwargs):
         if self._downloader:
