@@ -974,13 +974,12 @@ class YoutubeDL:
         '''Log debug message or Print message to stderr'''
         if not self.params.get('verbose', False):
             return
-        message = '[%(debug)s] %(message)s' % {
-            'debug': self._format_err(*self.Channels.DEBUG),
-            'message': message}
         if self.params.get('logger'):
-            self.params['logger'].debug(message)
+            self.params['logger'].debug('[debug] %s' % message)
         else:
-            self.to_stderr(message, only_once)
+            self.to_stderr('[%(debug)s] %(message)s' % {
+                'debug': self._format_err(*self.Channels.DEBUG),
+                'message': message}, only_once)
 
     def report_file_already_downloaded(self, file_name):
         """Report file has already been fully downloaded."""
