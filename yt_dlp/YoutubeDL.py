@@ -3802,8 +3802,12 @@ class YoutubeDL:
             write_debug = lambda msg: logger.debug(f'[debug] {msg}')
             write_debug(encoding_str)
         else:
-            write_string(f'[debug] {encoding_str}\n', encoding=None)
-            write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
+            write_string('[%(debug)s] %(encodings)s\n' % {
+                'debug': self._format_err(*self.Channels.DEBUG),
+                'encodings': encoding_str}, encoding=None)
+            write_debug = lambda msg: self._write_string('[%(debug)s] %(msg)s\n' % {
+                'debug': self._format_err(*self.Channels.DEBUG),
+                'msg': msg})
 
         source = detect_variant()
         write_debug(join_nonempty(
