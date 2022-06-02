@@ -202,13 +202,15 @@ class NetversePlaylistIE(NetverseBaseIE):
         # TODO : list all playlist based on page number
         playlist_last_page = traverse_obj(playlist_data, ('response', 'related', 'last_page'))
         playlist_next_page = traverse_obj(playlist_data, ('response', 'related', 'next_page_url'))
-        #print(playlist_next_page)
+        # print(playlist_next_page)
         # at the moment, i didn't know how to use playlist_from_matches
         # so i will let the old code uncommented.
         # self.playlist_from_matches(matches)
         
+        # TODO: get video from other season
+        # The season has id and the next season video is located at api_url/<season_id>?page=<page>
         entries = OnDemandPagedList(functools.partial(self.parse_playlist, url), 10)
-
+        
         # entries = []
         # page = 0
         # while (page < playlist_last_page - 1):
