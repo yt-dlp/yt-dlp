@@ -368,7 +368,7 @@ class WatchESPNIE(AdobePassIE):
 
         # TV Provider required
         else:
-            resource = self._get_mvpd_resource('ESPN', title, video_id, None)
+            resource = self._get_mvpd_resource('ESPN', video_data['name'], video_id, None)
             auth = self._extract_mvpd_auth(url, video_id, 'ESPN', resource).encode()
 
             asset = self._download_json(
