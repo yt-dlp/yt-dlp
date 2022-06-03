@@ -373,7 +373,7 @@ class WatchESPNIE(AdobePassIE):
 
             asset = self._download_json(
                 f'https://watch.auth.api.espn.com/video/auth/media/{video_id}/asset?apikey=uiqlbgzdwuru14v627vdusswb',
-                video_id, data=f'adobeToken={urllib.parse.quote_plus(base64.b64encode(auth)).encode()}&drmSupport=HLS')
+                video_id, data=f'adobeToken={urllib.parse.quote_plus(base64.b64encode(auth))}&drmSupport=HLS'.encode())
             m3u8_url, headers = asset['stream'], {}
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(m3u8_url, video_id, 'mp4', m3u8_id='hls')
