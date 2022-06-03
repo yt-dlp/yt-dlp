@@ -962,16 +962,18 @@ class InfoExtractor:
             # parser is fetched by name so subclasses can override it
             return getattr(ie, parser)(content, *args, **kwargs)
 
-        def download_handle(self, url_or_request, video_id, note=note, errnote=errnote,
-                            transform_source=None, fatal=True, *args, **kwargs):
-            res = self._download_webpage_handle(url_or_request, video_id, note, errnote, fatal, *args, **kwargs)
+        def download_handle(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
+                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+            res = self._download_webpage_handle(
+                url_or_request, video_id, note=note, errnote=errnote, fatal=fatal, encoding=encoding,
+                data=data, headers=headers, query=query, expected_status=expected_status)
             if res is False:
                 return res
             content, urlh = res
-            return parse(self, content, video_id, transform_source, fatal), urlh
+            return parse(self, content, video_id, transform_source=transform_source, fatal=fatal), urlh
 
         def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                             fatal=True, encoding=None, data=None, headers={}, query={}, *args, **kwargs):
+                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
                 filename = self._request_dump_filename(url_or_request.full_url, video_id)
@@ -984,11 +986,21 @@ class InfoExtractor:
                 else:
                     content = self.__decode_webpage(webpage_bytes, encoding, url_or_request.headers)
                     return parse(self, content, video_id, transform_source, fatal)
-            args = [url_or_request, video_id, note, errnote, transform_source, fatal, encoding, data, headers, query, *args]
+            kwargs = {
+                'note': note,
+                'errnote': errnote,
+                'transform_source': transform_source,
+                'fatal': fatal,
+                'encoding': encoding,
+                'data': data,
+                'headers': headers,
+                'query': query,
+                'expected_status': expected_status,
+            }
             if parser is None:
-                args.pop(4)  # transform_source
+                kwargs.pop('transform_source')
             # The method is fetched by name so subclasses can override _download_..._handle
-            res = getattr(self, download_handle.__name__)(*args, **kwargs)
+            res = getattr(self, download_handle.__name__)(url_or_request, video_id, **kwargs)
             return res if res is False else res[0]
 
         def impersonate(func, name, return_value):
