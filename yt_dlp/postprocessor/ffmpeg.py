@@ -776,7 +776,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         for key, value in info.items():
             mobj = re.fullmatch(meta_regex, key)
             if value is not None and mobj:
-                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value
+                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value.replace('\0', '')
 
         # Write id3v1 metadata also since Windows Explorer can't handle id3v2 tags
         yield ('-write_id3v1', '1')

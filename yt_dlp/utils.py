@@ -1936,7 +1936,7 @@ def intlist_to_bytes(xs):
 
 
 class LockingUnsupportedError(OSError):
-    msg = 'File locking is not supported on this platform'
+    msg = 'File locking is not supported'
 
     def __init__(self):
         super().__init__(self.msg)
@@ -2061,8 +2061,11 @@ class locked_file:
             try:
                 self.f.truncate()
             except OSError as e:
-                if e.errno != 29:  # Illegal seek, expected when self.f is a FIFO
-                    raise e
+                if e.errno not in (
+                    errno.ESPIPE,  # Illegal seek - expected for FIFO
+                    errno.EINVAL,  # Invalid argument - expected for /dev/null
+                ):
+                    raise
         return self
 
     def unlock(self):
