@@ -32,8 +32,7 @@ class IxiguaIE(InfoExtractor):
         if not js_data:
             raise ExtractorError(f'{self.IE_NAME} said: json data got {js_data}',)
 
-        js_data = js_data.replace("window._SSR_HYDRATED_DATA=", "")
-        return self._parse_json(js_data, video_id, transform_source=js_to_json)
+        return self._parse_json(js_data.replace("window._SSR_HYDRATED_DATA=", ""), video_id, transform_source=js_to_json)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
