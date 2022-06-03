@@ -1,6 +1,7 @@
 from .common import InfoExtractor
 from ..utils import (
     get_element_by_id,
+    int_or_none,
     js_to_json,
     traverse_obj,
     ExtractorError,
@@ -43,9 +44,9 @@ class IxiguaIE(InfoExtractor):
         for _, video in normals_video.items():
             video_format = {
                 'url': base64.b64decode(video.get('main_url')).decode(),
-                'width': video.get('vwidth'),
-                'height': video.get('vheight'),
-                'fps': video.get('fps'),
+                'width': int_or_none(video.get('vwidth')),
+                'height': int_or_none(video.get('vheight')),
+                'fps': int_or_none(video.get('fps')),
                 'vcodec': video.get('codec_type'),
             }
             format_.append(video_format)
