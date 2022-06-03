@@ -17,6 +17,7 @@ class IxiguaIE(InfoExtractor):
             'ext': 'unknown_video',
             'title': '盲目涉水风险大，亲身示范高水位行车注意事项',
             'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
+            'tag' : 'video_car'
             # thumbnail url keep changing
         }
     }
@@ -54,10 +55,12 @@ class IxiguaIE(InfoExtractor):
                 'vcodec': video.get('codec_type'),
             }
             format_.append(video_format)
-
+        
+        self._sort_formats(format_)
         return {
             'id': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'vid')),
             'title': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'title')),
             'description': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_abstract')),
             'formats': format_,
+            'tag' : traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'tag')),
         }
