@@ -397,9 +397,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if self._LOGIN_REQUIRED and not self._cookies_passed:
             self.raise_login_required('Login details are needed to download this content', method='cookies')
 
-    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+})\s*;'
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+})\s*;'
-    _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
+    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*='
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
         return copy.deepcopy(INNERTUBE_CLIENTS[client])
@@ -476,12 +475,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             data=json.dumps(data).encode('utf8'), headers=real_headers,
             query={'key': api_key or self._extract_api_key(), 'prettyPrint': 'false'})
 
-    def extract_yt_initial_data(self, item_id, webpage, fatal=True):
-        data = self._search_regex(
-            (fr'{self._YT_INITIAL_DATA_RE}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal)
-        if data:
-            return self._parse_json(data, item_id, fatal=fatal)
+    def extract_yt_initial_data(self, item_id, webpage):
+        return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=True)
 
     def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
         return self._parse_json(self._search_regex(
@@ -3052,9 +3047,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
         initial_pr = None
         if webpage:
-            initial_pr = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
-                video_id, 'initial player response')
+            initial_pr = self._search_json(
+                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
         all_clients = set(clients)
         clients = clients[::-1]
@@ -3678,9 +3672,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         initial_data = None
         if webpage:
-            initial_data = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_DATA_RE, video_id,
-                'yt initial data')
+            initial_data = self._search_json(
+                self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', video_id, fatal=False)
         if not initial_data:
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())

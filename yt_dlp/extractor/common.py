@@ -35,6 +35,7 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     GeoUtils,
+    LenientJSONDecoder,
     RegexNotFoundError,
     UnsupportedError,
     age_restricted,
@@ -930,19 +931,10 @@ class InfoExtractor:
             else:
                 self.report_warning(errmsg + str(ve))
 
-    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, lenient=False):
-        if transform_source:
-            json_string = transform_source(json_string)
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, **parser_kwargs):
         try:
-            try:
-                return json.loads(json_string, strict=False)
-            except json.JSONDecodeError as e:
-                if not lenient:
-                    raise
-                try:
-                    return json.loads(json_string[:e.pos], strict=False)
-                except ValueError:
-                    raise e
+            return json.loads(
+                json_string, cls=LenientJSONDecoder, strict=False, transform_source=transform_source, **parser_kwargs)
         except ValueError as ve:
             errmsg = f'{video_id}: Failed to parse JSON'
             if fatal:
@@ -1195,6 +1187,14 @@ class InfoExtractor:
         else:
             self.report_warning('unable to extract %s' % _name + bug_reports_message())
             return None
+
+    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', fatal=True, **kwargs):
+        """Searches string for the JSON object specified by start_pattern"""
+        # NB: end_pattern is only used to reduce the size of the initial match
+        return self._parse_json(
+            self._search_regex(rf'{start_pattern}\s*(?P<json>{{.+}})\s*{end_pattern}',
+                               string, name, group='json', fatal=fatal) or '{}',
+            video_id, fatal=fatal, ignore_extra=True, **kwargs) or {}
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
