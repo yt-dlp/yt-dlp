@@ -24,11 +24,11 @@ class IxiguaIE(InfoExtractor):
     }
 
     def _get_json_data(self, webpage, video_id):
-        js_data = get_element_by_id("SSR_HYDRATED_DATA", webpage)
+        js_data = get_element_by_id('SSR_HYDRATED_DATA', webpage)
         if not js_data:
             raise ExtractorError(f'Failed to get SSR_HYDRATED_DATA',)
 
-        return self._parse_json(js_data.replace("window._SSR_HYDRATED_DATA=", ""), video_id, transform_source=js_to_json)
+        return self._parse_json(js_data.replace('window._SSR_HYDRATED_DATA=', ''), video_id, transform_source=js_to_json)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
