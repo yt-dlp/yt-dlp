@@ -22,7 +22,7 @@ class IxiguaIE(InfoExtractor):
     }
     HEADER = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36 Edg/102.0.1245.30',
-        'Cookie': '__ac_nonce=06299682f00c705b21766;ttwid=1|wF-euYewq9nEpSxYnKBF0oEl4sLgpXLtnLBqsOLADV8|1654217384|b12118e45bb2370b50f859623a80f5dd828588fb76258035861fc3266c0316c5;support_webo=true',
+        'Cookie': '__ac_nonce=06299682f00c705b21766;ttwid=1|wF-euYewq9nEpSxYnKBF0oEl4sLgpXLtnLBqsOLADV8|1654217384|b12118e45bb2370b50f859623a80f5dd828588fb76258035861fc3266c0316c5;support_webp=true',
         'Accept': 'application/json',
     }
 
