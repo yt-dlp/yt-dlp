@@ -17,15 +17,9 @@ class IxiguaIE(InfoExtractor):
             'ext': 'unknown_video',
             'title': '盲目涉水风险大，亲身示范高水位行车注意事项',
             'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
-            'thumbnail' : '',
             'tag' : 'video_car'
             # thumbnail url keep changing
         }
-    }
-    HEADER = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36 Edg/102.0.1245.30',
-        'Cookie': '__ac_nonce=06299682f00c705b21766;ttwid=1|wF-euYewq9nEpSxYnKBF0oEl4sLgpXLtnLBqsOLADV8|1654217384|b12118e45bb2370b50f859623a80f5dd828588fb76258035861fc3266c0316c5;support_webp=true',
-        'Accept': 'application/json',
     }
 
     def _get_json_data(self, webpage, video_id):
