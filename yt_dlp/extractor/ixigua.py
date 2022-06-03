@@ -13,10 +13,11 @@ class IxiguaIE(InfoExtractor):
     _TEST = {
         'url': 'https://www.ixigua.com/6996881461559165471',
         'info_dict': {
-            'id': 'v0d004g10000c4d1t7jc77ub4g3o88b0',
+            'id': '6996881461559165471',
             'ext': 'unknown_video',
             'title': '盲目涉水风险大，亲身示范高水位行车注意事项',
             'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
+            'thumbnail' : '',
             'tag' : 'video_car'
             # thumbnail url keep changing
         }
@@ -30,14 +31,14 @@ class IxiguaIE(InfoExtractor):
     def _get_json_data(self, webpage, video_id):
         js_data = get_element_by_id("SSR_HYDRATED_DATA", webpage)
         if not js_data:
-            raise ExtractorError(f'{self.IE_NAME} said: json data got {js_data}',)
+            raise ExtractorError(f'Failed to get SSR_HYDRATED_DATA',)
 
         return self._parse_json(js_data.replace("window._SSR_HYDRATED_DATA=", ""), video_id, transform_source=js_to_json)
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        # need to pass cookie
-        webpage = self._download_webpage(url, video_id, headers=self.HEADER)
+        # need to pass cookie (at least contain __ac_nonce and ttwid)
+        webpage = self._download_webpage(url, video_id)
 
         json_data = self._get_json_data(webpage, video_id)
         video_info = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'videoResource'))
@@ -57,7 +58,7 @@ class IxiguaIE(InfoExtractor):
         
         self._sort_formats(format_)
         return {
-            'id': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'vid')),
+            'id': video_id,
             'title': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'title')),
             'description': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_abstract')),
             'formats': format_,
