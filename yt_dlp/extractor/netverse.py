@@ -44,7 +44,7 @@ class NetverseBaseIE(InfoExtractor):
             display_id, query=required_query)
         return access_id, metadata_json
 
-# ERROR : got_dict = None ?
+
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
     _TESTS = [{
@@ -139,7 +139,7 @@ class NetverseIE(NetverseBaseIE):
 
         episode = f'Episode {episode_order}'
         self._sort_formats(video_format)
-        
+
         if playlist_id:
             if self._yes_playlist(playlist_id, display_id):
                 return self.url_result(
@@ -178,59 +178,33 @@ class NetversePlaylistIE(NetverseBaseIE):
     def parse_playlist(self, url, playlist_page):
         display_id, playlist_json = self.get_required_json(url, query={'page': playlist_page})
         videos = traverse_obj(playlist_json, ('response', 'related', 'data'))
-        
+
         for video in videos:
             vid_url = video.get('slug')
 
             if vid_url is not None:
                 video_url = f'https://www.netverse.id/video/{vid_url}'
-                
+
                 yield self.url_result(video_url, NetverseIE)
-    
+
     def parse_playlist_old(self, playlist_json):
         videos = traverse_obj(playlist_json, ('response', 'related', 'data'))
-        
+
         for video in videos:
             vid_url = video.get('slug')
 
             if vid_url is not None:
                 video_url = f'https://www.netverse.id/video/{vid_url}'
-                
+
                 yield self.url_result(video_url, NetverseIE)
-                
 
     def _real_extract(self, url):
         display_id, playlist_data = self.get_required_json(url)
         webseries_info = traverse_obj(playlist_data, ('response', 'webseries_info'))
-        # TODO : list all playlist based on page number
-        playlist_last_page = traverse_obj(playlist_data, ('response', 'related', 'last_page'))
-        playlist_next_page = traverse_obj(playlist_data, ('response', 'related', 'next_page_url'))
-        # print(playlist_next_page)
-        # at the moment, i didn't know how to use playlist_from_matches
-        # so i will let the old code uncommented.
-        # self.playlist_from_matches(matches)
-        
         # TODO: get video from other season
         # The season has id and the next season video is located at api_url/<season_id>?page=<page>
         # still not not sure about number in OnDemandPagedList
         entries = OnDemandPagedList(functools.partial(self.parse_playlist, url), 8)
-        
-        # entries = []
-        # page = 0
-        # while (page < playlist_last_page - 1):
-        #     _, playlist_page_json = self.get_required_json(url, query={'page': f'{page + 1}'})
-        #     entries.extend(self.parse_playlist_old(playlist_page_json))
-
-        #     page += 1
-
-        # entries = []
-        # for video in videos:
-        #     vid_url = video.get('slug')
-
-        #     if vid_url is not None:
-        #         video_url = f'https://www.netverse.id/video/{vid_url}'
-        #         entry = self.url_result(video_url, NetverseIE)
-        #         entries.append(entry)
 
         return self.playlist_result(
             entries, webseries_info.get('slug'), webseries_info.get('title')
