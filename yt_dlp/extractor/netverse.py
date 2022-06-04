@@ -74,7 +74,8 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': 'https://storage.googleapis.com/netprime-live/images/webseries/thumbnails/2021/11/619cf63f105d3.jpeg',
             'episode_number': 2,
             'series': 'Hello Jadoo',
-            'episode': 'Episode 2', }
+            'episode': 'Episode 2'},
+        'skip' : 'video get Geo-blocked for some country'
         }, {
         # non www host
         'url': 'https://netverse.id/watch/tetangga-baru',
@@ -107,7 +108,8 @@ class NetverseIE(NetverseBaseIE):
             'series': 'Hello Jadoo',
             'access_id': 'x887jzz',
             'episode': 'Episode 1',
-            }
+            },
+        'skip': 'This video get Geo-blocked for some country'
         }]
 
     def _real_extract(self, url):
@@ -167,6 +169,7 @@ class NetversePlaylistIE(NetverseBaseIE):
             'title': 'Tetangga Masa Gitu',
         },
         'playlist_mincount': 10,
+        'playlist_maxcount': 46,
         'params': {
             'skip_download': True,
         }
@@ -209,7 +212,8 @@ class NetversePlaylistIE(NetverseBaseIE):
         
         # TODO: get video from other season
         # The season has id and the next season video is located at api_url/<season_id>?page=<page>
-        entries = OnDemandPagedList(functools.partial(self.parse_playlist, url), 10)
+        # still not not sure about number in OnDemandPagedList
+        entries = OnDemandPagedList(functools.partial(self.parse_playlist, url), 8)
         
         # entries = []
         # page = 0
