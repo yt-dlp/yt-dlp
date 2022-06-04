@@ -51,6 +51,15 @@ class NprIE(InfoExtractor):
         # multimedia, no formats, stream
         'url': 'https://www.npr.org/2020/02/14/805476846/laura-stevenson-tiny-desk-concert',
         'only_matching': True,
+    }, {
+        'url': 'https://www.npr.org/2022/03/15/1084896560/bonobo-tiny-desk-home-concert',
+        'info_dict': {
+            'id': '1086468851',
+            'ext': 'mp4',
+            'title': 'Bonobo: Tiny Desk (Home) Concert',
+            'duration': 1061,
+            'thumbnail': r're:^https?://media.npr.org/assets/img/.*\.jpg$',
+        },
     }]
 
     def _real_extract(self, url):
@@ -64,6 +73,10 @@ class NprIE(InfoExtractor):
                 'apiKey': 'MDAzMzQ2MjAyMDEyMzk4MTU1MDg3ZmM3MQ010',
             })['list']['story'][0]
         playlist_title = story.get('title', {}).get('$text')
+
+        # Fetch the JSON-LD from the npr page.
+        json_ld = self._search_json_ld(
+            self._download_webpage(url, playlist_id), playlist_id, 'NewsArticle', fatal=False)
 
         KNOWN_FORMATS = ('threegp', 'm3u8', 'smil', 'mp4', 'mp3')
         quality = qualities(KNOWN_FORMATS)
@@ -110,6 +123,10 @@ class NprIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     stream_url, stream_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
+
+            if not formats and json_ld.get('url'):
+                formats.extend(self._extract_m3u8_formats(json_ld['url'], media_id, 'mp4', m3u8_id='hls', fatal=False))
+
             self._sort_formats(formats)
 
             entries.append({

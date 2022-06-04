@@ -647,14 +647,14 @@ class NiconicoSeriesIE(InfoExtractor):
             'id': '110226',
             'title': 'ご立派ァ！のシリーズ',
         },
-        'playlist_mincount': 10,  # as of 2021/03/17
+        'playlist_mincount': 10,
     }, {
         'url': 'https://www.nicovideo.jp/series/12312/',
         'info_dict': {
             'id': '12312',
             'title': 'バトルスピリッツ　お勧めカード紹介(調整中)',
         },
-        'playlist_mincount': 97,  # as of 2021/03/17
+        'playlist_mincount': 103,
     }, {
         'url': 'https://nico.ms/series/203559',
         'only_matching': True,
@@ -672,7 +672,7 @@ class NiconicoSeriesIE(InfoExtractor):
             title = unescapeHTML(title)
         playlist = [
             self.url_result(f'https://www.nicovideo.jp/watch/{v_id}', video_id=v_id)
-            for v_id in re.findall(r'href="/watch/([a-z0-9]+)" data-href="/watch/\1', webpage)]
+            for v_id in re.findall(r'data-href=[\'"](?:https://www\.nicovideo\.jp)?/watch/([a-z0-9]+)', webpage)]
         return self.playlist_result(playlist, list_id, title)
 
 
