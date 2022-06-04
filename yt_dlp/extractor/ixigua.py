@@ -59,7 +59,6 @@ class IxiguaIE(InfoExtractor):
             }
             
             _single_video_format.append(base_format)
-        
         return _single_video_format
     
     def _real_extract(self, url):
@@ -69,23 +68,7 @@ class IxiguaIE(InfoExtractor):
 
         json_data = self._get_json_data(webpage, video_id)
         video_info = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'videoResource'))
-        
-        # # only get normals video as dash video returned http 403 error
-        # normals_video = traverse_obj(video_info, ('normal', 'video_list'))
-        # # thumbnail_url = traverse_obj(json_data, ('anyVideo','gidInformation','packerData', 'video', 'poster_url'))
-        # format_ = list()
-        # for _, video in normals_video.items():
-            # video_format = {
-                # 'url': base64.b64decode(video.get('main_url')).decode(),
-                # 'width': int_or_none(video.get('vwidth')),
-                # 'height': int_or_none(video.get('vheight')),
-                # 'fps': int_or_none(video.get('fps')),
-                # 'vcodec': video.get('codec_type'),
-                # 'ext': video.get('video_type') or 'mp4',
-                # 'quality' : video.get('quality_type'),
-            # }
-            # format_.append(video_format)
-        
+         
         format_ = list()
         for video_type, json_ in video_info.items():
             if not isinstance(json_, dict):
