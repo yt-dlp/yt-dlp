@@ -1,6 +1,5 @@
 import datetime
 import re
-from abc import ABC
 
 from .common import InfoExtractor
 from ..compat import compat_urlparse
@@ -147,7 +146,7 @@ class MotherlessIE(InfoExtractor):
         }
 
 
-class MotherlessPaginatedIE(InfoExtractor, ABC):
+class MotherlessPaginatedIE(InfoExtractor):
     _PAGE_SIZE = 60
 
     def _extract_entries(self, webpage, base):
