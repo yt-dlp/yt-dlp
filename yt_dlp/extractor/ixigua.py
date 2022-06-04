@@ -44,7 +44,6 @@ class IxiguaIE(InfoExtractor):
 
         _single_video_format = list()
         for video in video_data:
-            # print(video)
             if isinstance(video, str) and video.startswith('video_'):
                 video = video_data.get(video)
             video_url = base64.b64decode(video.get('main_url')).decode()
