@@ -19,7 +19,6 @@ body:
           required: true
         - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
           required: true
-        - label: The example URL (if applicable) contains pornography or other NSFW content
   - type: textarea
     id: description
     attributes:
