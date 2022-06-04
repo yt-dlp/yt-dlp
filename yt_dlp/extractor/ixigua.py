@@ -7,7 +7,7 @@ from ..utils import (
     ExtractorError,
 )
 import base64
-
+from urllib.parse import parse_qs
 
 class IxiguaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:\w+\.)?ixigua\.com/(?:video/)?(?P<id>[0-9]+).+'
@@ -29,7 +29,39 @@ class IxiguaIE(InfoExtractor):
             raise ExtractorError(f'Failed to get SSR_HYDRATED_DATA',)
 
         return self._parse_json(js_data.replace('window._SSR_HYDRATED_DATA=', ''), video_id, transform_source=js_to_json)
-
+    
+    def _get_video_format(self, video_type, video_type_json):
+        # select video data based on video type
+        video_type_based_format = {}
+        if video_type.startswith('dash'):
+            video_data = traverse_obj(video_type_json, ('dynamic_video', 'dynamic_video_list'))
+            video_type_based_format = {
+                'format_note': 'DASH video',
+            }
+        else:
+            video_data = video_type_json.get('video_list')
+            
+        _single_video_format = list()
+        for video in video_data:
+            # print(video)
+            if isinstance(video, str) and video.startswith('video_'):
+                video = video_data.get(video)
+            video_url = base64.b64decode(video.get('main_url')).decode() 
+            base_format = {
+                'url': video_url,
+                'width': int_or_none(video.get('vwidth')),
+                'height': int_or_none(video.get('vheight')),
+                'fps': int_or_none(video.get('fps')),
+                'vcodec': video.get('codec_type'),
+                'format_id' : str(video.get('quality_type')),
+                'ext' : 'mp4' if parse_qs(video_url).get('mime_type')[0] == 'video_mp4' else None,
+                **video_type_based_format
+            }
+            
+            _single_video_format.append(base_format)
+        
+        return _single_video_format
+    
     def _real_extract(self, url):
         video_id = self._match_id(url)
         # need to pass cookie (at least contain __ac_nonce and ttwid)
@@ -37,19 +69,29 @@ class IxiguaIE(InfoExtractor):
 
         json_data = self._get_json_data(webpage, video_id)
         video_info = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'videoResource'))
-        # only get normals video as dash video returned http 403 error
-        normals_video = traverse_obj(video_info, ('normal', 'video_list'))
-        # thumbnail_url = traverse_obj(json_data, ('anyVideo','gidInformation','packerData', 'video', 'poster_url'))
+        
+        # # only get normals video as dash video returned http 403 error
+        # normals_video = traverse_obj(video_info, ('normal', 'video_list'))
+        # # thumbnail_url = traverse_obj(json_data, ('anyVideo','gidInformation','packerData', 'video', 'poster_url'))
+        # format_ = list()
+        # for _, video in normals_video.items():
+            # video_format = {
+                # 'url': base64.b64decode(video.get('main_url')).decode(),
+                # 'width': int_or_none(video.get('vwidth')),
+                # 'height': int_or_none(video.get('vheight')),
+                # 'fps': int_or_none(video.get('fps')),
+                # 'vcodec': video.get('codec_type'),
+                # 'ext': video.get('video_type') or 'mp4',
+                # 'quality' : video.get('quality_type'),
+            # }
+            # format_.append(video_format)
+        
         format_ = list()
-        for _, video in normals_video.items():
-            video_format = {
-                'url': base64.b64decode(video.get('main_url')).decode(),
-                'width': int_or_none(video.get('vwidth')),
-                'height': int_or_none(video.get('vheight')),
-                'fps': int_or_none(video.get('fps')),
-                'vcodec': video.get('codec_type'),
-            }
-            format_.append(video_format)
+        for video_type, json_ in video_info.items():
+            if not isinstance(json_, dict):
+                continue
+            video_format = self._get_video_format(video_type, json_)
+            format_.extend(video_format)
         
         self._sort_formats(format_)
         return {
@@ -57,5 +99,8 @@ class IxiguaIE(InfoExtractor):
             'title': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'title')),
             'description': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_abstract')),
             'formats': format_,
+            'like_count': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_like_count')),
+            'duration' : int_or_none(traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_duration'))),
             'tag' : traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'tag')),
+            
         }
