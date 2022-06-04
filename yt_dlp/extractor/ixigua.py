@@ -61,7 +61,7 @@ class IxiguaIE(InfoExtractor):
                 'fps': int_or_none(video.get('fps')),
                 'vcodec': video.get('codec_type'),
                 'format_id': str(video.get('quality_type')),
-                'ext': 'mp4' if parse_qs(video_url).get('mime_type')[0] == 'video_mp4' else 'mp4', 
+                'ext': 'mp4', 
                 **video_type_based_format
             }
 
