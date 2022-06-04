@@ -98,7 +98,7 @@ class FourZeroStudioClipIE(FourZeroStudioBaseIE):
                 'formats': [{
                     'ext': 'mp4',
                     'url': url,
-                } for url in clip_info.get('mediaFiles') if url],
+                } for url in clip_info.get('mediaFiles') or [] if url],
             }
         info.update({
             'id': video_id,
