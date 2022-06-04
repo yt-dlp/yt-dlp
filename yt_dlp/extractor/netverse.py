@@ -61,7 +61,8 @@ class NetverseIE(NetverseBaseIE):
             'episode_number': 22,
             'series': 'Waktu Indonesia Bercanda',
             'episode': 'Episode 22',
-        }}, {
+        }
+    }, {
         # series
         'url': 'https://www.netverse.id/watch/jadoo-seorang-model',
         'info_dict': {
@@ -74,9 +75,10 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': 'https://storage.googleapis.com/netprime-live/images/webseries/thumbnails/2021/11/619cf63f105d3.jpeg',
             'episode_number': 2,
             'series': 'Hello Jadoo',
-            'episode': 'Episode 2'},
-        'skip' : 'video get Geo-blocked for some country'
-        }, {
+            'episode': 'Episode 2'
+        },
+        'skip': 'video get Geo-blocked for some country'
+    }, {
         # non www host
         'url': 'https://netverse.id/watch/tetangga-baru',
         'info_dict': {
@@ -89,11 +91,12 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': 'https://vplayed-uat.s3-ap-southeast-1.amazonaws.com/images/webseries/thumbnails/2021/11/619cfd9d32c5f.jpeg',
             'episode_number': 1,
             'series': 'Tetangga Masa Gitu',
-            'episode': 'Episode 1', },
+            'episode': 'Episode 1',
+        },
         'params': {
             'noplaylist': True,
         }
-            }, {
+    }, {
         # /video url
         'url': 'https://www.netverse.id/video/pg067482-hellojadoo-season1',
         'title': 'Namaku Choi Jadoo',
@@ -108,9 +111,9 @@ class NetverseIE(NetverseBaseIE):
             'series': 'Hello Jadoo',
             'access_id': 'x887jzz',
             'episode': 'Episode 1',
-            },
+        },
         'skip': 'This video get Geo-blocked for some country'
-        }]
+    }]
 
     def _real_extract(self, url):
         display_id, program_json = self.get_required_json(url=url)
