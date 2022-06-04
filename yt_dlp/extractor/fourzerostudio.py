@@ -43,7 +43,7 @@ class FourZeroStudioArchiveIE(FourZeroStudioBaseIE):
         pcb = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicCreatorBroadcast'), get_all=False)
         comments = traverse_obj(nuxt_data, ('ssrRefs', ..., lambda _, v: v['__typename'] == 'PublicCreatorBroadcastComment'))
 
-        formats = self._extract_m3u8_formats(
+        formats, subs = self._extract_m3u8_formats_and_subtitles(
             pcb.get('archiveUrl'), video_id, ext='mp4')
         self._sort_formats(formats)
 
@@ -59,6 +59,7 @@ class FourZeroStudioArchiveIE(FourZeroStudioBaseIE):
                 'ext': 'png',
             }],
             'formats': formats,
+            'subtitles': subs,
             'comments': comments,
             'comment_count': len(comments),
             'uploader_id': uploader_id,
