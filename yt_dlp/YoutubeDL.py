@@ -27,6 +27,7 @@ from string import ascii_letters
 
 from .cache import Cache
 from .compat import (
+    HAS_LEGACY as compat_has_legacy,
     compat_get_terminal_size,
     compat_os_name,
     compat_shlex_quote,
@@ -194,13 +195,6 @@ class YoutubeDL:
                        For compatibility, a single list is also accepted
     print_to_file:     A dict with keys WHEN (same as forceprint) mapped to
                        a list of tuples with (template, filename)
-    forceurl:          Force printing final URL. (Deprecated)
-    forcetitle:        Force printing title. (Deprecated)
-    forceid:           Force printing ID. (Deprecated)
-    forcethumbnail:    Force printing thumbnail URL. (Deprecated)
-    forcedescription:  Force printing description. (Deprecated)
-    forcefilename:     Force printing final filename. (Deprecated)
-    forceduration:     Force printing duration. (Deprecated)
     forcejson:         Force printing info_dict as JSON.
     dump_single_json:  Force printing the info_dict of the whole playlist
                        (or video) as a single JSON line.
@@ -277,9 +271,6 @@ class YoutubeDL:
     writedesktoplink:  Write a Linux internet shortcut file (.desktop)
     writesubtitles:    Write the video subtitles to a file
     writeautomaticsub: Write the automatically generated subtitles to a file
-    allsubtitles:      Deprecated - Use subtitleslangs = ['all']
-                       Downloads all the subtitles of the video
-                       (requires writesubtitles or writeautomaticsub)
     listsubtitles:     Lists all available subtitles for the video
     subtitlesformat:   The format code for subtitles
     subtitleslangs:    List of languages of the subtitles to download (can be regex).
@@ -333,7 +324,6 @@ class YoutubeDL:
     bidi_workaround:   Work around buggy terminals without bidirectional text
                        support, using fridibi
     debug_printtraffic:Print out sent and received HTTP traffic
-    include_ads:       Download ads as well (deprecated)
     default_search:    Prepend this string if an input url is not valid.
                        'auto' for elaborate guessing
     encoding:          Use this encoding instead of the system-specified.
@@ -349,10 +339,6 @@ class YoutubeDL:
                        * when: When to run the postprocessor. Allowed values are
                                the entries of utils.POSTPROCESS_WHEN
                                Assumed to be 'post_process' if not given
-    post_hooks:        Deprecated - Register a custom postprocessor instead
-                       A list of functions that get called as the final step
-                       for each video file, after all postprocessors have been
-                       called. The filename will be passed as the only argument.
     progress_hooks:    A list of functions that get called on download
                        progress, with a dictionary with the entries
                        * status: One of "downloading", "error", or "finished".
@@ -397,8 +383,6 @@ class YoutubeDL:
                        - "detect_or_warn": check whether we can do anything
                                            about it, warn otherwise (default)
     source_address:    Client-side IP address to bind to.
-    call_home:         Boolean, true iff we are allowed to contact the
-                       yt-dlp servers for debugging. (BROKEN)
     sleep_interval_requests: Number of seconds to sleep between requests
                        during extraction
     sleep_interval:    Number of seconds to sleep before each download when
@@ -439,11 +423,6 @@ class YoutubeDL:
                        external downloader to use for it. The allowed protocols
                        are default|http|ftp|m3u8|dash|rtsp|rtmp|mms.
                        Set the value to 'native' to use the native downloader
-    hls_prefer_native: Deprecated - Use external_downloader = {'m3u8': 'native'}
-                       or {'m3u8': 'ffmpeg'} instead.
-                       Use the native HLS downloader instead of ffmpeg/avconv
-                       if True, otherwise use ffmpeg/avconv if False, otherwise
-                       use downloader suggested by extractor if None.
     compat_opts:       Compatibility options. See "Differences in default behavior".
                        The following options do not work when used through the API:
                        filename, abort-on-error, multistreams, no-live-chat, format-sort
@@ -465,8 +444,6 @@ class YoutubeDL:
     external_downloader_args, concurrent_fragment_downloads.
 
     The following options are used by the post processors:
-    prefer_ffmpeg:     If False, use avconv instead of ffmpeg if both are available,
-                       otherwise prefer ffmpeg. (avconv support is deprecated)
     ffmpeg_location:   Location of the ffmpeg/avconv binary; either the path
                        to the binary or its containing directory.
     postprocessor_args: A dictionary of postprocessor/executable keys (in lower case)
@@ -486,12 +463,48 @@ class YoutubeDL:
                        See "EXTRACTOR ARGUMENTS" for details.
                        Eg: {'youtube': {'skip': ['dash', 'hls']}}
     mark_watched:      Mark videos watched (even with --simulate). Only for YouTube
-    youtube_include_dash_manifest: Deprecated - Use extractor_args instead.
+
+    The following options are deprecated and may be removed in the future:
+
+    forceurl:          - Use forceprint
+                       Force printing final URL.
+    forcetitle:        - Use forceprint
+                       Force printing title.
+    forceid:           - Use forceprint
+                       Force printing ID.
+    forcethumbnail:    - Use forceprint
+                       Force printing thumbnail URL.
+    forcedescription:  - Use forceprint
+                       Force printing description.
+    forcefilename:     - Use forceprint
+                       Force printing final filename.
+    forceduration:     - Use forceprint
+                       Force printing duration.
+    allsubtitles:      - Use subtitleslangs = ['all']
+                       Downloads all the subtitles of the video
+                       (requires writesubtitles or writeautomaticsub)
+    include_ads:       - Doesn't work
+                       Download ads as well
+    call_home:         - Not implemented
+                       Boolean, true iff we are allowed to contact the
+                       yt-dlp servers for debugging.
+    post_hooks:        - Register a custom postprocessor
+                       A list of functions that get called as the final step
+                       for each video file, after all postprocessors have been
+                       called. The filename will be passed as the only argument.
+    hls_prefer_native: - Use external_downloader = {'m3u8': 'native'} or {'m3u8': 'ffmpeg'}.
+                       Use the native HLS downloader instead of ffmpeg/avconv
+                       if True, otherwise use ffmpeg/avconv if False, otherwise
+                       use downloader suggested by extractor if None.
+    prefer_ffmpeg:     - avconv support is deprecated
+                       If False, use avconv instead of ffmpeg if both are available,
+                       otherwise prefer ffmpeg.
+    youtube_include_dash_manifest: - Use extractor_args
                        If True (default), DASH manifests and related
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
                        care about DASH. (only for youtube)
-    youtube_include_hls_manifest: Deprecated - Use extractor_args instead.
+    youtube_include_hls_manifest: - Use extractor_args
                        If True (default), HLS manifests and related
                        data will be downloaded and processed by extractor.
                        You can reduce network I/O by disabling it if you don't
@@ -591,7 +604,10 @@ class YoutubeDL:
         for msg in self.params.get('_deprecation_warnings', []):
             self.deprecation_warning(msg)
 
-        if 'list-formats' in self.params.get('compat_opts', []):
+        self.params['compat_opts'] = set(self.params.get('compat_opts', ()))
+        if not compat_has_legacy:
+            self.params['compat_opts'].add('no-compat-legacy')
+        if 'list-formats' in self.params['compat_opts']:
             self.params['listformats_table'] = False
 
         if 'overwrites' not in self.params and self.params.get('nooverwrites') is not None:
@@ -788,9 +804,9 @@ class YoutubeDL:
         """Print message to stdout"""
         if quiet is not None:
             self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument quiet. Use "YoutubeDL.to_screen" instead')
-        self._write_string(
-            '%s%s' % (self._bidi_workaround(message), ('' if skip_eol else '\n')),
-            self._out_files.out)
+        if skip_eol is not False:
+            self.deprecation_warning('"YoutubeDL.to_stdout" no longer accepts the argument skip_eol. Use "YoutubeDL.to_screen" instead')
+        self._write_string(f'{self._bidi_workaround(message)}\n', self._out_files.out)
 
     def to_screen(self, message, skip_eol=False, quiet=None):
         """Print message to screen if not in quiet mode"""
@@ -942,7 +958,7 @@ class YoutubeDL:
         '''Log debug message or Print message to stderr'''
         if not self.params.get('verbose', False):
             return
-        message = '[debug] %s' % message
+        message = f'[debug] {message}'
         if self.params.get('logger'):
             self.params['logger'].debug(message)
         else:
@@ -1136,7 +1152,7 @@ class YoutubeDL:
         def filename_sanitizer(key, value, restricted=self.params.get('restrictfilenames')):
             return sanitize_filename(str(value), restricted=restricted, is_id=(
                 bool(re.search(r'(^|[_.])id(\.|$)', key))
-                if 'filename-sanitization' in self.params.get('compat_opts', [])
+                if 'filename-sanitization' in self.params['compat_opts']
                 else NO_DEFAULT))
 
         sanitizer = sanitize if callable(sanitize) else filename_sanitizer
@@ -1775,7 +1791,7 @@ class YoutubeDL:
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
         for i, entry_tuple in enumerate(entries, 1):
             playlist_index, entry = entry_tuple
-            if 'playlist-index' in self.params.get('compat_opts', []):
+            if 'playlist-index' in self.params['compat_opts']:
                 playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
             self.to_screen('[download] Downloading video %s of %s' % (
                 self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
@@ -1906,7 +1922,7 @@ class YoutubeDL:
             temp_file.close()
             try:
                 success, _ = self.dl(temp_file.name, f, test=True)
-            except (DownloadError, IOError, OSError, ValueError) + network_exceptions:
+            except (DownloadError, OSError, ValueError) + network_exceptions:
                 success = False
             finally:
                 if os.path.exists(temp_file.name):
@@ -1935,7 +1951,7 @@ class YoutubeDL:
         compat = (
             prefer_best
             or self.params.get('allow_multiple_audio_streams', False)
-            or 'format-spec' in self.params.get('compat_opts', []))
+            or 'format-spec' in self.params['compat_opts'])
 
         return (
             'best/bestvideo+bestaudio' if prefer_best
@@ -3652,8 +3668,8 @@ class YoutubeDL:
             write_debug('Plugins: %s' % [
                 '%s%s' % (klass.__name__, '' if klass.__name__ == name else f' as {name}')
                 for name, klass in itertools.chain(plugin_extractors.items(), plugin_postprocessors.items())])
-        if self.params.get('compat_opts'):
-            write_debug('Compatibility options: %s' % ', '.join(self.params.get('compat_opts')))
+        if self.params['compat_opts']:
+            write_debug('Compatibility options: %s' % ', '.join(self.params['compat_opts']))
 
         if source == 'source':
             try:

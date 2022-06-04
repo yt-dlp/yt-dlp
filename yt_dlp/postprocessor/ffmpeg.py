@@ -66,15 +66,6 @@ class FFmpegPostProcessor(PostProcessor):
         self._prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
         self._paths = self._determine_executables()
 
-    def check_version(self):
-        if not self.available:
-            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
-
-        required_version = '10-0' if self.basename == 'avconv' else '1.0'
-        if is_outdated_version(self._version, required_version):
-            self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
-                                f'to version {required_version} or newer if you encounter any errors')
-
     @staticmethod
     def get_versions_and_features(downloader=None):
         pp = FFmpegPostProcessor(downloader)
@@ -204,6 +195,15 @@ class FFmpegPostProcessor(PostProcessor):
             yield from ('-c', 'copy')
         if ext in ('mp4', 'mov', 'm4a'):
             yield from ('-c:s', 'mov_text')
+
+    def check_version(self):
+        if not self.available:
+            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
+
+        required_version = '10-0' if self.basename == 'avconv' else '1.0'
+        if is_outdated_version(self._version, required_version):
+            self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
+                                f'to version {required_version} or newer if you encounter any errors')
 
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
@@ -776,7 +776,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         for key, value in info.items():
             mobj = re.fullmatch(meta_regex, key)
             if value is not None and mobj:
-                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value
+                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value.replace('\0', '')
 
         # Write id3v1 metadata also since Windows Explorer can't handle id3v2 tags
         yield ('-write_id3v1', '1')

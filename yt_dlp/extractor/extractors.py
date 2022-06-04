@@ -57,10 +57,6 @@ from .alura import (
     AluraCourseIE
 )
 from .amcnetworks import AMCNetworksIE
-from .animelab import (
-    AnimeLabIE,
-    AnimeLabShowsIE,
-)
 from .amazon import AmazonStoreIE
 from .americastestkitchen import (
     AmericasTestKitchenIE,
@@ -475,6 +471,7 @@ from .ertgr import (
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,
+    WatchESPNIE,
     ESPNArticleIE,
     FiveThirtyEightIE,
     ESPNCricInfoIE,
@@ -1264,6 +1261,7 @@ from .playfm import PlayFMIE
 from .playplustv import PlayPlusTVIE
 from .plays import PlaysTVIE
 from .playstuff import PlayStuffIE
+from .playsuisse import PlaySuisseIE
 from .playtvak import PlaytvakIE
 from .playvid import PlayvidIE
 from .playwire import PlaywireIE
@@ -1277,7 +1275,6 @@ from .podomatic import PodomaticIE
 from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
-    PokemonSoundLibraryIE,
 )
 from .pokergo import (
     PokerGoIE,
