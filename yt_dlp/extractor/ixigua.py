@@ -31,19 +31,25 @@ class IxiguaIE(InfoExtractor):
             raise ExtractorError('Failed to get SSR_HYDRATED_DATA',)
 
         return self._parse_json(js_data.replace('window._SSR_HYDRATED_DATA=', ''), video_id, transform_source=js_to_json)
-
+    
     def _get_video_format(self, video_type, video_type_json):
         # select video data based on video type
         video_type_based_format = {}
         if video_type.startswith('dash'):
+            # video only 
             video_data = traverse_obj(video_type_json, ('dynamic_video', 'dynamic_video_list'))
+            # audio only
+            audio_data = traverse_obj(video_type_json, ('dynamic_video', 'dynamic_audio_list'))
+            
             video_type_based_format = {
-                'format_note': 'DASH video',
+                'format_note': 'DASH, video only',
             }
         else:
             video_data = video_type_json.get('video_list')
 
         _single_video_format = list()
+        
+        # This download video only-DASH and mp4 format
         for video in video_data:
             if isinstance(video, str) and video.startswith('video_'):
                 video = video_data.get(video)
@@ -70,7 +76,7 @@ class IxiguaIE(InfoExtractor):
         json_data = self._get_json_data(webpage, video_id)
         video_info = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'videoResource'))
 
-        format_ = list()
+        format_ = []
         for video_type, json_ in video_info.items():
             if not isinstance(json_, dict):
                 continue
