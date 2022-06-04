@@ -55,7 +55,6 @@ class FourZeroStudioArchiveIE(FourZeroStudioBaseIE):
             'release_timestamp': unified_timestamp(pcb.get('createdAt')),
             'thumbnails': [{
                 'url': pcb.get('thumbnailUrl'),
-                # the file seems a PNG file
                 'ext': 'png',
             }],
             'formats': formats,
