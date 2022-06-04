@@ -35,8 +35,13 @@ conn = stomp.Connection([('rabbitmq', 61613)])
 conn.connect('guest', 'guest', wait=True) # whatever nerd
 def amqp_hook(response):
     try:
-        print(response)
         id = response["info_dict"]["id"]
+        payload = {
+            'total_bytes': response['total_bytes'] or response['total_bytes_estimate'],
+            'info_dict': {
+                'id': id
+            }
+        }
 
         # TODO: website granularity for queues
         conn.send(body=json.dumps(response), destination=f'/topic/{id}')
