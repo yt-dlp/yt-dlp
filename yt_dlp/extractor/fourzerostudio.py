@@ -5,9 +5,6 @@ from ..utils import (
 )
 
 
-# Livestreams support cannot be implemented as this service uses WebRTC for it
-# Support request may still qualify
-
 class FourZeroStudioBaseIE(InfoExtractor):
 
     @staticmethod
