@@ -19,9 +19,10 @@ class IxiguaIE(InfoExtractor):
             'ext': 'mp4',
             'title': '盲目涉水风险大，亲身示范高水位行车注意事项',
             'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
-            'tag': 'video_car'
-            # thumbnail url keep changing
-        }
+            'tag': 'video_car' 
+        },
+        # thumbnail url keep changing 
+        'skip' : 'This Extractor need cookies',
     }
 
     def _get_json_data(self, webpage, video_id):
@@ -54,7 +55,7 @@ class IxiguaIE(InfoExtractor):
                 'fps': int_or_none(video.get('fps')),
                 'vcodec': video.get('codec_type'),
                 'format_id': str(video.get('quality_type')),
-                'ext': 'mp4' if parse_qs(video_url).get('mime_type')[0] == 'video_mp4' else None,
+                'ext': 'mp4' if parse_qs(video_url).get('mime_type')[0] == 'video_mp4' else 'mp4', 
                 **video_type_based_format
             }
 
