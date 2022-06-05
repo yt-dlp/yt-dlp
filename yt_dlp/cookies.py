@@ -166,7 +166,7 @@ def _firefox_browser_dir():
     if(os.path.exists(profpath)):
         return profpath
     else:
-      raise ValueError(f'cannot find profiles dir (unsupported platform: {sys.platform}?)')
+        raise ValueError(f'cannot find profiles dir (unsupported platform: {sys.platform}?)')
 
 
 def _get_chromium_based_browser_settings(browser_name):
@@ -219,7 +219,7 @@ def _get_chromium_based_browser_settings(browser_name):
     browsers_without_profiles = {'opera'}
     if browser_name not in browsers_without_profiles:
         if not os.path.exists(browser_dir):
-          raise ValueError(f'browser profile dir not found (unsupported platform: {sys.platform}?)')
+            raise ValueError(f'browser profile dir not found (unsupported platform: {sys.platform}?)')
 
     return {
         'browser_dir': browser_dir,
