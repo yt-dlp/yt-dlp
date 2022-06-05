@@ -44,7 +44,7 @@ def amqp_hook(response):
         }
 
         # TODO: website granularity for queues
-        conn.send(body=json.dumps(response), destination=f'/topic/{id}')
+        conn.send(body=json.dumps(payload), destination=f'/topic/{id}')
     except Exception as e:
         print(f'Failed to send amqp message. Exception: {e}')
 
