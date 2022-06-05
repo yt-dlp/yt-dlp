@@ -38,6 +38,7 @@ def amqp_hook(response):
         id = response["info_dict"]["id"]
         payload = {
             'total_bytes': response['total_bytes'] or response['total_bytes_estimate'],
+            'downloaded_bytes': response['downloaded_bytes'],
             'info_dict': {
                 'id': id
             }
