@@ -1610,7 +1610,8 @@ def create_parser():
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            '(currently supported: %s) ' % ', '.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
+            f'(currently supported: {", ".join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)}). '
+            'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,

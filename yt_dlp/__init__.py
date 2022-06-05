@@ -215,13 +215,13 @@ def validate_options(opts):
     # Postprocessor formats
     validate_in('audio format', opts.audioformat, ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS))
     validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
-    validate_in('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)
-    if opts.recodevideo is not None:
-        opts.recodevideo = opts.recodevideo.replace(' ', '')
-        validate_regex('video recode format', opts.recodevideo, FFmpegVideoConvertorPP.FORMAT_RE)
-    if opts.remuxvideo is not None:
-        opts.remuxvideo = opts.remuxvideo.replace(' ', '')
-        validate_regex('video remux format', opts.remuxvideo, FFmpegVideoRemuxerPP.FORMAT_RE)
+    for name, value, pp in (
+        ('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP),
+        ('recode video format', opts.recodevideo, FFmpegVideoConvertorPP),
+        ('remux video format', opts.remuxvideo, FFmpegVideoRemuxerPP),
+    ):
+        if value is not None:
+            validate_regex(name, value.replace(' ', ''), pp.FORMAT_RE)
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
         # int_or_none prevents inf, nan
