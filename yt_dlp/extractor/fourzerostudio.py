@@ -9,9 +9,9 @@ class FourZeroStudioBaseIE(InfoExtractor):
 
     @staticmethod
     def _extract_uploader_info(nuxt_data):
-        uploader_info = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicUser'), get_all=False)
         return {
-            'uploader': uploader_info.get('username'),
+            'uploader': traverse_obj(nuxt_data, (
+                'ssrRefs', lambda _, v: v['__typename'] == 'PublicUser', 'username'), get_all=False),
         }
 
 
@@ -40,8 +40,7 @@ class FourZeroStudioArchiveIE(FourZeroStudioBaseIE):
         pcb = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicCreatorBroadcast'), get_all=False)
         comments = traverse_obj(nuxt_data, ('ssrRefs', ..., lambda _, v: v['__typename'] == 'PublicCreatorBroadcastComment'))
 
-        formats, subs = self._extract_m3u8_formats_and_subtitles(
-            pcb.get('archiveUrl'), video_id, ext='mp4')
+        formats, subs = self._extract_m3u8_formats_and_subtitles(pcb['archiveUrl'], video_id, ext='mp4')
         self._sort_formats(formats)
 
         return {
@@ -51,9 +50,9 @@ class FourZeroStudioArchiveIE(FourZeroStudioBaseIE):
             'timestamp': unified_timestamp(pcb.get('finishTime')),
             'release_timestamp': unified_timestamp(pcb.get('createdAt')),
             'thumbnails': [{
-                'url': pcb.get('thumbnailUrl'),
+                'url': pcb['thumbnailUrl'],
                 'ext': 'png',
-            }],
+            }] if pcb.get('thumbnailUrl') else None,
             'formats': formats,
             'subtitles': subs,
             'comments': comments,
@@ -85,11 +84,11 @@ class FourZeroStudioClipIE(FourZeroStudioBaseIE):
 
         clip_info = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicCreatorArchivedClip'), get_all=False)
 
-        for m in self._parse_html5_media_entries(url, webpage, video_id):
-            if 'mp4' in traverse_obj(m, ('formats', ..., 'ext')):
-                info = m
-                break
-        else:
+        info = next((
+            m for m in self._parse_html5_media_entries(url, webpage, video_id)
+            if 'mp4' in traverse_obj(m, ('formats', ..., 'ext'))
+        ), None)
+        if not info:
             self.report_warning('Failed to find a desired media element. Falling back to using NUXT data.')
             info = {
                 'formats': [{
@@ -97,12 +96,12 @@ class FourZeroStudioClipIE(FourZeroStudioBaseIE):
                     'url': url,
                 } for url in clip_info.get('mediaFiles') or [] if url],
             }
-        info.update({
+        return {
+            **info,
             'id': video_id,
             'title': clip_info.get('clipComment'),
             'timestamp': unified_timestamp(clip_info.get('createdAt')),
             'like_count': clip_info.get('likeCount'),
             'uploader_id': uploader_id,
             **self._extract_uploader_info(nuxt_data),
-        })
-        return info
+        }
