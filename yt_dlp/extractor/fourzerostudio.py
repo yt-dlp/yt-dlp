@@ -5,17 +5,7 @@ from ..utils import (
 )
 
 
-class FourZeroStudioBaseIE(InfoExtractor):
-
-    @staticmethod
-    def _extract_uploader_info(nuxt_data):
-        return {
-            'uploader': traverse_obj(nuxt_data, (
-                'ssrRefs', lambda _, v: v['__typename'] == 'PublicUser', 'username'), get_all=False),
-        }
-
-
-class FourZeroStudioArchiveIE(FourZeroStudioBaseIE):
+class FourZeroStudioArchiveIE(InfoExtractor):
     _VALID_URL = r'https?://0000\.studio/(?P<uploader_id>[^/]+)/broadcasts/(?P<id>[^/]+)/archive'
     IE_NAME = '0000studio:archive'
     _TESTS = [{
@@ -58,11 +48,12 @@ class FourZeroStudioArchiveIE(FourZeroStudioBaseIE):
             'comments': comments,
             'comment_count': len(comments),
             'uploader_id': uploader_id,
-            **self._extract_uploader_info(nuxt_data),
+            'uploader': traverse_obj(nuxt_data, (
+                'ssrRefs', lambda _, v: v['__typename'] == 'PublicUser', 'username'), get_all=False),
         }
 
 
-class FourZeroStudioClipIE(FourZeroStudioBaseIE):
+class FourZeroStudioClipIE(InfoExtractor):
     _VALID_URL = r'https?://0000\.studio/(?P<uploader_id>[^/]+)/archive-clip/(?P<id>[^/]+)'
     IE_NAME = '0000studio:clip'
     _TESTS = [{
@@ -103,5 +94,6 @@ class FourZeroStudioClipIE(FourZeroStudioBaseIE):
             'timestamp': unified_timestamp(clip_info.get('createdAt')),
             'like_count': clip_info.get('likeCount'),
             'uploader_id': uploader_id,
-            **self._extract_uploader_info(nuxt_data),
+            'uploader': traverse_obj(nuxt_data, (
+                'ssrRefs', lambda _, v: v['__typename'] == 'PublicUser', 'username'), get_all=False),
         }
