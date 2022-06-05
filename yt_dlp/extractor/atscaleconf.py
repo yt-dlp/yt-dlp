@@ -24,8 +24,6 @@ class AtScaleConfEventIE(InfoExtractor):
         },
     }]
 
-    _VIDEO_PATTERN = re.compile(r'data-url\s?=\s?"(https?://(?:www\.)?atscaleconference\.com/videos/[^/&$?]+[^"]+)"')
-
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
