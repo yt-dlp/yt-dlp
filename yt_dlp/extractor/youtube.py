@@ -2,7 +2,6 @@ import base64
 import calendar
 import copy
 import datetime
-import functools
 import hashlib
 import itertools
 import json
@@ -16,6 +15,7 @@ import time
 import traceback
 
 from .common import InfoExtractor, SearchInfoExtractor
+from ..compat import functools  # isort: split
 from ..compat import (
     compat_chr,
     compat_HTTPError,
@@ -394,13 +394,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         self._check_login_required()
 
     def _check_login_required(self):
-        if (self._LOGIN_REQUIRED
-                and self.get_param('cookiefile') is None
-                and self.get_param('cookiesfrombrowser') is None):
+        if self._LOGIN_REQUIRED and not self._cookies_passed:
             self.raise_login_required('Login details are needed to download this content', method='cookies')
 
-    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+?})\s*;'
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+?})\s*;'
+    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+})\s*;'
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+})\s*;'
     _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
 
     def _get_default_ytcfg(self, client='web'):
@@ -485,6 +483,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if data:
             return self._parse_json(data, item_id, fatal=fatal)
 
+    def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
+        return self._parse_json(self._search_regex(
+            (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
+             regex), webpage, name, default='{}'), video_id, fatal=False, lenient=True)
+
     @staticmethod
     def _extract_session_index(*data):
         """
@@ -536,7 +539,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             args, [('VISITOR_DATA', ('INNERTUBE_CONTEXT', 'client', 'visitorData'), ('responseContext', 'visitorData'))],
             expected_type=str)
 
-    @property
+    @functools.cached_property
     def is_authenticated(self):
         return bool(self._generate_sapisidhash_header())
 
@@ -2214,28 +2217,54 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         }, {
             # Story. Requires specific player params to work.
             # Note: stories get removed after some period of time
-            'url': 'https://www.youtube.com/watch?v=yN3x1t3sieA',
+            'url': 'https://www.youtube.com/watch?v=vv8qTUWmulI',
             'info_dict': {
-                'id': 'yN3x1t3sieA',
+                'id': 'vv8qTUWmulI',
                 'ext': 'mp4',
-                'uploader': 'Linus Tech Tips',
-                'duration': 13,
-                'channel': 'Linus Tech Tips',
-                'playable_in_embed': True,
-                'tags': [],
-                'age_limit': 0,
-                'uploader_url': 'http://www.youtube.com/user/LinusTechTips',
-                'upload_date': '20220402',
-                'thumbnail': 'https://i.ytimg.com/vi_webp/yN3x1t3sieA/maxresdefault.webp',
+                'availability': 'unlisted',
+                'view_count': int,
+                'channel_id': 'UCzIZ8HrzDgc-pNQDUG6avBA',
+                'upload_date': '20220526',
+                'categories': ['Education'],
                 'title': 'Story',
+                'channel': 'IT\'S HISTORY',
+                'description': '',
+                'uploader_id': 'BlastfromthePast',
+                'duration': 12,
+                'uploader': 'IT\'S HISTORY',
+                'playable_in_embed': True,
+                'age_limit': 0,
                 'live_status': 'not_live',
-                'uploader_id': 'LinusTechTips',
+                'tags': [],
+                'thumbnail': 'https://i.ytimg.com/vi_webp/vv8qTUWmulI/maxresdefault.webp',
+                'uploader_url': 'http://www.youtube.com/user/BlastfromthePast',
+                'channel_url': 'https://www.youtube.com/channel/UCzIZ8HrzDgc-pNQDUG6avBA',
+            }
+        }, {
+            'url': 'https://www.youtube.com/watch?v=tjjjtzRLHvA',
+            'info_dict': {
+                'id': 'tjjjtzRLHvA',
+                'ext': 'mp4',
+                'title': 'ハッシュタグ無し };if window.ytcsi',
+                'upload_date': '20220323',
+                'like_count': int,
+                'availability': 'unlisted',
+                'channel': 'nao20010128nao',
+                'thumbnail': 'https://i.ytimg.com/vi_webp/tjjjtzRLHvA/maxresdefault.webp',
+                'age_limit': 0,
+                'uploader': 'nao20010128nao',
+                'uploader_id': 'nao20010128nao',
+                'categories': ['Music'],
                 'view_count': int,
                 'description': '',
-                'channel_id': 'UCXuqSBlHAE6Xw-yeJA0Tunw',
-                'categories': ['Science & Technology'],
-                'channel_url': 'https://www.youtube.com/channel/UCXuqSBlHAE6Xw-yeJA0Tunw',
-                'availability': 'unlisted',
+                'channel_url': 'https://www.youtube.com/channel/UCdqltm_7iv1Vs6kp6Syke5A',
+                'channel_id': 'UCdqltm_7iv1Vs6kp6Syke5A',
+                'live_status': 'not_live',
+                'playable_in_embed': True,
+                'channel_follower_count': int,
+                'duration': 6,
+                'tags': [],
+                'uploader_url': 'http://www.youtube.com/user/nao20010128nao',
             }
         }
     ]
@@ -2532,22 +2561,16 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _decrypt_signature(self, s, video_id, player_url):
         """Turn the encrypted s field into a working signature"""
-
-        if player_url is None:
-            raise ExtractorError('Cannot decrypt signature without player_url')
-
         try:
             player_id = (player_url, self._signature_cache_id(s))
             if player_id not in self._player_cache:
-                func = self._extract_signature_function(
-                    video_id, player_url, s
-                )
+                func = self._extract_signature_function(video_id, player_url, s)
                 self._player_cache[player_id] = func
             func = self._player_cache[player_id]
             self._print_sig_code(func, s)
             return func(s)
         except Exception as e:
-            raise ExtractorError('Signature extraction failed: ' + traceback.format_exc(), cause=e)
+            raise ExtractorError(traceback.format_exc(), cause=e, video_id=video_id)
 
     def _decrypt_nsig(self, s, video_id, player_url):
         """Turn the encrypted n field into a working signature"""
@@ -2715,39 +2738,38 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         chapter_time = lambda chapter: parse_duration(self._get_text(chapter, 'timeDescription'))
         chapter_title = lambda chapter: self._get_text(chapter, 'title')
 
-        return next((
-            filter(None, (
-                self._extract_chapters(
-                    traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
-                    chapter_time, chapter_title, duration)
-                for contents in content_list
-            ))), [])
+        return next(filter(None, (
+            self._extract_chapters(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
+                                   chapter_time, chapter_title, duration)
+            for contents in content_list)), [])
 
-    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration):
-        chapters = []
-        last_chapter = {'start_time': 0}
-        for idx, chapter in enumerate(chapter_list or []):
-            title = chapter_title(chapter)
-            start_time = chapter_time(chapter)
-            if start_time is None:
-                continue
-            last_chapter['end_time'] = start_time
-            if start_time < last_chapter['start_time']:
-                if idx == 1:
-                    chapters.pop()
-                    self.report_warning('Invalid start time for chapter "%s"' % last_chapter['title'])
-                else:
-                    self.report_warning(f'Invalid start time for chapter "{title}"')
-                    continue
-            last_chapter = {'start_time': start_time, 'title': title}
-            chapters.append(last_chapter)
-        last_chapter['end_time'] = duration
-        return chapters
+    def _extract_chapters_from_description(self, description, duration):
+        return self._extract_chapters(
+            re.findall(r'(?m)^((?:\d+:)?\d{1,2}:\d{2})\b\W*\s(.+?)\s*$', description or ''),
+            chapter_time=lambda x: parse_duration(x[0]), chapter_title=lambda x: x[1],
+            duration=duration, strict=False)
 
-    def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
-        return self._parse_json(self._search_regex(
-            (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             regex), webpage, name, default='{}'), video_id, fatal=False)
+    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration, strict=True):
+        if not duration:
+            return
+        chapter_list = [{
+            'start_time': chapter_time(chapter),
+            'title': chapter_title(chapter),
+        } for chapter in chapter_list or []]
+        if not strict:
+            chapter_list.sort(key=lambda c: c['start_time'] or 0)
+
+        chapters = [{'start_time': 0, 'title': '<Untitled>'}]
+        for idx, chapter in enumerate(chapter_list):
+            if chapter['start_time'] is None or not chapter['title']:
+                self.report_warning(f'Incomplete chapter {idx}')
+            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
+                chapters[-1]['end_time'] = chapter['start_time']
+                chapters.append(chapter)
+            else:
+                self.report_warning(f'Invalid start time for chapter "{chapter["title"]}"')
+        chapters[-1]['end_time'] = duration
+        return chapters if len(chapters) > 1 and chapters[1]['start_time'] else chapters[1:]
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
@@ -3149,13 +3171,17 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 sc = compat_parse_qs(fmt.get('signatureCipher'))
                 fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
-                if not (sc and fmt_url and encrypted_sig):
+                if not all((sc, fmt_url, player_url, encrypted_sig)):
                     continue
-                if not player_url:
+                try:
+                    fmt_url += '&%s=%s' % (
+                        traverse_obj(sc, ('sp', -1)) or 'signature',
+                        self._decrypt_signature(encrypted_sig, video_id, player_url)
+                    )
+                except ExtractorError as e:
+                    self.report_warning('Signature extraction failed: Some formats may be missing', only_once=True)
+                    self.write_debug(e, only_once=True)
                     continue
-                signature = self._decrypt_signature(sc['s'][0], video_id, player_url)
-                sp = try_get(sc, lambda x: x['sp'][0]) or 'signature'
-                fmt_url += '&' + sp + '=' + signature
 
             query = parse_qs(fmt_url)
             throttled = False
@@ -3166,7 +3192,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 except ExtractorError as e:
                     self.report_warning(
                         'nsig extraction failed: You may experience throttling for some formats\n'
-                        f'n = {query["n"][0]} ; player = {player_url}\n{e}', only_once=True)
+                        f'n = {query["n"][0]} ; player = {player_url}', only_once=True)
+                    self.write_debug(e, only_once=True)
                     throttled = True
 
             if itag:
@@ -3416,6 +3443,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             or get_first(microformats, 'lengthSeconds')
             or parse_duration(search_meta('duration'))) or None
 
+        if get_first(video_details, 'isPostLiveDvr'):
+            self.write_debug('Video is in Post-Live Manifestless mode')
+            if duration or 0 > 4 * 3600:
+                self.report_warning(
+                    'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
+                    'This is a known issue and patches are welcome')
+
         live_broadcast_details, is_live, streaming_data, formats = self._list_formats(
             video_id, microformats, video_details, player_responses, player_url, duration)
 
@@ -3618,7 +3652,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Youtube Music Auto-generated description
         if video_description:
-            mobj = re.search(r'(?s)(?P<track>[^·\n]+)·(?P<artist>[^\n]+)\n+(?P<album>[^\n]+)(?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?(?:.+?Released on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?(.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+))?.+\nAuto-generated by YouTube\.\s*$', video_description)
+            mobj = re.search(
+                r'''(?xs)
+                    (?P<track>[^·\n]+)·(?P<artist>[^\n]+)\n+
+                    (?P<album>[^\n]+)
+                    (?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?
+                    (?:.+?Released on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
+                    (.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+))?
+                    .+\nAuto-generated\ by\ YouTube\.\s*$
+                ''', video_description)
             if mobj:
                 release_year = mobj.group('release_year')
                 release_date = mobj.group('release_date')
@@ -3664,6 +3706,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             info['chapters'] = (
                 self._extract_chapters_from_json(initial_data, duration)
                 or self._extract_chapters_from_engagement_panel(initial_data, duration)
+                or self._extract_chapters_from_description(video_description, duration)
                 or None)
 
         contents = traverse_obj(
@@ -4017,9 +4060,12 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             return
         for content in contents:
             renderer = content.get('backstagePostThreadRenderer')
-            if not isinstance(renderer, dict):
+            if isinstance(renderer, dict):
+                yield from self._post_thread_entries(renderer)
                 continue
-            yield from self._post_thread_entries(renderer)
+            renderer = content.get('videoRenderer')
+            if isinstance(renderer, dict):
+                yield self._video_entry(renderer)
 
     r''' # unused
     def _rich_grid_entries(self, contents):
@@ -4282,8 +4328,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             start = next((i for i, v in enumerate(videos) if v['id'] == last_id), -1) + 1
             if start >= len(videos):
                 return
-            for video in videos[start:]:
-                yield video
+            yield from videos[start:]
             first_id = first_id or videos[0]['id']
             last_id = videos[-1]['id']
             watch_endpoint = try_get(
@@ -4405,7 +4450,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             check_get_keys='contents', fatal=False, ytcfg=ytcfg,
             note='Downloading API JSON with unavailable videos')
 
-    @property
+    @functools.cached_property
     def skip_webpage(self):
         return 'webpage' in self._configuration_arg('skip', ie_key=YoutubeTabIE.ie_key())
 
@@ -5625,11 +5670,13 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         channel = traverse_obj(
             notification, ('contextualMenu', 'menuRenderer', 'items', 1, 'menuServiceItemRenderer', 'text', 'runs', 1, 'text'),
             expected_type=str)
+        notification_title = self._get_text(notification, 'shortMessage')
+        if notification_title:
+            notification_title = notification_title.replace('\xad', '')  # remove soft hyphens
+        # TODO: handle recommended videos
         title = self._search_regex(
-            rf'{re.escape(channel)} [^:]+: (.+)', self._get_text(notification, 'shortMessage'),
+            rf'{re.escape(channel or "")}[^:]+: (.+)', notification_title,
             'video title', default=None)
-        if title:
-            title = title.replace('\xad', '')  # remove soft hyphens
         upload_date = (strftime_or_none(self._extract_time_text(notification, 'sentTimeText')[0], '%Y%m%d')
                        if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE.ie_key())
                        else None)

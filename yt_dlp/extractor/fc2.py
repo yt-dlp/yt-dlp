@@ -1,16 +1,13 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_parse_qs,
-)
+from ..compat import compat_parse_qs
 from ..dependencies import websockets
 from ..utils import (
     ExtractorError,
     WebSocketsWrapper,
     js_to_json,
     sanitized_Request,
-    std_headers,
     traverse_obj,
     update_url_query,
     urlencode_postdata,
@@ -207,10 +204,10 @@ class FC2LiveIE(InfoExtractor):
             'Cookie': str(self._get_cookies('https://live.fc2.com/'))[12:],
             'Origin': 'https://live.fc2.com',
             'Accept': '*/*',
-            'User-Agent': std_headers['User-Agent'],
+            'User-Agent': self.get_param('http_headers')['User-Agent'],
         })
 
-        self.write_debug('[debug] Sending HLS server request')
+        self.write_debug('Sending HLS server request')
 
         while True:
             recv = ws.recv()
@@ -232,13 +229,10 @@ class FC2LiveIE(InfoExtractor):
             if not data or not isinstance(data, dict):
                 continue
             if data.get('name') == '_response_' and data.get('id') == 1:
-                self.write_debug('[debug] Goodbye.')
+                self.write_debug('Goodbye')
                 playlist_data = data
                 break
-            elif self._downloader.params.get('verbose', False):
-                if len(recv) > 100:
-                    recv = recv[:100] + '...'
-                self.to_screen('[debug] Server said: %s' % recv)
+            self.write_debug('Server said: %s%s' % (recv[:100], '...' if len(recv) > 100 else ''))
 
         if not playlist_data:
             raise ExtractorError('Unable to fetch HLS playlist info via WebSocket')

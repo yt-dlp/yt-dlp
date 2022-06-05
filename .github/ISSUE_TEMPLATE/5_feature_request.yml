@@ -9,11 +9,11 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm reporting a feature request
+        - label: I'm requesting a feature unrelated to a specific site
           required: true
         - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
           required: true
-        - label: I've verified that I'm running yt-dlp version **2022.04.08** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
+        - label: I've verified that I'm running yt-dlp version **2022.05.18** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true
         - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar issues including closed ones. DO NOT post duplicates
           required: true

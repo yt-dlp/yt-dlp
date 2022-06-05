@@ -9,13 +9,13 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm asking a question and **not** reporting a bug/feature request
+        - label: I'm asking a question and **not** reporting a bug or requesting a feature
           required: true
         - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
           required: true
-        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
+        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar questions including closed ones. DO NOT post duplicates
           required: true
-        - label: I've searched the [bugtracker](https://github.com/yt-dlp/yt-dlp/issues?q=) for similar questions including closed ones
+        - label: I've read the [guidelines for opening an issue](https://github.com/yt-dlp/yt-dlp/blob/master/CONTRIBUTING.md#opening-an-issue)
           required: true
   - type: textarea
     id: question

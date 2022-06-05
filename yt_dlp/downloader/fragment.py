@@ -25,10 +25,6 @@ class HttpQuietDownloader(HttpFD):
 
     console_title = to_screen
 
-    def report_retry(self, err, count, retries):
-        super().to_screen(
-            f'[download] Got server HTTP error: {err}. Retrying (attempt {count} of {self.format_retries(retries)}) ...')
-
 
 class FragmentFD(FileDownloader):
     """
@@ -70,6 +66,7 @@ class FragmentFD(FileDownloader):
         self.to_screen(
             '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
             % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
+        self.sleep_retry('fragment', count)
 
     def report_skip_fragment(self, frag_index, err=None):
         err = f' {err};' if err else ''
@@ -168,18 +165,11 @@ class FragmentFD(FileDownloader):
             total_frags_str = 'unknown (live)'
         self.to_screen(f'[{self.FD_NAME}] Total fragments: {total_frags_str}')
         self.report_destination(ctx['filename'])
-        dl = HttpQuietDownloader(
-            self.ydl,
-            {
-                'continuedl': self.params.get('continuedl', True),
-                'quiet': self.params.get('quiet'),
-                'noprogress': True,
-                'ratelimit': self.params.get('ratelimit'),
-                'retries': self.params.get('retries', 0),
-                'nopart': self.params.get('nopart', False),
-                'test': False,
-            }
-        )
+        dl = HttpQuietDownloader(self.ydl, {
+            **self.params,
+            'noprogress': True,
+            'test': False,
+        })
         tmpfilename = self.temp_name(ctx['filename'])
         open_mode = 'wb'
         resume_len = 0
@@ -506,12 +496,20 @@ class FragmentFD(FileDownloader):
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
-                for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
-                    ctx['fragment_filename_sanitized'] = frag_filename
-                    ctx['fragment_index'] = frag_index
-                    result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx)
-                    if not result:
-                        return False
+                try:
+                    for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
+                        ctx.update({
+                            'fragment_filename_sanitized': frag_filename,
+                            'fragment_index': frag_index,
+                        })
+                        if not append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx):
+                            return False
+                except KeyboardInterrupt:
+                    self._finish_multiline_status()
+                    self.report_error(
+                        'Interrupted by user. Waiting for all threads to shutdown...', is_error=False, tb=False)
+                    pool.shutdown(wait=False)
+                    raise
         else:
             for fragment in fragments:
                 if not interrupt_trigger[0]:

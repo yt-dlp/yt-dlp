@@ -376,6 +376,7 @@
  - **fc2:embed**
  - **fc2:live**
  - **Fczenit**
+ - **Fifa**
  - **Filmmodu**
  - **filmon**
  - **filmon:channel**
@@ -447,6 +448,7 @@
  - **GodTube**
  - **Gofile**
  - **Golem**
+ - **goodgame:stream**
  - **google:podcasts**
  - **google:podcasts:feed**
  - **GoogleDrive**
@@ -455,6 +457,8 @@
  - **GoToStage**
  - **GPUTechConf**
  - **Gronkh**
+ - **gronkh:feed**
+ - **gronkh:vods**
  - **Groupon**
  - **hbo**
  - **HearThisAt**
@@ -492,6 +496,7 @@
  - **HungamaSong**
  - **huya:live**: huya.com
  - **Hypem**
+ - **Icareus**
  - **ign.com**
  - **IGNArticle**
  - **IGNVideo**
@@ -528,6 +533,8 @@
  - **ivi:compilation**: ivi.ru compilations
  - **ivideon**: Ivideon TV
  - **Iwara**
+ - **iwara:playlist**
+ - **iwara:user**
  - **Izlesene**
  - **Jable**
  - **JablePlaylist**
@@ -587,6 +594,8 @@
  - **Libsyn**
  - **life**: Life.ru
  - **life:embed**
+ - **likee**
+ - **likee:user**
  - **limelight**
  - **limelight:channel**
  - **limelight:channel_list**
@@ -605,7 +614,8 @@
  - **loc**: Library of Congress
  - **LocalNews8**
  - **LoveHomePorn**
- - **lrt.lt**
+ - **LRTStream**
+ - **LRTVOD**
  - **lynda**: [<abbr title="netrc machine"><em>lynda</em></abbr>] lynda.com videos
  - **lynda:course**: [<abbr title="netrc machine"><em>lynda</em></abbr>] lynda.com online courses
  - **m6**
@@ -626,6 +636,7 @@
  - **Markiza**
  - **MarkizaPage**
  - **massengeschmack.tv**
+ - **Masters**
  - **MatchTV**
  - **MDR**: MDR.DE and KiKA
  - **MedalTV**
@@ -747,7 +758,8 @@
  - **ndr:embed:base**
  - **NDTV**
  - **Nebula**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
- - **nebula:collection**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
+ - **nebula:channel**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
+ - **nebula:subscriptions**: [<abbr title="netrc machine"><em>watchnebula</em></abbr>]
  - **NerdCubedFeed**
  - **netease:album**: 网易云音乐 - 专辑
  - **netease:djradio**: 网易云音乐 - 电台
@@ -927,6 +939,7 @@
  - **pluralsight**: [<abbr title="netrc machine"><em>pluralsight</em></abbr>]
  - **pluralsight:course**
  - **PlutoTV**
+ - **Podchaser**
  - **podomatic**
  - **Pokemon**
  - **PokemonSoundLibrary**
@@ -1026,9 +1039,10 @@
  - **RICE**
  - **RMCDecouverte**
  - **RockstarGames**
- - **Rokfin**
- - **rokfin:channel**
- - **rokfin:stack**
+ - **Rokfin**: [<abbr title="netrc machine"><em>rokfin</em></abbr>]
+ - **rokfin:channel**: Rokfin Channels
+ - **rokfin:search**: Rokfin Search; "rkfnsearch:" prefix
+ - **rokfin:stack**: Rokfin Stacks
  - **RoosterTeeth**: [<abbr title="netrc machine"><em>roosterteeth</em></abbr>]
  - **RoosterTeethSeries**: [<abbr title="netrc machine"><em>roosterteeth</em></abbr>]
  - **RottenTomatoes**
@@ -1370,8 +1384,6 @@
  - **video.google:search**: Google Video search; "gvsearch:" prefix
  - **video.sky.it**
  - **video.sky.it:live**
- - **VideocampusSachsen**
- - **VideocampusSachsenEmbed**
  - **VideoDetective**
  - **videofy.me**
  - **videomore**
@@ -1400,6 +1412,7 @@
  - **vimeo:watchlater**: [<abbr title="netrc machine"><em>vimeo</em></abbr>] Vimeo watch later list, ":vimeowatchlater" keyword (requires authentication)
  - **Vimm:recording**
  - **Vimm:stream**
+ - **Vimp**
  - **Vimple**: Vimple - one-click video hosting
  - **Vine**
  - **vine:user**
@@ -1525,11 +1538,13 @@
  - **youtube:favorites**: YouTube liked videos; ":ytfav" keyword (requires cookies)
  - **youtube:history**: Youtube watch history; ":ythis" keyword (requires cookies)
  - **youtube:music:search_url**: YouTube music search URLs with selectable sections (Eg: #songs)
+ - **youtube:notif**: YouTube notifications; ":ytnotif" keyword (requires cookies)
  - **youtube:playlist**: YouTube playlists
  - **youtube:recommended**: YouTube recommended videos; ":ytrec" keyword
  - **youtube:search**: YouTube search; "ytsearch:" prefix
  - **youtube:search:date**: YouTube search, newest videos first; "ytsearchdate:" prefix
  - **youtube:search_url**: YouTube search URLs with sorting and filter support
+ - **youtube:stories**: YouTube channel stories; "ytstories:" prefix
  - **youtube:subscriptions**: YouTube subscriptions feed; ":ytsubs" keyword (requires cookies)
  - **youtube:tab**: YouTube Tabs
  - **youtube:user**: YouTube user videos; "ytuser:" prefix
@@ -1550,6 +1565,10 @@
  - **Zhihu**
  - **zingmp3**: zingmp3.vn
  - **zingmp3:album**
+ - **zingmp3:chart-home**
+ - **zingmp3:chart-music-video**
+ - **zingmp3:user**
+ - **zingmp3:week-chart**
  - **zoom**
  - **Zype**
  - **generic**: Generic downloader that works on some sites

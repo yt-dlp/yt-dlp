@@ -54,10 +54,6 @@ from .alura import (
     AluraCourseIE
 )
 from .amcnetworks import AMCNetworksIE
-from .animelab import (
-    AnimeLabIE,
-    AnimeLabShowsIE,
-)
 from .amazon import AmazonStoreIE
 from .americastestkitchen import (
     AmericasTestKitchenIE,
@@ -472,6 +468,7 @@ from .ertgr import (
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,
+    WatchESPNIE,
     ESPNArticleIE,
     FiveThirtyEightIE,
     ESPNCricInfoIE,
@@ -591,6 +588,7 @@ from .go import GoIE
 from .godtube import GodTubeIE
 from .gofile import GofileIE
 from .golem import GolemIE
+from .goodgame import GoodGameIE
 from .googledrive import GoogleDriveIE
 from .googlepodcasts import (
     GooglePodcastsIE,
@@ -1018,7 +1016,8 @@ from .ndr import (
 from .ndtv import NDTVIE
 from .nebula import (
     NebulaIE,
-    NebulaCollectionIE,
+    NebulaSubscriptionsIE,
+    NebulaChannelIE,
 )
 from .nerdcubed import NerdCubedFeedIE
 from .netzkino import NetzkinoIE
@@ -1259,6 +1258,7 @@ from .playfm import PlayFMIE
 from .playplustv import PlayPlusTVIE
 from .plays import PlaysTVIE
 from .playstuff import PlayStuffIE
+from .playsuisse import PlaySuisseIE
 from .playtvak import PlaytvakIE
 from .playvid import PlayvidIE
 from .playwire import PlaywireIE
@@ -1267,11 +1267,11 @@ from .pluralsight import (
     PluralsightIE,
     PluralsightCourseIE,
 )
+from .podchaser import PodchaserIE
 from .podomatic import PodomaticIE
 from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
-    PokemonSoundLibraryIE,
 )
 from .pokergo import (
     PokerGoIE,
@@ -1402,6 +1402,7 @@ from .rokfin import (
     RokfinIE,
     RokfinStackIE,
     RokfinChannelIE,
+    RokfinSearchIE,
 )
 from .roosterteeth import RoosterTeethIE, RoosterTeethSeriesIE
 from .rottentomatoes import RottenTomatoesIE

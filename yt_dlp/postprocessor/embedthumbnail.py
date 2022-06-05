@@ -1,11 +1,11 @@
 import base64
-import imghdr
 import os
 import re
 import subprocess
 
 from .common import PostProcessor
 from .ffmpeg import FFmpegPostProcessor, FFmpegThumbnailsConvertorPP
+from ..compat import imghdr
 from ..dependencies import mutagen
 from ..utils import (
     Popen,

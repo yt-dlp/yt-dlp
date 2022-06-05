@@ -36,7 +36,7 @@ REQUIREMENTS = read('requirements.txt').splitlines()
 
 
 if sys.argv[1:2] == ['py2exe']:
-    import py2exe
+    import py2exe  # noqa: F401
     warnings.warn(
         'py2exe builds do not support pycryptodomex and needs VC++14 to run. '
         'The recommended way is to use "pyinst.py" to build using pyinstaller')
