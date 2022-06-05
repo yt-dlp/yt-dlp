@@ -31,14 +31,14 @@ from ..utils import (
     try_call,
 )
 
-conn = stomp.Connection([('rabbitmq', 61613)])
-conn.connect('guest', 'guest', wait=True) # whatever nerd
+# conn = stomp.Connection([('rabbitmq', 61613)])
+# conn.connect('guest', 'guest', wait=True) # whatever nerd
 def amqp_hook(response):
     try:
-        id = response["info_dict"]["id"]
+        id = response["info_dict"].get("id")
         payload = {
-            'total_bytes': response['total_bytes'] or response['total_bytes_estimate'],
-            'downloaded_bytes': response['downloaded_bytes'],
+            'total_bytes': response.get('total_bytes') or response.get('total_bytes_estimate'),
+            'downloaded_bytes': response.get('downloaded_bytes'),
             'info_dict': {
                 'id': id
             }
