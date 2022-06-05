@@ -25,10 +25,11 @@ class FourZeroStudioArchiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
         webpage = self._download_webpage(url, video_id)
-        nuxt_data = self._search_nuxt_data(webpage, video_id, full_data=True)
+        nuxt_data = self._search_nuxt_data(webpage, video_id, return_full_data=True)
 
         pcb = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicCreatorBroadcast'), get_all=False)
-        comments = traverse_obj(nuxt_data, ('ssrRefs', ..., lambda _, v: v['__typename'] == 'PublicCreatorBroadcastComment'))
+        uploader_internal_id = traverse_obj(nuxt_data, (
+                'ssrRefs', lambda _, v: v['__typename'] == 'PublicUser', 'id'), get_all=False)
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(pcb['archiveUrl'], video_id, ext='mp4')
         self._sort_formats(formats)
@@ -45,8 +46,18 @@ class FourZeroStudioArchiveIE(InfoExtractor):
             }] if pcb.get('thumbnailUrl') else None,
             'formats': formats,
             'subtitles': subs,
-            'comments': comments,
-            'comment_count': len(comments),
+            'comments': [{
+                'author': c.get('username'),
+                'author_id': c.get('postedUserId'),
+                'author_thumbnail': c.get('userThumbnailUrl'),
+                'id': c.get('id'),
+                'text': c.get('body'),
+                'timestamp': unified_timestamp(c.get('createdAt')),
+                'like_count': c.get('likeCount'),
+                'is_favorited': c.get('isLikedByOwner'),
+                'author_is_uploader': c.get('postedUserId') == uploader_internal_id,
+            } for c in traverse_obj(nuxt_data, (
+                'ssrRefs', ..., lambda _, v: v['__typename'] == 'PublicCreatorBroadcastComment')) or []],
             'uploader_id': uploader_id,
             'uploader': traverse_obj(nuxt_data, (
                 'ssrRefs', lambda _, v: v['__typename'] == 'PublicUser', 'username'), get_all=False),
@@ -71,7 +82,7 @@ class FourZeroStudioClipIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
         webpage = self._download_webpage(url, video_id)
-        nuxt_data = self._search_nuxt_data(webpage, video_id, full_data=True)
+        nuxt_data = self._search_nuxt_data(webpage, video_id, return_full_data=True)
 
         clip_info = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicCreatorArchivedClip'), get_all=False)
 

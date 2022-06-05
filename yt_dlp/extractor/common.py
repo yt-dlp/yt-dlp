@@ -1585,7 +1585,7 @@ class InfoExtractor:
                 args[key] = 'null'
 
         ret = self._parse_json(js_to_json(js, args), video_id)
-        if full_data:
+        if return_full_data:
             return ret
         return ret['data'][0]
 
