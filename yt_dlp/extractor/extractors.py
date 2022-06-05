@@ -517,6 +517,10 @@ from .fourtube import (
     PornerBrosIE,
     FuxIE,
 )
+from .fourzerostudio import (
+    FourZeroStudioArchiveIE,
+    FourZeroStudioClipIE,
+)
 from .fox import FOXIE
 from .fox9 import (
     FOX9IE,
