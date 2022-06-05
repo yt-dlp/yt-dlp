@@ -31,8 +31,8 @@ from ..utils import (
     try_call,
 )
 
-# conn = stomp.Connection([('rabbitmq', 61613)])
-# conn.connect('guest', 'guest', wait=True) # whatever nerd
+conn = stomp.Connection([('rabbitmq', 61613)])
+conn.connect('guest', 'guest', wait=True) # whatever nerd
 def amqp_hook(response):
     try:
         id = response["info_dict"].get("id")
