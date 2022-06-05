@@ -186,7 +186,7 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
             'id': 'movie_scenes',
             'title': 'Movie Scenes',
         },
-        'playlist_mincount': 8*MotherlessPaginatedIE._PAGE_SIZE+1,
+        'playlist_mincount': 8 * MotherlessPaginatedIE._PAGE_SIZE + 1,
     }, {
         'url': 'http://motherless.com/gv/sex_must_be_funny',
         'info_dict': {
@@ -203,7 +203,7 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
             'id': 'beautiful_cock',
             'title': 'Beautiful Cock',
         },
-        'playlist_mincount': 33*MotherlessPaginatedIE._PAGE_SIZE+1,
+        'playlist_mincount': 33 * MotherlessPaginatedIE._PAGE_SIZE + 1,
     }]
 
 
@@ -215,7 +215,7 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
             'id': '338999F',
             'title': 'Random',
         },
-        'playlist_mincount': 3*MotherlessPaginatedIE._PAGE_SIZE+1,
+        'playlist_mincount': 3 * MotherlessPaginatedIE._PAGE_SIZE + 1,
     }, {
         'url': 'https://motherless.com/GVABD6213',
         'info_dict': {
