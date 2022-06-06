@@ -93,6 +93,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE]`
 
+* **Download time range**: Videos can be downloaded partially based on either timestamps or chapters using `--download-sections`
+
 * **Split video by chapters**: Videos can be split into multiple files based on chapters using `--split-chapters`
 
 * **Multi-threaded fragment downloads**: Download multiple fragments of m3u8/mpd videos in parallel. Use `--concurrent-fragments` (`-N`) option to set the number of threads used
@@ -555,6 +557,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-hls-use-mpegts             Do not use the mpegts container for HLS
                                     videos. This is default when not downloading
                                     live streams
+    --download-sections REGEX       Download only chapters whose title matches
+                                    the given regular expression. Time ranges
+                                    prefixed by a "*" can also be used in place
+                                    of chapters to download the specified range.
+                                    Eg: --download-sections "*10:15-15:00"
+                                    --download-sections "intro". Needs ffmpeg.
+                                    This option can be used multiple times to
+                                    download multiple sections
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
@@ -997,18 +1007,16 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-split-chapters             Do not split video based on chapters
                                     (default)
     --remove-chapters REGEX         Remove chapters whose title matches the
-                                    given regular expression. Time ranges
-                                    prefixed by a "*" can also be used in place
-                                    of chapters to remove the specified range.
-                                    Eg: --remove-chapters "*10:15-15:00"
-                                    --remove-chapters "intro". This option can
+                                    given regular expression. The syntax is the
+                                    same as --download-sections. This option can
                                     be used multiple times
     --no-remove-chapters            Do not remove any chapters from the file
                                     (default)
-    --force-keyframes-at-cuts       Force keyframes around chapters when
-                                    removing/splitting them. This is slow due to
-                                    needing a re-encode, but the resulting video
-                                    may have fewer artifacts around the cuts
+    --force-keyframes-at-cuts       Force keyframes at cuts when
+                                    downloading/splitting/removing sections.
+                                    This is slow due to needing a re-encode, but
+                                    the resulting video may have fewer artifacts
+                                    around the cuts
     --no-force-keyframes-at-cuts    Do not force keyframes around the chapters
                                     when cutting/splitting (default)
     --use-postprocessor NAME[:ARGS]
@@ -1286,7 +1294,7 @@ Available for the media that is a track or a part of a music album:
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
  - `release_year` (numeric): Year (YYYY) when the album was released
 
-Available for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
+Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 
  - `section_title` (string): Title of the chapter
  - `section_number` (numeric): Number of the chapter within the file

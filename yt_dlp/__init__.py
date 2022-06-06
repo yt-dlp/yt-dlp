@@ -35,6 +35,7 @@ from .utils import (
     GeoUtils,
     SameFileError,
     decodeOption,
+    download_range_func,
     expand_path,
     float_or_none,
     int_or_none,
@@ -305,20 +306,25 @@ def validate_options(opts):
             'Cannot download a video and extract audio into the same file! '
             f'Use "{outtmpl_default}.%(ext)s" instead of "{outtmpl_default}" as the output template')
 
-    # Remove chapters
-    remove_chapters_patterns, opts.remove_ranges = [], []
-    for regex in opts.remove_chapters or []:
-        if regex.startswith('*'):
-            dur = list(map(parse_duration, regex[1:].split('-')))
-            if len(dur) == 2 and all(t is not None for t in dur):
-                opts.remove_ranges.append(tuple(dur))
+    def parse_chapters(name, value):
+        chapters, ranges = [], []
+        for regex in value or []:
+            if regex.startswith('*'):
+                for range in regex[1:].split(','):
+                    dur = tuple(map(parse_duration, range.strip().split('-')))
+                    if len(dur) == 2 and all(t is not None for t in dur):
+                        ranges.append(dur)
+                    else:
+                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
                 continue
-            raise ValueError(f'invalid --remove-chapters time range "{regex}". Must be of the form *start-end')
-        try:
-            remove_chapters_patterns.append(re.compile(regex))
-        except re.error as err:
-            raise ValueError(f'invalid --remove-chapters regex "{regex}" - {err}')
-    opts.remove_chapters = remove_chapters_patterns
+            try:
+                chapters.append(re.compile(regex))
+            except re.error as err:
+                raise ValueError(f'invalid {name} regex "{regex}" - {err}')
+        return chapters, ranges
+
+    opts.remove_chapters, opts.remove_ranges = parse_chapters('--remove-chapters', opts.remove_chapters)
+    opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges))
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
@@ -803,6 +809,8 @@ def parse_options(argv=None):
         'max_sleep_interval': opts.max_sleep_interval,
         'sleep_interval_subtitles': opts.sleep_interval_subtitles,
         'external_downloader': opts.external_downloader,
+        'download_ranges': opts.download_ranges,
+        'force_keyframes_at_cuts': opts.force_keyframes_at_cuts,
         'list_thumbnails': opts.list_thumbnails,
         'playlist_items': opts.playlist_items,
         'xattr_set_filesize': opts.xattr_set_filesize,
