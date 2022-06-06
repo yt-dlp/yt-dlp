@@ -42,7 +42,9 @@ class IxiguaIE(InfoExtractor):
             }
         elif media_type == "dash_audio":
             media_data = traverse_obj(media_json, ('dynamic_video', 'dynamic_audio_list'))
-            media_specific_format = {'format_note': 'DASH, audio only'}
+            media_specific_format = {
+                'format_note': 'DASH, audio only',
+            }
         elif media_type == "normal":
             for media in media_json.get('video_list'):
                 media_data.append(traverse_obj(media_json, ('video_list', media)))
