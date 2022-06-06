@@ -160,8 +160,6 @@ def _firefox_browser_dir():
         return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
     elif sys.platform == 'darwin':
         return os.path.expanduser('~/Library/Application Support/Firefox')
-
-    # fallthrough case: all the other Linux/BSD/Unix derivatives
     return os.path.expanduser('~/.mozilla/firefox')
 
 
@@ -190,7 +188,6 @@ def _get_chromium_based_browser_settings(browser_name):
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
         }[browser_name]
 
-    # all the other Linux/BSD/Unix derivatives
     else:
         config = _config_home()
         browser_dir = {
