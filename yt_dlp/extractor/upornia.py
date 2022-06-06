@@ -26,8 +26,8 @@ class UporniaIE(InfoExtractor):
     def fixcyr(self, bla):
         # https://stackoverflow.com/questions/14173421/use-string-translate-in-python-to-transliterate-cyrillic/14173535#14173535
         # fix for C added
-        symbols = (u"абвгдеёжзийклмнопрстуфхцчшщъыьэюяАБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ,",
-                   u"abvgdeejzijklmnoprstufhzcss_y_euaABVGDEEJZIJKLMNOPRCTUFHZCSS_Y_EUA/")
+        symbols = (u"МВАС,Е",
+                   u"MBAC/E")
         tr = {ord(a): ord(b) for a, b in zip(*symbols)}
         return bla.translate(tr)
 
