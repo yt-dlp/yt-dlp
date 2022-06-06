@@ -946,6 +946,10 @@ def create_parser():
             'For ffmpeg, arguments can be passed to different positions using the same syntax as --postprocessor-args. '
             'You can use this option multiple times to give different arguments to different downloaders '
             '(Alias: --external-downloader-args)'))
+    downloader.add_option(
+        '--nocopy',
+        dest='nocopy', action='store_true', default=False,
+        help=('TODO Do not copy the video files to the destination directory'))
 
     workarounds = optparse.OptionGroup(parser, 'Workarounds')
     workarounds.add_option(

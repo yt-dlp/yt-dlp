@@ -721,6 +721,7 @@ def parse_options(argv=None):
         'http_chunk_size': opts.http_chunk_size,
         'continuedl': opts.continue_dl,
         'noprogress': opts.quiet if opts.noprogress is None else opts.noprogress,
+        'nocopy': opts.nocopy,
         'progress_with_newline': opts.progress_with_newline,
         'progress_template': opts.progress_template,
         'playliststart': opts.playliststart,

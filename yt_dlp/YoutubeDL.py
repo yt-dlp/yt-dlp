@@ -453,6 +453,7 @@ class YoutubeDL:
                        Use 'default' as the name for arguments to passed to all PP
                        For compatibility with youtube-dl, a single list of args
                        can also be used
+    nocopy:            If True, omit '-c copy' when downloading with ffmpeg.
 
     The following options are used by the extractors:
     extractor_retries: Number of times to retry for known errors

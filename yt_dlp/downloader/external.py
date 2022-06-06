@@ -459,7 +459,9 @@ class FFmpegFD(ExternalFD):
                 args += http_headers
             args += self._configuration_args((f'_i{i + 1}', '_i')) + ['-i', url]
 
-        args += ['-c', 'copy']
+        if not self.params.get('nocopy'):
+            args += ['-c', 'copy']
+
         if info_dict.get('requested_formats') or protocol == 'http_dash_segments':
             for (i, fmt) in enumerate(info_dict.get('requested_formats') or [info_dict]):
                 stream_number = fmt.get('manifest_stream_number', 0)
