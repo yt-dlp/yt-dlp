@@ -37,7 +37,15 @@ class UporniaIE(InfoExtractor):
         constants = self._search_regex(r'window.constants = (.+)', webpage, 'cons')
         constants = json.loads(constants)
         lt = constants.get('query').get('lifetime')
-        consturl = 'https://upornia.com/api/json/video/{}/{}/{}/{}.json'.format(lt, video_id[0] + '0' * (len(video_id) - 1), video_id[:4] + '0' * (len(video_id) - 4), video_id)
+        if len(video_id) < 7:
+            dira = '0'
+            dirb = video_id[:-3] + '000'
+        elif len(video_id) == 7:
+            dira = video_id[0] + '000000'
+            dirb = video_id[:4] + '000'
+        else:
+            print('Not yet defined')  # TODO: throw an error - wont happen for the foreseeable future
+        consturl = 'https://upornia.com/api/json/video/{}/{}/{}/{}.json'.format(lt, dira, dirb, video_id)
         more_data = self._download_json(consturl, video_id)
         title = more_data.get('video').get('title')
         description = more_data.get('video').get('description')
