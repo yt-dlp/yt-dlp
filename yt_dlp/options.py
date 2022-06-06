@@ -1423,20 +1423,22 @@ def create_parser():
     postproc.add_option(
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
-            'Specify audio format to convert the audio to when -x is used. Currently supported formats are: '
-            'best (default) or one of %s' % ', '.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
+            'Format to convert the audio to when -x is used. '
+            f'(currently supported: best (default), {", ".join(FFmpegExtractAudioPP.SUPPORTED_EXTS)})'))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality to use when converting the audio with -x. Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help=(
+            'Specify ffmpeg audio quality to use when converting the audio with -x. '
+            'Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)'))
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
-            'Remux the video into another container if necessary (currently supported: %s). '
-            'If target container does not support the video/audio codec, remuxing will fail. '
-            'You can specify multiple rules; Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % ', '.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
+            'Remux the video into another container if necessary '
+            f'(currently supported: {", ".join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)}). '
+            'If target container does not support the video/audio codec, remuxing will fail. You can specify multiple rules; '
+            'Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 and anything else to mkv'))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
