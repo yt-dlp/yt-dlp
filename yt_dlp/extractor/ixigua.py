@@ -7,7 +7,6 @@ from ..utils import (
     ExtractorError,
 )
 import base64
-from urllib.parse import parse_qs
 
 
 class IxiguaIE(InfoExtractor):
@@ -19,10 +18,10 @@ class IxiguaIE(InfoExtractor):
             'ext': 'mp4',
             'title': '盲目涉水风险大，亲身示范高水位行车注意事项',
             'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
-            'tag': 'video_car' 
+            'tag': 'video_car'
         },
-        # thumbnail url keep changing 
-        'skip' : 'This Extractor need cookies',
+        # thumbnail url keep changing
+        'skip': 'This Extractor need cookies',
     }
 
     def _get_json_data(self, webpage, video_id):
@@ -31,58 +30,68 @@ class IxiguaIE(InfoExtractor):
             raise ExtractorError('Failed to get SSR_HYDRATED_DATA',)
 
         return self._parse_json(js_data.replace('window._SSR_HYDRATED_DATA=', ''), video_id, transform_source=js_to_json)
-    
-    def _get_video_format(self, video_type, video_type_json):
-        # select video data based on video type
-        video_type_based_format = {}
-        if video_type.startswith('dash'):
-            # video only 
-            video_data = traverse_obj(video_type_json, ('dynamic_video', 'dynamic_video_list'))
-            # audio only
-            audio_data = traverse_obj(video_type_json, ('dynamic_video', 'dynamic_audio_list'))
-            
-            video_type_based_format = {
+
+    def _get_media_format(self, media_type, media_json):
+        media_specific_format = {}
+        media_data = []
+        if media_type == "dash_video":
+            media_data = traverse_obj(media_json, ('dynamic_video', 'dynamic_video_list'))
+            media_specific_format = {
                 'format_note': 'DASH, video only',
+                'ext': 'mp4',
             }
-        else:
-            video_data = video_type_json.get('video_list')
+        elif media_type == "dash_audio":
+            media_data = traverse_obj(media_json, ('dynamic_video', 'dynamic_audio_list'))
+            media_specific_format = {'format_note': 'DASH, audio only'}
+        elif media_type == "normal":
+            for media in media_json.get('video_list'):
+                media_data.append(traverse_obj(media_json, ('video_list', media)))
+            media_specific_format = {
+                'ext': 'mp4',
+            }
+        return self._get_formats(media_data, media_specific_format)
 
+    def _get_formats(self, media_json, media_specific_format):
         _single_video_format = list()
-        
         # This download video only-DASH and mp4 format
-        for video in video_data:
-            if isinstance(video, str) and video.startswith('video_'):
-                video = video_data.get(video)
-            video_url = base64.b64decode(video.get('main_url')).decode()
+        for media in media_json:
             base_format = {
-                'url': video_url,
-                'width': int_or_none(video.get('vwidth')),
-                'height': int_or_none(video.get('vheight')),
-                'fps': int_or_none(video.get('fps')),
-                'vcodec': video.get('codec_type'),
-                'format_id': str(video.get('quality_type')),
-                'ext': 'mp4', 
-                **video_type_based_format
+                'url': base64.b64decode(media.get('main_url')).decode(),
+                'width': int_or_none(media.get('vwidth')),
+                'height': int_or_none(media.get('vheight')),
+                'fps': int_or_none(media.get('fps')),
+                'vcodec': media.get('codec_type'),
+                'format_id': str(media.get('quality_type')),
+                **media_specific_format
             }
-
             _single_video_format.append(base_format)
         return _single_video_format
+
+    def _media_selector(self, json_data):
+        formats_ = []
+        for media in json_data:
+            media_data = json_data.get(media)
+            if not isinstance(media_data, dict):
+                continue
+            if media.startswith('dash'):
+                video_format = self._get_media_format('dash_video', media_data)
+                audio_format = self._get_media_format('dash_audio', media_data)
+                formats_.extend(audio_format)
+                formats_.extend(video_format)
+            else:
+                video_format = self._get_media_format('normal', media_data)
+                formats_.extend(video_format)
+
+        return formats_
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
         # need to pass cookie (at least contain __ac_nonce and ttwid)
         webpage = self._download_webpage(url, video_id)
-
         json_data = self._get_json_data(webpage, video_id)
         video_info = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'videoResource'))
 
-        format_ = []
-        for video_type, json_ in video_info.items():
-            if not isinstance(json_, dict):
-                continue
-            video_format = self._get_video_format(video_type, json_)
-            format_.extend(video_format)
-
+        format_ = self._media_selector(video_info)
         self._sort_formats(format_)
         return {
             'id': video_id,
