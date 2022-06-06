@@ -1,7 +1,6 @@
 from .common import InfoExtractor
 import base64
 import json
-import requests
 
 
 class UporniaIE(InfoExtractor):
@@ -39,19 +38,14 @@ class UporniaIE(InfoExtractor):
         constants = self._search_regex(r'window.constants = (.+)', webpage, 'cons')
         lt = json.loads(constants)['query']['lifetime']
 #        title  = json.loads(constants)['query']['video_dir']
-        consturl = 'https://upornia.com/api/json/video/{}/{}/{}/{}.json'.format(lt, video_id[0]+'0'*(len(video_id)-1), video_id[:4]+'0'*(len(video_id)-4), video_id)
-        print('Lade {}'.format(consturl))
+        consturl = 'https://upornia.com/api/json/video/{}/{}/{}/{}.json'.format(lt, video_id[0] + '0' * (len(video_id) - 1), video_id[:4] + '0' * (len(video_id) - 4), video_id)
         more_data = self._download_json(consturl, video_id)
-        title  = more_data['video']['title']
-        description  = more_data['video']['description']
+        title = more_data['video']['title']
+        description = more_data['video']['description']
         thumbnail = more_data['video']['thumb']
-        print(json.dumps(more_data))
-        print(constants)
-        print(more_data)
-        print('Loading {}'.format('https://upornia.com/api/videofile.php?video_id={}'.format(video_id)))
-        data = self._download_json('https://upornia.com/api/videofile.php?video_id={}'.format(video_id), video_id, headers={'Referer':url})
+        data = self._download_json('https://upornia.com/api/videofile.php?video_id={}'.format(video_id), video_id, headers={'Referer': url})
         roman = self.fixcyr(data[0]['video_url'])
-        get_vid = base64.b64decode(roman.encode('utf-8')+b'==')
+        get_vid = base64.b64decode(roman.encode('utf-8') + b'==')
         url = 'https://upornia.com{}'.format(get_vid.decode())
 #        res = self._download_webpage_handle(url, video_id)
 #        res = requests.head(url)
@@ -64,7 +58,7 @@ class UporniaIE(InfoExtractor):
             'url': url,
             'id': video_id,
             'title': title,
-            'description': description, # self._og_search_description(webpage),
+            'description': description,  # self._og_search_description(webpage),
             'uploader': more_data['video']['user']['username'],
             'thumbnail': thumbnail,
             # TODO more properties (see yt_dlp/extractor/common.py)
