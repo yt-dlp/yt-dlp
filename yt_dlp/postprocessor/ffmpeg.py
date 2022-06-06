@@ -56,6 +56,25 @@ ACODECS = {
 }
 
 
+def create_mapping_re(supported):
+    return re.compile(r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(supported)))
+
+
+def resolve_mapping(source, mapping):
+    """
+    Get corresponding item from a mapping string like 'A>B/C>D/E'
+    @returns    (target, error_message)
+    """
+    for pair in mapping.lower().split('/'):
+        kv = pair.split('>', 1)
+        if len(kv) == 1 or kv[0].strip() == source:
+            target = kv[-1].strip()
+            if target == source:
+                return target, f'already is in target format {source}'
+            return target, None
+    return None, f'could not find a mapping for {source}'
+
+
 class FFmpegPostProcessorError(PostProcessingError):
     pass
 
@@ -65,15 +84,6 @@ class FFmpegPostProcessor(PostProcessor):
         PostProcessor.__init__(self, downloader)
         self._prefer_ffmpeg = self.get_param('prefer_ffmpeg', True)
         self._paths = self._determine_executables()
-
-    def check_version(self):
-        if not self.available:
-            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
-
-        required_version = '10-0' if self.basename == 'avconv' else '1.0'
-        if is_outdated_version(self._version, required_version):
-            self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
-                                f'to version {required_version} or newer if you encounter any errors')
 
     @staticmethod
     def get_versions_and_features(downloader=None):
@@ -205,6 +215,15 @@ class FFmpegPostProcessor(PostProcessor):
         if ext in ('mp4', 'mov', 'm4a'):
             yield from ('-c:s', 'mov_text')
 
+    def check_version(self):
+        if not self.available:
+            raise FFmpegPostProcessorError('ffmpeg not found. Please install or provide the path using --ffmpeg-location')
+
+        required_version = '10-0' if self.basename == 'avconv' else '1.0'
+        if is_outdated_version(self._version, required_version):
+            self.report_warning(f'Your copy of {self.basename} is outdated, update {self.basename} '
+                                f'to version {required_version} or newer if you encounter any errors')
+
     def get_audio_codec(self, path):
         if not self.probe_available and not self.available:
             raise PostProcessingError('ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location')
@@ -284,12 +303,12 @@ class FFmpegPostProcessor(PostProcessor):
             if fatal:
                 raise PostProcessingError(f'Unable to determine video duration: {e.msg}')
 
-    def _duration_mismatch(self, d1, d2):
+    def _duration_mismatch(self, d1, d2, tolerance=2):
         if not d1 or not d2:
             return None
         # The duration is often only known to nearest second. So there can be <1sec disparity natually.
         # Further excuse an additional <1sec difference.
-        return abs(d1 - d2) > 2
+        return abs(d1 - d2) > tolerance
 
     def run_ffmpeg_multiple_files(self, input_paths, out_path, opts, **kwargs):
         return self.real_run_ffmpeg(
@@ -542,18 +561,12 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
 
 class FFmpegVideoConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = ('mp4', 'mkv', 'flv', 'webm', 'mov', 'avi', 'mka', 'ogg', *FFmpegExtractAudioPP.SUPPORTED_EXTS)
-    FORMAT_RE = re.compile(r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(SUPPORTED_EXTS)))
+    FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
     _ACTION = 'converting'
 
     def __init__(self, downloader=None, preferedformat=None):
         super().__init__(downloader)
-        self._preferedformats = preferedformat.lower().split('/')
-
-    def _target_ext(self, source_ext):
-        for pair in self._preferedformats:
-            kv = pair.split('>')
-            if len(kv) == 1 or kv[0].strip() == source_ext:
-                return kv[-1].strip()
+        self.mapping = preferedformat
 
     @staticmethod
     def _options(target_ext):
@@ -564,11 +577,7 @@ class FFmpegVideoConvertorPP(FFmpegPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename, source_ext = info['filepath'], info['ext'].lower()
-        target_ext = self._target_ext(source_ext)
-        _skip_msg = (
-            f'could not find a mapping for {source_ext}' if not target_ext
-            else f'already is in target format {source_ext}' if source_ext == target_ext
-            else None)
+        target_ext, _skip_msg = resolve_mapping(source_ext, self.mapping)
         if _skip_msg:
             self.to_screen(f'Not {self._ACTION} media file "{filename}"; {_skip_msg}')
             return [], info
@@ -776,7 +785,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
         for key, value in info.items():
             mobj = re.fullmatch(meta_regex, key)
             if value is not None and mobj:
-                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value
+                metadata[mobj.group('i') or 'common'][mobj.group('key')] = value.replace('\0', '')
 
         # Write id3v1 metadata also since Windows Explorer can't handle id3v2 tags
         yield ('-write_id3v1', '1')
@@ -1068,10 +1077,11 @@ class FFmpegSplitChaptersPP(FFmpegPostProcessor):
 
 class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
     SUPPORTED_EXTS = ('jpg', 'png', 'webp')
+    FORMAT_RE = create_mapping_re(SUPPORTED_EXTS)
 
     def __init__(self, downloader=None, format=None):
         super().__init__(downloader)
-        self.format = format
+        self.mapping = format
 
     @classmethod
     def is_webp(cls, path):
@@ -1115,18 +1125,17 @@ class FFmpegThumbnailsConvertorPP(FFmpegPostProcessor):
                 continue
             has_thumbnail = True
             self.fixup_webp(info, idx)
-            _, thumbnail_ext = os.path.splitext(original_thumbnail)
-            if thumbnail_ext:
-                thumbnail_ext = thumbnail_ext[1:].lower()
+            thumbnail_ext = os.path.splitext(original_thumbnail)[1][1:].lower()
             if thumbnail_ext == 'jpeg':
                 thumbnail_ext = 'jpg'
-            if thumbnail_ext == self.format:
-                self.to_screen('Thumbnail "%s" is already in the requested format' % original_thumbnail)
+            target_ext, _skip_msg = resolve_mapping(thumbnail_ext, self.mapping)
+            if _skip_msg:
+                self.to_screen(f'Not converting thumbnail "{original_thumbnail}"; {_skip_msg}')
                 continue
-            thumbnail_dict['filepath'] = self.convert_thumbnail(original_thumbnail, self.format)
+            thumbnail_dict['filepath'] = self.convert_thumbnail(original_thumbnail, target_ext)
             files_to_delete.append(original_thumbnail)
             info['__files_to_move'][thumbnail_dict['filepath']] = replace_extension(
-                info['__files_to_move'][original_thumbnail], self.format)
+                info['__files_to_move'][original_thumbnail], target_ext)
 
         if not has_thumbnail:
             self.to_screen('There aren\'t any thumbnails to convert')

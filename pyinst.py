@@ -105,7 +105,7 @@ def pycryptodome_module():
 
 
 def set_version_info(exe, version):
-    if OS_NAME == 'Windows':
+    if OS_NAME == 'win32':
         windows_set_version(exe, version)
 
 

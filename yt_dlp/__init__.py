@@ -9,7 +9,7 @@ import os
 import re
 import sys
 
-from .compat import compat_getpass, compat_os_name, compat_shlex_quote
+from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
 from .extractor import GenericIE, list_extractor_classes
@@ -42,6 +42,7 @@ from .utils import (
     parse_duration,
     preferredencoding,
     read_batch_urls,
+    read_stdin,
     render_table,
     setproctitle,
     std_headers,
@@ -63,14 +64,9 @@ def get_urls(urls, batchfile, verbose):
     batch_urls = []
     if batchfile is not None:
         try:
-            if batchfile == '-':
-                write_string('Reading URLs from stdin - EOF (%s) to end:\n' % (
-                    'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
-                batchfd = sys.stdin
-            else:
-                batchfd = open(
-                    expand_path(batchfile), encoding='utf-8', errors='ignore')
-            batch_urls = read_batch_urls(batchfd)
+            batch_urls = read_batch_urls(
+                read_stdin('URLs') if batchfile == '-'
+                else open(expand_path(batchfile), encoding='utf-8', errors='ignore'))
             if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
         except OSError:
@@ -219,13 +215,13 @@ def validate_options(opts):
     # Postprocessor formats
     validate_in('audio format', opts.audioformat, ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS))
     validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
-    validate_in('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)
-    if opts.recodevideo is not None:
-        opts.recodevideo = opts.recodevideo.replace(' ', '')
-        validate_regex('video recode format', opts.recodevideo, FFmpegVideoConvertorPP.FORMAT_RE)
-    if opts.remuxvideo is not None:
-        opts.remuxvideo = opts.remuxvideo.replace(' ', '')
-        validate_regex('video remux format', opts.remuxvideo, FFmpegVideoRemuxerPP.FORMAT_RE)
+    for name, value, pp in (
+        ('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP),
+        ('recode video format', opts.recodevideo, FFmpegVideoConvertorPP),
+        ('remux video format', opts.remuxvideo, FFmpegVideoRemuxerPP),
+    ):
+        if value is not None:
+            validate_regex(name, value.replace(' ', ''), pp.FORMAT_RE)
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
         # int_or_none prevents inf, nan
@@ -762,6 +758,7 @@ def parse_options(argv=None):
         'verbose': opts.verbose,
         'dump_intermediate_pages': opts.dump_intermediate_pages,
         'write_pages': opts.write_pages,
+        'load_pages': opts.load_pages,
         'test': opts.test,
         'keepvideo': opts.keepvideo,
         'min_filesize': opts.min_filesize,
