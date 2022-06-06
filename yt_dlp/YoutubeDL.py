@@ -3685,9 +3685,14 @@ class YoutubeDL:
             write_debug = lambda msg: self._write_string(f'[debug] {msg}\n')
 
         source = detect_variant()
+        try:
+            sp = subprocess.Popen(['git', 'rev-parse', '--short', 'HEAD'], stdout=subprocess.PIPE)
+            GIT_HEAD = sp.communicate()[0].decode().strip() or None
+        except Exception:
+            GIT_HEAD = None
         write_debug(join_nonempty(
             'yt-dlp version', __version__,
-            f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
+            f'[{GIT_HEAD}]' if GIT_HEAD else f'[{RELEASE_GIT_HEAD}]' if RELEASE_GIT_HEAD else '',
             '' if source == 'unknown' else f'({source})',
             delim=' '))
         if not _LAZY_LOADER:
