@@ -33,26 +33,21 @@ class UporniaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-#        title = url.split('/')[5].replace('-',' ')
         webpage = self._download_webpage(url, video_id)
         constants = self._search_regex(r'window.constants = (.+)', webpage, 'cons')
-        lt = json.loads(constants)['query']['lifetime']
-#        title  = json.loads(constants)['query']['video_dir']
+        constants = json.loads(constants)
+        lt = constants.get('query').get('lifetime')
         consturl = 'https://upornia.com/api/json/video/{}/{}/{}/{}.json'.format(lt, video_id[0] + '0' * (len(video_id) - 1), video_id[:4] + '0' * (len(video_id) - 4), video_id)
         more_data = self._download_json(consturl, video_id)
-        title = more_data['video']['title']
-        description = more_data['video']['description']
-        thumbnail = more_data['video']['thumb']
+        title = more_data.get('video').get('title')
+        description = more_data.get('video').get('description')
+        thumbnail = more_data.get('video').get('thumb')
         data = self._download_json('https://upornia.com/api/videofile.php?video_id={}'.format(video_id), video_id, headers={'Referer': url})
-        roman = self.fixcyr(data[0]['video_url'])
+        roman = self.fixcyr(data[0].get('video_url'))
         get_vid = base64.b64decode(roman.encode('utf-8') + b'==')
         url = 'https://upornia.com{}'.format(get_vid.decode())
-#        res = self._download_webpage_handle(url, video_id)
-#        res = requests.head(url)
-#        url = res.headers['Location']
 
         # TODO more code goes here, for example ...
-#        title = self._html_search_regex(r'<h1>(.+?)</h1>', webpage, 'title')
 
         return {
             'url': url,
