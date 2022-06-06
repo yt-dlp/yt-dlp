@@ -871,23 +871,22 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## Post-Processing Options:
     -x, --extract-audio             Convert video files to audio-only files
                                     (requires ffmpeg and ffprobe)
-    --audio-format FORMAT           Specify audio format to convert the audio to
-                                    when -x is used. Currently supported formats
-                                    are: best (default) or one of aac, flac,
-                                    mp3, m4a, opus, vorbis, wav, alac
+    --audio-format FORMAT           Format to convert the audio to when -x is
+                                    used. (currently supported: best (default),
+                                    mp3, aac, m4a, opus, vorbis, flac, alac, wav)
     --audio-quality QUALITY         Specify ffmpeg audio quality to use when
                                     converting the audio with -x. Insert a value
                                     between 0 (best) and 10 (worst) for VBR or a
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
                                     necessary (currently supported: mp4, mkv,
-                                    flv, webm, mov, avi, mka, ogg, aac, flac,
-                                    mp3, m4a, opus, vorbis, wav, alac). If
+                                    flv, webm, mov, avi, mka, ogg, mp3, aac,
+                                    m4a, opus, vorbis, flac, alac, wav). If
                                     target container does not support the
                                     video/audio codec, remuxing will fail. You
                                     can specify multiple rules; Eg.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
-                                    mov to mp4 and anything else to mkv.
+                                    mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
                                     necessary. The syntax and supported formats
                                     are the same as --remux-video

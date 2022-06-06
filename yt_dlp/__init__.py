@@ -215,13 +215,9 @@ def validate_options(opts):
     # Postprocessor formats
     validate_in('audio format', opts.audioformat, ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS))
     validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
-    for name, value, pp in (
-        ('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP),
-        ('recode video format', opts.recodevideo, FFmpegVideoConvertorPP),
-        ('remux video format', opts.remuxvideo, FFmpegVideoRemuxerPP),
-    ):
-        if value is not None:
-            validate_regex(name, value.replace(' ', ''), pp.FORMAT_RE)
+    validate_regex('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.FORMAT_RE)
+    validate_regex('recode video format', opts.recodevideo, FFmpegVideoConvertorPP.FORMAT_RE)
+    validate_regex('remux video format', opts.remuxvideo, FFmpegVideoRemuxerPP.FORMAT_RE)
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
         # int_or_none prevents inf, nan
@@ -653,7 +649,7 @@ def parse_options(argv=None):
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
         else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
-        else opts.audioformat if (opts.extractaudio and opts.audioformat != 'best')
+        else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
     return parser, opts, urls, {
