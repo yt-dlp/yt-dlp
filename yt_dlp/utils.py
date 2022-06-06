@@ -594,7 +594,7 @@ def clean_html(html):
     return html.strip()
 
 
-def sanitize_open(filename, open_mode):
+def sanitize_open(filename, open_mode, **kwargs):
     """Try to open the given filename, and slightly tweak it if this fails.
 
     Attempts to open the given filename. If this fails, it tries to change
@@ -610,6 +610,10 @@ def sanitize_open(filename, open_mode):
             msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
         return (sys.stdout.buffer if hasattr(sys.stdout, 'buffer') else sys.stdout, filename)
 
+    if 'b' not in open_mode:
+        # prefer utf-8 rather than system locale in textmode
+        kwargs = {'encoding': 'utf-8', **kwargs}
+
     for attempt in range(2):
         try:
             try:
@@ -618,9 +622,9 @@ def sanitize_open(filename, open_mode):
                     # Since windows locks are mandatory, don't lock the file on windows (for now).
                     # Ref: https://github.com/yt-dlp/yt-dlp/issues/3124
                     raise LockingUnsupportedError()
-                stream = locked_file(filename, open_mode, block=False).__enter__()
+                stream = locked_file(filename, open_mode, block=False, **kwargs).__enter__()
             except OSError:
-                stream = open(filename, open_mode)
+                stream = open(filename, open_mode, **kwargs)
             return stream, filename
         except OSError as err:
             if attempt or err.errno in (errno.EACCES,):
@@ -5230,7 +5234,7 @@ class Config:
     @staticmethod
     def read_file(filename, default=[]):
         try:
-            optionf = open(filename)
+            optionf = open(filename, encoding='utf-8')
         except OSError:
             return default  # silently skip if file is not present
         try:
