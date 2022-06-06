@@ -1874,6 +1874,7 @@ from .uplynk import (
     UplynkIE,
     UplynkPreplayIE,
 )
+from .upornia import UporniaIE
 from .urort import UrortIE
 from .urplay import URPlayIE
 from .usanetwork import USANetworkIE
