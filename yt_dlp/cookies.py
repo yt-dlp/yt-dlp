@@ -156,22 +156,18 @@ def _extract_firefox_cookies(profile, logger):
 
 
 def _firefox_browser_dir():
-    if sys.platform == 'win32':
-        profpath = os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
+    if sys.platform in ('cygwin', 'win32'):
+        return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
     elif sys.platform == 'darwin':
-        profpath = os.path.expanduser('~/Library/Application Support/Firefox')
-    else:
-        profpath = os.path.expanduser('~/.mozilla/firefox')
+        return os.path.expanduser('~/Library/Application Support/Firefox')
 
-    if(os.path.exists(profpath)):
-        return profpath
-    else:
-        raise ValueError(f'cannot find profiles dir (unsupported platform: {sys.platform}?)')
+    # fallthrough case: all the other Linux/BSD/Unix derivatives
+    return os.path.expanduser('~/.mozilla/firefox')
 
 
 def _get_chromium_based_browser_settings(browser_name):
     # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md
-    if sys.platform == 'win32':
+    if sys.platform in ('cygwin', 'win32'):
         appdata_local = os.path.expandvars('%LOCALAPPDATA%')
         appdata_roaming = os.path.expandvars('%APPDATA%')
         browser_dir = {
@@ -194,6 +190,7 @@ def _get_chromium_based_browser_settings(browser_name):
             'vivaldi': os.path.join(appdata, 'Vivaldi'),
         }[browser_name]
 
+    # all the other Linux/BSD/Unix derivatives
     else:
         config = _config_home()
         browser_dir = {
@@ -217,9 +214,6 @@ def _get_chromium_based_browser_settings(browser_name):
     }[browser_name]
 
     browsers_without_profiles = {'opera'}
-    if browser_name not in browsers_without_profiles:
-        if not os.path.exists(browser_dir):
-            raise ValueError(f'browser profile dir not found (unsupported platform: {sys.platform}?)')
 
     return {
         'browser_dir': browser_dir,
