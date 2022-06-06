@@ -426,10 +426,11 @@ class FFmpegPostProcessor(PostProcessor):
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
     COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
     SUPPORTED_EXTS = tuple(ACODECS.keys())
+    FORMAT_RE = create_mapping_re(('best', *SUPPORTED_EXTS))
 
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
-        self._preferredcodec = preferredcodec or 'best'
+        self.mapping = preferredcodec or 'best'
         self._preferredquality = float_or_none(preferredquality)
         self._nopostoverwrites = nopostoverwrites
 
@@ -469,9 +470,11 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, information):
         orig_path = path = information['filepath']
-        target_format = self._preferredcodec
+        target_format, _skip_msg = resolve_mapping(information['ext'], self.mapping)
         if target_format == 'best' and information['ext'] in self.COMMON_AUDIO_EXTS:
-            self.to_screen(f'Not converting audio {orig_path}; the file is already in a common audio format')
+            target_format, _skip_msg = None, 'the file is already in a common audio format'
+        if not target_format:
+            self.to_screen(f'Not converting audio {orig_path}; {_skip_msg}')
             return [], information
 
         filecodec = self.get_audio_codec(path)

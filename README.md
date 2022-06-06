@@ -873,7 +873,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (requires ffmpeg and ffprobe)
     --audio-format FORMAT           Format to convert the audio to when -x is
                                     used. (currently supported: best (default),
-                                    mp3, aac, m4a, opus, vorbis, flac, alac, wav)
+                                    mp3, aac, m4a, opus, vorbis, flac, alac,
+                                    wav). You can specify multiple rules using
+                                    similar syntax as --remux-video
     --audio-quality QUALITY         Specify ffmpeg audio quality to use when
                                     converting the audio with -x. Insert a value
                                     between 0 (best) and 10 (worst) for VBR or a
