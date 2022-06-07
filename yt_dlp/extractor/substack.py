@@ -69,7 +69,7 @@ class SubstackIE(InfoExtractor):
         elif post_type == 'video':
             formats, subtitles = self._extract_video_formats(post_info['videoUpload']['id'], username)
         else:
-            self.raise_no_formats(f"Page type '{post_type}' is not supported")
+            self.raise_no_formats(f'Page type "{post_type}" is not supported')
 
         self._sort_formats(formats)
         return {
