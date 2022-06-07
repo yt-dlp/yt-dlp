@@ -468,6 +468,7 @@ from .ertgr import (
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,
+    WatchESPNIE,
     ESPNArticleIE,
     FiveThirtyEightIE,
     ESPNCricInfoIE,
@@ -515,6 +516,10 @@ from .fourtube import (
     PornTubeIE,
     PornerBrosIE,
     FuxIE,
+)
+from .fourzerostudio import (
+    FourZeroStudioArchiveIE,
+    FourZeroStudioClipIE,
 )
 from .fox import FOXIE
 from .fox9 import (

@@ -9,7 +9,7 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm reporting a site feature request
+        - label: I'm requesting a site-specific feature
           required: true
         - label: I've verified that I'm running yt-dlp version **2022.05.18** ([update instructions](https://github.com/yt-dlp/yt-dlp#update)) or later (specify commit)
           required: true

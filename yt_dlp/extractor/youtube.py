@@ -15,7 +15,7 @@ import time
 import traceback
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import functools
+from ..compat import functools  # isort: split
 from ..compat import (
     compat_chr,
     compat_HTTPError,
@@ -397,9 +397,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if self._LOGIN_REQUIRED and not self._cookies_passed:
             self.raise_login_required('Login details are needed to download this content', method='cookies')
 
-    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+})\s*;'
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+})\s*;'
-    _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
+    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*='
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
         return copy.deepcopy(INNERTUBE_CLIENTS[client])
@@ -477,11 +476,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             query={'key': api_key or self._extract_api_key(), 'prettyPrint': 'false'})
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
-        data = self._search_regex(
-            (fr'{self._YT_INITIAL_DATA_RE}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal)
-        if data:
-            return self._parse_json(data, item_id, fatal=fatal)
+        return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=fatal)
 
     @staticmethod
     def _extract_session_index(*data):
@@ -2412,6 +2407,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
                     yield {
                         'url': last_segment_url,
+                        'fragment_count': last_seq,
                     }
                 if known_idx == last_seq:
                     no_fragment_score += 5
@@ -2733,54 +2729,38 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         chapter_time = lambda chapter: parse_duration(self._get_text(chapter, 'timeDescription'))
         chapter_title = lambda chapter: self._get_text(chapter, 'title')
 
-        return next((
-            filter(None, (
-                self._extract_chapters(
-                    traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
-                    chapter_time, chapter_title, duration)
-                for contents in content_list
-            ))), [])
+        return next(filter(None, (
+            self._extract_chapters(traverse_obj(contents, (..., 'macroMarkersListItemRenderer')),
+                                   chapter_time, chapter_title, duration)
+            for contents in content_list)), [])
 
-    @staticmethod
-    def _extract_chapters_from_description(description, duration):
-        chapters = [{'start_time': 0}]
-        for timestamp, title in re.findall(
-                r'(?m)^((?:\d+:)?\d{1,2}:\d{2})\b\W*\s(.+?)\s*$', description or ''):
-            start = parse_duration(timestamp)
-            if start and title and chapters[-1]['start_time'] < start < duration:
-                chapters[-1]['end_time'] = start
-                chapters.append({
-                    'start_time': start,
-                    'title': title,
-                })
+    def _extract_chapters_from_description(self, description, duration):
+        return self._extract_chapters(
+            re.findall(r'(?m)^((?:\d+:)?\d{1,2}:\d{2})\b\W*\s(.+?)\s*$', description or ''),
+            chapter_time=lambda x: parse_duration(x[0]), chapter_title=lambda x: x[1],
+            duration=duration, strict=False)
+
+    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration, strict=True):
+        if not duration:
+            return
+        chapter_list = [{
+            'start_time': chapter_time(chapter),
+            'title': chapter_title(chapter),
+        } for chapter in chapter_list or []]
+        if not strict:
+            chapter_list.sort(key=lambda c: c['start_time'] or 0)
+
+        chapters = [{'start_time': 0, 'title': '<Untitled>'}]
+        for idx, chapter in enumerate(chapter_list):
+            if chapter['start_time'] is None or not chapter['title']:
+                self.report_warning(f'Incomplete chapter {idx}')
+            elif chapters[-1]['start_time'] <= chapter['start_time'] <= duration:
+                chapters[-1]['end_time'] = chapter['start_time']
+                chapters.append(chapter)
+            else:
+                self.report_warning(f'Invalid start time for chapter "{chapter["title"]}"')
         chapters[-1]['end_time'] = duration
-        return chapters[1:]
-
-    def _extract_chapters(self, chapter_list, chapter_time, chapter_title, duration):
-        chapters = []
-        last_chapter = {'start_time': 0}
-        for idx, chapter in enumerate(chapter_list or []):
-            title = chapter_title(chapter)
-            start_time = chapter_time(chapter)
-            if start_time is None:
-                continue
-            last_chapter['end_time'] = start_time
-            if start_time < last_chapter['start_time']:
-                if idx == 1:
-                    chapters.pop()
-                    self.report_warning('Invalid start time for chapter "%s"' % last_chapter['title'])
-                else:
-                    self.report_warning(f'Invalid start time for chapter "{title}"')
-                    continue
-            last_chapter = {'start_time': start_time, 'title': title}
-            chapters.append(last_chapter)
-        last_chapter['end_time'] = duration
-        return chapters
-
-    def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
-        return self._parse_json(self._search_regex(
-            (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             regex), webpage, name, default='{}'), video_id, fatal=False, lenient=True)
+        return chapters if len(chapters) > 1 and chapters[1]['start_time'] else chapters[1:]
 
     def _extract_comment(self, comment_renderer, parent=None):
         comment_id = comment_renderer.get('commentId')
@@ -3063,9 +3043,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
         initial_pr = None
         if webpage:
-            initial_pr = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
-                video_id, 'initial player response')
+            initial_pr = self._search_json(
+                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
         all_clients = set(clients)
         clients = clients[::-1]
@@ -3663,7 +3642,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Youtube Music Auto-generated description
         if video_description:
-            mobj = re.search(r'(?s)(?P<track>[^·\n]+)·(?P<artist>[^\n]+)\n+(?P<album>[^\n]+)(?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?(?:.+?Released on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?(.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+))?.+\nAuto-generated by YouTube\.\s*$', video_description)
+            mobj = re.search(
+                r'''(?xs)
+                    (?P<track>[^·\n]+)·(?P<artist>[^\n]+)\n+
+                    (?P<album>[^\n]+)
+                    (?:.+?℗\s*(?P<release_year>\d{4})(?!\d))?
+                    (?:.+?Released on\s*:\s*(?P<release_date>\d{4}-\d{2}-\d{2}))?
+                    (.+?\nArtist\s*:\s*(?P<clean_artist>[^\n]+))?
+                    .+\nAuto-generated\ by\ YouTube\.\s*$
+                ''', video_description)
             if mobj:
                 release_year = mobj.group('release_year')
                 release_date = mobj.group('release_date')
@@ -3681,9 +3668,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         initial_data = None
         if webpage:
-            initial_data = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_DATA_RE, video_id,
-                'yt initial data')
+            initial_data = self._search_json(
+                self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', video_id, fatal=False)
         if not initial_data:
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())
@@ -5673,11 +5659,13 @@ class YoutubeNotificationsIE(YoutubeTabBaseInfoExtractor):
         channel = traverse_obj(
             notification, ('contextualMenu', 'menuRenderer', 'items', 1, 'menuServiceItemRenderer', 'text', 'runs', 1, 'text'),
             expected_type=str)
+        notification_title = self._get_text(notification, 'shortMessage')
+        if notification_title:
+            notification_title = notification_title.replace('\xad', '')  # remove soft hyphens
+        # TODO: handle recommended videos
         title = self._search_regex(
-            rf'{re.escape(channel)} [^:]+: (.+)', self._get_text(notification, 'shortMessage'),
+            rf'{re.escape(channel or "")}[^:]+: (.+)', notification_title,
             'video title', default=None)
-        if title:
-            title = title.replace('\xad', '')  # remove soft hyphens
         upload_date = (strftime_or_none(self._extract_time_text(notification, 'sentTimeText')[0], '%Y%m%d')
                        if self._configuration_arg('approximate_date', ie_key=YoutubeTabIE.ie_key())
                        else None)

@@ -35,6 +35,7 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     GeoUtils,
+    LenientJSONDecoder,
     RegexNotFoundError,
     UnsupportedError,
     age_restricted,
@@ -75,6 +76,7 @@ from ..utils import (
     unified_strdate,
     unified_timestamp,
     update_Request,
+    update_url_query,
     url_basename,
     url_or_none,
     urljoin,
@@ -724,9 +726,11 @@ class InfoExtractor:
             return err.code in variadic(expected_status)
 
     def _create_request(self, url_or_request, data=None, headers={}, query={}):
-        if not isinstance(url_or_request, compat_urllib_request.Request):
-            url_or_request = sanitized_Request(url_or_request)
-        return update_Request(url_or_request, data=data, headers=headers, query=query)
+        if isinstance(url_or_request, compat_urllib_request.Request):
+            return update_Request(url_or_request, data=data, headers=headers, query=query)
+        if query:
+            url_or_request = update_url_query(url_or_request, query)
+        return sanitized_Request(url_or_request, data, headers)
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
@@ -783,7 +787,8 @@ class InfoExtractor:
                 self.report_warning(errmsg)
                 return False
 
-    def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+    def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
+                                 encoding=None, data=None, headers={}, query={}, expected_status=None):
         """
         Return a tuple (page content as string, URL handle).
 
@@ -926,21 +931,12 @@ class InfoExtractor:
             else:
                 self.report_warning(errmsg + str(ve))
 
-    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, lenient=False):
-        if transform_source:
-            json_string = transform_source(json_string)
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, **parser_kwargs):
         try:
-            try:
-                return json.loads(json_string, strict=False)
-            except json.JSONDecodeError as e:
-                if not lenient:
-                    raise
-                try:
-                    return json.loads(json_string[:e.pos], strict=False)
-                except ValueError:
-                    raise e
+            return json.loads(
+                json_string, cls=LenientJSONDecoder, strict=False, transform_source=transform_source, **parser_kwargs)
         except ValueError as ve:
-            errmsg = '%s: Failed to parse JSON ' % video_id
+            errmsg = f'{video_id}: Failed to parse JSON'
             if fatal:
                 raise ExtractorError(errmsg, cause=ve)
             else:
@@ -959,16 +955,18 @@ class InfoExtractor:
             # parser is fetched by name so subclasses can override it
             return getattr(ie, parser)(content, *args, **kwargs)
 
-        def download_handle(self, url_or_request, video_id, note=note, errnote=errnote,
-                            transform_source=None, fatal=True, *args, **kwargs):
-            res = self._download_webpage_handle(url_or_request, video_id, note, errnote, fatal, *args, **kwargs)
+        def download_handle(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
+                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+            res = self._download_webpage_handle(
+                url_or_request, video_id, note=note, errnote=errnote, fatal=fatal, encoding=encoding,
+                data=data, headers=headers, query=query, expected_status=expected_status)
             if res is False:
                 return res
             content, urlh = res
-            return parse(self, content, video_id, transform_source, fatal), urlh
+            return parse(self, content, video_id, transform_source=transform_source, fatal=fatal), urlh
 
         def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
-                             fatal=True, encoding=None, data=None, headers={}, query={}, *args, **kwargs):
+                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
             if self.get_param('load_pages'):
                 url_or_request = self._create_request(url_or_request, data, headers, query)
                 filename = self._request_dump_filename(url_or_request.full_url, video_id)
@@ -981,11 +979,21 @@ class InfoExtractor:
                 else:
                     content = self.__decode_webpage(webpage_bytes, encoding, url_or_request.headers)
                     return parse(self, content, video_id, transform_source, fatal)
-            args = [url_or_request, video_id, note, errnote, transform_source, fatal, encoding, data, headers, query, *args]
+            kwargs = {
+                'note': note,
+                'errnote': errnote,
+                'transform_source': transform_source,
+                'fatal': fatal,
+                'encoding': encoding,
+                'data': data,
+                'headers': headers,
+                'query': query,
+                'expected_status': expected_status,
+            }
             if parser is None:
-                args.pop(4)  # transform_source
+                kwargs.pop('transform_source')
             # The method is fetched by name so subclasses can override _download_..._handle
-            res = getattr(self, download_handle.__name__)(*args, **kwargs)
+            res = getattr(self, download_handle.__name__)(url_or_request, video_id, **kwargs)
             return res if res is False else res[0]
 
         def impersonate(func, name, return_value):
@@ -1179,6 +1187,14 @@ class InfoExtractor:
         else:
             self.report_warning('unable to extract %s' % _name + bug_reports_message())
             return None
+
+    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', fatal=True, **kwargs):
+        """Searches string for the JSON object specified by start_pattern"""
+        # NB: end_pattern is only used to reduce the size of the initial match
+        return self._parse_json(
+            self._search_regex(rf'{start_pattern}\s*(?P<json>{{.+}})\s*{end_pattern}',
+                               string, name, group='json', fatal=fatal) or '{}',
+            video_id, fatal=fatal, ignore_extra=True, **kwargs) or {}
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
@@ -1458,7 +1474,7 @@ class InfoExtractor:
             assert e['@type'] == 'VideoObject'
             author = e.get('author')
             info.update({
-                'url': url_or_none(e.get('contentUrl')),
+                'url': traverse_obj(e, 'contentUrl', 'embedUrl', expected_type=url_or_none),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': [{'url': url}
@@ -1526,6 +1542,8 @@ class InfoExtractor:
                     })
                     if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
                         extract_video_object(e['video'][0])
+                    elif traverse_obj(e, ('subjectOf', 0, '@type')) == 'VideoObject':
+                        extract_video_object(e['subjectOf'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
                     if expected_type is None:
@@ -1550,7 +1568,7 @@ class InfoExtractor:
                 webpage, 'next.js data', fatal=fatal, **kw),
             video_id, transform_source=transform_source, fatal=fatal)
 
-    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__'):
+    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', return_full_data=False):
         ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
         # not all website do this, but it can be changed
         # https://stackoverflow.com/questions/67463109/how-to-change-or-hide-nuxt-and-nuxt-keyword-in-page-source
@@ -1566,7 +1584,10 @@ class InfoExtractor:
             if val in ('undefined', 'void 0'):
                 args[key] = 'null'
 
-        return self._parse_json(js_to_json(js, args), video_id)['data'][0]
+        ret = self._parse_json(js_to_json(js, args), video_id)
+        if return_full_data:
+            return ret
+        return ret['data'][0]
 
     @staticmethod
     def _hidden_inputs(html):

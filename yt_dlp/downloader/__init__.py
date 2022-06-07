@@ -84,8 +84,8 @@ def _get_suitable_downloader(info_dict, protocol, params, default):
     if default is NO_DEFAULT:
         default = HttpFD
 
-    # if (info_dict.get('start_time') or info_dict.get('end_time')) and not info_dict.get('requested_formats') and FFmpegFD.can_download(info_dict):
-    #     return FFmpegFD
+    if (info_dict.get('section_start') or info_dict.get('section_end')) and FFmpegFD.can_download(info_dict):
+        return FFmpegFD
 
     info_dict['protocol'] = protocol
     downloaders = params.get('external_downloader')

@@ -594,6 +594,19 @@ def clean_html(html):
     return html.strip()
 
 
+class LenientJSONDecoder(json.JSONDecoder):
+    def __init__(self, *args, transform_source=None, ignore_extra=False, **kwargs):
+        self.transform_source, self.ignore_extra = transform_source, ignore_extra
+        super().__init__(*args, **kwargs)
+
+    def decode(self, s):
+        if self.transform_source:
+            s = self.transform_source(s)
+        if self.ignore_extra:
+            return self.raw_decode(s.lstrip())[0]
+        return super().decode(s)
+
+
 def sanitize_open(filename, open_mode):
     """Try to open the given filename, and slightly tweak it if this fails.
 
@@ -1936,7 +1949,7 @@ def intlist_to_bytes(xs):
 
 
 class LockingUnsupportedError(OSError):
-    msg = 'File locking is not supported on this platform'
+    msg = 'File locking is not supported'
 
     def __init__(self):
         super().__init__(self.msg)
@@ -2061,8 +2074,11 @@ class locked_file:
             try:
                 self.f.truncate()
             except OSError as e:
-                if e.errno != 29:  # Illegal seek, expected when self.f is a FIFO
-                    raise e
+                if e.errno not in (
+                    errno.ESPIPE,  # Illegal seek - expected for FIFO
+                    errno.EINVAL,  # Invalid argument - expected for /dev/null
+                ):
+                    raise
         return self
 
     def unlock(self):
@@ -3477,6 +3493,23 @@ def match_filter_func(filters):
             filter_str = ') | ('.join(map(str.strip, filters))
             return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func
+
+
+def download_range_func(chapters, ranges):
+    def inner(info_dict, ydl):
+        warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
+                   else 'Chapter information is unavailable')
+        for regex in chapters or []:
+            for i, chapter in enumerate(info_dict.get('chapters') or []):
+                if re.search(regex, chapter['title']):
+                    warning = None
+                    yield {**chapter, 'index': i}
+        if warning:
+            ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
+
+        yield from ({'start_time': start, 'end_time': end} for start, end in ranges or [])
+
+    return inner
 
 
 def parse_dfxp_time_expr(time_expr):
