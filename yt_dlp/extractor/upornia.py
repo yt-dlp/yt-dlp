@@ -1,4 +1,5 @@
 from .common import InfoExtractor
+from ..utils import traverse_obj
 import base64
 import json
 
@@ -36,7 +37,7 @@ class UporniaIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         constants = self._search_regex(r'window.constants = (.+)', webpage, 'cons')
         constants = json.loads(constants)
-        lt = constants.get('query').get('lifetime')
+        lt = traverse_obj(constants, ('query', 'lifetime'))
         if len(video_id) < 7:
             dira = '0'
             dirb = video_id[:-3] + '000'
@@ -47,9 +48,9 @@ class UporniaIE(InfoExtractor):
             print('Not yet defined')  # TODO: throw an error - wont happen for the foreseeable future
         consturl = 'https://upornia.com/api/json/video/{}/{}/{}/{}.json'.format(lt, dira, dirb, video_id)
         more_data = self._download_json(consturl, video_id)
-        title = more_data.get('video').get('title')
-        description = more_data.get('video').get('description')
-        thumbnail = more_data.get('video').get('thumb')
+        title = traverse_obj(more_data, ('video', 'title'))
+        description = traverse_obj(more_data, ('video', 'description'))
+        thumbnail = traverse_obj(more_data, ('video', 'thumb'))
         data = self._download_json('https://upornia.com/api/videofile.php?video_id={}'.format(video_id), video_id, headers={'Referer': url})
         roman = self.fixcyr(data[0].get('video_url'))
         get_vid = base64.b64decode(roman.encode('utf-8') + b'==')
@@ -62,7 +63,7 @@ class UporniaIE(InfoExtractor):
             'id': video_id,
             'title': title,
             'description': description,  # self._og_search_description(webpage),
-            'uploader': more_data['video']['user']['username'],
+            'uploader': traverse_obj(more_data, ('video', 'user', 'username')),
             'thumbnail': thumbnail,
             # TODO more properties (see yt_dlp/extractor/common.py)
         }
