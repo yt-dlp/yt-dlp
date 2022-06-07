@@ -111,7 +111,7 @@ class SouthParkDeIE(SouthParkIE):
 
 class SouthParkLatIE(SouthParkIE):
     IE_NAME = 'southpark.lat'
-    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.lat/(?:(en/(videoclip|collections|episodes|video-clips))|(episodios|videoclip|collections))/(?P<id>(?P<unique_id>.+?)/.+?)(?:\?|#|$))'
+    _VALID_URL = r'https?://(?:www\.)?(?P<url>southpark\.lat/(?:en/)?(?:video-?clips?|collections|episod(?:e|io)s)/(?P<id>[^/#?]+)'
     _TESTS = [{
         'url': 'https://www.southpark.lat/en/video-clips/ct46op/south-park-tooth-fairy-cartman',
         'only_matching': True,
