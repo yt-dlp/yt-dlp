@@ -1569,6 +1569,7 @@ from .southpark import (
     SouthParkDeIE,
     SouthParkDkIE,
     SouthParkEsIE,
+    SouthParkLatIE,
     SouthParkNlIE
 )
 from .sovietscloset import (
