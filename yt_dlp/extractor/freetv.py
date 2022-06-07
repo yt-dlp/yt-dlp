@@ -132,9 +132,11 @@ class FreeTvIE(FreeTvBaseIE):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
 
-        title = self._html_search_regex(r'<h1[^>]+class=["\']synopis[^>]>([^<]+)', webpage, 'title', fatal=False),
+        title = self._html_search_regex(
+            r'<h1[^>]+class=["\']synopis[^>]>(?P<title>[^<]+)', webpage, 'title', group='title', fatal=False)
         description = self._html_search_regex(
-            r'<div[^>]+class=["\']+synopis content[^>]><p>([^<]+)', webpage, 'description', fatal=False)
+            r'<div[^>]+class=["\']+synopis content[^>]><p>(?P<description>[^<]+)',
+            webpage, 'description', group='description', fatal=False)
 
         return self.playlist_result(
             itertools.chain.from_iterable(
