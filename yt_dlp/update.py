@@ -29,7 +29,8 @@ def _get_variant_and_executable_path():
     path = os.path.dirname(__file__)
     if isinstance(__loader__, zipimporter):
         return 'zip', os.path.join(path, '..')
-    elif os.path.basename(sys.argv[0]) == '__main__.py':
+    elif (os.path.basename(sys.argv[0]) in ('__main__.py', '-m')
+          and os.path.exists(os.path.join(path, '../.git/HEAD'))):
         return 'source', path
     return 'unknown', path
 
