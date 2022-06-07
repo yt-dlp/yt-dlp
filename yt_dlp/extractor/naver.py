@@ -332,7 +332,7 @@ class NaverNowIE(NaverBaseIE):
             'title': traverse_obj(vod_info, ('episode', 'title')),
             'timestamp': unified_timestamp(traverse_obj(vod_info, ('episode', 'start_time'))),
             'thumbnail': vod_info.get('thumbnail_image_url'),
-            }, self._extract_video_info(replay_id, vod_info['video_id'], in_key))
+        }, self._extract_video_info(replay_id, vod_info['video_id'], in_key))
 
     def _extract_highlight(self, show_id, highlight_id, highlights=None):
         page = 0
@@ -358,7 +358,7 @@ class NaverNowIE(NaverBaseIE):
             'title': highlight.get('title'),
             'timestamp': unified_timestamp(highlight.get('regdate')),
             'thumbnail': highlight.get('thumbnail_url'),
-            }, self._extract_video_info(highlight_id, highlight['video_id'], highlight['video_inkey']))
+        }, self._extract_video_info(highlight_id, highlight['video_id'], highlight['video_inkey']))
 
     def _extract_show_replays(self, show_id):
         page = 0
