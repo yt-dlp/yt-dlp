@@ -1,12 +1,14 @@
 import functools
+
 from .common import InfoExtractor
+from .dailymotion import DailymotionIE
 from ..utils import (
-    traverse_obj,
     ExtractorError,
     GeoRestrictedError,
     OnDemandPagedList,
+    smuggle_url,
+    traverse_obj,
 )
-from urllib.parse import urlsplit
 
 
 class NetverseBaseIE(InfoExtractor):
@@ -16,12 +18,12 @@ class NetverseBaseIE(InfoExtractor):
         'webseries': 'webseries',
     }
 
-    def get_required_json(self, url, data=None, query={}):
+    def _call_api(self, url, query={}):
         display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
 
         json_data = self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}',
-            display_id, data=data, query=query)
+            display_id, query=query)
 
         # adapted from dailymotion.py
         error = json_data.get('error')
@@ -33,17 +35,6 @@ class NetverseBaseIE(InfoExtractor):
 
         return display_id, json_data
 
-    def _call_metadata_api_from_video_url(self, dailymotion_url, display_id, req_file_type='video', query={}):
-        access_id = urlsplit(dailymotion_url).path.split('/')[-1]
-        required_query = {
-            'embedder': 'https://www.netverse.id',
-            **query,
-        }
-        metadata_json = self._download_json(
-            f'https://www.dailymotion.com/player/metadata/{req_file_type}/{access_id}',
-            display_id, query=required_query)
-        return access_id, metadata_json
-
 
 class NetverseIE(NetverseBaseIE):
     _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>watch|video)/(?P<display_id>[^/?#&]+)'
@@ -51,8 +42,7 @@ class NetverseIE(NetverseBaseIE):
         # Watch video
         'url': 'https://www.netverse.id/watch/waktu-indonesia-bercanda-edisi-spesial-lebaran-2016',
         'info_dict': {
-            'access_id': 'k4yhqUwINAGtmHx3NkL',
-            'id': 'x82urb7',
+            'id': 'k4yhqUwINAGtmHx3NkL',
             'title': 'Waktu Indonesia Bercanda - Edisi Spesial Lebaran 2016',
             'ext': 'mp4',
             'season': 'Season 2016',
@@ -61,6 +51,16 @@ class NetverseIE(NetverseBaseIE):
             'episode_number': 22,
             'series': 'Waktu Indonesia Bercanda',
             'episode': 'Episode 22',
+            'uploader_id': 'x2ir3vq',
+            'age_limit': 0,
+            'tags': [],
+            'view_count': int,
+            'display_id': 'waktu-indonesia-bercanda-edisi-spesial-lebaran-2016',
+            'duration': 2990,
+            'upload_date': '20210722',
+            'timestamp': 1626919804,
+            'like_count': int,
+            'uploader': 'Net Prime',
         }
     }, {
         # series
@@ -82,9 +82,8 @@ class NetverseIE(NetverseBaseIE):
         # non www host
         'url': 'https://netverse.id/watch/tetangga-baru',
         'info_dict': {
-            'id': 'x8278vk',
+            'id': 'k4CNGz7V0HJ7vfwZbXy',
             'ext': 'mp4',
-            'access_id': 'k4CNGz7V0HJ7vfwZbXy',
             'title': 'Tetangga Baru',
             'season': 'Season 1',
             'description': 'md5:ed6dd355bed84d139b1154c3d8d65957',
@@ -92,10 +91,17 @@ class NetverseIE(NetverseBaseIE):
             'episode_number': 1,
             'series': 'Tetangga Masa Gitu',
             'episode': 'Episode 1',
+            'timestamp': 1624538169,
+            'view_count': int,
+            'upload_date': '20210624',
+            'age_limit': 0,
+            'uploader_id': 'x2ir3vq',
+            'like_count': int,
+            'uploader': 'Net Prime',
+            'tags': ['PG008534', 'tetangga', 'Baru'],
+            'display_id': 'tetangga-baru',
+            'duration': 1406,
         },
-        'params': {
-            'noplaylist': True,
-        }
     }, {
         # /video url
         'url': 'https://www.netverse.id/video/pg067482-hellojadoo-season1',
@@ -116,50 +122,20 @@ class NetverseIE(NetverseBaseIE):
     }]
 
     def _real_extract(self, url):
-        display_id, program_json = self.get_required_json(url=url)
-
-        videos = traverse_obj(program_json, ('response', 'videos'))
-        video_url = videos.get('dailymotion_url')
-        episode_order = videos.get('episode_order')
-        playlist_id = traverse_obj(videos, ('program_detail', 'slug'))
-
-        # actually the video itself in dailymotion, but in private
-        # Maybe need to refactor
-        access_id, real_video_json = self._call_metadata_api_from_video_url(video_url, display_id)
-        video_id = real_video_json.get('id')
-
-        # For m3u8
-        m3u8_file = traverse_obj(real_video_json, ('qualities', 'auto'))
-
-        video_format, subtitles = [], {}
-        for format in m3u8_file:
-            video_url = format.get('url')
-            if video_url is None:
-                continue
-            fmt, sub = self._extract_m3u8_formats_and_subtitles(video_url, video_id=display_id)
-            video_format.extend(fmt)
-            self._merge_subtitles(sub, target=subtitles)
-
-        episode = f'Episode {episode_order}'
-        self._sort_formats(video_format)
-
-        if playlist_id:
-            if self._yes_playlist(playlist_id, display_id):
-                return self.url_result(
-                    f'https://netverse.id/webseries/{playlist_id}',
-                    NetversePlaylistIE, playlist_id)
+        display_id, program_json = self._call_api(url)
+        videos = program_json['response']['videos']
 
         return {
-            'id': video_id,
-            'access_id': access_id,
-            'formats': video_format,
+            '_type': 'url_transparent',
+            'ie_key': DailymotionIE.ie_key(),
+            'url': smuggle_url(videos['dailymotion_url'], {'query': {'embedder': 'https://www.netverse.id'}}),
+            'display_id': display_id,
             'title': videos.get('title'),
             'season': videos.get('season_name'),
             'thumbnail': traverse_obj(videos, ('program_detail', 'thumbnail_image')),
             'description': traverse_obj(videos, ('program_detail', 'description')),
             'episode_number': videos.get('episode_order'),
-            'series': traverse_obj(videos, ("program_detail", "title")),
-            'episode': episode,  # the test always complain about episode if it didn't exists
+            'series': traverse_obj(videos, ('program_detail', 'title')),
         }
 
 
@@ -171,44 +147,21 @@ class NetversePlaylistIE(NetverseBaseIE):
             'id': 'tetangga-masa-gitu',
             'title': 'Tetangga Masa Gitu',
         },
-        'playlist_mincount': 10,
-        'playlist_maxcount': 46,
-        'params': {
-            'skip_download': True,
-        }
+        'playlist_count': 46,
     }
 
-    def parse_playlist(self, url, playlist_page):
-        display_id, playlist_json = self.get_required_json(url, query={'page': playlist_page})
-        videos = traverse_obj(playlist_json, ('response', 'related', 'data'))
-
-        for video in videos:
-            vid_url = video.get('slug')
-
-            if vid_url is not None:
-                video_url = f'https://www.netverse.id/video/{vid_url}'
-
-                yield self.url_result(video_url, NetverseIE)
-
-    def parse_playlist_old(self, playlist_json):
-        videos = traverse_obj(playlist_json, ('response', 'related', 'data'))
-
-        for video in videos:
-            vid_url = video.get('slug')
-
-            if vid_url is not None:
-                video_url = f'https://www.netverse.id/video/{vid_url}'
-
-                yield self.url_result(video_url, NetverseIE)
+    def parse_playlist(self, url, page_num):
+        _, playlist_json = self._call_api(url, query={'page': page_num})
+        for slug in traverse_obj(playlist_json, ('response', 'related', 'data', ..., 'slug')):
+            yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
 
     def _real_extract(self, url):
-        display_id, playlist_data = self.get_required_json(url)
-        webseries_info = traverse_obj(playlist_data, ('response', 'webseries_info'))
+        _, playlist_data = self._call_api(url)
+
         # TODO: get video from other season
         # The season has id and the next season video is located at api_url/<season_id>?page=<page>
         # still not not sure about number in OnDemandPagedList
-        entries = OnDemandPagedList(functools.partial(self.parse_playlist, url), 8)
-
         return self.playlist_result(
-            entries, webseries_info.get('slug'), webseries_info.get('title')
-        )
+            OnDemandPagedList(functools.partial(self.parse_playlist, url), 8),
+            traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
+            traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
