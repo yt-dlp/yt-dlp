@@ -1,4 +1,6 @@
+import itertools
 import re
+from urllib.parse import urlparse, parse_qs
 
 from .common import InfoExtractor
 from ..utils import (
@@ -12,10 +14,6 @@ from ..utils import (
     unified_timestamp,
     merge_dicts,
     traverse_obj,
-)
-from ..compat import (
-    compat_urllib_parse_urlparse,
-    compat_parse_qs,
 )
 
 
@@ -329,14 +327,12 @@ class NaverNowIE(NaverBaseIE):
     def _extract_replay(self, show_id, replay_id):
         vod_info = self._download_json(f'{self._API_URL}/shows/{show_id}/vod/{replay_id}', replay_id)
         in_key = self._download_json(f'{self._API_URL}/shows/{show_id}/vod/{replay_id}/inkey', replay_id)['inKey']
-        return merge_dicts(
-            {
-                'id': f'{show_id}-{replay_id}',
-                'title': traverse_obj(vod_info, ('episode', 'title')),
-                'timestamp': unified_timestamp(traverse_obj(vod_info, ('episode', 'start_time'))),
-                'thumbnail': vod_info.get('thumbnail_image_url'),
-            },
-            self._extract_video_info(replay_id, vod_info['video_id'], in_key))
+        return merge_dicts({
+            'id': f'{show_id}-{replay_id}',
+            'title': traverse_obj(vod_info, ('episode', 'title')),
+            'timestamp': unified_timestamp(traverse_obj(vod_info, ('episode', 'start_time'))),
+            'thumbnail': vod_info.get('thumbnail_image_url'),
+            }, self._extract_video_info(replay_id, vod_info['video_id'], in_key))
 
     def _extract_highlight(self, show_id, highlight_id, highlights=None):
         page = 0
@@ -357,19 +353,15 @@ class NaverNowIE(NaverBaseIE):
             raise ExtractorError(f'Unable to find highlight {highlight_id} for show {show_id}')
 
         highlight = highlight[0]
-        return merge_dicts(
-            {
-                'id': f'{show_id}-{highlight_id}',
-                'title': highlight.get('title'),
-                'timestamp': unified_timestamp(highlight.get('regdate')),
-                'thumbnail': highlight.get('thumbnail_url'),
-            },
-            self._extract_video_info(
-                highlight_id, highlight['video_id'], highlight['video_inkey']))
+        return merge_dicts({
+            'id': f'{show_id}-{highlight_id}',
+            'title': highlight.get('title'),
+            'timestamp': unified_timestamp(highlight.get('regdate')),
+            'thumbnail': highlight.get('thumbnail_url'),
+            }, self._extract_video_info(highlight_id, highlight['video_id'], highlight['video_inkey']))
 
     def _extract_show_replays(self, show_id):
         page = 0
-        entries = []
         while True:
             show_vod_info = self._download_json(
                 f'{self._API_URL}/vod-shows/{show_id}', show_id,
@@ -377,16 +369,14 @@ class NaverNowIE(NaverBaseIE):
                 note=f'Downloading JSON vod list for show {show_id} - page {page}'
             ).get('response', {}).get('result', {})
             for v in show_vod_info.get('vod_list', []):
-                entries.append(self._extract_replay(show_id, v['id']))
+                yield self._extract_replay(show_id, v['id'])
 
             if show_vod_info.get('count', 0) <= self._PAGE_SIZE * (page + 1):
                 break
             page += 1
-        return entries
 
     def _extract_show_highlights(self, show_id):
         page = 0
-        entries = []
         while True:
             highlights_videos = self._download_json(
                 f'{self._API_URL}/shows/{show_id}/highlights/videos/', show_id,
@@ -395,33 +385,25 @@ class NaverNowIE(NaverBaseIE):
 
             highlights = highlights_videos.get('results', [])
             for v in highlights:
-                entries.append(self._extract_highlight(show_id, v['id'], highlights_videos))
+                yield self._extract_highlight(show_id, v['id'], highlights_videos)
 
             if highlights_videos.get('count', 0) <= self._PAGE_SIZE * (page + 1):
                 break
             page += 1
-        return entries
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
-        qs = compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+        qs = parse_qs(urlparse(url).query)
 
-        if qs.get('shareHightlight') and not self._yes_playlist(show_id, qs["shareHightlight"][0]):
+        if not self._yes_playlist(show_id, qs.get('shareHightlight')):
             return self._extract_highlight(show_id, qs['shareHightlight'][0])
-
-        if qs.get('shareReplayId') and not self._yes_playlist(show_id, qs["shareReplayId"][0]):
+        elif not self._yes_playlist(show_id, qs.get('shareReplayId')):
             return self._extract_replay(show_id, qs['shareReplayId'][0])
 
         show_info = self._download_json(
             f'{self._API_URL}/shows/{show_id}', show_id,
             note=f'Downloading JSON vod list for show {show_id}')
 
-        if qs.get('shareHightlight') or qs.get('shareReplayId'):
-            self.to_screen(
-                'Downloading entire show. To download only the replay/highlight, use --no-playlist')
-
-        # extract both replays and highlights
-        entries = self._extract_show_replays(show_id)
-        entries.extend(self._extract_show_highlights(show_id))
-
-        return self.playlist_result(entries, show_id, show_info.get('title'))
+        return self.playlist_result(
+            itertools.chain(self._extract_show_replays(show_id), self._extract_show_highlights(show_id)),
+            show_id, show_info.get('title'))
