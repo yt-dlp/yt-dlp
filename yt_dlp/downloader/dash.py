@@ -73,7 +73,7 @@ class DashSegmentsFD(FragmentFD):
 
             yield {
                 'frag_index': frag_index,
-                'fragment_count_tmp': fragment.get('fragment_count_tmp'),
+                'fragment_count': fragment.get('fragment_count'),
                 'index': i,
                 'url': fragment_url,
             }
