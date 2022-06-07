@@ -1,3 +1,5 @@
+import re
+
 from .common import InfoExtractor
 
 
@@ -37,6 +39,19 @@ class SubstackIE(InfoExtractor):
             'uploader': 'andrewzimmern',
         }
     }]
+
+    @staticmethod
+    def is_custom_domain(webpage):
+        return re.search(r'<script[^>]+src=["\']https://substackcdn.com/.*\.js', webpage) is not None
+
+    @staticmethod
+    def url_from_custom_domain(url):
+        custom_domain = r'https?://(?:www\.)?(?P<username>[\w-]+)\.(?:[a-z]+)/(?P<params>.+)'
+
+        username = re.search(custom_domain, url).group('username')
+        params = re.search(custom_domain, url).group('params')
+
+        return f'https://{username}.substack.com/{params}'
 
     def _extract_video_formats(self, video_id, username):
         formats, subtitles = [], {}
