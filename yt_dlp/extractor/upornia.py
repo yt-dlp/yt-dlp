@@ -46,15 +46,15 @@ class UporniaIE(InfoExtractor):
             dirb = video_id[:4] + '000'
         else:
             print('Not yet defined')  # TODO: throw an error - wont happen for the foreseeable future
-        consturl = 'https://upornia.com/api/json/video/{}/{}/{}/{}.json'.format(lt, dira, dirb, video_id)
+        consturl = f'https://upornia.com/api/json/video/{lt}/{dira}/{dirb}/{video_id}.json'
         more_data = self._download_json(consturl, video_id)
         title = traverse_obj(more_data, ('video', 'title'))
         description = traverse_obj(more_data, ('video', 'description'))
         thumbnail = traverse_obj(more_data, ('video', 'thumb'))
-        data = self._download_json('https://upornia.com/api/videofile.php?video_id={}'.format(video_id), video_id, headers={'Referer': url})
+        data = self._download_json(f'https://upornia.com/api/videofile.php?video_id={video_id}', video_id, headers={'Referer': url})
         roman = self.fixcyr(data[0].get('video_url'))
-        get_vid = base64.b64decode(roman.encode('utf-8') + b'==')
-        url = 'https://upornia.com{}'.format(get_vid.decode())
+        get_vid = base64.b64decode(roman.encode('utf-8') + b'==').decode()
+        url = f'https://upornia.com{get_vid}'
 
         # TODO more code goes here, for example ...
 
