@@ -151,7 +151,7 @@ class MotherlessPaginatedIE(InfoExtractor):
 
     def _extract_entries(self, webpage, base):
         for mobj in re.finditer(r'href=".*(?P<href>\/[A-F0-9]+)"\s+title="(?P<title>[^"]+)', webpage):
-            video_url = compat_urlparse.urljoin(base, mobj.group("href"))
+            video_url = compat_urlparse.urljoin(base, mobj.group('href'))
             video_id = MotherlessIE.get_temp_id(video_url)
 
             if video_id:
