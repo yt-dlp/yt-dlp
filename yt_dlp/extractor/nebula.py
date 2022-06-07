@@ -6,7 +6,6 @@ import urllib
 from ..utils import (
     ExtractorError,
     parse_iso8601,
-    try_get,
 )
 from .common import InfoExtractor
 
@@ -103,8 +102,11 @@ class NebulaBaseIE(InfoExtractor):
         manifest_url = stream_info['manifest']
         return self._extract_m3u8_formats_and_subtitles(manifest_url, slug)
 
-    def _build_video_info(self, episode):
-        fmts, subs = self._fetch_video_formats(episode['slug'])
+    def _build_video_info(self, episode, fetch_formats_and_subs=True):
+        if fetch_formats_and_subs:
+            fmts, subs = self._fetch_video_formats(episode['slug'])
+        else:
+            fmts, subs = [], []
         channel_slug = episode['channel_slug']
         channel_title = episode['channel_title']
         return {
@@ -112,6 +114,7 @@ class NebulaBaseIE(InfoExtractor):
             'display_id': episode['slug'],
             'formats': fmts,
             'subtitles': subs,
+            'url_result': f'https://nebula.app/{episode["slug"]}' if not fetch_formats_and_subs else '',
             'title': episode['title'],
             'description': episode['description'],
             'timestamp': parse_iso8601(episode['published_at']),
@@ -282,7 +285,7 @@ class NebulaChannelIE(NebulaBaseIE):
         episodes = channel['episodes']['results']
         for page_num in itertools.count(2):
             for episode in episodes:
-                yield self._build_video_info(episode)
+                yield self._build_video_info(episode, fetch_formats_and_subs=False)
             next_url = channel['episodes']['next']
             if not next_url:
                 break
