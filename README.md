@@ -93,6 +93,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE]`
 
+* **Download time range**: Videos can be downloaded partially based on either timestamps or chapters using `--download-sections`
+
 * **Split video by chapters**: Videos can be split into multiple files based on chapters using `--split-chapters`
 
 * **Multi-threaded fragment downloads**: Download multiple fragments of m3u8/mpd videos in parallel. Use `--concurrent-fragments` (`-N`) option to set the number of threads used
@@ -111,7 +113,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Output template improvements**: Output templates can now have date-time formatting, numeric offsets, object traversal etc. See [output template](#output-template) for details. Even more advanced operations can also be done with the help of `--parse-metadata` and `--replace-in-metadata`
 
-* **Other new options**: Many new options have been added such as `--concat-playlist`, `--print`, `--wait-for-video`, `--sleep-requests`, `--convert-thumbnails`, `--write-link`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
+* **Other new options**: Many new options have been added such as `--alias`, `--print`, `--concat-playlist`, `--wait-for-video`, `--retry-sleep`, `--sleep-requests`, `--convert-thumbnails`, `--force-download-archive`, `--force-overwrites`, `--break-on-reject` etc
 
 * **Improvements**: Regex and other operators in `--format`/`--match-filter`, multiple `--postprocessor-args` and `--downloader-args`, faster archive checking, more [format selection options](#format-selection), merge multi-video/audio, multiple `--config-locations`, `--exec` at different stages, etc
 
@@ -146,12 +148,12 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Thumbnail embedding in `mp4` is done with mutagen if possible. Use `--compat-options embed-thumbnail-atomicparsley` to force the use of AtomicParsley instead
 * Some private fields such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
-* `certifi` will be used for SSL root certificates, if installed. If you want to use system certificates (e.g. self-signed), use `--compat-options no-certifi`
+* `certifi` will be used for SSL root certificates, if installed. If you want to use only system certificates, use `--compat-options no-certifi`
 * youtube-dl tries to remove some superfluous punctuations from filenames. While this can sometimes be helpfull, it is often undesirable. So yt-dlp tries to keep the fields in the filenames as close to their original values as possible. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
 
 For ease of use, a few more compat options are available:
 
-* `--compat-options all`: Use all compat options
+* `--compat-options all`: Use all compat options (Do NOT use)
 * `--compat-options youtube-dl`: Same as `--compat-options all,-multistreams`
 * `--compat-options youtube-dlc`: Same as `--compat-options all,-no-live-chat,-no-youtube-channel-redirect`
 
@@ -358,8 +360,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     defined in the current file
     --config-locations PATH         Location of the main configuration file;
                                     either the path to the config or its
-                                    containing directory. Can be used multiple
-                                    times and inside other configuration files
+                                    containing directory ("-" for stdin). Can be
+                                    used multiple times and inside other
+                                    configuration files
     --flat-playlist                 Do not extract the videos of a playlist,
                                     only list them
     --no-flat-playlist              Extract the videos of a playlist
@@ -554,6 +557,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-hls-use-mpegts             Do not use the mpegts container for HLS
                                     videos. This is default when not downloading
                                     live streams
+    --download-sections REGEX       Download only chapters whose title matches
+                                    the given regular expression. Time ranges
+                                    prefixed by a "*" can also be used in place
+                                    of chapters to download the specified range.
+                                    Eg: --download-sections "*10:15-15:00"
+                                    --download-sections "intro". Needs ffmpeg.
+                                    This option can be used multiple times to
+                                    download multiple sections
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
@@ -870,23 +881,24 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## Post-Processing Options:
     -x, --extract-audio             Convert video files to audio-only files
                                     (requires ffmpeg and ffprobe)
-    --audio-format FORMAT           Specify audio format to convert the audio to
-                                    when -x is used. Currently supported formats
-                                    are: best (default) or one of aac, flac,
-                                    mp3, m4a, opus, vorbis, wav, alac
+    --audio-format FORMAT           Format to convert the audio to when -x is
+                                    used. (currently supported: best (default),
+                                    mp3, aac, m4a, opus, vorbis, flac, alac,
+                                    wav). You can specify multiple rules using
+                                    similar syntax as --remux-video
     --audio-quality QUALITY         Specify ffmpeg audio quality to use when
                                     converting the audio with -x. Insert a value
                                     between 0 (best) and 10 (worst) for VBR or a
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
                                     necessary (currently supported: mp4, mkv,
-                                    flv, webm, mov, avi, mka, ogg, aac, flac,
-                                    mp3, m4a, opus, vorbis, wav, alac). If
+                                    flv, webm, mov, avi, mka, ogg, mp3, aac,
+                                    m4a, opus, vorbis, flac, alac, wav). If
                                     target container does not support the
                                     video/audio codec, remuxing will fail. You
                                     can specify multiple rules; Eg.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
-                                    mov to mp4 and anything else to mkv.
+                                    mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
                                     necessary. The syntax and supported formats
                                     are the same as --remux-video
@@ -984,7 +996,9 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (currently supported: srt, vtt, ass, lrc)
                                     (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT     Convert the thumbnails to another format
-                                    (currently supported: jpg, png, webp)
+                                    (currently supported: jpg, png, webp). You
+                                    can specify multiple rules using similar
+                                    syntax as --remux-video
     --split-chapters                Split video into multiple files based on
                                     internal chapters. The "chapter:" prefix can
                                     be used with "--paths" and "--output" to set
@@ -993,18 +1007,16 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-split-chapters             Do not split video based on chapters
                                     (default)
     --remove-chapters REGEX         Remove chapters whose title matches the
-                                    given regular expression. Time ranges
-                                    prefixed by a "*" can also be used in place
-                                    of chapters to remove the specified range.
-                                    Eg: --remove-chapters "*10:15-15:00"
-                                    --remove-chapters "intro". This option can
+                                    given regular expression. The syntax is the
+                                    same as --download-sections. This option can
                                     be used multiple times
     --no-remove-chapters            Do not remove any chapters from the file
                                     (default)
-    --force-keyframes-at-cuts       Force keyframes around chapters when
-                                    removing/splitting them. The resulting video
-                                    may have fewer artifacts around the cuts,
-                                    but is very slow due to needing a re-encode
+    --force-keyframes-at-cuts       Force keyframes at cuts when
+                                    downloading/splitting/removing sections.
+                                    This is slow due to needing a re-encode, but
+                                    the resulting video may have fewer artifacts
+                                    around the cuts
     --no-force-keyframes-at-cuts    Do not force keyframes around the chapters
                                     when cutting/splitting (default)
     --use-postprocessor NAME[:ARGS]
@@ -1282,7 +1294,7 @@ Available for the media that is a track or a part of a music album:
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
  - `release_year` (numeric): Year (YYYY) when the album was released
 
-Available for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
+Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 
  - `section_title` (string): Title of the chapter
  - `section_number` (numeric): Number of the chapter within the file
@@ -1782,7 +1794,7 @@ with YoutubeDL() as ydl:
     ydl.download(URLS)
 ```
 
-Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L181).
+Most likely, you'll want to use various options. For a list of options available, have a look at [`yt_dlp/YoutubeDL.py`](yt_dlp/YoutubeDL.py#L180).
 
 **Tip**: If you are porting your code from youtube-dl to yt-dlp, one important point to look out for is that we do not guarantee the return value of `YoutubeDL.extract_info` to be json serializable, or even be a dictionary. It will be dictionary-like, but if you want to ensure it is a serializable dictionary, pass it through `YoutubeDL.sanitize_info` as shown in the [example below](#extracting-information)
 
@@ -2021,6 +2033,7 @@ While these options still work, their use is not recommended since there are oth
 These options are not intended to be used by the end-user
 
     --test                           Download only part of video for testing extractors
+    --load-pages                     Load pages dumped by --write-pages
     --youtube-print-sig-code         For testing youtube signatures
     --allow-unplayable-formats       List unplayable formats also
     --no-allow-unplayable-formats    Default

@@ -242,6 +242,9 @@ class FragmentFD(FileDownloader):
             if s['status'] not in ('downloading', 'finished'):
                 return
 
+            if not total_frags and ctx.get('fragment_count'):
+                state['fragment_count'] = ctx['fragment_count']
+
             if ctx_id is not None and s.get('ctx_id') != ctx_id:
                 return
 
@@ -450,6 +453,7 @@ class FragmentFD(FileDownloader):
             fatal, count = is_fatal(fragment.get('index') or (frag_index - 1)), 0
             while count <= fragment_retries:
                 try:
+                    ctx['fragment_count'] = fragment.get('fragment_count')
                     if self._download_fragment(ctx, fragment['url'], info_dict, headers):
                         break
                     return
@@ -496,12 +500,20 @@ class FragmentFD(FileDownloader):
 
             self.report_warning('The download speed shown is only of one thread. This is a known issue and patches are welcome')
             with tpe or concurrent.futures.ThreadPoolExecutor(max_workers) as pool:
-                for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
-                    ctx['fragment_filename_sanitized'] = frag_filename
-                    ctx['fragment_index'] = frag_index
-                    result = append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx)
-                    if not result:
-                        return False
+                try:
+                    for fragment, frag_index, frag_filename in pool.map(_download_fragment, fragments):
+                        ctx.update({
+                            'fragment_filename_sanitized': frag_filename,
+                            'fragment_index': frag_index,
+                        })
+                        if not append_fragment(decrypt_fragment(fragment, self._read_fragment(ctx)), frag_index, ctx):
+                            return False
+                except KeyboardInterrupt:
+                    self._finish_multiline_status()
+                    self.report_error(
+                        'Interrupted by user. Waiting for all threads to shutdown...', is_error=False, tb=False)
+                    pool.shutdown(wait=False)
+                    raise
         else:
             for fragment in fragments:
                 if not interrupt_trigger[0]:

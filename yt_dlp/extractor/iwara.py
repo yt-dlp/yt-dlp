@@ -1,3 +1,4 @@
+import itertools
 import re
 import urllib
 
@@ -171,37 +172,70 @@ class IwaraUserIE(IwaraBaseIE):
     IE_NAME = 'iwara:user'
 
     _TESTS = [{
-        'url': 'https://ecchi.iwara.tv/users/CuteMMD',
+        'note': 'number of all videos page is just 1 page. less than 40 videos',
+        'url': 'https://ecchi.iwara.tv/users/infinityyukarip',
         'info_dict': {
-            'id': 'CuteMMD',
+            'title': 'Uploaded videos from Infinity_YukariP',
+            'id': 'infinityyukarip',
+            'uploader': 'Infinity_YukariP',
+            'uploader_id': 'infinityyukarip',
         },
-        'playlist_mincount': 198,
+        'playlist_mincount': 39,
     }, {
-        # urlencoded
-        'url': 'https://ecchi.iwara.tv/users/%E5%92%95%E5%98%BF%E5%98%BF',
+        'note': 'no even all videos page. probably less than 10 videos',
+        'url': 'https://ecchi.iwara.tv/users/mmd-quintet',
         'info_dict': {
-            'id': '咕嘿嘿',
+            'title': 'Uploaded videos from mmd quintet',
+            'id': 'mmd-quintet',
+            'uploader': 'mmd quintet',
+            'uploader_id': 'mmd-quintet',
         },
-        'playlist_mincount': 141,
+        'playlist_mincount': 6,
+    }, {
+        'note': 'has paging. more than 40 videos',
+        'url': 'https://ecchi.iwara.tv/users/theblackbirdcalls',
+        'info_dict': {
+            'title': 'Uploaded videos from TheBlackbirdCalls',
+            'id': 'theblackbirdcalls',
+            'uploader': 'TheBlackbirdCalls',
+            'uploader_id': 'theblackbirdcalls',
+        },
+        'playlist_mincount': 420,
+    }, {
+        'note': 'foreign chars in URL. there must be foreign characters in URL',
+        'url': 'https://ecchi.iwara.tv/users/ぶた丼',
+        'info_dict': {
+            'title': 'Uploaded videos from ぶた丼',
+            'id': 'ぶた丼',
+            'uploader': 'ぶた丼',
+            'uploader_id': 'ぶた丼',
+        },
+        'playlist_mincount': 170,
     }]
 
-    def _entries(self, playlist_id, base_url, webpage):
-        yield from self._extract_playlist(base_url, webpage)
+    def _entries(self, playlist_id, base_url):
+        webpage = self._download_webpage(
+            f'{base_url}/users/{playlist_id}', playlist_id)
+        videos_url = self._search_regex(r'<a href="(/users/[^/]+/videos)(?:\?[^"]+)?">', webpage, 'all videos url', default=None)
+        if not videos_url:
+            yield from self._extract_playlist(base_url, webpage)
+            return
 
-        page_urls = re.findall(
-            r'class="pager-item"[^>]*>\s*<a[^<]+href="([^"]+)', webpage)
+        videos_url = urljoin(base_url, videos_url)
 
-        for n, path in enumerate(page_urls, 2):
+        for n in itertools.count(1):
+            page = self._download_webpage(
+                videos_url, playlist_id, note=f'Downloading playlist page {n}',
+                query={'page': str(n - 1)} if n > 1 else {})
             yield from self._extract_playlist(
-                base_url, self._download_webpage(
-                    urljoin(base_url, path), playlist_id, note=f'Downloading playlist page {n}'))
+                base_url, page)
+
+            if f'page={n}' not in page:
+                break
 
     def _real_extract(self, url):
         playlist_id, base_url = self._match_valid_url(url).group('id', 'base_url')
         playlist_id = urllib.parse.unquote(playlist_id)
 
-        webpage = self._download_webpage(
-            f'{base_url}/users/{playlist_id}/videos', playlist_id)
-
         return self.playlist_result(
-            self._entries(playlist_id, base_url, webpage), playlist_id)
+            self._entries(playlist_id, base_url), playlist_id)
