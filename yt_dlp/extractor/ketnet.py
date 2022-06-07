@@ -32,6 +32,7 @@ class KetnetIE(InfoExtractor):
         'only_matching': True,
     }]
 
+
     def _real_extract(self, url):
         display_id = self._match_id(url)
 
