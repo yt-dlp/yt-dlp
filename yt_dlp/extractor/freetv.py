@@ -137,7 +137,7 @@ class FreeTvIE(FreeTvBaseIE):
             r'<div[^>]+class=["\']+synopis content[^>]><p>([^<]+)', webpage, 'description', fatal=False)
 
         return self.playlist_result(
-            itertools.chain(
+            itertools.chain.from_iterable(
                 self._extract_series_season(season_id, title)
                 for season_id in re.findall(r'<option[^>]+value=["\'](\d+)["\']', webpage)),
             display_id, title, description)
