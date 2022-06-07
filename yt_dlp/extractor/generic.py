@@ -69,6 +69,7 @@ from .spankwire import SpankwireIE
 from .sportbox import SportBoxIE
 from .spotify import SpotifyBaseIE
 from .springboardplatform import SpringboardPlatformIE
+from .substack import SubstackIE
 from .svt import SVTIE
 from .teachable import TeachableIE
 from .ted import TedEmbedIE
@@ -2542,6 +2543,30 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1652833414,
                 'age_limit': 0,
             }
+        },
+        {
+            'url': 'https://www.mollymovieclub.com/p/interstellar?s=r#details',
+            'md5': '198bde8bed23d0b23c70725c83c9b6d9',
+            'info_dict': {
+                'id': '53602801',
+                'ext': 'mpga',
+                'title': 'Interstellar',
+                'description': 'Listen now | Episode One',
+                'thumbnail': 'md5:c30d9c83f738e16d8551d7219d321538',
+                'uploader': 'mollymovieclub',
+            },
+        },
+        {
+            'url': 'https://www.blockedandreported.org/p/episode-117-lets-talk-about-depp?s=r',
+            'md5': 'c0cc44ee7415daeed13c26e5b56d6aa0',
+            'info_dict': {
+                'id': '57962052',
+                'ext': 'mpga',
+                'title': 'md5:855b2756f0ee10f6723fa00b16266f8d',
+                'description': 'md5:fe512a5e94136ad260c80bde00ea4eef',
+                'thumbnail': 'md5:2218f27dfe517bb5ac16c47d0aebac59',
+                'uploader': 'blockedandreported',
+            },
         }
     ]
 
@@ -3036,6 +3061,10 @@ class GenericIE(InfoExtractor):
             burl = unescapeHTML(mobj.group(1))
             # Don't set the extractor because it can be a track url or an album
             return self.url_result(burl)
+
+        # Check for Substack custom domains
+        if SubstackIE.is_custom_domain(webpage):
+            return self.url_result(SubstackIE.url_from_custom_domain(url))
 
         # Look for embedded Vevo player
         mobj = re.search(
