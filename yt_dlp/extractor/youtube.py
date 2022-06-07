@@ -2407,6 +2407,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
                     yield {
                         'url': last_segment_url,
+                        'fragment_count': last_seq,
                     }
                 if known_idx == last_seq:
                     no_fragment_score += 5
