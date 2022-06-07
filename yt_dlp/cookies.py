@@ -156,16 +156,30 @@ def _extract_firefox_cookies(profile, logger):
 
 
 def _firefox_browser_dir():
-    if sys.platform in ('cygwin', 'win32'):
+    if sys.platform in ('linux', 'linux2'):
+        return os.path.expanduser('~/.mozilla/firefox')
+    elif sys.platform == 'win32':
         return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
     elif sys.platform == 'darwin':
         return os.path.expanduser('~/Library/Application Support/Firefox')
-    return os.path.expanduser('~/.mozilla/firefox')
+    else:
+        raise ValueError(f'unsupported platform: {sys.platform}')
 
 
 def _get_chromium_based_browser_settings(browser_name):
     # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md
-    if sys.platform in ('cygwin', 'win32'):
+    if sys.platform in ('linux', 'linux2'):
+        config = _config_home()
+        browser_dir = {
+            'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
+            'chrome': os.path.join(config, 'google-chrome'),
+            'chromium': os.path.join(config, 'chromium'),
+            'edge': os.path.join(config, 'microsoft-edge'),
+            'opera': os.path.join(config, 'opera'),
+            'vivaldi': os.path.join(config, 'vivaldi'),
+        }[browser_name]
+
+    elif sys.platform == 'win32':
         appdata_local = os.path.expandvars('%LOCALAPPDATA%')
         appdata_roaming = os.path.expandvars('%APPDATA%')
         browser_dir = {
@@ -189,15 +203,7 @@ def _get_chromium_based_browser_settings(browser_name):
         }[browser_name]
 
     else:
-        config = _config_home()
-        browser_dir = {
-            'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
-            'chrome': os.path.join(config, 'google-chrome'),
-            'chromium': os.path.join(config, 'chromium'),
-            'edge': os.path.join(config, 'microsoft-edge'),
-            'opera': os.path.join(config, 'opera'),
-            'vivaldi': os.path.join(config, 'vivaldi'),
-        }[browser_name]
+        raise ValueError(f'unsupported platform: {sys.platform}')
 
     # Linux keyring names can be determined by snooping on dbus while opening the browser in KDE:
     # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"

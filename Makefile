@@ -9,8 +9,9 @@ tar: yt-dlp.tar.gz
 # Keep this list in sync with MANIFEST.in
 # intended use: when building a source distribution,
 # make pypi-files && python setup.py sdist
-pypi-files: AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
-	        completions yt-dlp.1 requirements.txt setup.cfg devscripts/* test/*
+pypi-files:
+	AUTHORS Changelog.md LICENSE README.md README.txt supportedsites \
+	completions yt-dlp.1 requirements.txt devscripts/* test/*
 
 .PHONY: all clean install test tar pypi-files completions ot offlinetest codetest supportedsites
 
@@ -129,7 +130,7 @@ completions/fish/yt-dlp.fish: yt_dlp/*.py yt_dlp/*/*.py devscripts/fish-completi
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
 
-_EXTRACTOR_FILES = $(shell find yt_dlp/extractor -name '*.py' -and -not -name 'lazy_extractors.py')
+_EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 'lazy_extractors.py')
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 

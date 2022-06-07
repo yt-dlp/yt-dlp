@@ -19,10 +19,9 @@ class ExpressenIE(InfoExtractor):
                     '''
     _TESTS = [{
         'url': 'https://www.expressen.se/tv/ledare/ledarsnack/ledarsnack-om-arbetslosheten-bland-kvinnor-i-speciellt-utsatta-omraden/',
-        'md5': 'deb2ca62e7b1dcd19fa18ba37523f66e',
+        'md5': '2fbbe3ca14392a6b1b36941858d33a45',
         'info_dict': {
-            'id': 'ba90f5a9-78d1-4511-aa02-c177b9c99136',
-            'display_id': 'ledarsnack-om-arbetslosheten-bland-kvinnor-i-speciellt-utsatta-omraden',
+            'id': '8690962',
             'ext': 'mp4',
             'title': 'Ledarsnack: Om arbetslösheten bland kvinnor i speciellt utsatta områden',
             'description': 'md5:f38c81ff69f3de4d269bbda012fcbbba',
@@ -65,7 +64,7 @@ class ExpressenIE(InfoExtractor):
                 display_id, transform_source=unescapeHTML)
 
         info = extract_data('video-tracking-info')
-        video_id = info['contentId']
+        video_id = info['videoId']
 
         data = extract_data('article-data')
         stream = data['stream']

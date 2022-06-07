@@ -1,7 +1,9 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_parse_qs
+from ..compat import (
+    compat_parse_qs,
+)
 from ..dependencies import websockets
 from ..utils import (
     ExtractorError,
@@ -207,7 +209,7 @@ class FC2LiveIE(InfoExtractor):
             'User-Agent': self.get_param('http_headers')['User-Agent'],
         })
 
-        self.write_debug('Sending HLS server request')
+        self.write_debug('[debug] Sending HLS server request')
 
         while True:
             recv = ws.recv()
@@ -229,10 +231,13 @@ class FC2LiveIE(InfoExtractor):
             if not data or not isinstance(data, dict):
                 continue
             if data.get('name') == '_response_' and data.get('id') == 1:
-                self.write_debug('Goodbye')
+                self.write_debug('[debug] Goodbye.')
                 playlist_data = data
                 break
-            self.write_debug('Server said: %s%s' % (recv[:100], '...' if len(recv) > 100 else ''))
+            elif self._downloader.params.get('verbose', False):
+                if len(recv) > 100:
+                    recv = recv[:100] + '...'
+                self.to_screen('[debug] Server said: %s' % recv)
 
         if not playlist_data:
             raise ExtractorError('Unable to fetch HLS playlist info via WebSocket')
