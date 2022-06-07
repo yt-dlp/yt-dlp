@@ -1487,6 +1487,7 @@ from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
     ScrippsNetworksIE,
 )
+from .scrolller import ScrolllerIE
 from .scte import (
     SCTEIE,
     SCTECourseIE,
