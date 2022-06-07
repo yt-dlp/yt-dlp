@@ -1,4 +1,5 @@
 import re
+import json
 
 from .common import InfoExtractor
 from ..compat import compat_parse_qs
@@ -276,3 +277,71 @@ class GoogleDriveIE(InfoExtractor):
             'automatic_captions': self.extract_automatic_captions(
                 video_id, subtitles_id, hl),
         }
+
+
+class GoogleDriveFolderIE(InfoExtractor):
+    IE_NAME = 'GoogleDrive:Folder'
+    _VALID_URL = r'https?://(?:docs|drive)\.google\.com/drive/folders/(?P<id>[a-zA-Z0-9_-]{28,})'
+
+    _TESTS = [{
+        'url': 'https://drive.google.com/drive/folders/1INm-oPuCTjuFVOzKLQ1TJjYLztjXQVBf',
+        'info_dict': {
+            'id': '1INm-oPuCTjuFVOzKLQ1TJjYLztjXQVBf',
+            'title': 'Naruto Kai Dub'
+        },
+        'playlist_count': 73,
+        'params': {
+            'skip_download': True,
+        },
+    }]
+
+    def _call_api(self, folder_id, key, request):
+        boundary = '=====vc17a3rwnndj====='
+        data = f'''--{boundary}
+content-type: application/http
+content-transfer-encoding: binary
+
+GET {request}
+
+--{boundary}
+'''
+        response = self._download_webpage('https://clients6.google.com/batch/drive/v2beta', folder_id, data=data.encode('utf-8'), headers={
+            'Content-Type': 'text/plain;charset=UTF-8;',
+            'Origin': 'https://drive.google.com',
+        }, query={
+            '$ct': f'multipart/mixed; boundary="{boundary}"',
+            'key': key
+        })
+
+        firstBracket = response.index("{")
+        lastBracket = len(response) - response[::-1].index("}")
+        return json.loads(response[firstBracket:lastBracket])
+
+    def _get_folder_items(self, folder_id, key):
+        folder_items = []
+        page_token = ''
+        while True:
+            request = f"/drive/v2beta/files?openDrive=true&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'{folder_id}'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&pageToken={page_token}&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key={key} HTTP/1.1"
+            page = self._call_api(folder_id, key, request)
+            folder_items.extend(page['items'])
+            if 'nextPageToken' in page:
+                page_token = page['nextPageToken']
+            else:
+                break
+
+        return folder_items
+
+    def _get_folder_info(self, folder_id, key):
+        return self._call_api(folder_id, key, f'/drive/v2beta/files/{folder_id} HTTP/1.1')
+
+    def _real_extract(self, url):
+        folder_id = self._match_id(url)
+
+        webpage = self._download_webpage(url, folder_id)
+        key = self._search_regex(r'"([A-Za-z\d]{39})"', webpage, "key")
+
+        folder_info = self._get_folder_info(folder_id, key)
+        folder_items = self._get_folder_items(folder_id, key)
+
+        entries = [self.url_result('https://drive.google.com/file/d/' + item['id'], 'GoogleDrive', item['title']) for item in folder_items]
+        return self.playlist_result(entries, folder_id, folder_info['title'])
