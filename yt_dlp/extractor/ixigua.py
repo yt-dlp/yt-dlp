@@ -67,6 +67,7 @@ class IxiguaIE(InfoExtractor):
                 'fps': int_or_none(media.get('fps')),
                 'vcodec': media.get('codec_type'),
                 'format_id': str(media.get('quality_type')),
+                'filesize': int_or_none(media.get('size')),
                 **media_specific_format
             }
             _single_video_format.append(base_format)
