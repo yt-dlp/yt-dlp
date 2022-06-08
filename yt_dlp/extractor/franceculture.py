@@ -27,39 +27,21 @@ class FranceCultureIE(InfoExtractor):
         info = {
             'id': display_id,
             'title': self._html_search_regex(
-                r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>',
-                webpage,
-                'title',
-                default=self._og_search_title(webpage),
-            ),
-            'description': self._html_search_regex(
-                r'(?s)<meta name="description" content="([^"]+)',
-                webpage,
-                'description',
-                default=None,
-            ),
+                r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>', webpage, 'title',
+                default=self._og_search_title(webpage)),
+            'description': self._html_search_regex( r'(?s)<meta name="description" content="([^"]+)',
+                webpage, 'description', default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'uploader': self._html_search_regex(
-                r'(?s)<span class="author">(.*?)</span>',
-                webpage,
-                'uploader',
-                default=None,
-            ),
-            'upload_date': unified_strdate(self._search_regex(
-                r'"datePublished":"([^"]+)',
-                webpage,
-                'timestamp',
-                fatal=False))
+            'uploader': self._html_search_regex( r'(?s)<span class="author">(.*?)</span>', webpage,
+                'uploader', default=None),
+            'upload_date': unified_strdate(self._search_regex( r'"datePublished":"([^"]+)', webpage,
+                'timestamp', fatal=False))
         }
 
         video_data = self._parse_json(
             self._search_regex(  # type: ignore
                 r'({"@type":"AudioObject","contentUrl":"[^"]+","duration":"[^"]+","encodingFormat":"mp3","potentialAction":{"@type":"Action","name":"ListenAction"}})',
-                webpage,
-                'video data',
-            ),
-            display_id
-        )
+                webpage, 'video data'), display_id)
         video_url = video_data['contentUrl']
         ext = video_data['encodingFormat']
 
