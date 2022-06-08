@@ -43,9 +43,6 @@ class UporniaIE(InfoExtractor):
                     else f'{video_id[0]}000000/{video_id[:4]}000')
         consturl = f'https://upornia.com/api/json/video/{lifetime}/{dira}/{dirb}/{video_id}.json'
         more_data = self._download_json(consturl, video_id)
-        title = traverse_obj(more_data, ('video', 'title'))
-        description = traverse_obj(more_data, ('video', 'description'))
-        thumbnail = traverse_obj(more_data, ('video', 'thumb'))
         data = self._download_json(f'https://upornia.com/api/videofile.php?video_id={video_id}', video_id, headers={'Referer': url})
         roman = self.fixcyr(data[0].get('video_url'))
         get_vid = base64.b64decode(roman.encode('utf-8') + b'==').decode()
@@ -56,9 +53,9 @@ class UporniaIE(InfoExtractor):
         return {
             'url': url,
             'id': video_id,
-            'title': title,
-            'description': description,  # self._og_search_description(webpage),
+            'title': traverse_obj(more_data, ('video', 'title')),
+            'description': traverse_obj(more_data, ('video', 'description')),  # self._og_search_description(webpage),
             'uploader': traverse_obj(more_data, ('video', 'user', 'username')),
-            'thumbnail': thumbnail,
+            'thumbnail': traverse_obj(more_data, ('video', 'thumb')),
             # TODO more properties (see yt_dlp/extractor/common.py)
         }
