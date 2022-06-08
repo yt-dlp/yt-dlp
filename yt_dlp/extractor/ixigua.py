@@ -26,6 +26,7 @@ class IxiguaIE(InfoExtractor):
             'uploader_id': '6480145787',
             'thumbnail': r're:^https?://.*\.(avif|webp)(?:\?.+)',  # still not sure for regex
             'timestamp': 1629088414,
+            'duration': 1030,
         },
         'skip': 'This Extractor need cookies',
     }
