@@ -18,7 +18,9 @@ class IxiguaIE(InfoExtractor):
             'ext': 'mp4',
             'title': '盲目涉水风险大，亲身示范高水位行车注意事项',
             'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
-            'tag': 'video_car'
+            'tag': 'video_car',
+            'like_count': int,
+
         },
         # thumbnail url keep changing
         'skip': 'This Extractor need cookies',
@@ -107,5 +109,9 @@ class IxiguaIE(InfoExtractor):
             'like_count': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_like_count')),
             'duration': int_or_none(traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_duration'))),
             'tag': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'tag')),
-
+            'uploader_id': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'user_info', 'user_id')),
+            'uploader': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'user_info', 'name')),
+            'view_count': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_watch_count')),
+            'dislike_count': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_unlike_count')),
+            'timestamp': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_publish_time')),
         }
