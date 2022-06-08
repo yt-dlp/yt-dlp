@@ -1706,7 +1706,7 @@ The following extractors use this feature:
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
 * `innertube_host`: Innertube API host to use for all API requests 
-  * e.g. `youtubei.googleapis.com`, `www.youtubekids.com`
+  * e.g. `studio.youtube.com`, `youtubei.googleapis.com`
   * Note: Cookies exported from `www.youtube.com` will not work with hosts other than `*.youtube.com`
 * `innertube_key`: Innertube API key to use for all API requests
 
