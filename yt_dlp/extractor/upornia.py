@@ -16,18 +16,13 @@ class UporniaIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.jpg$',
             'uploader': 'Anastasia Sorrentino',
             'description': '',
-            # TODO more properties, either as:
-            # * A value
-            # * MD5 checksum; start the string with md5:
-            # * A regular expression; start the string with re:
-            # * Any Python type (for example int or float)
         }
     }]
 
     def fixcyr(self, bla):
         # the api does some obfuscation - it replaces letters in the base64 data through equivalent cyrillic letters
         # https://stackoverflow.com/questions/14173421/use-string-translate-in-python-to-transliterate-cyrillic/14173535#14173535
-        # used SO base but extraced clean mapping
+        # used SO base but extracted clean mapping
         symbols = (u"МВАС,Е",
                    u"MBAC/E")
         tr = {ord(a): ord(b) for a, b in zip(*symbols)}
@@ -48,14 +43,11 @@ class UporniaIE(InfoExtractor):
         get_vid = base64.b64decode(roman.encode('utf-8') + b'==').decode()
         url = f'https://upornia.com{get_vid}'
 
-        # TODO more code goes here, for example ...
-
         return {
             'url': url,
             'id': video_id,
             'title': traverse_obj(more_data, ('video', 'title')),
-            'description': traverse_obj(more_data, ('video', 'description')),  # self._og_search_description(webpage),
+            'description': traverse_obj(more_data, ('video', 'description')),
             'uploader': traverse_obj(more_data, ('video', 'user', 'username')),
             'thumbnail': traverse_obj(more_data, ('video', 'thumb')),
-            # TODO more properties (see yt_dlp/extractor/common.py)
         }
