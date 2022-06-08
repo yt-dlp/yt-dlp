@@ -5,7 +5,7 @@ import json
 
 
 class UporniaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?upornia\.com/videos/(?P<id>[0-9]+)/?.*/?.*'
+    _VALID_URL = r'https?://(?:www\.)?upornia\.com/videos/(?P<id>[0-9]{,7})(?:[/#?]|$)'
     _TESTS = [{
         'url': 'https://upornia.com/videos/4451197/fit-girl-with-perfect-ass-in-black-yoga-pants-fucked-and-gets-creampie/',
         'md5': 'd91eaa12f537d5092c357c174e5be5e4',
