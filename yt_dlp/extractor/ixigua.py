@@ -20,9 +20,13 @@ class IxiguaIE(InfoExtractor):
             'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
             'tag': 'video_car',
             'like_count': int,
-
+            'dislike_count': int,
+            'view_count': int,
+            'uploader': '懂车帝原创',
+            'uploader_id': '6480145787',
+            'thumbnail': r're:^https?://.*\.(avif|webp)(?:\?.+)',  # still not sure for regex
+            'timestamp': 1629088414,
         },
-        # thumbnail url keep changing
         'skip': 'This Extractor need cookies',
     }
 
@@ -40,7 +44,6 @@ class IxiguaIE(InfoExtractor):
             media_data = traverse_obj(media_json, ('dynamic_video', 'dynamic_video_list'))
             media_specific_format = {
                 'format_note': 'DASH',
-                'ext': 'mp4',
                 'acodec': 'none',
             }
         elif media_type == "dash_audio":
@@ -53,9 +56,7 @@ class IxiguaIE(InfoExtractor):
         elif media_type == "normal":
             for media in media_json.get('video_list'):
                 media_data.append(traverse_obj(media_json, ('video_list', media)))
-            media_specific_format = {
-                'ext': 'mp4',
-            }
+
         return self._get_formats(media_data, media_specific_format)
 
     def _get_formats(self, media_json, media_specific_format):
@@ -70,6 +71,7 @@ class IxiguaIE(InfoExtractor):
                 'vcodec': media.get('codec_type'),
                 'format_id': str(media.get('quality_type')),
                 'filesize': int_or_none(media.get('size')),
+                'ext': 'mp4',
                 **media_specific_format
             }
             _single_video_format.append(base_format)
