@@ -71,6 +71,29 @@ class SpeedometerMA:
         return self.last_value or speed
 
 
+class SmoothETA:
+    def __init__(self):
+        self.last_value = None
+
+    def __call__(self, value):
+        if value <= 0:
+            return 0
+
+        time_now = time.monotonic()
+        if self.last_value:
+            predicted = self.last_value - time_now
+            if predicted <= 0:
+                deviation = float('inf')
+            else:
+                deviation = max(predicted, value) / min(predicted, value)
+
+            if deviation < 1.25:
+                return predicted
+
+        self.last_value = time_now + value
+        return value
+
+
 class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
         pass
@@ -292,6 +315,7 @@ class FragmentFD(FileDownloader):
         ctx['started'] = start = time.time()
         speedometer = SpeedometerMA(initial_bytes=resume_len)
         progress_timer = Timer()
+        smooth_eta = SmoothETA()
 
         # contains the returned info from active threads
         fragments_map = {}
@@ -339,9 +363,8 @@ class FragmentFD(FileDownloader):
 
             if progress_timer.has_elapsed(seconds=0.1) or state['status'] == 'finished':
                 if state.get('speed') and state.get('total_bytes_estimate'):
-                    state['eta'] = (
-                        max(0, state['total_bytes_estimate'] - state['downloaded_bytes'])
-                        / state['speed'])
+                    state['eta'] = smooth_eta(
+                        (state['total_bytes_estimate'] - state['downloaded_bytes']) / state['speed'])
                 self._hook_progress(state, info_dict)
 
         ctx['dl'].add_progress_hook(frag_progress_hook)
