@@ -2,10 +2,7 @@ import re
 import urllib.parse
 
 from .common import InfoExtractor
-from ..utils import (
-    str_or_none,
-    traverse_obj,
-)
+from ..utils import str_or_none, traverse_obj
 
 
 class SubstackIE(InfoExtractor):
