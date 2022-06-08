@@ -25,6 +25,7 @@ class UporniaIE(InfoExtractor):
     }]
 
     def fixcyr(self, bla):
+        # the api does some obfuscation - it replaces letters in the base64 data through equivalent cyrillic letters
         # https://stackoverflow.com/questions/14173421/use-string-translate-in-python-to-transliterate-cyrillic/14173535#14173535
         # used SO base but extraced clean mapping
         symbols = (u"МВАС,Е",
