@@ -8,6 +8,7 @@ import struct
 import threading
 import time
 import urllib.error
+from bisect import bisect
 
 from .common import FileDownloader
 from .http import HttpFD
@@ -39,6 +40,35 @@ class Timer:
 
         self._last_ts += elapsed_seconds - elapsed_seconds % seconds
         return True
+
+
+class SpeedometerMA:
+    TIMER_FUNC = time.monotonic
+    UPDATE_TIMESPAN_S = 1.0
+    AVERAGE_TIMESPAN_S = 5.0
+
+    def __init__(self, initial_bytes=0):
+        self.ts_data = [(self.TIMER_FUNC(), initial_bytes)]
+        self.timer = Timer()
+        self.last_value = None
+
+    def __call__(self, byte_counter):
+        time_now = self.TIMER_FUNC()
+
+        # only append data older than 50ms
+        if time_now - self.ts_data[-1][0] > 0.05:
+            self.ts_data.append((time_now, byte_counter))
+
+        # remove older entries
+        idx = max(0, bisect(self.ts_data, (time_now - self.AVERAGE_TIMESPAN_S, )) - 1)
+        self.ts_data[0:idx] = ()
+
+        diff_time = time_now - self.ts_data[0][0]
+        speed = (byte_counter - self.ts_data[0][1]) / diff_time if diff_time else None
+        if self.timer.has_elapsed(seconds=self.UPDATE_TIMESPAN_S):
+            self.last_value = speed
+
+        return self.last_value or speed
 
 
 class HttpQuietDownloader(HttpFD):
@@ -260,6 +290,7 @@ class FragmentFD(FileDownloader):
         }
 
         ctx['started'] = start = time.time()
+        speedometer = SpeedometerMA(initial_bytes=resume_len)
         progress_timer = Timer()
 
         # contains the returned info from active threads
@@ -303,8 +334,7 @@ class FragmentFD(FileDownloader):
 
             state['max_progress'] = ctx.get('max_progress')
             state['progress_idx'] = ctx.get('progress_idx')
-            state['speed'] = self.calc_speed(
-                    start, time.time(), state['downloaded_bytes'])
+            state['speed'] = speedometer(state['downloaded_bytes'])
             state['elapsed'] = time.time() - start
 
             if progress_timer.has_elapsed(seconds=0.1) or state['status'] == 'finished':
