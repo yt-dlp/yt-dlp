@@ -3,8 +3,6 @@ import functools
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
 from ..utils import (
-    ExtractorError,
-    GeoRestrictedError,
     OnDemandPagedList,
     smuggle_url,
     traverse_obj,
@@ -24,14 +22,6 @@ class NetverseBaseIE(InfoExtractor):
         json_data = self._download_json(
             f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}',
             display_id, query=query)
-
-        # adapted from dailymotion.py
-        error = json_data.get('error')
-        if error:
-            # See https://developer.dailymotion.com/api#access-error
-            if error.get('code') == "DM007":
-                raise GeoRestrictedError(error.get("title") or error.get("raw_message"))
-            raise ExtractorError(f'{self.IE_NAME} said: {error.get("title") or error.get("raw_message")}')
 
         return display_id, json_data
 
@@ -67,7 +57,6 @@ class NetverseIE(NetverseBaseIE):
         'url': 'https://www.netverse.id/watch/jadoo-seorang-model',
         'info_dict': {
             'id': 'x88izwc',
-            'access_id': 'x88izwc',
             'title': 'Jadoo Seorang Model',
             'ext': 'mp4',
             'season': 'Season 2',
@@ -75,7 +64,17 @@ class NetverseIE(NetverseBaseIE):
             'thumbnail': 'https://storage.googleapis.com/netprime-live/images/webseries/thumbnails/2021/11/619cf63f105d3.jpeg',
             'episode_number': 2,
             'series': 'Hello Jadoo',
-            'episode': 'Episode 2'
+            'episode': 'Episode 2',
+            'view_count': int,
+            'like_count': int,
+            'display_id': 'jadoo-seorang-model',
+            'uploader_id': 'x2ir3vq',
+            'duration': 635,
+            'timestamp': 1646372927,
+            'tags': ['PG069497-hellojadooseason2eps2'],
+            'upload_date': '20220304',
+            'uploader': 'Net Prime',
+            'age_limit': 0,
         },
         'skip': 'video get Geo-blocked for some country'
     }, {
@@ -115,8 +114,17 @@ class NetverseIE(NetverseBaseIE):
             'description': 'md5:c616e8e59d3edf2d3d506e3736120d99',
             'title': 'Namaku Choi Jadoo',
             'series': 'Hello Jadoo',
-            'access_id': 'x887jzz',
             'episode': 'Episode 1',
+            'age_limit': 0,
+            'like_count': int,
+            'view_count': int,
+            'tags': ['PG067482', 'PG067482-HelloJadoo-season1'],
+            'duration': 780,
+            'display_id': 'pg067482-hellojadoo-season1',
+            'uploader_id': 'x2ir3vq',
+            'uploader': 'Net Prime',
+            'timestamp': 1645764984,
+            'upload_date': '20220225',
         },
         'skip': 'This video get Geo-blocked for some country'
     }]
