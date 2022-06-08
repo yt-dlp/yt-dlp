@@ -1,10 +1,10 @@
 import re
-from urllib.parse import urlparse
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import (
-    traverse_obj,
     str_or_none,
+    traverse_obj,
 )
 
 
@@ -53,9 +53,10 @@ class SubstackIE(InfoExtractor):
         if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):
             return
 
-        subdomain = re.search(r'{[^}]*["\']subdomain["\']\s*:\s*["\'](?P<subdomain>[^"]+)', webpage).group('subdomain')
-        parsed = urlparse(url)
-        return parsed._replace(netloc=f'{subdomain}.substack.com').geturl()
+        mobj = re.search(r'{[^}]*["\']subdomain["\']\s*:\s*["\'](?P<subdomain>[^"]+)', webpage)
+        if mobj:
+            parsed = urllib.parse.urlparse(url)
+            return parsed._replace(netloc=f'{mobj.group("subdomain")}.substack.com').geturl()
 
     def _extract_video_formats(self, video_id, username):
         formats, subtitles = [], {}
