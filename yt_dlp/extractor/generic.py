@@ -2553,7 +2553,8 @@ class GenericIE(InfoExtractor):
                 'title': 'Interstellar',
                 'description': 'Listen now | Episode One',
                 'thumbnail': 'md5:c30d9c83f738e16d8551d7219d321538',
-                'uploader': 'mollymovieclub',
+                'uploader': 'Molly Movie Club',
+                'uploader_id': '86947332',
             },
         },
         {
@@ -2565,7 +2566,8 @@ class GenericIE(InfoExtractor):
                 'title': 'md5:855b2756f0ee10f6723fa00b16266f8d',
                 'description': 'md5:fe512a5e94136ad260c80bde00ea4eef',
                 'thumbnail': 'md5:2218f27dfe517bb5ac16c47d0aebac59',
-                'uploader': 'blockedandreported',
+                'uploader': 'Blocked and Reported',
+                'uploader_id': '626816',
             },
         }
     ]
