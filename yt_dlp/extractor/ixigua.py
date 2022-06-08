@@ -57,7 +57,7 @@ class IxiguaIE(InfoExtractor):
         return self._get_formats(media_data, media_specific_format)
 
     def _get_formats(self, media_json, media_specific_format):
-        _single_video_format = list()
+        _single_video_format = []
         # This download video only-DASH and mp4 format
         for media in media_json:
             base_format = {
