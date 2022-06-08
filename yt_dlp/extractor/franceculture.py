@@ -29,13 +29,13 @@ class FranceCultureIE(InfoExtractor):
             'title': self._html_search_regex(
                 r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>', webpage, 'title',
                 default=self._og_search_title(webpage)),
-            'description': self._html_search_regex( r'(?s)<meta name="description" content="([^"]+)',
-                webpage, 'description', default=None),
+            'description': self._html_search_regex(r'(?s)<meta name="description" content="([^"]+)',
+                                                   webpage, 'description', default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
-            'uploader': self._html_search_regex( r'(?s)<span class="author">(.*?)</span>', webpage,
-                'uploader', default=None),
-            'upload_date': unified_strdate(self._search_regex( r'"datePublished":"([^"]+)', webpage,
-                'timestamp', fatal=False))
+            'uploader': self._html_search_regex(r'(?s)<span class="author">(.*?)</span>', webpage,
+                                                'uploader', default=None),
+            'upload_date': unified_strdate(self._search_regex(r'"datePublished":"([^"]+)', webpage,
+                                           'timestamp', fatal=False))
         }
 
         video_data = self._parse_json(
