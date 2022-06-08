@@ -1,4 +1,5 @@
 import re
+from urllib.parse import urlparse
 
 from .common import InfoExtractor
 
@@ -40,18 +41,14 @@ class SubstackIE(InfoExtractor):
         }
     }]
 
-    @staticmethod
-    def is_custom_domain(webpage):
-        return re.search(r'<script[^>]+src=["\']https://substackcdn.com/.*\.js', webpage) is not None
+    @classmethod
+    def _extract_url(cls, webpage, url):
+        if not re.search(r'<script[^>]+src=["\']https://substackcdn.com/[^"\']+\.js', webpage):
+            return
 
-    @staticmethod
-    def url_from_custom_domain(url):
-        custom_domain = r'https?://(?:www\.)?(?P<username>[\w-]+)\.(?:[a-z]+)/(?P<params>.+)'
-
-        username = re.search(custom_domain, url).group('username')
-        params = re.search(custom_domain, url).group('params')
-
-        return f'https://{username}.substack.com/{params}'
+        subdomain = re.search(r'{[^}]*["\']subdomain["\']\s*:\s*["\'](?P<subdomain>[^"]+)', webpage).group('subdomain')
+        parsed = urlparse(url)
+        return parsed._replace(netloc=f'{subdomain}.substack.com').geturl()
 
     def _extract_video_formats(self, video_id, username):
         formats, subtitles = [], {}

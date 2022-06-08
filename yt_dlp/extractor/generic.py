@@ -3063,8 +3063,9 @@ class GenericIE(InfoExtractor):
             return self.url_result(burl)
 
         # Check for Substack custom domains
-        if SubstackIE.is_custom_domain(webpage):
-            return self.url_result(SubstackIE.url_from_custom_domain(url))
+        substack_url = SubstackIE._extract_url(webpage, url)
+        if substack_url:
+            return self.url_result(substack_url, SubstackIE.ie_key())
 
         # Look for embedded Vevo player
         mobj = re.search(
