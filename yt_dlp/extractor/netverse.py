@@ -165,11 +165,11 @@ class NetversePlaylistIE(NetverseBaseIE):
 
     def _real_extract(self, url):
         _, playlist_data = self._call_api(url)
-
+        webseries_info = traverse_obj(playlist_data, ('response', 'related'))
+        number_video_per_page = webseries_info.get('to') - webseries_info.get('from')
         # TODO: get video from other season
         # The season has id and the next season video is located at api_url/<season_id>?page=<page>
-        # still not not sure about number in OnDemandPagedList
         return self.playlist_result(
-            OnDemandPagedList(functools.partial(self.parse_playlist, url), 8),
+            OnDemandPagedList(functools.partial(self.parse_playlist, url), number_video_per_page),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
