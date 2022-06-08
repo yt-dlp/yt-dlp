@@ -4,16 +4,17 @@ from urllib.parse import urlparse, parse_qs
 
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     clean_html,
     dict_get,
-    ExtractorError,
     int_or_none,
-    parse_duration,
-    try_get,
-    update_url_query,
-    unified_timestamp,
     merge_dicts,
+    parse_duration,
     traverse_obj,
+    try_call,
+    try_get,
+    unified_timestamp,
+    update_url_query,
 )
 
 
@@ -334,32 +335,6 @@ class NaverNowIE(NaverBaseIE):
             'thumbnail': vod_info.get('thumbnail_image_url'),
         }, self._extract_video_info(replay_id, vod_info['video_id'], in_key))
 
-    def _extract_highlight(self, show_id, highlight_id, highlights=None):
-        page = 0
-        while True:
-            highlights_videos = highlights or self._download_json(
-                f'{self._API_URL}/shows/{show_id}/highlights/videos/', highlight_id,
-                query={'offset': page * self._PAGE_SIZE, 'limit': self._PAGE_SIZE},
-                note=f'Downloading JSON highlights for show {show_id} - page {page}')
-            highlight = [
-                v for v in highlights_videos.get('results', [])
-                if v.get('id', -1) == int(highlight_id)
-            ]
-            if highlight or highlights_videos.get('count', 0) <= self._PAGE_SIZE * (page + 1):
-                break
-            page += 1
-
-        if not highlight:
-            raise ExtractorError(f'Unable to find highlight {highlight_id} for show {show_id}')
-
-        highlight = highlight[0]
-        return merge_dicts({
-            'id': f'{show_id}-{highlight_id}',
-            'title': highlight.get('title'),
-            'timestamp': unified_timestamp(highlight.get('regdate')),
-            'thumbnail': highlight.get('thumbnail_url'),
-        }, self._extract_video_info(highlight_id, highlight['video_id'], highlight['video_inkey']))
-
     def _extract_show_replays(self, show_id):
         page = 0
         while True:
@@ -367,15 +342,15 @@ class NaverNowIE(NaverBaseIE):
                 f'{self._API_URL}/vod-shows/{show_id}', show_id,
                 query={'offset': page * self._PAGE_SIZE, 'limit': self._PAGE_SIZE},
                 note=f'Downloading JSON vod list for show {show_id} - page {page}'
-            ).get('response', {}).get('result', {})
-            for v in show_vod_info.get('vod_list', []):
+            )['response']['result']
+            for v in show_vod_info.get('vod_list') or []:
                 yield self._extract_replay(show_id, v['id'])
 
-            if show_vod_info.get('count', 0) <= self._PAGE_SIZE * (page + 1):
+            if try_call(lambda: show_vod_info['count'] <= self._PAGE_SIZE * (page + 1)):
                 break
             page += 1
 
-    def _extract_show_highlights(self, show_id):
+    def _extract_show_highlights(self, show_id, highlight_id=None):
         page = 0
         while True:
             highlights_videos = self._download_json(
@@ -383,13 +358,25 @@ class NaverNowIE(NaverBaseIE):
                 query={'offset': page * self._PAGE_SIZE, 'limit': self._PAGE_SIZE},
                 note=f'Downloading JSON highlights for show {show_id} - page {page}')
 
-            highlights = highlights_videos.get('results', [])
-            for v in highlights:
-                yield self._extract_highlight(show_id, v['id'], highlights_videos)
+            for highlight in highlights_videos.get('results') or []:
+                if highlight_id and highlight.get('id') != int(highlight_id):
+                    continue
+                yield merge_dicts({
+                    'id': f'{show_id}-{highlight["id"]}',
+                    'title': highlight.get('title'),
+                    'timestamp': unified_timestamp(highlight.get('regdate')),
+                    'thumbnail': highlight.get('thumbnail_url'),
+                }, self._extract_video_info(highlight['id'], highlight['video_id'], highlight['video_inkey']))
 
-            if highlights_videos.get('count', 0) <= self._PAGE_SIZE * (page + 1):
+            if try_call(lambda: highlights_videos['count'] <= self._PAGE_SIZE * (page + 1)):
                 break
             page += 1
+
+    def _extract_highlight(self, show_id, highlight_id):
+        try:
+            return next(self._extract_show_highlights(show_id, highlight_id))
+        except StopIteration:
+            raise ExtractorError(f'Unable to find highlight {highlight_id} for show {show_id}')
 
     def _real_extract(self, url):
         show_id = self._match_id(url)
