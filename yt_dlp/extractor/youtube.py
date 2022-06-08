@@ -474,7 +474,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
-        api_key = (self._configuration_arg('innertube_key', [''], ie_key=YoutubeIE.ie_key())[0]
+        api_key = (self._configuration_arg('innertube_key', [''], ie_key=YoutubeIE.ie_key(), casesense=True)[0]
                    or api_key or self._extract_api_key(default_client=default_client))
         return self._download_json(
             f'https://{self._select_api_hostname(api_hostname, default_client)}/youtubei/v1/{ep}',
