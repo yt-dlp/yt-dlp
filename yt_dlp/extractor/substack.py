@@ -75,7 +75,7 @@ class SubstackIE(InfoExtractor):
         webpage = self._download_webpage(url, display_id)
 
         post_info = self._search_json(
-            r'<script[^>]*>\s*window\._preloads\s*=\s*', webpage, 'preloads', display_id)['post']
+            r'<script[^>]*>\s*window\._preloads\s*=', webpage, 'preloads', display_id)['post']
 
         post_type = post_info.get('type')
         formats, subtitles = [], {}
