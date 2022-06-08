@@ -306,9 +306,6 @@ class NaverNowIE(NaverBaseIE):
             'title': '아이키의 떰즈업',
         },
         'playlist_mincount': 48,
-        'params': {
-            'noplaylist': False,
-        }
     }, {
         'url': 'https://now.naver.com/show/4759?shareHightlight=1078#highlight=',
         'info_dict': {
@@ -316,9 +313,6 @@ class NaverNowIE(NaverBaseIE):
             'title': '아이키의 떰즈업',
         },
         'playlist_mincount': 48,
-        'params': {
-            'noplaylist': False,
-        }
     }]
 
     def _extract_replay(self, show_id, replay_id):
