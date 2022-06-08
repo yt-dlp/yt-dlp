@@ -32,7 +32,7 @@ class UporniaIE(InfoExtractor):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
         constants = self._search_regex(r'window.constants = (.+)', webpage, 'cons')
-        constants = json.loads(constants)
+        constants = self._parse_json(constants, video_id)
         lifetime = traverse_obj(constants, ('query', 'lifetime'))
         api_slug = (f'0/{video_id[:-3]}000' if len(video_id) < 7
                     else f'{video_id[0]}000000/{video_id[:4]}000')
