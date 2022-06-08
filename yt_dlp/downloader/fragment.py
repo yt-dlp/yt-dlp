@@ -192,7 +192,6 @@ class FragmentFD(FileDownloader):
             'url': frag_url,
             'http_headers': headers or info_dict.get('http_headers'),
             'request_data': request_data,
-            'ctx_id': ctx.get('ctx_id'),
         }
         success, _ = ctx['dl'].download(fragment_filename, fragment_info_dict)
         if not success:
@@ -300,7 +299,7 @@ class FragmentFD(FileDownloader):
 
         resume_len = ctx['complete_frags_downloaded_bytes']
         total_frags = ctx['total_frags']
-        ctx_id = ctx.get('ctx_id')
+
         # This dict stores the download progress, it's updated by the progress
         # hook
         state = {
@@ -396,7 +395,6 @@ class FragmentFD(FileDownloader):
             'filename': ctx['filename'],
             'status': 'finished',
             'elapsed': elapsed,
-            'ctx_id': ctx.get('ctx_id'),
             'max_progress': ctx.get('max_progress'),
             'progress_idx': ctx.get('progress_idx'),
         }, info_dict)
