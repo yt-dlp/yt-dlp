@@ -271,8 +271,6 @@ class NaverNowIE(NaverBaseIE):
             'timestamp': 1650369600,
             'upload_date': '20220419',
             'uploader_id': 'now',
-            'uploader': '',
-            'uploader_url': '',
             'view_count': int,
         },
         'params': {
@@ -289,8 +287,6 @@ class NaverNowIE(NaverBaseIE):
             'upload_date': '20220504',
             'timestamp': 1651648042,
             'uploader_id': 'now',
-            'uploader': '',
-            'uploader_url': '',
             'view_count': int,
         },
         'params': {
