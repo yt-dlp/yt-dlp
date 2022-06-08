@@ -41,7 +41,7 @@ class UporniaIE(InfoExtractor):
         lifetime = traverse_obj(constants, ('query', 'lifetime'))
         api_slug = (f'0/{video_id[:-3]}000' if len(video_id) < 7
                     else f'{video_id[0]}000000/{video_id[:4]}000')
-        consturl = f'https://upornia.com/api/json/video/{lifetime}/{dira}/{dirb}/{video_id}.json'
+        consturl = f'https://upornia.com/api/json/video/{lifetime}/{api_slug}/{video_id}.json'
         more_data = self._download_json(consturl, video_id)
         data = self._download_json(f'https://upornia.com/api/videofile.php?video_id={video_id}', video_id, headers={'Referer': url})
         roman = self.fixcyr(data[0].get('video_url'))
