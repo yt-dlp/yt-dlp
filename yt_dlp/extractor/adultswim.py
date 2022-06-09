@@ -1,6 +1,8 @@
 import json
 import time
+from turtle import width
 
+from ..compat import functools, re
 from .common import InfoExtractor
 from .turner import TurnerBaseIE
 from ..utils import (
@@ -205,7 +207,7 @@ class AdultSwimVideoIE(TurnerBaseIE):
 class AdultSwimStreamIE(InfoExtractor):
     IE_NAME = 'adultswim:stream'
     _VALID_URL = r'https?://(?:www\.)?adultswim\.com/streams/(?P<id>[^/?#]+)'
-    
+
     _TESTS = [{
         'url': 'https://www.adultswim.com/streams/rick-and-morty',
         'info_dict': {
@@ -226,6 +228,32 @@ class AdultSwimStreamIE(InfoExtractor):
         },
     }]
 
+    def _fragment_url_builder(self, episode_start_time, m3u8_feed):
+        '''Returns function that translates a fragment index to its valid url path'''
+
+        match = re.search(r'^https?:\/\/adultswim-vodlive.cdn.turner.com\/.*\/seg[^_]+_(?P<digit>\d+)\.ts$', m3u8_feed, re.MULTILINE)
+        if not match:
+            return None
+        if not match.group('digit'):
+            return None
+        
+        digit_str_length = len(match.group('digit'))
+        digit_str_index = match.span('digit')[0] - match.group(0)[0]
+        if digit_str_index + digit_str_length > len(fragment_url_template):
+            return None
+        fragment_url_template = match.group(0)[:digit_str_index] + '%s' + match.group(0)[:digit_str_index+digit_str_length]
+
+        def _url_builder(fragment_url_template, digit_str_length, fragment_index):
+            return fragment_url_template % '{0:0{width}}'.format(fragment_index, width=digit_str_length)
+
+        return functools.partial(_url_builder, fragment_url_template, digit_str_length)
+
+    def _live_m3u8_fragments(self, episode_start_time, episode_duration, m3u8_feed, ctx):
+        FRAGMENT_DURATION = 10.0100
+        fragment_url = self._fragment_url_builder(episode_start_time, m3u8_feed)
+
+        
+
     def _real_extract(self, url):
 
         stream_id = self._match_id(url)
@@ -233,9 +261,8 @@ class AdultSwimStreamIE(InfoExtractor):
         webpage = self._download_webpage(url, stream_id)
         stream_data_json = self._search_regex(r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(?P<json>[^<]+)', webpage, 'stream data json', group='json')
 
-        remote_ts_json = self._download_json('https://www.adultswim.com/api/schedule/live/', stream_id, 'Downloading server timestamp', fatal=False)
-        timestamp = remote_ts_json.get("timestamp") or time.time() * 10**3
-
+        remote_ts_json = self._download_json('https://www.adultswim.com/api/schedule/live/', stream_id, note=False, fatal=False)
+        timestamp = remote_ts_json.get("timestamp") or time.time() * 1e3
 
         if stream_data_json:
 
@@ -247,7 +274,7 @@ class AdultSwimStreamIE(InfoExtractor):
 
                 root = traverse_obj(stream_data, ('props', '__REDUX_STATE__')) or {}
                 stream = {}
-                
+
                 for s in root.get('streams') or []:
                     if s.get('id') == stream_id:
                         stream = s
@@ -258,13 +285,21 @@ class AdultSwimStreamIE(InfoExtractor):
 
                 vod_to_live_id = stream.get('vod_to_live_id')
                 episodes_data = traverse_obj(root, ('marathon', vod_to_live_id))
+
+                if not episodes_data:
+                    marathon = root.get('marathon')
+                    if type(marathon) != dict:
+                        pass
+                    elif len(marathon.values()) > 0:
+                        episodes_data = list(marathon.values())[0]
+
                 live_episode_data = {}
 
                 start_time = None
                 for e in episodes_data:
                     start_time = start_time or e.get('startTime')
-                    duration = e.get('duration') * 10**3
-                    
+                    duration = e.get('duration') * 1e3
+
                     if start_time < timestamp and timestamp < start_time + duration:
                         live_episode_data = e
                         break
@@ -279,13 +314,10 @@ class AdultSwimStreamIE(InfoExtractor):
                 episode = live_episode_data.get('episodeName')
                 episode_number = live_episode_data.get('episodeNumber')
                 season_number = live_episode_data.get('seasonNumber')
-            
-        
-        
-        formats = self._extract_m3u8_formats(
-            'https://adultswim-vodlive.cdn.turner.com/live/%s/stream_de.m3u8?hdnts=' % stream_id, 
-            stream_id)
 
+        formats = self._extract_m3u8_formats(
+            'https://adultswim-vodlive.cdn.turner.com/live/%s/stream_de.m3u8?hdnts=' % stream_id, stream_id)
+        self._sort_formats(formats)
 
         info = {
             'id': stream_id,
@@ -298,6 +330,6 @@ class AdultSwimStreamIE(InfoExtractor):
             'formats': formats,
         }
 
-        print(info)
+        print(formats)
 
         return info

@@ -41,6 +41,7 @@ PROTOCOL_MAP = {
     'rtmpe': RtmpFD,
     'rtmp_ffmpeg': FFmpegFD,
     'm3u8_native': HlsFD,
+    'm3u8_native_generator': HlsFD,
     'm3u8': FFmpegFD,
     'mms': RtspFD,
     'rtsp': RtspFD,
@@ -60,6 +61,7 @@ PROTOCOL_MAP = {
 def shorten_protocol_name(proto, simplify=False):
     short_protocol_names = {
         'm3u8_native': 'm3u8_n',
+        'm3u8_native_generator': 'm3u8_g',
         'rtmp_ffmpeg': 'rtmp_f',
         'http_dash_segments': 'dash',
         'http_dash_segments_generator': 'dash_g',
@@ -71,6 +73,7 @@ def shorten_protocol_name(proto, simplify=False):
             'https': 'http',
             'ftps': 'ftp',
             'm3u8_native': 'm3u8',
+            'm3u8_native_generator': 'm3u8',
             'http_dash_segments_generator': 'dash',
             'rtmp_ffmpeg': 'rtmp',
             'm3u8_frag_urls': 'm3u8',
