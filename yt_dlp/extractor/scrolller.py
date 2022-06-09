@@ -1,5 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (determine_ext, KNOWN_EXTENSIONS)
+from ..utils import (determine_ext, KNOWN_EXTENSIONS, int_or_none)
 import json
 
 
@@ -62,9 +62,6 @@ class ScrolllerIE(InfoExtractor):
                 getSubredditPost(url:"/%s"){
                     id
                     title
-                    subredditTitle
-                    subredditUrl
-                    redditPath
                     isNsfw
                     mediaSources{
                         url
@@ -75,17 +72,25 @@ class ScrolllerIE(InfoExtractor):
             }''' % (video_id)
         }
 
-        video = self._download_json(
+        video_data = self._download_json(
             "https://api.scrolller.com/api/v2/graphql", video_id, data=json.dumps(query).encode(), headers={'Content-Type': 'application/json'})['data']['getSubredditPost']
 
         thumbnails = []
         formats = []
 
-        for source in video.get("mediaSources"):
+        for source in video_data.get("mediaSources") or []:
             if determine_ext(source.get("url")) not in KNOWN_EXTENSIONS:
-                thumbnails.append(source)
+                thumbnails.append({
+                    "url": source.get("url"),
+                    "width": int_or_none(source.get("width")),
+                    "height": int_or_none(source.get("height")),
+                })
             else:
-                formats.append(source)
+                formats.append({
+                    "url": source.get("url"),
+                    "width": int_or_none(source.get("width")),
+                    "height": int_or_none(source.get("height")),
+                })
 
         if not formats:
             self.raise_no_formats('There is no video.', expected=True, video_id=video_id)
@@ -94,8 +99,8 @@ class ScrolllerIE(InfoExtractor):
 
         return {
             "id": video_id,
-            "title": video.get("title"),
+            "title": video_data.get("title"),
             "thumbnails": thumbnails,
             "formats": formats,
-            "age_limit": 18 if video.get("isNsfw") else 0
+            "age_limit": 18 if video_data.get("isNsfw") else 0
         }
