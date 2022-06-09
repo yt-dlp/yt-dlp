@@ -70,7 +70,7 @@ class TVerIE(InfoExtractor):
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
             query={
-                'v': episode_content.get('version') or '5',
+                'v': str_or_none(episode_content.get('version')) or '5',
             }, headers={
                 'Origin': 'https://tver.jp',
                 'Referer': 'https://tver.jp/',
