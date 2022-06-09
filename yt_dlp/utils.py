@@ -34,6 +34,7 @@ import sys
 import tempfile
 import time
 import traceback
+import types
 import urllib.parse
 import xml.etree.ElementTree
 import zlib
@@ -3382,8 +3383,13 @@ def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
     return ret
 
 
-def _match_one(filter_part, dct, incomplete):
-    # TODO: Generalize code with YoutubeDL._build_format_filter
+def apply_filter(filter_spec, dct, incomplete=False):
+    """ Filter a dictionary with a simple string syntax.
+    @returns           Whether the filter passes
+    @param incomplete  Set of keys that is expected to be missing from dct.
+                       Can be True/False to indicate all/none of the keys may be missing.
+                       All conditions on incomplete keys pass if the key is missing
+    """
     STRING_OPERATORS = {
         '*=': operator.contains,
         '^=': lambda attr, value: attr.startswith(value),
@@ -3404,16 +3410,15 @@ def _match_one(filter_part, dct, incomplete):
     else:
         is_incomplete = lambda k: k in incomplete
 
-    operator_rex = re.compile(r'''(?x)\s*
+    operator_rex = re.compile(r'''(?x)
         (?P<key>[a-z_]+)
         \s*(?P<negation>!\s*)?(?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
         (?:
             (?P<quote>["\'])(?P<quotedstrval>.+?)(?P=quote)|
             (?P<strval>.+?)
         )
-        \s*$
         ''' % '|'.join(map(re.escape, COMPARISON_OPERATORS.keys())))
-    m = operator_rex.search(filter_part)
+    m = operator_rex.fullmatch(filter_spec.strip())
     if m:
         m = m.groupdict()
         unnegated_op = COMPARISON_OPERATORS[m['op']]
@@ -3426,7 +3431,7 @@ def _match_one(filter_part, dct, incomplete):
             comparison_value = comparison_value.replace(r'\%s' % m['quote'], m['quote'])
         actual_value = dct.get(m['key'])
         numeric_comparison = None
-        if isinstance(actual_value, (int, float)):
+        if m['op'] not in STRING_OPERATORS and isinstance(actual_value, (int, float)):
             # If the original field is a string and matching comparisonvalue is
             # a number we should respect the origin of the original field
             # and process comparison value as a string (see
@@ -3439,21 +3444,20 @@ def _match_one(filter_part, dct, incomplete):
                     numeric_comparison = parse_filesize(f'{comparison_value}B')
                 if numeric_comparison is None:
                     numeric_comparison = parse_duration(comparison_value)
-        if numeric_comparison is not None and m['op'] in STRING_OPERATORS:
-            raise ValueError('Operator %s only supports string values!' % m['op'])
         if actual_value is None:
             return is_incomplete(m['key']) or m['none_inclusive']
-        return op(actual_value, comparison_value if numeric_comparison is None else numeric_comparison)
+        elif numeric_comparison is None:
+            return op(str(actual_value), str(comparison_value))
+        return op(actual_value, numeric_comparison)
 
     UNARY_OPERATORS = {
         '': lambda v: (v is True) if isinstance(v, bool) else (v is not None),
         '!': lambda v: (v is False) if isinstance(v, bool) else (v is None),
     }
-    operator_rex = re.compile(r'''(?x)\s*
+    operator_rex = re.compile(r'''(?x)
         (?P<op>%s)\s*(?P<key>[a-z_]+)
-        \s*$
         ''' % '|'.join(map(re.escape, UNARY_OPERATORS.keys())))
-    m = operator_rex.search(filter_part)
+    m = operator_rex.fullmatch(filter_spec.strip())
     if m:
         op = UNARY_OPERATORS[m.group('op')]
         actual_value = dct.get(m.group('key'))
@@ -3461,19 +3465,14 @@ def _match_one(filter_part, dct, incomplete):
             return True
         return op(actual_value)
 
-    raise ValueError('Invalid filter part %r' % filter_part)
+    raise ValueError('Invalid filter part %r' % filter_spec)
 
 
 def match_str(filter_str, dct, incomplete=False):
-    """ Filter a dictionary with a simple string syntax.
-    @returns           Whether the filter passes
-    @param incomplete  Set of keys that is expected to be missing from dct.
-                       Can be True/False to indicate all/none of the keys may be missing.
-                       All conditions on incomplete keys pass if the key is missing
-    """
+    """apply_filter with support for '&'"""
     return all(
-        _match_one(filter_part.replace(r'\&', '&'), dct, incomplete)
-        for filter_part in re.split(r'(?<!\\)&', filter_str))
+        apply_filter(filter_spec.replace(r'\&', '&'), dct, incomplete)
+        for filter_spec in re.split(r'(?<!\\)&', filter_str))
 
 
 def match_filter_func(filters):
@@ -5395,23 +5394,15 @@ class classproperty:
         return self.func(cls)
 
 
-class Namespace:
+class Namespace(types.SimpleNamespace):
     """Immutable namespace"""
 
-    def __init__(self, **kwargs):
-        self._dict = kwargs
-
-    def __getattr__(self, attr):
-        return self._dict[attr]
-
-    def __contains__(self, item):
-        return item in self._dict.values()
-
     def __iter__(self):
-        return iter(self._dict.items())
+        return iter(self.__dict__.values())
 
-    def __repr__(self):
-        return f'{type(self).__name__}({", ".join(f"{k}={v}" for k, v in self)})'
+    @property
+    def items_(self):
+        return self.__dict__.items()
 
 
 # Deprecated

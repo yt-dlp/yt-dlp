@@ -5,11 +5,9 @@ import datetime
 import errno
 import fileinput
 import functools
-import io
 import itertools
 import json
 import locale
-import operator
 import os
 import platform
 import random
@@ -19,7 +17,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import tokenize
 import traceback
 import unicodedata
 import urllib.request
@@ -42,6 +39,7 @@ from .extractor import _LAZY_LOADER
 from .extractor import _PLUGIN_CLASSES as plugin_extractors
 from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.openload import PhantomJSwrapper
+from .formats import build_format_selector, format_resolution
 from .minicurses import format_text
 from .postprocessor import _PLUGIN_CLASSES as plugin_postprocessors
 from .postprocessor import (
@@ -93,6 +91,7 @@ from .utils import (
     YoutubeDLHandler,
     YoutubeDLRedirectHandler,
     age_restricted,
+    apply_filter,
     args_to_str,
     date_from_str,
     determine_ext,
@@ -118,7 +117,6 @@ from .utils import (
     network_exceptions,
     number_of_digits,
     orderedSet,
-    parse_filesize,
     platform_name,
     preferredencoding,
     prepend_extension,
@@ -576,7 +574,7 @@ class YoutubeDL:
         )
         self._allow_colors = Namespace(**{
             type_: not self.params.get('no_color') and supports_terminal_sequences(stream)
-            for type_, stream in self._out_files if type_ != 'console'
+            for type_, stream in self._out_files.items_ if type_ != 'console'
         })
 
         if sys.version_info < (3, 6):
@@ -1078,7 +1076,7 @@ class YoutubeDL:
         info_dict['autonumber'] = int(self.params.get('autonumber_start', 1) - 1 + self._num_downloads)
         info_dict['video_autonumber'] = self._num_videos
         if info_dict.get('resolution') is None:
-            info_dict['resolution'] = self.format_resolution(info_dict, default=None)
+            info_dict['resolution'] = format_resolution(info_dict, default=None)
 
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
@@ -1851,71 +1849,9 @@ class YoutubeDL:
             entry, download=download, extra_info=extra_info)
 
     def _build_format_filter(self, filter_spec):
-        " Returns a function to filter the formats according to the filter_spec "
-
-        OPERATORS = {
-            '<': operator.lt,
-            '<=': operator.le,
-            '>': operator.gt,
-            '>=': operator.ge,
-            '=': operator.eq,
-            '!=': operator.ne,
-        }
-        operator_rex = re.compile(r'''(?x)\s*
-            (?P<key>width|height|tbr|abr|vbr|asr|filesize|filesize_approx|fps)\s*
-            (?P<op>%s)(?P<none_inclusive>\s*\?)?\s*
-            (?P<value>[0-9.]+(?:[kKmMgGtTpPeEzZyY]i?[Bb]?)?)\s*
-            ''' % '|'.join(map(re.escape, OPERATORS.keys())))
-        m = operator_rex.fullmatch(filter_spec)
-        if m:
-            try:
-                comparison_value = int(m.group('value'))
-            except ValueError:
-                comparison_value = parse_filesize(m.group('value'))
-                if comparison_value is None:
-                    comparison_value = parse_filesize(m.group('value') + 'B')
-                if comparison_value is None:
-                    raise ValueError(
-                        'Invalid value %r in format specification %r' % (
-                            m.group('value'), filter_spec))
-            op = OPERATORS[m.group('op')]
-
-        if not m:
-            STR_OPERATORS = {
-                '=': operator.eq,
-                '^=': lambda attr, value: attr.startswith(value),
-                '$=': lambda attr, value: attr.endswith(value),
-                '*=': lambda attr, value: value in attr,
-                '~=': lambda attr, value: value.search(attr) is not None
-            }
-            str_operator_rex = re.compile(r'''(?x)\s*
-                (?P<key>[a-zA-Z0-9._-]+)\s*
-                (?P<negation>!\s*)?(?P<op>%s)\s*(?P<none_inclusive>\?\s*)?
-                (?P<quote>["'])?
-                (?P<value>(?(quote)(?:(?!(?P=quote))[^\\]|\\.)+|[\w.-]+))
-                (?(quote)(?P=quote))\s*
-                ''' % '|'.join(map(re.escape, STR_OPERATORS.keys())))
-            m = str_operator_rex.fullmatch(filter_spec)
-            if m:
-                if m.group('op') == '~=':
-                    comparison_value = re.compile(m.group('value'))
-                else:
-                    comparison_value = re.sub(r'''\\([\\"'])''', r'\1', m.group('value'))
-                str_op = STR_OPERATORS[m.group('op')]
-                if m.group('negation'):
-                    op = lambda attr, value: not str_op(attr, value)
-                else:
-                    op = str_op
-
-        if not m:
-            raise SyntaxError('Invalid filter specification %r' % filter_spec)
-
-        def _filter(f):
-            actual_value = f.get(m.group('key'))
-            if actual_value is None:
-                return m.group('none_inclusive')
-            return op(actual_value, comparison_value)
-        return _filter
+        self.deprecation_warning('"YoutubeDL._build_format_filter" is deprecated and may be removed '
+                                 'in a future version. Use "yt_dlp.utils.apply_filter" instead')
+        return functools.partial(apply_filter, filter_spec)
 
     def _check_formats(self, formats):
         for f in formats:
@@ -1964,335 +1900,16 @@ class YoutubeDL:
             else 'bestvideo+bestaudio/best')
 
     def build_format_selector(self, format_spec):
-        def syntax_error(note, start):
-            message = (
-                'Invalid format specification: '
-                '{}\n\t{}\n\t{}^'.format(note, format_spec, ' ' * start[1]))
-            return SyntaxError(message)
+        selector = build_format_selector(format_spec, self)
 
-        PICKFIRST = 'PICKFIRST'
-        MERGE = 'MERGE'
-        SINGLE = 'SINGLE'
-        GROUP = 'GROUP'
-        FormatSelector = collections.namedtuple('FormatSelector', ['type', 'selector', 'filters'])
+        def wrapper(ctx):
+            formats, info_dict = ctx.pop('formats'), ctx.pop('info_dict', {})
+            if ctx:
+                self.deprecation_warning(
+                    '"ctx" passed to ydl.build_format_selector(...) must only contain "formats" and "info_dict"')
 
-        allow_multiple_streams = {'audio': self.params.get('allow_multiple_audio_streams', False),
-                                  'video': self.params.get('allow_multiple_video_streams', False)}
-
-        check_formats = self.params.get('check_formats') == 'selected'
-
-        def _parse_filter(tokens):
-            filter_parts = []
-            for type, string, start, _, _ in tokens:
-                if type == tokenize.OP and string == ']':
-                    return ''.join(filter_parts)
-                else:
-                    filter_parts.append(string)
-
-        def _remove_unused_ops(tokens):
-            # Remove operators that we don't use and join them with the surrounding strings
-            # for example: 'mp4' '-' 'baseline' '-' '16x9' is converted to 'mp4-baseline-16x9'
-            ALLOWED_OPS = ('/', '+', ',', '(', ')')
-            last_string, last_start, last_end, last_line = None, None, None, None
-            for type, string, start, end, line in tokens:
-                if type == tokenize.OP and string == '[':
-                    if last_string:
-                        yield tokenize.NAME, last_string, last_start, last_end, last_line
-                        last_string = None
-                    yield type, string, start, end, line
-                    # everything inside brackets will be handled by _parse_filter
-                    for type, string, start, end, line in tokens:
-                        yield type, string, start, end, line
-                        if type == tokenize.OP and string == ']':
-                            break
-                elif type == tokenize.OP and string in ALLOWED_OPS:
-                    if last_string:
-                        yield tokenize.NAME, last_string, last_start, last_end, last_line
-                        last_string = None
-                    yield type, string, start, end, line
-                elif type in [tokenize.NAME, tokenize.NUMBER, tokenize.OP]:
-                    if not last_string:
-                        last_string = string
-                        last_start = start
-                        last_end = end
-                    else:
-                        last_string += string
-            if last_string:
-                yield tokenize.NAME, last_string, last_start, last_end, last_line
-
-        def _parse_format_selection(tokens, inside_merge=False, inside_choice=False, inside_group=False):
-            selectors = []
-            current_selector = None
-            for type, string, start, _, _ in tokens:
-                # ENCODING is only defined in python 3.x
-                if type == getattr(tokenize, 'ENCODING', None):
-                    continue
-                elif type in [tokenize.NAME, tokenize.NUMBER]:
-                    current_selector = FormatSelector(SINGLE, string, [])
-                elif type == tokenize.OP:
-                    if string == ')':
-                        if not inside_group:
-                            # ')' will be handled by the parentheses group
-                            tokens.restore_last_token()
-                        break
-                    elif inside_merge and string in ['/', ',']:
-                        tokens.restore_last_token()
-                        break
-                    elif inside_choice and string == ',':
-                        tokens.restore_last_token()
-                        break
-                    elif string == ',':
-                        if not current_selector:
-                            raise syntax_error('"," must follow a format selector', start)
-                        selectors.append(current_selector)
-                        current_selector = None
-                    elif string == '/':
-                        if not current_selector:
-                            raise syntax_error('"/" must follow a format selector', start)
-                        first_choice = current_selector
-                        second_choice = _parse_format_selection(tokens, inside_choice=True)
-                        current_selector = FormatSelector(PICKFIRST, (first_choice, second_choice), [])
-                    elif string == '[':
-                        if not current_selector:
-                            current_selector = FormatSelector(SINGLE, 'best', [])
-                        format_filter = _parse_filter(tokens)
-                        current_selector.filters.append(format_filter)
-                    elif string == '(':
-                        if current_selector:
-                            raise syntax_error('Unexpected "("', start)
-                        group = _parse_format_selection(tokens, inside_group=True)
-                        current_selector = FormatSelector(GROUP, group, [])
-                    elif string == '+':
-                        if not current_selector:
-                            raise syntax_error('Unexpected "+"', start)
-                        selector_1 = current_selector
-                        selector_2 = _parse_format_selection(tokens, inside_merge=True)
-                        if not selector_2:
-                            raise syntax_error('Expected a selector', start)
-                        current_selector = FormatSelector(MERGE, (selector_1, selector_2), [])
-                    else:
-                        raise syntax_error(f'Operator not recognized: "{string}"', start)
-                elif type == tokenize.ENDMARKER:
-                    break
-            if current_selector:
-                selectors.append(current_selector)
-            return selectors
-
-        def _merge(formats_pair):
-            format_1, format_2 = formats_pair
-
-            formats_info = []
-            formats_info.extend(format_1.get('requested_formats', (format_1,)))
-            formats_info.extend(format_2.get('requested_formats', (format_2,)))
-
-            if not allow_multiple_streams['video'] or not allow_multiple_streams['audio']:
-                get_no_more = {'video': False, 'audio': False}
-                for (i, fmt_info) in enumerate(formats_info):
-                    if fmt_info.get('acodec') == fmt_info.get('vcodec') == 'none':
-                        formats_info.pop(i)
-                        continue
-                    for aud_vid in ['audio', 'video']:
-                        if not allow_multiple_streams[aud_vid] and fmt_info.get(aud_vid[0] + 'codec') != 'none':
-                            if get_no_more[aud_vid]:
-                                formats_info.pop(i)
-                                break
-                            get_no_more[aud_vid] = True
-
-            if len(formats_info) == 1:
-                return formats_info[0]
-
-            video_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('vcodec') != 'none']
-            audio_fmts = [fmt_info for fmt_info in formats_info if fmt_info.get('acodec') != 'none']
-
-            the_only_video = video_fmts[0] if len(video_fmts) == 1 else None
-            the_only_audio = audio_fmts[0] if len(audio_fmts) == 1 else None
-
-            output_ext = self.params.get('merge_output_format')
-            if not output_ext:
-                if the_only_video:
-                    output_ext = the_only_video['ext']
-                elif the_only_audio and not video_fmts:
-                    output_ext = the_only_audio['ext']
-                else:
-                    output_ext = 'mkv'
-
-            filtered = lambda *keys: filter(None, (traverse_obj(fmt, *keys) for fmt in formats_info))
-
-            new_dict = {
-                'requested_formats': formats_info,
-                'format': '+'.join(filtered('format')),
-                'format_id': '+'.join(filtered('format_id')),
-                'ext': output_ext,
-                'protocol': '+'.join(map(determine_protocol, formats_info)),
-                'language': '+'.join(orderedSet(filtered('language'))) or None,
-                'format_note': '+'.join(orderedSet(filtered('format_note'))) or None,
-                'filesize_approx': sum(filtered('filesize', 'filesize_approx')) or None,
-                'tbr': sum(filtered('tbr', 'vbr', 'abr')),
-            }
-
-            if the_only_video:
-                new_dict.update({
-                    'width': the_only_video.get('width'),
-                    'height': the_only_video.get('height'),
-                    'resolution': the_only_video.get('resolution') or self.format_resolution(the_only_video),
-                    'fps': the_only_video.get('fps'),
-                    'dynamic_range': the_only_video.get('dynamic_range'),
-                    'vcodec': the_only_video.get('vcodec'),
-                    'vbr': the_only_video.get('vbr'),
-                    'stretched_ratio': the_only_video.get('stretched_ratio'),
-                })
-
-            if the_only_audio:
-                new_dict.update({
-                    'acodec': the_only_audio.get('acodec'),
-                    'abr': the_only_audio.get('abr'),
-                    'asr': the_only_audio.get('asr'),
-                })
-
-            return new_dict
-
-        def _check_formats(formats):
-            if not check_formats:
-                yield from formats
-                return
-            yield from self._check_formats(formats)
-
-        def _build_selector_function(selector):
-            if isinstance(selector, list):  # ,
-                fs = [_build_selector_function(s) for s in selector]
-
-                def selector_function(ctx):
-                    for f in fs:
-                        yield from f(ctx)
-                return selector_function
-
-            elif selector.type == GROUP:  # ()
-                selector_function = _build_selector_function(selector.selector)
-
-            elif selector.type == PICKFIRST:  # /
-                fs = [_build_selector_function(s) for s in selector.selector]
-
-                def selector_function(ctx):
-                    for f in fs:
-                        picked_formats = list(f(ctx))
-                        if picked_formats:
-                            return picked_formats
-                    return []
-
-            elif selector.type == MERGE:  # +
-                selector_1, selector_2 = map(_build_selector_function, selector.selector)
-
-                def selector_function(ctx):
-                    for pair in itertools.product(selector_1(ctx), selector_2(ctx)):
-                        yield _merge(pair)
-
-            elif selector.type == SINGLE:  # atom
-                format_spec = selector.selector or 'best'
-
-                # TODO: Add allvideo, allaudio etc by generalizing the code with best/worst selector
-                if format_spec == 'all':
-                    def selector_function(ctx):
-                        yield from _check_formats(ctx['formats'][::-1])
-                elif format_spec == 'mergeall':
-                    def selector_function(ctx):
-                        formats = list(_check_formats(
-                            f for f in ctx['formats'] if f.get('vcodec') != 'none' or f.get('acodec') != 'none'))
-                        if not formats:
-                            return
-                        merged_format = formats[-1]
-                        for f in formats[-2::-1]:
-                            merged_format = _merge((merged_format, f))
-                        yield merged_format
-
-                else:
-                    format_fallback, seperate_fallback, format_reverse, format_idx = False, None, True, 1
-                    mobj = re.match(
-                        r'(?P<bw>best|worst|b|w)(?P<type>video|audio|v|a)?(?P<mod>\*)?(?:\.(?P<n>[1-9]\d*))?$',
-                        format_spec)
-                    if mobj is not None:
-                        format_idx = int_or_none(mobj.group('n'), default=1)
-                        format_reverse = mobj.group('bw')[0] == 'b'
-                        format_type = (mobj.group('type') or [None])[0]
-                        not_format_type = {'v': 'a', 'a': 'v'}.get(format_type)
-                        format_modified = mobj.group('mod') is not None
-
-                        format_fallback = not format_type and not format_modified  # for b, w
-                        _filter_f = (
-                            (lambda f: f.get('%scodec' % format_type) != 'none')
-                            if format_type and format_modified  # bv*, ba*, wv*, wa*
-                            else (lambda f: f.get('%scodec' % not_format_type) == 'none')
-                            if format_type  # bv, ba, wv, wa
-                            else (lambda f: f.get('vcodec') != 'none' and f.get('acodec') != 'none')
-                            if not format_modified  # b, w
-                            else lambda f: True)  # b*, w*
-                        filter_f = lambda f: _filter_f(f) and (
-                            f.get('vcodec') != 'none' or f.get('acodec') != 'none')
-                    else:
-                        if format_spec in self._format_selection_exts['audio']:
-                            filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none'
-                        elif format_spec in self._format_selection_exts['video']:
-                            filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') != 'none' and f.get('vcodec') != 'none'
-                            seperate_fallback = lambda f: f.get('ext') == format_spec and f.get('vcodec') != 'none'
-                        elif format_spec in self._format_selection_exts['storyboards']:
-                            filter_f = lambda f: f.get('ext') == format_spec and f.get('acodec') == 'none' and f.get('vcodec') == 'none'
-                        else:
-                            filter_f = lambda f: f.get('format_id') == format_spec  # id
-
-                    def selector_function(ctx):
-                        formats = list(ctx['formats'])
-                        matches = list(filter(filter_f, formats)) if filter_f is not None else formats
-                        if not matches:
-                            if format_fallback and ctx['incomplete_formats']:
-                                # for extractors with incomplete formats (audio only (soundcloud)
-                                # or video only (imgur)) best/worst will fallback to
-                                # best/worst {video,audio}-only format
-                                matches = formats
-                            elif seperate_fallback and not ctx['has_merged_format']:
-                                # for compatibility with youtube-dl when there is no pre-merged format
-                                matches = list(filter(seperate_fallback, formats))
-                        matches = LazyList(_check_formats(matches[::-1 if format_reverse else 1]))
-                        try:
-                            yield matches[format_idx - 1]
-                        except LazyList.IndexError:
-                            return
-
-            filters = [self._build_format_filter(f) for f in selector.filters]
-
-            def final_selector(ctx):
-                ctx_copy = dict(ctx)
-                for _filter in filters:
-                    ctx_copy['formats'] = list(filter(_filter, ctx_copy['formats']))
-                return selector_function(ctx_copy)
-            return final_selector
-
-        stream = io.BytesIO(format_spec.encode())
-        try:
-            tokens = list(_remove_unused_ops(tokenize.tokenize(stream.readline)))
-        except tokenize.TokenError:
-            raise syntax_error('Missing closing/opening brackets or parenthesis', (0, len(format_spec)))
-
-        class TokenIterator:
-            def __init__(self, tokens):
-                self.tokens = tokens
-                self.counter = 0
-
-            def __iter__(self):
-                return self
-
-            def __next__(self):
-                if self.counter >= len(self.tokens):
-                    raise StopIteration()
-                value = self.tokens[self.counter]
-                self.counter += 1
-                return value
-
-            next = __next__
-
-            def restore_last_token(self):
-                self.counter -= 1
-
-        parsed_selector = _parse_format_selection(iter(TokenIterator(tokens)))
-        return _build_selector_function(parsed_selector)
+            return selector(formats, info_dict)
+        return wrapper
 
     def _calc_headers(self, info_dict):
         res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
@@ -2559,13 +2176,13 @@ class YoutubeDL:
             if format.get('format') is None:
                 format['format'] = '{id} - {res}{note}'.format(
                     id=format['format_id'],
-                    res=self.format_resolution(format),
+                    res=format_resolution(format),
                     note=format_field(format, 'format_note', ' (%s)'),
                 )
             if format.get('protocol') is None:
                 format['protocol'] = determine_protocol(format)
             if format.get('resolution') is None:
-                format['resolution'] = self.format_resolution(format, default=None)
+                format['resolution'] = format_resolution(format, default=None)
             if format.get('dynamic_range') is None and format.get('vcodec') != 'none':
                 format['dynamic_range'] = 'SDR'
             if (info_dict.get('duration') and format.get('tbr')
@@ -2635,15 +2252,7 @@ class YoutubeDL:
                     self.report_error(err, tb=False, is_error=False)
                     continue
 
-            formats_to_download = list(format_selector({
-                'formats': formats,
-                'has_merged_format': any('none' not in (f.get('acodec'), f.get('vcodec')) for f in formats),
-                'incomplete_formats': (
-                    # All formats are video-only or
-                    all(f.get('vcodec') != 'none' and f.get('acodec') == 'none' for f in formats)
-                    # all formats are audio-only
-                    or all(f.get('vcodec') == 'none' and f.get('acodec') != 'none' for f in formats)),
-            }))
+            formats_to_download = list(format_selector({'formats': formats, 'info_dict': info_dict}))
             if interactive_format_selection and not formats_to_download:
                 self.report_error('Requested format is not available', tb=False, is_error=False)
                 continue
@@ -3481,17 +3090,9 @@ class YoutubeDL:
 
     @staticmethod
     def format_resolution(format, default='unknown'):
-        if format.get('vcodec') == 'none' and format.get('acodec') != 'none':
-            return 'audio only'
-        if format.get('resolution') is not None:
-            return format['resolution']
-        if format.get('width') and format.get('height'):
-            return '%dx%d' % (format['width'], format['height'])
-        elif format.get('height'):
-            return '%sp' % format['height']
-        elif format.get('width'):
-            return '%dx?' % format['width']
-        return default
+        write_string('DeprecationWarning: "YoutubeDL.format_resolution" is deprecated '
+                     'and may be removed in a future version. Use "yt_dlp.formats.format_resolution" instead')
+        return format_resolution(format, default)
 
     def _list_format_headers(self, *headers):
         if self.params.get('listformats_table', True) is not False:
@@ -3568,7 +3169,7 @@ class YoutubeDL:
                 [
                     format_field(f, 'format_id'),
                     format_field(f, 'ext'),
-                    self.format_resolution(f),
+                    format_resolution(f),
                     self._format_note(f)
                 ] for f in formats if f.get('preference') is None or f['preference'] >= -1000]
             return render_table(['format code', 'extension', 'resolution', 'note'], table, extra_gap=1)
@@ -3578,7 +3179,7 @@ class YoutubeDL:
             [
                 self._format_out(format_field(f, 'format_id'), self.Styles.ID),
                 format_field(f, 'ext'),
-                format_field(f, func=self.format_resolution, ignore=('audio only', 'images')),
+                format_field(f, func=format_resolution, ignore=('audio only', 'images')),
                 format_field(f, 'fps', '\t%d'),
                 format_field(f, 'dynamic_range', '%s', ignore=(None, 'SDR')).replace('HDR', ''),
                 delim,
@@ -3672,7 +3273,7 @@ class YoutubeDL:
             sys.getfilesystemencoding(),
             self.get_encoding(),
             ', '.join(
-                f'{key} {get_encoding(stream)}' for key, stream in self._out_files
+                f'{key} {get_encoding(stream)}' for key, stream in self._out_files.items_
                 if stream is not None and key != 'console')
         )
 
