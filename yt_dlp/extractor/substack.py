@@ -17,7 +17,7 @@ class SubstackIE(InfoExtractor):
             'description': 'md5:10c01ff93439a62e70ce963b2aa0b7f6',
             'thumbnail': 'md5:bec758a34d8ee9142d43bcebdf33af18',
             'uploader': 'Maybe Baby',
-            'uploader_id': '7802200',
+            'uploader_id': '33628',
         }
     }, {
         'url': 'https://haleynahman.substack.com/p/-dear-danny-i-found-my-boyfriends?s=r',
@@ -29,7 +29,7 @@ class SubstackIE(InfoExtractor):
             'description': 'md5:a57f2439319e56e0af92dd0c95d75797',
             'thumbnail': 'md5:daa40b6b79249417c14ff8103db29639',
             'uploader': 'Maybe Baby',
-            'uploader_id': '7802200',
+            'uploader_id': '33628',
         }
     }, {
         'url': 'https://andrewzimmern.substack.com/p/mussels-with-black-bean-sauce-recipe',
@@ -41,7 +41,7 @@ class SubstackIE(InfoExtractor):
             'description': 'md5:b96234a2906c7d854d5229818d889515',
             'thumbnail': 'md5:e30bfaa9da40e82aa62354263a9dd232',
             'uploader': "Andrew Zimmern's Spilled Milk ",
-            'uploader_id': '7919490',
+            'uploader_id': '577659',
         }
     }]
 
@@ -96,5 +96,5 @@ class SubstackIE(InfoExtractor):
             'description': traverse_obj(webpage_info, ('post', 'description')),
             'thumbnail': traverse_obj(webpage_info, ('post', 'cover_image')),
             'uploader': traverse_obj(webpage_info, ('pub', 'name')),
-            'uploader_id': str_or_none(traverse_obj(webpage_info, ('pub', 'author_id'))),
+            'uploader_id': str_or_none(traverse_obj(webpage_info, ('post', 'publication_id'))),
         }

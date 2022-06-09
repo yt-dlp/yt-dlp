@@ -2554,7 +2554,7 @@ class GenericIE(InfoExtractor):
                 'description': 'Listen now | Episode One',
                 'thumbnail': 'md5:c30d9c83f738e16d8551d7219d321538',
                 'uploader': 'Molly Movie Club',
-                'uploader_id': '86947332',
+                'uploader_id': '839621',
             },
         },
         {
@@ -2567,7 +2567,7 @@ class GenericIE(InfoExtractor):
                 'description': 'md5:fe512a5e94136ad260c80bde00ea4eef',
                 'thumbnail': 'md5:2218f27dfe517bb5ac16c47d0aebac59',
                 'uploader': 'Blocked and Reported',
-                'uploader_id': '626816',
+                'uploader_id': '500230',
             },
         }
     ]
