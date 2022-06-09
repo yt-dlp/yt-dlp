@@ -65,7 +65,7 @@ class TVerIE(InfoExtractor):
                 'x-tver-platform-type': 'web'
             })
         episode_content = traverse_obj(
-            episode_info, ('result', 'episode', 'content'), get_all=False) or {}
+            episode_info, ('result', 'episode', 'content')) or {}
 
         video_info = self._download_json(
             f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
@@ -76,7 +76,7 @@ class TVerIE(InfoExtractor):
                 'Referer': 'https://tver.jp/',
             })
         p_id = video_info['video']['accountID']
-        r_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID')), get_all=False)
+        r_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID')))
         if not r_id:
             raise ExtractorError('Failed to extract reference ID for Brightcove')
         if not r_id.isdigit():
