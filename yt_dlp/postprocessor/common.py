@@ -216,5 +216,5 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 raise PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
 
 
-class AudioConversionError(PostProcessingError):
+class AudioConversionError(PostProcessingError):  # Deprecated
     pass
