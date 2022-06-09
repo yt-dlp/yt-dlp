@@ -102,6 +102,7 @@ from .asiancrush import (
     AsianCrushPlaylistIE,
 )
 from .atresplayer import AtresPlayerIE
+from .atscaleconf import AtScaleConfEventIE
 from .atttechchannel import ATTTechChannelIE
 from .atvat import ATVAtIE
 from .audimedia import AudiMediaIE
@@ -519,6 +520,10 @@ from .fourtube import (
     PornTubeIE,
     PornerBrosIE,
     FuxIE,
+)
+from .fourzerostudio import (
+    FourZeroStudioArchiveIE,
+    FourZeroStudioClipIE,
 )
 from .fox import FOXIE
 from .fox9 import (
@@ -1568,6 +1573,7 @@ from .southpark import (
     SouthParkDeIE,
     SouthParkDkIE,
     SouthParkEsIE,
+    SouthParkLatIE,
     SouthParkNlIE
 )
 from .sovietscloset import (
