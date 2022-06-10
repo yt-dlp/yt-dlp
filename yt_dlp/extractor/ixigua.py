@@ -1,10 +1,11 @@
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     get_element_by_id,
     int_or_none,
     js_to_json,
+    str_or_none,
     traverse_obj,
-    ExtractorError,
 )
 import base64
 
@@ -62,7 +63,6 @@ class IxiguaIE(InfoExtractor):
 
     def _get_formats(self, media_json, media_specific_format):
         _single_video_format = []
-        # This download video only-DASH and mp4 format
         for media in media_json:
             base_format = {
                 'url': base64.b64decode(media.get('main_url')).decode(),
@@ -70,7 +70,7 @@ class IxiguaIE(InfoExtractor):
                 'height': int_or_none(media.get('vheight')),
                 'fps': int_or_none(media.get('fps')),
                 'vcodec': media.get('codec_type'),
-                'format_id': str(media.get('quality_type')),
+                'format_id': str_or_none(media.get('quality_type')),
                 'filesize': int_or_none(media.get('size')),
                 'ext': 'mp4',
                 **media_specific_format
@@ -100,21 +100,21 @@ class IxiguaIE(InfoExtractor):
         # need to pass cookie (at least contain __ac_nonce and ttwid)
         webpage = self._download_webpage(url, video_id)
         json_data = self._get_json_data(webpage, video_id)
-        video_info = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'videoResource'))
-
-        format_ = self._media_selector(video_info)
+        video_resource = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video'))
+        
+        format_ = self._media_selector(video_resource.get('videoResource'))
         self._sort_formats(format_)
         return {
             'id': video_id,
-            'title': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'title')),
-            'description': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_abstract')),
+            'title': video_resource.get('title'), 
+            'description': video_resource.get('video_abstract'), 
             'formats': format_,
-            'like_count': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_like_count')),
-            'duration': int_or_none(traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_duration'))),
-            'tag': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'tag')),
-            'uploader_id': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'user_info', 'user_id')),
-            'uploader': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'user_info', 'name')),
-            'view_count': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_watch_count')),
-            'dislike_count': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_unlike_count')),
-            'timestamp': traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video', 'video_publish_time')),
+            'like_count': video_resource.get('video_like_count'), 
+            'duration': int_or_none(video_resource.get('duration')), 
+            'tag': video_resource.get('tag'), 
+            'uploader_id': traverse_obj(video_resource,('user_info', 'user_id')),
+            'uploader': traverse_obj(video_resource, ('user_info', 'name')),
+            'view_count': video_resource.get('video_watch_count'),
+            'dislike_count': video_resource.get('video_unlike_count'),
+            'timestamp': int_or_none(video_resource.get('video_publish_time')),
         }
