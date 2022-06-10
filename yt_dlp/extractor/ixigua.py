@@ -56,26 +56,23 @@ class IxiguaIE(InfoExtractor):
                 'ext': 'mp4a',
             }
         elif media_type == "normal":
-            for media in media_json.get('video_list'):
-                media_data.append(traverse_obj(media_json, ('video_list', media)))
+            media_data = [traverse_obj(media_json, ('video_list', media)) for media in media_json.get('video_list')]
 
         return self._get_formats(media_data, media_specific_format)
 
     def _get_formats(self, media_json, media_specific_format):
-        _single_video_format = []
-        for media in media_json:
-            base_format = {
-                'url': base64.b64decode(media.get('main_url')).decode(),
-                'width': int_or_none(media.get('vwidth')),
-                'height': int_or_none(media.get('vheight')),
-                'fps': int_or_none(media.get('fps')),
-                'vcodec': media.get('codec_type'),
-                'format_id': str_or_none(media.get('quality_type')),
-                'filesize': int_or_none(media.get('size')),
-                'ext': 'mp4',
-                **media_specific_format
-            }
-            _single_video_format.append(base_format)
+        _single_video_format = [{
+            'url': base64.b64decode(media.get('main_url')).decode(),
+            'width': int_or_none(media.get('vwidth')),
+            'height': int_or_none(media.get('vheight')),
+            'fps': int_or_none(media.get('fps')),
+            'vcodec': media.get('codec_type'),
+            'format_id': str_or_none(media.get('quality_type')),
+            'filesize': int_or_none(media.get('size')),
+            'ext': 'mp4',
+            **media_specific_format
+        } for media in media_json]
+
         return _single_video_format
 
     def _media_selector(self, json_data):
@@ -101,18 +98,18 @@ class IxiguaIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
         json_data = self._get_json_data(webpage, video_id)
         video_resource = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video'))
-        
+
         format_ = self._media_selector(video_resource.get('videoResource'))
         self._sort_formats(format_)
         return {
             'id': video_id,
-            'title': video_resource.get('title'), 
-            'description': video_resource.get('video_abstract'), 
+            'title': video_resource.get('title'),
+            'description': video_resource.get('video_abstract'),
             'formats': format_,
-            'like_count': video_resource.get('video_like_count'), 
-            'duration': int_or_none(video_resource.get('duration')), 
-            'tag': video_resource.get('tag'), 
-            'uploader_id': traverse_obj(video_resource,('user_info', 'user_id')),
+            'like_count': video_resource.get('video_like_count'),
+            'duration': int_or_none(video_resource.get('duration')),
+            'tag': video_resource.get('tag'),
+            'uploader_id': traverse_obj(video_resource, ('user_info', 'user_id')),
             'uploader': traverse_obj(video_resource, ('user_info', 'name')),
             'view_count': video_resource.get('video_watch_count'),
             'dislike_count': video_resource.get('video_unlike_count'),
