@@ -62,7 +62,7 @@ class IxiguaIE(InfoExtractor):
 
     def _get_formats(self, media_json, media_specific_format):
         _single_video_format = [{
-            'url': base64.b64decode(media.get('main_url')).decode(),
+            'url': base64.b64decode(media['main_url']).decode(),
             'width': int_or_none(media.get('vwidth')),
             'height': int_or_none(media.get('vheight')),
             'fps': int_or_none(media.get('fps')),
