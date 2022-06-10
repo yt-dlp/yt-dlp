@@ -109,7 +109,7 @@ class ZDFBaseIE(InfoExtractor):
                                 'class': track.get('class'),
                                 'language': track.get('language'),
                             })
-        self._sort_formats(formats, ('tbr', 'hasaud', 'res', 'quality', 'language_preference'))
+        self._sort_formats(formats, ('tbr', 'res', 'quality', 'language_preference'))
 
         duration = float_or_none(try_get(
             ptmd, lambda x: x['attributes']['duration']['value']), scale=1000)
