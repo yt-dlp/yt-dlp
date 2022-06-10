@@ -59,9 +59,9 @@ class FoxNewsIE(AMPIE):
     @staticmethod
     def _extract_urls(webpage):
         return [
-            mobj.group('url')
+            f'https://video.foxnews.com/v/video-embed.html?video_id={mobj.group("video_id")}'
             for mobj in re.finditer(
-                r'<(?:amp-)?iframe[^>]+\bsrc=(["\'])(?P<url>(?:https?:)?//video\.foxnews\.com/v/video-embed\.html?.*?\bvideo_id=\d+.*?)\1',
+                r'(?:<(?:amp-)?iframe[^>]+\bsrc=(["\']))?(?:https?:)?//video\.foxnews\.com/v/(?:video-embed\.html|embed\.js)\?.*?\b(?:video_)?id=(?P<video_id>\d+).*?',
                 webpage)]
 
     def _real_extract(self, url):
