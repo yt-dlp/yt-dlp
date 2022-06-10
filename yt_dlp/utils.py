@@ -3498,13 +3498,13 @@ def match_filter_func(filters):
 def download_range_func(chapters, ranges):
     def inner(info_dict, ydl):
         warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
-                   else 'Chapter information is unavailable')
+                   else 'Cannot match chapters since chapter information is unavailable')
         for regex in chapters or []:
             for i, chapter in enumerate(info_dict.get('chapters') or []):
                 if re.search(regex, chapter['title']):
                     warning = None
                     yield {**chapter, 'index': i}
-        if warning:
+        if chapters and warning:
             ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
 
         yield from ({'start_time': start, 'end_time': end} for start, end in ranges or [])
@@ -4903,9 +4903,9 @@ def to_high_limit_path(path):
     return path
 
 
-def format_field(obj, field=None, template='%s', ignore=(None, ''), default='', func=None):
+def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=None):
     val = traverse_obj(obj, *variadic(field))
-    if val in ignore:
+    if (not val and val != 0) if ignore is NO_DEFAULT else val in ignore:
         return default
     return template % (func(val) if func else val)
 

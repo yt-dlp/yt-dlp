@@ -337,14 +337,11 @@ class ChromeCookieDecryptor:
 
 
 def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=None):
-    if sys.platform in ('linux', 'linux2'):
-        return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring)
-    elif sys.platform == 'darwin':
+    if sys.platform == 'darwin':
         return MacChromeCookieDecryptor(browser_keyring_name, logger)
-    elif sys.platform == 'win32':
+    elif sys.platform in ('win32', 'cygwin'):
         return WindowsChromeCookieDecryptor(browser_root, logger)
-    else:
-        raise NotImplementedError(f'Chrome cookie decryption is not supported on this platform: {sys.platform}')
+    return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring)
 
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):

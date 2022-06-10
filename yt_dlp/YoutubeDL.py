@@ -2570,7 +2570,7 @@ class YoutubeDL:
                 format['dynamic_range'] = 'SDR'
             if (info_dict.get('duration') and format.get('tbr')
                     and not format.get('filesize') and not format.get('filesize_approx')):
-                format['filesize_approx'] = info_dict['duration'] * format['tbr'] * (1024 / 8)
+                format['filesize_approx'] = int(info_dict['duration'] * format['tbr'] * (1024 / 8))
 
             # Add HTTP headers, so that external programs can use them from the
             # json output
@@ -3059,16 +3059,15 @@ class YoutubeDL:
                     return file
 
                 success = True
-                merger = FFmpegMergerPP(self)
-                fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
-                if fd is not FFmpegFD and (
-                        info_dict.get('section_start') or info_dict.get('section_end')):
-                    msg = ('This format cannot be partially downloaded' if merger.available
-                           else 'You have requested downloading the video partially, but ffmpeg is not installed')
-                    if not self.params.get('ignoreerrors'):
-                        self.report_error(f'{msg}. Aborting due to --abort-on-error')
+                merger, fd = FFmpegMergerPP(self), None
+                if info_dict.get('url'):
+                    fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
+                    if fd is not FFmpegFD and (
+                            info_dict.get('section_start') or info_dict.get('section_end')):
+                        msg = ('This format cannot be partially downloaded' if merger.available
+                               else 'You have requested downloading the video partially, but ffmpeg is not installed')
+                        self.report_error(f'{msg}. Aborting')
                         return
-                    self.report_warning(f'{msg}. The entire video will be downloaded')
 
                 if info_dict.get('requested_formats') is not None:
 

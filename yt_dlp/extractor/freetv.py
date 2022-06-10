@@ -2,11 +2,7 @@ import itertools
 import re
 
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    traverse_obj,
-    urlencode_postdata,
-)
+from ..utils import int_or_none, traverse_obj, urlencode_postdata
 
 
 class FreeTvBaseIE(InfoExtractor):
