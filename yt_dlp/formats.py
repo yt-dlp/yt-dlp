@@ -1,9 +1,10 @@
 import collections
 import enum
-import functools
+import inspect
 import itertools
 import re
 
+from .compat import functools
 from .utils import (
     Namespace,
     apply_filter,
@@ -17,12 +18,18 @@ def _filter_each(f, l):
     return filter(None, map(tuple, (filter(f, x) for x in l)))
 
 
+def _product(it, strict=False):
+    if not strict:
+        it = filter(None, map(tuple, it))
+    return itertools.product(*it)
+
+
 def _debug_suitable_formats(func):
     """Only for debugging purposes"""
     from .utils import filter_dict
 
     def wrapper(self, formats, ctx):
-        print(self, func.__qualname__)
+        print(self, repr(self), func.__qualname__)
         opts = filter_dict(ctx.__dict__)
         opts.pop('check_format')
         opts.pop('info_dict')
@@ -64,7 +71,7 @@ class FormatType(enum.Enum):
 
     def isin(self, format):
         type_ = self.of(format)
-        return type_ == self or (type_ == self.Merged and self != self.Storyboards)
+        return type_ == self or (type_ == FormatType.Merged and self != FormatType.Storyboards)
 
 
 ALL_TOKENS = Namespace(
@@ -80,49 +87,150 @@ ALL_TOKENS = Namespace(
 
 
 class TokenIterator:
-    counter = 0
+    counter = -1
 
     def __init__(self, spec, allowed_tokens):
-        self.spec = spec
         self.tokens = tuple(self.tokenize(spec, allowed_tokens))
+        assert all(self.tokens), 'Empty tokens are not supported'
+        self.spec = ''.join(self.tokens)
 
     @staticmethod
-    def _current_token(spec, allowed_tokens):
+    def _starting_token(spec, allowed_tokens):
         return next((token for token in allowed_tokens if spec.startswith(token)), None)
 
     @classmethod
     def tokenize(cls, spec, allowed_tokens):
         currently_allowed_tokens = allowed_tokens
         while spec:
-            name = ''.join(itertools.takewhile(lambda x: not cls._current_token(x, currently_allowed_tokens), spec))
+            name = ''.join(itertools.takewhile(lambda x: not cls._starting_token(x, currently_allowed_tokens), spec))
             spec = spec[len(name):]
 
-            token = cls._current_token(spec, currently_allowed_tokens) or ''
+            token = cls._starting_token(spec, currently_allowed_tokens) or ''
             spec = spec[len(token):]
 
             currently_allowed_tokens = [ALL_TOKENS.FILTER_END] if token == ALL_TOKENS.FILTER_START else allowed_tokens
             yield from filter(None, (name.strip(), token))
 
+    @functools.cached_property
+    def token_count(self):
+        return len(self.tokens)
+
+    @property
+    def current_token(self):
+        if 0 <= self.counter < self.token_count:
+            return self.tokens[self.counter]
+        return ''
+
+    def next(self):
+        self.counter += 1
+        if not self.current_token:
+            self.counter = self.token_count
+        return self.current_token
+
+    def __next__(self):
+        if self.next():
+            return self.current_token
+        raise StopIteration()
+
     def __iter__(self):
         return self
 
-    def __next__(self):
-        try:
-            return self.tokens[self.counter]
-        except IndexError:
-            raise StopIteration()
-        finally:
-            self.counter += 1
+    @functools.cached_property
+    def _positions(self):
+        return tuple(itertools.accumulate(map(len, ('', *self.tokens, ''))))
 
     @property
-    def position(self):
-        return sum(map(len, self.tokens[:self.counter - 1])) if self.counter else -1
+    def current_position(self):
+        if self.counter < 0:
+            return 0
+        return self._positions[self.counter]
 
-    def restore_token(self):
-        self.counter -= 1
+    @property
+    def next_position(self):
+        return self._positions[self.counter + 1]
 
-    def SyntaxError(self, note):
-        return SyntaxError(f'Invalid format specification: {note}\n\t{self.spec}\n\t{" " * (self.position - 1)}^')
+    def SyntaxError(self, note, idx=None):
+        if idx is not None:
+            self.counter = idx
+        strlen = max(self.next_position - self.current_position, 1)
+        return SyntaxError(
+            f'Invalid format specification: {note}\n    {self.spec}\n    {"^" * strlen:>{self.current_position + strlen}}')
+
+
+def parse_tokens(tokenit, *, inside_merge_formats=False, inside_choice=False, inside_group=False):
+    def recurse(**kwargs):
+        idx = tokenit.counter
+        selector = parse_tokens(tokenit, **kwargs)
+        if not selector:
+            raise tokenit.SyntaxError(f'{token!r} must be followed by a selector', idx + 1)
+        return selector
+
+    def validate_end(expected):
+        if tokenit.next() != expected:
+            raise tokenit.SyntaxError(f'Expected {expected!r}')
+        elif tokenit.next() not in ('', *ALL_TOKENS):
+            raise tokenit.SyntaxError(f'Unexpected selector {tokenit.current_token!r}')
+        tokenit.counter -= 1
+
+    last_selector, current_selector = None, None
+    for token in tokenit:
+        if token == ALL_TOKENS.FILTER_END:
+            raise tokenit.SyntaxError(f'Unexpected {token!r}')
+        elif any((
+            token == ALL_TOKENS.GROUP_END,
+            inside_merge_formats and token in (ALL_TOKENS.TAKE_FIRST, ALL_TOKENS.TAKE_ALL),
+            inside_choice and token == ALL_TOKENS.TAKE_ALL
+        )):
+            tokenit.counter -= 1
+            break
+        elif token == ALL_TOKENS.TAKE_ALL:
+            if not current_selector:
+                raise tokenit.SyntaxError(f'{token!r} must follow a selector')
+            if last_selector:
+                last_selector = TakeAll(tokenit, last_selector, current_selector)
+            else:
+                last_selector = current_selector
+            current_selector = None
+        elif token == ALL_TOKENS.TAKE_FIRST:
+            if not current_selector:
+                raise tokenit.SyntaxError(f'{token!r} must follow a selector')
+            current_selector = TakeFirst(tokenit, current_selector, recurse(inside_choice=True))
+        elif token in (ALL_TOKENS.MERGE, ALL_TOKENS.MERGE_OPTIONAL):
+            if not current_selector:
+                raise tokenit.SyntaxError(f'{token!r} must follow a selector')
+            current_selector = Merge(tokenit, current_selector, recurse(inside_merge_formats=True),
+                                     optional=token == ALL_TOKENS.MERGE_OPTIONAL)
+        elif token == ALL_TOKENS.GROUP_START:
+            if current_selector:
+                raise tokenit.SyntaxError(f'Unexpected {token!r}')
+            current_selector = Group(tokenit, recurse(inside_group=True))
+            validate_end(ALL_TOKENS.GROUP_END)
+        elif token == ALL_TOKENS.FILTER_START:
+            if not current_selector:
+                current_selector = SelectBest(tokenit)
+            filter = tokenit.next()
+            if filter in ('', *ALL_TOKENS):
+                raise tokenit.SyntaxError(f'{token!r} must follow a filter')
+            validate_end(ALL_TOKENS.FILTER_END)
+            current_selector.add_filter(filter, tokenit)
+        else:
+            mobj = _SelectorMobj(token)
+            if not mobj:
+                current_selector = FormatID(tokenit, token)
+            elif not mobj.is_valid:
+                raise tokenit.SyntaxError(f'Invalid format selector {token!r}')
+            elif mobj.which:
+                op = MergeBest if mobj.merge else SelectBest
+                current_selector = op(tokenit, mobj.type, mobj.idx, mobj.field)
+            else:
+                op = MergeAll if mobj.merge else SelectAll
+                current_selector = op(tokenit, mobj.type)
+
+    if not (inside_merge_formats or inside_choice or inside_group) and tokenit.next():
+        raise tokenit.SyntaxError(f'Unexpected {tokenit.current_token!r}')
+    if current_selector and last_selector:
+        return TakeAll(tokenit, last_selector, current_selector)
+    return current_selector or last_selector
 
 
 def decompose_formats(*formats, ctx=None, optional=False):
@@ -182,8 +290,8 @@ def merge_formats(formats, ctx=None, optional=False):
 class FormatSelector:
     """Base class for format selectors"""
 
-    def __init__(self):
-        raise NotImplementedError('Must be defined by subclasses')
+    SIGNATURE = {}  # Must be overridden in subclasses
+    _ALLOW_STORYBOARDS = False
 
     def suitable_formats(self, formats, ctx):
         """
@@ -196,7 +304,7 @@ class FormatSelector:
         """Apply the selector to given formats"""
         return next(_filter_each(ctx.check_format, self.process(formats[::-1], ctx)), [])
 
-    #@_debug_suitable_formats
+    # @_debug_suitable_formats
     def process(self, formats, ctx):
         """
         Get all formats matching the selector
@@ -205,7 +313,7 @@ class FormatSelector:
         """
         return _filter_each(functools.partial(self._match_filters, ctx=ctx), self.suitable_formats(formats, ctx))
 
-    def add_filter(self, filter):
+    def add_filter(self, filter, tokenit):
         """Add a filter to the selector"""
         func = functools.partial(apply_filter, filter)
         try:
@@ -214,14 +322,25 @@ class FormatSelector:
             raise SyntaxError(f'Invalid filter specification: {filter}')
         self.filters.append(func)
         self._kwargs.setdefault('filters', []).append(filter)
+        self.spec.end = tokenit.next_position
 
     def _match_filters(self, format, ctx):
         dct = collections.ChainMap(format, ctx.info_dict)
         return all(func(dct) for func in self.filters)
 
-    def _initialize(self, **kwargs):
-        self._kwargs = kwargs
-        self.filters = []
+    def __init__(self, tokenit, *args, **kwargs):
+        ba = inspect.Signature(
+            inspect.Parameter(key, kind=inspect.Parameter.POSITIONAL_OR_KEYWORD, default=default)
+            for key, default in self.SIGNATURE.items()
+        ).bind(*args, **kwargs)
+        ba.apply_defaults()
+
+        self._kwargs = ba.arguments
+        self.spec, self.filters = self._get_spec(tokenit), []
+
+    def _get_spec(self, tokenit):
+        return Namespace(base=tokenit.spec, end=tokenit.next_position,
+                         start=self.left.spec.start if self.parts else tokenit.current_position)
 
     def __getattr__(self, name):
         try:
@@ -229,11 +348,32 @@ class FormatSelector:
         except KeyError:
             raise AttributeError(f'{self.__class__.__qualname__} object has no attribute {name}')
 
-    def __repr__(self):
-        return f'{self.__class__.__qualname__}({", ".join(f"{k}={v!r}" for k, v in self._kwargs.items())})'
+    @functools.cached_property
+    def parts(self):
+        return [self._kwargs[name] for name in ('left', 'right') if self._kwargs.get(name, None)]
 
     def _evaluate_parts(self, formats, ctx):
         return (p.process(formats, ctx) for p in self.parts)
+
+    def __iter__(self):
+        for p in self.parts:
+            yield from p
+        yield self
+
+    def __repr__(self):
+        kwargs = ', '.join(f'{k}={v!r}' for k, v in self._kwargs.items() if k not in ('left', 'right'))
+        return f'{self.__class__.__qualname__}({", ".join((*map(repr, self.parts), kwargs))})'
+
+    def __str__(self):
+        return self.spec.base[self.spec.start:self.spec.end]
+
+    def is_an_allowed_type(self, format):
+        return {
+            FormatType.Merged: not self.what or '*' in self.what,
+            FormatType.Video: 'v' in self.what or self.what == '*',
+            FormatType.Audio: 'a' in self.what or self.what == '*',
+            FormatType.Storyboards: self.what == '*' and self._ALLOW_STORYBOARDS,
+        }[FormatType.of(format)]
 
 
 class FormatID(FormatSelector):
@@ -245,8 +385,9 @@ class FormatID(FormatSelector):
         'storyboards': {'mhtml'},
     }
 
-    def __init__(self, selector):
-        self._initialize(selector=selector)
+    SIGNATURE = {
+        'selector': inspect.Parameter.empty
+    }
 
     def suitable_formats(self, formats, ctx):
         """
@@ -271,18 +412,15 @@ class FormatID(FormatSelector):
 class SelectAll(FormatSelector):
     """all (v|a|) (*?)"""
 
+    SIGNATURE = {
+        'what': inspect.Parameter.empty
+    }
     _ALLOW_STORYBOARDS = True
 
-    def __init__(self, what):
-        self._initialize(what=what or '*')
-
-    def is_an_allowed_type(self, format):
-        return {
-            FormatType.Merged: not self.what or '*' in self.what,
-            FormatType.Video: 'v' in self.what or self.what == '*',
-            FormatType.Audio: 'a' in self.what or self.what == '*',
-            FormatType.Storyboards: self.what == '*' and self._ALLOW_STORYBOARDS,
-        }[FormatType.of(format)]
+    @property
+    def what(self):
+        # For compatibility: all/mergeall => all*, mergeall*
+        return self._kwargs['what'] or '*'
 
     def suitable_formats(self, formats, ctx):
         """
@@ -311,13 +449,14 @@ class MergeAll(SelectAll):
         yield (merge_formats(f, ctx) for f in SelectAll.suitable_formats(self, formats, ctx))
 
 
-class SelectBest(SelectAll):
-    """(all)? (b|w) (v|a|) (*?) (.n)? ({field})?"""
+class SelectBest(FormatSelector):
+    """(b|w) (v|a|) (*?) (.n)? ({field})?"""
 
-    _ALLOW_STORYBOARDS = False
-
-    def __init__(self, what='', n=1, field=''):
-        self._initialize(what=what, n=n, field=field)
+    SIGNATURE = {
+        'what': '',
+        'n': 1,
+        'field': '',
+    }
 
     def sort_formats(self, formats):
         return filter(None, (formats[::-1] if self.n < 0 else formats)[abs(self.n) - 1:])
@@ -332,11 +471,11 @@ class SelectBest(SelectAll):
             groups = collections.defaultdict(list)
             for f in formats:
                 groups[f.get(self.field)].append(f)
-            yield from itertools.product(*map(self.sort_formats, groups.values()))
+            yield from _product(map(self.sort_formats, groups.values()))
 
 
 class MergeBest(SelectBest):
-    """mergeall (b|w) (v|a|) (*?) (.n)? ({field})?"""
+    """merge (b|w) (v|a|) (*?) (.n)? ({field})?"""
 
     def suitable_formats(self, formats, ctx):
         """
@@ -349,24 +488,27 @@ class MergeBest(SelectBest):
 
 class TakeAll(FormatSelector):
     """TAKE_ALL (,)"""
-
-    def __init__(self, *args):
-        self._initialize(parts=args)
+    SIGNATURE = {
+        'left': inspect.Parameter.empty,
+        'right': inspect.Parameter.empty,
+    }
 
     def suitable_formats(self, formats, ctx):
         """
            ([(A, B), (C)], [(D), (E)])                             # _evaluate_parts
-        => [((A, B), (D)), ((A, B), (E)), ((C), (D)), ((C), (E))]  # itertools.product
+        => [((A, B), (D)), ((A, B), (E)), ((C), (D)), ((C), (E))]  # _product
         => [(A, B, D), (A, B, E), (C, D), (C, E)]
         """
-        return map(itertools.chain.from_iterable, itertools.product(*self._evaluate_parts(formats, ctx)))
+        return map(itertools.chain.from_iterable, _product(self._evaluate_parts(formats, ctx)))
 
 
 class TakeFirst(FormatSelector):
     """TAKE_FIRST (/)"""
 
-    def __init__(self, *args):
-        self._initialize(parts=args)
+    SIGNATURE = {
+        'left': inspect.Parameter.empty,
+        'right': inspect.Parameter.empty,
+    }
 
     def suitable_formats(self, formats, ctx):
         """
@@ -379,17 +521,34 @@ class TakeFirst(FormatSelector):
 class Merge(FormatSelector):
     """MERGE (+), MERGE_OPTIONAL (+?)"""
 
-    def __init__(self, *args, optional=False):
-        self._initialize(parts=args, optional=optional)
+    SIGNATURE = {
+        'left': inspect.Parameter.empty,
+        'right': inspect.Parameter.empty,
+        'optional': False,
+    }
 
     def suitable_formats(self, formats, ctx):
         """
            ([(A, B), (C)], [(D), (E)])                             # _evaluate_parts
-        => [((A, B), (D)), ((A, B), (E)), ((C), (D)), ((C), (E))]  # itertools.product
+        => [((A, B), (D)), ((A, B), (E)), ((C), (D)), ((C), (E))]  # _product
         => [(A+D, B+D), (A+E, B+E), (C+D), (C+E)]
         """
-        for x in itertools.product(*self._evaluate_parts(formats, ctx)):
-            yield (merge_formats(f, ctx, self.optional) for f in itertools.product(*x))
+        for x in _product(self._evaluate_parts(formats, ctx)):
+            yield (merge_formats(f, ctx, self.optional) for f in _product(x, strict=True))
+
+
+class Group(FormatSelector):
+    """GROUP_START - GROUP_END"""
+
+    SIGNATURE = {
+        'right': inspect.Parameter.empty
+    }
+
+    def suitable_formats(self, formats, ctx):
+        return self.right.suitable_formats(formats, ctx)
+
+    def _get_spec(self, tokenit):
+        return Namespace(base=tokenit.spec, start=self.right.spec.start - 1, end=tokenit.next_position + 1)
 
 
 class _SelectorMobj:
@@ -430,74 +589,8 @@ class _SelectorMobj:
         ))
 
 
-def parse_tokens(tokens, *, inside_merge_formats=False, inside_choice=False, inside_group=False):
-    last_selector, current_selector = None, None
-    for token in tokens:
-        if token == ALL_TOKENS.FILTER_END:
-            raise tokens.SynaxError(f'Unexpected {token!r}')
-        elif token == ALL_TOKENS.GROUP_END:
-            if not inside_group:
-                tokens.restore_token()
-            break
-        elif inside_merge_formats and token in (ALL_TOKENS.TAKE_FIRST, ALL_TOKENS.TAKE_ALL):
-            tokens.restore_token()
-            break
-        elif inside_choice and token == ALL_TOKENS.TAKE_ALL:
-            tokens.restore_token()
-            break
-        elif token == ALL_TOKENS.TAKE_ALL:
-            if not current_selector:
-                raise tokens.SyntaxError(f'{token!r} must follow a format selector')
-            if last_selector:
-                last_selector = TakeAll(last_selector, current_selector)
-            else:
-                last_selector = current_selector
-            current_selector = None
-        elif token == ALL_TOKENS.TAKE_FIRST:
-            if not current_selector:
-                raise tokens.SyntaxError(f'{token!r} must follow a format selector')
-            current_selector = TakeFirst(current_selector, parse_tokens(tokens, inside_choice=True))
-        elif token == ALL_TOKENS.FILTER_START:
-            if not current_selector:
-                current_selector = SelectBest()
-            filter = next(tokens, None)
-            if not filter or filter in ALL_TOKENS:
-                raise tokens.SyntaxError(f'{token!r} must follow a filter')
-            current_selector.add_filter(filter)
-            if next(tokens, None) != ALL_TOKENS.FILTER_END:
-                raise tokens.SyntaxError(f'Filters must follow a {ALL_TOKENS.FILTER_END!r}')
-        elif token == ALL_TOKENS.GROUP_START:
-            if current_selector:
-                raise tokens.SyntaxError(f'Unexpected {token!r}')
-            current_selector = parse_tokens(tokens, inside_group=True)
-        elif token in (ALL_TOKENS.MERGE, ALL_TOKENS.MERGE_OPTIONAL):
-            if not current_selector:
-                raise tokens.SyntaxError(f'Unexpected {token!r}')
-            selector_2 = parse_tokens(tokens, inside_merge_formats=True)
-            if not selector_2:
-                raise tokens.SyntaxError('{token!r} must follow a format selector')
-            current_selector = Merge(current_selector, selector_2, optional=token == ALL_TOKENS.MERGE_OPTIONAL)
-        else:
-            mobj = _SelectorMobj(token)
-            if not mobj:
-                current_selector = FormatID(token)
-            elif not mobj.is_valid:
-                raise tokens.SyntaxError('Invalid format selector {token!r}')
-            elif mobj.which:
-                op = MergeBest if mobj.merge else SelectBest
-                current_selector = op(mobj.type, mobj.idx, mobj.field)
-            else:
-                op = MergeAll if mobj.merge else SelectAll
-                current_selector = op(mobj.type)
-
-    if current_selector and last_selector:
-        return TakeAll(last_selector, current_selector)
-    return current_selector or last_selector
-
-
 def build_format_selector(format_spec, ydl):
     selector = parse_tokens(TokenIterator(format_spec, ALL_TOKENS))
-    #print(selector)
 
     def func(formats, info_dict):
         checked_formats = {}
@@ -522,6 +615,8 @@ def build_format_selector(format_spec, ydl):
             check_format=check_format,
             info_dict=info_dict,
         )
+        for s in selector:
+            print('*', repr(s), '\n  -', s, ' => ', ', '.join(f['format_id'] for f in s.apply(formats, ctx)))
         return selector.apply(formats, ctx)
     return func
 
