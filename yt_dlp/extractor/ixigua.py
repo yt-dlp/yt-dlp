@@ -85,10 +85,11 @@ class IxiguaIE(InfoExtractor):
                 video_format = self._get_media_format('dash_video', media_data)
                 audio_format = self._get_media_format('dash_audio', media_data)
                 formats_.extend(audio_format)
-                formats_.extend(video_format)
+
             else:
                 video_format = self._get_media_format('normal', media_data)
-                formats_.extend(video_format)
+
+            formats_.extend(video_format)
 
         return formats_
 
