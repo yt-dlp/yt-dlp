@@ -14,7 +14,6 @@ class FranceCultureIE(InfoExtractor):
                 'title': 'La physique d’Einstein aiderait-elle à comprendre le cerveau ?',
                 'description': 'Existerait-il un pont conceptuel entre la physique de l’espace-temps et les neurosciences ?',
                 'thumbnail': 'https://cdn.radiofrance.fr/s3/cruiser-production/2022/05/d184e7a3-4827-4494-bf94-04ed7b120db4/1200x630_gettyimages-200171095-001.jpg',
-                'uploader': None,
                 'upload_date': '20220514',
                 'duration': 2750,
             },
@@ -35,14 +34,13 @@ class FranceCultureIE(InfoExtractor):
             'ext': video_data.get('encodingFormat'),
             'vcodec': 'none' if video_data.get('encodingFormat') == 'mp3' else None,
             'duration': parse_duration(video_data.get('duration')),
-            'title': self._html_search_regex(
-                r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>', webpage, 'title',
-                default=self._og_search_title(webpage)),
+            'title': self._html_search_regex(r'(?s)<h1[^>]*itemprop="[^"]*name[^"]*"[^>]*>(.+?)</h1>',
+                                             webpage, 'title', default=self._og_search_title(webpage)),
             'description': self._html_search_regex(
-                r'(?s)<meta name="description" content="([^"]+)', webpage, 'description', default=None),
+                r'(?s)<meta name="description"\s*content="([^"]+)', webpage, 'description', default=None),
             'thumbnail': self._og_search_thumbnail(webpage),
             'uploader': self._html_search_regex(
                 r'(?s)<span class="author">(.*?)</span>', webpage, 'uploader', default=None),
             'upload_date': unified_strdate(self._search_regex(
-                r'"datePublished":"([^"]+)', webpage, 'timestamp', fatal=False))
+                r'"datePublished"\s*:\s*"([^"]+)', webpage, 'timestamp', fatal=False))
         }
