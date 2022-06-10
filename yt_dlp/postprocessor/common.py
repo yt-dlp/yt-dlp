@@ -176,6 +176,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
 
     def report_progress(self, s):
         s['_default_template'] = '%(postprocessor)s %(status)s' % s
+        if not self._downloader:
+            return
 
         progress_dict = s.copy()
         progress_dict.pop('info_dict')
@@ -184,7 +186,8 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
         progress_template = self.get_param('progress_template', {})
         tmpl = progress_template.get('postprocess')
         if tmpl:
-            self._downloader.to_stdout(self._downloader.evaluate_outtmpl(tmpl, progress_dict))
+            self._downloader.to_screen(
+                self._downloader.evaluate_outtmpl(tmpl, progress_dict), skip_eol=True, quiet=False)
 
         self._downloader.to_console_title(self._downloader.evaluate_outtmpl(
             progress_template.get('postprocess-title') or 'yt-dlp %(progress._default_template)s',
@@ -213,5 +216,5 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
                 raise PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
 
 
-class AudioConversionError(PostProcessingError):
+class AudioConversionError(PostProcessingError):  # Deprecated
     pass

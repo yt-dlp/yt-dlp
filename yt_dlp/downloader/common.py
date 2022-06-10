@@ -283,9 +283,9 @@ class FileDownloader:
         elif self.ydl.params.get('logger'):
             self._multiline = MultilineLogger(self.ydl.params['logger'], lines)
         elif self.params.get('progress_with_newline'):
-            self._multiline = BreaklineStatusPrinter(self.ydl._out_files.screen, lines)
+            self._multiline = BreaklineStatusPrinter(self.ydl._out_files.out, lines)
         else:
-            self._multiline = MultilinePrinter(self.ydl._out_files.screen, lines, not self.params.get('quiet'))
+            self._multiline = MultilinePrinter(self.ydl._out_files.out, lines, not self.params.get('quiet'))
         self._multiline.allow_colors = self._multiline._HAVE_FULLCAP and not self.params.get('no_color')
 
     def _finish_multiline_status(self):

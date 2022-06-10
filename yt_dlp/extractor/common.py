@@ -35,6 +35,7 @@ from ..utils import (
     ExtractorError,
     GeoRestrictedError,
     GeoUtils,
+    LenientJSONDecoder,
     RegexNotFoundError,
     UnsupportedError,
     age_restricted,
@@ -610,8 +611,7 @@ class InfoExtractor:
 
             if ip_block:
                 self._x_forwarded_for_ip = GeoUtils.random_ipv4(ip_block)
-                self._downloader.write_debug(
-                    '[debug] Using fake IP %s as X-Forwarded-For' % self._x_forwarded_for_ip)
+                self.write_debug(f'Using fake IP {self._x_forwarded_for_ip} as X-Forwarded-For')
                 return
 
             # Path 2: bypassing based on country code
@@ -725,6 +725,13 @@ class InfoExtractor:
         else:
             return err.code in variadic(expected_status)
 
+    def _create_request(self, url_or_request, data=None, headers={}, query={}):
+        if isinstance(url_or_request, compat_urllib_request.Request):
+            return update_Request(url_or_request, data=data, headers=headers, query=query)
+        if query:
+            url_or_request = update_url_query(url_or_request, query)
+        return sanitized_Request(url_or_request, data, headers)
+
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
         Return the response handle.
@@ -756,16 +763,8 @@ class InfoExtractor:
             if 'X-Forwarded-For' not in headers:
                 headers['X-Forwarded-For'] = self._x_forwarded_for_ip
 
-        if isinstance(url_or_request, compat_urllib_request.Request):
-            url_or_request = update_Request(
-                url_or_request, data=data, headers=headers, query=query)
-        else:
-            if query:
-                url_or_request = update_url_query(url_or_request, query)
-            if data is not None or headers:
-                url_or_request = sanitized_Request(url_or_request, data, headers)
         try:
-            return self._downloader.urlopen(url_or_request)
+            return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))
         except network_exceptions as err:
             if isinstance(err, compat_urllib_error.HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
@@ -788,12 +787,40 @@ class InfoExtractor:
                 self.report_warning(errmsg)
                 return False
 
-    def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+    def _download_webpage_handle(self, url_or_request, video_id, note=None, errnote=None, fatal=True,
+                                 encoding=None, data=None, headers={}, query={}, expected_status=None):
         """
         Return a tuple (page content as string, URL handle).
 
-        See _download_webpage docstring for arguments specification.
+        Arguments:
+        url_or_request -- plain text URL as a string or
+            a compat_urllib_request.Requestobject
+        video_id -- Video/playlist/item identifier (string)
+
+        Keyword arguments:
+        note -- note printed before downloading (string)
+        errnote -- note printed in case of an error (string)
+        fatal -- flag denoting whether error should be considered fatal,
+            i.e. whether it should cause ExtractionError to be raised,
+            otherwise a warning will be reported and extraction continued
+        encoding -- encoding for a page content decoding, guessed automatically
+            when not explicitly specified
+        data -- POST data (bytes)
+        headers -- HTTP headers (dict)
+        query -- URL query (dict)
+        expected_status -- allows to accept failed HTTP requests (non 2xx
+            status code) by explicitly specifying a set of accepted status
+            codes. Can be any of the following entities:
+                - an integer type specifying an exact failed status code to
+                  accept
+                - a list or a tuple of integer types specifying a list of
+                  failed status codes to accept
+                - a callable accepting an actual failed status code and
+                  returning True if it should be accepted
+            Note that this argument does not affect success status codes (2xx)
+            which are always accepted.
         """
+
         # Strip hashes from the URL (#1038)
         if isinstance(url_or_request, (compat_str, str)):
             url_or_request = url_or_request.partition('#')[0]
@@ -850,139 +877,47 @@ class InfoExtractor:
                 'Visit http://blocklist.rkn.gov.ru/ for a block reason.',
                 expected=True)
 
+    def _request_dump_filename(self, url, video_id):
+        basen = f'{video_id}_{url}'
+        trim_length = self.get_param('trim_file_name') or 240
+        if len(basen) > trim_length:
+            h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
+            basen = basen[:trim_length - len(h)] + h
+        filename = sanitize_filename(f'{basen}.dump', restricted=True)
+        # Working around MAX_PATH limitation on Windows (see
+        # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
+        if compat_os_name == 'nt':
+            absfilepath = os.path.abspath(filename)
+            if len(absfilepath) > 259:
+                filename = fR'\\?\{absfilepath}'
+        return filename
+
+    def __decode_webpage(self, webpage_bytes, encoding, headers):
+        if not encoding:
+            encoding = self._guess_encoding_from_content(headers.get('Content-Type', ''), webpage_bytes)
+        try:
+            return webpage_bytes.decode(encoding, 'replace')
+        except LookupError:
+            return webpage_bytes.decode('utf-8', 'replace')
+
     def _webpage_read_content(self, urlh, url_or_request, video_id, note=None, errnote=None, fatal=True, prefix=None, encoding=None):
-        content_type = urlh.headers.get('Content-Type', '')
         webpage_bytes = urlh.read()
         if prefix is not None:
             webpage_bytes = prefix + webpage_bytes
-        if not encoding:
-            encoding = self._guess_encoding_from_content(content_type, webpage_bytes)
         if self.get_param('dump_intermediate_pages', False):
             self.to_screen('Dumping request to ' + urlh.geturl())
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
-        if self.get_param('write_pages', False):
-            basen = f'{video_id}_{urlh.geturl()}'
-            trim_length = self.get_param('trim_file_name') or 240
-            if len(basen) > trim_length:
-                h = '___' + hashlib.md5(basen.encode('utf-8')).hexdigest()
-                basen = basen[:trim_length - len(h)] + h
-            raw_filename = basen + '.dump'
-            filename = sanitize_filename(raw_filename, restricted=True)
-            self.to_screen('Saving request to ' + filename)
-            # Working around MAX_PATH limitation on Windows (see
-            # http://msdn.microsoft.com/en-us/library/windows/desktop/aa365247(v=vs.85).aspx)
-            if compat_os_name == 'nt':
-                absfilepath = os.path.abspath(filename)
-                if len(absfilepath) > 259:
-                    filename = '\\\\?\\' + absfilepath
+        if self.get_param('write_pages'):
+            filename = self._request_dump_filename(video_id, urlh.geturl())
+            self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
 
-        try:
-            content = webpage_bytes.decode(encoding, 'replace')
-        except LookupError:
-            content = webpage_bytes.decode('utf-8', 'replace')
-
+        content = self.__decode_webpage(webpage_bytes, encoding, urlh.headers)
         self.__check_blocked(content)
 
         return content
-
-    def _download_webpage(
-            self, url_or_request, video_id, note=None, errnote=None,
-            fatal=True, tries=1, timeout=5, encoding=None, data=None,
-            headers={}, query={}, expected_status=None):
-        """
-        Return the data of the page as a string.
-
-        Arguments:
-        url_or_request -- plain text URL as a string or
-            a compat_urllib_request.Requestobject
-        video_id -- Video/playlist/item identifier (string)
-
-        Keyword arguments:
-        note -- note printed before downloading (string)
-        errnote -- note printed in case of an error (string)
-        fatal -- flag denoting whether error should be considered fatal,
-            i.e. whether it should cause ExtractionError to be raised,
-            otherwise a warning will be reported and extraction continued
-        tries -- number of tries
-        timeout -- sleep interval between tries
-        encoding -- encoding for a page content decoding, guessed automatically
-            when not explicitly specified
-        data -- POST data (bytes)
-        headers -- HTTP headers (dict)
-        query -- URL query (dict)
-        expected_status -- allows to accept failed HTTP requests (non 2xx
-            status code) by explicitly specifying a set of accepted status
-            codes. Can be any of the following entities:
-                - an integer type specifying an exact failed status code to
-                  accept
-                - a list or a tuple of integer types specifying a list of
-                  failed status codes to accept
-                - a callable accepting an actual failed status code and
-                  returning True if it should be accepted
-            Note that this argument does not affect success status codes (2xx)
-            which are always accepted.
-        """
-
-        success = False
-        try_count = 0
-        while success is False:
-            try:
-                res = self._download_webpage_handle(
-                    url_or_request, video_id, note, errnote, fatal,
-                    encoding=encoding, data=data, headers=headers, query=query,
-                    expected_status=expected_status)
-                success = True
-            except compat_http_client.IncompleteRead as e:
-                try_count += 1
-                if try_count >= tries:
-                    raise e
-                self._sleep(timeout, video_id)
-        if res is False:
-            return res
-        else:
-            content, _ = res
-            return content
-
-    def _download_xml_handle(
-            self, url_or_request, video_id, note='Downloading XML',
-            errnote='Unable to download XML', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return a tuple (xml as an xml.etree.ElementTree.Element, URL handle).
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_webpage_handle(
-            url_or_request, video_id, note, errnote, fatal=fatal,
-            encoding=encoding, data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        if res is False:
-            return res
-        xml_string, urlh = res
-        return self._parse_xml(
-            xml_string, video_id, transform_source=transform_source,
-            fatal=fatal), urlh
-
-    def _download_xml(
-            self, url_or_request, video_id,
-            note='Downloading XML', errnote='Unable to download XML',
-            transform_source=None, fatal=True, encoding=None,
-            data=None, headers={}, query={}, expected_status=None):
-        """
-        Return the xml as an xml.etree.ElementTree.Element.
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_xml_handle(
-            url_or_request, video_id, note=note, errnote=errnote,
-            transform_source=transform_source, fatal=fatal, encoding=encoding,
-            data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        return res if res is False else res[0]
 
     def _parse_xml(self, xml_string, video_id, transform_source=None, fatal=True):
         if transform_source:
@@ -996,51 +931,12 @@ class InfoExtractor:
             else:
                 self.report_warning(errmsg + str(ve))
 
-    def _download_json_handle(
-            self, url_or_request, video_id, note='Downloading JSON metadata',
-            errnote='Unable to download JSON metadata', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return a tuple (JSON object, URL handle).
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_webpage_handle(
-            url_or_request, video_id, note, errnote, fatal=fatal,
-            encoding=encoding, data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        if res is False:
-            return res
-        json_string, urlh = res
-        return self._parse_json(
-            json_string, video_id, transform_source=transform_source,
-            fatal=fatal), urlh
-
-    def _download_json(
-            self, url_or_request, video_id, note='Downloading JSON metadata',
-            errnote='Unable to download JSON metadata', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return the JSON object as a dict.
-
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_json_handle(
-            url_or_request, video_id, note=note, errnote=errnote,
-            transform_source=transform_source, fatal=fatal, encoding=encoding,
-            data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        return res if res is False else res[0]
-
-    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True):
-        if transform_source:
-            json_string = transform_source(json_string)
+    def _parse_json(self, json_string, video_id, transform_source=None, fatal=True, **parser_kwargs):
         try:
-            return json.loads(json_string, strict=False)
+            return json.loads(
+                json_string, cls=LenientJSONDecoder, strict=False, transform_source=transform_source, **parser_kwargs)
         except ValueError as ve:
-            errmsg = '%s: Failed to parse JSON ' % video_id
+            errmsg = f'{video_id}: Failed to parse JSON'
             if fatal:
                 raise ExtractorError(errmsg, cause=ve)
             else:
@@ -1051,43 +947,107 @@ class InfoExtractor:
             data[data.find('{'):data.rfind('}') + 1],
             video_id, transform_source, fatal)
 
-    def _download_socket_json_handle(
-            self, url_or_request, video_id, note='Polling socket',
-            errnote='Unable to poll socket', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return a tuple (JSON object, URL handle).
+    def __create_download_methods(name, parser, note, errnote, return_value):
 
-        See _download_webpage docstring for arguments specification.
-        """
-        res = self._download_webpage_handle(
-            url_or_request, video_id, note, errnote, fatal=fatal,
-            encoding=encoding, data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        if res is False:
-            return res
-        webpage, urlh = res
-        return self._parse_socket_response_as_json(
-            webpage, video_id, transform_source=transform_source,
-            fatal=fatal), urlh
+        def parse(ie, content, *args, **kwargs):
+            if parser is None:
+                return content
+            # parser is fetched by name so subclasses can override it
+            return getattr(ie, parser)(content, *args, **kwargs)
 
-    def _download_socket_json(
-            self, url_or_request, video_id, note='Polling socket',
-            errnote='Unable to poll socket', transform_source=None,
-            fatal=True, encoding=None, data=None, headers={}, query={},
-            expected_status=None):
-        """
-        Return the JSON object as a dict.
+        def download_handle(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
+                            fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+            res = self._download_webpage_handle(
+                url_or_request, video_id, note=note, errnote=errnote, fatal=fatal, encoding=encoding,
+                data=data, headers=headers, query=query, expected_status=expected_status)
+            if res is False:
+                return res
+            content, urlh = res
+            return parse(self, content, video_id, transform_source=transform_source, fatal=fatal), urlh
 
-        See _download_webpage docstring for arguments specification.
+        def download_content(self, url_or_request, video_id, note=note, errnote=errnote, transform_source=None,
+                             fatal=True, encoding=None, data=None, headers={}, query={}, expected_status=None):
+            if self.get_param('load_pages'):
+                url_or_request = self._create_request(url_or_request, data, headers, query)
+                filename = self._request_dump_filename(url_or_request.full_url, video_id)
+                self.to_screen(f'Loading request from {filename}')
+                try:
+                    with open(filename, 'rb') as dumpf:
+                        webpage_bytes = dumpf.read()
+                except OSError as e:
+                    self.report_warning(f'Unable to load request from disk: {e}')
+                else:
+                    content = self.__decode_webpage(webpage_bytes, encoding, url_or_request.headers)
+                    return parse(self, content, video_id, transform_source, fatal)
+            kwargs = {
+                'note': note,
+                'errnote': errnote,
+                'transform_source': transform_source,
+                'fatal': fatal,
+                'encoding': encoding,
+                'data': data,
+                'headers': headers,
+                'query': query,
+                'expected_status': expected_status,
+            }
+            if parser is None:
+                kwargs.pop('transform_source')
+            # The method is fetched by name so subclasses can override _download_..._handle
+            res = getattr(self, download_handle.__name__)(url_or_request, video_id, **kwargs)
+            return res if res is False else res[0]
+
+        def impersonate(func, name, return_value):
+            func.__name__, func.__qualname__ = name, f'InfoExtractor.{name}'
+            func.__doc__ = f'''
+                @param transform_source     Apply this transformation before parsing
+                @returns                    {return_value}
+
+                See _download_webpage_handle docstring for other arguments specification
+            '''
+
+        impersonate(download_handle, f'_download_{name}_handle', f'({return_value}, URL handle)')
+        impersonate(download_content, f'_download_{name}', f'{return_value}')
+        return download_handle, download_content
+
+    _download_xml_handle, _download_xml = __create_download_methods(
+        'xml', '_parse_xml', 'Downloading XML', 'Unable to download XML', 'xml as an xml.etree.ElementTree.Element')
+    _download_json_handle, _download_json = __create_download_methods(
+        'json', '_parse_json', 'Downloading JSON metadata', 'Unable to download JSON metadata', 'JSON object as a dict')
+    _download_socket_json_handle, _download_socket_json = __create_download_methods(
+        'socket_json', '_parse_socket_response_as_json', 'Polling socket', 'Unable to poll socket', 'JSON object as a dict')
+    __download_webpage = __create_download_methods('webpage', None, None, None, 'data of the page as a string')[1]
+
+    def _download_webpage(
+            self, url_or_request, video_id, note=None, errnote=None,
+            fatal=True, tries=1, timeout=NO_DEFAULT, *args, **kwargs):
         """
-        res = self._download_socket_json_handle(
-            url_or_request, video_id, note=note, errnote=errnote,
-            transform_source=transform_source, fatal=fatal, encoding=encoding,
-            data=data, headers=headers, query=query,
-            expected_status=expected_status)
-        return res if res is False else res[0]
+        Return the data of the page as a string.
+
+        Keyword arguments:
+        tries -- number of tries
+        timeout -- sleep interval between tries
+
+        See _download_webpage_handle docstring for other arguments specification.
+        """
+
+        R''' # NB: These are unused; should they be deprecated?
+        if tries != 1:
+            self._downloader.deprecation_warning('tries argument is deprecated in InfoExtractor._download_webpage')
+        if timeout is NO_DEFAULT:
+            timeout = 5
+        else:
+            self._downloader.deprecation_warning('timeout argument is deprecated in InfoExtractor._download_webpage')
+        '''
+
+        try_count = 0
+        while True:
+            try:
+                return self.__download_webpage(url_or_request, video_id, note, errnote, None, fatal, *args, **kwargs)
+            except compat_http_client.IncompleteRead as e:
+                try_count += 1
+                if try_count >= tries:
+                    raise e
+                self._sleep(timeout, video_id)
 
     def report_warning(self, msg, video_id=None, *args, only_once=False, **kwargs):
         idstr = format_field(video_id, template='%s: ')
@@ -1227,6 +1187,14 @@ class InfoExtractor:
         else:
             self.report_warning('unable to extract %s' % _name + bug_reports_message())
             return None
+
+    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', fatal=True, **kwargs):
+        """Searches string for the JSON object specified by start_pattern"""
+        # NB: end_pattern is only used to reduce the size of the initial match
+        return self._parse_json(
+            self._search_regex(rf'{start_pattern}\s*(?P<json>{{.+}})\s*{end_pattern}',
+                               string, name, group='json', fatal=fatal) or '{}',
+            video_id, fatal=fatal, ignore_extra=True, **kwargs) or {}
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
@@ -1506,7 +1474,7 @@ class InfoExtractor:
             assert e['@type'] == 'VideoObject'
             author = e.get('author')
             info.update({
-                'url': url_or_none(e.get('contentUrl')),
+                'url': traverse_obj(e, 'contentUrl', 'embedUrl', expected_type=url_or_none),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': [{'url': url}
@@ -1574,6 +1542,8 @@ class InfoExtractor:
                     })
                     if traverse_obj(e, ('video', 0, '@type')) == 'VideoObject':
                         extract_video_object(e['video'][0])
+                    elif traverse_obj(e, ('subjectOf', 0, '@type')) == 'VideoObject':
+                        extract_video_object(e['subjectOf'][0])
                 elif item_type == 'VideoObject':
                     extract_video_object(e)
                     if expected_type is None:
@@ -1598,7 +1568,7 @@ class InfoExtractor:
                 webpage, 'next.js data', fatal=fatal, **kw),
             video_id, transform_source=transform_source, fatal=fatal)
 
-    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__'):
+    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', return_full_data=False):
         ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
         # not all website do this, but it can be changed
         # https://stackoverflow.com/questions/67463109/how-to-change-or-hide-nuxt-and-nuxt-keyword-in-page-source
@@ -1614,7 +1584,10 @@ class InfoExtractor:
             if val in ('undefined', 'void 0'):
                 args[key] = 'null'
 
-        return self._parse_json(js_to_json(js, args), video_id)['data'][0]
+        ret = self._parse_json(js_to_json(js, args), video_id)
+        if return_full_data:
+            return ret
+        return ret['data'][0]
 
     @staticmethod
     def _hidden_inputs(html):
@@ -3190,7 +3163,8 @@ class InfoExtractor:
                 return f
             return {}
 
-        def _media_formats(src, cur_media_type, type_info={}):
+        def _media_formats(src, cur_media_type, type_info=None):
+            type_info = type_info or {}
             full_url = absolute_url(src)
             ext = type_info.get('ext') or determine_ext(full_url)
             if ext == 'm3u8':
@@ -3208,6 +3182,7 @@ class InfoExtractor:
                 formats = [{
                     'url': full_url,
                     'vcodec': 'none' if cur_media_type == 'audio' else None,
+                    'ext': ext,
                 }]
             return is_plain_url, formats
 
@@ -3234,7 +3209,8 @@ class InfoExtractor:
             media_attributes = extract_attributes(media_tag)
             src = strip_or_none(media_attributes.get('src'))
             if src:
-                _, formats = _media_formats(src, media_type)
+                f = parse_content_type(media_attributes.get('type'))
+                _, formats = _media_formats(src, media_type, f)
                 media_info['formats'].extend(formats)
             media_info['thumbnail'] = absolute_url(media_attributes.get('poster'))
             if media_content:

@@ -594,6 +594,19 @@ def clean_html(html):
     return html.strip()
 
 
+class LenientJSONDecoder(json.JSONDecoder):
+    def __init__(self, *args, transform_source=None, ignore_extra=False, **kwargs):
+        self.transform_source, self.ignore_extra = transform_source, ignore_extra
+        super().__init__(*args, **kwargs)
+
+    def decode(self, s):
+        if self.transform_source:
+            s = self.transform_source(s)
+        if self.ignore_extra:
+            return self.raw_decode(s.lstrip())[0]
+        return super().decode(s)
+
+
 def sanitize_open(filename, open_mode):
     """Try to open the given filename, and slightly tweak it if this fails.
 
@@ -619,9 +632,9 @@ def sanitize_open(filename, open_mode):
                     # Ref: https://github.com/yt-dlp/yt-dlp/issues/3124
                     raise LockingUnsupportedError()
                 stream = locked_file(filename, open_mode, block=False).__enter__()
-            except LockingUnsupportedError:
+            except OSError:
                 stream = open(filename, open_mode)
-            return (stream, filename)
+            return stream, filename
         except OSError as err:
             if attempt or err.errno in (errno.EACCES,):
                 raise
@@ -815,12 +828,9 @@ def escapeHTML(text):
 
 
 def process_communicate_or_kill(p, *args, **kwargs):
-    try:
-        return p.communicate(*args, **kwargs)
-    except BaseException:  # Including KeyboardInterrupt
-        p.kill()
-        p.wait()
-        raise
+    write_string('DeprecationWarning: yt_dlp.utils.process_communicate_or_kill is deprecated '
+                 'and may be removed in a future version. Use yt_dlp.utils.Popen.communicate_or_kill instead')
+    return Popen.communicate_or_kill(p, *args, **kwargs)
 
 
 class Popen(subprocess.Popen):
@@ -834,7 +844,12 @@ class Popen(subprocess.Popen):
         super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
-        return process_communicate_or_kill(self, *args, **kwargs)
+        try:
+            return self.communicate(*args, **kwargs)
+        except BaseException:  # Including KeyboardInterrupt
+            self.kill()
+            self.wait()
+            raise
 
 
 def get_subprocess_encoding():
@@ -921,22 +936,23 @@ def make_HTTPS_handler(params, **kwargs):
         context.options |= 4  # SSL_OP_LEGACY_SERVER_CONNECT
         # Allow use of weaker ciphers in Python 3.10+. See https://bugs.python.org/issue43998
         context.set_ciphers('DEFAULT')
+
     context.verify_mode = ssl.CERT_REQUIRED if opts_check_certificate else ssl.CERT_NONE
     if opts_check_certificate:
         if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
             context.load_verify_locations(cafile=certifi.where())
-        else:
-            try:
-                context.load_default_certs()
-                # Work around the issue in load_default_certs when there are bad certificates. See:
-                # https://github.com/yt-dlp/yt-dlp/issues/1060,
-                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-            except ssl.SSLError:
-                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                    for storename in ('CA', 'ROOT'):
-                        _ssl_load_windows_store_certs(context, storename)
-                context.set_default_verify_paths()
+        try:
+            context.load_default_certs()
+        # Work around the issue in load_default_certs when there are bad certificates. See:
+        # https://github.com/yt-dlp/yt-dlp/issues/1060,
+        # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+        except ssl.SSLError:
+            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                for storename in ('CA', 'ROOT'):
+                    _ssl_load_windows_store_certs(context, storename)
+            context.set_default_verify_paths()
+
     client_certfile = params.get('client_certificate')
     if client_certfile:
         try:
@@ -945,6 +961,13 @@ def make_HTTPS_handler(params, **kwargs):
                 password=params.get('client_certificate_password'))
         except ssl.SSLError:
             raise YoutubeDLError('Unable to load client certificate')
+
+    # Some servers may reject requests if ALPN extension is not sent. See:
+    # https://github.com/python/cpython/issues/85140
+    # https://github.com/yt-dlp/yt-dlp/issues/3878
+    with contextlib.suppress(NotImplementedError):
+        context.set_alpn_protocols(['http/1.1'])
+
     return YoutubeDLHTTPSHandler(params, context=context, **kwargs)
 
 
@@ -1885,11 +1908,11 @@ def platform_name():
 
 @functools.cache
 def get_windows_version():
-    ''' Get Windows version. None if it's not running on Windows '''
+    ''' Get Windows version. returns () if it's not running on Windows '''
     if compat_os_name == 'nt':
         return version_tuple(platform.win32_ver()[1])
     else:
-        return None
+        return ()
 
 
 def write_string(s, out=None, encoding=None):
@@ -1899,14 +1922,14 @@ def write_string(s, out=None, encoding=None):
     if compat_os_name == 'nt' and supports_terminal_sequences(out):
         s = re.sub(r'([\r\n]+)', r' \1', s)
 
-    enc = None
+    enc, buffer = None, out
     if 'b' in getattr(out, 'mode', ''):
         enc = encoding or preferredencoding()
     elif hasattr(out, 'buffer'):
-        out = out.buffer
+        buffer = out.buffer
         enc = encoding or getattr(out, 'encoding', None) or preferredencoding()
 
-    out.write(s.encode(enc, 'ignore') if enc else s)
+    buffer.write(s.encode(enc, 'ignore') if enc else s)
     out.flush()
 
 
@@ -1925,8 +1948,8 @@ def intlist_to_bytes(xs):
     return compat_struct_pack('%dB' % len(xs), *xs)
 
 
-class LockingUnsupportedError(IOError):
-    msg = 'File locking is not supported on this platform'
+class LockingUnsupportedError(OSError):
+    msg = 'File locking is not supported'
 
     def __init__(self):
         super().__init__(self.msg)
@@ -2051,8 +2074,11 @@ class locked_file:
             try:
                 self.f.truncate()
             except OSError as e:
-                if e.errno != 29:  # Illegal seek, expected when self.f is a FIFO
-                    raise e
+                if e.errno not in (
+                    errno.ESPIPE,  # Illegal seek - expected for FIFO
+                    errno.EINVAL,  # Invalid argument - expected for /dev/null
+                ):
+                    raise
         return self
 
     def unlock(self):
@@ -3467,6 +3493,23 @@ def match_filter_func(filters):
             filter_str = ') | ('.join(map(str.strip, filters))
             return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func
+
+
+def download_range_func(chapters, ranges):
+    def inner(info_dict, ydl):
+        warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
+                   else 'Chapter information is unavailable')
+        for regex in chapters or []:
+            for i, chapter in enumerate(info_dict.get('chapters') or []):
+                if re.search(regex, chapter['title']):
+                    warning = None
+                    yield {**chapter, 'index': i}
+        if warning:
+            ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
+
+        yield from ({'start_time': start, 'end_time': end} for start, end in ranges or [])
+
+    return inner
 
 
 def parse_dfxp_time_expr(time_expr):
@@ -5089,7 +5132,7 @@ WINDOWS_VT_MODE = False if compat_os_name == 'nt' else None
 @functools.cache
 def supports_terminal_sequences(stream):
     if compat_os_name == 'nt':
-        if not WINDOWS_VT_MODE or get_windows_version() < (10, 0, 10586):
+        if not WINDOWS_VT_MODE:
             return False
     elif not os.getenv('TERM'):
         return False
@@ -5100,7 +5143,7 @@ def supports_terminal_sequences(stream):
 
 
 def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.python.org/issue30075
-    if compat_os_name != 'nt':
+    if get_windows_version() < (10, 0, 10586):
         return
     global WINDOWS_VT_MODE
     startupinfo = subprocess.STARTUPINFO()
@@ -5163,6 +5206,12 @@ def parse_http_range(range):
     return int(crg.group(1)), int_or_none(crg.group(2)), int_or_none(crg.group(3))
 
 
+def read_stdin(what):
+    eof = 'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'
+    write_string(f'Reading {what} from STDIN - EOF ({eof}) to end:\n')
+    return sys.stdin
+
+
 class Config:
     own_args = None
     parsed_args = None
@@ -5188,6 +5237,9 @@ class Config:
         self.parsed_args, self.filename = args, filename
 
         for location in opts.config_locations or []:
+            if location == '-':
+                self.append_config(shlex.split(read_stdin('options'), comments=True), label='stdin')
+                continue
             location = os.path.join(directory, expand_path(location))
             if os.path.isdir(location):
                 location = os.path.join(location, 'yt-dlp.conf')
