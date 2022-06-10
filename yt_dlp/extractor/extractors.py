@@ -997,6 +997,7 @@ from .nationalgeographic import (
 from .naver import (
     NaverIE,
     NaverLiveIE,
+    NaverNowIE,
 )
 from .nba import (
     NBAWatchEmbedIE,
