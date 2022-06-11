@@ -1,3 +1,5 @@
+from math import inf
+
 from .common import PostProcessor
 from ..utils import prepend_extension
 
@@ -20,7 +22,7 @@ class MP4FixupTimestampPP(PostProcessor):
 
     def analyze_mp4(self, filepath):
         """ returns (baseMediaDecodeTime offset, sample duration cutoff) """
-        smallest_bmdt, known_sdur = float('inf'), set()
+        smallest_bmdt, known_sdur = inf, set()
         with open(filepath, 'rb') as r:
             for btype, content in parse_mp4_boxes(r):
                 if btype == 'tfdt':
@@ -55,7 +57,7 @@ class MP4FixupTimestampPP(PostProcessor):
             if len(set(x for x in known_sdur if x > sdur_cutoff)) < 3:
                 break
         else:
-            sdur_cutoff = float('inf')
+            sdur_cutoff = inf
 
         return smallest_bmdt, sdur_cutoff
 
@@ -107,12 +109,12 @@ class MP4FixupTimestampPP(PostProcessor):
 
         self.write_debug('Analyzing MP4')
         bmdt_offset, sdur_cutoff = self.analyze_mp4(filename)
-        working = float('inf') not in (bmdt_offset, sdur_cutoff)
+        working = inf not in (bmdt_offset, sdur_cutoff)
         # if any of them are Infinity, there's something wrong
         # baseMediaDecodeTime = to shift PTS
         # sample duration = to define duration in each segment
         self.write_debug(f'baseMediaDecodeTime offset = {bmdt_offset}, sample duration cutoff = {sdur_cutoff}')
-        if bmdt_offset == float('inf'):
+        if bmdt_offset == inf:
             # safeguard
             bmdt_offset = 0
         self.modify_mp4(filename, temp_filename, bmdt_offset, sdur_cutoff)
