@@ -150,32 +150,28 @@ class MotherlessPaginatedIE(InfoExtractor):
     _PAGE_SIZE = 60
 
     def _extract_entries(self, webpage, base):
-        for mobj in re.finditer(r'href=".*(?P<href>\/[A-F0-9]+)"\s+title="(?P<title>[^"]+)', webpage):
+        for mobj in re.finditer(r'href="[^"]*(?P<href>/[A-F0-9]+)"\s+title="(?P<title>[^"]+)', webpage):
             video_url = compat_urlparse.urljoin(base, mobj.group('href'))
             video_id = MotherlessIE.get_temp_id(video_url)
 
             if video_id:
-                yield self.url_result(
-                    video_url, ie=MotherlessIE.ie_key(), video_id=video_id,
-                    video_title=mobj.group('title'))
+                yield self.url_result(video_url, MotherlessIE, video_id, mobj.group('title'))
 
     def _real_extract(self, url):
-        _id = self._match_id(url)
-        webpage = self._download_webpage(url, _id)
-        title = self._search_regex(r'^([\w\s]+)\s+', self._html_extract_title(webpage), 'title')
-        page_count = self._int(self._search_regex(
-            r'(\d+)</a><a[^>]+rel="next"',
-            webpage, 'page_count', default=1), 'page_count')
+        item_id = self._match_id(url)
+        webpage = self._download_webpage(url, item_id)
+        page_count = int(self._search_regex(r'(\d+)</a><a[^>]+rel="next"', webpage, 'page count', default=1))
 
         def _get_page(idx):
-            webpage = self._download_webpage(
-                url, _id, query={'page': idx},
-                note=f'Downloading page {idx}/{page_count}')
-
-            yield from self._extract_entries(webpage, url)
+            current_page = webpage
+            if idx:
+                current_page = self._download_webpage(
+                    url, item_id, query={'page': idx}, note=f'Downloading page {idx + 1}/{page_count}')
+            yield from self._extract_entries(current_page, url)
 
         return self.playlist_result(
-            InAdvancePagedList(_get_page, page_count, MotherlessPaginatedIE._PAGE_SIZE), _id, title)
+            InAdvancePagedList(_get_page, page_count, MotherlessPaginatedIE._PAGE_SIZE), item_id,
+            self._search_regex(r'^([\w\s]+)\s+', self._html_extract_title(webpage), 'title', default=None))
 
 
 class MotherlessGroupIE(MotherlessPaginatedIE):
@@ -186,24 +182,21 @@ class MotherlessGroupIE(MotherlessPaginatedIE):
             'id': 'movie_scenes',
             'title': 'Movie Scenes',
         },
-        'playlist_mincount': 8 * MotherlessPaginatedIE._PAGE_SIZE + 1,
+        'playlist_mincount': 540,
     }, {
         'url': 'http://motherless.com/gv/sex_must_be_funny',
         'info_dict': {
             'id': 'sex_must_be_funny',
             'title': 'Sex must be funny',
         },
-        'playlist_mincount': 0,
-        'expected_warnings': [
-            'This group has no videos.',
-        ]
+        'playlist_count': 0,
     }, {
         'url': 'https://motherless.com/gv/beautiful_cock',
         'info_dict': {
             'id': 'beautiful_cock',
             'title': 'Beautiful Cock',
         },
-        'playlist_mincount': 33 * MotherlessPaginatedIE._PAGE_SIZE + 1,
+        'playlist_mincount': 2040,
     }]
 
 
@@ -215,19 +208,19 @@ class MotherlessGalleryIE(MotherlessPaginatedIE):
             'id': '338999F',
             'title': 'Random',
         },
-        'playlist_mincount': 3 * MotherlessPaginatedIE._PAGE_SIZE + 1,
+        'playlist_mincount': 240,
     }, {
         'url': 'https://motherless.com/GVABD6213',
         'info_dict': {
             'id': 'ABD6213',
             'title': 'Cuties',
         },
-        'playlist_mincount': 1,
+        'playlist_mincount': 3,
     }, {
         'url': 'https://motherless.com/GVBCF7622',
         'info_dict': {
             'id': 'BCF7622',
             'title': 'Vintage',
         },
-        'playlist_mincount': 0,
+        'playlist_count': 0,
     }]
