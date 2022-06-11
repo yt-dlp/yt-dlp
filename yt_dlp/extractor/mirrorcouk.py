@@ -92,7 +92,7 @@ class MirrorCoUKIE(InfoExtractor):
 
         return {
             '_type': 'url_transparent',
-            'url': f'https://cdn.jwplayer.com/v2/media/{data["videoId"]}',
+            'url': f'jwplatform:{data["videoId"]}',
             'ie_key': 'JWPlatform',
             'display_id': display_id,
         }
