@@ -9,6 +9,7 @@ import os
 import re
 import sys
 
+from .networking.utils import make_std_headers
 from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
@@ -840,7 +841,7 @@ def _real_main(argv=None):
 
     # Dump user agent
     if opts.dump_user_agent:
-        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=std_headers['User-Agent'])
+        ua = traverse_obj(opts.headers, 'User-Agent', casesense=False, default=make_std_headers()['User-Agent'])
         write_string(f'{ua}\n', out=sys.stdout)
         return
 

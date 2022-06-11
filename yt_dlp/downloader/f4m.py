@@ -8,11 +8,14 @@ from ..compat import (
     compat_etree_fromstring,
     compat_struct_pack,
     compat_struct_unpack,
-    compat_urllib_error,
     compat_urllib_parse_urlparse,
     compat_urlparse,
 )
-from ..utils import fix_xml_ampersands, xpath_text
+from ..utils import (
+    fix_xml_ampersands,
+    xpath_text,
+    HTTPError
+)
 
 
 class DataTruncatedError(Exception):
@@ -410,7 +413,7 @@ class F4mFD(FragmentFD):
                     if box_type == b'mdat':
                         self._append_fragment(ctx, box_data)
                         break
-            except compat_urllib_error.HTTPError as err:
+            except HTTPError as err:
                 if live and (err.code == 404 or err.code == 410):
                     # We didn't keep up with the live window. Continue
                     # with the next available fragment.

@@ -4,10 +4,13 @@ import os
 import sys
 import unittest
 
+from yt_dlp.networking import UrllibRH
+from test.test_RequestHandler import RequestHandlerTestBase, with_request_handlers
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import threading
-from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
+from test.helper import expect_dict, expect_value, http_server_port
 
 from yt_dlp.compat import compat_etree_fromstring, compat_http_server
 from yt_dlp.extractor import YoutubeIE, get_info_extractor
@@ -41,9 +44,9 @@ class DummyIE(InfoExtractor):
     pass
 
 
-class TestInfoExtractor(unittest.TestCase):
+class TestInfoExtractor(RequestHandlerTestBase, unittest.TestCase):
     def setUp(self):
-        self.ie = DummyIE(FakeYDL())
+        self.ie = DummyIE(self.make_ydl())
 
     def test_ie_key(self):
         self.assertEqual(get_info_extractor(YoutubeIE.ie_key()), YoutubeIE)
@@ -303,14 +306,16 @@ class TestInfoExtractor(unittest.TestCase):
                 expected_dict
             )
 
+    @with_request_handlers(handlers=[UrllibRH])
     def test_download_json(self):
+        ie = DummyIE(self.make_ydl())
         uri = encode_data_uri(b'{"foo": "blah"}', 'application/json')
-        self.assertEqual(self.ie._download_json(uri, None), {'foo': 'blah'})
+        self.assertEqual(ie._download_json(uri, None), {'foo': 'blah'})
         uri = encode_data_uri(b'callback({"foo": "blah"})', 'application/javascript')
-        self.assertEqual(self.ie._download_json(uri, None, transform_source=strip_jsonp), {'foo': 'blah'})
+        self.assertEqual(ie._download_json(uri, None, transform_source=strip_jsonp), {'foo': 'blah'})
         uri = encode_data_uri(b'{"foo": invalid}', 'application/json')
-        self.assertRaises(ExtractorError, self.ie._download_json, uri, None)
-        self.assertEqual(self.ie._download_json(uri, None, fatal=False), None)
+        self.assertRaises(ExtractorError, ie._download_json, uri, None)
+        self.assertEqual(ie._download_json(uri, None, fatal=False), None)
 
     def test_parse_html5_media_entries(self):
         # inline video tag
@@ -1648,6 +1653,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
                 for i in range(len(entries)):
                     expect_dict(self, entries[i], expected_entries[i])
 
+    @with_request_handlers()
     def test_response_with_expected_status_returns_content(self):
         # Checks for mitigations against the effects of
         # <https://bugs.python.org/issue15002> that affect Python 3.4.1+, which
@@ -1662,7 +1668,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         server_thread.daemon = True
         server_thread.start()
 
-        (content, urlh) = self.ie._download_webpage_handle(
+        content, urlh = DummyIE(self.make_ydl())._download_webpage_handle(
             'http://127.0.0.1:%d/teapot' % port, None,
             expected_status=TEAPOT_RESPONSE_STATUS)
         self.assertEqual(content, TEAPOT_RESPONSE_BODY)

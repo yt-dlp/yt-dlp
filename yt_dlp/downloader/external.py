@@ -20,10 +20,11 @@ from ..utils import (
     determine_ext,
     encodeArgument,
     encodeFilename,
-    handle_youtubedl_headers,
     remove_end,
     traverse_obj,
 )
+
+from ..networking.utils import handle_youtubedl_headers
 
 
 class Features(enum.Enum):

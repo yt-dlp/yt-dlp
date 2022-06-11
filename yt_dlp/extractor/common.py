@@ -11,6 +11,8 @@ import sys
 import time
 import xml.etree.ElementTree
 
+from ..networking import Request
+from ..networking.utils import update_request
 from ..compat import functools, re  # isort: split
 from ..compat import (
     compat_cookiejar_Cookie,
@@ -18,10 +20,8 @@ from ..compat import (
     compat_etree_fromstring,
     compat_expanduser,
     compat_getpass,
-    compat_http_client,
     compat_os_name,
     compat_str,
-    compat_urllib_error,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlencode,
     compat_urllib_request,
@@ -66,7 +66,6 @@ from ..utils import (
     parse_m3u8_attributes,
     parse_resolution,
     sanitize_filename,
-    sanitized_Request,
     str_or_none,
     str_to_int,
     strip_or_none,
@@ -84,6 +83,8 @@ from ..utils import (
     xpath_element,
     xpath_text,
     xpath_with_ns,
+    IncompleteRead,
+    HTTPError,
 )
 
 
@@ -666,7 +667,7 @@ class InfoExtractor:
             if hasattr(e, 'countries'):
                 kwargs['countries'] = e.countries
             raise type(e)(e.orig_msg, **kwargs)
-        except compat_http_client.IncompleteRead as e:
+        except IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
             raise ExtractorError('An extractor error has occurred.', cause=e, video_id=self.get_temp_id(url))
@@ -717,7 +718,7 @@ class InfoExtractor:
 
     @staticmethod
     def __can_accept_status_code(err, expected_status):
-        assert isinstance(err, compat_urllib_error.HTTPError)
+        assert isinstance(err, HTTPError)
         if expected_status is None:
             return False
         elif callable(expected_status):
@@ -726,11 +727,14 @@ class InfoExtractor:
             return err.code in variadic(expected_status)
 
     def _create_request(self, url_or_request, data=None, headers={}, query={}):
+        # TODO
         if isinstance(url_or_request, compat_urllib_request.Request):
             return update_Request(url_or_request, data=data, headers=headers, query=query)
+        elif isinstance(url_or_request, Request):
+            return update_request(url_or_request, data, headers, query)
         if query:
             url_or_request = update_url_query(url_or_request, query)
-        return sanitized_Request(url_or_request, data, headers)
+        return Request(url_or_request, data, headers)
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
@@ -766,7 +770,7 @@ class InfoExtractor:
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))
         except network_exceptions as err:
-            if isinstance(err, compat_urllib_error.HTTPError):
+            if isinstance(err, HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
                     # Retain reference to error to prevent file object from
                     # being closed before it can be read. Works around the
@@ -1043,7 +1047,7 @@ class InfoExtractor:
         while True:
             try:
                 return self.__download_webpage(url_or_request, video_id, note, errnote, None, fatal, *args, **kwargs)
-            except compat_http_client.IncompleteRead as e:
+            except IncompleteRead as e:
                 try_count += 1
                 if try_count >= tries:
                     raise e

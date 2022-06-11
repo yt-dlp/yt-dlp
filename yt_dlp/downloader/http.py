@@ -1,11 +1,9 @@
 import os
 import random
-import socket
-import ssl
 import time
 
+from ..networking import Request
 from .common import FileDownloader
-from ..compat import compat_http_client, compat_urllib_error
 from ..utils import (
     ContentTooShortError,
     ThrottledDownload,
@@ -14,17 +12,10 @@ from ..utils import (
     encodeFilename,
     int_or_none,
     parse_http_range,
-    sanitized_Request,
     try_call,
     write_xattr,
-)
-
-RESPONSE_READ_EXCEPTIONS = (
-    TimeoutError,
-    socket.timeout,  # compat: py < 3.10
-    ConnectionError,
-    ssl.SSLError,
-    compat_http_client.HTTPException
+    TransportError,
+    HTTPError,
 )
 
 
@@ -121,7 +112,7 @@ class HttpFD(FileDownloader):
             if try_call(lambda: range_end >= ctx.content_len):
                 range_end = ctx.content_len - 1
 
-            request = sanitized_Request(url, request_data, headers)
+            request = Request(url, request_data, headers)
             has_range = range_start is not None
             if has_range:
                 request.add_header('Range', f'bytes={int(range_start)}-{int_or_none(range_end) or ""}')
@@ -155,15 +146,15 @@ class HttpFD(FileDownloader):
                     ctx.resume_len = 0
                     ctx.open_mode = 'wb'
                 ctx.data_len = ctx.content_len = int_or_none(ctx.data.info().get('Content-length', None))
-            except compat_urllib_error.HTTPError as err:
+            except HTTPError as err:
                 if err.code == 416:
                     # Unable to resume (requested range not satisfiable)
                     try:
                         # Open the connection again without the range header
                         ctx.data = self.ydl.urlopen(
-                            sanitized_Request(url, request_data, headers))
+                            Request(url, request_data, headers))
                         content_length = ctx.data.info()['Content-Length']
-                    except compat_urllib_error.HTTPError as err:
+                    except HTTPError as err:
                         if err.code < 500 or err.code >= 600:
                             raise
                     else:
@@ -196,13 +187,8 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-            except compat_urllib_error.URLError as err:
-                if isinstance(err.reason, ssl.CertificateError):
-                    raise
-                raise RetryDownload(err)
-            # In urllib.request.AbstractHTTPHandler, the response is partially read on request.
-            # Any errors that occur during this will not be wrapped by URLError
-            except RESPONSE_READ_EXCEPTIONS as err:
+
+            except TransportError as err:
                 raise RetryDownload(err)
 
         def download():
@@ -250,7 +236,7 @@ class HttpFD(FileDownloader):
                 try:
                     # Download and write
                     data_block = ctx.data.read(block_size if not is_test else min(block_size, data_len - byte_counter))
-                except RESPONSE_READ_EXCEPTIONS as err:
+                except TransportError as err:
                     retry(err)
 
                 byte_counter += len(data_block)

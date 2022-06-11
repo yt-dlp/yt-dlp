@@ -25,6 +25,18 @@ import unicodedata
 import urllib.request
 from string import ascii_letters
 
+from .networking import (
+    REQUEST_HANDLERS,
+    UrllibRH,
+    Request,
+    RequestHandlerBroker,
+    HEADRequest
+)
+from .networking.utils import (
+    make_std_headers,
+    get_cookie_header
+)
+
 from .cache import Cache
 from .compat import (
     HAS_LEGACY as compat_has_legacy,
@@ -32,8 +44,6 @@ from .compat import (
     compat_os_name,
     compat_shlex_quote,
     compat_str,
-    compat_urllib_error,
-    compat_urllib_request,
 )
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -67,6 +77,7 @@ from .utils import (
     POSTPROCESS_WHEN,
     STR_FORMAT_RE_TMPL,
     STR_FORMAT_TYPES,
+    CaseInsensitiveDict,
     ContentTooShortError,
     DateRange,
     DownloadCancelled,
@@ -75,23 +86,18 @@ from .utils import (
     ExistingVideoReached,
     ExtractorError,
     GeoRestrictedError,
-    HEADRequest,
     InAdvancePagedList,
     ISO3166Utils,
     LazyList,
     MaxDownloadsReached,
     Namespace,
     PagedList,
-    PerRequestProxyHandler,
     Popen,
     PostProcessingError,
     ReExtractInfo,
     RejectedVideoReached,
     SameFileError,
     UnavailableVideoError,
-    YoutubeDLCookieProcessor,
-    YoutubeDLHandler,
-    YoutubeDLRedirectHandler,
     age_restricted,
     args_to_str,
     date_from_str,
@@ -108,13 +114,12 @@ from .utils import (
     format_field,
     formatSeconds,
     get_domain,
+    infojson_decoder_hook,
     int_or_none,
     iri_to_uri,
     join_nonempty,
     locked_file,
     make_dir,
-    make_HTTPS_handler,
-    merge_headers,
     network_exceptions,
     number_of_digits,
     orderedSet,
@@ -122,15 +127,12 @@ from .utils import (
     platform_name,
     preferredencoding,
     prepend_extension,
-    register_socks_protocols,
     remove_terminal_sequences,
     render_table,
     replace_extension,
     sanitize_filename,
     sanitize_path,
     sanitize_url,
-    sanitized_Request,
-    std_headers,
     str_or_none,
     strftime_or_none,
     subtitles_filename,
@@ -565,6 +567,9 @@ class YoutubeDL:
         self._playlist_urls = set()
         self.cache = Cache(self)
 
+        self._cookiejar = None
+        self._proxies = None
+
         windows_enable_vt_mode()
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
         self._out_files = Namespace(
@@ -676,7 +681,7 @@ class YoutubeDL:
             else self.build_format_selector(self.params['format']))
 
         # Set http_headers defaults according to std_headers
-        self.params['http_headers'] = merge_headers(std_headers, self.params.get('http_headers', {}))
+        self.params['http_headers'] = CaseInsensitiveDict(make_std_headers(), self.params.get('http_headers', {}))
 
         hooks = {
             'post_hooks': self.add_post_hook,
@@ -694,8 +699,7 @@ class YoutubeDL:
                 get_postprocessor(pp_def.pop('key'))(self, **pp_def),
                 when=when)
 
-        self._setup_opener()
-        register_socks_protocols()
+        self.http = self.build_http(REQUEST_HANDLERS)
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
@@ -2295,7 +2299,7 @@ class YoutubeDL:
         return _build_selector_function(parsed_selector)
 
     def _calc_headers(self, info_dict):
-        res = merge_headers(self.params['http_headers'], info_dict.get('http_headers') or {})
+        res = CaseInsensitiveDict(self.params['http_headers'], info_dict.get('http_headers') or {})
 
         cookies = self._calc_cookies(info_dict['url'])
         if cookies:
@@ -2309,9 +2313,7 @@ class YoutubeDL:
         return res
 
     def _calc_cookies(self, url):
-        pr = sanitized_Request(url)
-        self.cookiejar.add_cookie_header(pr)
-        return pr.get_header('Cookie')
+        return get_cookie_header(Request(url), self.cookiejar)
 
     def _sort_thumbnails(self, thumbnails):
         thumbnails.sort(key=lambda t: (
@@ -3316,7 +3318,7 @@ class YoutubeDL:
                 [info_filename], mode='r',
                 openhook=fileinput.hook_encoded('utf-8'))) as f:
             # FileInput doesn't have a read method, we can't call json.load
-            info = self.sanitize_info(json.loads('\n'.join(f)), self.params.get('clean_infojson', True))
+            info = self.sanitize_info(json.loads('\n'.join(f), object_hook=infojson_decoder_hook), self.params.get('clean_infojson', True))
         try:
             self.__download_wrapper(self.process_ie_result)(info, download=True)
         except (DownloadError, EntryNotInPlaylist, ReExtractInfo) as e:
@@ -3347,7 +3349,7 @@ class YoutubeDL:
             reject = lambda k, v: False
 
         def filter_fn(obj):
-            if isinstance(obj, dict):
+            if isinstance(obj, (dict, CaseInsensitiveDict)):
                 return {k: filter_fn(v) for k, v in obj.items() if not reject(k, v)}
             elif isinstance(obj, (list, tuple, set, LazyList)):
                 return list(map(filter_fn, obj))
@@ -3651,9 +3653,7 @@ class YoutubeDL:
 
     def urlopen(self, req):
         """ Start an HTTP download """
-        if isinstance(req, str):
-            req = sanitized_Request(req)
-        return self._opener.open(req, timeout=self._socket_timeout)
+        return self.http.send(req)
 
     def print_debug_header(self):
         if not self.params.get('verbose'):
@@ -3746,12 +3746,7 @@ class YoutubeDL:
             join_nonempty(*get_package_info(m)) for m in available_dependencies.values()
         })) or 'none'))
 
-        self._setup_opener()
-        proxy_map = {}
-        for handler in self._opener.handlers:
-            if hasattr(handler, 'proxies'):
-                proxy_map.update(handler.proxies)
-        write_debug(f'Proxy map: {proxy_map}')
+        write_debug(f'Proxy map: {self.proxies}')
 
         # Not implemented
         if False and self.params.get('call_home'):
@@ -3764,56 +3759,42 @@ class YoutubeDL:
                     'You are using an outdated version (newest version: %s)! '
                     'See https://yt-dl.org/update if you need help updating.' %
                     latest_version)
+    @property
+    def proxies(self) -> dict:
+        """Global proxy configuration"""
+        if not self._proxies:
+            self._proxies = urllib.request.getproxies() or {}
+            # compat. Set HTTPS_PROXY to __noproxy__ to revert
+            if 'http' in self._proxies and 'https' not in self._proxies:
+                self._proxies['https'] = self._proxies['http']
+            conf_proxy = self.params.get('proxy')
+            if conf_proxy:
+                # compat. We should ideally use `all` proxy here
+                self._proxies.update({'http': conf_proxy, 'https': conf_proxy})
+        return self._proxies
 
-    def _setup_opener(self):
-        if hasattr(self, '_opener'):
-            return
-        timeout_val = self.params.get('socket_timeout')
-        self._socket_timeout = 20 if timeout_val is None else float(timeout_val)
+    @property
+    def cookiejar(self):
+        """Global cookiejar instance"""
+        if self._cookiejar is None:
+            opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
+            opts_cookiefile = self.params.get('cookiefile')
+            self._cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self)
+        return self._cookiejar
 
-        opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
-        opts_cookiefile = self.params.get('cookiefile')
-        opts_proxy = self.params.get('proxy')
+    @property
+    def _opener(self):
+        """
+        Deprecated: use YoutubeDL.urlopen() instead.
+        Get an urllib OpenerDirector from the Urllib handler.
+        """
+        return self.http.get_handlers(UrllibRH)[0].get_opener(self.proxies)
 
-        self.cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self)
-
-        cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
-        if opts_proxy is not None:
-            if opts_proxy == '':
-                proxies = {}
-            else:
-                proxies = {'http': opts_proxy, 'https': opts_proxy}
-        else:
-            proxies = compat_urllib_request.getproxies()
-            # Set HTTPS proxy to HTTP one if given (https://github.com/ytdl-org/youtube-dl/issues/805)
-            if 'http' in proxies and 'https' not in proxies:
-                proxies['https'] = proxies['http']
-        proxy_handler = PerRequestProxyHandler(proxies)
-
-        debuglevel = 1 if self.params.get('debug_printtraffic') else 0
-        https_handler = make_HTTPS_handler(self.params, debuglevel=debuglevel)
-        ydlh = YoutubeDLHandler(self.params, debuglevel=debuglevel)
-        redirect_handler = YoutubeDLRedirectHandler()
-        data_handler = urllib.request.DataHandler()
-
-        # When passing our own FileHandler instance, build_opener won't add the
-        # default FileHandler and allows us to disable the file protocol, which
-        # can be used for malicious purposes (see
-        # https://github.com/ytdl-org/youtube-dl/issues/8227)
-        file_handler = compat_urllib_request.FileHandler()
-
-        def file_open(*args, **kwargs):
-            raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
-        file_handler.file_open = file_open
-
-        opener = compat_urllib_request.build_opener(
-            proxy_handler, https_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler)
-
-        # Delete the default user-agent header, which would otherwise apply in
-        # cases where our custom HTTP handler doesn't come into play
-        # (See https://github.com/ytdl-org/youtube-dl/issues/1309 for details)
-        opener.addheaders = []
-        self._opener = opener
+    def build_http(self, handlers):
+        broker = RequestHandlerBroker(self)
+        for klass in handlers:
+            broker.add_handler(klass(self))
+        return broker
 
     def encode(self, s):
         if isinstance(s, bytes):
@@ -3960,7 +3941,7 @@ class YoutubeDL:
             else:
                 self.to_screen(f'[info] Downloading {thumb_display_id} ...')
                 try:
-                    uf = self.urlopen(sanitized_Request(t['url'], headers=t.get('http_headers', {})))
+                    uf = self.urlopen(Request(t['url'], headers=t.get('http_headers', {})))
                     self.to_screen(f'[info] Writing {thumb_display_id} to: {thumb_filename}')
                     with open(encodeFilename(thumb_filename), 'wb') as thumbf:
                         shutil.copyfileobj(uf, thumbf)

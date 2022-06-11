@@ -25,6 +25,7 @@ from yt_dlp.utils import (
     LazyList,
     int_or_none,
     match_filter_func,
+    RequestError,
 )
 
 TEST_URL = 'http://localhost/sample.mp4'
@@ -1040,7 +1041,7 @@ class TestYoutubeDL(unittest.TestCase):
     def test_urlopen_no_file_protocol(self):
         # see https://github.com/ytdl-org/youtube-dl/issues/8227
         ydl = YDL()
-        self.assertRaises(compat_urllib_error.URLError, ydl.urlopen, 'file:///etc/passwd')
+        self.assertRaises(RequestError, ydl.urlopen, 'file:///etc/passwd')
 
     def test_do_not_override_ie_key_in_url_transparent(self):
         ydl = YDL()

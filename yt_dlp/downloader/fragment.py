@@ -6,6 +6,7 @@ import math
 import os
 import time
 
+from ..networking import Request
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
@@ -14,8 +15,9 @@ from ..utils import (
     DownloadError,
     encodeFilename,
     error_to_compat_str,
-    sanitized_Request,
     traverse_obj,
+    HTTPError,
+    IncompleteRead,
 )
 
 
@@ -74,7 +76,7 @@ class FragmentFD(FileDownloader):
 
     def _prepare_url(self, info_dict, url):
         headers = info_dict.get('http_headers')
-        return sanitized_Request(url, None, headers) if headers else url
+        return Request(url, None, headers) if headers else url
 
     def _prepare_and_start_frag_download(self, ctx, info_dict):
         self._prepare_frag_download(ctx)
@@ -457,7 +459,7 @@ class FragmentFD(FileDownloader):
                     if self._download_fragment(ctx, fragment['url'], info_dict, headers):
                         break
                     return
-                except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
+                except (HTTPError, IncompleteRead) as err:
                     # Unavailable (possibly temporary) fragments may be served.
                     # First we try to retry then either skip or abort.
                     # See https://github.com/ytdl-org/youtube-dl/issues/10165,

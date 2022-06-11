@@ -5,6 +5,8 @@ import os
 import sys
 import unittest
 
+from yt_dlp.networking import Request
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -102,7 +104,6 @@ from yt_dlp.utils import (
     sanitize_filename,
     sanitize_path,
     sanitize_url,
-    sanitized_Request,
     shell_quote,
     smuggle_url,
     str_to_int,
@@ -126,6 +127,7 @@ from yt_dlp.utils import (
     xpath_element,
     xpath_text,
     xpath_with_ns,
+    CaseInsensitiveDict,
 )
 
 
@@ -253,8 +255,9 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(sanitize_url('https://foo.bar'), 'https://foo.bar')
         self.assertEqual(sanitize_url('foo bar'), 'foo bar')
 
+    # TODO: move to networking tests
     def test_extract_basic_auth(self):
-        auth_header = lambda url: sanitized_Request(url).get_header('Authorization')
+        auth_header = lambda url: Request(url).get_header('Authorization')
         self.assertFalse(auth_header('http://foo.bar'))
         self.assertFalse(auth_header('http://:foo.bar'))
         self.assertEqual(auth_header('http://@foo.bar'), 'Basic Og==')
@@ -1824,6 +1827,37 @@ Line 1
         finally:
             with contextlib.suppress(OSError):
                 os.remove(FILE)
+
+    def test_case_insensitive_dict(self):
+        headers = CaseInsensitiveDict()
+        headers['ytdl-test'] = 1
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '1')])
+        headers['Ytdl-test'] = '2'
+        self.assertEqual(list(headers.items()), [('Ytdl-Test', '2')])
+        self.assertTrue('ytDl-Test' in headers)
+        self.assertEqual(str(headers), str(dict(headers)))
+        self.assertEqual(repr(headers), str(dict(headers)))
+
+        headers.update({'X-dlp': 'data'})
+        self.assertEqual(set(headers.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data')})
+        self.assertEqual(dict(headers), {'Ytdl-Test': '2', 'X-Dlp': 'data'})
+        self.assertEqual(len(headers), 2)
+        self.assertEqual(headers.copy(), headers)
+        headers2 = CaseInsensitiveDict({'X-dlp': 'data3'}, **headers, **{'X-dlp': 'data2'})
+        self.assertEqual(set(headers2.items()), {('Ytdl-Test', '2'), ('X-Dlp', 'data2')})
+        self.assertEqual(len(headers2), 2)
+        headers2.clear()
+        self.assertEqual(len(headers2), 0)
+        headers.add('Ytdl-TeSt', 'test1')
+        headers.add('Ytdl-test2', 'test2')
+        self.assertEqual(set(headers.items()), {('Ytdl-Test', '2, test1'), ('X-Dlp', 'data'), ('Ytdl-Test2', 'test2')})
+
+        # ensure we prefer latter headers
+        headers3 = CaseInsensitiveDict({'Ytdl-TeSt': 1}, {'Ytdl-test': 2})
+        self.assertEqual(set(headers3.items()), {('Ytdl-Test', '2')})
+
+        headers4 = CaseInsensitiveDict({'ytdl-test': 'data;'})
+        self.assertEqual(set(headers4.items()), {('Ytdl-Test', 'data;')})
 
 
 if __name__ == '__main__':
