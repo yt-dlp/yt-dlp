@@ -594,6 +594,19 @@ def clean_html(html):
     return html.strip()
 
 
+class LenientJSONDecoder(json.JSONDecoder):
+    def __init__(self, *args, transform_source=None, ignore_extra=False, **kwargs):
+        self.transform_source, self.ignore_extra = transform_source, ignore_extra
+        super().__init__(*args, **kwargs)
+
+    def decode(self, s):
+        if self.transform_source:
+            s = self.transform_source(s)
+        if self.ignore_extra:
+            return self.raw_decode(s.lstrip())[0]
+        return super().decode(s)
+
+
 def sanitize_open(filename, open_mode):
     """Try to open the given filename, and slightly tweak it if this fails.
 
@@ -3482,6 +3495,23 @@ def match_filter_func(filters):
     return _match_func
 
 
+def download_range_func(chapters, ranges):
+    def inner(info_dict, ydl):
+        warning = ('There are no chapters matching the regex' if info_dict.get('chapters')
+                   else 'Cannot match chapters since chapter information is unavailable')
+        for regex in chapters or []:
+            for i, chapter in enumerate(info_dict.get('chapters') or []):
+                if re.search(regex, chapter['title']):
+                    warning = None
+                    yield {**chapter, 'index': i}
+        if chapters and warning:
+            ydl.to_screen(f'[info] {info_dict["id"]}: {warning}')
+
+        yield from ({'start_time': start, 'end_time': end} for start, end in ranges or [])
+
+    return inner
+
+
 def parse_dfxp_time_expr(time_expr):
     if not time_expr:
         return
@@ -4873,9 +4903,9 @@ def to_high_limit_path(path):
     return path
 
 
-def format_field(obj, field=None, template='%s', ignore=(None, ''), default='', func=None):
+def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=None):
     val = traverse_obj(obj, *variadic(field))
-    if val in ignore:
+    if (not val and val != 0) if ignore is NO_DEFAULT else val in ignore:
         return default
     return template % (func(val) if func else val)
 
