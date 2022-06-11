@@ -311,7 +311,7 @@ GET %s
                 '$ct': f'multipart/mixed; boundary="{self._BOUNDARY}"',
                 'key': key
             }, **kwargs)
-        return self._search_json('', response, 'api response',  folder_id, **kwargs) or {}
+        return self._search_json('', response, 'api response', folder_id, **kwargs) or {}
 
     def _get_folder_items(self, folder_id, key):
         page_token = ''
