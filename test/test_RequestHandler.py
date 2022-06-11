@@ -17,7 +17,7 @@ from yt_dlp import YoutubeDL
 from yt_dlp.compat import compat_http_server
 import ssl
 import threading
-
+import http.server
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 HTTP_TEST_BACKEND_HANDLERS = [UrllibRH]
@@ -149,7 +149,7 @@ class RequestHandlerTestBase:
 class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
     def setUp(self):
         # HTTP server
-        self.http_httpd = compat_http_server.HTTPServer(
+        self.http_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         self.http_port = http_server_port(self.http_httpd)
         self.http_server_thread = threading.Thread(target=self.http_httpd.serve_forever)
@@ -158,7 +158,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
         # HTTPS server
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
-        self.https_httpd = compat_http_server.HTTPServer(
+        self.https_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         self.https_httpd.socket = ssl.wrap_socket(
             self.https_httpd.socket, certfile=certfn, server_side=True)
@@ -168,7 +168,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
         self.https_server_thread.start()
 
         # HTTP Proxy server
-        self.proxy = compat_http_server.HTTPServer(
+        self.proxy = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), _build_proxy_handler('normal'))
         self.proxy_port = http_server_port(self.proxy)
         self.proxy_thread = threading.Thread(target=self.proxy.serve_forever)
@@ -176,7 +176,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
         self.proxy_thread.start()
 
         # Geo proxy server
-        self.geo_proxy = compat_http_server.HTTPServer(
+        self.geo_proxy = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), _build_proxy_handler('geo'))
         self.geo_port = http_server_port(self.geo_proxy)
         self.geo_proxy_thread = threading.Thread(target=self.geo_proxy.serve_forever)
