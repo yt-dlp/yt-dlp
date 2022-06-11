@@ -54,20 +54,8 @@ class TVerIE(InfoExtractor):
             video_id = self._match_id(self._search_regex(
                 (r'canonical"\s*href="(https?://tver\.jp/[^"]+)"', r'&link=(https?://tver\.jp/[^?&]+)[?&]'),
                 webpage, 'url regex'))
-        video_info = self._download_json(
-            f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
-            query={'v': '5'}, headers={
-                'Origin': 'https://tver.jp',
-                'Referer': 'https://tver.jp/',
-            })
-        p_id = video_info['video']['accountID']
-        r_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID')), get_all=False)
-        if not r_id:
-            raise ExtractorError('Failed to extract reference ID for Brightcove')
-        if not r_id.isdigit():
-            r_id = f'ref:{r_id}'
 
-        additional_info = self._download_json(
+        episode_info = self._download_json(
             f'https://platform-api.tver.jp/service/api/v1/callEpisode/{video_id}?require_data=mylist,later[epefy106ur],good[epefy106ur],resume[epefy106ur]',
             video_id, fatal=False,
             query={
@@ -76,16 +64,31 @@ class TVerIE(InfoExtractor):
             }, headers={
                 'x-tver-platform-type': 'web'
             })
+        episode_content = traverse_obj(
+            episode_info, ('result', 'episode', 'content')) or {}
 
-        additional_content_info = traverse_obj(
-            additional_info, ('result', 'episode', 'content'), get_all=False) or {}
-        episode = strip_or_none(additional_content_info.get('title'))
-        series = str_or_none(additional_content_info.get('seriesTitle'))
+        video_info = self._download_json(
+            f'https://statics.tver.jp/content/episode/{video_id}.json', video_id,
+            query={
+                'v': str_or_none(episode_content.get('version')) or '5',
+            }, headers={
+                'Origin': 'https://tver.jp',
+                'Referer': 'https://tver.jp/',
+            })
+        p_id = video_info['video']['accountID']
+        r_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID')))
+        if not r_id:
+            raise ExtractorError('Failed to extract reference ID for Brightcove')
+        if not r_id.isdigit():
+            r_id = f'ref:{r_id}'
+
+        episode = strip_or_none(episode_content.get('title'))
+        series = str_or_none(episode_content.get('seriesTitle'))
         title = (
             join_nonempty(series, episode, delim=' ')
             or str_or_none(video_info.get('title')))
-        provider = str_or_none(additional_content_info.get('productionProviderName'))
-        onair_label = str_or_none(additional_content_info.get('broadcastDateLabel'))
+        provider = str_or_none(episode_content.get('productionProviderName'))
+        onair_label = str_or_none(episode_content.get('broadcastDateLabel'))
 
         return {
             '_type': 'url_transparent',
