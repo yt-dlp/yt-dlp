@@ -93,12 +93,12 @@ class MirrorCoUKIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        jwplayer_id = self._search_regex(
-            r'<img[^>]+?\s*?\s*c?\s*lass?\s*=?\s*["\']video-thumbnail["\']?\s*src=?\s*["\']https:\/\/cdn\.jwplayer\.com\/v2\/media\/(\w+)\/', webpage, 'data id')
+        data = self._search_json(r'div\s+class="json-placeholder"\s+data-json="',
+                                 webpage, 'data', display_id, transform_source=unescapeHTML)['videoData']
 
         return {
             '_type': 'url_transparent',
+            'url': f'https://cdn.jwplayer.com/v2/media/{data["videoId"]}',
+            'ie_key': 'JWPlatform',
             'display_id': display_id,
-            'url': f"https://cdn.jwplayer.com/v2/media/{jwplayer_id}?page_domain=www.mirror.co.uk",
-            'ie_key': 'JWPlatform'
         }
