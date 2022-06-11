@@ -320,7 +320,7 @@ class TestClientCert(RequestHandlerTestBase, unittest.TestCase):
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
         self.certdir = os.path.join(TEST_DIR, 'testdata', 'certificate')
         cacertfn = os.path.join(self.certdir, 'ca.crt')
-        self.httpd = compat_http_server.HTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
+        self.httpd = http.server.ThreadingHTTPServer(('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.verify_mode = ssl.CERT_REQUIRED
         sslctx.load_verify_locations(cafile=cacertfn)
