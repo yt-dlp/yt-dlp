@@ -291,16 +291,16 @@ class GoogleDriveFolderIE(InfoExtractor):
     }]
     _BOUNDARY = '=====vc17a3rwnndj====='
     _REQUEST = "/drive/v2beta/files?openDrive=true&reason=102&syncType=0&errorRecovery=false&q=trashed%20%3D%20false%20and%20'{folder_id}'%20in%20parents&fields=kind%2CnextPageToken%2Citems(kind%2CmodifiedDate%2CmodifiedByMeDate%2ClastViewedByMeDate%2CfileSize%2Cowners(kind%2CpermissionId%2Cid)%2ClastModifyingUser(kind%2CpermissionId%2Cid)%2ChasThumbnail%2CthumbnailVersion%2Ctitle%2Cid%2CresourceKey%2Cshared%2CsharedWithMeDate%2CuserPermission(role)%2CexplicitlyTrashed%2CmimeType%2CquotaBytesUsed%2Ccopyable%2CfileExtension%2CsharingUser(kind%2CpermissionId%2Cid)%2Cspaces%2Cversion%2CteamDriveId%2ChasAugmentedPermissions%2CcreatedDate%2CtrashingUser(kind%2CpermissionId%2Cid)%2CtrashedDate%2Cparents(id)%2CshortcutDetails(targetId%2CtargetMimeType%2CtargetLookupStatus)%2Ccapabilities(canCopy%2CcanDownload%2CcanEdit%2CcanAddChildren%2CcanDelete%2CcanRemoveChildren%2CcanShare%2CcanTrash%2CcanRename%2CcanReadTeamDrive%2CcanMoveTeamDriveItem)%2Clabels(starred%2Ctrashed%2Crestricted%2Cviewed))%2CincompleteSearch&appDataFilter=NO_APP_DATA&spaces=drive&pageToken={page_token}&maxResults=50&supportsTeamDrives=true&includeItemsFromAllDrives=true&corpora=default&orderBy=folder%2Ctitle_natural%20asc&retryCount=0&key={key} HTTP/1.1"
-    _DATA = '''--{boundary}
+    _DATA = f'''--{_BOUNDARY}
 content-type: application/http
 content-transfer-encoding: binary
 
-GET {request}
+GET %s
 
---{boundary}
+--{_BOUNDARY}
 '''
 
-    def _call_api(self, folder_id, key, data):
+    def _call_api(self, folder_id, key, data, **kwargs):
         response = self._download_webpage(
             'https://clients6.google.com/batch/drive/v2beta',
             folder_id, data=data.encode('utf-8'),
@@ -309,21 +309,17 @@ GET {request}
                 'Origin': 'https://drive.google.com',
             }, query={
                 '$ct': f'multipart/mixed; boundary="{self._BOUNDARY}"',
-                'key': key})
-        return self._parse_json(
-            self._search_regex(r'({[\s\S]*})', response, 'api response'),
-            folder_id)
+                'key': key
+            }, **kwargs)
+        return self._search_json('', response, 'api response',  folder_id, **kwargs) or {}
 
     def _get_folder_items(self, folder_id, key):
         page_token = ''
-        while True:
-            page = self._call_api(folder_id, key,
-                                  self._DATA.format(boundary=self._BOUNDARY,
-                                                    request=self._REQUEST.format(folder_id=folder_id, page_token=page_token, key=key)))
+        while page_token is not None:
+            request = self._REQUEST.format(folder_id=folder_id, page_token=page_token, key=key)
+            page = self._call_api(folder_id, key, self._DATA % request)
             yield from page['items']
             page_token = page.get('nextPageToken')
-            if not page_token:
-                break
 
     def _real_extract(self, url):
         folder_id = self._match_id(url)
@@ -331,10 +327,8 @@ GET {request}
         webpage = self._download_webpage(url, folder_id)
         key = self._search_regex(r'"(\w{39})"', webpage, 'key')
 
-        folder_info = self._call_api(folder_id, key,
-                                     self._DATA.format(boundary=self._BOUNDARY, request=f'/drive/v2beta/files/{folder_id} HTTP/1.1'))
-        folder_items = self._get_folder_items(folder_id, key)
+        folder_info = self._call_api(folder_id, key, self._DATA % f'/drive/v2beta/files/{folder_id} HTTP/1.1', fatal=False)
 
         return self.playlist_from_matches(
-            folder_items, folder_id, folder_info['title'], ie='GoogleDrive',
-            getter=lambda item: 'https://drive.google.com/file/d/' + item['id'])
+            self._get_folder_items(folder_id, key), folder_id, folder_info.get('title'),
+            ie=GoogleDriveIE, getter=lambda item: f'https://drive.google.com/file/d/{item["id"]}')
