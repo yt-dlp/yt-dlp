@@ -1188,11 +1188,11 @@ class InfoExtractor:
             self.report_warning('unable to extract %s' % _name + bug_reports_message())
             return None
 
-    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', fatal=True, **kwargs):
+    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', contains_pattern='.+', fatal=True, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
         return self._parse_json(
-            self._search_regex(rf'{start_pattern}\s*(?P<json>{{.+}})\s*{end_pattern}',
+            self._search_regex(rf'{start_pattern}\s*(?P<json>{{{contains_pattern}}})\s*{end_pattern}',
                                string, name, group='json', fatal=fatal) or '{}',
             video_id, fatal=fatal, ignore_extra=True, **kwargs) or {}
 
@@ -1487,7 +1487,7 @@ class InfoExtractor:
                 # however some websites are using 'Text' type instead.
                 # 1. https://schema.org/VideoObject
                 'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, compat_str) else None,
-                'filesize': float_or_none(e.get('contentSize')),
+                'filesize': int_or_none(float_or_none(e.get('contentSize'))),
                 'tbr': int_or_none(e.get('bitrate')),
                 'width': int_or_none(e.get('width')),
                 'height': int_or_none(e.get('height')),

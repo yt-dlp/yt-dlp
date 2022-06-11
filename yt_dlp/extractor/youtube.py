@@ -3674,8 +3674,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         initial_data = None
         if webpage:
-            initial_data = self._search_json(
-                self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', video_id, fatal=False)
+            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
         if not initial_data:
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())

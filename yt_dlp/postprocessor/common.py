@@ -45,9 +45,6 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
     an initial argument and then with the returned value of the previous
     PostProcessor.
 
-    The chain will be stopped if one of them ever returns None or the end
-    of the chain is reached.
-
     PostProcessor objects follow a "mutual registration" process similar
     to InfoExtractor objects.
 

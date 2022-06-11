@@ -431,7 +431,7 @@ title = self._search_regex(  # correct
     r'<span[^>]+class="title"[^>]*>([^<]+)', webpage, 'title')
 ```
 
-Or even better:
+which tolerates potential changes in the `style` attribute's value. Or even better:
 
 ```python
 title = self._search_regex(  # correct
@@ -439,7 +439,7 @@ title = self._search_regex(  # correct
     webpage, 'title', group='title')
 ```
 
-Note how you tolerate potential changes in the `style` attribute's value or switch from using double quotes to single for `class` attribute: 
+which also handles both single quotes in addition to double quotes.
 
 The code definitely should not look like:
 
