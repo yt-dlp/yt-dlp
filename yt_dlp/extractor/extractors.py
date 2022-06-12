@@ -499,7 +499,12 @@ from .fc2 import (
     FC2LiveIE,
 )
 from .fczenit import FczenitIE
-from .fifa import FifaIE
+from .fifa import (
+    FifaIE,
+    FifaArticlesIE,
+    FifaMoviesIE,
+    FifaSeriesIE,
+)
 from .filmmodu import FilmmoduIE
 from .filmon import (
     FilmOnIE,
