@@ -2542,7 +2542,27 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1652833414,
                 'age_limit': 0,
             }
-        }
+        }, {
+            'url': 'https://www.skimag.com/video/ski-people-1980/',
+            'info_dict': {
+                'id': 'ski-people-1980',
+                'title': 'Ski People (1980)',
+            },
+            'playlist_count': 1,
+            'playlist': [{
+                'md5': '022a7e31c70620ebec18deeab376ee03',
+                'info_dict': {
+                    'id': 'YTmgRiNU',
+                    'ext': 'mp4',
+                    'title': '1980 Ski People',
+                    'timestamp': 1610407738,
+                    'description': 'md5:cf9c3d101452c91e141f292b19fe4843',
+                    'thumbnail': 'https://cdn.jwplayer.com/v2/media/YTmgRiNU/poster.jpg?width=720',
+                    'duration': 5688.0,
+                    'upload_date': '20210111',
+                }
+            }]
+        },
     ]
 
     def report_following_redirect(self, new_url):
