@@ -18,7 +18,7 @@ class IxiguaIE(InfoExtractor):
             'id': '6996881461559165471',
             'ext': 'mp4',
             'title': '盲目涉水风险大，亲身示范高水位行车注意事项',
-            'description': '本期《懂车帝评测》，我们将尝试验证一个夏日大家可能会遇到的关键性问题：如果突发暴雨，我们不得不涉水行车，如何做才能更好保障生命安全。',
+            'description': 'md5:8c82f46186299add4a1c455430740229',
             'tag': 'video_car',
             'like_count': int,
             'dislike_count': int,
