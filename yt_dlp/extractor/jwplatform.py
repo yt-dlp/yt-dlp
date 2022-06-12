@@ -37,6 +37,9 @@ class JWPlatformIE(InfoExtractor):
                 webpage)
             if ret:
                 return ret
+        mobj = re.search(r'<div\b[^>]* data-video-jw-id="([a-zA-Z0-9]{8})"', webpage)
+        if mobj:
+            return [f'jwplatform:{mobj.group(1)}']
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})

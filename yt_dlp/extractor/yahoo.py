@@ -434,7 +434,7 @@ class YahooGyaOIE(InfoExtractor):
         page = 1
         while True:
             playlist = self._download_json(
-                f'https://gyao.yahoo.co.jp/api/programs/{program_id}/videos?page={page}', program_id,
+                f'https://gyao.yahoo.co.jp/api/programs/{program_id}/videos?page={page}&serviceId=gy', program_id,
                 note=f'Downloading JSON metadata page {page}')
             if not playlist:
                 break

@@ -54,10 +54,6 @@ from .alura import (
     AluraCourseIE
 )
 from .amcnetworks import AMCNetworksIE
-from .animelab import (
-    AnimeLabIE,
-    AnimeLabShowsIE,
-)
 from .amazon import AmazonStoreIE
 from .americastestkitchen import (
     AmericasTestKitchenIE,
@@ -103,6 +99,7 @@ from .asiancrush import (
     AsianCrushPlaylistIE,
 )
 from .atresplayer import AtresPlayerIE
+from .atscaleconf import AtScaleConfEventIE
 from .atttechchannel import ATTTechChannelIE
 from .atvat import ATVAtIE
 from .audimedia import AudiMediaIE
@@ -472,6 +469,7 @@ from .ertgr import (
 from .escapist import EscapistIE
 from .espn import (
     ESPNIE,
+    WatchESPNIE,
     ESPNArticleIE,
     FiveThirtyEightIE,
     ESPNCricInfoIE,
@@ -520,6 +518,10 @@ from .fourtube import (
     PornerBrosIE,
     FuxIE,
 )
+from .fourzerostudio import (
+    FourZeroStudioArchiveIE,
+    FourZeroStudioClipIE,
+)
 from .fox import FOXIE
 from .fox9 import (
     FOX9IE,
@@ -532,7 +534,6 @@ from .foxnews import (
 )
 from .foxsports import FoxSportsIE
 from .fptplay import FptplayIE
-from .franceculture import FranceCultureIE
 from .franceinter import FranceInterIE
 from .francetv import (
     FranceTVIE,
@@ -545,6 +546,10 @@ from .frontendmasters import (
     FrontendMastersIE,
     FrontendMastersLessonIE,
     FrontendMastersCourseIE
+)
+from .freetv import (
+    FreeTvIE,
+    FreeTvMoviesIE,
 )
 from .fujitv import FujiTVFODPlus7IE
 from .funimation import (
@@ -991,6 +996,7 @@ from .nationalgeographic import (
 from .naver import (
     NaverIE,
     NaverLiveIE,
+    NaverNowIE,
 )
 from .nba import (
     NBAWatchEmbedIE,
@@ -1265,6 +1271,7 @@ from .playfm import PlayFMIE
 from .playplustv import PlayPlusTVIE
 from .plays import PlaysTVIE
 from .playstuff import PlayStuffIE
+from .playsuisse import PlaySuisseIE
 from .playtvak import PlaytvakIE
 from .playvid import PlayvidIE
 from .playwire import PlaywireIE
@@ -1278,7 +1285,6 @@ from .podomatic import PodomaticIE
 from .pokemon import (
     PokemonIE,
     PokemonWatchIE,
-    PokemonSoundLibraryIE,
 )
 from .pokergo import (
     PokerGoIE,
@@ -1345,7 +1351,7 @@ from .radiocanada import (
 from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
-from .radiofrance import RadioFranceIE
+from .radiofrance import FranceCultureIE, RadioFranceIE
 from .radiozet import RadioZetPodcastIE
 from .radiokapital import (
     RadioKapitalIE,
@@ -1572,6 +1578,7 @@ from .southpark import (
     SouthParkDeIE,
     SouthParkDkIE,
     SouthParkEsIE,
+    SouthParkLatIE,
     SouthParkNlIE
 )
 from .sovietscloset import (
