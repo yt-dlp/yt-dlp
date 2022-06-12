@@ -1,3 +1,4 @@
+import base64
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -7,11 +8,10 @@ from ..utils import (
     str_or_none,
     traverse_obj,
 )
-import base64
 
 
 class IxiguaIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:\w+\.)?ixigua\.com/(?:video/)?(?P<id>[0-9]+).+'
+    _VALID_URL = r'https?://(?:\w+\.)?ixigua\.com/(?:video/)?(?P<id>\d+).+'
     _TEST = {
         'url': 'https://www.ixigua.com/6996881461559165471',
         'info_dict': {
@@ -28,8 +28,7 @@ class IxiguaIE(InfoExtractor):
             'thumbnail': r're:^https?://.*\.(avif|webp)(?:\?.+)',  # still not sure for regex
             'timestamp': 1629088414,
             'duration': 1030,
-        },
-        'skip': 'This Extractor need cookies',
+        }
     }
 
     def _get_json_data(self, webpage, video_id):
@@ -39,80 +38,47 @@ class IxiguaIE(InfoExtractor):
 
         return self._parse_json(js_data.replace('window._SSR_HYDRATED_DATA=', ''), video_id, transform_source=js_to_json)
 
-    def _get_media_format(self, media_type, media_json):
-        media_specific_format = {}
-        media_data = []
-        if media_type == "dash_video":
-            media_data = traverse_obj(media_json, ('dynamic_video', 'dynamic_video_list'))
-            media_specific_format = {
-                'format_note': 'DASH',
-                'acodec': 'none',
-            }
-        elif media_type == "dash_audio":
-            media_data = traverse_obj(media_json, ('dynamic_video', 'dynamic_audio_list'))
-            media_specific_format = {
-                'format_note': 'DASH',
-                'vcodec': 'none',
-                'ext': 'mp4a',
-            }
-        elif media_type == "normal":
-            media_data = [traverse_obj(media_json, ('video_list', media)) for media in media_json.get('video_list')]
-
-        return self._get_formats(media_data, media_specific_format)
-
-    def _get_formats(self, media_json, media_specific_format):
-        _single_video_format = [{
-            'url': base64.b64decode(media['main_url']).decode(),
-            'width': int_or_none(media.get('vwidth')),
-            'height': int_or_none(media.get('vheight')),
-            'fps': int_or_none(media.get('fps')),
-            'vcodec': media.get('codec_type'),
-            'format_id': str_or_none(media.get('quality_type')),
-            'filesize': int_or_none(media.get('size')),
-            'ext': 'mp4',
-            **media_specific_format
-        } for media in media_json]
-
-        return _single_video_format
-
     def _media_selector(self, json_data):
-        formats_ = []
-        for media in json_data:
-            media_data = json_data.get(media)
-            if not isinstance(media_data, dict):
-                continue
-            if media.startswith('dash'):
-                video_format = self._get_media_format('dash_video', media_data)
-                audio_format = self._get_media_format('dash_audio', media_data)
-                formats_.extend(audio_format)
-
-            else:
-                video_format = self._get_media_format('normal', media_data)
-
-            formats_.extend(video_format)
-
-        return formats_
+        format_ = []
+        for path, override in (
+            (('video_list',), {}),
+            (('dynamic_video', 'dynamic_video_list'), {'acodec': 'none'}),
+            (('dynamic_video', 'dynamic_audio_list'), {'vcodec': 'none', 'ext': 'm4a'}),
+        ):
+            for media in traverse_obj(json_data, (..., *path, ...)):
+                if not media.get('main_url'):
+                    continue
+                format_.append({
+                    'url': base64.b64decode(media['main_url']).decode(),
+                    'width': int_or_none(media.get('vwidth')),
+                    'height': int_or_none(media.get('vheight')),
+                    'fps': int_or_none(media.get('fps')),
+                    'vcodec': media.get('codec_type'),
+                    'format_id': str_or_none(media.get('quality_type')),
+                    'filesize': int_or_none(media.get('size')),
+                    'ext': 'mp4',
+                    **override,
+                })
+        return format_
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-        # need to pass cookie (at least contain __ac_nonce and ttwid)
         webpage = self._download_webpage(url, video_id)
-        json_data = self._get_json_data(webpage, video_id)
-        video_resource = traverse_obj(json_data, ('anyVideo', 'gidInformation', 'packerData', 'video'))
+        json_data = self._get_json_data(webpage, video_id)['anyVideo']['gidInformation']['packerData']['video']
 
-        format_ = self._media_selector(video_resource.get('videoResource'))
-        self._sort_formats(format_)
+        formats = self._media_selector(json_data.get('videoResource'))
+        self._sort_formats(list(formats))
         return {
             'id': video_id,
-            'title': video_resource.get('title'),
-            'description': video_resource.get('video_abstract'),
-            'formats': format_,
-            'like_count': video_resource.get('video_like_count'),
-            'duration': int_or_none(video_resource.get('duration')),
-            'tag': video_resource.get('tag'),
-            'uploader_id': traverse_obj(video_resource, ('user_info', 'user_id')),
-            'uploader': traverse_obj(video_resource, ('user_info', 'name')),
-            'view_count': video_resource.get('video_watch_count'),
-            'dislike_count': video_resource.get('video_unlike_count'),
-            'timestamp': int_or_none(video_resource.get('video_publish_time')),
+            'title': json_data.get('title'),
+            'description': json_data.get('video_abstract'),
+            'formats': formats,
+            'like_count': json_data.get('video_like_count'),
+            'duration': int_or_none(json_data.get('duration')),
+            'tags': json_data.get('tag'),
+            'uploader_id': traverse_obj(json_data, ('user_info', 'user_id')),
+            'uploader': traverse_obj(json_data, ('user_info', 'name')),
+            'view_count': json_data.get('video_watch_count'),
+            'dislike_count': json_data.get('video_unlike_count'),
+            'timestamp': int_or_none(json_data.get('video_publish_time')),
         }
