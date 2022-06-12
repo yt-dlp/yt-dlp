@@ -76,7 +76,7 @@ class TVerIE(InfoExtractor):
                 'Referer': 'https://tver.jp/',
             })
         p_id = video_info['video']['accountID']
-        r_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID')))
+        r_id = traverse_obj(video_info, ('video', ('videoRefID', 'videoID')), get_all=False)
         if not r_id:
             raise ExtractorError('Failed to extract reference ID for Brightcove')
         if not r_id.isdigit():
