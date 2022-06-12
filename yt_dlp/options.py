@@ -917,6 +917,14 @@ def create_parser():
             'Do not use the mpegts container for HLS videos. '
             'This is default when not downloading live streams'))
     downloader.add_option(
+        '--download-sections',
+        metavar='REGEX', dest='download_ranges', action='append',
+        help=(
+            'Download only chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
+            'Eg: --download-sections "*10:15-15:00" --download-sections "intro". '
+            'Needs ffmpeg. This option can be used multiple times to download multiple sections'))
+    downloader.add_option(
         '--downloader', '--external-downloader',
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
@@ -1423,20 +1431,23 @@ def create_parser():
     postproc.add_option(
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
-            'Specify audio format to convert the audio to when -x is used. Currently supported formats are: '
-            'best (default) or one of %s' % ', '.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
+            'Format to convert the audio to when -x is used. '
+            f'(currently supported: best (default), {", ".join(FFmpegExtractAudioPP.SUPPORTED_EXTS)}). '
+            'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality to use when converting the audio with -x. Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help=(
+            'Specify ffmpeg audio quality to use when converting the audio with -x. '
+            'Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)'))
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
-            'Remux the video into another container if necessary (currently supported: %s). '
-            'If target container does not support the video/audio codec, remuxing will fail. '
-            'You can specify multiple rules; Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % ', '.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
+            'Remux the video into another container if necessary '
+            f'(currently supported: {", ".join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)}). '
+            'If target container does not support the video/audio codec, remuxing will fail. You can specify multiple rules; '
+            'Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 and anything else to mkv'))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
@@ -1628,9 +1639,7 @@ def create_parser():
         metavar='REGEX', dest='remove_chapters', action='append',
         help=(
             'Remove chapters whose title matches the given regular expression. '
-            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
-            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
-            'This option can be used multiple times'))
+            'The syntax is the same as --download-sections. This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
@@ -1638,9 +1647,8 @@ def create_parser():
         '--force-keyframes-at-cuts',
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
-            'Force keyframes around chapters when removing/splitting them. '
-            'This is slow due to needing a re-encode, but '
-            'the resulting video may have fewer artifacts around the cuts'))
+            'Force keyframes at cuts when downloading/splitting/removing sections. '
+            'This is slow due to needing a re-encode, but the resulting video may have fewer artifacts around the cuts'))
     postproc.add_option(
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',

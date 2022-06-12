@@ -156,30 +156,16 @@ def _extract_firefox_cookies(profile, logger):
 
 
 def _firefox_browser_dir():
-    if sys.platform in ('linux', 'linux2'):
-        return os.path.expanduser('~/.mozilla/firefox')
-    elif sys.platform == 'win32':
+    if sys.platform in ('cygwin', 'win32'):
         return os.path.expandvars(R'%APPDATA%\Mozilla\Firefox\Profiles')
     elif sys.platform == 'darwin':
         return os.path.expanduser('~/Library/Application Support/Firefox')
-    else:
-        raise ValueError(f'unsupported platform: {sys.platform}')
+    return os.path.expanduser('~/.mozilla/firefox')
 
 
 def _get_chromium_based_browser_settings(browser_name):
     # https://chromium.googlesource.com/chromium/src/+/HEAD/docs/user_data_dir.md
-    if sys.platform in ('linux', 'linux2'):
-        config = _config_home()
-        browser_dir = {
-            'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
-            'chrome': os.path.join(config, 'google-chrome'),
-            'chromium': os.path.join(config, 'chromium'),
-            'edge': os.path.join(config, 'microsoft-edge'),
-            'opera': os.path.join(config, 'opera'),
-            'vivaldi': os.path.join(config, 'vivaldi'),
-        }[browser_name]
-
-    elif sys.platform == 'win32':
+    if sys.platform in ('cygwin', 'win32'):
         appdata_local = os.path.expandvars('%LOCALAPPDATA%')
         appdata_roaming = os.path.expandvars('%APPDATA%')
         browser_dir = {
@@ -203,7 +189,15 @@ def _get_chromium_based_browser_settings(browser_name):
         }[browser_name]
 
     else:
-        raise ValueError(f'unsupported platform: {sys.platform}')
+        config = _config_home()
+        browser_dir = {
+            'brave': os.path.join(config, 'BraveSoftware/Brave-Browser'),
+            'chrome': os.path.join(config, 'google-chrome'),
+            'chromium': os.path.join(config, 'chromium'),
+            'edge': os.path.join(config, 'microsoft-edge'),
+            'opera': os.path.join(config, 'opera'),
+            'vivaldi': os.path.join(config, 'vivaldi'),
+        }[browser_name]
 
     # Linux keyring names can be determined by snooping on dbus while opening the browser in KDE:
     # dbus-monitor "interface='org.kde.KWallet'" "type=method_return"
@@ -343,14 +337,11 @@ class ChromeCookieDecryptor:
 
 
 def get_cookie_decryptor(browser_root, browser_keyring_name, logger, *, keyring=None):
-    if sys.platform in ('linux', 'linux2'):
-        return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring)
-    elif sys.platform == 'darwin':
+    if sys.platform == 'darwin':
         return MacChromeCookieDecryptor(browser_keyring_name, logger)
-    elif sys.platform == 'win32':
+    elif sys.platform in ('win32', 'cygwin'):
         return WindowsChromeCookieDecryptor(browser_root, logger)
-    else:
-        raise NotImplementedError(f'Chrome cookie decryption is not supported on this platform: {sys.platform}')
+    return LinuxChromeCookieDecryptor(browser_keyring_name, logger, keyring=keyring)
 
 
 class LinuxChromeCookieDecryptor(ChromeCookieDecryptor):

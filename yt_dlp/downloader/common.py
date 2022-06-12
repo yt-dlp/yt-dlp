@@ -302,7 +302,7 @@ class FileDownloader:
     )
 
     def _report_progress_status(self, s, default_template):
-        for name, style in self.ProgressStyles:
+        for name, style in self.ProgressStyles.items_:
             name = f'_{name}_str'
             if name not in s:
                 continue

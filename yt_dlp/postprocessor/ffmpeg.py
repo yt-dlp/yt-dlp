@@ -6,7 +6,7 @@ import re
 import subprocess
 import time
 
-from .common import AudioConversionError, PostProcessor
+from .common import PostProcessor
 from ..compat import functools, imghdr
 from ..utils import (
     ISO639Utils,
@@ -45,19 +45,20 @@ EXT_TO_OUT_FORMATS = {
     'vtt': 'webvtt',
 }
 ACODECS = {
-    'mp3': 'libmp3lame',
-    'aac': 'aac',
-    'flac': 'flac',
-    'm4a': 'aac',
-    'opus': 'libopus',
-    'vorbis': 'libvorbis',
-    'wav': None,
-    'alac': None,
+    # name: (ext, encoder, opts)
+    'mp3': ('mp3', 'libmp3lame', ()),
+    'aac': ('m4a', 'aac', ('-f', 'adts')),
+    'm4a': ('m4a', 'aac', ('-bsf:a', 'aac_adtstoasc')),
+    'opus': ('opus', 'libopus', ()),
+    'vorbis': ('ogg', 'libvorbis', ()),
+    'flac': ('flac', 'flac', ()),
+    'alac': ('m4a', None, ('-acodec', 'alac')),
+    'wav': ('wav', None, ('-f', 'wav')),
 }
 
 
 def create_mapping_re(supported):
-    return re.compile(r'{0}(?:/{0})*$'.format(r'(?:\w+>)?(?:%s)' % '|'.join(supported)))
+    return re.compile(r'{0}(?:/{0})*$'.format(r'(?:\s*\w+\s*>)?\s*(?:%s)\s*' % '|'.join(supported)))
 
 
 def resolve_mapping(source, mapping):
@@ -424,11 +425,12 @@ class FFmpegPostProcessor(PostProcessor):
 
 class FFmpegExtractAudioPP(FFmpegPostProcessor):
     COMMON_AUDIO_EXTS = ('wav', 'flac', 'm4a', 'aiff', 'mp3', 'ogg', 'mka', 'opus', 'wma')
-    SUPPORTED_EXTS = ('aac', 'flac', 'mp3', 'm4a', 'opus', 'vorbis', 'wav', 'alac')
+    SUPPORTED_EXTS = tuple(ACODECS.keys())
+    FORMAT_RE = create_mapping_re(('best', *SUPPORTED_EXTS))
 
     def __init__(self, downloader=None, preferredcodec=None, preferredquality=None, nopostoverwrites=False):
         FFmpegPostProcessor.__init__(self, downloader)
-        self._preferredcodec = preferredcodec or 'best'
+        self.mapping = preferredcodec or 'best'
         self._preferredquality = float_or_none(preferredquality)
         self._nopostoverwrites = nopostoverwrites
 
@@ -463,71 +465,47 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         try:
             FFmpegPostProcessor.run_ffmpeg(self, path, out_path, opts)
         except FFmpegPostProcessorError as err:
-            raise AudioConversionError(err.msg)
+            raise PostProcessingError(f'audio conversion failed: {err.msg}')
 
     @PostProcessor._restrict_to(images=False)
     def run(self, information):
         orig_path = path = information['filepath']
-        orig_ext = information['ext']
-
-        if self._preferredcodec == 'best' and orig_ext in self.COMMON_AUDIO_EXTS:
-            self.to_screen('Skipping audio extraction since the file is already in a common audio format')
+        target_format, _skip_msg = resolve_mapping(information['ext'], self.mapping)
+        if target_format == 'best' and information['ext'] in self.COMMON_AUDIO_EXTS:
+            target_format, _skip_msg = None, 'the file is already in a common audio format'
+        if not target_format:
+            self.to_screen(f'Not converting audio {orig_path}; {_skip_msg}')
             return [], information
 
         filecodec = self.get_audio_codec(path)
         if filecodec is None:
             raise PostProcessingError('WARNING: unable to obtain file audio codec with ffprobe')
 
-        more_opts = []
-        if self._preferredcodec == 'best' or self._preferredcodec == filecodec or (self._preferredcodec == 'm4a' and filecodec == 'aac'):
-            if filecodec == 'aac' and self._preferredcodec in ['m4a', 'best']:
-                # Lossless, but in another container
-                acodec = 'copy'
-                extension = 'm4a'
-                more_opts = ['-bsf:a', 'aac_adtstoasc']
-            elif filecodec in ['aac', 'flac', 'mp3', 'vorbis', 'opus']:
-                # Lossless if possible
-                acodec = 'copy'
-                extension = filecodec
-                if filecodec == 'aac':
-                    more_opts = ['-f', 'adts']
-                if filecodec == 'vorbis':
-                    extension = 'ogg'
-            elif filecodec == 'alac':
-                acodec = None
-                extension = 'm4a'
-                more_opts += ['-acodec', 'alac']
-            else:
-                # MP3 otherwise.
-                acodec = 'libmp3lame'
-                extension = 'mp3'
-                more_opts = self._quality_args(acodec)
+        if filecodec == 'aac' and target_format in ('m4a', 'best'):
+            # Lossless, but in another container
+            extension, _, more_opts, acodec = *ACODECS['m4a'], 'copy'
+        elif target_format == 'best' or target_format == filecodec:
+            # Lossless if possible
+            try:
+                extension, _, more_opts, acodec = *ACODECS[filecodec], 'copy'
+            except KeyError:
+                extension, acodec, more_opts = ACODECS['mp3']
         else:
             # We convert the audio (lossy if codec is lossy)
-            acodec = ACODECS[self._preferredcodec]
+            extension, acodec, more_opts = ACODECS[target_format]
             if acodec == 'aac' and self._features.get('fdk'):
-                acodec = 'libfdk_aac'
-            extension = self._preferredcodec
-            more_opts = self._quality_args(acodec)
-            if self._preferredcodec == 'aac':
-                more_opts += ['-f', 'adts']
-            elif self._preferredcodec == 'm4a':
-                more_opts += ['-bsf:a', 'aac_adtstoasc']
-            elif self._preferredcodec == 'vorbis':
-                extension = 'ogg'
-            elif self._preferredcodec == 'wav':
-                extension = 'wav'
-                more_opts += ['-f', 'wav']
-            elif self._preferredcodec == 'alac':
-                extension = 'm4a'
-                more_opts += ['-acodec', 'alac']
+                acodec, more_opts = 'libfdk_aac', []
 
-        prefix, sep, ext = path.rpartition('.')  # not os.path.splitext, since the latter does not work on unicode in all setups
-        temp_path = new_path = prefix + sep + extension
+        more_opts = list(more_opts)
+        if acodec != 'copy':
+            more_opts = self._quality_args(acodec)
+
+        # not os.path.splitext, since the latter does not work on unicode in all setups
+        temp_path = new_path = f'{path.rpartition(".")[0]}.{extension}'
 
         if new_path == path:
             if acodec == 'copy':
-                self.to_screen(f'File is already in target format {self._preferredcodec}, skipping')
+                self.to_screen(f'Not converting audio {orig_path}; file is already in target format {target_format}')
                 return [], information
             orig_path = prepend_extension(path, 'orig')
             temp_path = prepend_extension(path, 'temp')
@@ -536,14 +514,8 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
             self.to_screen('Post-process file %s exists, skipping' % new_path)
             return [], information
 
-        try:
-            self.to_screen(f'Destination: {new_path}')
-            self.run_ffmpeg(path, temp_path, acodec, more_opts)
-        except AudioConversionError as e:
-            raise PostProcessingError(
-                'audio conversion failed: ' + e.msg)
-        except Exception:
-            raise PostProcessingError('error running ' + self.basename)
+        self.to_screen(f'Destination: {new_path}')
+        self.run_ffmpeg(path, temp_path, acodec, more_opts)
 
         os.replace(path, orig_path)
         os.replace(temp_path, new_path)
@@ -553,8 +525,7 @@ class FFmpegExtractAudioPP(FFmpegPostProcessor):
         # Try to update the date time for extracted audio file.
         if information.get('filetime') is not None:
             self.try_utime(
-                new_path, time.time(), information['filetime'],
-                errnote='Cannot update utime of audio file')
+                new_path, time.time(), information['filetime'], errnote='Cannot update utime of audio file')
 
         return [orig_path], information
 
