@@ -259,6 +259,9 @@ class RequestHandler:
     def name(self):
         return type(self).__name__
 
+    def close(self):
+        """Method to cleanly shut down request handler. Redefine in subclasses"""
+
 
 class BackendRH(RequestHandler):
     """Network Backend adapter class
@@ -342,6 +345,10 @@ class RequestHandlerBroker:
     def __init__(self, ydl):
         self._handlers = []
         self.ydl = ydl
+
+    def close(self):
+        for handler in self._handlers:
+            handler.close()
 
     def add_handler(self, handler):
         if handler not in self._handlers and isinstance(handler, RequestHandler):

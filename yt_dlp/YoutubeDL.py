@@ -867,11 +867,18 @@ class YoutubeDL:
         self.save_console_title()
         return self
 
-    def __exit__(self, *args):
-        self.restore_console_title()
-
+    def _save_cookies(self):
         if self.params.get('cookiefile') is not None:
             self.cookiejar.save(ignore_discard=True, ignore_expires=True)
+
+    def __exit__(self, *args):
+        self.restore_console_title()
+        self._save_cookies()
+        self.http.close()
+
+    def close(self):
+        self._save_cookies()
+        self.http.close()
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
