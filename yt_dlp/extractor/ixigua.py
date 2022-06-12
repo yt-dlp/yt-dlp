@@ -12,7 +12,7 @@ from ..utils import (
 
 class IxiguaIE(InfoExtractor):
     _VALID_URL = r'https?://(?:\w+\.)?ixigua\.com/(?:video/)?(?P<id>\d+).+'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.ixigua.com/6996881461559165471',
         'info_dict': {
             'id': '6996881461559165471',
@@ -29,7 +29,7 @@ class IxiguaIE(InfoExtractor):
             'timestamp': 1629088414,
             'duration': 1030,
         }
-    }
+    }]
 
     def _get_json_data(self, webpage, video_id):
         js_data = get_element_by_id('SSR_HYDRATED_DATA', webpage)
