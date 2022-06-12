@@ -46,11 +46,19 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
         self.send_header('Content-Length', '0')
         self.end_headers()
 
+    def _404(self):
+        payload = b'<html>404 NOT FOUND</html>'
+        self.send_response(404)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def do_HEAD(self):
         if self.path.startswith('/redirect_'):
             self._redirect()
         else:
-            assert False
+            self._404()
 
     def do_GET(self):
         if self.path == '/video.html':
@@ -116,7 +124,7 @@ class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(compressed + b'trailing garbage')
         else:
-            assert False
+            self._404()
 
 
 def _build_proxy_handler(name):
@@ -158,14 +166,15 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
         # HTTPS server
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
-        self.https_httpd = http.server.ThreadingHTTPServer(
+        self.httpd = compat_http_server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
-        self.https_httpd.socket = ssl.wrap_socket(
-            self.https_httpd.socket, certfile=certfn, server_side=True)
-        self.https_port = http_server_port(self.https_httpd)
-        self.https_server_thread = threading.Thread(target=self.https_httpd.serve_forever)
-        self.https_server_thread.daemon = True
-        self.https_server_thread.start()
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        sslctx.load_cert_chain(certfn, None)
+        self.httpd.socket = sslctx.wrap_socket(self.httpd.socket, server_side=True)
+        self.https_port = http_server_port(self.httpd)
+        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
+        self.server_thread.daemon = True
+        self.server_thread.start()
 
         # HTTP Proxy server
         self.proxy = http.server.ThreadingHTTPServer(
@@ -252,7 +261,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
         # TODO
         ydl = self.make_ydl()
         # HEAD request. Should follow through with head request to gen_204 which should fail.
-        with self.assertRaises(TransportError):
+        with self.assertRaises(HTTPError):
             ydl.urlopen(HEADRequest('http://127.0.0.1:%d/redirect_301' % self.http_port))
 
         #res = ydl.urlopen('http://127.0.0.1:%d/redirect_301' % self.http_port)
