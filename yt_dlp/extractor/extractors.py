@@ -1516,6 +1516,7 @@ from .shared import (
 )
 from .shemaroome import ShemarooMeIE
 from .showroomlive import ShowRoomLiveIE
+from .showuptv import ShowupTvIE
 from .simplecast import (
     SimplecastIE,
     SimplecastEpisodeIE,
