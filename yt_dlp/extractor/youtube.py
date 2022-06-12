@@ -3690,7 +3690,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             pass
         else:
             info.setdefault('subtitles', {})['live_chat'] = [{
-                'url': f'https://www.youtube.com/watch?v={video_id}',  # url is needed to set cookies
+                # url is needed to set cookies
+                'url': f'https://www.youtube.com/watch?v={video_id}&bpctr=9999999999&has_verified=1',
                 'video_id': video_id,
                 'ext': 'json',
                 'protocol': 'youtube_live_chat' if is_live or is_upcoming else 'youtube_live_chat_replay',
