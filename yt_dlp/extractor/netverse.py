@@ -181,7 +181,9 @@ class NetversePlaylistIE(NetverseBaseIE):
             for slug in traverse_obj(playlist_json, ('response', 'season_list', 'data', ..., 'slug')):
                 yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
     
-    def parse_playlist(self, url, page_num, slug_sample, season_id_list=[]):
+    def parse_playlist(self, url, page_num, json_data):
+        slug_sample = traverse_obj(json_data, ('response', 'related', 'data', ..., 'slug'))[0]
+        season_id_list = [season.get('id') for season in traverse_obj(json_data, ('response', 'seasons'))]
         if len(season_id_list) > 1:
             print("Multiple Season")
             url = f'https://netverse.id/webseries/{slug_sample}'
@@ -201,6 +203,6 @@ class NetversePlaylistIE(NetverseBaseIE):
         # TODO: get video from other season
         # The season has id and the next season video is located at api_url/<season_id>?page=<page>
         return self.playlist_result(
-            InAdvancePagedList(functools.partial(self.parse_playlist, url, slug_sample=video_slug_sample, season_id_list=season_id_list), number_of_pages, number_video_per_page),
+            InAdvancePagedList(functools.partial(self.parse_playlist, url, json_data=playlist_data), number_of_pages, number_video_per_page),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
