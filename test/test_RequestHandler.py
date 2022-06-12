@@ -166,13 +166,13 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
         # HTTPS server
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
-        self.httpd = compat_http_server.ThreadingHTTPServer(
+        self.https_httpd = compat_http_server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
-        self.httpd.socket = sslctx.wrap_socket(self.httpd.socket, server_side=True)
-        self.https_port = http_server_port(self.httpd)
-        self.server_thread = threading.Thread(target=self.httpd.serve_forever)
+        self.https_httpd.socket = sslctx.wrap_socket(self.https_httpd.socket, server_side=True)
+        self.https_port = http_server_port(self.https_httpd)
+        self.server_thread = threading.Thread(target=self.https_httpd.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
 
@@ -338,6 +338,9 @@ class TestClientCert(RequestHandlerTestBase, unittest.TestCase):
         self.server_thread = threading.Thread(target=self.httpd.serve_forever)
         self.server_thread.daemon = True
         self.server_thread.start()
+
+    def tearDown(self):
+        self.httpd.server_close()
 
     @with_request_handlers()
     def _run_test(self, **params):
