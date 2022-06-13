@@ -17,22 +17,19 @@ class NetverseBaseIE(InfoExtractor):
         'season': 'webseason_videos',
     }
 
-    def _call_api(self, url, query={}, season='',force_endpoint_type='auto'):
+    def _call_api(self, url, query={}, season='', force_endpoint_type='auto'):
         display_id, sites_type = self._match_valid_url(url).group('display_id', 'type')
         endpoint = self._ENDPOINTS[sites_type] if force_endpoint_type == 'auto' else self._ENDPOINTS[force_endpoint_type]
-        print(f'Endpoint type: {endpoint}')
-        print(f'API URL: https://api.netverse.id/medias/api/v2/{endpoint}/{display_id}/{season}\n')
         if season and force_endpoint_type != '':
             json_data = self._download_json(
                 f'https://api.netverse.id/medias/api/v2/{endpoint}/{display_id}/{season}',
                 display_id, query=query)
-        
+
         else:
             json_data = self._download_json(
                 f'https://api.netverse.id/medias/api/v2/{endpoint}/{display_id}',
                 display_id, query=query)
-        
-        
+
         return display_id, json_data
 
 
@@ -158,51 +155,45 @@ class NetverseIE(NetverseBaseIE):
 
 
 class NetversePlaylistIE(NetverseBaseIE):
-    _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>webseries)/(?P<display_id>[^/?#&]+)'
-    _TEST = {
+    _VALID_URL = r'https?://(?:\w+\.)?netverse\.id/(?P<type>webseries|video)/(?P<display_id>[^/?#&]+)'
+    _TESTS = [{
         'url': 'https://netverse.id/webseries/tetangga-masa-gitu',
         'info_dict': {
             'id': 'tetangga-masa-gitu',
             'title': 'Tetangga Masa Gitu',
         },
-        'playlist_count': 46,
-    }
-    
-    def parse_single_season_playlist(self, url, page_num):
-        _, playlist_json = self._call_api(url, query={'page': page_num + 1})
-        for slug in traverse_obj(playlist_json, ('response', 'related', 'data', ..., 'slug')):
+        'playlist_count': 519,
+    }, {
+        'url': 'https://netverse.id/webseries/kelas-internasional',
+        'info_dict': {
+            'id': 'kelas-internasional',
+            'title': 'Kelas Internasional',
+        },
+        'playlist_count': 158,
+    }]
+
+    def parse_single_season_playlist(self, url, page_num, season_id='', force_endpoint_type='auto'):
+        _, playlist_json = self._call_api(url, query={'page': page_num + 1}, season=season_id, force_endpoint_type=force_endpoint_type)
+        for slug in traverse_obj(playlist_json, ('response', ..., 'data', ..., 'slug')):
             yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
-    
-    def parse_multiple_season_playlist(self, url, page_num, season_id_list=[]):
-        for season_id in season_id_list:
-            print(f'{url}/{season_id} - Page: {page_num}')
-            _, playlist_json = self._call_api(url, query={'page': page_num + 1}, season=season_id, force_endpoint_type = 'season')
-            #print(playlist_json)
-            for slug in traverse_obj(playlist_json, ('response', 'season_list', 'data', ..., 'slug')):
-                yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
-    
-    def parse_playlist(self, url, page_num, json_data):
+
+    def parse_playlist(self, url, json_data):
         slug_sample = traverse_obj(json_data, ('response', 'related', 'data', ..., 'slug'))[0]
         season_id_list = [season.get('id') for season in traverse_obj(json_data, ('response', 'seasons'))]
-        if len(season_id_list) > 1:
-            print("Multiple Season")
-            url = f'https://netverse.id/webseries/{slug_sample}'
-            return self.parse_multiple_season_playlist(url, page_num, season_id_list)
-        else:
-            print("Single Season")
-            return self.parse_single_season_playlist(url, page_num)
-            
+
+        for season in season_id_list:
+            # initial data
+            playlist_url = f'https://netverse.id/video/{slug_sample}'
+            _, playlist_json = self._call_api(playlist_url, season=season, force_endpoint_type='season')
+
+            number_video_per_page = traverse_obj(playlist_json, ('response', 'season_list', 'to')) - traverse_obj(json_data, ('response', 'related', 'from')) + 1
+            number_of_pages = traverse_obj(playlist_json, ('response', 'season_list', 'last_page'))
+
+            yield from InAdvancePagedList(functools.partial(self.parse_single_season_playlist, playlist_url, season_id=season, force_endpoint_type='season'), number_of_pages, number_video_per_page)
+
     def _real_extract(self, url):
         _, playlist_data = self._call_api(url)
-        webseries_related_info = traverse_obj(playlist_data, ('response', 'related'))
-        number_video_per_page = webseries_related_info.get('to') - webseries_related_info.get('from') + 1
-        number_of_pages = webseries_related_info.get('last_page')
-        
-        video_slug_sample = traverse_obj(playlist_data, ('response', 'related', 'data', ..., 'slug'))[0]
-        season_id_list = [season.get('id') for season in traverse_obj(playlist_data, ('response', 'seasons'))]
-        # TODO: get video from other season
-        # The season has id and the next season video is located at api_url/<season_id>?page=<page>
         return self.playlist_result(
-            InAdvancePagedList(functools.partial(self.parse_playlist, url, json_data=playlist_data), number_of_pages, number_video_per_page),
+            self.parse_playlist(url, playlist_data),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
