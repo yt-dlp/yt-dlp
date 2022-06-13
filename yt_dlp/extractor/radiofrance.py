@@ -58,7 +58,8 @@ class RadioFranceIE(InfoExtractor):
 
 
 class FranceCultureIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/franceculture/podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d+)($|[?#])'
+    # not working: franceinter, franceinfo
+    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/(?:franceculture|fip|francemusique|mouv)/podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d+)($|[?#])'
     _TESTS = [
         {
             'url': 'https://www.radiofrance.fr/franceculture/podcasts/science-en-questions/la-physique-d-einstein-aiderait-elle-a-comprendre-le-cerveau-8440487',
