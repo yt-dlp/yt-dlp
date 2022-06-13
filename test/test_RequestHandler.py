@@ -34,7 +34,7 @@ class FakeLogger(object):
         pass
 
 
-class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'  # required for persistent connections
 
     def log_message(self, format, *args):
@@ -253,10 +253,8 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
         with self.make_ydl() as ydl:
             res = ydl.urlopen('http://127.0.0.1:%d/redirect_301' % self.http_port)
             self.assertEqual(res.url, 'http://127.0.0.1:%d/gen_204' % self.http_port)
-            res.close()
             res2 = ydl.urlopen('http://127.0.0.1:%d/gen_200' % self.http_port)
             self.assertEqual(res2.url, 'http://127.0.0.1:%d/gen_200' % self.http_port)
-            res2.close()
 
     def test_redirect(self):
         # TODO
