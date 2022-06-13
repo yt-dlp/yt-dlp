@@ -69,7 +69,7 @@ class ZDFBaseIE(InfoExtractor):
             f.update({
                 'url': format_url,
                 'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
-                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, default=None))
+                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None))
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
