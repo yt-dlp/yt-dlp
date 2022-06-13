@@ -2596,8 +2596,23 @@ class GenericIE(InfoExtractor):
                 'uploader': 'Mr Producer Media',
                 'upload_date': '20220610',
             }
-
-        }
+        },
+        {
+            'note': 'JSON LD with multiple @type',
+            'url': 'https://www.nu.nl/280161/video/hoe-een-bladvlo-dit-verwoestende-japanse-onkruid-moet-vernietigen.html',
+            'md5': 'c7949f34f57273013fb7ccb1156393db',
+            'info_dict': {
+                'id': 'ipy2AcGL',
+                'ext': 'mp4',
+                'description': 'md5:6a9d644bab0dc2dc06849c2505d8383d',
+                'thumbnail': r're:https://media\.nu\.nl/m/.+\.jpg',
+                'title': 'Hoe een bladvlo dit verwoestende Japanse onkruid moet vernietigen',
+                'timestamp': 1586577474,
+                'upload_date': '20200411',
+                'age_limit': 0,
+                'duration': 111.0,
+            }
+        },
     ]
 
     def report_following_redirect(self, new_url):
