@@ -189,7 +189,9 @@ class NetversePlaylistIE(NetverseBaseIE):
             number_video_per_page = traverse_obj(playlist_json, ('response', 'season_list', 'to')) - traverse_obj(json_data, ('response', 'related', 'from')) + 1
             number_of_pages = traverse_obj(playlist_json, ('response', 'season_list', 'last_page'))
 
-            yield from InAdvancePagedList(functools.partial(self.parse_single_season_playlist, playlist_url, season_id=season, force_endpoint_type='season'), number_of_pages, number_video_per_page)
+            yield from InAdvancePagedList(
+                functools.partial(self.parse_single_season_playlist, playlist_url, season_id=season, force_endpoint_type='season'),
+                number_of_pages, number_video_per_page)
 
     def _real_extract(self, url):
         _, playlist_data = self._call_api(url)
