@@ -2003,7 +2003,8 @@ if sys.platform == 'win32':
         if not LockFileEx(msvcrt.get_osfhandle(f.fileno()),
                           (0x2 if exclusive else 0x0) | (0x0 if block else 0x1),
                           0, whole_low, whole_high, f._lock_file_overlapped_p):
-            raise BlockingIOError('Locking file failed: %r' % ctypes.FormatError())
+            # NB: No argument form of "ctypes.FormatError" does not work on PyPy
+            raise BlockingIOError(f'Locking file failed: {ctypes.FormatError(ctypes.GetLastError())!r}')
 
     def _unlock_file(f):
         assert f._lock_file_overlapped_p
