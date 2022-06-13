@@ -50,13 +50,14 @@ class RumbleEmbedIE(InfoExtractor):
         'only_matching': True,
     }]
 
-    @staticmethod
-    def _extract_urls(webpage):
-        return [
-            mobj.group('url')
-            for mobj in re.finditer(
-                r'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>%s)' % RumbleEmbedIE._VALID_URL,
-                webpage)]
+    @classmethod
+    def _extract_urls(cls, webpage):
+        embeds = tuple(re.finditer(
+            fr'(?:<(?:script|iframe)[^>]+\bsrc=|["\']embedUrl["\']\s*:\s*)["\'](?P<url>{cls._VALID_URL})', webpage))
+        if embeds:
+            return [mobj.group('url') for mobj in embeds]
+        return [f'https://rumble.com/embed/{mobj.group("id")}' for mobj in re.finditer(
+            r'<script>\s*Rumble\(\s*"play"\s*,\s*{\s*[\'"]video[\'"]\s*:\s*[\'"](?P<id>[0-9a-z]+)[\'"]', webpage)]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
