@@ -289,10 +289,10 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             # by url
             self.assertTrue(ydl.urlopen(url).read())
 
-        # urllib Request compat and ydl Request
-        for request in (urllib.request.Request(url, headers=test_header), Request(url, headers=test_header)):
-            data = ydl.urlopen(request).read()
-            self.assertIn(b'X-Ydl-Test: 1', data)
+            # urllib Request compat and ydl Request
+            for request in (urllib.request.Request(url, headers=test_header), Request(url, headers=test_header)):
+                data = ydl.urlopen(request).read()
+                self.assertIn(b'X-Ydl-Test: 1', data)
 
         with self.assertRaises(AssertionError):
             ydl.urlopen(None)
