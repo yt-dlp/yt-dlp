@@ -294,8 +294,8 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
                 data = ydl.urlopen(request).read()
                 self.assertIn(b'X-Ydl-Test: 1', data)
 
-        with self.assertRaises(AssertionError):
-            ydl.urlopen(None)
+            with self.assertRaises(AssertionError):
+                ydl.urlopen(None)
 
     def test_no_compression(self):
         with self.make_ydl() as ydl:
