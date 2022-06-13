@@ -3891,15 +3891,10 @@ class GenericIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
-            if determine_ext(json_ld['url']) == 'm3u8':
-                json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
-                    json_ld['url'], video_id, 'mp4')
-                json_ld.pop('url')
-                self._sort_formats(json_ld['formats'])
-            else:
-                json_ld['_type'] = 'url_transparent'
-                json_ld['url'] = smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True})
-            return merge_dicts(json_ld, info_dict)
+            return merge_dicts({
+                '_type': 'url_transparent',
+                'url': smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True}),
+            }, json_ld, info_dict)
 
         def check_video(vurl):
             if YoutubeIE.suitable(vurl):
