@@ -248,7 +248,7 @@ def generator(test_case, tname):
                 # extractor returns full results even with extract_flat
                 res_tcs = [{'info_dict': e} for e in res_dict['entries']]
                 try_rm_tcs_files(res_tcs)
-        ydl.close()
+            ydl.close()
     return test_template
 
 
