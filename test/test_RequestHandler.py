@@ -339,9 +339,6 @@ class TestClientCert(RequestHandlerTestBase, unittest.TestCase):
         self.server_thread.daemon = True
         self.server_thread.start()
 
-    def tearDown(self):
-        self.httpd.server_close()
-
     @with_request_handlers()
     def _run_test(self, **params):
         with self.make_ydl({
