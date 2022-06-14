@@ -867,13 +867,17 @@ class YoutubeDL:
         self.save_console_title()
         return self
 
-    def _save_cookies(self):
+    def save_cookies(self):
         if self.params.get('cookiefile') is not None:
             self.cookiejar.save(ignore_discard=True, ignore_expires=True)
 
     def __exit__(self, *args):
         self.restore_console_title()
-        self._save_cookies()
+        self.save_cookies()
+        self.http.close()
+
+    def close(self):
+        self.save_cookies()
         self.http.close()
 
     def trouble(self, message=None, tb=None, is_error=True):
