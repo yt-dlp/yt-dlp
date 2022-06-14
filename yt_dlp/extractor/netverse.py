@@ -185,15 +185,15 @@ class NetversePlaylistIE(NetverseBaseIE):
             yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
 
     def parse_playlist(self, url, json_data, playlist_id):
-        slug_sample = traverse_obj(json_data, ('response', 'related', 'data', ..., 'slug'))[0]
-        season_id_list = [season.get('id') for season in traverse_obj(json_data, ('response', 'seasons'))]
+        slug_sample = traverse_obj(json_data, ('related', 'data', ..., 'slug'))[0]
+        season_id_list = [season.get('id') for season in json_data.get('seasons')]
 
         for season in season_id_list:
             # initial data
             _, playlist_json = self._call_api(
                 input_data=slug_sample, custom_id=playlist_id, season=season, force_endpoint_type='season', input_type='slug')
 
-            number_video_per_page = traverse_obj(playlist_json, ('response', 'season_list', 'to')) - traverse_obj(json_data, ('response', 'related', 'from')) + 1
+            number_video_per_page = traverse_obj(playlist_json, ('response', 'season_list', 'to')) - traverse_obj(playlist_json, ('response', 'season_list', 'from')) + 1
             number_of_pages = traverse_obj(playlist_json, ('response', 'season_list', 'last_page'))
 
             yield from InAdvancePagedList(
@@ -205,6 +205,6 @@ class NetversePlaylistIE(NetverseBaseIE):
     def _real_extract(self, url):
         _, playlist_data = self._call_api(url)
         return self.playlist_result(
-            self.parse_playlist(url, playlist_data, _),
+            self.parse_playlist(url, playlist_data['response'], _),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
