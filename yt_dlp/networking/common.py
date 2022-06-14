@@ -20,7 +20,8 @@ from ..utils import (
     YoutubeDLError,
     RequestError,
     CaseInsensitiveDict,
-    UnsupportedRequest
+    UnsupportedRequest,
+    SSLError
 )
 
 if typing.TYPE_CHECKING:
@@ -406,6 +407,11 @@ class RequestHandlerBroker:
                 self.to_debugtraffic(
                     f'{handler.name} request handler cannot handle this request, trying next handler... (reason: {e})')
                 continue
+
+            except SSLError as e:
+                if 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
+                    raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect') from e
+                raise
 
             if not res:
                 self.ydl.report_warning(f'{handler.name} request handler returned nothing for response' + bug_reports_message())

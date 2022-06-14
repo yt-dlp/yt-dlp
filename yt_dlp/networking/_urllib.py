@@ -275,15 +275,8 @@ class YoutubeDLHTTPSHandler(compat_urllib_request.HTTPSHandler):
             conn_class = make_socks_conn_class(conn_class, socks_proxy)
             del req.headers['Ytdl-socks-proxy']
 
-        try:
-            return self.do_open(
-                functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
-        except urllib.error.URLError as e:
-            # TODO: handle this in request handler broker
-            if (isinstance(e.reason, ssl.SSLError)
-                    and getattr(e.reason, 'reason', None) == 'SSLV3_ALERT_HANDSHAKE_FAILURE'):
-                raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect')
-            raise
+        return self.do_open(
+            functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
 
 
 class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
