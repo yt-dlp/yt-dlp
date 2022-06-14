@@ -28,15 +28,9 @@ class NetverseBaseIE(InfoExtractor):
         display_id = display_id if slug is None else slug
         endpoint = self._ENDPOINTS[sites_type] if force_endpoint_type == 'auto' else self._ENDPOINTS[force_endpoint_type]
 
-        if season and force_endpoint_type != '':
-            json_data = self._download_json(
-                f'https://api.netverse.id/medias/api/v2/{endpoint}/{display_id}/{season}',
-                custom_id or display_id, query=query)
-        else:
-            json_data = self._download_json(
-                f'https://api.netverse.id/medias/api/v2/{endpoint}/{display_id}',
-                display_id, query=query)
-
+        json_data = self._download_json(
+            f'https://api.netverse.id/medias/api/v2/{endpoint}/{display_id}/{season}',
+            custom_id or display_id, query=query)
         return display_id, json_data
 
 
