@@ -2542,7 +2542,77 @@ class GenericIE(InfoExtractor):
                 'timestamp': 1652833414,
                 'age_limit': 0,
             }
-        }
+        }, {
+            'url': 'https://www.skimag.com/video/ski-people-1980/',
+            'info_dict': {
+                'id': 'ski-people-1980',
+                'title': 'Ski People (1980)',
+            },
+            'playlist_count': 1,
+            'playlist': [{
+                'md5': '022a7e31c70620ebec18deeab376ee03',
+                'info_dict': {
+                    'id': 'YTmgRiNU',
+                    'ext': 'mp4',
+                    'title': '1980 Ski People',
+                    'timestamp': 1610407738,
+                    'description': 'md5:cf9c3d101452c91e141f292b19fe4843',
+                    'thumbnail': 'https://cdn.jwplayer.com/v2/media/YTmgRiNU/poster.jpg?width=720',
+                    'duration': 5688.0,
+                    'upload_date': '20210111',
+                }
+            }]
+        },
+        {
+            'note': 'Rumble embed',
+            'url': 'https://rumble.com/vdmum1-moose-the-dog-helps-girls-dig-a-snow-fort.html',
+            'md5': '53af34098a7f92c4e51cf0bd1c33f009',
+            'info_dict': {
+                'id': 'vb0ofn',
+                'ext': 'mp4',
+                'timestamp': 1612662578,
+                'uploader': 'LovingMontana',
+                'channel': 'LovingMontana',
+                'upload_date': '20210207',
+                'title': 'Winter-loving dog helps girls dig a snow fort ',
+                'channel_url': 'https://rumble.com/c/c-546523',
+                'thumbnail': 'https://sp.rmbl.ws/s8/1/5/f/x/x/5fxxb.OvCc.1-small-Moose-The-Dog-Helps-Girls-D.jpg',
+                'duration': 103,
+            }
+        },
+        {
+            'note': 'Rumble JS embed',
+            'url': 'https://therightscoop.com/what-does-9-plus-1-plus-1-equal-listen-to-this-audio-of-attempted-kavanaugh-assassins-call-and-youll-get-it',
+            'md5': '4701209ac99095592e73dbba21889690',
+            'info_dict': {
+                'id': 'v15eqxl',
+                'ext': 'mp4',
+                'channel': 'Mr Producer Media',
+                'duration': 92,
+                'title': '911 Audio From The Man Who Wanted To Kill Supreme Court Justice Kavanaugh',
+                'channel_url': 'https://rumble.com/c/RichSementa',
+                'thumbnail': 'https://sp.rmbl.ws/s8/1/P/j/f/A/PjfAe.OvCc-small-911-Audio-From-The-Man-Who-.jpg',
+                'timestamp': 1654892716,
+                'uploader': 'Mr Producer Media',
+                'upload_date': '20220610',
+            }
+        },
+        {
+            'note': 'JSON LD with multiple @type',
+            'url': 'https://www.nu.nl/280161/video/hoe-een-bladvlo-dit-verwoestende-japanse-onkruid-moet-vernietigen.html',
+            'md5': 'c7949f34f57273013fb7ccb1156393db',
+            'info_dict': {
+                'id': 'ipy2AcGL',
+                'ext': 'mp4',
+                'description': 'md5:6a9d644bab0dc2dc06849c2505d8383d',
+                'thumbnail': r're:https://media\.nu\.nl/m/.+\.jpg',
+                'title': 'Hoe een bladvlo dit verwoestende Japanse onkruid moet vernietigen',
+                'timestamp': 1586577474,
+                'upload_date': '20200411',
+                'age_limit': 0,
+                'duration': 111.0,
+            }
+        },
     ]
 
     def report_following_redirect(self, new_url):
@@ -3871,15 +3941,10 @@ class GenericIE(InfoExtractor):
         json_ld = self._search_json_ld(webpage, video_id, default={})
         if json_ld.get('url') not in (url, None):
             self.report_detected('JSON LD')
-            if determine_ext(json_ld['url']) == 'm3u8':
-                json_ld['formats'], json_ld['subtitles'] = self._extract_m3u8_formats_and_subtitles(
-                    json_ld['url'], video_id, 'mp4')
-                json_ld.pop('url')
-                self._sort_formats(json_ld['formats'])
-            else:
-                json_ld['_type'] = 'url_transparent'
-                json_ld['url'] = smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True})
-            return merge_dicts(json_ld, info_dict)
+            return merge_dicts({
+                '_type': 'url_transparent',
+                'url': smuggle_url(json_ld['url'], {'force_videoid': video_id, 'to_generic': True}),
+            }, json_ld, info_dict)
 
         def check_video(vurl):
             if YoutubeIE.suitable(vurl):

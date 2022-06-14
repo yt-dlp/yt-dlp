@@ -313,6 +313,10 @@ def create_parser():
         action='store_true', dest='update_self',
         help='Update this program to latest version')
     general.add_option(
+        '--no-update',
+        action='store_false', dest='update_self',
+        help='Do not update (default)')
+    general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
         help='Ignore download and postprocessing errors. The download will be considered successful even if the postprocessing fails')

@@ -103,7 +103,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **New and fixed extractors**: Many new extractors have been added and a lot of existing ones have been fixed. See the [changelog](Changelog.md) or the [list of supported sites](supportedsites.md)
 
-* **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN
+* **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN etc.
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -325,6 +325,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     -h, --help                      Print this help text and exit
     --version                       Print program version and exit
     -U, --update                    Update this program to latest version
+    --no-update                     Do not update (default)
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -337,8 +338,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --list-extractors               List all supported extractors and exit
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
-    --force-generic-extractor       Force extraction to use the generic
-                                    extractor
+    --force-generic-extractor       Force extraction to use the generic extractor
     --default-search PREFIX         Use this prefix for unqualified URLs. Eg:
                                     "gvsearch2:python" downloads two videos from
                                     google videos for the search term "python".
@@ -397,8 +397,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     aliases; so be carefull to avoid defining
                                     recursive options. As a safety measure, each
                                     alias may be triggered a maximum of 100
-                                    times. This option can be used multiple
-                                    times
+                                    times. This option can be used multiple times
 
 ## Network Options:
     --proxy URL                     Use the specified HTTP/HTTPS/SOCKS proxy. To
@@ -425,8 +424,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     explicitly provided two-letter ISO 3166-2
                                     country code
     --geo-bypass-ip-block IP_BLOCK  Force bypass geographic restriction with
-                                    explicitly provided IP block in CIDR
-                                    notation
+                                    explicitly provided IP block in CIDR notation
 
 ## Video Selection:
     --playlist-start NUMBER         Playlist video to start at (default is 1)
@@ -636,8 +634,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     modification time (default)
     --no-mtime                      Do not use the Last-modified header to set
                                     the file modification time
-    --write-description             Write video description to a .description
-                                    file
+    --write-description             Write video description to a .description file
     --no-write-description          Do not write video description (default)
     --write-info-json               Write video metadata to a .info.json file
                                     (this may contain personal information)
@@ -659,8 +656,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     extraction is known to be quick (Alias:
                                     --no-get-comments)
     --load-info-json FILE           JSON file containing the video information
-                                    (created with the "--write-info-json"
-                                    option)
+                                    (created with the "--write-info-json" option)
     --cookies FILE                  Netscape formatted file to read cookies from
                                     and dump cookie jar in
     --no-cookies                    Do not read/dump cookies from/to file
@@ -676,8 +672,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     for decrypting Chromium cookies on Linux can
                                     be (optionally) specified after the browser
                                     name separated by a "+". Currently supported
-                                    keyrings are: basictext, gnomekeyring,
-                                    kwallet
+                                    keyrings are: basictext, gnomekeyring, kwallet
     --no-cookies-from-browser       Do not load cookies from browser (default)
     --cache-dir DIR                 Location in the filesystem where youtube-dl
                                     can store some downloaded information (such
@@ -689,8 +684,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 ## Thumbnail Options:
     --write-thumbnail               Write thumbnail image to disk
-    --no-write-thumbnail            Do not write thumbnail image to disk
-                                    (default)
+    --no-write-thumbnail            Do not write thumbnail image to disk (default)
     --write-all-thumbnails          Write all thumbnail image formats to disk
     --list-thumbnails               List available thumbnails of each video.
                                     Simulate unless --no-simulate is used
@@ -976,8 +970,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     otherwise), force (try fixing even if file
                                     already exists)
     --ffmpeg-location PATH          Location of the ffmpeg binary; either the
-                                    path to the binary or its containing
-                                    directory
+                                    path to the binary or its containing directory
     --exec [WHEN:]CMD               Execute a command, optionally prefixed with
                                     when to execute it (after_move if
                                     unspecified), separated by a ":". Supported
@@ -1004,8 +997,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     be used with "--paths" and "--output" to set
                                     the output filename for the split files. See
                                     "OUTPUT TEMPLATE" for details
-    --no-split-chapters             Do not split video based on chapters
-                                    (default)
+    --no-split-chapters             Do not split video based on chapters (default)
     --remove-chapters REGEX         Remove chapters whose title matches the
                                     given regular expression. The syntax is the
                                     same as --download-sections. This option can
@@ -1036,8 +1028,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (after downloading and processing all
                                     formats of a video), or "playlist" (at end
                                     of playlist). This option can be used
-                                    multiple times to add different
-                                    postprocessors
+                                    multiple times to add different postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1710,12 +1701,16 @@ The following extractors use this feature:
 
 #### youtube
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and auto-translated subtitles respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (Eg: `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but tv_embedded and creator variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
+* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (Eg: `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
+* `innertube_host`: Innertube API host to use for all API requests 
+  * e.g. `studio.youtube.com`, `youtubei.googleapis.com`
+  * Note: Cookies exported from `www.youtube.com` will not work with hosts other than `*.youtube.com`
+* `innertube_key`: Innertube API key to use for all API requests
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
