@@ -876,10 +876,6 @@ class YoutubeDL:
         self._save_cookies()
         self.http.close()
 
-    def close(self):
-        self._save_cookies()
-        self.http.close()
-
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
 

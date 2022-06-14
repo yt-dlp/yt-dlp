@@ -172,9 +172,9 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
         sslctx.load_cert_chain(certfn, None)
         self.https_httpd.socket = sslctx.wrap_socket(self.https_httpd.socket, server_side=True)
         self.https_port = http_server_port(self.https_httpd)
-        self.server_thread = threading.Thread(target=self.https_httpd.serve_forever)
-        self.server_thread.daemon = True
-        self.server_thread.start()
+        self.https_server_thread = threading.Thread(target=self.https_httpd.serve_forever)
+        self.https_server_thread.daemon = True
+        self.https_server_thread.start()
 
         # HTTP Proxy server
         self.proxy = http.server.ThreadingHTTPServer(
