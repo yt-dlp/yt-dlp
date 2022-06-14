@@ -3060,7 +3060,7 @@ class YoutubeDL:
 
                 success = True
                 merger, fd = FFmpegMergerPP(self), None
-                if info_dict.get('url'):
+                if info_dict.get('protocol') or info_dict.get('url'):
                     fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
                     if fd is not FFmpegFD and (
                             info_dict.get('section_start') or info_dict.get('section_end')):
