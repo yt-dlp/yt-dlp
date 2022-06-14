@@ -1803,7 +1803,10 @@ from .tvc import (
     TVCIE,
     TVCArticleIE,
 )
-from .tver import TVerIE
+from .tver import (
+    TVerIE,
+    TVerSeriesIE,
+)
 from .tvigle import TvigleIE
 from .tvland import TVLandIE
 from .tvn24 import TVN24IE
