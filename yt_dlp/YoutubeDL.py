@@ -3705,14 +3705,12 @@ class YoutubeDL:
 
         if source == 'source':
             try:
-                sp = Popen(
+                stdout, _, _ = Popen.run(
                     ['git', 'rev-parse', '--short', 'HEAD'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    cwd=os.path.dirname(os.path.abspath(__file__)))
-                out, err = sp.communicate_or_kill()
-                out = out.decode().strip()
-                if re.match('[0-9a-f]+', out):
-                    write_debug('Git HEAD: %s' % out)
+                    text=True, cwd=os.path.dirname(os.path.abspath(__file__)),
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if re.fullmatch('[0-9a-f]+', stdout.strip()):
+                    write_debug(f'Git HEAD: {stdout.strip()}')
             except Exception:
                 with contextlib.suppress(Exception):
                     sys.exc_clear()
