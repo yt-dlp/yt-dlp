@@ -1192,12 +1192,21 @@ class InfoExtractor:
                      contains_pattern='.+', fatal=True, default=NO_DEFAULT, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
-        return self._parse_json(
-            self._search_regex(
+        match = self._search_regex(
                 rf'{start_pattern}\s*(?P<json>{{{contains_pattern}}})\s*{end_pattern}',
                 string, name, group='json', fatal=fatal,
-                default='{}' if default is not NO_DEFAULT else NO_DEFAULT),
-            video_id, fatal=fatal, ignore_extra=True, **kwargs) or {} if default is NO_DEFAULT else default
+                default=None if default is not NO_DEFAULT else NO_DEFAULT)
+
+        if not match:
+            return {} if default is NO_DEFAULT else default
+
+        json_match = self._parse_json(match,
+            video_id, fatal=fatal, ignore_extra=True, **kwargs)
+
+        if json_match is None and default is not NO_DEFAULT:
+            return default
+
+        return json_match or {}
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
