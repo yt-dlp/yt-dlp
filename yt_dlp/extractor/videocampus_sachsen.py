@@ -6,14 +6,18 @@ from ..utils import ExtractorError
 
 
 class VideocampusSachsenIE(InfoExtractor):
-    IE_NAME = 'Vimp'
+    IE_NAME = 'ViMP'
     _INSTANCES = (
+        'bergauf.tv',
         'campus.demo.vimp.com',
         'corporate.demo.vimp.com',
         'dancehalldatabase.com',
+        'drehzahl.tv',
         'educhannel.hs-gesundheit.de',
         'emedia.ls.haw-hamburg.de',
         'globale-evolution.net',
+        'hohu.tv',
+        'htvideos.hightechhigh.org',
         'k210039.vimp.mivitec.net',
         'media.cmslegal.com',
         'media.hs-furtwangen.de',
@@ -25,6 +29,7 @@ class VideocampusSachsenIE(InfoExtractor):
         'mportal.europa-uni.de',
         'pacific.demo.vimp.com',
         'slctv.com',
+        'streaming.prairiesouth.ca',
         'tube.isbonline.cn',
         'univideo.uni-kassel.de',
         'ursula2.genetics.emory.edu',
@@ -52,11 +57,15 @@ class VideocampusSachsenIE(InfoExtractor):
         'vimp.weka-fachmedien.de',
         'webtv.univ-montp3.fr',
         'www.b-tu.de/media',
+        'www.bergauf.tv',
         'www.bigcitytv.de',
         'www.cad-videos.de',
+        'www.drehzahl.tv',
         'www.fh-bielefeld.de/medienportal',
+        'www.hohu.tv',
         'www.orvovideo.com',
         'www.rwe.tv',
+        'www.salzi.tv',
         'www.wenglor-media.com',
         'www2.univ-sba.dz',
     )
