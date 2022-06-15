@@ -3,7 +3,7 @@ from .dailymotion import DailymotionIE
 
 
 class KickerIE(InfoExtractor):
-    _VALID_URL = r'https://www.kicker.de/(?P<video_slug>[\w-]+)/video'
+    _VALID_URL = r'https?://(?:www\.)kicker\.(?:de)/(?P<video_slug>[\w-]+)/video'
     _TEST = {
         'url': 'https://www.kicker.de/pogba-dembel-co-die-top-11-der-abloesefreien-spieler-905049/video',
         'info_dict': {
