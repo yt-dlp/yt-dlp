@@ -546,7 +546,6 @@ class InstagramIE(InstagramBaseIE):
             }
         else:
             return self._login_extract(video_id)
-        
 
 
 class InstagramPlaylistBaseIE(InstagramBaseIE):
