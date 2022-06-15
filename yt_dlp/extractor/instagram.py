@@ -23,6 +23,8 @@ from ..utils import (
 )
 
 
+_ENCODING_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
 class InstagramBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'instagram'
     _IS_LOGGED_IN = False
@@ -216,13 +218,12 @@ class InstagramIOSIE(InfoExtractor):
 
     def _get_id(self, id):
         """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-        chrs = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
         media_id = int(id.split('_')[0])
         shortened_id = ''
         while media_id > 0:
             r = media_id % 64
             media_id = (media_id - r) // 64
-            shortened_id = chrs[r] + shortened_id
+            shortened_id = _ENCODING_CHARS[r] + shortened_id
         return shortened_id
 
     def _real_extract(self, url):
@@ -234,7 +235,6 @@ class InstagramIOSIE(InfoExtractor):
 
 
 class InstagramIE(InstagramBaseIE):
-    ENCODING_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
     _VALID_URL = r'(?P<url>https?://(?:www\.)?instagram\.com(?:/[^/]+)?/(?:p|tv|reel)/(?P<id>[^/?#&]+))'
     _TESTS = [{
         'url': 'https://instagram.com/p/aye83DjauH/?foo=bar#abc',
@@ -357,19 +357,21 @@ class InstagramIE(InstagramBaseIE):
         if mobj:
             return mobj.group('link')
 
-    def _get_pk(self, shortcode, alphabet=ENCODING_CHARS):
+    def _get_pk(self, shortcode):
         """Covert a shortcode to a numeric value."""
-        base = len(alphabet)
+        base = len(_ENCODING_CHARS)
         strlen = len(shortcode)
         num = 0
         idx = 0
         for char in shortcode:
             power = strlen - (idx + 1)
-            num += alphabet.index(char) * (base ** power)
+            num += _ENCODING_CHARS.index(char) * (base ** power)
             idx += 1
         return num
 
-    def _login_extract(self, video_id):
+    def _real_extract(self, url):
+        video_id, url = self._match_valid_url(url).group('id', 'url')
+        webpage, urlh = self._download_webpage_handle(url, video_id)
         media_id = self._get_pk(video_id)
         info = self._download_json(
             f'https://i.instagram.com/api/v1/media/{media_id}/info/', 
@@ -381,65 +383,13 @@ class InstagramIE(InstagramBaseIE):
                 'authority': 'www.instagram.com',
                 'referer': 'https://www.instagram.com',
                 'user-agent': ('Mozilla/5.0 (X11; Linux x86_64) '
-                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                'Chrome/103.0.0.0 Safari/537.36'),
-                'x-ig-app-id': 936619743392459,
-            }
-        )['items'][0]
-        username = traverse_obj(
-            info,
-            ('user', 'username'),
-            expected_type=str,
+                                'AppleWebKit/537.36 (KHTML, like Gecko) '
+                                'Chrome/103.0.0.0 Safari/537.36'),
+                'x-ig-app-id': '936619743392459',
+            },
+            fatal=False
         )
-        formats = [{
-            'url': x['url'],
-            'width': x['width'],
-            'height': x['height'],
-        } for x in info['video_versions']]
-        dash = info.get('video_dash_manifest')
-        if dash:
-            formats.extend(
-                self._parse_mpd_formats(self._parse_xml(dash, video_id),
-                                        mpd_id='dash'))
-        self._sort_formats(formats)
-        return {
-            'id':
-            video_id,
-            'formats':
-            formats,
-            'title':
-            f'Video by {username}',
-            'description':
-            traverse_obj(info, ('caption', 'text'), expected_type=str),
-            'duration':
-            float_or_none(info.get('video_duration')),
-            'timestamp':
-            traverse_obj(info, 'taken_at', expected_type=int_or_none),
-            'uploader_id':
-            str(traverse_obj(info, ('user', 'pk'), expected_type=int)),
-            'uploader':
-            traverse_obj(info, ('user', 'full_name'), expected_type=str),
-            'channel':
-            username,
-            'like_count':
-            traverse_obj(info, 'like_count', expected_type=int_or_none),
-            'comment_count':
-            traverse_obj(info, 'comment_count', expected_type=int_or_none),
-            'thumbnails': [{
-                'url': thumbnail['url'],
-                'width': thumbnail.get('width'),
-                'height': thumbnail.get('height'),
-            } for thumbnail in info.get('image_versions2', {}).get(
-                'candidates', []) if thumbnail.get('url')],
-            'http_headers': {
-                'Referer': 'https://www.instagram.com/',
-            }
-        }
-
-    def _real_extract(self, url):
-        video_id, url = self._match_valid_url(url).group('id', 'url')
-        webpage, urlh = self._download_webpage_handle(url, video_id)
-        if not self._cookies_passed:
+        if not info:
             if 'www.instagram.com/accounts/login' in urlh.geturl():
                 self.report_warning(
                     'Main webpage is locked behind the login page. '
@@ -472,7 +422,7 @@ class InstagramIE(InstagramBaseIE):
                     return self._extract_product(product_item)
                 media = traverse_obj(additional_data, ('graphql', 'shortcode_media'), 'shortcode_media', expected_type=dict) or {}
 
-            if not media and 'www.instagram.com/accounts/login' in urlh.geturl():
+            if not media:
                 self.raise_login_required('You need to log in to access this content')
 
             username = traverse_obj(media, ('owner', 'username')) or self._search_regex(
@@ -546,7 +496,8 @@ class InstagramIE(InstagramBaseIE):
                 }
             }
         else:
-            return self._login_extract(video_id)
+            info = info['items'][0]
+            return self._extract_product(info)
 
 
 class InstagramPlaylistBaseIE(InstagramBaseIE):
