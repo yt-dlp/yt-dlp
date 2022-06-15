@@ -1,5 +1,14 @@
+import base64
+import binascii
+import datetime
+import hashlib
+import hmac
+import json
+import os
+
 from .common import InfoExtractor
 from ..utils import (
+    ExtractorError,
     traverse_obj,
     unescapeHTML,
 )
@@ -37,7 +46,7 @@ class GoPlayIE(InfoExtractor):
 
     def _perform_login(self, username, password):
         self.report_login()
-        aws = AwsIdp(pool_id='eu-west-1_dViSsKM5Y', client_id='6s1h851s8uplco5h6mqh1jac8m')
+        aws = AwsIdp(ie=self, pool_id='eu-west-1_dViSsKM5Y', client_id='6s1h851s8uplco5h6mqh1jac8m')
         self._id_token, _ = aws.authenticate(username=username, password=password)
 
     def _real_initialize(self):
@@ -83,41 +92,28 @@ class GoPlayIE(InfoExtractor):
 
 
 # Taken from https://github.com/add-ons/plugin.video.viervijfzes/blob/master/resources/lib/viervijfzes/auth_awsidp.py
-# with some small modifications (replacement of six and requests, removal of unused function, reformatting)
-# This file is licensed as GPL-3 from https://github.com/add-ons/plugin.video.viervijfzes:
-# https://github.com/add-ons/plugin.video.viervijfzes/blob/master/LICENSE
+# Released into Public domain by https://github.com/michaelarnauts
 
-# Amazon Cognito implementation without external dependencies
-# Based on https://github.com/retrospect-addon/plugin.video.retrospect/blob/master/channels/channel.be/vier/awsidp.py
-
-import base64
-import binascii
-import datetime
-import hashlib
-import hmac
-import json
-import os
-
-from ..compat import compat_basestring, compat_urllib_request
-
-
-class InvalidLoginException(Exception):
+class InvalidLoginException(ExtractorError):
     """ The login credentials are invalid """
 
 
-class AuthenticationException(Exception):
+class AuthenticationException(ExtractorError):
     """ Something went wrong while logging in """
 
 
 class AwsIdp:
     """ AWS Identity Provider """
 
-    def __init__(self, pool_id, client_id):
+    def __init__(self, ie, pool_id, client_id):
         """
+        :param InfoExtrator ie: The extractor that instantiated this class.
         :param str pool_id:     The AWS user pool to connect to (format: <region>_<poolid>).
                                 E.g.: eu-west-1_aLkOfYN3T
         :param str client_id:   The client application ID (the ID of the application connecting)
         """
+
+        self.ie = ie
 
         self.pool_id = pool_id
         if "_" not in self.pool_id:
@@ -166,9 +162,8 @@ class AwsIdp:
             "Accept-Encoding": "identity",
             "Content-Type": "application/x-amz-json-1.1"
         }
-        auth_request = compat_urllib_request.Request(url=self.url, data=auth_data, headers=auth_headers)
-        auth_response = compat_urllib_request.urlopen(auth_request).read()
-        auth_response_json = json.loads(auth_response.decode("utf-8"))
+        auth_response = self.ie._download_webpage(self.url, None, note="Authenticating Part 1", data=auth_data, headers=auth_headers)
+        auth_response_json = self.ie._parse_json(auth_response, None)
         challenge_parameters = auth_response_json.get("ChallengeParameters")
 
         challenge_name = auth_response_json.get("ChallengeName")
@@ -182,9 +177,8 @@ class AwsIdp:
             "X-Amz-Target": "AWSCognitoIdentityProviderService.RespondToAuthChallenge",
             "Content-Type": "application/x-amz-json-1.1"
         }
-        auth_request = compat_urllib_request.Request(url=self.url, data=challenge_data, headers=challenge_headers)
-        auth_response = compat_urllib_request.urlopen(auth_request).read()
-        auth_response_json = json.loads(auth_response.decode("utf-8"))
+        auth_response = self.ie._download_webpage(self.url, None, note="Authenticating Part 2", data=challenge_data, headers=challenge_headers)
+        auth_response_json = self.ie._parse_json(auth_response, None)
 
         if "message" in auth_response_json:
             raise InvalidLoginException(auth_response_json.get("message"))
@@ -361,8 +355,7 @@ class AwsIdp:
         :rtype: str
         """
 
-        # noinspection PyTypeChecker
-        if not isinstance(long_int, compat_basestring):
+        if not isinstance(long_int, str):
             hash_str = AwsIdp.__long_to_hex(long_int)
         else:
             hash_str = long_int
