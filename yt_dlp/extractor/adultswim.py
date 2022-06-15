@@ -1,12 +1,15 @@
 import json
 import math
+from tarfile import ExtractError
 import time
-from copy import deepcopy
+import functools
+import re
+import copy
 
-from ..compat import functools, re
 from .common import InfoExtractor
 from .turner import TurnerBaseIE
 from ..utils import (
+    HEADRequest,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -14,14 +17,13 @@ from ..utils import (
     parse_age_limit,
     parse_iso8601,
     strip_or_none,
-    timetuple_from_msec,
     traverse_obj,
     try_get,
 )
 from ..downloader.hls import HlsFD
 
 
-class AdultSwimVideoIE(TurnerBaseIE):
+class AdultSwimIE(TurnerBaseIE):
     IE_NAME = 'adultswim:video'
     _VALID_URL = r'https?://(?:www\.)?adultswim\.com/videos/(?P<show_path>[^/?#]+)(?:/(?P<episode_path>[^/?#]+))?'
 
@@ -218,40 +220,22 @@ class AdultSwimStreamIE(InfoExtractor):
             'title': 'Rick and Morty',
             'description': 'An infinite loop of Rick and Morty. You\'re welcome. (Marathon available in select regions)',
         },
-        'params': {
-            # m3u8 download
-            'skip_download': True,
-        },
         'playlist_mincount': 40,
     }]
 
-    def _live_hls_fragments(self, episode_start_time, episode_duration, video_id, hls_url, content):
+    def _live_hls_fragments(self, episode_start_time, episode_duration, video_id, hls_url, hls_content):
         FRAGMENT_DURATION = 10.010
 
         sleep_until = episode_start_time + min(60, episode_duration)
         if time.time() - sleep_until < 0:
-            format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
-            last_msg = ''
-
-            def progress(msg):
-                nonlocal last_msg
-                self.to_screen(msg + ' ' * (len(last_msg) - len(msg)) + '\r', skip_eol=True)
-                last_msg = msg
-
-            while time.time() <= sleep_until:
-                progress('Waiting for next episode to air (%s) - Press Ctrl+C to cancel' % format_dur(sleep_until - time.time()))
-                time.sleep(1)
-            progress('')
-
-            content = self._download_webpage(hls_url, video_id, note='Downloading m3u8 manifest')
+            raise ExtractError('Episode has not aired yet')
         elif time.time() - sleep_until > episode_duration:
             self.report_warning('Skipping episode as new episode has already aired')
             return []
 
-        fragments, error_msg = HlsFD._parse_m3u8(content, {'url': hls_url})
+        fragments, error_msg = HlsFD._parse_m3u8(hls_content, {'url': hls_url})
         if not fragments:
-            self.report_warning(error_msg)
-            return []
+            raise ExtractError(error_msg)
 
         for f in reversed(fragments):
             match = re.search(r'^https?:\/\/adultswim-vodlive.cdn.turner.com\/.*\/seg[^_]+_(?P<index>\d+)\.ts$', f['url'])
@@ -259,100 +243,78 @@ class AdultSwimStreamIE(InfoExtractor):
                 fragment_template = f
                 break
         else:
-            self.report_warning('Could not find any valid stream segments')
-            return []
+            raise ExtractError('Could not find any valid stream segments')
 
         digit_str_index, digit_str_length = match.span('index')[0], len(match.group('index'))
         fragment_url_template = fragment_template['url'][:digit_str_index] + '%s' + fragment_template['url'][digit_str_index + digit_str_length:]
         fragment_count = math.ceil(episode_duration / FRAGMENT_DURATION)
-        for i in reversed(range(fragment_count)):
-            try:
-                self._downloader.urlopen(fragment_url_template % '{0:0{width}}'.format(i, width=digit_str_length))
-                break
-            except Exception:
-                fragment_count -= 1
 
-        return [{'frag_index': i,
-                 'url': fragment_url_template % '{0:0{width}}'.format(i, width=digit_str_length),
-                 'decrypt_info': fragment_template['decrypt_info'],
-                 'byte_range': fragment_template['byte_range'],
-                 'media_sequence': fragment_template['media_sequence']} for i in range(fragment_count)]
+        for i in reversed(range(fragment_count)):
+            if self._request_webpage(HEADRequest(fragment_url_template % f'{i:0{digit_str_length}}'),
+                                     video_id, note=f'Determining availability of segments (Segment Length: {fragment_count})',
+                                     errnote=False):
+                break
+            fragment_count = i
+
+        for i in reversed(range(fragment_count)):
+            yield {'frag_index': i,
+                   'url': fragment_url_template % f'{i:0{digit_str_length}}',
+                   'decrypt_info': fragment_template['decrypt_info'],
+                   'byte_range': fragment_template['byte_range'],
+                   'media_sequence': fragment_template['media_sequence']}
 
     def _real_extract(self, url):
         stream_id = self._match_id(url)
 
         webpage = self._download_webpage(url, stream_id)
-        stream_data_json = self._search_regex(r'<script[^>]+id=["\']__NEXT_DATA__["\'][^>]*>(?P<json>[^<]+)', webpage, 'stream data json', group='json')
+        stream_data = self._search_nextjs_data(webpage, stream_id)
 
-        remote_ts_json = self._download_json('https://www.adultswim.com/api/schedule/live/', stream_id, note=False, fatal=False)
-        timestamp = remote_ts_json.get("timestamp") or time.time() * 1e3
+        remote_ts_json = self._download_json('https://www.adultswim.com/api/schedule/live/',
+                                             stream_id, note='Resolving remote timestamp', fatal=False)
 
-        if stream_data_json:
+        timestamp = remote_ts_json.get('timestamp', time.time() * 1000) / 1000
 
-            stream_data = self._parse_json(stream_data_json, stream_id, fatal=False)
+        def get_episodes_data(root, stream, timestamp):
+            first = False
+            for e in traverse_obj(root, (
+                    'marathon', (stream.get('vod_to_live_id'), ...)), get_all=False) or []:
+                if first is False and e['startTime'] / 1000 > timestamp:
+                    continue
+                first = e['episodeName']
+                if e['episodeName'] != first:
+                    break
+                yield e
 
-            if stream_data:
-                if not stream_id:
-                    stream_id = traverse_obj(stream_data, ('query', 'stream'))
-
-                root = traverse_obj(stream_data, ('props', '__REDUX_STATE__')) or {}
-                stream = {}
-
-                for s in root.get('streams') or []:
-                    if s.get('id') == stream_id:
-                        stream = s
-                        break
-
-                series = stream.get('title')
-                description = stream.get('description')
-
-                vod_to_live_id = stream.get('vod_to_live_id')
-                episodes_data = traverse_obj(root, ('marathon', vod_to_live_id))
-
-                if not episodes_data:
-                    marathon = root.get('marathon')
-                    if type(marathon) == dict and len(marathon.values()) > 0:
-                        episodes_data = list(marathon.values())[0]
-
-                for i, e in enumerate(episodes_data):
-                    start_time = e.get('startTime')
-                    if start_time <= timestamp:
-                        episodes_data = episodes_data[i:]
-                        break
-
-                for i in range(1, len(episodes_data)):
-                    if episodes_data[0].get('episodeName') == episodes_data[i].get('episodeName'):
-                        episodes_data = episodes_data[:i]
-                        break
+        root = traverse_obj(stream_data, ('props', '__REDUX_STATE__')) or {}
+        stream = traverse_obj(root.get('streams'), (lambda _, v: v['id'] == stream_id), get_all=False) or {}
+        episodes = list(get_episodes_data(root, stream, timestamp))
 
         formats = self._extract_m3u8_formats(
-            'https://adultswim-vodlive.cdn.turner.com/live/%s/stream_de.m3u8?hdnts=' % stream_id, stream_id)
+            f'https://adultswim-vodlive.cdn.turner.com/live/{stream_id}/stream_de.m3u8?hdnts=', stream_id)
         self._sort_formats(formats)
 
         for f in formats:
             f['protocol'] = 'm3u8_native_generator'
 
         def entries():
-            for episode_data in episodes_data:
-                title = episode_data.get('episodeName')
-                duration = episode_data.get('duration')
-                season_number = episode_data.get('seasonNumber')
-                episode_number = episode_data.get('episodeNumber')
-
-                _formats = deepcopy(formats)
+            for ep in episodes:
+                video_id = '%s-%s-%s' % (stream_id, ep.get('seasonNumber'), ep.get('episodeNumber'))
+                release_timestamp = ep['startTime'] / 1e3 + min(60, ep['duration'] / 2)
+                _formats = copy.deepcopy(formats)
                 for f in _formats:
                     f['fragments'] = functools.partial(
-                        self._live_hls_fragments, episode_data.get('startTime') / 1e3, duration, f.get('id'), f.get('url'))
+                        self._live_hls_fragments, ep['startTime'] / 1e3, ep['duration'], video_id, f['url'])
 
                 yield {
-                    'id': f'{season_number}-{episode_number}',
-                    'title': f'{series} S{season_number} EP{episode_number} {title}',
-                    'duration': duration,
-                    'series': series,
-                    'episode': title,
-                    'season_number': season_number,
-                    'episode_number': episode_number,
+                    'id': video_id,
+                    'title': '%s S%s EP%s %s' % (stream.get('title'), ep.get('seasonNumber'), ep.get('episodeNumber'), ep.get('episodeName')),
+                    'duration': ep.get('duration'),
+                    'series': stream.get('title'),
+                    'episode': ep.get('episodeName'),
+                    'season_number': ep.get('seasonNumber'),
+                    'episode_number': ep.get('episodeNumber'),
                     'formats': _formats,
+                    'release_timestamp': release_timestamp,
                 }
 
-        return self.playlist_result(entries(), stream_id, series, description, multi_video=True)
+        return self.playlist_result(list(entries()), stream_id, stream.get('title'), stream.get('description'), multi_video=True)

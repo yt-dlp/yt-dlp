@@ -32,7 +32,7 @@ from .adobetv import (
     AdobeTVVideoIE,
 )
 from .adultswim import (
-    AdultSwimVideoIE,
+    AdultSwimIE,
     AdultSwimStreamIE,
 )
 from .aenetworks import (
