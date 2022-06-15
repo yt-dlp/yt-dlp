@@ -839,8 +839,8 @@ class FFmpegMergerPP(FFmpegPostProcessor):
 
 
 class FFmpegFixupPostProcessor(FFmpegPostProcessor):
-    def _fixup(self, msg, filename, options):
-        temp_filename = prepend_extension(filename, 'temp')
+    def _fixup(self, msg, filename, ext, options):
+        temp_filename = prepend_extension(filename, 'temp') + '.' + ext
 
         self.to_screen(f'{msg} of "{filename}"')
         self.run_ffmpeg(filename, temp_filename, options)
@@ -853,7 +853,7 @@ class FFmpegFixupStretchedPP(FFmpegFixupPostProcessor):
     def run(self, info):
         stretched_ratio = info.get('stretched_ratio')
         if stretched_ratio not in (None, 1):
-            self._fixup('Fixing aspect ratio', info['filepath'], [
+            self._fixup('Fixing aspect ratio', info['filepath'], info['ext'], [
                 *self.stream_copy_opts(), '-aspect', '%f' % stretched_ratio])
         return [], info
 
@@ -862,7 +862,8 @@ class FFmpegFixupM4aPP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False, video=False)
     def run(self, info):
         if info.get('container') == 'm4a_dash':
-            self._fixup('Correcting container', info['filepath'], [*self.stream_copy_opts(), '-f', 'mp4'])
+            self._fixup('Correcting container', info['filepath'], info['ext'], [
+                *self.stream_copy_opts(), '-f', 'mp4'])
         return [], info
 
 
@@ -881,7 +882,7 @@ class FFmpegFixupM3u8PP(FFmpegFixupPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         if all(self._needs_fixup(info)):
-            self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], [
+            self._fixup('Fixing MPEG-TS in MP4 container', info['filepath'], info['ext'], [
                 *self.stream_copy_opts(), '-f', 'mp4', '-bsf:a', 'aac_adtstoasc'])
         return [], info
 
@@ -903,7 +904,8 @@ class FFmpegFixupTimestampPP(FFmpegFixupPostProcessor):
             opts = ['-vf', 'setpts=PTS-STARTPTS']
         else:
             opts = ['-c', 'copy', '-bsf', 'setts=ts=TS-STARTPTS']
-        self._fixup('Fixing frame timestamp', info['filepath'], opts + [*self.stream_copy_opts(False), '-ss', self.trim])
+        self._fixup('Fixing frame timestamp', info['filepath'], info['ext'], opts + [
+            *self.stream_copy_opts(False), '-ss', self.trim])
         return [], info
 
 
@@ -912,7 +914,7 @@ class FFmpegCopyStreamPP(FFmpegFixupPostProcessor):
 
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
-        self._fixup(self.MESSAGE, info['filepath'], self.stream_copy_opts())
+        self._fixup(self.MESSAGE, info['filepath'], info['ext'], self.stream_copy_opts())
         return [], info
 
 
