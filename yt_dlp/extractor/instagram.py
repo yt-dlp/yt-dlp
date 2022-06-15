@@ -372,7 +372,7 @@ class InstagramIE(InstagramBaseIE):
     def _login_extract(self, video_id):
         media_id = self._get_pk(video_id)
         info = self._download_json(
-            (f'https://i.instagram.com/api/v1/media/{media_id}/info/'), 
+            f'https://i.instagram.com/api/v1/media/{media_id}/info/', 
             video_id, 
             headers={
                 'accept': ('text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,'
@@ -384,7 +384,8 @@ class InstagramIE(InstagramBaseIE):
                 'AppleWebKit/537.36 (KHTML, like Gecko) '
                 'Chrome/103.0.0.0 Safari/537.36'),
                 'x-ig-app-id': 936619743392459,
-            })['items'][0]
+            }
+        )['items'][0]
         username = traverse_obj(
             info,
             ('user', 'username'),
