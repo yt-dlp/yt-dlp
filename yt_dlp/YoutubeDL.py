@@ -38,8 +38,6 @@ from .compat import (
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
-from .extractor import _LAZY_LOADER
-from .extractor import _PLUGIN_CLASSES as plugin_extractors
 from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
@@ -3658,6 +3656,10 @@ class YoutubeDL:
     def print_debug_header(self):
         if not self.params.get('verbose'):
             return
+
+        # These imports can be slow. So import them only as needed
+        from .extractor.extractors import _LAZY_LOADER
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_extractors
 
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))

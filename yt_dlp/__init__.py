@@ -12,7 +12,7 @@ import sys
 from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
-from .extractor import GenericIE, list_extractor_classes
+from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
@@ -79,6 +79,10 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
+    # Importing GenericIE is currently slow since it imports other extractors
+    # TODO: Move this back to module level after generalization of embed detection
+    from .extractor.generic import GenericIE
+
     out = ''
     if opts.list_extractors:
         urls = dict.fromkeys(urls, False)
