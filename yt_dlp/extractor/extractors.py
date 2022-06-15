@@ -354,6 +354,7 @@ from .dailymotion import (
     DailymotionPlaylistIE,
     DailymotionUserIE,
 )
+from .dailywire import DailyWireIE
 from .damtomo import (
     DamtomoRecordIE,
     DamtomoVideoIE,
