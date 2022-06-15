@@ -642,7 +642,7 @@ class FFmpegEmbedSubtitlePP(FFmpegPostProcessor):
                 opts.extend(['-metadata:s:s:%d' % i, 'handler_name=%s' % name,
                              '-metadata:s:s:%d' % i, 'title=%s' % name])
 
-        temp_filename = prepend_extension(filename, 'temp')
+        temp_filename = prepend_extension(filename, 'temp') + '.' + ext
         self.to_screen('Embedding subtitles in "%s"' % filename)
         self.run_ffmpeg_multiple_files(input_files, temp_filename, opts)
         os.replace(temp_filename, filename)
@@ -690,7 +690,7 @@ class FFmpegMetadataPP(FFmpegPostProcessor):
             self.to_screen('There isn\'t any metadata to add')
             return [], info
 
-        temp_filename = prepend_extension(filename, 'temp')
+        temp_filename = prepend_extension(filename, 'temp') + '.' + info['ext']
         self.to_screen('Adding metadata to "%s"' % filename)
         self.run_ffmpeg_multiple_files(
             (filename, metadata_filename), temp_filename,
@@ -804,7 +804,7 @@ class FFmpegMergerPP(FFmpegPostProcessor):
     @PostProcessor._restrict_to(images=False)
     def run(self, info):
         filename = info['filepath']
-        temp_filename = prepend_extension(filename, 'temp')
+        temp_filename = prepend_extension(filename, 'temp') + '.' + info['ext']
         args = ['-c', 'copy']
         audio_streams = 0
         for (i, fmt) in enumerate(info['requested_formats']):
