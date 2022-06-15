@@ -5,7 +5,7 @@ import sys
 import unittest
 
 from yt_dlp.networking import UrllibRH
-from test.test_RequestHandler import RequestHandlerTestBase, with_request_handlers
+from test.test_networking import RequestHandlerTestBase, with_request_handlers
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
