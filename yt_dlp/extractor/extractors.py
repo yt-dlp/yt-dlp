@@ -741,6 +741,7 @@ from .khanacademy import (
     KhanAcademyIE,
     KhanAcademyUnitIE,
 )
+from .kicker import KickerIE
 from .kickstarter import KickStarterIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
