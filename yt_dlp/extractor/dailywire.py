@@ -83,7 +83,7 @@ class DailyWirePodcastIE(InfoExtractor):
         episode_info = json_data['props']['pageProps']['episode']
 
         audio_id = episode_info.get('audioMuxPlaybackId') or episode_info.get('VUsAipTrBVSgzw73SpC2DAJD401TYYwEp')
-        
+
         return {
             'url': f'https://stream.media.dailywire.com/{audio_id}/audio.m4a',
             'id': episode_info['id'],
