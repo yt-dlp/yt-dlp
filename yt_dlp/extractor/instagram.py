@@ -25,6 +25,7 @@ from ..utils import (
 
 _ENCODING_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
+
 class InstagramBaseIE(InfoExtractor):
     _NETRC_MACHINE = 'instagram'
     _IS_LOGGED_IN = False
@@ -359,6 +360,7 @@ class InstagramIE(InstagramBaseIE):
 
     def _get_pk(self, shortcode):
         """Covert a shortcode to a numeric value."""
+        shortcode = shortcode[:11]
         base = len(_ENCODING_CHARS)
         strlen = len(shortcode)
         num = 0
@@ -374,17 +376,17 @@ class InstagramIE(InstagramBaseIE):
         webpage, urlh = self._download_webpage_handle(url, video_id)
         media_id = self._get_pk(video_id)
         info = self._download_json(
-            f'https://i.instagram.com/api/v1/media/{media_id}/info/', 
-            video_id, 
+            f'https://i.instagram.com/api/v1/media/{media_id}/info/',
+            video_id,
             headers={
                 'accept': ('text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,'
-                            'image/avif,image/webp,image/apng,*/*;q=0.8,'
-                            'application/signed-exchange;v=b3;q=0.9'),
+                           'image/avif,image/webp,image/apng,*/*;q=0.8,'
+                           'application/signed-exchange;v=b3;q=0.9'),
                 'authority': 'www.instagram.com',
                 'referer': 'https://www.instagram.com',
                 'user-agent': ('Mozilla/5.0 (X11; Linux x86_64) '
-                                'AppleWebKit/537.36 (KHTML, like Gecko) '
-                                'Chrome/103.0.0.0 Safari/537.36'),
+                               'AppleWebKit/537.36 (KHTML, like Gecko) '
+                               'Chrome/103.0.0.0 Safari/537.36'),
                 'x-ig-app-id': '936619743392459',
             },
             fatal=False
