@@ -3,7 +3,7 @@ from ..utils import float_or_none
 
 
 class DailyWireIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?:episode|video)/(?P<episode_name>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?:episode|videos)/(?P<episode_name>[\w-]+)'
     _TESTS = [{
         # need no-check-certificate
         'url': 'https://www.dailywire.com/episode/1-fauci',
@@ -31,7 +31,7 @@ class DailyWireIE(InfoExtractor):
 
         formats, subtitle = [], {}
 
-        for segment in episode_info['segments']:
+        for segment in episode_info.get('segments') or episode_info.get('clips'):
             subs = {}
             if segment.get('audio') in ('Access Denied', None) and segment.get('video') in ('Access Denied', None):
                 continue
