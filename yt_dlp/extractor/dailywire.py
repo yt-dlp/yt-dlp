@@ -1,11 +1,32 @@
 from .common import InfoExtractor
-from ..utils import float_or_none
+from ..utils import (
+    float_or_none,
+    traverse_obj,
+)
 
 
-class DailyWireIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?:episode|videos)/(?P<episode_name>[\w-]+)'
-    _TESTS = [{
+class DailyWireBaseIE(InfoExtractor):
+    _JSON_PATH = {
+        'episode': ('props', 'pageProps', 'episodeData', 'episode'),
+        'videos': ('props', 'pageProps', 'episodeData', 'episode'),
+        'podcasts': ('props', 'pageProps', 'episode'),
+    }
+
+    def _get_json(self, url, group):
         # need no-check-certificate
+        sites_type, slug = self._match_valid_url(url).group('sites_type', group)
+        webpage = self._download_webpage(url, slug)
+
+        json_data = self._search_nextjs_data(webpage, slug)
+        episode_info = traverse_obj(
+            json_data, self._JSON_PATH[sites_type])
+
+        return slug, episode_info
+
+
+class DailyWireIE(DailyWireBaseIE):
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>episode|videos)/(?P<episode_name>[\w-]+)'
+    _TESTS = [{
         'url': 'https://www.dailywire.com/episode/1-fauci',
         'info_dict': {
             'id': 'ckzsl50xwqpy508502drqpb12',
@@ -13,7 +34,6 @@ class DailyWireIE(InfoExtractor):
             'title': '1. Fauci',
         }
     }, {
-        # need no-check-certificate
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
         'info_dict': {
             'id': 'cl355p7u74t900894oxp1bnae',
@@ -23,14 +43,9 @@ class DailyWireIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        slug = self._match_valid_url(url).group('episode_name')
-        webpage = self._download_webpage(url, slug)
-
-        json_data = self._search_nextjs_data(webpage, slug)
-        episode_info = json_data['props']['pageProps']['episodeData']['episode']
+        slug, episode_info = self._get_json(url, 'episode_name')
 
         formats, subtitle = [], {}
-
         for segment in episode_info.get('segments') or episode_info.get('clips'):
             subs = {}
             if segment.get('audio') in ('Access Denied', None) and segment.get('video') in ('Access Denied', None):
@@ -62,8 +77,8 @@ class DailyWireIE(InfoExtractor):
         }
 
 
-class DailyWirePodcastIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?:podcasts)/(?P<podcaster>[\w-]+/(?P<slug>[\w-]+))'
+class DailyWirePodcastIE(DailyWireBaseIE):
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?P<sites_type>podcasts)/(?P<podcaster>[\w-]+/(?P<slug>[\w-]+))'
     _TESTS = [{
         'url': 'https://www.dailywire.com/podcasts/morning-wire/get-ready-for-recession-6-15-22',
         'info_dict': {
@@ -76,14 +91,9 @@ class DailyWirePodcastIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        slug = self._match_valid_url(url).group('slug')
-        webpage = self._download_webpage(url, slug)
-
-        json_data = self._search_nextjs_data(webpage, slug)
-        episode_info = json_data['props']['pageProps']['episode']
+        slug, episode_info = self._get_json(url, 'slug')
 
         audio_id = episode_info.get('audioMuxPlaybackId') or episode_info.get('VUsAipTrBVSgzw73SpC2DAJD401TYYwEp')
-
         return {
             'url': f'https://stream.media.dailywire.com/{audio_id}/audio.m4a',
             'id': episode_info['id'],
