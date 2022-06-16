@@ -46,6 +46,10 @@ class DailyWireIE(DailyWireBaseIE):
             'id': 'cl0iejfq5ktmw0a1478mc0bqj',
             'ext': 'mp4',
             'title': 'The Hyperions',
+            'description': 'md5:1d0ba7ba483480ab5ba4664ab22ba0a9',
+            'duration': 5461.373544,
+            'thumbnail': 'https://image.media.dailywire.com/zdt01rG8Qw5J02dTWUoBnl5yuRuaLMv004w/thumbnail.png',
+            
         }
     }]
 
@@ -76,7 +80,7 @@ class DailyWireIE(DailyWireBaseIE):
             'formats': formats,
             'subtitles': subtitle,
             'description': episode_info.get('description'),
-            'thumbnail': episode_info.get('image'),
+            'thumbnail': episode_info.get('thumbnail') or episode_info.get('image'),
             'duration': float_or_none(episode_info.get('duration')),
             'is_live': episode_info.get('isLive'),
             'creator': f'{episode_info.get("first_name")} {episode_info.get("last_name")}'
