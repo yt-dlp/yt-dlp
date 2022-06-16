@@ -3,7 +3,7 @@ from ..utils import float_or_none
 
 
 class DailyWireIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?:episode)/(?P<episode_name>[\w-]+)'
+    _VALID_URL = r'https?://(?:www\.)dailywire(?:\.com)/(?:episode|video)/(?P<episode_name>[\w-]+)'
     _TESTS = [{
         # need no-check-certificate
         'url': 'https://www.dailywire.com/episode/1-fauci',
