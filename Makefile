@@ -76,7 +76,7 @@ offlinetest: codetest
 
 # XXX: This is hard to maintain
 CODE_FOLDERS = yt_dlp yt_dlp/downloader yt_dlp/extractor yt_dlp/postprocessor yt_dlp/compat \
-               yt_dlp/extractor/anvato_token_generator
+               yt_dlp/compat/urllib yt_dlp/extractor/anvato_token_generator
 yt-dlp: yt_dlp/*.py yt_dlp/*/*.py
 	mkdir -p zip
 	for d in $(CODE_FOLDERS) ; do \
