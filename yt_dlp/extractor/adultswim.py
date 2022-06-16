@@ -256,7 +256,7 @@ class AdultSwimStreamIE(InfoExtractor):
                 break
             fragment_count = i
 
-        for i in reversed(range(fragment_count)):
+        for i in range(fragment_count):
             yield {'frag_index': i,
                    'url': fragment_url_template % f'{i:0{digit_str_length}}',
                    'decrypt_info': fragment_template['decrypt_info'],
@@ -299,11 +299,11 @@ class AdultSwimStreamIE(InfoExtractor):
         def entries():
             for ep in episodes:
                 video_id = '%s-%s-%s' % (stream_id, ep.get('seasonNumber'), ep.get('episodeNumber'))
-                release_timestamp = ep['startTime'] / 1e3 + min(60, ep['duration'] / 2)
+                release_timestamp = ep['startTime'] / 1000 + min(60, ep['duration'] / 2)
                 _formats = copy.deepcopy(formats)
                 for f in _formats:
                     f['fragments'] = functools.partial(
-                        self._live_hls_fragments, ep['startTime'] / 1e3, ep['duration'], video_id, f['url'])
+                        self._live_hls_fragments, ep['startTime'] / 1000, ep['duration'], video_id, f['url'])
 
                 yield {
                     'id': video_id,
