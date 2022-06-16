@@ -80,14 +80,12 @@ class DailyWirePodcastIE(InfoExtractor):
         webpage = self._download_webpage(url, slug)
 
         json_data = self._search_nextjs_data(webpage, slug)
-        episode_info = json_data['props']['pageProps']['episodeData']['episode']
+        episode_info = json_data['props']['pageProps']['episode']
 
         audio_id = episode_info.get('audioMuxPlaybackId') or episode_info.get('VUsAipTrBVSgzw73SpC2DAJD401TYYwEp')
-        formats = {
-            'url': f'https://stream.media.dailywire.com/{audio_id}/audio.m4a',
-        }
-        self._sort_formats(formats)
+        
         return {
+            'url': f'https://stream.media.dailywire.com/{audio_id}/audio.m4a',
             'id': episode_info['id'],
             'title': episode_info.get('title'),
             'duration': float_or_none(episode_info.get('duration')),
