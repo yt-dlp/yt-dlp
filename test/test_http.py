@@ -8,10 +8,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import ssl
 import threading
+import urllib.request
 from test.helper import http_server_port
 
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_http_server, compat_urllib_request
+from yt_dlp.compat import compat_http_server
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -170,7 +171,7 @@ class TestProxy(unittest.TestCase):
         response = ydl.urlopen(url).read().decode()
         self.assertEqual(response, f'normal: {url}')
 
-        req = compat_urllib_request.Request(url)
+        req = urllib.request.Request(url)
         req.add_header('Ytdl-request-proxy', geo_proxy)
         response = ydl.urlopen(req).read().decode()
         self.assertEqual(response, f'geo: {url}')

@@ -36,6 +36,7 @@ import time
 import traceback
 import types
 import urllib.parse
+import urllib.request
 import xml.etree.ElementTree
 import zlib
 
@@ -61,7 +62,6 @@ from .compat import (
     compat_urllib_parse_unquote_plus,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
-    compat_urllib_request,
     compat_urlparse,
 )
 from .dependencies import brotli, certifi, websockets
@@ -762,7 +762,7 @@ def sanitized_Request(url, *args, **kwargs):
     if auth_header is not None:
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
         headers['Authorization'] = auth_header
-    return compat_urllib_request.Request(url, *args, **kwargs)
+    return urllib.request.Request(url, *args, **kwargs)
 
 
 def expand_path(s):
@@ -1260,7 +1260,7 @@ def handle_youtubedl_headers(headers):
     return filtered_headers
 
 
-class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
+class YoutubeDLHandler(urllib.request.HTTPHandler):
     """Handler for HTTP requests and responses.
 
     This class, when installed with an OpenerDirector, automatically adds
@@ -1279,7 +1279,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
     """
 
     def __init__(self, params, *args, **kwargs):
-        compat_urllib_request.HTTPHandler.__init__(self, *args, **kwargs)
+        urllib.request.HTTPHandler.__init__(self, *args, **kwargs)
         self._params = params
 
     def http_open(self, req):
@@ -1358,18 +1358,18 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
                     break
                 else:
                     raise original_ioerror
-            resp = compat_urllib_request.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
+            resp = urllib.request.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # deflate
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
-            resp = compat_urllib_request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
+            resp = urllib.request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # brotli
         if resp.headers.get('Content-encoding', '') == 'br':
-            resp = compat_urllib_request.addinfourl(
+            resp = urllib.request.addinfourl(
                 io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
@@ -1433,9 +1433,9 @@ def make_socks_conn_class(base_class, socks_proxy):
     return SocksConnection
 
 
-class YoutubeDLHTTPSHandler(compat_urllib_request.HTTPSHandler):
+class YoutubeDLHTTPSHandler(urllib.request.HTTPSHandler):
     def __init__(self, params, https_conn_class=None, *args, **kwargs):
-        compat_urllib_request.HTTPSHandler.__init__(self, *args, **kwargs)
+        urllib.request.HTTPSHandler.__init__(self, *args, **kwargs)
         self._https_conn_class = https_conn_class or compat_http_client.HTTPSConnection
         self._params = params
 
@@ -1597,18 +1597,18 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 cookie.discard = True
 
 
-class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
+class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
     def __init__(self, cookiejar=None):
-        compat_urllib_request.HTTPCookieProcessor.__init__(self, cookiejar)
+        urllib.request.HTTPCookieProcessor.__init__(self, cookiejar)
 
     def http_response(self, request, response):
-        return compat_urllib_request.HTTPCookieProcessor.http_response(self, request, response)
+        return urllib.request.HTTPCookieProcessor.http_response(self, request, response)
 
-    https_request = compat_urllib_request.HTTPCookieProcessor.http_request
+    https_request = urllib.request.HTTPCookieProcessor.http_request
     https_response = http_response
 
 
-class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
+class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
     """YoutubeDL redirect handler
 
     The code is based on HTTPRedirectHandler implementation from CPython [1].
@@ -1623,7 +1623,7 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
     3. https://github.com/ytdl-org/youtube-dl/issues/28768
     """
 
-    http_error_301 = http_error_303 = http_error_307 = http_error_308 = compat_urllib_request.HTTPRedirectHandler.http_error_302
+    http_error_301 = http_error_303 = http_error_307 = http_error_308 = urllib.request.HTTPRedirectHandler.http_error_302
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         """Return a Request or None in response to a redirect.
@@ -1665,7 +1665,7 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         if code in (301, 302) and m == 'POST':
             m = 'GET'
 
-        return compat_urllib_request.Request(
+        return urllib.request.Request(
             newurl, headers=newheaders, origin_req_host=req.origin_req_host,
             unverifiable=True, method=m)
 
@@ -2420,12 +2420,12 @@ def urljoin(base, path):
     return compat_urlparse.urljoin(base, path)
 
 
-class HEADRequest(compat_urllib_request.Request):
+class HEADRequest(urllib.request.Request):
     def get_method(self):
         return 'HEAD'
 
 
-class PUTRequest(compat_urllib_request.Request):
+class PUTRequest(urllib.request.Request):
     def get_method(self):
         return 'PUT'
 
@@ -2477,7 +2477,7 @@ def url_or_none(url):
 
 
 def request_to_url(req):
-    if isinstance(req, compat_urllib_request.Request):
+    if isinstance(req, urllib.request.Request):
         return req.get_full_url()
     else:
         return req
@@ -2886,7 +2886,7 @@ def update_Request(req, url=None, data=None, headers={}, query={}):
     elif req_get_method == 'PUT':
         req_type = PUTRequest
     else:
-        req_type = compat_urllib_request.Request
+        req_type = urllib.request.Request
     new_req = req_type(
         req_url, data=req_data, headers=req_headers,
         origin_req_host=req.origin_req_host, unverifiable=req.unverifiable)
@@ -4487,14 +4487,14 @@ class GeoUtils:
             compat_struct_pack('!L', random.randint(addr_min, addr_max))))
 
 
-class PerRequestProxyHandler(compat_urllib_request.ProxyHandler):
+class PerRequestProxyHandler(urllib.request.ProxyHandler):
     def __init__(self, proxies=None):
         # Set default handlers
         for type in ('http', 'https'):
             setattr(self, '%s_open' % type,
                     lambda r, proxy='__noproxy__', type=type, meth=self.proxy_open:
                         meth(r, proxy, type))
-        compat_urllib_request.ProxyHandler.__init__(self, proxies)
+        urllib.request.ProxyHandler.__init__(self, proxies)
 
     def proxy_open(self, req, proxy, type):
         req_proxy = req.headers.get('Ytdl-request-proxy')
@@ -4508,7 +4508,7 @@ class PerRequestProxyHandler(compat_urllib_request.ProxyHandler):
             req.add_header('Ytdl-socks-proxy', proxy)
             # yt-dlp's http/https handlers do wrapping the socket with socks
             return None
-        return compat_urllib_request.ProxyHandler.proxy_open(
+        return urllib.request.ProxyHandler.proxy_open(
             self, req, proxy, type)
 
 

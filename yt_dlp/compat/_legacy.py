@@ -49,6 +49,7 @@ compat_urllib_parse_quote_plus = urllib.parse.quote_plus
 compat_urllib_parse_unquote_to_bytes = urllib.parse.unquote_to_bytes
 compat_urllib_parse_urlunparse = urllib.parse.urlunparse
 compat_urllib_request_DataHandler = urllib.request.DataHandler
+compat_urllib_request = urllib.request
 compat_urllib_response = urllib.response
 compat_urlretrieve = urllib.request.urlretrieve
 compat_xml_parse_error = etree.ParseError

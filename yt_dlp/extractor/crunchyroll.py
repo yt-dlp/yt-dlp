@@ -1,6 +1,7 @@
 import base64
 import re
 import json
+import urllib.request
 import zlib
 
 import xml.etree.ElementTree
@@ -13,7 +14,6 @@ from ..compat import (
     compat_etree_fromstring,
     compat_str,
     compat_urllib_parse_urlencode,
-    compat_urllib_request,
     compat_urlparse,
 )
 from ..utils import (
@@ -259,7 +259,7 @@ class CrunchyrollIE(CrunchyrollBaseIE, VRVBaseIE):
     }
 
     def _download_webpage(self, url_or_request, *args, **kwargs):
-        request = (url_or_request if isinstance(url_or_request, compat_urllib_request.Request)
+        request = (url_or_request if isinstance(url_or_request, urllib.request.Request)
                    else sanitized_Request(url_or_request))
         # Accept-Language must be set explicitly to accept any language to avoid issues
         # similar to https://github.com/ytdl-org/youtube-dl/issues/6797.

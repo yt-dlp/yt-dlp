@@ -8,9 +8,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import random
 import subprocess
+import urllib.request
 from test.helper import FakeYDL, get_params, is_download_test
 
-from yt_dlp.compat import compat_str, compat_urllib_request
+from yt_dlp.compat import compat_str
 
 
 @is_download_test
@@ -51,7 +52,7 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('http://yt-dl.org/ip')
+        req = urllib.request.Request('http://yt-dl.org/ip')
         req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
         self.assertEqual(
             ydl.urlopen(req).read().decode(),
@@ -62,7 +63,7 @@ class TestMultipleSocks(unittest.TestCase):
         if params is None:
             return
         ydl = FakeYDL()
-        req = compat_urllib_request.Request('https://yt-dl.org/ip')
+        req = urllib.request.Request('https://yt-dl.org/ip')
         req.add_header('Ytdl-request-proxy', params['secondary_proxy'])
         self.assertEqual(
             ydl.urlopen(req).read().decode(),
