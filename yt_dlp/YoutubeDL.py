@@ -22,10 +22,10 @@ import time
 import tokenize
 import traceback
 import unicodedata
-import urllib.request
 from string import ascii_letters
 
 from .cache import Cache
+from .compat import urllib  # isort: split
 from .compat import (
     HAS_LEGACY as compat_has_legacy,
     compat_get_terminal_size,
@@ -33,7 +33,6 @@ from .compat import (
     compat_shlex_quote,
     compat_str,
     compat_urllib_error,
-    compat_urllib_request,
 )
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
@@ -3784,7 +3783,7 @@ class YoutubeDL:
             else:
                 proxies = {'http': opts_proxy, 'https': opts_proxy}
         else:
-            proxies = compat_urllib_request.getproxies()
+            proxies = urllib.request.getproxies()
             # Set HTTPS proxy to HTTP one if given (https://github.com/ytdl-org/youtube-dl/issues/805)
             if 'http' in proxies and 'https' not in proxies:
                 proxies['https'] = proxies['http']
@@ -3800,13 +3799,13 @@ class YoutubeDL:
         # default FileHandler and allows us to disable the file protocol, which
         # can be used for malicious purposes (see
         # https://github.com/ytdl-org/youtube-dl/issues/8227)
-        file_handler = compat_urllib_request.FileHandler()
+        file_handler = urllib.request.FileHandler()
 
         def file_open(*args, **kwargs):
             raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
         file_handler.file_open = file_open
 
-        opener = compat_urllib_request.build_opener(
+        opener = urllib.request.build_opener(
             proxy_handler, https_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler)
 
         # Delete the default user-agent header, which would otherwise apply in
