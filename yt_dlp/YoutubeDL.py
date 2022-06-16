@@ -38,8 +38,6 @@ from .compat import (
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
-from .extractor import _LAZY_LOADER
-from .extractor import _PLUGIN_CLASSES as plugin_extractors
 from .extractor import gen_extractor_classes, get_info_extractor
 from .extractor.openload import PhantomJSwrapper
 from .minicurses import format_text
@@ -3659,6 +3657,10 @@ class YoutubeDL:
         if not self.params.get('verbose'):
             return
 
+        # These imports can be slow. So import them only as needed
+        from .extractor.extractors import _LAZY_LOADER
+        from .extractor.extractors import _PLUGIN_CLASSES as plugin_extractors
+
         def get_encoding(stream):
             ret = str(getattr(stream, 'encoding', 'missing (%s)' % type(stream).__name__))
             if not supports_terminal_sequences(stream):
@@ -3703,14 +3705,12 @@ class YoutubeDL:
 
         if source == 'source':
             try:
-                sp = Popen(
+                stdout, _, _ = Popen.run(
                     ['git', 'rev-parse', '--short', 'HEAD'],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    cwd=os.path.dirname(os.path.abspath(__file__)))
-                out, err = sp.communicate_or_kill()
-                out = out.decode().strip()
-                if re.match('[0-9a-f]+', out):
-                    write_debug('Git HEAD: %s' % out)
+                    text=True, cwd=os.path.dirname(os.path.abspath(__file__)),
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                if re.fullmatch('[0-9a-f]+', stdout.strip()):
+                    write_debug(f'Git HEAD: {stdout.strip()}')
             except Exception:
                 with contextlib.suppress(Exception):
                     sys.exc_clear()

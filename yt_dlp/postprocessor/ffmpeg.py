@@ -239,14 +239,12 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeArgument('-i')]
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
             self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
-            handle = Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout_data, stderr_data = handle.communicate_or_kill()
-            expected_ret = 0 if self.probe_available else 1
-            if handle.wait() != expected_ret:
+            stdout, stderr, returncode = Popen.run(cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if returncode != (0 if self.probe_available else 1):
                 return None
         except OSError:
             return None
-        output = (stdout_data if self.probe_available else stderr_data).decode('ascii', 'ignore')
+        output = stdout if self.probe_available else stderr
         if self.probe_available:
             audio_codec = None
             for line in output.split('\n'):
@@ -280,11 +278,10 @@ class FFmpegPostProcessor(PostProcessor):
         ]
 
         cmd += opts
-        cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
-        self.write_debug('ffprobe command line: %s' % shell_quote(cmd))
-        p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdout, stderr = p.communicate()
-        return json.loads(stdout.decode('utf-8', 'replace'))
+        cmd.append(self._ffmpeg_filename_argument(path))
+        self.write_debug(f'ffprobe command line: {shell_quote(cmd)}')
+        stdout, _, _ = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        return json.loads(stdout)
 
     def get_stream_number(self, path, keys, value):
         streams = self.get_metadata_object(path)['streams']
@@ -346,16 +343,13 @@ class FFmpegPostProcessor(PostProcessor):
                 for i, (path, opts) in enumerate(path_opts) if path)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
-        p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
-        stdout, stderr = p.communicate_or_kill()
-        if p.returncode not in variadic(expected_retcodes):
-            stderr = stderr.decode('utf-8', 'replace').strip()
-            self.write_debug(stderr)
-            raise FFmpegPostProcessorError(stderr.split('\n')[-1])
+        stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        if returncode not in variadic(expected_retcodes):
+            raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
         for out_path, _ in output_path_opts:
             if out_path:
                 self.try_utime(out_path, oldest_mtime, oldest_mtime)
-        return stderr.decode('utf-8', 'replace')
+        return stderr
 
     def run_ffmpeg(self, path, out_path, opts, **kwargs):
         return self.run_ffmpeg_multiple_files([path], out_path, opts, **kwargs)

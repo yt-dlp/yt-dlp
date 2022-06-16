@@ -9,7 +9,6 @@ from ..utils import (
     ExtractorError,
     Popen,
     check_executable,
-    encodeArgument,
     get_exe_version,
     is_outdated_version,
 )
@@ -213,16 +212,14 @@ class PhantomJSwrapper:
         else:
             self.extractor.to_screen(f'{video_id}: {note2}')
 
-        p = Popen(
+        stdout, stderr, returncode = Popen.run(
             [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate_or_kill()
-        if p.returncode != 0:
-            raise ExtractorError(
-                'Executing JS failed\n:' + encodeArgument(err))
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if returncode:
+            raise ExtractorError(f'Executing JS failed\n:{stderr}')
         with open(self._TMP_FILES['html'].name, 'rb') as f:
             html = f.read().decode('utf-8')
 
         self._load_cookies()
 
-        return (html, encodeArgument(out))
+        return (html, stdout)

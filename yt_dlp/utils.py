@@ -841,16 +841,30 @@ class Popen(subprocess.Popen):
     else:
         _startupinfo = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, text=False, **kwargs):
+        if text is True:
+            kwargs['universal_newlines'] = True  # For 3.6 compatibility
+            kwargs.setdefault('encoding', 'utf-8')
+            kwargs.setdefault('errors', 'replace')
         super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
             return self.communicate(*args, **kwargs)
         except BaseException:  # Including KeyboardInterrupt
-            self.kill()
-            self.wait()
+            self.kill(timeout=None)
             raise
+
+    def kill(self, *, timeout=0):
+        super().kill()
+        if timeout != 0:
+            self.wait(timeout=timeout)
+
+    @classmethod
+    def run(cls, *args, **kwargs):
+        with cls(*args, **kwargs) as proc:
+            stdout, stderr = proc.communicate_or_kill()
+            return stdout or '', stderr or '', proc.returncode
 
 
 def get_subprocess_encoding():
@@ -2556,7 +2570,7 @@ def check_executable(exe, args=[]):
     """ Checks if the given binary is installed somewhere in PATH, and returns its name.
     args can be a list of arguments for a short output (like -version) """
     try:
-        Popen([exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate_or_kill()
+        Popen.run([exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError:
         return False
     return exe
@@ -2569,14 +2583,11 @@ def _get_exe_version_output(exe, args, *, to_screen=None):
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        out, _ = Popen(
-            [encodeArgument(exe)] + args, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate_or_kill()
+        stdout, _, _ = Popen.run([encodeArgument(exe)] + args, text=True,
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except OSError:
         return False
-    if isinstance(out, bytes):  # Python 2.x
-        out = out.decode('ascii', 'ignore')
-    return out
+    return stdout
 
 
 def detect_exe_version(output, version_re=None, unrecognized='present'):
@@ -4796,14 +4807,13 @@ def write_xattr(path, key, value):
 
     value = value.decode()
     try:
-        p = Popen(
+        _, stderr, returncode = Popen.run(
             [exe, '-w', key, value, path] if exe == 'xattr' else [exe, '-n', key, '-v', value, path],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     except OSError as e:
         raise XAttrMetadataError(e.errno, e.strerror)
-    stderr = p.communicate_or_kill()[1].decode('utf-8', 'replace')
-    if p.returncode:
-        raise XAttrMetadataError(p.returncode, stderr)
+    if returncode:
+        raise XAttrMetadataError(returncode, stderr)
 
 
 def random_birthday(year_field, month_field, day_field):
@@ -5146,10 +5156,8 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
     if get_windows_version() < (10, 0, 10586):
         return
     global WINDOWS_VT_MODE
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     try:
-        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
+        Popen.run('', shell=True)
     except Exception:
         return
 
