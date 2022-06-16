@@ -8,7 +8,7 @@ from ..utils import (
 class DailyWireBaseIE(InfoExtractor):
     _JSON_PATH = {
         'episode': ('props', 'pageProps', 'episodeData', 'episode'),
-        'videos': ('props', 'pageProps', 'episodeData', 'episode'),
+        'videos': ('props', 'pageProps', 'videoData', 'video'),
         'podcasts': ('props', 'pageProps', 'episode'),
     }
 
@@ -40,13 +40,19 @@ class DailyWireIE(DailyWireBaseIE):
             'ext': 'mp4',
             'title': 'Ep. 125 - William Barr ',
         }
+    }, {
+        'url': '"https://www.dailywire.com/videos/the-hyperions',
+        'info_dict': {
+            'id': 'cl0iejfq5ktmw0a1478mc0bqj',
+            'ext': 'mp4',
+            'title': 'The Hyperions',
+        }
     }]
 
     def _real_extract(self, url):
         slug, episode_info = self._get_json(url, 'episode_name')
-
         formats, subtitle = [], {}
-        for segment in episode_info.get('segments') or episode_info.get('clips'):
+        for segment in episode_info.get('segments') or episode_info['videoUrl']:
             subs = {}
             if segment.get('audio') in ('Access Denied', None) and segment.get('video') in ('Access Denied', None):
                 continue
@@ -66,7 +72,7 @@ class DailyWireIE(DailyWireBaseIE):
         self._sort_formats(formats)
         return {
             'id': episode_info['id'],
-            'title': episode_info.get('title'),
+            'title': episode_info.get('title') or episode_info.get('name'),
             'formats': formats,
             'subtitles': subtitle,
             'description': episode_info.get('description'),
