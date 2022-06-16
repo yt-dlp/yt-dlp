@@ -49,7 +49,7 @@ class DailyWireIE(DailyWireBaseIE):
             'description': 'md5:1d0ba7ba483480ab5ba4664ab22ba0a9',
             'duration': 5461.373544,
             'thumbnail': 'https://image.media.dailywire.com/zdt01rG8Qw5J02dTWUoBnl5yuRuaLMv004w/thumbnail.png',
-            
+
         }
     }]
 
