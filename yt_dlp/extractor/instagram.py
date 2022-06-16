@@ -373,7 +373,11 @@ class InstagramIE(InstagramBaseIE):
 
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')
-        webpage, urlh = self._download_webpage_handle(url, video_id)
+        webpageh = self._download_webpage_handle(url, video_id, fatal=False)
+        if not webpageh:
+            self.raise_no_formats('Requested content was not found')
+        else:
+            webpage, urlh = webpageh
         media_id = self._get_pk(video_id)
         info = self._download_json(
             f'https://i.instagram.com/api/v1/media/{media_id}/info/',
@@ -399,8 +403,9 @@ class InstagramIE(InstagramBaseIE):
                     'be missing)')
                 webpage = self._download_webpage(
                     f'https://www.instagram.com/p/{video_id}/embed/',
-                    video_id,
-                    note='Downloading embed webpage')
+                    video_id, note='Downloading embed webpage', fatal=False)
+                if not webpage:
+                    self.raise_login_required('Requested content was not found, the content might be private')
 
             shared_data = self._parse_json(
                 self._search_regex(
