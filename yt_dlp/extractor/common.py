@@ -1188,7 +1188,7 @@ class InfoExtractor:
             self.report_warning('unable to extract %s' % _name + bug_reports_message())
             return None
 
-    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', contains_pattern='.+', fatal=True, **kwargs):
+    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', contains_pattern='(?s:.+)', fatal=True, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
         return self._parse_json(
