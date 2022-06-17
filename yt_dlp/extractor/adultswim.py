@@ -227,11 +227,10 @@ class AdultSwimStreamIE(InfoExtractor):
         FRAGMENT_DURATION = 10.010
 
         sleep_until = episode_start_time + min(60, episode_duration)
-        if time.time() - sleep_until < 0:
+        if time.time() < sleep_until:
             raise ExtractError('Episode has not aired yet')
-        elif time.time() - sleep_until > episode_duration:
-            self.report_warning('Skipping episode as new episode has already aired')
-            return []
+        if time.time() > sleep_until + episode_duration:
+            raise ExtractError('Skipping episode as new episode has already aired')
 
         fragments, error_msg = HlsFD._parse_m3u8(hls_content, {'url': hls_url})
         if not fragments:
@@ -275,13 +274,14 @@ class AdultSwimStreamIE(InfoExtractor):
         timestamp = remote_ts_json.get('timestamp', time.time() * 1000) / 1000
 
         def get_episodes_data(root, stream, timestamp):
-            first = False
+            first_episode_name = None
             for e in traverse_obj(root, (
                     'marathon', (stream.get('vod_to_live_id'), ...)), get_all=False) or []:
-                if first is False and e['startTime'] / 1000 > timestamp:
+                if e['startTime'] / 1000 + e['duration'] < timestamp:
                     continue
-                first = e['episodeName']
-                if e['episodeName'] != first:
+                if first_episode_name is None:
+                    first_episode_name = e['episodeName']
+                elif e['episodeName'] == first_episode_name:
                     break
                 yield e
 

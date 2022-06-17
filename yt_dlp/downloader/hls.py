@@ -366,7 +366,7 @@ class HlsFD(FragmentFD):
             return self.download_and_append_fragments(ctx, fragments, info_dict)
 
     def _resolve_fragments(self, fragments):
-        fragments = fragments(self.man_content) if callable(fragments) else fragments
+        fragments = list(fragments(self.man_content)) if callable(fragments) else fragments
         return [next(iter(fragments))] if self.params.get('test') else fragments
 
     def _get_fragments(self, info_dict):
