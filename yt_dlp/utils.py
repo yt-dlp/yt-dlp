@@ -4954,7 +4954,7 @@ def write_xattr(path, key, value):
     try:
         _, stderr, returncode = Popen.run(
             [exe, '-w', key, value, path] if exe == 'xattr' else [exe, '-n', key, '-v', value, path],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     except OSError as e:
         raise XAttrMetadataError(e.errno, e.strerror)
     if returncode:
