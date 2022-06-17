@@ -20,4 +20,4 @@ if not _LAZY_LOADER:
     _ALL_CLASSES.append(GenericIE)  # noqa: F405
 _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
 _ALL_CLASSES = list(_PLUGIN_CLASSES.values()) + _ALL_CLASSES
->>>>>>> yt-dlp-master
+
