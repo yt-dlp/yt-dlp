@@ -427,16 +427,15 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     explicitly provided IP block in CIDR notation
 
 ## Video Selection:
-    --playlist-start NUMBER         Playlist video to start at (default is 1)
-    --playlist-end NUMBER           Playlist video to end at (default is last)
-    --playlist-items ITEM_SPEC      Playlist video items to download. Specify
-                                    indices of the videos in the playlist
-                                    separated by commas like: "--playlist-items
-                                    1,2,5,8" if you want to download videos
-                                    indexed 1, 2, 5, 8 in the playlist. You can
-                                    specify range: "--playlist-items
-                                    1-3,7,10-13", it will download the videos at
-                                    index 1, 2, 3, 7, 10, 11, 12 and 13
+    -I, --playlist-items ITEM_SPEC  Comma seperated playlist_index of the videos
+                                    to download. You can specify a range using
+                                    "[START]:[STOP][:STEP]". For backward
+                                    compatibility, START-STOP is also supported.
+                                    Use negative indices to count from the right
+                                    and negative STEP to download in reverse
+                                    order. Eg: "-I 1:3,7,-5::2" used on a
+                                    playlist of size 15 will download the videos
+                                    at index 1,2,3,7,11,13,15
     --min-filesize SIZE             Do not download any videos smaller than SIZE
                                     (e.g. 50k or 44.6m)
     --max-filesize SIZE             Do not download any videos larger than SIZE
@@ -540,9 +539,6 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     is disabled). May be useful for bypassing
                                     bandwidth throttling imposed by a webserver
                                     (experimental)
-    --playlist-reverse              Download playlist videos in reverse order
-    --no-playlist-reverse           Download playlist videos in default order
-                                    (default)
     --playlist-random               Download playlist videos in random order
     --xattr-set-filesize            Set file xattribute ytdl.filesize with
                                     expected file size
@@ -2000,6 +1996,10 @@ While these options are redundant, they are still expected to be used due to the
     --max-views COUNT                --match-filter "view_count <=? COUNT"
     --user-agent UA                  --add-header "User-Agent:UA"
     --referer URL                    --add-header "Referer:URL"
+    --playlist-start NUMBER          -I NUMBER:
+    --playlist-end NUMBER            -I :NUMBER
+    --playlist-reverse               -I ::-1
+    --no-playlist-reverse            Default
 
 
 #### Not recommended

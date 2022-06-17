@@ -3684,6 +3684,14 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 headers=self.generate_api_headers(ytcfg=master_ytcfg),
                 note='Downloading initial data API JSON')
 
+        info['comment_count'] = traverse_obj(initial_data, (
+            'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'itemSectionRenderer',
+            'contents', ..., 'commentsEntryPointHeaderRenderer', 'commentCount', 'simpleText'
+        ), (
+            'engagementPanels', lambda _, v: v['engagementPanelSectionListRenderer']['panelIdentifier'] == 'comment-item-section',
+            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo', 'runs', ..., 'text'
+        ), expected_type=int_or_none, get_all=False)
+
         try:  # This will error if there is no livechat
             initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
         except (KeyError, IndexError, TypeError):

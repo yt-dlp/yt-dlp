@@ -74,13 +74,13 @@ from .utils import (
     ExtractorError,
     GeoRestrictedError,
     HEADRequest,
-    InAdvancePagedList,
     ISO3166Utils,
     LazyList,
     MaxDownloadsReached,
     Namespace,
     PagedList,
     PerRequestProxyHandler,
+    PlaylistEntries,
     Popen,
     PostProcessingError,
     ReExtractInfo,
@@ -1410,7 +1410,7 @@ class YoutubeDL:
         else:
             self.report_error('no suitable InfoExtractor for URL %s' % url)
 
-    def __handle_extraction_exceptions(func):
+    def _handle_extraction_exceptions(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             while True:
@@ -1483,7 +1483,7 @@ class YoutubeDL:
                 self.to_screen('')
             raise
 
-    @__handle_extraction_exceptions
+    @_handle_extraction_exceptions
     def __extract_info(self, url, ie, download, extra_info, process):
         ie_result = ie.extract(url)
         if ie_result is None:  # Finished already (backwards compatibility; listformats and friends should be moved here)
@@ -1666,105 +1666,14 @@ class YoutubeDL:
         }
 
     def __process_playlist(self, ie_result, download):
-        # We process each entry in the playlist
-        playlist = ie_result.get('title') or ie_result.get('id')
-        self.to_screen('[download] Downloading playlist: %s' % playlist)
+        """Process each entry in the playlist"""
+        title = ie_result.get('title') or ie_result.get('id') or '<Untitled>'
+        self.to_screen(f'[download] Downloading playlist: {title}')
 
-        if 'entries' not in ie_result:
-            raise EntryNotInPlaylist('There are no entries')
-
-        MissingEntry = object()
-        incomplete_entries = bool(ie_result.get('requested_entries'))
-        if incomplete_entries:
-            def fill_missing_entries(entries, indices):
-                ret = [MissingEntry] * max(indices)
-                for i, entry in zip(indices, entries):
-                    ret[i - 1] = entry
-                return ret
-            ie_result['entries'] = fill_missing_entries(ie_result['entries'], ie_result['requested_entries'])
-
-        playlist_results = []
-
-        playliststart = self.params.get('playliststart', 1)
-        playlistend = self.params.get('playlistend')
-        # For backwards compatibility, interpret -1 as whole list
-        if playlistend == -1:
-            playlistend = None
-
-        playlistitems_str = self.params.get('playlist_items')
-        playlistitems = None
-        if playlistitems_str is not None:
-            def iter_playlistitems(format):
-                for string_segment in format.split(','):
-                    if '-' in string_segment:
-                        start, end = string_segment.split('-')
-                        for item in range(int(start), int(end) + 1):
-                            yield int(item)
-                    else:
-                        yield int(string_segment)
-            playlistitems = orderedSet(iter_playlistitems(playlistitems_str))
-
-        ie_entries = ie_result['entries']
-        if isinstance(ie_entries, list):
-            playlist_count = len(ie_entries)
-            msg = f'Collected {playlist_count} videos; downloading %d of them'
-            ie_result['playlist_count'] = ie_result.get('playlist_count') or playlist_count
-
-            def get_entry(i):
-                return ie_entries[i - 1]
-        else:
-            msg = 'Downloading %d videos'
-            if not isinstance(ie_entries, (PagedList, LazyList)):
-                ie_entries = LazyList(ie_entries)
-            elif isinstance(ie_entries, InAdvancePagedList):
-                if ie_entries._pagesize == 1:
-                    playlist_count = ie_entries._pagecount
-
-            def get_entry(i):
-                return YoutubeDL.__handle_extraction_exceptions(
-                    lambda self, i: ie_entries[i - 1]
-                )(self, i)
-
-        entries, broken = [], False
-        items = playlistitems if playlistitems is not None else itertools.count(playliststart)
-        for i in items:
-            if i == 0:
-                continue
-            if playlistitems is None and playlistend is not None and playlistend < i:
-                break
-            entry = None
-            try:
-                entry = get_entry(i)
-                if entry is MissingEntry:
-                    raise EntryNotInPlaylist()
-            except (IndexError, EntryNotInPlaylist):
-                if incomplete_entries:
-                    raise EntryNotInPlaylist(f'Entry {i} cannot be found')
-                elif not playlistitems:
-                    break
-            entries.append(entry)
-            try:
-                if entry is not None:
-                    # TODO: Add auto-generated fields
-                    self._match_entry(entry, incomplete=True, silent=True)
-            except (ExistingVideoReached, RejectedVideoReached):
-                broken = True
-                break
-        ie_result['entries'] = entries
-
-        # Save playlist_index before re-ordering
-        entries = [
-            ((playlistitems[i - 1] if playlistitems else i + playliststart - 1), entry)
-            for i, entry in enumerate(entries, 1)
-            if entry is not None]
-        n_entries = len(entries)
-
-        if not (ie_result.get('playlist_count') or broken or playlistitems or playlistend):
-            ie_result['playlist_count'] = n_entries
-
-        if not playlistitems and (playliststart != 1 or playlistend):
-            playlistitems = list(range(playliststart, playliststart + n_entries))
-        ie_result['requested_entries'] = playlistitems
+        all_entries = PlaylistEntries(self, ie_result)
+        entries = orderedSet(all_entries.get_requested_items())
+        ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*entries)) or ([], [])
+        n_entries, ie_result['playlist_count'] = len(entries), all_entries.full_count
 
         _infojson_written = False
         write_playlist_files = self.params.get('allow_playlist_files', True)
@@ -1787,28 +1696,29 @@ class YoutubeDL:
         if self.params.get('playlistrandom', False):
             random.shuffle(entries)
 
-        x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
+        self.to_screen(f'[{ie_result["extractor"]}] Playlist {title}: Downloading {n_entries} videos'
+                       f'{format_field(ie_result, "playlist_count", " of %s")}')
 
-        self.to_screen(f'[{ie_result["extractor"]}] playlist {playlist}: {msg % n_entries}')
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
-        for i, entry_tuple in enumerate(entries, 1):
-            playlist_index, entry = entry_tuple
-            if 'playlist-index' in self.params['compat_opts']:
-                playlist_index = playlistitems[i - 1] if playlistitems else i + playliststart - 1
+        for i, (playlist_index, entry) in enumerate(entries, 1):
+            # TODO: Add auto-generated fields
+            if self._match_entry(entry, incomplete=True) is not None:
+                continue
+
+            if 'playlist-index' in self.params.get('compat_opts', []):
+                playlist_index = ie_result['requested_entries'][i - 1]
             self.to_screen('[download] Downloading video %s of %s' % (
                 self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
-            # This __x_forwarded_for_ip thing is a bit ugly but requires
-            # minimal changes
-            if x_forwarded_for:
-                entry['__x_forwarded_for_ip'] = x_forwarded_for
-            extra = {
+
+            entry['__x_forwarded_for_ip'] = ie_result.get('__x_forwarded_for_ip')
+            entry_result = self.__process_iterable_entry(entry, download, {
                 'n_entries': n_entries,
-                '__last_playlist_index': max(playlistitems) if playlistitems else (playlistend or n_entries),
+                '__last_playlist_index': max(ie_result['requested_entries']),
                 'playlist_count': ie_result.get('playlist_count'),
                 'playlist_index': playlist_index,
                 'playlist_autonumber': i,
-                'playlist': playlist,
+                'playlist': title,
                 'playlist_id': ie_result.get('id'),
                 'playlist_title': ie_result.get('title'),
                 'playlist_uploader': ie_result.get('uploader'),
@@ -1818,20 +1728,17 @@ class YoutubeDL:
                 'webpage_url_basename': url_basename(ie_result['webpage_url']),
                 'webpage_url_domain': get_domain(ie_result['webpage_url']),
                 'extractor_key': ie_result['extractor_key'],
-            }
-
-            if self._match_entry(entry, incomplete=True) is not None:
-                continue
-
-            entry_result = self.__process_iterable_entry(entry, download, extra)
+            })
             if not entry_result:
                 failures += 1
             if failures >= max_failures:
                 self.report_error(
-                    'Skipping the remaining entries in playlist "%s" since %d items failed extraction' % (playlist, failures))
+                    f'Skipping the remaining entries in playlist "{title}" since {failures} items failed extraction')
                 break
-            playlist_results.append(entry_result)
-        ie_result['entries'] = playlist_results
+            entries[i - 1] = (playlist_index, entry_result)
+
+        # Update with processed data
+        ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*entries)) or ([], [])
 
         # Write the updated info to json
         if _infojson_written is True and self._write_info_json(
@@ -1840,10 +1747,10 @@ class YoutubeDL:
             return
 
         ie_result = self.run_all_pps('playlist', ie_result)
-        self.to_screen(f'[download] Finished downloading playlist: {playlist}')
+        self.to_screen(f'[download] Finished downloading playlist: {title}')
         return ie_result
 
-    @__handle_extraction_exceptions
+    @_handle_extraction_exceptions
     def __process_iterable_entry(self, entry, download, extra_info):
         return self.process_ie_result(
             entry, download=download, extra_info=extra_info)
