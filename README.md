@@ -540,6 +540,11 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     bandwidth throttling imposed by a webserver
                                     (experimental)
     --playlist-random               Download playlist videos in random order
+    --lazy-playlist                 Process entries in the playlist as they are
+                                    received. This disables n_entries,
+                                    --playlist-random and --playlist-reverse
+    --no-lazy-playlist              Process videos in the playlist only after
+                                    the entire playlist is parsed (default)
     --xattr-set-filesize            Set file xattribute ytdl.filesize with
                                     expected file size
     --hls-use-mpegts                Use the mpegts container for HLS videos;

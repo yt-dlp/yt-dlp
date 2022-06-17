@@ -242,11 +242,9 @@ class YoutubeDL:
                        and don't overwrite any file if False
                        For compatibility with youtube-dl,
                        "nooverwrites" may also be used instead
-    playliststart:     Playlist item to start at.
-    playlistend:       Playlist item to end at.
     playlist_items:    Specific indices of playlist to download.
-    playlistreverse:   Download playlist items in reverse order.
     playlistrandom:    Download playlist items in random order.
+    lazy_playlist:     Process playlist entries as they are received.
     matchtitle:        Download only matching titles.
     rejecttitle:       Reject downloads for matching titles.
     logger:            Log messages to a logging.Logger instance.
@@ -469,6 +467,12 @@ class YoutubeDL:
 
     The following options are deprecated and may be removed in the future:
 
+    playliststart:     - Use playlist_items
+                       Playlist item to start at.
+    playlistend:       - Use playlist_items
+                       Playlist item to end at.
+    playlistreverse:   - Use playlist_items
+                       Download playlist items in reverse order.
     forceurl:          - Use forceprint
                        Force printing final URL.
     forcetitle:        - Use forceprint
@@ -1671,16 +1675,26 @@ class YoutubeDL:
         self.to_screen(f'[download] Downloading playlist: {title}')
 
         all_entries = PlaylistEntries(self, ie_result)
-        entries = orderedSet(all_entries.get_requested_items())
-        ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*entries)) or ([], [])
-        n_entries, ie_result['playlist_count'] = len(entries), all_entries.full_count
+        entries = orderedSet(all_entries.get_requested_items(), lazy=True)
+
+        lazy = self.params.get('lazy_playlist')
+        if lazy:
+            resolved_entries, n_entries = [], 'N/A'
+            ie_result['requested_entries'], ie_result['entries'] = None, None
+        else:
+            entries = resolved_entries = list(entries)
+            n_entries = len(resolved_entries)
+            ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*resolved_entries)) or ([], [])
+        if not ie_result.get('playlist_count'):
+            # Better to do this after potentially exhausting entries
+            ie_result['playlist_count'] = all_entries.get_full_count()
 
         _infojson_written = False
         write_playlist_files = self.params.get('allow_playlist_files', True)
         if write_playlist_files and self.params.get('list_thumbnails'):
             self.list_thumbnails(ie_result)
         if write_playlist_files and not self.params.get('simulate'):
-            ie_copy = self._playlist_infodict(ie_result, n_entries=n_entries)
+            ie_copy = self._playlist_infodict(ie_result, n_entries=int_or_none(n_entries))
             _infojson_written = self._write_info_json(
                 'playlist', ie_result, self.prepare_filename(ie_copy, 'pl_infojson'))
             if _infojson_written is None:
@@ -1691,9 +1705,12 @@ class YoutubeDL:
             # TODO: This should be passed to ThumbnailsConvertor if necessary
             self._write_thumbnails('playlist', ie_copy, self.prepare_filename(ie_copy, 'pl_thumbnail'))
 
-        if self.params.get('playlistreverse', False):
-            entries = entries[::-1]
-        if self.params.get('playlistrandom', False):
+        if lazy:
+            if self.params.get('playlistreverse') or self.params.get('playlistrandom'):
+                self.report_warning('playlistreverse and playlistrandom are not supported with lazy_playlist', only_once=True)
+        elif self.params.get('playlistreverse'):
+            entries.reverse()
+        elif self.params.get('playlistrandom'):
             random.shuffle(entries)
 
         self.to_screen(f'[{ie_result["extractor"]}] Playlist {title}: Downloading {n_entries} videos'
@@ -1701,23 +1718,27 @@ class YoutubeDL:
 
         failures = 0
         max_failures = self.params.get('skip_playlist_after_errors') or float('inf')
-        for i, (playlist_index, entry) in enumerate(entries, 1):
+        for i, (playlist_index, entry) in enumerate(entries):
+            if lazy:
+                resolved_entries.append((playlist_index, entry))
+
             # TODO: Add auto-generated fields
             if self._match_entry(entry, incomplete=True) is not None:
                 continue
 
-            if 'playlist-index' in self.params.get('compat_opts', []):
-                playlist_index = ie_result['requested_entries'][i - 1]
             self.to_screen('[download] Downloading video %s of %s' % (
-                self._format_screen(i, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
+                self._format_screen(i + 1, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
 
             entry['__x_forwarded_for_ip'] = ie_result.get('__x_forwarded_for_ip')
+            if not lazy and 'playlist-index' in self.params.get('compat_opts', []):
+                playlist_index = ie_result['requested_entries'][i]
+
             entry_result = self.__process_iterable_entry(entry, download, {
-                'n_entries': n_entries,
-                '__last_playlist_index': max(ie_result['requested_entries']),
+                'n_entries': int_or_none(n_entries),
+                '__last_playlist_index': max(ie_result['requested_entries'] or (0, 0)),
                 'playlist_count': ie_result.get('playlist_count'),
                 'playlist_index': playlist_index,
-                'playlist_autonumber': i,
+                'playlist_autonumber': i + 1,
                 'playlist': title,
                 'playlist_id': ie_result.get('id'),
                 'playlist_title': ie_result.get('title'),
@@ -1735,10 +1756,10 @@ class YoutubeDL:
                 self.report_error(
                     f'Skipping the remaining entries in playlist "{title}" since {failures} items failed extraction')
                 break
-            entries[i - 1] = (playlist_index, entry_result)
+            resolved_entries[i] = (playlist_index, entry_result)
 
         # Update with processed data
-        ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*entries)) or ([], [])
+        ie_result['requested_entries'], ie_result['entries'] = tuple(zip(*resolved_entries)) or ([], [])
 
         # Write the updated info to json
         if _infojson_written is True and self._write_info_json(

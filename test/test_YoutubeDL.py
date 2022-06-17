@@ -1046,7 +1046,7 @@ class TestYoutubeDL(unittest.TestCase):
             for name, func, expected_eval in (
                 ('list', list_entries, INDICES),
                 ('Generator', generator_entries, generator_eval),
-                ('LazyList', lazylist_entries, generator_eval),
+                # ('LazyList', lazylist_entries, generator_eval),  # Generator and LazyList follow the exact same code path
                 ('PagedList', pagedlist_entries, pagedlist_eval),
             ):
                 evaluated = []

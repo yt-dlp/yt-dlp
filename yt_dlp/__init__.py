@@ -434,6 +434,9 @@ def validate_options(opts):
         setattr(opts, opt1, default)
 
     # Conflicting options
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--playlist-random', 'playlist_random')
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--lazy-playlist', 'lazy_playlist')
+    report_conflict('--playlist-random', 'playlist_random', '--lazy-playlist', 'lazy_playlist')
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
     report_conflict('--exec-before-download', 'exec_before_dl_cmd',
@@ -740,6 +743,7 @@ def parse_options(argv=None):
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
         'playlistrandom': opts.playlist_random,
+        'lazy_playlist': opts.lazy_playlist,
         'noplaylist': opts.noplaylist,
         'logtostderr': opts.outtmpl.get('default') == '-',
         'consoletitle': opts.consoletitle,

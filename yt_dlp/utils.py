@@ -770,13 +770,16 @@ def expand_path(s):
     return os.path.expandvars(compat_expanduser(s))
 
 
-def orderedSet(iterable):
-    """ Remove all duplicates from the input iterable """
-    res = []
-    for el in iterable:
-        if el not in res:
-            res.append(el)
-    return res
+def orderedSet(iterable, *, lazy=False):
+    """Remove all duplicates from the input iterable"""
+    def _iter():
+        seen = []  # Do not use set since the items can be unhashable
+        for x in iterable:
+            if x not in seen:
+                seen.append(x)
+                yield x
+
+    return _iter() if lazy else list(_iter())
 
 
 def _htmlentity_transform(entity_with_semicolon):
@@ -2820,7 +2823,26 @@ class PlaylistEntries:
     is_exhausted = False
 
     def __init__(self, ydl, info_dict):
-        self.ydl, self.info_dict = ydl, info_dict
+        self.ydl = ydl
+
+        # _entries must be assigned now since infodict can change during iteration
+        entries = info_dict.get('entries')
+        if entries is None:
+            raise EntryNotInPlaylist('There are no entries')
+        elif isinstance(entries, list):
+            self.is_exhausted = True
+
+        requested_entries = info_dict.get('requested_entries')
+        self.is_incomplete = bool(requested_entries)
+        if self.is_incomplete:
+            assert self.is_exhausted
+            self._entries = [self.MissingEntry] * max(requested_entries)
+            for i, entry in zip(requested_entries, entries):
+                self._entries[i - 1] = entry
+        elif isinstance(entries, (list, PagedList, LazyList)):
+            self._entries = entries
+        else:
+            self._entries = LazyList(entries)
 
     PLAYLIST_ITEMS_RE = re.compile(r'''(?x)
         (?P<start>[+-]?\d+)?
@@ -2863,36 +2885,12 @@ class PlaylistEntries:
                 except (ExistingVideoReached, RejectedVideoReached):
                     return
 
-    @property
-    def full_count(self):
-        if self.info_dict.get('playlist_count'):
-            return self.info_dict['playlist_count']
-        elif self.is_exhausted and not self.is_incomplete:
+    def get_full_count(self):
+        if self.is_exhausted and not self.is_incomplete:
             return len(self)
         elif isinstance(self._entries, InAdvancePagedList):
             if self._entries._pagesize == 1:
                 return self._entries._pagecount
-
-    @functools.cached_property
-    def _entries(self):
-        entries = self.info_dict.get('entries')
-        if entries is None:
-            raise EntryNotInPlaylist('There are no entries')
-        elif isinstance(entries, list):
-            self.is_exhausted = True
-
-        indices = self.info_dict.get('requested_entries')
-        self.is_incomplete = bool(indices)
-        if self.is_incomplete:
-            assert self.is_exhausted
-            ret = [self.MissingEntry] * max(indices)
-            for i, entry in zip(indices, entries):
-                ret[i - 1] = entry
-            return ret
-
-        if isinstance(entries, (list, PagedList, LazyList)):
-            return entries
-        return LazyList(entries)
 
     @functools.cached_property
     def _getter(self):
@@ -2937,17 +2935,12 @@ class PlaylistEntries:
             if i < 0:
                 continue
             try:
-                try:
-                    entry = self._getter(i)
-                except self.IndexError:
-                    self.is_exhausted = True
-                    if step > 0:
-                        break
-                    continue
-            except IndexError:
-                if self.is_exhausted:
+                entry = self._getter(i)
+            except self.IndexError:
+                self.is_exhausted = True
+                if step > 0:
                     break
-                raise
+                continue
             yield i + 1, entry
 
     def __len__(self):
