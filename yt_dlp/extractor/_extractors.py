@@ -354,10 +354,6 @@ from .dailymotion import (
     DailymotionPlaylistIE,
     DailymotionUserIE,
 )
-from .dailywire import (
-    DailyWireIE,
-    DailyWirePodcastIE,
-)
 from .damtomo import (
     DamtomoRecordIE,
     DamtomoVideoIE,
@@ -495,7 +491,6 @@ from .fancode import (
     FancodeVodIE,
     FancodeLiveIE
 )
-
 from .faz import FazIE
 from .fc2 import (
     FC2IE,
@@ -601,7 +596,10 @@ from .godtube import GodTubeIE
 from .gofile import GofileIE
 from .golem import GolemIE
 from .goodgame import GoodGameIE
-from .googledrive import GoogleDriveIE
+from .googledrive import (
+    GoogleDriveIE,
+    GoogleDriveFolderIE,
+)
 from .googlepodcasts import (
     GooglePodcastsIE,
     GooglePodcastsFeedIE,
