@@ -397,9 +397,8 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         if self._LOGIN_REQUIRED and not self._cookies_passed:
             self.raise_login_required('Login details are needed to download this content', method='cookies')
 
-    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*=\s*({.+})\s*;'
-    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*=\s*({.+})\s*;'
-    _YT_INITIAL_BOUNDARY_RE = r'(?:var\s+meta|</script|\n)'
+    _YT_INITIAL_DATA_RE = r'(?:window\s*\[\s*["\']ytInitialData["\']\s*\]|ytInitialData)\s*='
+    _YT_INITIAL_PLAYER_RESPONSE_RE = r'ytInitialPlayerResponse\s*='
 
     def _get_default_ytcfg(self, client='web'):
         return copy.deepcopy(INNERTUBE_CLIENTS[client])
@@ -421,6 +420,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         return self._ytcfg_get_safe(
             ytcfg, (lambda x: x['INNERTUBE_CLIENT_VERSION'],
                     lambda x: x['INNERTUBE_CONTEXT']['client']['clientVersion']), compat_str, default_client)
+
+    def _select_api_hostname(self, req_api_hostname, default_client=None):
+        return (self._configuration_arg('innertube_host', [''], ie_key=YoutubeIE.ie_key())[0]
+                or req_api_hostname or self._get_innertube_host(default_client or 'web'))
 
     def _extract_api_key(self, ytcfg=None, default_client='web'):
         return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str, default_client)
@@ -470,23 +473,16 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         real_headers.update({'content-type': 'application/json'})
         if headers:
             real_headers.update(headers)
+        api_key = (self._configuration_arg('innertube_key', [''], ie_key=YoutubeIE.ie_key(), casesense=True)[0]
+                   or api_key or self._extract_api_key(default_client=default_client))
         return self._download_json(
-            f'https://{api_hostname or self._get_innertube_host(default_client)}/youtubei/v1/{ep}',
+            f'https://{self._select_api_hostname(api_hostname, default_client)}/youtubei/v1/{ep}',
             video_id=video_id, fatal=fatal, note=note, errnote=errnote,
             data=json.dumps(data).encode('utf8'), headers=real_headers,
-            query={'key': api_key or self._extract_api_key(), 'prettyPrint': 'false'})
+            query={'key': api_key, 'prettyPrint': 'false'})
 
     def extract_yt_initial_data(self, item_id, webpage, fatal=True):
-        data = self._search_regex(
-            (fr'{self._YT_INITIAL_DATA_RE}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             self._YT_INITIAL_DATA_RE), webpage, 'yt initial data', fatal=fatal)
-        if data:
-            return self._parse_json(data, item_id, fatal=fatal)
-
-    def _extract_yt_initial_variable(self, webpage, regex, video_id, name):
-        return self._parse_json(self._search_regex(
-            (fr'{regex}\s*{self._YT_INITIAL_BOUNDARY_RE}',
-             regex), webpage, name, default='{}'), video_id, fatal=False, lenient=True)
+        return self._search_json(self._YT_INITIAL_DATA_RE, webpage, 'yt initial data', item_id, fatal=fatal)
 
     @staticmethod
     def _extract_session_index(*data):
@@ -555,7 +551,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             self, *, ytcfg=None, account_syncid=None, session_index=None,
             visitor_data=None, identity_token=None, api_hostname=None, default_client='web'):
 
-        origin = 'https://' + (api_hostname if api_hostname else self._get_innertube_host(default_client))
+        origin = 'https://' + (self._select_api_hostname(api_hostname, default_client))
         headers = {
             'X-YouTube-Client-Name': compat_str(
                 self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
@@ -2417,6 +2413,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     last_segment_url = urljoin(fragment_base_url, 'sq/%d' % idx)
                     yield {
                         'url': last_segment_url,
+                        'fragment_count': last_seq,
                     }
                 if known_idx == last_seq:
                     no_fragment_score += 5
@@ -3052,9 +3049,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_responses(self, clients, video_id, webpage, master_ytcfg):
         initial_pr = None
         if webpage:
-            initial_pr = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_PLAYER_RESPONSE_RE,
-                video_id, 'initial player response')
+            initial_pr = self._search_json(
+                self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response', video_id, fatal=False)
 
         all_clients = set(clients)
         clients = clients[::-1]
@@ -3678,9 +3674,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         initial_data = None
         if webpage:
-            initial_data = self._extract_yt_initial_variable(
-                webpage, self._YT_INITIAL_DATA_RE, video_id,
-                'yt initial data')
+            initial_data = self.extract_yt_initial_data(video_id, webpage, fatal=False)
         if not initial_data:
             query = {'videoId': video_id}
             query.update(self._get_checkok_params())
@@ -3690,13 +3684,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 headers=self.generate_api_headers(ytcfg=master_ytcfg),
                 note='Downloading initial data API JSON')
 
+        info['comment_count'] = traverse_obj(initial_data, (
+            'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'itemSectionRenderer',
+            'contents', ..., 'commentsEntryPointHeaderRenderer', 'commentCount', 'simpleText'
+        ), (
+            'engagementPanels', lambda _, v: v['engagementPanelSectionListRenderer']['panelIdentifier'] == 'comment-item-section',
+            'engagementPanelSectionListRenderer', 'header', 'engagementPanelTitleHeaderRenderer', 'contextualInfo', 'runs', ..., 'text'
+        ), expected_type=int_or_none, get_all=False)
+
         try:  # This will error if there is no livechat
             initial_data['contents']['twoColumnWatchNextResults']['conversationBar']['liveChatRenderer']['continuations'][0]['reloadContinuationData']['continuation']
         except (KeyError, IndexError, TypeError):
             pass
         else:
             info.setdefault('subtitles', {})['live_chat'] = [{
-                'url': f'https://www.youtube.com/watch?v={video_id}',  # url is needed to set cookies
+                # url is needed to set cookies
+                'url': f'https://www.youtube.com/watch?v={video_id}&bpctr=9999999999&has_verified=1',
                 'video_id': video_id,
                 'ext': 'json',
                 'protocol': 'youtube_live_chat' if is_live or is_upcoming else 'youtube_live_chat_replay',

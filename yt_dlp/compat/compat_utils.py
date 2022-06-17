@@ -33,13 +33,16 @@ def _is_package(module):
 
 def passthrough_module(parent, child, *, callback=lambda _: None):
     parent_module = importlib.import_module(parent)
-    child_module = importlib.import_module(child, parent)
+    child_module = None  # Import child module only as needed
 
     class PassthroughModule(types.ModuleType):
         def __getattr__(self, attr):
             if _is_package(parent_module):
                 with contextlib.suppress(ImportError):
                     return importlib.import_module(f'.{attr}', parent)
+
+            nonlocal child_module
+            child_module = child_module or importlib.import_module(child, parent)
 
             ret = _NO_ATTRIBUTE
             with contextlib.suppress(AttributeError):

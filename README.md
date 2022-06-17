@@ -93,6 +93,8 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **Cookies from browser**: Cookies can be automatically extracted from all major web browsers using `--cookies-from-browser BROWSER[+KEYRING][:PROFILE]`
 
+* **Download time range**: Videos can be downloaded partially based on either timestamps or chapters using `--download-sections`
+
 * **Split video by chapters**: Videos can be split into multiple files based on chapters using `--split-chapters`
 
 * **Multi-threaded fragment downloads**: Download multiple fragments of m3u8/mpd videos in parallel. Use `--concurrent-fragments` (`-N`) option to set the number of threads used
@@ -101,7 +103,7 @@ yt-dlp is a [youtube-dl](https://github.com/ytdl-org/youtube-dl) fork based on t
 
 * **New and fixed extractors**: Many new extractors have been added and a lot of existing ones have been fixed. See the [changelog](Changelog.md) or the [list of supported sites](supportedsites.md)
 
-* **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN
+* **New MSOs**: Philo, Spectrum, SlingTV, Cablevision, RCN etc.
 
 * **Subtitle extraction from manifests**: Subtitles can be extracted from streaming media manifests. See [commit/be6202f](https://github.com/yt-dlp/yt-dlp/commit/be6202f12b97858b9d716e608394b51065d0419f) for details
 
@@ -323,6 +325,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     -h, --help                      Print this help text and exit
     --version                       Print program version and exit
     -U, --update                    Update this program to latest version
+    --no-update                     Do not update (default)
     -i, --ignore-errors             Ignore download and postprocessing errors.
                                     The download will be considered successful
                                     even if the postprocessing fails
@@ -335,8 +338,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --list-extractors               List all supported extractors and exit
     --extractor-descriptions        Output descriptions of all supported
                                     extractors and exit
-    --force-generic-extractor       Force extraction to use the generic
-                                    extractor
+    --force-generic-extractor       Force extraction to use the generic extractor
     --default-search PREFIX         Use this prefix for unqualified URLs. Eg:
                                     "gvsearch2:python" downloads two videos from
                                     google videos for the search term "python".
@@ -395,8 +397,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     aliases; so be carefull to avoid defining
                                     recursive options. As a safety measure, each
                                     alias may be triggered a maximum of 100
-                                    times. This option can be used multiple
-                                    times
+                                    times. This option can be used multiple times
 
 ## Network Options:
     --proxy URL                     Use the specified HTTP/HTTPS/SOCKS proxy. To
@@ -423,20 +424,18 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     explicitly provided two-letter ISO 3166-2
                                     country code
     --geo-bypass-ip-block IP_BLOCK  Force bypass geographic restriction with
-                                    explicitly provided IP block in CIDR
-                                    notation
+                                    explicitly provided IP block in CIDR notation
 
 ## Video Selection:
-    --playlist-start NUMBER         Playlist video to start at (default is 1)
-    --playlist-end NUMBER           Playlist video to end at (default is last)
-    --playlist-items ITEM_SPEC      Playlist video items to download. Specify
-                                    indices of the videos in the playlist
-                                    separated by commas like: "--playlist-items
-                                    1,2,5,8" if you want to download videos
-                                    indexed 1, 2, 5, 8 in the playlist. You can
-                                    specify range: "--playlist-items
-                                    1-3,7,10-13", it will download the videos at
-                                    index 1, 2, 3, 7, 10, 11, 12 and 13
+    -I, --playlist-items ITEM_SPEC  Comma seperated playlist_index of the videos
+                                    to download. You can specify a range using
+                                    "[START]:[STOP][:STEP]". For backward
+                                    compatibility, START-STOP is also supported.
+                                    Use negative indices to count from the right
+                                    and negative STEP to download in reverse
+                                    order. Eg: "-I 1:3,7,-5::2" used on a
+                                    playlist of size 15 will download the videos
+                                    at index 1,2,3,7,11,13,15
     --min-filesize SIZE             Do not download any videos smaller than SIZE
                                     (e.g. 50k or 44.6m)
     --max-filesize SIZE             Do not download any videos larger than SIZE
@@ -540,10 +539,12 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     is disabled). May be useful for bypassing
                                     bandwidth throttling imposed by a webserver
                                     (experimental)
-    --playlist-reverse              Download playlist videos in reverse order
-    --no-playlist-reverse           Download playlist videos in default order
-                                    (default)
     --playlist-random               Download playlist videos in random order
+    --lazy-playlist                 Process entries in the playlist as they are
+                                    received. This disables n_entries,
+                                    --playlist-random and --playlist-reverse
+    --no-lazy-playlist              Process videos in the playlist only after
+                                    the entire playlist is parsed (default)
     --xattr-set-filesize            Set file xattribute ytdl.filesize with
                                     expected file size
     --hls-use-mpegts                Use the mpegts container for HLS videos;
@@ -555,6 +556,14 @@ You can also fork the project on github and run your fork's [build workflow](.gi
     --no-hls-use-mpegts             Do not use the mpegts container for HLS
                                     videos. This is default when not downloading
                                     live streams
+    --download-sections REGEX       Download only chapters whose title matches
+                                    the given regular expression. Time ranges
+                                    prefixed by a "*" can also be used in place
+                                    of chapters to download the specified range.
+                                    Eg: --download-sections "*10:15-15:00"
+                                    --download-sections "intro". Needs ffmpeg.
+                                    This option can be used multiple times to
+                                    download multiple sections
     --downloader [PROTO:]NAME       Name or path of the external downloader to
                                     use (optionally) prefixed by the protocols
                                     (http, ftp, m3u8, dash, rstp, rtmp, mms) to
@@ -626,8 +635,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     modification time (default)
     --no-mtime                      Do not use the Last-modified header to set
                                     the file modification time
-    --write-description             Write video description to a .description
-                                    file
+    --write-description             Write video description to a .description file
     --no-write-description          Do not write video description (default)
     --write-info-json               Write video metadata to a .info.json file
                                     (this may contain personal information)
@@ -649,8 +657,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     extraction is known to be quick (Alias:
                                     --no-get-comments)
     --load-info-json FILE           JSON file containing the video information
-                                    (created with the "--write-info-json"
-                                    option)
+                                    (created with the "--write-info-json" option)
     --cookies FILE                  Netscape formatted file to read cookies from
                                     and dump cookie jar in
     --no-cookies                    Do not read/dump cookies from/to file
@@ -666,8 +673,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     for decrypting Chromium cookies on Linux can
                                     be (optionally) specified after the browser
                                     name separated by a "+". Currently supported
-                                    keyrings are: basictext, gnomekeyring,
-                                    kwallet
+                                    keyrings are: basictext, gnomekeyring, kwallet
     --no-cookies-from-browser       Do not load cookies from browser (default)
     --cache-dir DIR                 Location in the filesystem where youtube-dl
                                     can store some downloaded information (such
@@ -679,8 +685,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 
 ## Thumbnail Options:
     --write-thumbnail               Write thumbnail image to disk
-    --no-write-thumbnail            Do not write thumbnail image to disk
-                                    (default)
+    --no-write-thumbnail            Do not write thumbnail image to disk (default)
     --write-all-thumbnails          Write all thumbnail image formats to disk
     --list-thumbnails               List available thumbnails of each video.
                                     Simulate unless --no-simulate is used
@@ -871,23 +876,24 @@ You can also fork the project on github and run your fork's [build workflow](.gi
 ## Post-Processing Options:
     -x, --extract-audio             Convert video files to audio-only files
                                     (requires ffmpeg and ffprobe)
-    --audio-format FORMAT           Specify audio format to convert the audio to
-                                    when -x is used. Currently supported formats
-                                    are: best (default) or one of aac, flac,
-                                    mp3, m4a, opus, vorbis, wav, alac
+    --audio-format FORMAT           Format to convert the audio to when -x is
+                                    used. (currently supported: best (default),
+                                    mp3, aac, m4a, opus, vorbis, flac, alac,
+                                    wav). You can specify multiple rules using
+                                    similar syntax as --remux-video
     --audio-quality QUALITY         Specify ffmpeg audio quality to use when
                                     converting the audio with -x. Insert a value
                                     between 0 (best) and 10 (worst) for VBR or a
                                     specific bitrate like 128K (default 5)
     --remux-video FORMAT            Remux the video into another container if
                                     necessary (currently supported: mp4, mkv,
-                                    flv, webm, mov, avi, mka, ogg, aac, flac,
-                                    mp3, m4a, opus, vorbis, wav, alac). If
+                                    flv, webm, mov, avi, mka, ogg, mp3, aac,
+                                    m4a, opus, vorbis, flac, alac, wav). If
                                     target container does not support the
                                     video/audio codec, remuxing will fail. You
                                     can specify multiple rules; Eg.
                                     "aac>m4a/mov>mp4/mkv" will remux aac to m4a,
-                                    mov to mp4 and anything else to mkv.
+                                    mov to mp4 and anything else to mkv
     --recode-video FORMAT           Re-encode the video into another format if
                                     necessary. The syntax and supported formats
                                     are the same as --remux-video
@@ -965,8 +971,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     otherwise), force (try fixing even if file
                                     already exists)
     --ffmpeg-location PATH          Location of the ffmpeg binary; either the
-                                    path to the binary or its containing
-                                    directory
+                                    path to the binary or its containing directory
     --exec [WHEN:]CMD               Execute a command, optionally prefixed with
                                     when to execute it (after_move if
                                     unspecified), separated by a ":". Supported
@@ -985,27 +990,26 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (currently supported: srt, vtt, ass, lrc)
                                     (Alias: --convert-subtitles)
     --convert-thumbnails FORMAT     Convert the thumbnails to another format
-                                    (currently supported: jpg, png, webp)
+                                    (currently supported: jpg, png, webp). You
+                                    can specify multiple rules using similar
+                                    syntax as --remux-video
     --split-chapters                Split video into multiple files based on
                                     internal chapters. The "chapter:" prefix can
                                     be used with "--paths" and "--output" to set
                                     the output filename for the split files. See
                                     "OUTPUT TEMPLATE" for details
-    --no-split-chapters             Do not split video based on chapters
-                                    (default)
+    --no-split-chapters             Do not split video based on chapters (default)
     --remove-chapters REGEX         Remove chapters whose title matches the
-                                    given regular expression. Time ranges
-                                    prefixed by a "*" can also be used in place
-                                    of chapters to remove the specified range.
-                                    Eg: --remove-chapters "*10:15-15:00"
-                                    --remove-chapters "intro". This option can
+                                    given regular expression. The syntax is the
+                                    same as --download-sections. This option can
                                     be used multiple times
     --no-remove-chapters            Do not remove any chapters from the file
                                     (default)
-    --force-keyframes-at-cuts       Force keyframes around chapters when
-                                    removing/splitting them. This is slow due to
-                                    needing a re-encode, but the resulting video
-                                    may have fewer artifacts around the cuts
+    --force-keyframes-at-cuts       Force keyframes at cuts when
+                                    downloading/splitting/removing sections.
+                                    This is slow due to needing a re-encode, but
+                                    the resulting video may have fewer artifacts
+                                    around the cuts
     --no-force-keyframes-at-cuts    Do not force keyframes around the chapters
                                     when cutting/splitting (default)
     --use-postprocessor NAME[:ARGS]
@@ -1025,8 +1029,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (after downloading and processing all
                                     formats of a video), or "playlist" (at end
                                     of playlist). This option can be used
-                                    multiple times to add different
-                                    postprocessors
+                                    multiple times to add different postprocessors
 
 ## SponsorBlock Options:
 Make chapter entries for, or remove various segments (sponsor,
@@ -1283,7 +1286,7 @@ Available for the media that is a track or a part of a music album:
  - `disc_number` (numeric): Number of the disc or other physical medium the track belongs to
  - `release_year` (numeric): Year (YYYY) when the album was released
 
-Available for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
+Available only when using `--download-sections` and for `chapter:` prefix when using `--split-chapters` for videos with internal chapters:
 
  - `section_title` (string): Title of the chapter
  - `section_number` (numeric): Number of the chapter within the file
@@ -1699,12 +1702,16 @@ The following extractors use this feature:
 
 #### youtube
 * `skip`: One or more of `hls`, `dash` or `translated_subs` to skip extraction of the m3u8 manifests, dash manifests and auto-translated subtitles respectively
-* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (Eg: `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but tv_embedded and creator variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
+* `player_client`: Clients to extract video data from. The main clients are `web`, `android` and `ios` with variants `_music`, `_embedded`, `_embedscreen`, `_creator` (Eg: `web_embedded`); and `mweb` and `tv_embedded` (agegate bypass) with no variants. By default, `android,web` is used, but `tv_embedded` and `creator` variants are added as required for age-gated videos. Similarly the music variants are added for `music.youtube.com` urls. You can use `all` to use all the clients, and `default` for the default clients.
 * `player_skip`: Skip some network requests that are generally needed for robust extraction. One or more of `configs` (skip client configs), `webpage` (skip initial webpage), `js` (skip js player). While these options can help reduce the number of requests needed or avoid some rate-limiting, they could cause some issues. See [#860](https://github.com/yt-dlp/yt-dlp/pull/860) for more details
 * `include_live_dash`: Include live dash formats even without `--live-from-start` (These formats don't download properly)
 * `comment_sort`: `top` or `new` (default) - choose comment sorting mode (on YouTube's side)
 * `max_comments`: Limit the amount of comments to gather. Comma-separated list of integers representing `max-comments,max-parents,max-replies,max-replies-per-thread`. Default is `all,all,all,all`
     * E.g. `all,all,1000,10` will get a maximum of 1000 replies total, with up to 10 replies per thread. `1000,all,100` will get a maximum of 1000 comments, with a maximum of 100 replies total
+* `innertube_host`: Innertube API host to use for all API requests 
+  * e.g. `studio.youtube.com`, `youtubei.googleapis.com`
+  * Note: Cookies exported from `www.youtube.com` will not work with hosts other than `*.youtube.com`
+* `innertube_key`: Innertube API key to use for all API requests
 
 #### youtubetab (YouTube playlists, channels, feeds, etc.)
 * `skip`: One or more of `webpage` (skip initial webpage download), `authcheck` (allow the download of playlists requiring authentication when no initial webpage is downloaded. This may cause unwanted behavior, see [#1122](https://github.com/yt-dlp/yt-dlp/pull/1122) for more details)
@@ -1994,6 +2001,10 @@ While these options are redundant, they are still expected to be used due to the
     --max-views COUNT                --match-filter "view_count <=? COUNT"
     --user-agent UA                  --add-header "User-Agent:UA"
     --referer URL                    --add-header "Referer:URL"
+    --playlist-start NUMBER          -I NUMBER:
+    --playlist-end NUMBER            -I :NUMBER
+    --playlist-reverse               -I ::-1
+    --no-playlist-reverse            Default
 
 
 #### Not recommended
