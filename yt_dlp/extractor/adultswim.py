@@ -10,6 +10,7 @@ from .common import InfoExtractor
 from .turner import TurnerBaseIE
 from ..utils import (
     HEADRequest,
+    InAdvancePagedList,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -223,13 +224,21 @@ class AdultSwimStreamIE(InfoExtractor):
         'playlist_mincount': 40,
     }]
 
+    def _resolve_server_timestamp(self, video_id):
+        remote_ts_json = self._download_json('https://www.adultswim.com/api/schedule/live/',
+                                             video_id, note='Resolving remote timestamp', fatal=False)
+
+        return remote_ts_json.get('timestamp', time.time() * 1000) / 1000
+
     def _live_hls_fragments(self, episode_start_time, episode_duration, video_id, hls_url, hls_content):
         FRAGMENT_DURATION = 10.010
 
+        timestamp = self._resolve_server_timestamp()
         sleep_until = episode_start_time + min(60, episode_duration)
-        if time.time() < sleep_until:
+
+        if timestamp < sleep_until:
             raise ExtractError('Episode has not aired yet')
-        if time.time() > sleep_until + episode_duration:
+        if timestamp > sleep_until + episode_duration:
             raise ExtractError('Skipping episode as new episode has already aired')
 
         fragments, error_msg = HlsFD._parse_m3u8(hls_content, {'url': hls_url})
@@ -250,7 +259,7 @@ class AdultSwimStreamIE(InfoExtractor):
 
         for i in reversed(range(fragment_count)):
             if self._request_webpage(HEADRequest(fragment_url_template % f'{i:0{digit_str_length}}'),
-                                     video_id, note=f'Determining availability of segments (Segment Length: {fragment_count})',
+                                     video_id, note=f'Determining availability of segments (count: {fragment_count})',
                                      errnote=False):
                 break
             fragment_count = i
@@ -265,29 +274,28 @@ class AdultSwimStreamIE(InfoExtractor):
     def _real_extract(self, url):
         stream_id = self._match_id(url)
 
-        webpage = self._download_webpage(url, stream_id)
-        stream_data = self._search_nextjs_data(webpage, stream_id)
+        def get_stream_info():
+            webpage = self._download_webpage(url, stream_id)
+            stream_data = self._search_nextjs_data(webpage, stream_id)
+            timestamp = self._resolve_server_timestamp(stream_id)
 
-        remote_ts_json = self._download_json('https://www.adultswim.com/api/schedule/live/',
-                                             stream_id, note='Resolving remote timestamp', fatal=False)
+            def get_episodes(root, stream, timestamp):
+                first_episode_name = None
+                for e in traverse_obj(root, (
+                        'marathon', (stream.get('vod_to_live_id'), ...)), get_all=False) or []:
+                    if e['startTime'] / 1000 + e['duration'] < timestamp:
+                        continue
+                    if first_episode_name is None:
+                        first_episode_name = e['episodeName']
+                    elif e['episodeName'] == first_episode_name:
+                        break
+                    yield e
 
-        timestamp = remote_ts_json.get('timestamp', time.time() * 1000) / 1000
+            root = traverse_obj(stream_data, ('props', '__REDUX_STATE__')) or {}
+            stream = traverse_obj(root.get('streams'), (lambda _, v: v['id'] == stream_id), get_all=False) or {}
+            return stream, list(get_episodes(root, stream, timestamp))
 
-        def get_episodes_data(root, stream, timestamp):
-            first_episode_name = None
-            for e in traverse_obj(root, (
-                    'marathon', (stream.get('vod_to_live_id'), ...)), get_all=False) or []:
-                if e['startTime'] / 1000 + e['duration'] < timestamp:
-                    continue
-                if first_episode_name is None:
-                    first_episode_name = e['episodeName']
-                elif e['episodeName'] == first_episode_name:
-                    break
-                yield e
-
-        root = traverse_obj(stream_data, ('props', '__REDUX_STATE__')) or {}
-        stream = traverse_obj(root.get('streams'), (lambda _, v: v['id'] == stream_id), get_all=False) or {}
-        episodes = list(get_episodes_data(root, stream, timestamp))
+        stream, episodes = get_stream_info()
 
         formats = self._extract_m3u8_formats(
             f'https://adultswim-vodlive.cdn.turner.com/live/{stream_id}/stream_de.m3u8?hdnts=', stream_id)
@@ -317,4 +325,4 @@ class AdultSwimStreamIE(InfoExtractor):
                     'release_timestamp': release_timestamp,
                 }
 
-        return self.playlist_result(list(entries()), stream_id, stream.get('title'), stream.get('description'), multi_video=True)
+        return self.playlist_result(entries(), stream_id, stream.get('title'), stream.get('description'), multi_video=True)
