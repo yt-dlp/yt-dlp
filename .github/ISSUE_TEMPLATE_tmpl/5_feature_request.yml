@@ -9,7 +9,7 @@ body:
       description: |
         Carefully read and work through this check list in order to prevent the most common mistakes and misuse of yt-dlp:
       options:
-        - label: I'm reporting a feature request
+        - label: I'm requesting a feature unrelated to a specific site
           required: true
         - label: I've looked through the [README](https://github.com/yt-dlp/yt-dlp#readme)
           required: true

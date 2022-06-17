@@ -43,7 +43,7 @@ PYTHON ?= /usr/bin/env python3
 SYSCONFDIR = $(shell if [ $(PREFIX) = /usr -o $(PREFIX) = /usr/local ]; then echo /etc; else echo $(PREFIX)/etc; fi)
 
 # set markdown input format to "markdown-smart" for pandoc version 2 and to "markdown" for pandoc prior to version 2
-MARKDOWN = $(shell if [ "$(pandoc -v | head -n1 | cut -d" " -f2 | head -c1)" = "2" ]; then echo markdown-smart; else echo markdown; fi)
+MARKDOWN = $(shell if [ `pandoc -v | head -n1 | cut -d" " -f2 | head -c1` = "2" ]; then echo markdown-smart; else echo markdown; fi)
 
 install: lazy-extractors yt-dlp yt-dlp.1 completions
 	mkdir -p $(DESTDIR)$(BINDIR)
@@ -129,7 +129,7 @@ completions/fish/yt-dlp.fish: yt_dlp/*.py yt_dlp/*/*.py devscripts/fish-completi
 	mkdir -p completions/fish
 	$(PYTHON) devscripts/fish-completion.py
 
-_EXTRACTOR_FILES = $(shell find yt_dlp/extractor -iname '*.py' -and -not -iname 'lazy_extractors.py')
+_EXTRACTOR_FILES = $(shell find yt_dlp/extractor -name '*.py' -and -not -name 'lazy_extractors.py')
 yt_dlp/extractor/lazy_extractors.py: devscripts/make_lazy_extractors.py devscripts/lazy_load_template.py $(_EXTRACTOR_FILES)
 	$(PYTHON) devscripts/make_lazy_extractors.py $@
 

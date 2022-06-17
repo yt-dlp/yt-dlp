@@ -9,10 +9,10 @@ import os
 import re
 import sys
 
-from .compat import compat_getpass, compat_os_name, compat_shlex_quote
+from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
-from .extractor import GenericIE, list_extractor_classes
+from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
@@ -33,8 +33,10 @@ from .utils import (
     DownloadCancelled,
     DownloadError,
     GeoUtils,
+    PlaylistEntries,
     SameFileError,
     decodeOption,
+    download_range_func,
     expand_path,
     float_or_none,
     int_or_none,
@@ -42,6 +44,7 @@ from .utils import (
     parse_duration,
     preferredencoding,
     read_batch_urls,
+    read_stdin,
     render_table,
     setproctitle,
     std_headers,
@@ -63,14 +66,9 @@ def get_urls(urls, batchfile, verbose):
     batch_urls = []
     if batchfile is not None:
         try:
-            if batchfile == '-':
-                write_string('Reading URLs from stdin - EOF (%s) to end:\n' % (
-                    'Ctrl+Z' if compat_os_name == 'nt' else 'Ctrl+D'))
-                batchfd = sys.stdin
-            else:
-                batchfd = open(
-                    expand_path(batchfile), encoding='utf-8', errors='ignore')
-            batch_urls = read_batch_urls(batchfd)
+            batch_urls = read_batch_urls(
+                read_stdin('URLs') if batchfile == '-'
+                else open(expand_path(batchfile), encoding='utf-8', errors='ignore'))
             if verbose:
                 write_string('[debug] Batch file urls: ' + repr(batch_urls) + '\n')
         except OSError:
@@ -82,6 +80,10 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
+    # Importing GenericIE is currently slow since it imports other extractors
+    # TODO: Move this back to module level after generalization of embed detection
+    from .extractor.generic import GenericIE
+
     out = ''
     if opts.list_extractors:
         urls = dict.fromkeys(urls, False)
@@ -217,15 +219,11 @@ def validate_options(opts):
         validate_regex('format sorting', f, InfoExtractor.FormatSort.regex)
 
     # Postprocessor formats
-    validate_in('audio format', opts.audioformat, ['best'] + list(FFmpegExtractAudioPP.SUPPORTED_EXTS))
+    validate_regex('audio format', opts.audioformat, FFmpegExtractAudioPP.FORMAT_RE)
     validate_in('subtitle format', opts.convertsubtitles, FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)
-    validate_in('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)
-    if opts.recodevideo is not None:
-        opts.recodevideo = opts.recodevideo.replace(' ', '')
-        validate_regex('video recode format', opts.recodevideo, FFmpegVideoConvertorPP.FORMAT_RE)
-    if opts.remuxvideo is not None:
-        opts.remuxvideo = opts.remuxvideo.replace(' ', '')
-        validate_regex('video remux format', opts.remuxvideo, FFmpegVideoRemuxerPP.FORMAT_RE)
+    validate_regex('thumbnail format', opts.convertthumbnails, FFmpegThumbnailsConvertorPP.FORMAT_RE)
+    validate_regex('recode video format', opts.recodevideo, FFmpegVideoConvertorPP.FORMAT_RE)
+    validate_regex('remux video format', opts.remuxvideo, FFmpegVideoRemuxerPP.FORMAT_RE)
     if opts.audioquality:
         opts.audioquality = opts.audioquality.strip('k').strip('K')
         # int_or_none prevents inf, nan
@@ -313,20 +311,25 @@ def validate_options(opts):
             'Cannot download a video and extract audio into the same file! '
             f'Use "{outtmpl_default}.%(ext)s" instead of "{outtmpl_default}" as the output template')
 
-    # Remove chapters
-    remove_chapters_patterns, opts.remove_ranges = [], []
-    for regex in opts.remove_chapters or []:
-        if regex.startswith('*'):
-            dur = list(map(parse_duration, regex[1:].split('-')))
-            if len(dur) == 2 and all(t is not None for t in dur):
-                opts.remove_ranges.append(tuple(dur))
+    def parse_chapters(name, value):
+        chapters, ranges = [], []
+        for regex in value or []:
+            if regex.startswith('*'):
+                for range in regex[1:].split(','):
+                    dur = tuple(map(parse_duration, range.strip().split('-')))
+                    if len(dur) == 2 and all(t is not None for t in dur):
+                        ranges.append(dur)
+                    else:
+                        raise ValueError(f'invalid {name} time range "{regex}". Must be of the form *start-end')
                 continue
-            raise ValueError(f'invalid --remove-chapters time range "{regex}". Must be of the form *start-end')
-        try:
-            remove_chapters_patterns.append(re.compile(regex))
-        except re.error as err:
-            raise ValueError(f'invalid --remove-chapters regex "{regex}" - {err}')
-    opts.remove_chapters = remove_chapters_patterns
+            try:
+                chapters.append(re.compile(regex))
+            except re.error as err:
+                raise ValueError(f'invalid {name} regex "{regex}" - {err}')
+        return chapters, ranges
+
+    opts.remove_chapters, opts.remove_ranges = parse_chapters('--remove-chapters', opts.remove_chapters)
+    opts.download_ranges = download_range_func(*parse_chapters('--download-sections', opts.download_ranges))
 
     # Cookies from browser
     if opts.cookiesfrombrowser:
@@ -370,6 +373,12 @@ def validate_options(opts):
     opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
 
     # Other options
+    if opts.playlist_items is not None:
+        try:
+            tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
+        except Exception as err:
+            raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
+
     geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
     if geo_bypass_code is not None:
         try:
@@ -425,6 +434,9 @@ def validate_options(opts):
         setattr(opts, opt1, default)
 
     # Conflicting options
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--playlist-random', 'playlist_random')
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--lazy-playlist', 'lazy_playlist')
+    report_conflict('--playlist-random', 'playlist_random', '--lazy-playlist', 'lazy_playlist')
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
     report_conflict('--exec-before-download', 'exec_before_dl_cmd',
@@ -657,7 +669,7 @@ def parse_options(argv=None):
     final_ext = (
         opts.recodevideo if opts.recodevideo in FFmpegVideoConvertorPP.SUPPORTED_EXTS
         else opts.remuxvideo if opts.remuxvideo in FFmpegVideoRemuxerPP.SUPPORTED_EXTS
-        else opts.audioformat if (opts.extractaudio and opts.audioformat != 'best')
+        else opts.audioformat if (opts.extractaudio and opts.audioformat in FFmpegExtractAudioPP.SUPPORTED_EXTS)
         else None)
 
     return parser, opts, urls, {
@@ -731,6 +743,7 @@ def parse_options(argv=None):
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
         'playlistrandom': opts.playlist_random,
+        'lazy_playlist': opts.lazy_playlist,
         'noplaylist': opts.noplaylist,
         'logtostderr': opts.outtmpl.get('default') == '-',
         'consoletitle': opts.consoletitle,
@@ -762,6 +775,7 @@ def parse_options(argv=None):
         'verbose': opts.verbose,
         'dump_intermediate_pages': opts.dump_intermediate_pages,
         'write_pages': opts.write_pages,
+        'load_pages': opts.load_pages,
         'test': opts.test,
         'keepvideo': opts.keepvideo,
         'min_filesize': opts.min_filesize,
@@ -810,6 +824,8 @@ def parse_options(argv=None):
         'max_sleep_interval': opts.max_sleep_interval,
         'sleep_interval_subtitles': opts.sleep_interval_subtitles,
         'external_downloader': opts.external_downloader,
+        'download_ranges': opts.download_ranges,
+        'force_keyframes_at_cuts': opts.force_keyframes_at_cuts,
         'list_thumbnails': opts.list_thumbnails,
         'playlist_items': opts.playlist_items,
         'xattr_set_filesize': opts.xattr_set_filesize,
