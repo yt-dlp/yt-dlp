@@ -10,7 +10,6 @@ from .common import InfoExtractor
 from .turner import TurnerBaseIE
 from ..utils import (
     HEADRequest,
-    InAdvancePagedList,
     determine_ext,
     float_or_none,
     int_or_none,
