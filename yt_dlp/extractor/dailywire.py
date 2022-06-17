@@ -41,7 +41,7 @@ class DailyWireIE(DailyWireBaseIE):
             'title': 'Ep. 125 - William Barr ',
         }
     }, {
-        'url': '"https://www.dailywire.com/videos/the-hyperions',
+        'url': 'https://www.dailywire.com/videos/the-hyperions',
         'info_dict': {
             'id': 'cl0iejfq5ktmw0a1478mc0bqj',
             'ext': 'mp4',
