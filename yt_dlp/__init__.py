@@ -33,6 +33,7 @@ from .utils import (
     DownloadCancelled,
     DownloadError,
     GeoUtils,
+    PlaylistEntries,
     SameFileError,
     decodeOption,
     download_range_func,
@@ -372,6 +373,12 @@ def validate_options(opts):
     opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
 
     # Other options
+    if opts.playlist_items is not None:
+        try:
+            tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
+        except Exception as err:
+            raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
+
     geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
     if geo_bypass_code is not None:
         try:
