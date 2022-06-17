@@ -888,7 +888,7 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-reverse',
-        action='store_true',
+        action='store_true', dest='playlist_reverse',
         help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--no-playlist-reverse',
@@ -896,8 +896,16 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-random',
-        action='store_true',
+        action='store_true', dest='playlist_random',
         help='Download playlist videos in random order')
+    downloader.add_option(
+        '--lazy-playlist',
+        action='store_true', dest='lazy_playlist',
+        help='Process entries in the playlist as they are received. This disables n_entries, --playlist-random and --playlist-reverse')
+    downloader.add_option(
+        '--no-lazy-playlist',
+        action='store_false', dest='lazy_playlist',
+        help='Process videos in the playlist only after the entire playlist is parsed (default)')
     downloader.add_option(
         '--xattr-set-filesize',
         dest='xattr_set_filesize', action='store_true',
