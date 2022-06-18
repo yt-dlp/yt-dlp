@@ -429,7 +429,7 @@ class PornHubIE(PornHubBaseIE):
                     default=None))
             formats.append({
                 'url': format_url,
-                'format_id': format_field(height, template='%dp'),
+                'format_id': format_field(height, None, '%dp'),
                 'height': height,
             })
 

@@ -38,7 +38,7 @@ class TrovoBaseIE(InfoExtractor):
         return {
             'uploader': streamer_info.get('nickName'),
             'uploader_id': str_or_none(streamer_info.get('uid')),
-            'uploader_url': format_field(username, template='https://trovo.live/%s'),
+            'uploader_url': format_field(username, None, 'https://trovo.live/%s'),
         }
 
 
