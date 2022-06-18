@@ -20,6 +20,7 @@ from ..utils import (
     traverse_obj,
     url_or_none,
     urlencode_postdata,
+    decode_base,
 )
 
 
@@ -361,15 +362,7 @@ class InstagramIE(InstagramBaseIE):
     def _get_pk(self, shortcode):
         """Covert a shortcode to a numeric value."""
         shortcode = shortcode[:11]
-        base = len(_ENCODING_CHARS)
-        strlen = len(shortcode)
-        num = 0
-        idx = 0
-        for char in shortcode:
-            power = strlen - (idx + 1)
-            num += _ENCODING_CHARS.index(char) * (base ** power)
-            idx += 1
-        return num
+        return decode_base(shortcode, _ENCODING_CHARS)
 
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')
