@@ -200,6 +200,20 @@ class PornHubIE(PornHubBaseIE):
         },
         'skip': 'This video has been disabled',
     }, {
+        'url': 'http://www.pornhub.com/view_video.php?viewkey=ph601dc30bae19a',
+        'info_dict': {
+            'id': 'ph601dc30bae19a',
+            'uploader': 'Projekt Melody',
+            'uploader_id': 'projekt-melody',
+            'upload_date': '20210205',
+            'title': '"Welcome to My Pussy Mansion" - CB Stream (02/03/21)',
+            'thumbnail': str,
+            'duration': int,
+            'like_count': int,
+            'dislike_count': int,
+            'comment_count': int,
+        },
+    }, {
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph557bbb6676d2d',
         'only_matching': True,
     }, {
