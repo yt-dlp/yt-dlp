@@ -918,6 +918,7 @@ from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
 )
+from .mirrorcouk import MirrorCoUKIE
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
 from .mixch import (
