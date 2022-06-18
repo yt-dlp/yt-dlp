@@ -208,7 +208,9 @@ class ZenYandexIE(InfoExtractor):
             'title': 'ВОТ ЭТО Focus. Деды Морозы на гидроциклах',
             'description': 'md5:f3db3d995763b9bbb7b56d4ccdedea89',
             'thumbnail': 're:^https://avatars.mds.yandex.net/',
-            'uploader': 'AcademeG DailyStream'
+            'uploader': 'AcademeG DailyStream',
+            'upload_date': '20191111',
+            'timestamp': 1573465585,
         },
         'params': {
             'skip_download': 'm3u8',
@@ -234,8 +236,8 @@ class ZenYandexIE(InfoExtractor):
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(
-            self._search_regex(r'(?m)data\s*=\s*({["\']_*serverState_*video.+?});$', webpage, 'metadata'), id)
+        data_json = self._search_json(
+            r'data\s*=', webpage, 'metadata', id, contains_pattern=r'["\']_*serverState_*video.+')
         serverstate = self._search_regex(r'(_+serverState_+video-site_[^_]+_+)',
                                          webpage, 'server state').replace('State', 'Settings')
         uploader = self._search_regex(r'(<a\s*class=["\']card-channel-link[^"\']+["\'][^>]+>)',
@@ -260,7 +262,7 @@ class ZenYandexIE(InfoExtractor):
             'timestamp': int_or_none(video_json.get('publicationDate')),
             'uploader': uploader_name or data_json.get('authorName') or try_get(data_json, lambda x: x['publisher']['name']),
             'description': self._og_search_description(webpage) or try_get(data_json, lambda x: x['og']['description']),
-            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl'])
+            'thumbnail': self._og_search_thumbnail(webpage) or try_get(data_json, lambda x: x['og']['imageUrl']),
         }
 
 
@@ -312,46 +314,38 @@ class ZenYandexChannelIE(InfoExtractor):
         'playlist_maxcount': 250,
     }]
 
-    def _entries(self, channel_title, server_state_json, server_settings_json):
+    def _entries(self, item_id, server_state_json, server_settings_json):
         items = (traverse_obj(server_state_json, ('feed', 'items', ...))
                  or traverse_obj(server_settings_json, ('exportData', 'items', ...)))
 
-        prev_next_page_id = None
         more = (traverse_obj(server_state_json, ('links', 'more'))
                 or traverse_obj(server_settings_json, ('exportData', 'more', 'link')))
 
+        next_page_id = None
         for page in itertools.count(1):
-            for item in items:
+            for item in items or []:
                 if item.get('type') != 'gif':
                     continue
-                video_id = item.get('publication_id') or item.get('publicationId')
-                video_url = item.get('link')
-                yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
+                video_id = traverse_obj(item, 'publication_id', 'publicationId') or ''
+                yield self.url_result(item['link'], ZenYandexIE, video_id.split(':')[-1])
 
+            current_page_id = next_page_id
             next_page_id = traverse_obj(parse_qs(more), ('next_page_id', -1))
-
-            if not all((more, items, next_page_id, next_page_id != prev_next_page_id)):
+            if not all((more, items, next_page_id, next_page_id != current_page_id)):
                 break
 
-            data_json = self._download_json(more, channel_title, note='Downloading Page %d' % page)
-            items = data_json.get('items', [])
-            more = traverse_obj(data_json, ('more', 'link'))
-
-            prev_next_page_id = next_page_id
+            data = self._download_json(more, item_id, note=f'Downloading Page {page}')
+            items, more = data.get('items'), traverse_obj(data, ('more', 'link'))
 
     def _real_extract(self, url):
-        id = self._match_id(url)
-        webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(
-            self._search_regex(r'var\s+data\s*=\s*({\s*\"\s*__serverState__.+?})\s*;', webpage, "First channel page data_json"),
-            id)
-        server_state_json = traverse_obj(data_json, lambda k, _: k.startswith('__serverState__'), get_all=False)
-        server_settings_json = traverse_obj(data_json, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
-
-        channel_title = traverse_obj(server_state_json, ('channel', 'source', 'title')) or id
+        item_id = self._match_id(url)
+        webpage = self._download_webpage(url, item_id)
+        data = self._search_json(
+            r'var\s+data\s*=', webpage, 'channel data', item_id, contains_pattern=r'\"__serverState__.+')
+        server_state_json = traverse_obj(data, lambda k, _: k.startswith('__serverState__'), get_all=False)
+        server_settings_json = traverse_obj(data, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
 
         return self.playlist_result(
-            self._entries(channel_title, server_state_json, server_settings_json),
-            id,
-            channel_title,
+            self._entries(item_id, server_state_json, server_settings_json),
+            item_id, traverse_obj(server_state_json, ('channel', 'source', 'title')),
             traverse_obj(server_state_json, ('channel', 'source', 'description')))
