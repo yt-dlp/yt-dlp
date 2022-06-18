@@ -21,4 +21,3 @@ if not _LAZY_LOADER:
 
 _PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
 _ALL_CLASSES = list(_PLUGIN_CLASSES.values()) + _ALL_CLASSES
-
