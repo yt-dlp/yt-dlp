@@ -12,7 +12,6 @@ from ..utils import (
     HEADRequest,
     LazyList,
     UnsupportedError,
-    format_field,
     get_element_by_id,
     get_first,
     int_or_none,

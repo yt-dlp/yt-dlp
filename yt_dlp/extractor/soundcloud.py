@@ -16,7 +16,6 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     HEADRequest,
-    format_field,
     int_or_none,
     KNOWN_EXTENSIONS,
     mimetype2ext,
