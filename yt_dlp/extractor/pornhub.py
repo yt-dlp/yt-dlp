@@ -21,6 +21,7 @@ from ..utils import (
     NO_DEFAULT,
     orderedSet,
     remove_quotes,
+    remove_start,
     str_to_int,
     update_url_query,
     urlencode_postdata,
@@ -457,9 +458,13 @@ class PornHubIE(PornHubBaseIE):
         self._sort_formats(
             formats, field_preference=('height', 'width', 'fps', 'format_id'))
 
+        model_profile = self._parse_json(self._search_regex(
+            r'var\s+MODEL_PROFILE\s*=\s*({.+?})\s*;', webpage, 'model profile',
+            default='{}'), video_id, fatal=False)
         video_uploader = self._html_search_regex(
             r'(?s)From:&nbsp;.+?<(?:a\b[^>]+\bhref=["\']/(?:(?:user|channel)s|model|pornstar)/|span\b[^>]+\bclass=["\']username)[^>]+>(.+?)<',
-            webpage, 'uploader', default=None)
+            webpage, 'uploader', default=None) or model_profile.get('username')
+        uploader_id = remove_start(model_profile.get('modelProfileLink'), '/model/')
 
         def extract_vote_count(kind, name):
             return self._extract_count(
@@ -488,6 +493,7 @@ class PornHubIE(PornHubBaseIE):
         return merge_dicts({
             'id': video_id,
             'uploader': video_uploader,
+            'uploader_id': uploader_id,
             'upload_date': upload_date,
             'title': title,
             'thumbnail': thumbnail,
