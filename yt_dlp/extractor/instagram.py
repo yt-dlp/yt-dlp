@@ -23,7 +23,7 @@ from ..utils import (
 )
 
 
-_ENCODING_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+_ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
 
 
 class InstagramBaseIE(InfoExtractor):
@@ -373,41 +373,30 @@ class InstagramIE(InstagramBaseIE):
 
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')
-        webpageh = self._download_webpage_handle(url, video_id, fatal=False)
-        if not webpageh:
-            self.raise_no_formats('Requested content was not found')
-        else:
-            webpage, urlh = webpageh
+        webpage, urlh = self._download_webpage_handle(url, video_id, errnote='Requested content was not found')
         media_id = self._get_pk(video_id)
         info = self._download_json(
-            f'https://i.instagram.com/api/v1/media/{media_id}/info/',
-            video_id,
+            f'https://i.instagram.com/api/v1/media/{media_id}/info/', video_id, fatal=False,
             headers={
-                'accept': ('text/html,application/xhtml+xml,application/xml;q=0.9,image/jxl,'
-                           'image/avif,image/webp,image/apng,*/*;q=0.8,'
-                           'application/signed-exchange;v=b3;q=0.9'),
-                'authority': 'www.instagram.com',
-                'referer': 'https://www.instagram.com',
-                'user-agent': ('Mozilla/5.0 (X11; Linux x86_64) '
-                               'AppleWebKit/537.36 (KHTML, like Gecko) '
-                               'Chrome/103.0.0.0 Safari/537.36'),
+                'Accept': '*',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
+                'Authority': 'www.instagram.com',
+                'Referer': 'https://www.instagram.com',
                 'x-ig-app-id': '936619743392459',
-            },
-            fatal=False
-        )
+            })
         if info:
             return self._extract_product(info['items'][0])
 
+        self.report_warning('The API is locked behind login. Trying with webpage extraction (Note that some metadata might be missing)', video_id)
         if 'www.instagram.com/accounts/login' in urlh.geturl():
             self.report_warning(
                 'Main webpage is locked behind the login page. '
                 'Retrying with embed webpage (Note that some metadata might '
-                'be missing)')
+                'be missing)', video_id)
             webpage = self._download_webpage(
                 f'https://www.instagram.com/p/{video_id}/embed/',
-                video_id, note='Downloading embed webpage', fatal=False)
-            if not webpage:
-                self.raise_login_required('Requested content was not found, the content might be private')
+                video_id, note='Downloading embed webpage',
+                errnote='Requested content was not found, the content might be private')
 
         shared_data = self._parse_json(
             self._search_regex(
