@@ -459,7 +459,11 @@ class YahooGyaOIE(InfoExtractor):
 class YahooJapanNewsIE(InfoExtractor):
     IE_NAME = 'yahoo:japannews'
     IE_DESC = 'Yahoo! Japan News'
-    _VALID_URL = r'https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:/articles/|[^\d]*)(?P<id>[\da-f]{40}|[\d]{8}-[\d]{8}|\d*)?'
+    _VALID_URL = r'''(?x)
+        https?://(?P<host>(?:news|headlines)\.yahoo\.co\.jp)(?:
+            [^#?]+(?:/|\?(?:[^#]+&)?a=)
+            (?P<id>[\da-f]{40}|[\d]{8}-[\d]{8}|\d+)
+        )?'''
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
         'url': 'https://news.yahoo.co.jp/articles/71b59c001c9dbc91b0c6bc75782fb8a26c2771a3',
@@ -481,7 +485,7 @@ class YahooJapanNewsIE(InfoExtractor):
             'ext': 'mp4',
             'title': '山でけがした８９歳の祖父を無事に保護 所有する山林を確認しようと入山 広島・安佐南区（テレビ新広島） - Yahoo!ニュース',
             'description': 'md5:8171a3c22461b1b9028b24f712d889ae',
-            'thumbnail': r're:^https?://.*?\.jpg',
+            'thumbnail': r're:^https?://.+\.jpg',
         },
         'params': {
             'skip_download': True,
@@ -566,16 +570,16 @@ class YahooJapanNewsIE(InfoExtractor):
         thumbnail = self._og_search_thumbnail(
             webpage, default=None) or self._html_search_meta(
             'twitter:image', webpage, 'thumbnail', default=None)
-        space_id = self._search_regex([
-            r'<(?:script|div)[^>]+class=["\']yvpub-player["\'][^>]+(?:data-)?spaceid=["\']?([^&"\']+|\d+)["\']?',
+        space_id = self._search_regex((
+            r'<(?:script|div)[^>]+class=["\']yvpub-player["\'][^>]+spaceid=["\']?([^&"\']+)',
             r'YAHOO\.JP\.srch\.\w+link\.onLoad[^;]+spaceID["\' ]*:["\' ]+([^"\']+)',
             r'<!--\s+SpaceID=(\d+)'
-        ], webpage, 'spaceid', default='')
+        ), webpage, 'spaceid', default='')
 
-        content_id = self._search_regex([
-            r'<(?:script|div)[^>]+class=["\']yvpub-player["\'][^>]+(?:data-)?contentid=["\']?(?P<contentid>[^&"\']+|\d+)["\']?',
+        content_id = self._search_regex((
+            r'<(?:script|div)[^>]+class=["\']yvpub-player["\'][^>]+contentid=["\']?([^&"\']+)',
             r'["\']vid["\']:(?P<contentid>\d+)'
-        ], webpage, 'contentid', group='contentid')
+        ), webpage, 'contentid')
 
         json_data = self._download_json(
             'https://feapi-yvpub.yahooapis.jp/v1/content/%s' % content_id,
