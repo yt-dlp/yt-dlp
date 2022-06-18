@@ -1042,6 +1042,10 @@ from .neteasemusic import (
     NetEaseMusicProgramIE,
     NetEaseMusicDjRadioIE,
 )
+from .netverse import (
+    NetverseIE,
+    NetversePlaylistIE,
+)
 from .newgrounds import (
     NewgroundsIE,
     NewgroundsPlaylistIE,
