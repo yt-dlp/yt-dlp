@@ -207,6 +207,66 @@ jobs:
         asset_name: yt-dlp_macos.zip
         asset_content_type: application/zip
 
+  build_macos_legacy:
+    runs-on: macos-latest
+    needs: create_release
+    env:
+      # We need the official Python, because the GA ones only support newer macOS versions
+      # The deployment target is picked up by the Python build tools automatically
+      PYTHON_VERSION: 3.9.1
+      MACOSX_DEPLOYMENT_TARGET: 10.9
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get Python
+      run: curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macosx10.9.pkg -o "python.pkg"
+    - name: Install Python
+      # Need to copy the pkg because the installer command removes it, breaking the cache
+      run: |
+          sudo installer -pkg python.pkg -target /
+    - name: Install Python dependencies
+      run: |
+          python3 --version
+          brew install coreutils
+          python3 -m pip install -U --user pip Pyinstaller -r requirements.txt
+
+    - name: Prepare
+      run: |
+          python3 devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
+          python3 devscripts/make_lazy_extractors.py
+    - name: Build
+      run: |
+          python3 pyinst.py --onedir
+          (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
+          python3 pyinst.py
+    - name: Get SHA2-SUMS
+      id: get_sha
+      run: |
+          echo "::set-output name=sha256_macos::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
+          echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
+          echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
+          echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
+
+    - name: Upload standalone binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_macos
+        asset_name: yt-dlp_macos_legacy
+        asset_content_type: application/octet-stream
+    - name: Upload onedir binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_macos.zip
+        asset_name: yt-dlp_macos_legacy.zip
+        asset_content_type: application/zip
+
+
+
 
   build_windows:
     runs-on: windows-latest
