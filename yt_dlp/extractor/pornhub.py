@@ -207,11 +207,7 @@ class PornHubIE(PornHubBaseIE):
             'uploader_id': 'projekt-melody',
             'upload_date': '20210205',
             'title': '"Welcome to My Pussy Mansion" - CB Stream (02/03/21)',
-            'thumbnail': str,
-            'duration': int,
-            'like_count': int,
-            'dislike_count': int,
-            'comment_count': int,
+            'thumbnail': r're:https?://.+',
         },
     }, {
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph557bbb6676d2d',
