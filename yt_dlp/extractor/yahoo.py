@@ -466,19 +466,6 @@ class YahooJapanNewsIE(InfoExtractor):
         )?'''
     _GEO_COUNTRIES = ['JP']
     _TESTS = [{
-        'url': 'https://news.yahoo.co.jp/articles/71b59c001c9dbc91b0c6bc75782fb8a26c2771a3',
-        'info_dict': {
-            'id': '6963552',
-            'ext': 'mp4',
-            'title': '30周年のハウステンボスアンバサダーにHKT48が就任【長崎県】（KTNテレビ長崎） - Yahoo!ニュース',
-            'description': 'md5:20a44a844072b85cd3277077017ce640',
-            'thumbnail': r're:^https?://.*?\.jpg',
-        },
-        'params': {
-            'skip_download': True,
-        },
-        'skip': '404',
-    }, {
         'url': 'https://news.yahoo.co.jp/articles/a4aa6a34bcbdcd70b15e8e92db1ab30577859f43',
         'info_dict': {
             'id': '7066545',
