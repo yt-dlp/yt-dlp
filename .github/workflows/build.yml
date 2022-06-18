@@ -220,7 +220,7 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: 10.9  # Used up by the Python build tools
       # Need to copy the pkg because the installer command removes it, breaking the cache
       run: |
-          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macosx10.9.pkg -o "python.pkg"
+          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macosx${MACOSX_DEPLOYMENT_TARGET}.pkg -o "python.pkg"
           sudo installer -pkg python.pkg -target /
     - name: Install Requirements
       run: |
