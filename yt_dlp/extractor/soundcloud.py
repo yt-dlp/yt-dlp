@@ -678,7 +678,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                     # See https://github.com/yt-dlp/yt-dlp/issues/872
                     if not isinstance(e.cause, compat_HTTPError) or e.cause.code != 502:
                         raise
-                    retry.last_error = e
+                    retry.error = e
                     continue
 
             def resolve_entry(*candidates):

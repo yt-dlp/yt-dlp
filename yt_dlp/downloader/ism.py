@@ -270,10 +270,10 @@ class IsmFD(FragmentFD):
                         extra_state['ism_track_written'] = True
                     self._append_fragment(ctx, frag_content)
                 except urllib.error.HTTPError as err:
-                    retry.last_error = err
+                    retry.error = err
                     continue
 
-            if retry_manager.has_error:
+            if retry_manager.error:
                 if not skip_unavailable_fragments:
                     return False
                 self.report_skip_fragment(frag_index)

@@ -465,7 +465,7 @@ class FragmentFD(FileDownloader):
                     if not self._download_fragment(ctx, fragment['url'], info_dict, headers):
                         return
                 except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
-                    retry.last_error = err
+                    retry.error = err
                     continue
                 except DownloadError:  # has own retry settings
                     if fatal:

@@ -645,7 +645,7 @@ class TikTokUserIE(TikTokBaseIE):
                         errnote='Unable to download user video list')
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
-                        retry.last_error = e
+                        retry.error = e
                         continue
                     raise
             yield from post_list.get('aweme_list', [])
@@ -694,7 +694,7 @@ class TikTokBaseListIE(TikTokBaseIE):
                         errnote='Unable to download video list')
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
-                        retry.last_error = e
+                        retry.error = e
                         continue
                     raise
             for video in post_list.get('aweme_list', []):

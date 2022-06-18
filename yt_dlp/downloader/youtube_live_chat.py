@@ -130,7 +130,7 @@ class YoutubeLiveChatFD(FragmentFD):
                             or parse_actions_replay)
                     return (True, *func(live_chat_continuation))
                 except compat_urllib_error.HTTPError as err:
-                    retry.last_error = err
+                    retry.error = err
                     continue
             return False, None, None, None
 

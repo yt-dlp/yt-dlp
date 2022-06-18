@@ -209,7 +209,7 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             except network_exceptions as e:
                 if isinstance(e, urllib.error.HTTPError) and e.code in expected_http_errors:
                     return None
-                retry.last_error = PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
+                retry.error = PostProcessingError(f'Unable to communicate with {self.PP_NAME} API: {e}')
                 continue
         return json.loads(rsp.read().decode(rsp.info().get_param('charset') or 'utf-8'))
 

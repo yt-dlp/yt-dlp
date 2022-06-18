@@ -781,7 +781,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if not isinstance(e.cause, network_exceptions):
                     return self._error_or_warning(e, fatal=fatal)
                 elif not isinstance(e.cause, compat_HTTPError):
-                    retry.last_error = e
+                    retry.error = e
                     continue
 
                 first_bytes = e.cause.read(512)
@@ -797,7 +797,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # We also want to catch all other network exceptions since errors in later pages can be troublesome
                 # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
                 if e.cause.code not in (403, 429):
-                    retry.last_error = e
+                    retry.error = e
                     continue
                 return self._error_or_warning(e, fatal=fatal)
 
@@ -807,13 +807,13 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 # YouTube servers may return errors we want to retry on in a 200 OK response
                 # See: https://github.com/yt-dlp/yt-dlp/issues/839
                 if 'unknown error' in e.msg.lower():
-                    retry.last_error = e
+                    retry.error = e
                     continue
                 return self._error_or_warning(e, fatal=fatal)
             # Youtube sometimes sends incomplete data
             # See: https://github.com/ytdl-org/youtube-dl/issues/28194
             if not traverse_obj(response, *variadic(check_get_keys)):
-                retry.last_error = ExtractorError('Incomplete data received')
+                retry.error = ExtractorError('Incomplete data received')
                 continue
 
             return response
@@ -4447,7 +4447,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
                     if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
-                        retry.last_error = e
+                        retry.error = e
                         continue
                 self._error_or_warning(e, fatal=fatal)
                 break
@@ -4461,7 +4461,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # Sometimes youtube returns a webpage with incomplete ytInitialData
             # See: https://github.com/yt-dlp/yt-dlp/issues/116
             if not traverse_obj(data, 'contents', 'currentVideoEndpoint', 'onResponseReceivedActions'):
-                retry.last_error = ExtractorError('Incomplete yt initial data received')
+                retry.error = ExtractorError('Incomplete yt initial data received')
                 continue
 
         return webpage, data

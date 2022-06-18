@@ -5567,29 +5567,35 @@ class RetryManager:
             try:
                 ...
             except SomeException as err:
-                retry.last_error = err
+                retry.error = err
                 continue
     """
-    attempt, last_error = 0, None
+    attempt, _error = 0, None
 
     def __init__(self, _maximum_tries, _error_callback, **kwargs):
         self.maximum_tries = _maximum_tries or 1
         self.error_callback = functools.partial(_error_callback, **kwargs)
 
     def _should_retry(self):
-        return self.has_error and self.attempt < self.maximum_tries
+        return self._error is not NO_DEFAULT and self.attempt < self.maximum_tries
 
     @property
-    def has_error():
-        return self.last_error is not NO_DEFAULT
+    def error(self):
+        if self._error is NO_DEFAULT:
+            return None
+        return self._error
+
+    @error.setter
+    def error(self, value):
+        self._error = value
 
     def __iter__(self):
         while self._should_retry():
-            self.last_error = NO_DEFAULT
+            self.error = NO_DEFAULT
             self.attempt += 1
             yield self
-            if self.has_error:
-                self.error_callback(self.last_error, self.attempt, self.maximum_tries)
+            if self.error:
+                self.error_callback(self.error, self.attempt, self.maximum_tries)
 
 
 # Deprecated

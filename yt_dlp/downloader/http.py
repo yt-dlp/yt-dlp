@@ -367,10 +367,10 @@ class HttpFD(FileDownloader):
                 establish_connection()
                 return download()
             except RetryDownload as err:
-                retry.last_error = err.source_error
+                retry.error = err.source_error
                 continue
             except NextFragment:
-                retry.last_error = None
+                retry.error = None
                 retry.attempt -= 1
                 continue
             except SucceedDownload:

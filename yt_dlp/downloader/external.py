@@ -148,9 +148,9 @@ class ExternalFD(FragmentFD):
             # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
             if stderr:
                 self.to_stderr(stderr)
-            retry.last_error = Exception()
+            retry.error = Exception()
             continue
-        if not skip_unavailable_fragments and retry_manager.has_error:
+        if not skip_unavailable_fragments and retry_manager.error:
             return -1
 
         decrypt_fragment = self.decrypter(info_dict)
