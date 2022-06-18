@@ -235,16 +235,12 @@ jobs:
           python3 devscripts/make_lazy_extractors.py
     - name: Build
       run: |
-          python3 pyinst.py --onedir
-          (cd ./dist/yt-dlp_macos && zip -r ../yt-dlp_macos.zip .)
           python3 pyinst.py
     - name: Get SHA2-SUMS
       id: get_sha
       run: |
           echo "::set-output name=sha256_macos::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
           echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
-          echo "::set-output name=sha256_macos_zip::$(sha256sum dist/yt-dlp_macos.zip | awk '{print $1}')"
-          echo "::set-output name=sha512_macos_zip::$(sha512sum dist/yt-dlp_macos.zip | awk '{print $1}')"
 
     - name: Upload standalone binary
       uses: actions/upload-release-asset@v1
@@ -255,15 +251,6 @@ jobs:
         asset_path: ./dist/yt-dlp_macos
         asset_name: yt-dlp_macos_legacy
         asset_content_type: application/octet-stream
-    - name: Upload onedir binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ needs.create_release.outputs.upload_url }}
-        asset_path: ./dist/yt-dlp_macos.zip
-        asset_name: yt-dlp_macos_legacy.zip
-        asset_content_type: application/zip
 
 
 
