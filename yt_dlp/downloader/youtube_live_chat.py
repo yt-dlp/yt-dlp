@@ -128,7 +128,7 @@ class YoutubeLiveChatFD(FragmentFD):
                     func = (info_dict['protocol'] == 'youtube_live_chat' and parse_actions_live
                             or frag_index == 1 and try_refresh_replay_beginning
                             or parse_actions_replay)
-                    return True, *func(live_chat_continuation)
+                    return (True, *func(live_chat_continuation))
                 except compat_urllib_error.HTTPError as err:
                     retry.last_error = err
                     continue
