@@ -15,7 +15,7 @@ class LastFMPlaylistBaseIE(InfoExtractor):
         for page_number in range(start_page_number, (last_page_number or start_page_number) + 1):
             webpage = self._download_webpage(
                 url, playlist_id,
-                note='Downloading page %d%s' % (page_number, format_field(last_page_number, template=' of %d')),
+                note='Downloading page %d%s' % (page_number, format_field(last_page_number, None, ' of %d')),
                 query={'page': page_number})
             page_entries = [
                 self.url_result(player_url, 'Youtube')

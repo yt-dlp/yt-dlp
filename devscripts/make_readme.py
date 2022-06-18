@@ -11,6 +11,7 @@ README_FILE = 'README.md'
 OPTIONS_START = 'General Options:'
 OPTIONS_END = 'CONFIGURATION'
 EPILOG_START = 'See full documentation'
+ALLOWED_OVERSHOOT = 2
 
 DISABLE_PATCH = object()
 
@@ -28,6 +29,7 @@ def apply_patch(text, patch):
 
 options = take_section(sys.stdin.read(), f'\n  {OPTIONS_START}', f'\n{EPILOG_START}', shift=1)
 
+max_width = max(map(len, options.split('\n')))
 switch_col_width = len(re.search(r'(?m)^\s{5,}', options).group())
 delim = f'\n{" " * switch_col_width}'
 
@@ -43,6 +45,12 @@ PATCHES = (
     (  # Do not split "words"
         rf'(?m)({delim}\S+)+$',
         lambda mobj: ''.join((delim, mobj.group(0).replace(delim, '')))
+    ),
+    (  # Allow overshooting last line
+        rf'(?m)^(?P<prev>.+)${delim}(?P<current>.+)$(?!{delim})',
+        lambda mobj: (mobj.group().replace(delim, ' ')
+                      if len(mobj.group()) - len(delim) + 1 <= max_width + ALLOWED_OVERSHOOT
+                      else mobj.group())
     ),
     (  # Avoid newline when a space is available b/w switch and description
         DISABLE_PATCH,  # This creates issues with prepare_manpage
