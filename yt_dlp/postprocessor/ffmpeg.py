@@ -239,7 +239,8 @@ class FFmpegPostProcessor(PostProcessor):
                     encodeArgument('-i')]
             cmd.append(encodeFilename(self._ffmpeg_filename_argument(path), True))
             self.write_debug(f'{self.basename} command line: {shell_quote(cmd)}')
-            stdout, stderr, returncode = Popen.run(cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr, returncode = Popen.run(
+                cmd, text=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if returncode != (0 if self.probe_available else 1):
                 return None
         except OSError:
@@ -343,7 +344,8 @@ class FFmpegPostProcessor(PostProcessor):
                 for i, (path, opts) in enumerate(path_opts) if path)
 
         self.write_debug('ffmpeg command line: %s' % shell_quote(cmd))
-        stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+        _, stderr, returncode = Popen.run(
+            cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         if returncode not in variadic(expected_retcodes):
             raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
         for out_path, _ in output_path_opts:
