@@ -273,7 +273,7 @@ class IsmFD(FragmentFD):
                     retry.last_error = err
                     continue
 
-            if retry_manager.last_error:
+            if retry_manager.has_error:
                 if not skip_unavailable_fragments:
                     return False
                 self.report_skip_fragment(frag_index)

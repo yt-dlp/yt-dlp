@@ -5577,14 +5577,18 @@ class RetryManager:
         self.error_callback = functools.partial(_error_callback, **kwargs)
 
     def _should_retry(self):
-        return self.last_error is not NO_DEFAULT and self.attempt < self.maximum_tries
+        return self.has_error and self.attempt < self.maximum_tries
+
+    @property
+    def has_error():
+        return self.last_error is not NO_DEFAULT
 
     def __iter__(self):
         while self._should_retry():
             self.last_error = NO_DEFAULT
             self.attempt += 1
             yield self
-            if self.last_error is not NO_DEFAULT:
+            if self.has_error:
                 self.error_callback(self.last_error, self.attempt, self.maximum_tries)
 
 

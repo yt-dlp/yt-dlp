@@ -141,17 +141,16 @@ class ExternalFD(FragmentFD):
         retry_manager = RetryManager(self.params.get('fragment_retries'), self.report_retry,
                                      frag_index=None, fatal=not skip_unavailable_fragments)
         for retry in retry_manager:
-            with retry:
-                _, stderr, returncode = Popen.run(cmd, text=True, stderr=subprocess.PIPE)
-                if not returncode:
-                    break
-                # TODO: Decide whether to retry based on error code
-                # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
-                if stderr:
-                    self.to_stderr(stderr)
-                retry.last_error = Exception()
-                continue
-        if not skip_unavailable_fragments and retry_manager.last_error:
+            _, stderr, returncode = Popen.run(cmd, text=True, stderr=subprocess.PIPE)
+            if not returncode:
+                break
+            # TODO: Decide whether to retry based on error code
+            # https://aria2.github.io/manual/en/html/aria2c.html#exit-status
+            if stderr:
+                self.to_stderr(stderr)
+            retry.last_error = Exception()
+            continue
+        if not skip_unavailable_fragments and retry_manager.has_error:
             return -1
 
         decrypt_fragment = self.decrypter(info_dict)
