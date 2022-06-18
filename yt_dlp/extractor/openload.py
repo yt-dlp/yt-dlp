@@ -216,10 +216,10 @@ class PhantomJSwrapper:
             [self.exe, '--ssl-protocol=any', self._TMP_FILES['script'].name],
             text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if returncode:
-            raise ExtractorError(f'Executing JS failed\n:{stderr}')
+            raise ExtractorError(f'Executing JS failed:\n{stderr}')
         with open(self._TMP_FILES['html'].name, 'rb') as f:
             html = f.read().decode('utf-8')
 
         self._load_cookies()
 
-        return (html, stdout)
+        return html, stdout
