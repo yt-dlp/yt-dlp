@@ -239,8 +239,8 @@ jobs:
     - name: Get SHA2-SUMS
       id: get_sha
       run: |
-          echo "::set-output name=sha256_macos::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
-          echo "::set-output name=sha512_macos::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
+          echo "::set-output name=sha256_macos_legacy::$(sha256sum dist/yt-dlp_macos | awk '{print $1}')"
+          echo "::set-output name=sha512_macos_legacy::$(sha512sum dist/yt-dlp_macos | awk '{print $1}')"
 
     - name: Upload standalone binary
       uses: actions/upload-release-asset@v1
@@ -370,7 +370,7 @@ jobs:
 
   finish:
     runs-on: ubuntu-latest
-    needs: [create_release, build_unix, build_windows, build_windows32, build_macos]
+    needs: [create_release, build_unix, build_windows, build_windows32, build_macos, build_macos_legacy]
 
     steps:
     - name: Make SHA2-SUMS files
@@ -383,6 +383,7 @@ jobs:
         echo "${{ needs.build_windows.outputs.sha256_win_zip }}  yt-dlp_win.zip" >> SHA2-256SUMS
         echo "${{ needs.build_macos.outputs.sha256_macos }}  yt-dlp_macos" >> SHA2-256SUMS
         echo "${{ needs.build_macos.outputs.sha256_macos_zip }}  yt-dlp_macos.zip" >> SHA2-256SUMS
+        echo "${{ needs.build_macos_legacy.outputs.sha256_macos_legacy }}  yt-dlp_macos" >> SHA2-256SUMS
         echo "${{ needs.build_unix.outputs.sha512_bin }}  yt-dlp" >> SHA2-512SUMS
         echo "${{ needs.build_unix.outputs.sha512_tar }}  yt-dlp.tar.gz" >> SHA2-512SUMS
         echo "${{ needs.build_windows.outputs.sha512_win }}  yt-dlp.exe" >> SHA2-512SUMS
@@ -391,6 +392,7 @@ jobs:
         echo "${{ needs.build_windows.outputs.sha512_win_zip }}  yt-dlp_win.zip" >> SHA2-512SUMS
         echo "${{ needs.build_macos.outputs.sha512_macos }}  yt-dlp_macos" >> SHA2-512SUMS
         echo "${{ needs.build_macos.outputs.sha512_macos_zip }}  yt-dlp_macos.zip" >> SHA2-512SUMS
+        echo "${{ needs.build_macos_legacy.outputs.sha512_macos_legacy }}  yt-dlp_macos" >> SHA2-512SUMS
 
     - name: Upload SHA2-256SUMS file
       uses: actions/upload-release-asset@v1
