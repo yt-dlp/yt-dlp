@@ -1,5 +1,6 @@
 import contextlib
 import errno
+import functools
 import os
 import random
 import re
@@ -16,6 +17,7 @@ from ..utils import (
     NUMBER_RE,
     LockingUnsupportedError,
     Namespace,
+    RetryManager,
     classproperty,
     decodeArgument,
     encodeFilename,
@@ -217,24 +219,28 @@ class FileDownloader:
 
     def wrap_file_access(action, *, fatal=False):
         def outer(func):
+            @functools.wraps(func)
             def inner(self, *args, **kwargs):
-                file_access_retries = self.params.get('file_access_retries', 0)
-                retry = 0
-                while True:
+                def error_callback(err, count, retries):
+                    if count >= retries:
+                        if fatal:
+                            raise err
+                        self.report_error(f'unable to {action} file: {err}')
+                        return
+
+                    self.to_screen(f'[download] Unable to {action} file due to file access error. '
+                                   f'Retrying (attempt {count + 1} of {self.format_retries(retries)}) ...')
+                    if not self.sleep_retry('file_access', retry):
+                        time.sleep(0.01)
+
+                for retry in RetryManager(self.params.get('file_access_retries'), error_callback):
                     try:
                         return func(self, *args, **kwargs)
                     except OSError as err:
-                        retry = retry + 1
-                        if retry > file_access_retries or err.errno not in (errno.EACCES, errno.EINVAL):
-                            if not fatal:
-                                self.report_error(f'unable to {action} file: {err}')
-                                return
-                            raise
-                        self.to_screen(
-                            f'[download] Unable to {action} file due to file access error. '
-                            f'Retrying (attempt {retry} of {self.format_retries(file_access_retries)}) ...')
-                        if not self.sleep_retry('file_access', retry):
-                            time.sleep(0.01)
+                        if err.errno in (errno.EACCES, errno.EINVAL):
+                            retry.error = err
+                            continue
+                        raise
             return inner
         return outer
 
