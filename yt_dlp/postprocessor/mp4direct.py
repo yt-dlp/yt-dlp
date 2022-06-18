@@ -24,22 +24,7 @@ class MP4FixupTimestampPP(PostProcessor):
         """ returns (baseMediaDecodeTime offset, sample duration cutoff) """
         smallest_bmdt, known_sdur = inf, set()
         with open(filepath, 'rb') as r:
-            moov_over, in_secondary_moov = False, False
             for btype, content in parse_mp4_boxes(r):
-                # skip duplicate MOOV boxes
-                if btype == 'moov':
-                    if moov_over:
-                        in_secondary_moov = True
-                        continue
-                elif btype is None and content == 'moov':
-                    in_secondary_moov = False
-
-                    if moov_over:
-                        continue
-                    moov_over = True
-                elif in_secondary_moov:
-                    continue
-
                 if btype == 'tfdt':
                     version, _ = unpack_ver_flags(content[0:4])
                     # baseMediaDecodeTime always comes to the first
@@ -79,7 +64,21 @@ class MP4FixupTimestampPP(PostProcessor):
     def modify_mp4(self, src, dst, bmdt_offset, sdur_cutoff):
         with open(src, 'rb') as r, open(dst, 'wb') as w:
             def converter():
+                moov_over, in_secondary_moov = False, False
                 for btype, content in parse_mp4_boxes(r):
+                    # skip duplicate MOOV boxes
+                    if btype == 'moov':
+                        if moov_over:
+                            in_secondary_moov = True
+                            continue
+                    elif btype is None and content == 'moov':
+                        in_secondary_moov = False
+
+                        if moov_over:
+                            continue
+                        moov_over = True
+                    elif in_secondary_moov:
+                        continue
                     if btype == 'tfdt':
                         version, _ = unpack_ver_flags(content[0:4])
                         if version == 0:
