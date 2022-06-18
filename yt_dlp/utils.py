@@ -5561,6 +5561,33 @@ class Namespace(types.SimpleNamespace):
         return self.__dict__.items()
 
 
+class RetryManager:
+    """Usage:
+        for retry in RetryManager(...):
+            try:
+                ...
+            except SomeException as err:
+                retry.last_error = err
+                continue
+    """
+    attempt, last_error = 0, None
+
+    def __init__(self, _maximum_tries, _error_callback, **kwargs):
+        self.maximum_tries = _maximum_tries or 1
+        self.error_callback = functools.partial(_error_callback, **kwargs)
+
+    def _should_retry(self):
+        return self.last_error is not NO_DEFAULT and self.attempt < self.maximum_tries
+
+    def __iter__(self):
+        while self._should_retry():
+            self.last_error = NO_DEFAULT
+            self.attempt += 1
+            yield self
+            if self.last_error is not NO_DEFAULT:
+                self.error_callback(self.last_error, self.attempt, self.maximum_tries)
+
+
 # Deprecated
 has_certifi = bool(certifi)
 has_websockets = bool(websockets)

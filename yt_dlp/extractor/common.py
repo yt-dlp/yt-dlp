@@ -37,6 +37,7 @@ from ..utils import (
     GeoUtils,
     LenientJSONDecoder,
     RegexNotFoundError,
+    RetryManager,
     UnsupportedError,
     age_restricted,
     base_url,
@@ -65,6 +66,7 @@ from ..utils import (
     parse_iso8601,
     parse_m3u8_attributes,
     parse_resolution,
+    remove_end,
     sanitize_filename,
     sanitized_Request,
     str_or_none,
@@ -3792,6 +3794,17 @@ class InfoExtractor:
             return False
         self.to_screen(f'Downloading {playlist_label}{playlist_id} - add --no-playlist to download just the {video_label}{video_id}')
         return True
+
+    def _error_or_warning(self, e, count=None, retries=None, *, fatal=True):
+        if count and count < retries:
+            self.report_warning('%s. Retrying ...' % remove_end(e.cause or e.orig_msg, '.'))
+        elif fatal:
+            raise e
+        else:
+            return self.report_warning(e)
+
+    def RetryManager(self, **kwargs):
+        return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
 
 
 class SearchInfoExtractor(InfoExtractor):

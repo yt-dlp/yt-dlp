@@ -5,15 +5,16 @@ import json
 import math
 import os
 import time
+import urllib.error
 
 from .common import FileDownloader
 from .http import HttpFD
 from ..aes import aes_cbc_decrypt_bytes, unpad_pkcs7
-from ..compat import compat_os_name, compat_struct_pack, compat_urllib_error
+from ..compat import compat_os_name, compat_struct_pack
 from ..utils import (
     DownloadError,
+    RetryManager,
     encodeFilename,
-    error_to_compat_str,
     sanitized_Request,
     traverse_obj,
 )
@@ -63,10 +64,9 @@ class FragmentFD(FileDownloader):
     """
 
     def report_retry_fragment(self, err, frag_index, count, retries):
-        self.to_screen(
-            '\r[download] Got server HTTP error: %s. Retrying fragment %d (attempt %d of %s) ...'
-            % (error_to_compat_str(err), frag_index, count, self.format_retries(retries)))
-        self.sleep_retry('fragment', count)
+        self.deprecation_warning(
+            'yt_dlp.downloader.FragmentFD.report_retry_fragment is deprecated. Use yt_dlp.downloader.FileDownloader.report_retry instead')
+        return self.report_retry(err, count, retries, frag_index)
 
     def report_skip_fragment(self, frag_index, err=None):
         err = f' {err};' if err else ''
@@ -345,6 +345,8 @@ class FragmentFD(FileDownloader):
             return _key_cache[url]
 
         def decrypt_fragment(fragment, frag_content):
+            if frag_content is None:
+                return
             decrypt_info = fragment.get('decrypt_info')
             if not decrypt_info or decrypt_info['METHOD'] != 'AES-128':
                 return frag_content
@@ -430,7 +432,6 @@ class FragmentFD(FileDownloader):
         if not interrupt_trigger:
             interrupt_trigger = (True, )
 
-        fragment_retries = self.params.get('fragment_retries', 0)
         is_fatal = (
             ((lambda _: False) if info_dict.get('is_live') else (lambda idx: idx == 0))
             if self.params.get('skip_unavailable_fragments', True) else (lambda _: True))
@@ -450,32 +451,25 @@ class FragmentFD(FileDownloader):
                 headers['Range'] = 'bytes=%d-%d' % (byte_range['start'], byte_range['end'] - 1)
 
             # Never skip the first fragment
-            fatal, count = is_fatal(fragment.get('index') or (frag_index - 1)), 0
-            while count <= fragment_retries:
+            fatal = is_fatal(fragment.get('index') or (frag_index - 1))
+
+            def error_callback(err, count, retries):
+                if fatal and count >= retries:
+                    ctx['dest_stream'].close()
+                self.report_retry(err, count, retries, frag_index, fatal)
+                ctx['last_error'] = err
+
+            for retry in RetryManager(self.params.get('fragment_retries'), error_callback):
                 try:
                     ctx['fragment_count'] = fragment.get('fragment_count')
-                    if self._download_fragment(ctx, fragment['url'], info_dict, headers):
-                        break
-                    return
-                except (compat_urllib_error.HTTPError, http.client.IncompleteRead) as err:
-                    # Unavailable (possibly temporary) fragments may be served.
-                    # First we try to retry then either skip or abort.
-                    # See https://github.com/ytdl-org/youtube-dl/issues/10165,
-                    # https://github.com/ytdl-org/youtube-dl/issues/10448).
-                    count += 1
-                    ctx['last_error'] = err
-                    if count <= fragment_retries:
-                        self.report_retry_fragment(err, frag_index, count, fragment_retries)
-                except DownloadError:
-                    # Don't retry fragment if error occurred during HTTP downloading
-                    # itself since it has own retry settings
-                    if not fatal:
-                        break
-                    raise
-
-            if count > fragment_retries and fatal:
-                ctx['dest_stream'].close()
-                self.report_error('Giving up after %s fragment retries' % fragment_retries)
+                    if not self._download_fragment(ctx, fragment['url'], info_dict, headers):
+                        return
+                except (urllib.error.HTTPError, http.client.IncompleteRead) as err:
+                    retry.last_error = err
+                    continue
+                except DownloadError:  # has own retry settings
+                    if fatal:
+                        raise
 
         def append_fragment(frag_content, frag_index, ctx):
             if frag_content:

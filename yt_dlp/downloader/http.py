@@ -8,6 +8,7 @@ from .common import FileDownloader
 from ..compat import compat_http_client, compat_urllib_error
 from ..utils import (
     ContentTooShortError,
+    RetryManager,
     ThrottledDownload,
     XAttrMetadataError,
     XAttrUnavailableError,
@@ -70,9 +71,6 @@ class HttpFD(FileDownloader):
                     encodeFilename(ctx.tmpfilename))
 
         ctx.is_resume = ctx.resume_len > 0
-
-        count = 0
-        retries = self.params.get('retries', 0)
 
         class SucceedDownload(Exception):
             pass
@@ -345,9 +343,7 @@ class HttpFD(FileDownloader):
 
             if data_len is not None and byte_counter != data_len:
                 err = ContentTooShortError(byte_counter, int(data_len))
-                if count <= retries:
-                    retry(err)
-                raise err
+                retry(err)
 
             self.try_rename(ctx.tmpfilename, ctx.filename)
 
@@ -366,21 +362,17 @@ class HttpFD(FileDownloader):
 
             return True
 
-        while count <= retries:
+        for retry in RetryManager(self.params.get('retries'), self.report_retry):
             try:
                 establish_connection()
                 return download()
-            except RetryDownload as e:
-                count += 1
-                if count <= retries:
-                    self.report_retry(e.source_error, count, retries)
-                else:
-                    self.to_screen(f'[download] Got server HTTP error: {e.source_error}')
+            except RetryDownload as err:
+                retry.last_error = err.source_error
                 continue
             except NextFragment:
+                retry.last_error = None
+                retry.attempt -= 1
                 continue
             except SucceedDownload:
                 return True
-
-        self.report_error('giving up after %s retries' % retries)
         return False

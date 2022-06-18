@@ -12,15 +12,16 @@ from ..minicurses import (
     QuietMultilinePrinter,
 )
 from ..utils import (
+    NO_DEFAULT,
     NUMBER_RE,
     LockingUnsupportedError,
     Namespace,
     classproperty,
     decodeArgument,
     encodeFilename,
-    error_to_compat_str,
     float_or_none,
     format_bytes,
+    format_field,
     join_nonempty,
     sanitize_open,
     shell_quote,
@@ -378,12 +379,20 @@ class FileDownloader:
         """Report attempt to resume at given byte."""
         self.to_screen('[download] Resuming download at byte %s' % resume_len)
 
-    def report_retry(self, err, count, retries):
-        """Report retry in case of HTTP error 5xx"""
+    def report_retry(self, err, count, retries, frag_index=NO_DEFAULT, fatal=True):
+        """Report retry"""
+        type = ' fragment'
+        if frag_index is NO_DEFAULT:
+            frag_index, type = '', ''
+        if count >= retries:
+            if fatal:
+                self.report_error(f'[download] Got error: {err}. giving up after {count}{type} retries')
+            return
         self.__to_screen(
-            '[download] Got server HTTP error: %s. Retrying (attempt %d of %s) ...'
-            % (error_to_compat_str(err), count, self.format_retries(retries)))
-        self.sleep_retry('http', count)
+            f'\r[download] Got error{format_field(str(err), None, ": %s")}. '
+            f'Retrying{type}{"s" if frag_index is None else f" {frag_index}"} '
+            f'(attempt {count} of {self.format_retries(retries)}) ...')
+        self.sleep_retry(type.strip() or 'http', count)
 
     def report_unable_to_resume(self):
         """Report it was impossible to resume download."""
