@@ -472,7 +472,6 @@ class PornHubIE(PornHubBaseIE):
         self._sort_formats(
             formats, field_preference=('height', 'width', 'fps', 'format_id'))
 
-       
         model_profile = self._search_json(
             r'var\s+MODEL_PROFILE\s*=', webpage, 'model profile', video_id, fatal=False)
         video_uploader = self._html_search_regex(
