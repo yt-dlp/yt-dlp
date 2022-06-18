@@ -216,7 +216,7 @@ jobs:
     - name: Install Python
       # We need the official Python, because the GA ones only support newer macOS versions
       env:
-        PYTHON_VERSION: 3.9.1
+        PYTHON_VERSION: 3.10.5
         MACOSX_DEPLOYMENT_TARGET: 10.9  # Used up by the Python build tools
       # Need to copy the pkg because the installer command removes it, breaking the cache
       run: |
