@@ -3555,7 +3555,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
             'uploader_url': owner_profile_url,
             'channel_id': channel_id,
-            'channel_url': format_field(channel_id, template='https://www.youtube.com/channel/%s'),
+            'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s'),
             'duration': duration,
             'view_count': int_or_none(
                 get_first((video_details, microformats), (..., 'viewCount'))
@@ -3625,7 +3625,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if 'translated_subs' in self._configuration_arg('skip'):
                             continue
                         trans_code += f'-{lang_code}'
-                        trans_name += format_field(lang_name, template=' from %s')
+                        trans_name += format_field(lang_name, None, ' from %s')
                     # Add an "-orig" label to the original language so that it can be distinguished.
                     # The subs are returned without "-orig" as well for compatibility
                     if lang_code == f'a-{orig_trans_code}':

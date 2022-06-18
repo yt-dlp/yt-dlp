@@ -909,7 +909,7 @@ class InfoExtractor:
             dump = base64.b64encode(webpage_bytes).decode('ascii')
             self._downloader.to_screen(dump)
         if self.get_param('write_pages'):
-            filename = self._request_dump_filename(video_id, urlh.geturl())
+            filename = self._request_dump_filename(urlh.geturl(), video_id)
             self.to_screen(f'Saving request to {filename}')
             with open(filename, 'wb') as outf:
                 outf.write(webpage_bytes)
@@ -940,7 +940,7 @@ class InfoExtractor:
             if fatal:
                 raise ExtractorError(errmsg, cause=ve)
             else:
-                self.report_warning(errmsg + str(ve))
+                self.report_warning(f'{errmsg}: {ve}')
 
     def _parse_socket_response_as_json(self, data, video_id, transform_source=None, fatal=True):
         return self._parse_json(
@@ -1050,7 +1050,7 @@ class InfoExtractor:
                 self._sleep(timeout, video_id)
 
     def report_warning(self, msg, video_id=None, *args, only_once=False, **kwargs):
-        idstr = format_field(video_id, template='%s: ')
+        idstr = format_field(video_id, None, '%s: ')
         msg = f'[{self.IE_NAME}] {idstr}{msg}'
         if only_once:
             if f'WARNING: {msg}' in self._printed_messages:
@@ -1096,7 +1096,7 @@ class InfoExtractor:
                 self.get_param('ignore_no_formats_error') or self.get_param('wait_for_video')):
             self.report_warning(msg)
             return
-        msg += format_field(self._login_hint(method), template='. %s')
+        msg += format_field(self._login_hint(method), None, '. %s')
         raise ExtractorError(msg, expected=True)
 
     def raise_geo_restricted(
