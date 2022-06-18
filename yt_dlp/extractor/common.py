@@ -3797,7 +3797,8 @@ class InfoExtractor:
 
     def _error_or_warning(self, e, count=None, retries=None, *, fatal=True):
         if count and count < retries:
-            self.report_warning('%s. Retrying ...' % remove_end(e.cause or e.orig_msg, '.'))
+            self.report_warning(f'{remove_end(e.cause or e.orig_msg, ".")}. '
+                                f'Retrying (attempt {count + 1} of {retries}) ...')
         elif fatal:
             raise e
         else:

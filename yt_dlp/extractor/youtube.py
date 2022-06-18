@@ -772,11 +772,10 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
             try:
                 response = self._call_api(
                     ep=ep, fatal=True, headers=headers,
-                    video_id=item_id, query=query,
+                    video_id=item_id, query=query, note=note,
                     context=self._extract_context(ytcfg, default_client),
                     api_key=self._extract_api_key(ytcfg, default_client),
-                    api_hostname=api_hostname, default_client=default_client,
-                    note='%s%s' % (note, format_field(retry.attempt, None, ' (retry #%d)')))
+                    api_hostname=api_hostname, default_client=default_client)
             except ExtractorError as e:
                 if not isinstance(e.cause, network_exceptions):
                     return self._error_or_warning(e, fatal=fatal)
@@ -4440,9 +4439,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
         webpage, data = None, None
         for retry in self.RetryManager(fatal=fatal):
             try:
-                webpage = self._download_webpage(
-                    url, item_id,
-                    note='Downloading webpage%s' % format_field(retry.attempt, None, ' (retry #%d)'))
+                webpage = self._download_webpage(url, item_id, note='Downloading webpage')
                 data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):

@@ -640,8 +640,7 @@ class TikTokUserIE(TikTokBaseIE):
             for retry in self.RetryManager():
                 try:
                     post_list = self._call_api(
-                        'aweme/post', query, username, note='Downloading user video list page %d%s' % (
-                            page, format_field(retry.attempt, None, ' (attempt %d)')),
+                        'aweme/post', query, username, note=f'Downloading user video list page {page}',
                         errnote='Unable to download user video list')
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:
@@ -689,8 +688,7 @@ class TikTokBaseListIE(TikTokBaseIE):
             for retry in self.RetryManager():
                 try:
                     post_list = self._call_api(
-                        self._API_ENDPOINT, query, display_id, note='Downloading video list page %d%s' % (
-                            page, format_field(retry.attempt, None, ' (attempt %d)')),
+                        self._API_ENDPOINT, query, display_id, note=f'Downloading video list page {page}',
                         errnote='Unable to download video list')
                 except ExtractorError as e:
                     if isinstance(e.cause, json.JSONDecodeError) and e.cause.pos == 0:

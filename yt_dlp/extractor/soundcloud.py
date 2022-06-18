@@ -671,7 +671,7 @@ class SoundcloudPagedPlaylistBaseIE(SoundcloudBaseIE):
                 try:
                     response = self._download_json(
                         url, playlist_id, query=query, headers=self._HEADERS,
-                        note='Downloading track page %s%s' % (i + 1, format_field(retry.attempt, None, ' (retry #%s)')))
+                        note=f'Downloading track page {i + 1}')
                     break
                 except ExtractorError as e:
                     # Downloading page may result in intermittent 502 HTTP error

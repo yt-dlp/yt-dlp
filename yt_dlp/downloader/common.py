@@ -391,7 +391,7 @@ class FileDownloader:
         self.__to_screen(
             f'\r[download] Got error{format_field(str(err), None, ": %s")}. '
             f'Retrying{type}{"s" if frag_index is None else f" {frag_index}"} '
-            f'(attempt {count} of {self.format_retries(retries)}) ...')
+            f'(attempt {count + 1} of {self.format_retries(retries)}) ...')
         self.sleep_retry(type.strip() or 'http', count)
 
     def report_unable_to_resume(self):
