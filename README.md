@@ -833,6 +833,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     (Alias: --write-automatic-subs)
     --no-write-auto-subs            Do not write auto-generated subtitles
                                     (default) (Alias: --no-write-automatic-subs)
+    --embed-subs                    Embed subtitle file into output file
     --list-subs                     List available subtitles of each video.
                                     Simulate unless --no-simulate is used
     --sub-format FORMAT             Subtitle format; accepts formats preference,
