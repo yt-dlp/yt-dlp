@@ -65,8 +65,7 @@ class FoxNewsIE(AMPIE):
                     <(?:script|(?:amp-)?iframe)[^>]+\bsrc=["\']
                     (?:https?:)?//video\.foxnews\.com/v/(?:video-embed\.html|embed\.js)\?
                     (?:[^>"\']+&)?(?:video_)?id=(?P<video_id>\d+)
-                ''',
-                webpage)]
+                ''', webpage)]
 
     def _real_extract(self, url):
         host, video_id = self._match_valid_url(url).groups()
