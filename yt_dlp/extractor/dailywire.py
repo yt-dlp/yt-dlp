@@ -37,7 +37,7 @@ class DailyWireIE(DailyWireBaseIE):
     }, {
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
         'info_dict': {
-            'id': 'cl355p7u74t900894oxp1bnae',
+            'id': 'cl0ngbaalplc80894sfdo9edf',
             'ext': 'mp4',
             'display_id': 'ep-124-bill-maher',
             'title': 'Ep. 125 - William Barr ',
@@ -94,7 +94,7 @@ class DailyWirePodcastIE(DailyWireBaseIE):
             'ext': 'm4a',
             'display_id': 'get-ready-for-recession-6-15-22',
             'title': 'Get Ready for Recession | 6.15.22',
-            'description': 'md5:fixme',
+            'description': 'md5:c4afbadda4e1c38a4496f6d62be55634',
             'thumbnail': 'https://daily-wire-production.imgix.net/podcasts/ckx4otgd71jm508699tzb6hf4-1639506575562.jpg',
         }
     }]
