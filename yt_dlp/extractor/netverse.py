@@ -2,11 +2,7 @@ import functools
 
 from .common import InfoExtractor
 from .dailymotion import DailymotionIE
-from ..utils import (
-    InAdvancePagedList,
-    smuggle_url,
-    traverse_obj,
-)
+from ..utils import InAdvancePagedList, smuggle_url, traverse_obj
 
 
 class NetverseBaseIE(InfoExtractor):
@@ -205,8 +201,8 @@ class NetversePlaylistIE(NetverseBaseIE):
                 number_of_pages, number_video_per_page)
 
     def _real_extract(self, url):
-        _, playlist_data = self._call_api(url)
+        playlist_id, playlist_data = self._call_api(url)
         return self.playlist_result(
-            self.parse_playlist(url, playlist_data['response'], _),
+            self.parse_playlist(url, playlist_data['response'], playlist_id),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'slug')),
             traverse_obj(playlist_data, ('response', 'webseries_info', 'title')))
