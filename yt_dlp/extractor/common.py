@@ -1192,18 +1192,28 @@ class InfoExtractor:
                      contains_pattern='(?s:.+)', fatal=True, default=NO_DEFAULT, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
-        has_default = default is not NO_DEFAULT
-        if not has_default:
-            default = {}
+        if default is NO_DEFAULT:
+            default, has_default = {}, False
+        else:
+            fatal, has_default = False, True
 
         json_string = self._search_regex(
-                rf'{start_pattern}\s*(?P<json>{{\s*{contains_pattern}\s*}})\s*{end_pattern}',
-                string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
+            rf'{start_pattern}\s*(?P<json>{{\s*{contains_pattern}\s*}})\s*{end_pattern}',
+            string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
         if not json_string:
             return default
 
-        ret = self._parse_json(json_string, video_id, fatal=fatal, ignore_extra=True, **kwargs)
-        return default is ret is None else ret
+        try:
+            return self._parse_json(json_string, video_id, ignore_extra=True, **kwargs)
+        except ExtractorError as e:
+            if fatal:
+                raise ExtractorError(
+                    f'Unable to extract {name} - Failed to parse JSON', cause=e.cause, video_id=video_id)
+            elif not has_default:
+                name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
+                self.report_warning(
+                    f'Unable to extract {name} - Failed to parse JSON: {e}', video_id=video_id)
+        return default
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
