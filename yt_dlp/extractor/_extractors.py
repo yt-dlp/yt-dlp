@@ -720,6 +720,7 @@ from .iwara import (
     IwaraPlaylistIE,
     IwaraUserIE,
 )
+from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
 from .jable import (
     JableIE,
@@ -918,6 +919,7 @@ from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
 )
+from .mirrorcouk import MirrorCoUKIE
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
 from .mixch import (
@@ -1041,6 +1043,10 @@ from .neteasemusic import (
     NetEaseMusicMvIE,
     NetEaseMusicProgramIE,
     NetEaseMusicDjRadioIE,
+)
+from .netverse import (
+    NetverseIE,
+    NetversePlaylistIE,
 )
 from .newgrounds import (
     NewgroundsIE,
@@ -1635,6 +1641,7 @@ from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
 from .stv import STVPlayerIE
+from .substack import SubstackIE
 from .sunporno import SunPornoIE
 from .sverigesradio import (
     SverigesRadioEpisodeIE,
