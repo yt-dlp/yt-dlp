@@ -1,17 +1,17 @@
-import itertools
 import hashlib
+import itertools
 import json
 import re
 import time
+import urllib.error
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-)
 from ..utils import (
     ExtractorError,
-    format_field,
+    decode_base,
+    encode_base_n,
     float_or_none,
+    format_field,
     get_element_by_attribute,
     int_or_none,
     lowercase_escape,
@@ -20,11 +20,19 @@ from ..utils import (
     traverse_obj,
     url_or_none,
     urlencode_postdata,
-    decode_base,
 )
 
-
 _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+
+
+def _pk_to_id(id):
+    """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
+    return encode_base_n(int(id.split('_')[0]), table=_ENCODING_CHARS)
+
+
+def _id_to_pk(shortcode):
+    """Covert a shortcode to a numeric value"""
+    return decode_base(shortcode[:11], _ENCODING_CHARS)
 
 
 class InstagramBaseIE(InfoExtractor):
@@ -218,22 +226,9 @@ class InstagramIOSIE(InfoExtractor):
         'add_ie': ['Instagram']
     }]
 
-    def _get_id(self, id):
-        """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-        media_id = int(id.split('_')[0])
-        shortened_id = ''
-        while media_id > 0:
-            r = media_id % 64
-            media_id = (media_id - r) // 64
-            shortened_id = _ENCODING_CHARS[r] + shortened_id
-        return shortened_id
-
     def _real_extract(self, url):
-        return {
-            '_type': 'url_transparent',
-            'url': f'http://instagram.com/tv/{self._get_id(self._match_id(url))}/',
-            'ie_key': 'Instagram',
-        }
+        video_id = _pk_to_id(self._match_id(url))
+        return self.url_result(f'http://instagram.com/tv/{video_id}', InstagramIE, video_id)
 
 
 class InstagramIE(InstagramBaseIE):
@@ -359,17 +354,10 @@ class InstagramIE(InstagramBaseIE):
         if mobj:
             return mobj.group('link')
 
-    def _get_pk(self, shortcode):
-        """Covert a shortcode to a numeric value."""
-        shortcode = shortcode[:11]
-        return decode_base(shortcode, _ENCODING_CHARS)
-
     def _real_extract(self, url):
         video_id, url = self._match_valid_url(url).group('id', 'url')
-        webpage, urlh = self._download_webpage_handle(url, video_id, errnote='Requested content was not found')
-        media_id = self._get_pk(video_id)
         info = self._download_json(
-            f'https://i.instagram.com/api/v1/media/{media_id}/info/', video_id, fatal=False,
+            f'https://i.instagram.com/api/v1/media/{_id_to_pk(video_id)}/info/', video_id, fatal=False,
             headers={
                 'Accept': '*',
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
@@ -380,12 +368,13 @@ class InstagramIE(InstagramBaseIE):
         if info:
             return self._extract_product(info['items'][0])
 
-        self.report_warning('The API is locked behind login. Trying with webpage extraction (Note that some metadata might be missing)', video_id)
+        self.report_warning('The API is locked behind login. '
+                            'Trying with webpage (Some metadata might be missing)', video_id)
+        webpage, urlh = self._download_webpage_handle(url, video_id, errnote='Requested content was not found')
+
         if 'www.instagram.com/accounts/login' in urlh.geturl():
-            self.report_warning(
-                'Main webpage is locked behind the login page. '
-                'Retrying with embed webpage (Note that some metadata might '
-                'be missing)', video_id)
+            self.report_warning('Main webpage is locked behind the login page. '
+                                'Trying with embed webpage (Some metadata might be missing)', video_id)
             webpage = self._download_webpage(
                 f'https://www.instagram.com/p/{video_id}/embed/',
                 video_id, note='Downloading embed webpage',
@@ -543,7 +532,7 @@ class InstagramPlaylistBaseIE(InstagramBaseIE):
                 except ExtractorError as e:
                     # if it's an error caused by a bad query, and there are
                     # more GIS templates to try, ignore it and keep trying
-                    if isinstance(e.cause, compat_HTTPError) and e.cause.code == 403:
+                    if isinstance(e.cause, urllib.error.HTTPError) and e.cause.code == 403:
                         if gis_tmpl != gis_tmpls[-1]:
                             continue
                     raise

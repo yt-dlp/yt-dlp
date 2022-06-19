@@ -4584,10 +4584,13 @@ def pkcs1pad(data, length):
     return [0, 2] + pseudo_random + [0] + data
 
 
-def encode_base_n(num, n, table=None):
+def encode_base_n(num, n=None, table=None):
     FULL_TABLE = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    assert n or table, 'Either table or n is required'
     if not table:
         table = FULL_TABLE[:n]
+    elif not n:
+        n = len(table)
 
     if n > len(table):
         raise ValueError('base %d exceeds table length %d' % (n, len(table)))
