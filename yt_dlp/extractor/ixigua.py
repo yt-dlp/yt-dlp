@@ -35,7 +35,9 @@ class IxiguaIE(InfoExtractor):
     def _get_json_data(self, webpage, video_id):
         js_data = get_element_by_id('SSR_HYDRATED_DATA', webpage)
         if not js_data:
-            raise ExtractorError('Failed to get SSR_HYDRATED_DATA')
+            if self._cookies_passed:
+                raise ExtractorError('Failed to get SSR_HYDRATED_DATA')
+            raise ExtractorError('Cookies (not necessarily logged in) are needed', expected=True)
 
         return self._parse_json(
             js_data.replace('window._SSR_HYDRATED_DATA=', ''), video_id, transform_source=js_to_json)
