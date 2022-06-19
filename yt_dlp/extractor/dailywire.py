@@ -76,7 +76,9 @@ class DailyWireIE(DailyWireBaseIE):
             'display_id': slug,
             'title': traverse_obj(episode_info, 'title', 'name'),
             'description': episode_info.get('description'),
-            'creator': join_nonempty('first_name', 'last_name', delim=' ', from_dict=episode_info),
+            'creator': join_nonempty(
+                traverse_obj('createdBy','first_name'), traverse_obj('createdBy','last_name'), 
+                delim=' ', from_dict=episode_info),
             'duration': float_or_none(episode_info.get('duration')),
             'is_live': episode_info.get('isLive'),
             'thumbnail': traverse_obj(episode_info, 'thumbnail', 'image', expected_type=url_or_none),
