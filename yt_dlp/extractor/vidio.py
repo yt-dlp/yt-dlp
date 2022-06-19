@@ -152,7 +152,7 @@ class VidioIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(video.get('created_at')),
             'uploader_id': username,
-            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
+            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
             'channel': channel.get('name'),
             'channel_id': str_or_none(channel.get('id')),
             'view_count': get_count('view_count'),
@@ -283,5 +283,5 @@ class VidioLiveIE(VidioBaseIE):
             'uploader': user.get('name'),
             'timestamp': parse_iso8601(stream_meta.get('start_time')),
             'uploader_id': username,
-            'uploader_url': format_field(username, template='https://www.vidio.com/@%s'),
+            'uploader_url': format_field(username, None, 'https://www.vidio.com/@%s'),
         }
