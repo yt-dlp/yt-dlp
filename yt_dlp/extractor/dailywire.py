@@ -32,6 +32,7 @@ class DailyWireIE(DailyWireBaseIE):
             'title': '1. Fauci',
             'description': 'Lee explores the history of the politics surrounding Covid-19, and reveals shocking details about both Anthony Fauci\'s role in hiding critical information from the American people as well as worrisome unanswered questions surrounding the origins of the virus.',
             'thumbnail': 'https://daily-wire-production.imgix.net/episodes/ckzsl50xnqpy30850in3v4bu7/ckzsl50xnqpy30850in3v4bu7-1648237399554.jpg',
+            'creator': 'Caroline Roberts',
         }
     }, {
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
