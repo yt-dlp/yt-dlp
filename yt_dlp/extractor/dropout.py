@@ -121,7 +121,7 @@ class DropoutIE(InfoExtractor):
         display_id = self._match_id(url)
 
         webpage = None
-        if self.self._get_cookies('https://www.dropout.tv').get('_session'):
+        if self._get_cookies('https://www.dropout.tv').get('_session'):
             webpage = self._download_webpage(url, display_id)
         if not webpage or '<div id="watch-unauthorized"' in webpage:
             login_err = self._login(display_id)
