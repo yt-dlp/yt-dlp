@@ -117,30 +117,18 @@ class DropoutIE(InfoExtractor):
         else:
             return 'Incorrect username/password'
 
-    def _has_session(self):
-        dropout_cookies = self._get_cookies('https://www.dropout.tv')
-        # This might be a signed out session, but in that case we will try to login
-        # later
-        dropout_cookie = dropout_cookies.get('_session')
-        if dropout_cookie:
-            self.to_screen('Found dropout session in cookie jar, will try to download with this session')
-        return bool(dropout_cookie)
-
     def _real_extract(self, url):
         display_id = self._match_id(url)
-        login_err, webpage = False, ''
-        try:
-            if not self._has_session():
-                login_err = self._login(display_id)
+
+        webpage = None
+        if self.self._get_cookies('https://www.dropout.tv').get('_session'):
             webpage = self._download_webpage(url, display_id)
-            if '<div id="watch-unauthorized"' in webpage:
-                self.to_screen('Reauthenticating to Dropout and retrying, because last _session cookie usage returned an error')
-                login_err = self._login(display_id)
-                webpage = self._download_webpage(url, display_id)
-        finally:
-            if '<div id="watch-unauthorized"' in webpage:
+        if not webpage or '<div id="watch-unauthorized"' in webpage:
+            login_err = self._login(display_id)
+            webpage = self._download_webpage(url, display_id)
+            if login_err and '<div id="watch-unauthorized"' in webpage:
                 if login_err is True:
-                    self.raise_login_required(method='password')
+                    self.raise_login_required(method='any')
                 raise ExtractorError(login_err, expected=True)
 
         embed_url = self._search_regex(r'embed_url:\s*["\'](.+?)["\']', webpage, 'embed url')
