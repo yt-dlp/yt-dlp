@@ -116,7 +116,7 @@ class MedalTVIE(InfoExtractor):
         author = try_get(
             hydration_data, lambda x: list(x['profiles'].values())[0], dict) or {}
         author_id = str_or_none(author.get('id'))
-        author_url = format_field(author_id, template='https://medal.tv/users/%s')
+        author_url = format_field(author_id, None, 'https://medal.tv/users/%s')
 
         return {
             'id': video_id,

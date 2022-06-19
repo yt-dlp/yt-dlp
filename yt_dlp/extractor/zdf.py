@@ -69,6 +69,7 @@ class ZDFBaseIE(InfoExtractor):
             f.update({
                 'url': format_url,
                 'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
+                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None))
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
@@ -108,7 +109,7 @@ class ZDFBaseIE(InfoExtractor):
                                 'class': track.get('class'),
                                 'language': track.get('language'),
                             })
-        self._sort_formats(formats, ('hasaud', 'res', 'quality', 'language_preference'))
+        self._sort_formats(formats, ('tbr', 'res', 'quality', 'language_preference'))
 
         duration = float_or_none(try_get(
             ptmd, lambda x: x['attributes']['duration']['value']), scale=1000)
@@ -187,7 +188,7 @@ class ZDFIE(ZDFBaseIE):
         },
     }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
-        'md5': '3d6f1049e9682178a11c54b91f3dd065',
+        'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
             'ext': 'mp4',
             'id': 'video_funk_1770473',
@@ -229,6 +230,19 @@ class ZDFIE(ZDFBaseIE):
             'duration': 3193.0,
             'timestamp': 1641355200,
             'upload_date': '20220105',
+        },
+        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"'
+    }, {
+        'url': 'https://www.zdf.de/serien/soko-stuttgart/das-geld-anderer-leute-100.html',
+        'info_dict': {
+            'id': '191205_1800_sendung_sok8',
+            'ext': 'mp4',
+            'title': 'Das Geld anderer Leute',
+            'description': 'md5:cb6f660850dc5eb7d1ab776ea094959d',
+            'duration': 2581.0,
+            'timestamp': 1654790700,
+            'upload_date': '20220609',
+            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/e2d7e55a-09f0-424e-ac73-6cac4dd65f35?layout=2400x1350',
         },
     }]
 
