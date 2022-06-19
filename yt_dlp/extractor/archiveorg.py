@@ -486,9 +486,9 @@ class YoutubeWebArchiveIE(InfoExtractor):
         search_meta = ((lambda x: self._html_search_meta(x, webpage, default=None)) if webpage else (lambda x: None))
         player_response = self._search_json(
             self._YT_INITIAL_PLAYER_RESPONSE_RE, webpage, 'initial player response',
-            video_id, fatal=False)
+            video_id, default={})
         initial_data = self._search_json(
-            self._YT_INITIAL_DATA_RE, webpage, 'initial data', video_id, fatal=False)
+            self._YT_INITIAL_DATA_RE, webpage, 'initial data', video_id, default={})
 
         initial_data_video = traverse_obj(
             initial_data, ('contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents', ..., 'videoPrimaryInfoRenderer'),
