@@ -1203,16 +1203,16 @@ class InfoExtractor:
         if not json_string:
             return default
 
+        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
         try:
             return self._parse_json(json_string, video_id, ignore_extra=True, **kwargs)
         except ExtractorError as e:
             if fatal:
                 raise ExtractorError(
-                    f'Unable to extract {name} - Failed to parse JSON', cause=e.cause, video_id=video_id)
+                    f'Unable to extract {_name} - Failed to parse JSON', cause=e.cause, video_id=video_id)
             elif not has_default:
-                name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
                 self.report_warning(
-                    f'Unable to extract {name} - Failed to parse JSON: {e}', video_id=video_id)
+                    f'Unable to extract {_name} - Failed to parse JSON: {e}', video_id=video_id)
         return default
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
