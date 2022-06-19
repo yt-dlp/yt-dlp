@@ -947,12 +947,11 @@ class BiliIntlIE(BiliIntlBaseIE):
         video_id = ep_id or aid
         webpage = self._download_webpage(url, video_id)
         # Bstation layout
-        initial_data = self._parse_json(self._search_regex(
-            r'window\.__INITIAL_(?:DATA|STATE)__\s*=\s*({.+?});', webpage,
-            'preload state', default='{}'), video_id, fatal=False) or {}
-        video_data = (
-            traverse_obj(initial_data, ('OgvVideo', 'epDetail'), expected_type=dict)
-            or traverse_obj(initial_data, ('UgcVideo', 'videoData'), expected_type=dict) or {})
+        initial_data = (
+            self._search_json(r'window\.__INITIAL_(?:DATA|STATE)__\s*=', webpage, 'preload state', video_id, default={})
+            or self._search_nuxt_data(webpage, video_id, '__initialState', fatal=False, traverse=None))
+        video_data = traverse_obj(
+            initial_data, ('OgvVideo', 'epDetail'), ('UgcVideo', 'videoData'), ('ugc', 'archive'), expected_type=dict)
 
         if season_id and not video_data:
             # Non-Bstation layout, read through episode list
@@ -960,7 +959,7 @@ class BiliIntlIE(BiliIntlBaseIE):
             video_data = traverse_obj(season_json,
                                       ('sections', ..., 'episodes', lambda _, v: str(v['episode_id']) == ep_id),
                                       expected_type=dict, get_all=False)
-        return self._extract_video_info(video_data, ep_id=ep_id, aid=aid)
+        return self._extract_video_info(video_data or {}, ep_id=ep_id, aid=aid)
 
 
 class BiliIntlSeriesIE(BiliIntlBaseIE):
