@@ -1731,8 +1731,8 @@ class YoutubeDL:
                 self._format_screen(i + 1, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
 
             if os.path.basename(os.getcwd()) != "NA":
-                Process=Popen('progressBar %s %s' % (str(i-1),str(n_entries),), shell=True)
-                Process=Popen('echo "%s" > posfile; echo "%s" >> posfile' % (str(i-1),str(n_entries),), shell=True)
+                Process=Popen('progressBar %s %s' % (str(i),str(n_entries),), shell=True)
+                Process=Popen('echo "%s" > posfile; echo "%s" >> posfile' % (str(i),str(n_entries),), shell=True)
 
             entry['__x_forwarded_for_ip'] = ie_result.get('__x_forwarded_for_ip')
             if not lazy and 'playlist-index' in self.params.get('compat_opts', []):
