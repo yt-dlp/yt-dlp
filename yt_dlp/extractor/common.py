@@ -1189,24 +1189,21 @@ class InfoExtractor:
             return None
 
     def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
-                     contains_pattern='.+', fatal=True, default=NO_DEFAULT, **kwargs):
+                     contains_pattern='(?s:.+)', fatal=True, default=NO_DEFAULT, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
-        match = self._search_regex(
-                rf'{start_pattern}\s*(?P<json>{{{contains_pattern}}})\s*{end_pattern}',
-                string, name, group='json', fatal=fatal,
-                default=None if default is not NO_DEFAULT else NO_DEFAULT)
+        has_default = default is not NO_DEFAULT
+        if not has_default:
+            default = {}
 
-        if not match:
-            return {} if default is NO_DEFAULT else default
-
-        json_match = self._parse_json(match,
-            video_id, fatal=fatal, ignore_extra=True, **kwargs)
-
-        if json_match is None and default is not NO_DEFAULT:
+        json_string = self._search_regex(
+                rf'{start_pattern}\s*(?P<json>{{\s*{contains_pattern}\s*}})\s*{end_pattern}',
+                string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
+        if not json_string:
             return default
 
-        return json_match or {}
+        ret = self._parse_json(json_string, video_id, fatal=fatal, ignore_extra=True, **kwargs)
+        return default is ret is None else ret
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
