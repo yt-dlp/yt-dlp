@@ -390,20 +390,21 @@ class RequestHandlerBroker:
                 except RequestError as e:
                     e.handler = handler
                     raise
-                except YoutubeDLError as e:
+                except Exception as e:
+                    # something went very wrong, try fallback to next handler
                     self.ydl.report_warning(
-                        f'Unexpected error from request handler: {type(e).__name__}: {e}' + bug_reports_message())
-                    raise
-            # Nested try-except since we want to catch RequestErrors with handler attached
+                        f'Unexpected error from "{handler.name}" request handler, trying another handler... (cause: {type(e).__name__}:{e})' + bug_reports_message())
+                    continue
             except UnsupportedRequest as e:
                 self.ydl.to_debugtraffic(
-                    f'{handler.name} request handler cannot handle this request, trying next handler... (reason: {e})')
+                    f'"{handler.name}" request handler cannot handle this request, trying another handler... (cause: {type(e).__name__}:{e})')
                 continue
 
+            # TODO: move this into backendRH?
             except SSLError as e:
                 for ssl_err_str in ('SSLV3_ALERT_HANDSHAKE_FAILURE', 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED'):
                     if ssl_err_str in str(e):
-                        raise YoutubeDLError(f'{ssl_err_str}: Try using --legacy-server-connect') from e
+                        raise RequestError(f'{ssl_err_str}: Try using --legacy-server-connect') from e
                 raise
 
             if not res:
