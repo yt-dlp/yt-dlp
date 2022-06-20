@@ -409,8 +409,9 @@ class RequestHandlerBroker:
                 continue
 
             except SSLError as e:
-                if 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
-                    raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect') from e
+                for ssl_err_str in ('SSLV3_ALERT_HANDSHAKE_FAILURE', 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED'):
+                    if ssl_err_str in str(e):
+                        raise YoutubeDLError(f'{ssl_err_str}: Try using --legacy-server-connect') from e
                 raise
 
             if not res:
