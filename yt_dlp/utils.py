@@ -940,10 +940,6 @@ class ProxyError(TransportError):
     pass
 
 
-class ContentDecodingError(TransportError):
-    pass
-
-
 network_exceptions = (HTTPError, TransportError)
 
 
