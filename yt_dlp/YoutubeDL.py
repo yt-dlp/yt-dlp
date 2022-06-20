@@ -769,6 +769,7 @@ class YoutubeDL:
 
     def add_post_processor(self, pp, when='post_process'):
         """Add a PostProcessor object to the end of the chain."""
+        assert when in POSTPROCESS_WHEN, f'Invalid when={when}'
         self._pps[when].append(pp)
         pp.set_downloader(self)
 
