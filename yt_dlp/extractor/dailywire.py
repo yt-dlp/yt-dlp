@@ -30,7 +30,7 @@ class DailyWireIE(DailyWireBaseIE):
             'ext': 'mp4',
             'display_id': '1-fauci',
             'title': '1. Fauci',
-            'description': 'Lee explores the history of the politics surrounding Covid-19, and reveals shocking details about both Anthony Fauci\'s role in hiding critical information from the American people as well as worrisome unanswered questions surrounding the origins of the virus.',
+            'description': 'md5:fixme',
             'thumbnail': 'https://daily-wire-production.imgix.net/episodes/ckzsl50xnqpy30850in3v4bu7/ckzsl50xnqpy30850in3v4bu7-1648237399554.jpg',
             'creator': 'Caroline Roberts',
         }
@@ -86,6 +86,7 @@ class DailyWireIE(DailyWireBaseIE):
             'thumbnail': traverse_obj(episode_info, 'thumbnail', 'image', expected_type=url_or_none),
             'formats': formats,
             'subtitles': subtitles,
+            'series': traverse_obj(episode_info, ('show', 'id')),
         }
 
 
