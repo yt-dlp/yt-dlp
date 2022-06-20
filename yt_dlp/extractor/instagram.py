@@ -643,8 +643,7 @@ class InstagramStoryIE(InstagramBaseIE):
     def _real_extract(self, url):
         username, story_id = self._match_valid_url(url).groups()
 
-        story_info, wh = self._download_webpage_handle(url, story_id,
-            errnote='Can\'t fetch content (Note that some metadata might be missing)')
+        story_info, wh = self._download_webpage_handle(url, story_id, errnote='Can\'t fetch content (Note that some metadata might be missing)')
         if 'www.instagram.com/accounts/login' in wh.geturl():
             self.raise_login_required('You need to log in to access this content')
         user_id = self._search_regex(r'"user":{"id":"(\d*)"', story_info, 'user id')
