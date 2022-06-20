@@ -385,7 +385,7 @@ class RequestHandlerBroker:
             try:
                 try:
                     handler.prepare_request(handler_req)
-                    self.ydl.to_debugtraffic(f'Forwarding request to {handler.name} request handler')
+                    self.ydl.to_debugtraffic(f'Forwarding request to "{handler.name}" request handler')
                     res = handler.handle(handler_req)
                 except RequestError as e:
                     e.handler = handler
@@ -393,7 +393,8 @@ class RequestHandlerBroker:
                 except Exception as e:
                     # something went very wrong, try fallback to next handler
                     self.ydl.report_warning(
-                        f'Unexpected error from "{handler.name}" request handler, trying another handler... (cause: {type(e).__name__}:{e})' + bug_reports_message())
+                        f'Unexpected error from "{handler.name}" request handler, trying another handler... (cause: {type(e).__name__}:{e})' + bug_reports_message(),
+                        only_once=True)
                     continue
             except UnsupportedRequest as e:
                 self.ydl.to_debugtraffic(
@@ -409,7 +410,7 @@ class RequestHandlerBroker:
 
             if not res:
                 self.ydl.report_warning(
-                    f'{handler.name} request handler returned nothing for response' + bug_reports_message())
+                    f'{handler.name} request handler returned nothing for response, trying another handler...' + bug_reports_message())
                 continue
             assert isinstance(res, Response)
             return res
