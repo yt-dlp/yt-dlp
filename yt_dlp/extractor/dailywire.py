@@ -38,7 +38,7 @@ class DailyWireIE(DailyWireBaseIE):
         'url': 'https://www.dailywire.com/episode/ep-124-bill-maher',
         'info_dict': {
             'id': 'cl0ngbaalplc80894sfdo9edf',
-            'ext': 'mp4',
+            'ext': 'mp3',
             'display_id': 'ep-124-bill-maher',
             'title': 'Ep. 125 - William Barr ',
         }
