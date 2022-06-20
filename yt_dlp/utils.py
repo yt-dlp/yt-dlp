@@ -4748,23 +4748,23 @@ def pkcs1pad(data, length):
 def _base_n_table(n, table):
     if not table and not n:
         raise ValueError('Either table or n must be specified')
-    elif not table:
-        table = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'[:n]
-    elif not n or n == len(table):
-        return table
-    raise ValueError(f'base {n} exceeds table length {len(table)}')
+    table = (table or '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')[:n]
+
+    if n != len(table):
+        raise ValueError(f'base {n} exceeds table length {len(table)}')
+    return table
 
 
 def encode_base_n(num, n=None, table=None):
     """Convert given int to a base-n string"""
-    table = _base_n_table(n)
+    table = _base_n_table(n, table)
     if not num:
         return table[0]
 
     result, base = '', len(table)
     while num:
         result = table[num % base] + result
-        num = num // result
+        num = num // base
     return result
 
 
