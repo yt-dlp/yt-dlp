@@ -68,6 +68,7 @@ from .postprocessor import (
 from .update import detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
+    IDENTITY,
     LINK_TEMPLATES,
     NO_DEFAULT,
     NUMBER_RE,
@@ -773,6 +774,7 @@ class YoutubeDL:
 
     def add_post_processor(self, pp, when='post_process'):
         """Add a PostProcessor object to the end of the chain."""
+        assert when in POSTPROCESS_WHEN, f'Invalid when={when}'
         self._pps[when].append(pp)
         pp.set_downloader(self)
 
@@ -1012,7 +1014,7 @@ class YoutubeDL:
         return self.params['outtmpl']
 
     def _parse_outtmpl(self):
-        sanitize = lambda x: x
+        sanitize = IDENTITY
         if self.params.get('restrictfilenames'):  # Remove spaces in the default template
             sanitize = lambda x: x.replace(' - ', ' ').replace(' ', '-')
 
@@ -2991,13 +2993,12 @@ class YoutubeDL:
                         info_dict['ext'] = os.path.splitext(file)[1][1:]
                     return file
 
-                success = True
-                merger, fd = FFmpegMergerPP(self), None
+                fd, success = None, True
                 if info_dict.get('protocol') or info_dict.get('url'):
                     fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
                     if fd is not FFmpegFD and (
                             info_dict.get('section_start') or info_dict.get('section_end')):
-                        msg = ('This format cannot be partially downloaded' if merger.available
+                        msg = ('This format cannot be partially downloaded' if FFmpegFD.available()
                                else 'You have requested downloading the video partially, but ffmpeg is not installed')
                         self.report_error(f'{msg}. Aborting')
                         return
@@ -3056,6 +3057,7 @@ class YoutubeDL:
                     dl_filename = existing_video_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
 
+                    merger = FFmpegMergerPP(self)
                     downloaded = []
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
