@@ -86,7 +86,8 @@ class DailyWireIE(DailyWireBaseIE):
             'thumbnail': traverse_obj(episode_info, 'thumbnail', 'image', expected_type=url_or_none),
             'formats': formats,
             'subtitles': subtitles,
-            'series': traverse_obj(episode_info, ('show', 'id')),
+            'series_id': traverse_obj(episode_info, ('show', 'id')),
+            'series': traverse_obj(episode_info, ('show', 'name')),
         }
 
 
