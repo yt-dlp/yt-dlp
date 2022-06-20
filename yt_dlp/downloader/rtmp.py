@@ -92,8 +92,7 @@ class RtmpFD(FileDownloader):
                     self.to_screen('')
                 return proc.wait()
             except BaseException:  # Including KeyboardInterrupt
-                proc.kill()
-                proc.wait()
+                proc.kill(timeout=None)
                 raise
 
         url = info_dict['url']

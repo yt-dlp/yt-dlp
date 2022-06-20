@@ -1,24 +1,713 @@
-import contextlib
-import os
+# flake8: noqa: F401
 
-from ..utils import load_plugins
+from .abc import (
+    ABCIE,
+    ABCIViewIE,
+    ABCIViewShowSeriesIE,
+)
+from .abcnews import (
+    AbcNewsIE,
+    AbcNewsVideoIE,
+)
+from .abcotvs import (
+    ABCOTVSIE,
+    ABCOTVSClipsIE,
+)
+from .abematv import (
+    AbemaTVIE,
+    AbemaTVTitleIE,
+)
+from .academicearth import AcademicEarthCourseIE
+from .acast import (
+    ACastIE,
+    ACastChannelIE,
+)
+from .adn import ADNIE
+from .adobeconnect import AdobeConnectIE
+from .adobetv import (
+    AdobeTVEmbedIE,
+    AdobeTVIE,
+    AdobeTVShowIE,
+    AdobeTVChannelIE,
+    AdobeTVVideoIE,
+)
+from .adultswim import AdultSwimIE
+from .aenetworks import (
+    AENetworksIE,
+    AENetworksCollectionIE,
+    AENetworksShowIE,
+    HistoryTopicIE,
+    HistoryPlayerIE,
+    BiographyIE,
+)
+from .afreecatv import (
+    AfreecaTVIE,
+    AfreecaTVLiveIE,
+    AfreecaTVUserIE,
+)
+from .airmozilla import AirMozillaIE
+from .aljazeera import AlJazeeraIE
+from .alphaporno import AlphaPornoIE
+from .amara import AmaraIE
+from .alura import (
+    AluraIE,
+    AluraCourseIE
+)
+from .amcnetworks import AMCNetworksIE
+from .amazon import AmazonStoreIE
+from .americastestkitchen import (
+    AmericasTestKitchenIE,
+    AmericasTestKitchenSeasonIE,
+)
+from .animeondemand import AnimeOnDemandIE
+from .anvato import AnvatoIE
+from .aol import AolIE
+from .allocine import AllocineIE
+from .aliexpress import AliExpressLiveIE
+from .alsace20tv import (
+    Alsace20TVIE,
+    Alsace20TVEmbedIE,
+)
+from .apa import APAIE
+from .aparat import AparatIE
+from .appleconnect import AppleConnectIE
+from .appletrailers import (
+    AppleTrailersIE,
+    AppleTrailersSectionIE,
+)
+from .applepodcasts import ApplePodcastsIE
+from .archiveorg import (
+    ArchiveOrgIE,
+    YoutubeWebArchiveIE,
+)
+from .arcpublishing import ArcPublishingIE
+from .arkena import ArkenaIE
+from .ard import (
+    ARDBetaMediathekIE,
+    ARDIE,
+    ARDMediathekIE,
+)
+from .arte import (
+    ArteTVIE,
+    ArteTVEmbedIE,
+    ArteTVPlaylistIE,
+    ArteTVCategoryIE,
+)
+from .arnes import ArnesIE
+from .asiancrush import (
+    AsianCrushIE,
+    AsianCrushPlaylistIE,
+)
+from .atresplayer import AtresPlayerIE
+from .atscaleconf import AtScaleConfEventIE
+from .atttechchannel import ATTTechChannelIE
+from .atvat import ATVAtIE
+from .audimedia import AudiMediaIE
+from .audioboom import AudioBoomIE
+from .audiomack import AudiomackIE, AudiomackAlbumIE
+from .audius import (
+    AudiusIE,
+    AudiusTrackIE,
+    AudiusPlaylistIE,
+    AudiusProfileIE,
+)
+from .awaan import (
+    AWAANIE,
+    AWAANVideoIE,
+    AWAANLiveIE,
+    AWAANSeasonIE,
+)
+from .azmedien import AZMedienIE
+from .baidu import BaiduVideoIE
+from .banbye import (
+    BanByeIE,
+    BanByeChannelIE,
+)
+from .bandaichannel import BandaiChannelIE
+from .bandcamp import (
+    BandcampIE,
+    BandcampAlbumIE,
+    BandcampWeeklyIE,
+    BandcampUserIE,
+)
+from .bannedvideo import BannedVideoIE
+from .bbc import (
+    BBCCoUkIE,
+    BBCCoUkArticleIE,
+    BBCCoUkIPlayerEpisodesIE,
+    BBCCoUkIPlayerGroupIE,
+    BBCCoUkPlaylistIE,
+    BBCIE,
+)
+from .beeg import BeegIE
+from .behindkink import BehindKinkIE
+from .bellmedia import BellMediaIE
+from .beatport import BeatportIE
+from .bet import BetIE
+from .bfi import BFIPlayerIE
+from .bfmtv import (
+    BFMTVIE,
+    BFMTVLiveIE,
+    BFMTVArticleIE,
+)
+from .bibeltv import BibelTVIE
+from .bigflix import BigflixIE
+from .bigo import BigoIE
+from .bild import BildIE
+from .bilibili import (
+    BiliBiliIE,
+    BiliBiliSearchIE,
+    BilibiliCategoryIE,
+    BiliBiliBangumiIE,
+    BilibiliAudioIE,
+    BilibiliAudioAlbumIE,
+    BiliBiliPlayerIE,
+    BilibiliChannelIE,
+    BiliIntlIE,
+    BiliIntlSeriesIE,
+    BiliLiveIE,
+)
+from .biobiochiletv import BioBioChileTVIE
+from .bitchute import (
+    BitChuteIE,
+    BitChuteChannelIE,
+)
+from .bitwave import (
+    BitwaveReplayIE,
+    BitwaveStreamIE,
+)
+from .biqle import BIQLEIE
+from .blackboardcollaborate import BlackboardCollaborateIE
+from .bleacherreport import (
+    BleacherReportIE,
+    BleacherReportCMSIE,
+)
+from .blogger import BloggerIE
+from .bloomberg import BloombergIE
+from .bokecc import BokeCCIE
+from .bongacams import BongaCamsIE
+from .bostonglobe import BostonGlobeIE
+from .box import BoxIE
+from .bpb import BpbIE
+from .br import (
+    BRIE,
+    BRMediathekIE,
+)
+from .bravotv import BravoTVIE
+from .breakcom import BreakIE
+from .breitbart import BreitBartIE
+from .brightcove import (
+    BrightcoveLegacyIE,
+    BrightcoveNewIE,
+)
+from .businessinsider import BusinessInsiderIE
+from .buzzfeed import BuzzFeedIE
+from .byutv import BYUtvIE
+from .c56 import C56IE
+from .cableav import CableAVIE
+from .callin import CallinIE
+from .caltrans import CaltransIE
+from .cam4 import CAM4IE
+from .camdemy import (
+    CamdemyIE,
+    CamdemyFolderIE
+)
+from .cammodels import CamModelsIE
+from .camwithher import CamWithHerIE
+from .canalalpha import CanalAlphaIE
+from .canalplus import CanalplusIE
+from .canalc2 import Canalc2IE
+from .canvas import (
+    CanvasIE,
+    CanvasEenIE,
+    VrtNUIE,
+    DagelijkseKostIE,
+)
+from .carambatv import (
+    CarambaTVIE,
+    CarambaTVPageIE,
+)
+from .cartoonnetwork import CartoonNetworkIE
+from .cbc import (
+    CBCIE,
+    CBCPlayerIE,
+    CBCGemIE,
+    CBCGemPlaylistIE,
+    CBCGemLiveIE,
+)
+from .cbs import CBSIE
+from .cbslocal import (
+    CBSLocalIE,
+    CBSLocalArticleIE,
+)
+from .cbsinteractive import CBSInteractiveIE
+from .cbsnews import (
+    CBSNewsEmbedIE,
+    CBSNewsIE,
+    CBSNewsLiveVideoIE,
+)
+from .cbssports import (
+    CBSSportsEmbedIE,
+    CBSSportsIE,
+    TwentyFourSevenSportsIE,
+)
+from .ccc import (
+    CCCIE,
+    CCCPlaylistIE,
+)
+from .ccma import CCMAIE
+from .cctv import CCTVIE
+from .cda import CDAIE
+from .ceskatelevize import CeskaTelevizeIE
+from .cgtn import CGTNIE
+from .channel9 import Channel9IE
+from .charlierose import CharlieRoseIE
+from .chaturbate import ChaturbateIE
+from .chilloutzone import ChilloutzoneIE
+from .chingari import (
+    ChingariIE,
+    ChingariUserIE,
+)
+from .chirbit import (
+    ChirbitIE,
+    ChirbitProfileIE,
+)
+from .cinchcast import CinchcastIE
+from .cinemax import CinemaxIE
+from .ciscolive import (
+    CiscoLiveSessionIE,
+    CiscoLiveSearchIE,
+)
+from .ciscowebex import CiscoWebexIE
+from .cjsw import CJSWIE
+from .cliphunter import CliphunterIE
+from .clippit import ClippitIE
+from .cliprs import ClipRsIE
+from .clipsyndicate import ClipsyndicateIE
+from .closertotruth import CloserToTruthIE
+from .cloudflarestream import CloudflareStreamIE
+from .cloudy import CloudyIE
+from .clubic import ClubicIE
+from .clyp import ClypIE
+from .cmt import CMTIE
+from .cnbc import (
+    CNBCIE,
+    CNBCVideoIE,
+)
+from .cnn import (
+    CNNIE,
+    CNNBlogsIE,
+    CNNArticleIE,
+)
+from .coub import CoubIE
+from .comedycentral import (
+    ComedyCentralIE,
+    ComedyCentralTVIE,
+)
+from .commonmistakes import CommonMistakesIE, UnicodeBOMIE
+from .commonprotocols import (
+    MmsIE,
+    RtmpIE,
+    ViewSourceIE,
+)
+from .condenast import CondeNastIE
+from .contv import CONtvIE
+from .corus import CorusIE
+from .cpac import (
+    CPACIE,
+    CPACPlaylistIE,
+)
+from .cozytv import CozyTVIE
+from .cracked import CrackedIE
+from .crackle import CrackleIE
+from .craftsy import CraftsyIE
+from .crooksandliars import CrooksAndLiarsIE
+from .crowdbunker import (
+    CrowdBunkerIE,
+    CrowdBunkerChannelIE,
+)
+from .crunchyroll import (
+    CrunchyrollIE,
+    CrunchyrollShowPlaylistIE,
+    CrunchyrollBetaIE,
+    CrunchyrollBetaShowIE,
+)
+from .cspan import CSpanIE, CSpanCongressIE
+from .ctsnews import CtsNewsIE
+from .ctv import CTVIE
+from .ctvnews import CTVNewsIE
+from .cultureunplugged import CultureUnpluggedIE
+from .curiositystream import (
+    CuriosityStreamIE,
+    CuriosityStreamCollectionsIE,
+    CuriosityStreamSeriesIE,
+)
+from .cwtv import CWTVIE
+from .cybrary import (
+    CybraryIE,
+    CybraryCourseIE
+)
+from .daftsex import DaftsexIE
+from .dailymail import DailyMailIE
+from .dailymotion import (
+    DailymotionIE,
+    DailymotionPlaylistIE,
+    DailymotionUserIE,
+)
+from .dailywire import (
+    DailyWireIE,
+    DailyWirePodcastIE,
+)
+from .damtomo import (
+    DamtomoRecordIE,
+    DamtomoVideoIE,
+)
+from .daum import (
+    DaumIE,
+    DaumClipIE,
+    DaumPlaylistIE,
+    DaumUserIE,
+)
+from .daystar import DaystarClipIE
+from .dbtv import DBTVIE
+from .dctp import DctpTvIE
+from .deezer import (
+    DeezerPlaylistIE,
+    DeezerAlbumIE,
+)
+from .democracynow import DemocracynowIE
+from .dfb import DFBIE
+from .dhm import DHMIE
+from .digg import DiggIE
+from .dotsub import DotsubIE
+from .douyutv import (
+    DouyuShowIE,
+    DouyuTVIE,
+)
+from .dplay import (
+    DPlayIE,
+    DiscoveryPlusIE,
+    HGTVDeIE,
+    GoDiscoveryIE,
+    TravelChannelIE,
+    CookingChannelIE,
+    HGTVUsaIE,
+    FoodNetworkIE,
+    InvestigationDiscoveryIE,
+    DestinationAmericaIE,
+    AmHistoryChannelIE,
+    ScienceChannelIE,
+    DIYNetworkIE,
+    DiscoveryLifeIE,
+    AnimalPlanetIE,
+    TLCIE,
+    DiscoveryPlusIndiaIE,
+    DiscoveryNetworksDeIE,
+    DiscoveryPlusItalyIE,
+    DiscoveryPlusItalyShowIE,
+    DiscoveryPlusIndiaShowIE,
+)
+from .dreisat import DreiSatIE
+from .drbonanza import DRBonanzaIE
+from .drtuber import DrTuberIE
+from .drtv import (
+    DRTVIE,
+    DRTVLiveIE,
+)
+from .dtube import DTubeIE
+from .dvtv import DVTVIE
+from .duboku import (
+    DubokuIE,
+    DubokuPlaylistIE
+)
+from .dumpert import DumpertIE
+from .defense import DefenseGouvFrIE
+from .digitalconcerthall import DigitalConcertHallIE
+from .discovery import DiscoveryIE
+from .disney import DisneyIE
+from .dispeak import DigitallySpeakingIE
+from .doodstream import DoodStreamIE
+from .dropbox import DropboxIE
+from .dropout import (
+    DropoutSeasonIE,
+    DropoutIE
+)
+from .dw import (
+    DWIE,
+    DWArticleIE,
+)
+from .eagleplatform import EaglePlatformIE
+from .ebaumsworld import EbaumsWorldIE
+from .echomsk import EchoMskIE
+from .egghead import (
+    EggheadCourseIE,
+    EggheadLessonIE,
+)
+from .ehow import EHowIE
+from .eighttracks import EightTracksIE
+from .einthusan import EinthusanIE
+from .eitb import EitbIE
+from .ellentube import (
+    EllenTubeIE,
+    EllenTubeVideoIE,
+    EllenTubePlaylistIE,
+)
+from .elonet import ElonetIE
+from .elpais import ElPaisIE
+from .embedly import EmbedlyIE
+from .engadget import EngadgetIE
+from .epicon import (
+    EpiconIE,
+    EpiconSeriesIE,
+)
+from .eporner import EpornerIE
+from .eroprofile import (
+    EroProfileIE,
+    EroProfileAlbumIE,
+)
+from .ertgr import (
+    ERTFlixCodenameIE,
+    ERTFlixIE,
+    ERTWebtvEmbedIE,
+)
+from .escapist import EscapistIE
+from .espn import (
+    ESPNIE,
+    WatchESPNIE,
+    ESPNArticleIE,
+    FiveThirtyEightIE,
+    ESPNCricInfoIE,
+)
+from .esri import EsriVideoIE
+from .europa import EuropaIE
+from .europeantour import EuropeanTourIE
+from .euscreen import EUScreenIE
+from .expotv import ExpoTVIE
+from .expressen import ExpressenIE
+from .extremetube import ExtremeTubeIE
+from .eyedotv import EyedoTVIE
+from .facebook import (
+    FacebookIE,
+    FacebookPluginsVideoIE,
+    FacebookRedirectURLIE,
+)
+from .fancode import (
+    FancodeVodIE,
+    FancodeLiveIE
+)
 
-_LAZY_LOADER = False
-if not os.environ.get('YTDLP_NO_LAZY_EXTRACTORS'):
-    with contextlib.suppress(ImportError):
-        from .lazy_extractors import *  # noqa: F403
-        from .lazy_extractors import _ALL_CLASSES
-        _LAZY_LOADER = True
-
-if not _LAZY_LOADER:
-    from ._extractors import *  # noqa: F403
-    _ALL_CLASSES = [  # noqa: F811
-        klass
-        for name, klass in globals().items()
-        if name.endswith('IE') and name != 'GenericIE'
-    ]
-    _ALL_CLASSES.append(GenericIE)  # noqa: F405
-
+from .faz import FazIE
+from .fc2 import (
+    FC2IE,
+    FC2EmbedIE,
+    FC2LiveIE,
+)
+from .fczenit import FczenitIE
+from .fifa import FifaIE
+from .filmmodu import FilmmoduIE
+from .filmon import (
+    FilmOnIE,
+    FilmOnChannelIE,
+)
+from .filmweb import FilmwebIE
+from .firsttv import FirstTVIE
+from .fivetv import FiveTVIE
+from .flickr import FlickrIE
+from .folketinget import FolketingetIE
+from .footyroom import FootyRoomIE
+from .formula1 import Formula1IE
+from .fourtube import (
+    FourTubeIE,
+    PornTubeIE,
+    PornerBrosIE,
+    FuxIE,
+)
+from .fourzerostudio import (
+    FourZeroStudioArchiveIE,
+    FourZeroStudioClipIE,
+)
+from .fox import FOXIE
+from .fox9 import (
+    FOX9IE,
+    FOX9NewsIE,
+)
+from .foxgay import FoxgayIE
+from .foxnews import (
+    FoxNewsIE,
+    FoxNewsArticleIE,
+)
+from .foxsports import FoxSportsIE
+from .fptplay import FptplayIE
+from .franceinter import FranceInterIE
+from .francetv import (
+    FranceTVIE,
+    FranceTVSiteIE,
+    FranceTVInfoIE,
+)
+from .freesound import FreesoundIE
+from .freespeech import FreespeechIE
+from .frontendmasters import (
+    FrontendMastersIE,
+    FrontendMastersLessonIE,
+    FrontendMastersCourseIE
+)
+from .freetv import (
+    FreeTvIE,
+    FreeTvMoviesIE,
+)
+from .fujitv import FujiTVFODPlus7IE
+from .funimation import (
+    FunimationIE,
+    FunimationPageIE,
+    FunimationShowIE,
+)
+from .funk import FunkIE
+from .fusion import FusionIE
+from .gab import (
+    GabTVIE,
+    GabIE,
+)
+from .gaia import GaiaIE
+from .gameinformer import GameInformerIE
+from .gamejolt import (
+    GameJoltIE,
+    GameJoltUserIE,
+    GameJoltGameIE,
+    GameJoltGameSoundtrackIE,
+    GameJoltCommunityIE,
+    GameJoltSearchIE,
+)
+from .gamespot import GameSpotIE
+from .gamestar import GameStarIE
+from .gaskrank import GaskrankIE
+from .gazeta import GazetaIE
+from .gdcvault import GDCVaultIE
+from .gedidigital import GediDigitalIE
+from .generic import GenericIE
+from .gettr import (
+    GettrIE,
+    GettrStreamingIE,
+)
+from .gfycat import GfycatIE
+from .giantbomb import GiantBombIE
+from .giga import GigaIE
+from .glide import GlideIE
+from .globo import (
+    GloboIE,
+    GloboArticleIE,
+)
+from .go import GoIE
+from .godtube import GodTubeIE
+from .gofile import GofileIE
+from .golem import GolemIE
+from .goodgame import GoodGameIE
+from .googledrive import (
+    GoogleDriveIE,
+    GoogleDriveFolderIE,
+)
+from .googlepodcasts import (
+    GooglePodcastsIE,
+    GooglePodcastsFeedIE,
+)
+from .googlesearch import GoogleSearchIE
+from .gopro import GoProIE
+from .goshgay import GoshgayIE
+from .gotostage import GoToStageIE
+from .gputechconf import GPUTechConfIE
+from .gronkh import (
+    GronkhIE,
+    GronkhFeedIE,
+    GronkhVodsIE
+)
+from .groupon import GrouponIE
+from .hbo import HBOIE
+from .hearthisat import HearThisAtIE
+from .heise import HeiseIE
+from .hellporno import HellPornoIE
+from .helsinki import HelsinkiIE
+from .hentaistigma import HentaiStigmaIE
+from .hgtv import HGTVComShowIE
+from .hketv import HKETVIE
+from .hidive import HiDiveIE
+from .historicfilms import HistoricFilmsIE
+from .hitbox import HitboxIE, HitboxLiveIE
+from .hitrecord import HitRecordIE
+from .hotnewhiphop import HotNewHipHopIE
+from .hotstar import (
+    HotStarIE,
+    HotStarPrefixIE,
+    HotStarPlaylistIE,
+    HotStarSeriesIE,
+)
+from .howcast import HowcastIE
+from .howstuffworks import HowStuffWorksIE
+from .hrfensehen import HRFernsehenIE
+from .hrti import (
+    HRTiIE,
+    HRTiPlaylistIE,
+)
+from .hse import (
+    HSEShowIE,
+    HSEProductIE,
+)
+from .huajiao import HuajiaoIE
+from .huya import HuyaLiveIE
+from .huffpost import HuffPostIE
+from .hungama import (
+    HungamaIE,
+    HungamaSongIE,
+    HungamaAlbumPlaylistIE,
+)
+from .hypem import HypemIE
+from .icareus import IcareusIE
+from .ichinanalive import (
+    IchinanaLiveIE,
+    IchinanaLiveClipIE,
+)
+from .ign import (
+    IGNIE,
+    IGNVideoIE,
+    IGNArticleIE,
+)
+from .iheart import (
+    IHeartRadioIE,
+    IHeartRadioPodcastIE,
+)
+from .imdb import (
+    ImdbIE,
+    ImdbListIE
+)
+from .imgur import (
+    ImgurIE,
+    ImgurAlbumIE,
+    ImgurGalleryIE,
+)
+from .ina import InaIE
+from .inc import IncIE
+from .indavideo import IndavideoEmbedIE
+from .infoq import InfoQIE
+from .instagram import (
+    InstagramIE,
+    InstagramIOSIE,
+    InstagramUserIE,
+    InstagramTagIE,
+    InstagramStoryIE,
+)
+from .internazionale import InternazionaleIE
+from .internetvideoarchive import InternetVideoArchiveIE
+from .iprima import (
+    IPrimaIE,
+    IPrimaCNNIE
+)
+from .iqiyi import (
+    IqiyiIE,
+    IqIE,
+    IqAlbumIE
+)
+from .itprotv import (
+    ITProTVIE,
+    ITProTVCourseIE
+)
 from .itv import (
     ITVIE,
     ITVBTCCIE,
@@ -33,6 +722,7 @@ from .iwara import (
     IwaraPlaylistIE,
     IwaraUserIE,
 )
+from .ixigua import IxiguaIE
 from .izlesene import IzleseneIE
 from .jable import (
     JableIE,
@@ -62,6 +752,7 @@ from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .konserthusetplay import KonserthusetPlayIE
 from .koo import KooIE
+from .kth import KTHIE
 from .krasview import KrasViewIE
 from .ku6 import Ku6IE
 from .kusi import KUSIIE
@@ -231,6 +922,7 @@ from .mirrativ import (
     MirrativIE,
     MirrativUserIE,
 )
+from .mirrorcouk import MirrorCoUKIE
 from .mit import TechTVMITIE, OCWMITIE
 from .mitele import MiTeleIE
 from .mixch import (
@@ -312,6 +1004,7 @@ from .nationalgeographic import (
 from .naver import (
     NaverIE,
     NaverLiveIE,
+    NaverNowIE,
 )
 from .nba import (
     NBAWatchEmbedIE,
@@ -353,6 +1046,10 @@ from .neteasemusic import (
     NetEaseMusicMvIE,
     NetEaseMusicProgramIE,
     NetEaseMusicDjRadioIE,
+)
+from .netverse import (
+    NetverseIE,
+    NetversePlaylistIE,
 )
 from .newgrounds import (
     NewgroundsIE,
@@ -662,7 +1359,7 @@ from .radiocanada import (
 from .radiode import RadioDeIE
 from .radiojavan import RadioJavanIE
 from .radiobremen import RadioBremenIE
-from .radiofrance import RadioFranceIE
+from .radiofrance import FranceCultureIE, RadioFranceIE
 from .radiozet import RadioZetPodcastIE
 from .radiokapital import (
     RadioKapitalIE,
@@ -807,7 +1504,6 @@ from .scrippsnetworks import (
     ScrippsNetworksWatchIE,
     ScrippsNetworksIE,
 )
-from .scrolller import ScrolllerIE
 from .scte import (
     SCTEIE,
     SCTECourseIE,
@@ -890,6 +1586,7 @@ from .southpark import (
     SouthParkDeIE,
     SouthParkDkIE,
     SouthParkEsIE,
+    SouthParkLatIE,
     SouthParkNlIE
 )
 from .sovietscloset import (
@@ -947,6 +1644,7 @@ from .streetvoice import StreetVoiceIE
 from .stretchinternet import StretchInternetIE
 from .stripchat import StripchatIE
 from .stv import STVPlayerIE
+from .substack import SubstackIE
 from .sunporno import SunPornoIE
 from .sverigesradio import (
     SverigesRadioEpisodeIE,
@@ -1495,6 +2193,3 @@ from .zingmp3 import (
 )
 from .zoom import ZoomIE
 from .zype import ZypeIE
-
-_PLUGIN_CLASSES = load_plugins('extractor', 'IE', globals())
-_ALL_CLASSES = list(_PLUGIN_CLASSES.values()) + _ALL_CLASSES

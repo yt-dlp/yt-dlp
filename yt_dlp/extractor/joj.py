@@ -70,7 +70,7 @@ class JojIE(InfoExtractor):
                     r'(\d+)[pP]\.', format_url, 'height', default=None)
                 formats.append({
                     'url': format_url,
-                    'format_id': format_field(height, template='%sp'),
+                    'format_id': format_field(height, None, '%sp'),
                     'height': int(height),
                 })
         if not formats:

@@ -157,14 +157,12 @@ class EmbedThumbnailPP(FFmpegPostProcessor):
 
                     self._report_run('atomicparsley', filename)
                     self.write_debug('AtomicParsley command line: %s' % shell_quote(cmd))
-                    p = Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    stdout, stderr = p.communicate_or_kill()
-                    if p.returncode != 0:
-                        msg = stderr.decode('utf-8', 'replace').strip()
-                        self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {msg}')
+                    stdout, stderr, returncode = Popen.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    if returncode:
+                        self.report_warning(f'Unable to embed thumbnails using AtomicParsley; {stderr.strip()}')
                     # for formats that don't support thumbnails (like 3gp) AtomicParsley
                     # won't create to the temporary file
-                    if b'No changes' in stdout:
+                    if 'No changes' in stdout:
                         self.report_warning('The file format doesn\'t support embedding a thumbnail')
                         success = False
 
