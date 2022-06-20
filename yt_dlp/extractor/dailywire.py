@@ -77,7 +77,7 @@ class DailyWireIE(DailyWireBaseIE):
             'description': episode_info.get('description'),
             'creator': join_nonempty(
                 traverse_obj(episode_info, ('createdBy','firstName')), traverse_obj(episode_info, ('createdBy','lastName')), 
-                delim=' ', from_dict=episode_info),
+                delim=' '),
             'duration': float_or_none(episode_info.get('duration')),
             'is_live': episode_info.get('isLive'),
             'thumbnail': traverse_obj(episode_info, 'thumbnail', 'image', expected_type=url_or_none),
