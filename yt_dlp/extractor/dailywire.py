@@ -30,7 +30,7 @@ class DailyWireIE(DailyWireBaseIE):
             'ext': 'mp4',
             'display_id': '1-fauci',
             'title': '1. Fauci',
-            'description': 'md5:fixme',
+            'description': 'md5:9df630347ef85081b7e97dd30bc22853',
             'thumbnail': 'https://daily-wire-production.imgix.net/episodes/ckzsl50xnqpy30850in3v4bu7/ckzsl50xnqpy30850in3v4bu7-1648237399554.jpg',
             'creator': 'Caroline Roberts',
         }
