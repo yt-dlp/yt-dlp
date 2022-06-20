@@ -102,9 +102,10 @@ def generator(test_case, tname):
 
         def print_skipping(reason):
             print('Skipping %s: %s' % (test_case['name'], reason))
+            self.skipTest(reason)
+
         if not ie.working():
             print_skipping('IE marked as not _WORKING')
-            return
 
         for tc in test_cases:
             info_dict = tc.get('info_dict', {})
@@ -118,11 +119,10 @@ def generator(test_case, tname):
 
         if 'skip' in test_case:
             print_skipping(test_case['skip'])
-            return
+
         for other_ie in other_ies:
             if not other_ie.working():
                 print_skipping('test depends on %sIE, marked as not WORKING' % other_ie.ie_key())
-                return
 
         params = get_params(test_case.get('params', {}))
         params['outtmpl'] = tname + '_' + params['outtmpl']

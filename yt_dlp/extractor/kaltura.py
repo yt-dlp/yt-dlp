@@ -382,5 +382,5 @@ class KalturaIE(InfoExtractor):
             'duration': info.get('duration'),
             'timestamp': info.get('createdAt'),
             'uploader_id': format_field(info, 'userId', ignore=('None', None)),
-            'view_count': info.get('plays'),
+            'view_count': int_or_none(info.get('plays')),
         }
