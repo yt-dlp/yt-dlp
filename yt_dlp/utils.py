@@ -1037,6 +1037,8 @@ class ExtractorError(YoutubeDLError):
         self.video_id = video_id
         self.ie = ie
         self.exc_info = sys.exc_info()  # preserve original exception
+        if isinstance(self.exc_info[1], ExtractorError):
+            self.exc_info = self.exc_info[1].exc_info
 
         super().__init__(''.join((
             format_field(ie, None, '[%s] '),
