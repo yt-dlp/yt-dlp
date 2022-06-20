@@ -13,7 +13,7 @@ from .networking.utils import make_std_headers
 from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
-from .extractor import GenericIE, list_extractor_classes
+from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
@@ -34,6 +34,7 @@ from .utils import (
     DownloadCancelled,
     DownloadError,
     GeoUtils,
+    PlaylistEntries,
     SameFileError,
     decodeOption,
     download_range_func,
@@ -80,6 +81,10 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
+    # Importing GenericIE is currently slow since it imports other extractors
+    # TODO: Move this back to module level after generalization of embed detection
+    from .extractor.generic import GenericIE
+
     out = ''
     if opts.list_extractors:
         urls = dict.fromkeys(urls, False)
@@ -369,6 +374,12 @@ def validate_options(opts):
     opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
 
     # Other options
+    if opts.playlist_items is not None:
+        try:
+            tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
+        except Exception as err:
+            raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
+
     geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
     if geo_bypass_code is not None:
         try:
@@ -424,6 +435,9 @@ def validate_options(opts):
         setattr(opts, opt1, default)
 
     # Conflicting options
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--playlist-random', 'playlist_random')
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--lazy-playlist', 'lazy_playlist')
+    report_conflict('--playlist-random', 'playlist_random', '--lazy-playlist', 'lazy_playlist')
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
     report_conflict('--exec-before-download', 'exec_before_dl_cmd',
@@ -730,6 +744,7 @@ def parse_options(argv=None):
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
         'playlistrandom': opts.playlist_random,
+        'lazy_playlist': opts.lazy_playlist,
         'noplaylist': opts.noplaylist,
         'logtostderr': opts.outtmpl.get('default') == '-',
         'consoletitle': opts.consoletitle,

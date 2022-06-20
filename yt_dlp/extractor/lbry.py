@@ -192,10 +192,11 @@ class LBRYIE(LBRYBaseIE):
             claim_id, is_live = result['signing_channel']['claim_id'], True
             headers = {'referer': 'https://player.odysee.live/'}
             live_data = self._download_json(
-                f'https://api.live.odysee.com/v1/odysee/live/{claim_id}', claim_id,
+                'https://api.odysee.live/livestream/is_live', claim_id,
+                query={'channel_claim_id': claim_id},
                 note='Downloading livestream JSON metadata')['data']
-            streaming_url = final_url = live_data.get('url')
-            if not final_url and not live_data.get('live'):
+            streaming_url = final_url = live_data.get('VideoURL')
+            if not final_url and not live_data.get('Live'):
                 self.raise_no_formats('This stream is not live', True, claim_id)
         else:
             raise UnsupportedError(url)
