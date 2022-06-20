@@ -12,7 +12,8 @@ import sys
 from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
-from .extractor import GenericIE, list_extractor_classes
+from .downloader.external import get_external_downloader
+from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
 from .options import parseOpts
@@ -33,11 +34,13 @@ from .utils import (
     DownloadCancelled,
     DownloadError,
     GeoUtils,
+    PlaylistEntries,
     SameFileError,
     decodeOption,
     download_range_func,
     expand_path,
     float_or_none,
+    format_field,
     int_or_none,
     match_filter_func,
     parse_duration,
@@ -79,6 +82,10 @@ def get_urls(urls, batchfile, verbose):
 
 
 def print_extractor_information(opts, urls):
+    # Importing GenericIE is currently slow since it imports other extractors
+    # TODO: Move this back to module level after generalization of embed detection
+    from .extractor.generic import GenericIE
+
     out = ''
     if opts.list_extractors:
         urls = dict.fromkeys(urls, False)
@@ -368,6 +375,12 @@ def validate_options(opts):
     opts.parse_metadata = list(itertools.chain(*map(metadataparser_actions, parse_metadata)))
 
     # Other options
+    if opts.playlist_items is not None:
+        try:
+            tuple(PlaylistEntries.parse_playlist_items(opts.playlist_items))
+        except Exception as err:
+            raise ValueError(f'Invalid playlist-items {opts.playlist_items!r}: {err}')
+
     geo_bypass_code = opts.geo_bypass_ip_block or opts.geo_bypass_country
     if geo_bypass_code is not None:
         try:
@@ -388,6 +401,15 @@ def validate_options(opts):
     if opts.no_sponsorblock:
         opts.sponsorblock_mark = opts.sponsorblock_remove = set()
 
+    default_downloader = None
+    for proto, path in opts.external_downloader.items():
+        ed = get_external_downloader(path)
+        if ed is None:
+            raise ValueError(
+                f'No such {format_field(proto, None, "%s ", ignore="default")}external downloader "{path}"')
+        elif ed and proto == 'default':
+            default_downloader = ed.get_basename()
+
     warnings, deprecation_warnings = [], []
 
     # Common mistake: -f best
@@ -398,13 +420,18 @@ def validate_options(opts):
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
 
     # --(postprocessor/downloader)-args without name
-    def report_args_compat(name, value, key1, key2=None):
+    def report_args_compat(name, value, key1, key2=None, where=None):
         if key1 in value and key2 not in value:
-            warnings.append(f'{name} arguments given without specifying name. The arguments will be given to all {name}s')
+            warnings.append(f'{name.title()} arguments given without specifying name. '
+                            f'The arguments will be given to {where or f"all {name}s"}')
             return True
         return False
 
-    report_args_compat('external downloader', opts.external_downloader_args, 'default')
+    if report_args_compat('external downloader', opts.external_downloader_args,
+                          'default', where=default_downloader) and default_downloader:
+        # Compat with youtube-dl's behavior. See https://github.com/ytdl-org/youtube-dl/commit/49c5293014bc11ec8c009856cd63cffa6296c1e1
+        opts.external_downloader_args.setdefault(default_downloader, opts.external_downloader_args.pop('default'))
+
     if report_args_compat('post-processor', opts.postprocessor_args, 'default-compat', 'default'):
         opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
         opts.postprocessor_args.setdefault('sponskrub', [])
@@ -423,6 +450,9 @@ def validate_options(opts):
         setattr(opts, opt1, default)
 
     # Conflicting options
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--playlist-random', 'playlist_random')
+    report_conflict('--playlist-reverse', 'playlist_reverse', '--lazy-playlist', 'lazy_playlist')
+    report_conflict('--playlist-random', 'playlist_random', '--lazy-playlist', 'lazy_playlist')
     report_conflict('--dateafter', 'dateafter', '--date', 'date', default=None)
     report_conflict('--datebefore', 'datebefore', '--date', 'date', default=None)
     report_conflict('--exec-before-download', 'exec_before_dl_cmd',
@@ -729,6 +759,7 @@ def parse_options(argv=None):
         'playlistend': opts.playlistend,
         'playlistreverse': opts.playlist_reverse,
         'playlistrandom': opts.playlist_random,
+        'lazy_playlist': opts.lazy_playlist,
         'noplaylist': opts.noplaylist,
         'logtostderr': opts.outtmpl.get('default') == '-',
         'consoletitle': opts.consoletitle,

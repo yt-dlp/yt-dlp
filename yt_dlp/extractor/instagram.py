@@ -8,7 +8,7 @@ import urllib.error
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
-    decode_base,
+    decode_base_n,
     encode_base_n,
     float_or_none,
     format_field,
@@ -32,7 +32,7 @@ def _pk_to_id(id):
 
 def _id_to_pk(shortcode):
     """Covert a shortcode to a numeric value"""
-    return decode_base(shortcode[:11], _ENCODING_CHARS)
+    return decode_base_n(shortcode[:11], table=_ENCODING_CHARS)
 
 
 class InstagramBaseIE(InfoExtractor):
@@ -423,7 +423,7 @@ class InstagramIE(InstagramBaseIE):
             if nodes:
                 return self.playlist_result(
                     self._extract_nodes(nodes, True), video_id,
-                    format_field(username, template='Post by %s'), description)
+                    format_field(username, None, 'Post by %s'), description)
 
             video_url = self._og_search_video_url(webpage, secure=False)
 

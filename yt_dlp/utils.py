@@ -146,6 +146,7 @@ USER_AGENTS = {
 
 
 NO_DEFAULT = object()
+IDENTITY = lambda x: x
 
 ENGLISH_MONTH_NAMES = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -770,13 +771,16 @@ def expand_path(s):
     return os.path.expandvars(compat_expanduser(s))
 
 
-def orderedSet(iterable):
-    """ Remove all duplicates from the input iterable """
-    res = []
-    for el in iterable:
-        if el not in res:
-            res.append(el)
-    return res
+def orderedSet(iterable, *, lazy=False):
+    """Remove all duplicates from the input iterable"""
+    def _iter():
+        seen = []  # Do not use set since the items can be unhashable
+        for x in iterable:
+            if x not in seen:
+                seen.append(x)
+                yield x
+
+    return _iter() if lazy else list(_iter())
 
 
 def _htmlentity_transform(entity_with_semicolon):
@@ -841,16 +845,30 @@ class Popen(subprocess.Popen):
     else:
         _startupinfo = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, text=False, **kwargs):
+        if text is True:
+            kwargs['universal_newlines'] = True  # For 3.6 compatibility
+            kwargs.setdefault('encoding', 'utf-8')
+            kwargs.setdefault('errors', 'replace')
         super().__init__(*args, **kwargs, startupinfo=self._startupinfo)
 
     def communicate_or_kill(self, *args, **kwargs):
         try:
             return self.communicate(*args, **kwargs)
         except BaseException:  # Including KeyboardInterrupt
-            self.kill()
-            self.wait()
+            self.kill(timeout=None)
             raise
+
+    def kill(self, *, timeout=0):
+        super().kill()
+        if timeout != 0:
+            self.wait(timeout=timeout)
+
+    @classmethod
+    def run(cls, *args, **kwargs):
+        with cls(*args, **kwargs) as proc:
+            stdout, stderr = proc.communicate_or_kill()
+            return stdout or '', stderr or '', proc.returncode
 
 
 def get_subprocess_encoding():
@@ -1019,12 +1037,14 @@ class ExtractorError(YoutubeDLError):
         self.video_id = video_id
         self.ie = ie
         self.exc_info = sys.exc_info()  # preserve original exception
+        if isinstance(self.exc_info[1], ExtractorError):
+            self.exc_info = self.exc_info[1].exc_info
 
         super().__init__(''.join((
-            format_field(ie, template='[%s] '),
-            format_field(video_id, template='%s: '),
+            format_field(ie, None, '[%s] '),
+            format_field(video_id, None, '%s: '),
             msg,
-            format_field(cause, template=' (caused by %r)'),
+            format_field(cause, None, ' (caused by %r)'),
             '' if expected else bug_reports_message())))
 
     def format_traceback(self):
@@ -2556,7 +2576,7 @@ def check_executable(exe, args=[]):
     """ Checks if the given binary is installed somewhere in PATH, and returns its name.
     args can be a list of arguments for a short output (like -version) """
     try:
-        Popen([exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate_or_kill()
+        Popen.run([exe] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError:
         return False
     return exe
@@ -2569,14 +2589,11 @@ def _get_exe_version_output(exe, args, *, to_screen=None):
         # STDIN should be redirected too. On UNIX-like systems, ffmpeg triggers
         # SIGTTOU if yt-dlp is run in the background.
         # See https://github.com/ytdl-org/youtube-dl/issues/955#issuecomment-209789656
-        out, _ = Popen(
-            [encodeArgument(exe)] + args, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate_or_kill()
+        stdout, _, _ = Popen.run([encodeArgument(exe)] + args, text=True,
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except OSError:
         return False
-    if isinstance(out, bytes):  # Python 2.x
-        out = out.decode('ascii', 'ignore')
-    return out
+    return stdout
 
 
 def detect_exe_version(output, version_re=None, unrecognized='present'):
@@ -2596,6 +2613,16 @@ def get_exe_version(exe, args=['--version'],
     or False if the executable is not present """
     out = _get_exe_version_output(exe, args)
     return detect_exe_version(out, version_re, unrecognized) if out else False
+
+
+def frange(start=0, stop=None, step=1):
+    """Float range"""
+    if stop is None:
+        start, stop = 0, start
+    sign = [-1, 1][step > 0] if step else 0
+    while sign * start < sign * stop:
+        yield start
+        start += step
 
 
 class LazyList(collections.abc.Sequence):
@@ -2792,6 +2819,138 @@ class InAdvancePagedList(PagedList):
                     yield from page_results[:only_more]
                     break
             yield from page_results
+
+
+class PlaylistEntries:
+    MissingEntry = object()
+    is_exhausted = False
+
+    def __init__(self, ydl, info_dict):
+        self.ydl = ydl
+
+        # _entries must be assigned now since infodict can change during iteration
+        entries = info_dict.get('entries')
+        if entries is None:
+            raise EntryNotInPlaylist('There are no entries')
+        elif isinstance(entries, list):
+            self.is_exhausted = True
+
+        requested_entries = info_dict.get('requested_entries')
+        self.is_incomplete = bool(requested_entries)
+        if self.is_incomplete:
+            assert self.is_exhausted
+            self._entries = [self.MissingEntry] * max(requested_entries)
+            for i, entry in zip(requested_entries, entries):
+                self._entries[i - 1] = entry
+        elif isinstance(entries, (list, PagedList, LazyList)):
+            self._entries = entries
+        else:
+            self._entries = LazyList(entries)
+
+    PLAYLIST_ITEMS_RE = re.compile(r'''(?x)
+        (?P<start>[+-]?\d+)?
+        (?P<range>[:-]
+            (?P<end>[+-]?\d+|inf(?:inite)?)?
+            (?::(?P<step>[+-]?\d+))?
+        )?''')
+
+    @classmethod
+    def parse_playlist_items(cls, string):
+        for segment in string.split(','):
+            if not segment:
+                raise ValueError('There is two or more consecutive commas')
+            mobj = cls.PLAYLIST_ITEMS_RE.fullmatch(segment)
+            if not mobj:
+                raise ValueError(f'{segment!r} is not a valid specification')
+            start, end, step, has_range = mobj.group('start', 'end', 'step', 'range')
+            if int_or_none(step) == 0:
+                raise ValueError(f'Step in {segment!r} cannot be zero')
+            yield slice(int_or_none(start), float_or_none(end), int_or_none(step)) if has_range else int(start)
+
+    def get_requested_items(self):
+        playlist_items = self.ydl.params.get('playlist_items')
+        playlist_start = self.ydl.params.get('playliststart', 1)
+        playlist_end = self.ydl.params.get('playlistend')
+        # For backwards compatibility, interpret -1 as whole list
+        if playlist_end in (-1, None):
+            playlist_end = ''
+        if not playlist_items:
+            playlist_items = f'{playlist_start}:{playlist_end}'
+        elif playlist_start != 1 or playlist_end:
+            self.ydl.report_warning('Ignoring playliststart and playlistend because playlistitems was given', only_once=True)
+
+        for index in self.parse_playlist_items(playlist_items):
+            for i, entry in self[index]:
+                yield i, entry
+                try:
+                    # TODO: Add auto-generated fields
+                    self.ydl._match_entry(entry, incomplete=True, silent=True)
+                except (ExistingVideoReached, RejectedVideoReached):
+                    return
+
+    def get_full_count(self):
+        if self.is_exhausted and not self.is_incomplete:
+            return len(self)
+        elif isinstance(self._entries, InAdvancePagedList):
+            if self._entries._pagesize == 1:
+                return self._entries._pagecount
+
+    @functools.cached_property
+    def _getter(self):
+        if isinstance(self._entries, list):
+            def get_entry(i):
+                try:
+                    entry = self._entries[i]
+                except IndexError:
+                    entry = self.MissingEntry
+                    if not self.is_incomplete:
+                        raise self.IndexError()
+                if entry is self.MissingEntry:
+                    raise EntryNotInPlaylist(f'Entry {i} cannot be found')
+                return entry
+        else:
+            def get_entry(i):
+                try:
+                    return type(self.ydl)._handle_extraction_exceptions(lambda _, i: self._entries[i])(self.ydl, i)
+                except (LazyList.IndexError, PagedList.IndexError):
+                    raise self.IndexError()
+        return get_entry
+
+    def __getitem__(self, idx):
+        if isinstance(idx, int):
+            idx = slice(idx, idx)
+
+        # NB: PlaylistEntries[1:10] => (0, 1, ... 9)
+        step = 1 if idx.step is None else idx.step
+        if idx.start is None:
+            start = 0 if step > 0 else len(self) - 1
+        else:
+            start = idx.start - 1 if idx.start >= 0 else len(self) + idx.start
+
+        # NB: Do not call len(self) when idx == [:]
+        if idx.stop is None:
+            stop = 0 if step < 0 else float('inf')
+        else:
+            stop = idx.stop - 1 if idx.stop >= 0 else len(self) + idx.stop
+        stop += [-1, 1][step > 0]
+
+        for i in frange(start, stop, step):
+            if i < 0:
+                continue
+            try:
+                entry = self._getter(i)
+            except self.IndexError:
+                self.is_exhausted = True
+                if step > 0:
+                    break
+                continue
+            yield i + 1, entry
+
+    def __len__(self):
+        return len(tuple(self[:]))
+
+    class IndexError(IndexError):
+        pass
 
 
 def uppercase_escape(s):
@@ -3060,7 +3219,11 @@ def js_to_json(code, vars={}):
 
         return '"%s"' % v
 
+    def create_map(mobj):
+        return json.dumps(dict(json.loads(js_to_json(mobj.group(1) or '[]', vars=vars))))
+
     code = re.sub(r'new Date\((".+")\)', r'\g<1>', code)
+    code = re.sub(r'new Map\((\[.*?\])?\)', create_map, code)
 
     return re.sub(r'''(?sx)
         "(?:[^"\\]*(?:\\\\|\\['"nurtbfx/\n]))*[^"\\]*"|
@@ -3083,7 +3246,7 @@ def qualities(quality_ids):
     return q
 
 
-POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'before_dl', 'after_move', 'post_process', 'after_video', 'playlist')
+POSTPROCESS_WHEN = ('pre_process', 'after_filter', 'before_dl', 'post_process', 'after_move', 'after_video', 'playlist')
 
 
 DEFAULT_OUTTMPL = {
@@ -4584,25 +4747,42 @@ def pkcs1pad(data, length):
     return [0, 2] + pseudo_random + [0] + data
 
 
+def _base_n_table(n, table):
+    if not table and not n:
+        raise ValueError('Either table or n must be specified')
+    table = (table or '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')[:n]
+
+    if n != len(table):
+        raise ValueError(f'base {n} exceeds table length {len(table)}')
+    return table
+
+
 def encode_base_n(num, n=None, table=None):
-    FULL_TABLE = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    assert n or table, 'Either table or n is required'
-    if not table:
-        table = FULL_TABLE[:n]
-    elif not n:
-        n = len(table)
-
-    if n > len(table):
-        raise ValueError('base %d exceeds table length %d' % (n, len(table)))
-
-    if num == 0:
+    """Convert given int to a base-n string"""
+    table = _base_n_table(n, table)
+    if not num:
         return table[0]
 
-    ret = ''
+    result, base = '', len(table)
     while num:
-        ret = table[num % n] + ret
-        num = num // n
-    return ret
+        result = table[num % base] + result
+        num = num // base
+    return result
+
+
+def decode_base_n(string, n=None, table=None):
+    """Convert given base-n string to int"""
+    table = {char: index for index, char in enumerate(_base_n_table(n, table))}
+    result, base = 0, len(table)
+    for char in string:
+        result = result * base + table[char]
+    return result
+
+
+def decode_base(value, digits):
+    write_string('DeprecationWarning: yt_dlp.utils.decode_base is deprecated '
+                 'and may be removed in a future version. Use yt_dlp.decode_base_n instead')
+    return decode_base_n(value, table=digits)
 
 
 def decode_packed_codes(code):
@@ -4799,14 +4979,13 @@ def write_xattr(path, key, value):
 
     value = value.decode()
     try:
-        p = Popen(
+        _, stderr, returncode = Popen.run(
             [exe, '-w', key, value, path] if exe == 'xattr' else [exe, '-n', key, '-v', value, path],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
     except OSError as e:
         raise XAttrMetadataError(e.errno, e.strerror)
-    stderr = p.communicate_or_kill()[1].decode('utf-8', 'replace')
-    if p.returncode:
-        raise XAttrMetadataError(p.returncode, stderr)
+    if returncode:
+        raise XAttrMetadataError(returncode, stderr)
 
 
 def random_birthday(year_field, month_field, day_field):
@@ -4906,11 +5085,11 @@ def to_high_limit_path(path):
     return path
 
 
-def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=None):
+def format_field(obj, field=None, template='%s', ignore=NO_DEFAULT, default='', func=IDENTITY):
     val = traverse_obj(obj, *variadic(field))
-    if (not val and val != 0) if ignore is NO_DEFAULT else val in ignore:
+    if (not val and val != 0) if ignore is NO_DEFAULT else val in variadic(ignore):
         return default
-    return template % (func(val) if func else val)
+    return template % func(val)
 
 
 def clean_podcast_url(url):
@@ -5051,10 +5230,8 @@ def traverse_obj(
 
     if isinstance(expected_type, type):
         type_test = lambda val: val if isinstance(val, expected_type) else None
-    elif expected_type is not None:
-        type_test = expected_type
     else:
-        type_test = lambda val: val
+        type_test = expected_type or IDENTITY
 
     for path in path_list:
         depth = 0
@@ -5085,17 +5262,6 @@ def get_first(obj, keys, **kwargs):
 
 def variadic(x, allowed_types=(str, bytes, dict)):
     return x if isinstance(x, collections.abc.Iterable) and not isinstance(x, allowed_types) else (x,)
-
-
-def decode_base(value, digits):
-    # This will convert given base-x string to scalar (long or int)
-    table = {char: index for index, char in enumerate(digits)}
-    result = 0
-    base = len(digits)
-    for chr in value:
-        result *= base
-        result += table[chr]
-    return result
 
 
 def time_seconds(**kwargs):
@@ -5149,10 +5315,8 @@ def windows_enable_vt_mode():  # TODO: Do this the proper way https://bugs.pytho
     if get_windows_version() < (10, 0, 10586):
         return
     global WINDOWS_VT_MODE
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     try:
-        subprocess.Popen('', shell=True, startupinfo=startupinfo).wait()
+        Popen.run('', shell=True)
     except Exception:
         return
 
@@ -5173,7 +5337,7 @@ def number_of_digits(number):
 
 def join_nonempty(*values, delim='-', from_dict=None):
     if from_dict is not None:
-        values = map(from_dict.get, values)
+        values = (traverse_obj(from_dict, variadic(v)) for v in values)
     return delim.join(map(str, filter(None, values)))
 
 
@@ -5270,6 +5434,8 @@ class Config:
             # FIXME: https://github.com/ytdl-org/youtube-dl/commit/dfe5fa49aed02cf36ba9f743b11b0903554b5e56
             contents = optionf.read()
             res = shlex.split(contents, comments=True)
+        except Exception as err:
+            raise ValueError(f'Unable to parse "{filename}": {err}')
         finally:
             optionf.close()
         return res

@@ -470,7 +470,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': uploader,
             'timestamp': unified_timestamp(status.get('created_at')),
             'uploader_id': uploader_id,
-            'uploader_url': format_field(uploader_id, template='https://twitter.com/%s'),
+            'uploader_url': format_field(uploader_id, None, 'https://twitter.com/%s'),
             'like_count': int_or_none(status.get('favorite_count')),
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),
