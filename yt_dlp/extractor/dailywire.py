@@ -40,7 +40,7 @@ class DailyWireIE(DailyWireBaseIE):
             'id': 'cl0ngbaalplc80894sfdo9edf',
             'ext': 'mp3',
             'display_id': 'ep-124-bill-maher',
-            'title': 'Ep. 125 - William Barr ',
+            'title': 'Ep. 124 - William Barr ',
         }
     }, {
         'url': 'https://www.dailywire.com/videos/the-hyperions',
