@@ -27,12 +27,12 @@ _ENCODING_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345678
 
 def _pk_to_id(id):
     """Source: https://stackoverflow.com/questions/24437823/getting-instagram-post-url-from-media-id"""
-    return encode_base_n(int(id.split('_')[0]), table=_ENCODING_CHARS)
+    return encode_base_n(int(id.split('_')[0]), n=len(_ENCODING_CHARS), table=_ENCODING_CHARS)
 
 
 def _id_to_pk(shortcode):
     """Covert a shortcode to a numeric value"""
-    return decode_base_n(shortcode[:11], table=_ENCODING_CHARS)
+    return decode_base_n(shortcode[:11], n=len(_ENCODING_CHARS), table=_ENCODING_CHARS)
 
 
 class InstagramBaseIE(InfoExtractor):
@@ -643,15 +643,11 @@ class InstagramStoryIE(InstagramBaseIE):
     def _real_extract(self, url):
         username, story_id = self._match_valid_url(url).groups()
 
-        story_info_url = f'{username}/{story_id}/?__a=1' if username == 'highlights' else f'{username}/?__a=1'
-        story_info = self._download_json(f'https://www.instagram.com/stories/{story_info_url}', story_id, headers={
-            'X-IG-App-ID': 936619743392459,
-            'X-ASBD-ID': 198387,
-            'X-IG-WWW-Claim': 0,
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': url,
-        })
-        user_id = story_info['user']['id']
+        story_info, wh = self._download_webpage_handle(url, story_id,
+            errnote='Can\'t fetch content (Note that some metadata might be missing)')
+        if 'www.instagram.com/accounts/login' in wh.geturl():
+            self.raise_login_required('You need to log in to access this content')
+        user_id = self._search_regex(r'"user":{"id":"(\d*)"', story_info, 'user id')
         highlight_title = traverse_obj(story_info, ('highlight', 'title'))
 
         story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
