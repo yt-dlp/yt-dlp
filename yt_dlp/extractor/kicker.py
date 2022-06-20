@@ -17,7 +17,6 @@ class KickerIE(InfoExtractor):
             'like_count': int,
             'uploader': 'kicker.de',
             'view_count': int,
-            'ie': 'Dailymotion',
             'age_limit': 0,
             'thumbnail': r're:https://s\d+\.dmcdn\.net/v/T-x741YeYAx8aSZ0Z/x1080',
             'tags': ['published', 'category.InternationalSoccer'],
@@ -27,7 +26,7 @@ class KickerIE(InfoExtractor):
         'url': 'https://www.kicker.de/ex-unioner-in-der-bezirksliga-felix-kroos-vereinschallenge-in-pankow-902825/video',
         'info_dict': {
             'id': 'k2omNsJKdZ3TxwxYSFJ',
-            'title': 'md5:0c089e879eced4ef961b934cb60790ed',
+            'title': 'md5:72ec24d7f84b8436fe1e89d198152adf',
             'ext': 'mp4',
             'uploader_id': 'x2dfupo',
             'duration': 331,
@@ -39,7 +38,6 @@ class KickerIE(InfoExtractor):
             'upload_date': '20220519',
             'uploader': 'kicker.de',
             'description': 'md5:0c2060c899a91c8bf40f578f78c5846f',
-            'ie': 'Dailymotion',
             'like_count': int,
         }
     }]
@@ -52,12 +50,6 @@ class KickerIE(InfoExtractor):
             r'data-dmprivateid=\"(?P<video_id>\w+)\"', webpage,
             'video_id', group='video_id')
 
-        # return {
-            # '_type': 'url_transparent',
-            # 'ie': DailymotionIE.ie_key(),
-            # 'url': f'https://www.dailymotion.com/video/{dailymotion_video_id}',
-            # 'title': self._html_extract_title(webpage),
-        # }
         return self.url_result(
             f'https://www.dailymotion.com/video/{dailymotion_video_id}',
-            ie='Dailymotion', video_title=self._html_extract_title(webpage))
+            ie=DailymotionIE, video_title=self._html_extract_title(webpage))
