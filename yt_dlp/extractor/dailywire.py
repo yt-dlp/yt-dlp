@@ -51,15 +51,7 @@ class DailyWireIE(DailyWireBaseIE):
         }
     }, {
         'url': 'https://www.dailywire.com/videos/the-hyperions',
-        'info_dict': {
-            'id': 'cl0iejfq5ktmw0a1478mc0bqj',
-            'ext': 'mp4',
-            'display_id': 'the-hyperions',
-            'title': 'The Hyperions',
-            'description': 'md5:1d0ba7ba483480ab5ba4664ab22ba0a9',
-            'duration': 5461.373544,
-            'thumbnail': 'https://image.media.dailywire.com/zdt01rG8Qw5J02dTWUoBnl5yuRuaLMv004w/thumbnail.png',
-        }
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):
