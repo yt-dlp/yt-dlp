@@ -45,12 +45,15 @@ from ..utils import (
     HTTPError,
     RequestError
 )
+CONTENT_DECODE_ERRORS = [zlib.error, OSError]
 
 SUPPORTED_ENCODINGS = [
     'gzip', 'deflate'
 ]
+
 if brotli:
     SUPPORTED_ENCODINGS.append('br')
+    CONTENT_DECODE_ERRORS.append(brotli.error)
 
 
 def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
@@ -448,7 +451,7 @@ def handle_response_read_exceptions(e):
     except ssl.SSLError as e:
         handle_sslerror(e)
 
-    except (OSError, http.client.HTTPException, zlib.error, brotli.error) as e:
+    except (OSError, http.client.HTTPException, *CONTENT_DECODE_ERRORS) as e:
         # OSErrors raised here should mostly be network related
         if 'tunnel connection failed' in str(e).lower():
             raise ProxyError(cause=e)
