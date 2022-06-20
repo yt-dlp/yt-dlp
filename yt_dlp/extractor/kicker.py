@@ -3,7 +3,7 @@ from .dailymotion import DailymotionIE
 
 
 class KickerIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)kicker\.(?:de)/(?P<video_slug>[\w-]+)/video'
+    _VALID_URL = r'https?://(?:www\.)kicker\.(?:de)/(?P<id>[\w-]+)/video'
     _TESTS = [{
         'url': 'https://www.kicker.de/pogba-dembel-co-die-top-11-der-abloesefreien-spieler-905049/video',
         'info_dict': {
@@ -45,7 +45,7 @@ class KickerIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_slug = self._match_valid_url(url).group('video_slug')
+        video_slug = self._match_valid_id(url)
 
         webpage = self._download_webpage(url, video_slug)
         dailymotion_video_id = self._search_regex(
