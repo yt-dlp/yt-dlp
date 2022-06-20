@@ -69,7 +69,6 @@ class DailyWireIE(DailyWireBaseIE):
             format_, subs_ = self._extract_m3u8_formats_and_subtitles(url, slug)
             formats.extend(format_)
             self._merge_subtitles(subs_, target=subtitles)
-
         self._sort_formats(formats)
         return {
             'id': episode_info['id'],
@@ -77,7 +76,7 @@ class DailyWireIE(DailyWireBaseIE):
             'title': traverse_obj(episode_info, 'title', 'name'),
             'description': episode_info.get('description'),
             'creator': join_nonempty(
-                traverse_obj('createdBy','firstName'), traverse_obj('createdBy','lastName'), 
+                traverse_obj(episode_info, ('createdBy','firstName')), traverse_obj(episode_info, ('createdBy','lastName')), 
                 delim=' ', from_dict=episode_info),
             'duration': float_or_none(episode_info.get('duration')),
             'is_live': episode_info.get('isLive'),
