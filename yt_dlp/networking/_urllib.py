@@ -497,7 +497,7 @@ class UrllibRH(BackendRH):
     def get_opener(self, proxies=None):
         return self._openers.setdefault(frozenset(proxies.items() or {}), self._create_opener(proxies))
 
-    def _make_sslcontext(self, verify: bool, **kwargs) -> ssl.SSLContext:
+    def _make_sslcontext(self, verify, **kwargs):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.check_hostname = verify
         context.verify_mode = ssl.CERT_REQUIRED if verify else ssl.CERT_NONE
@@ -510,7 +510,7 @@ class UrllibRH(BackendRH):
             ssl_load_certs(context, self.ydl.params)
         return context
 
-    def handle(self, request: Request) -> Response:
+    def handle(self, request):
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
 
