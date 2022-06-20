@@ -12,6 +12,7 @@ import sys
 from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
+from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
@@ -39,6 +40,7 @@ from .utils import (
     download_range_func,
     expand_path,
     float_or_none,
+    format_field,
     int_or_none,
     match_filter_func,
     parse_duration,
@@ -399,6 +401,10 @@ def validate_options(opts):
     if opts.no_sponsorblock:
         opts.sponsorblock_mark = opts.sponsorblock_remove = set()
 
+    for proto, path in opts.external_downloader.items():
+        if get_external_downloader(path) is None:
+            raise ValueError(
+                f'No such {format_field(proto, None, "%s ", ignore="default")}external downloader "{path}"')
     warnings, deprecation_warnings = [], []
 
     # Common mistake: -f best

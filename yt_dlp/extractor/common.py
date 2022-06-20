@@ -2817,7 +2817,7 @@ class InfoExtractor:
                     base_url = ''
                     for element in (representation, adaptation_set, period, mpd_doc):
                         base_url_e = element.find(_add_ns('BaseURL'))
-                        if base_url_e is not None:
+                        if base_url_e and base_url_e.text:
                             base_url = base_url_e.text + base_url
                             if re.match(r'^https?://', base_url):
                                 break

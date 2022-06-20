@@ -3116,6 +3116,7 @@ class GenericIE(InfoExtractor):
         wistia_urls = WistiaIE._extract_urls(webpage)
         if wistia_urls:
             playlist = self.playlist_from_matches(wistia_urls, video_id, video_title, ie=WistiaIE.ie_key())
+            playlist['entries'] = list(playlist['entries'])
             for entry in playlist['entries']:
                 entry.update({
                     '_type': 'url_transparent',
