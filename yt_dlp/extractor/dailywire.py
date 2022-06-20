@@ -105,6 +105,7 @@ class DailyWirePodcastIE(DailyWireBaseIE):
             'title': 'Get Ready for Recession | 6.15.22',
             'description': 'md5:c4afbadda4e1c38a4496f6d62be55634',
             'thumbnail': 'https://daily-wire-production.imgix.net/podcasts/ckx4otgd71jm508699tzb6hf4-1639506575562.jpg',
+            'duration': 900.117667,
         }
     }]
 
