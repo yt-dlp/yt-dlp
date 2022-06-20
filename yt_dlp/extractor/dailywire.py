@@ -41,6 +41,9 @@ class DailyWireIE(DailyWireBaseIE):
             'ext': 'mp3',
             'display_id': 'ep-124-bill-maher',
             'title': 'Ep. 124 - Bill Maher',
+            'thumbnail': 'https://daily-wire-production.imgix.net/episodes/cl0ngbaalplc80894sfdo9edf/cl0ngbaalplc80894sfdo9edf-1647065568518.jpg',
+            'creator': 'Caroline Roberts',
+            'description': 'md5:adb0de584bcfa9c41374999d9e324e98',
         }
     }, {
         'url': 'https://www.dailywire.com/videos/the-hyperions',
