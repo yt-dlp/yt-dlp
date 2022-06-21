@@ -47,8 +47,8 @@ class KickerIE(InfoExtractor):
 
         webpage = self._download_webpage(url, video_slug)
         dailymotion_video_id = self._search_regex(
-            r'data-dmprivateid=\"(?P<video_id>\w+)\"', webpage,
-            'video_id', group='video_id')
+            r'data-dmprivateid\s*=\s*[\'"](?P<video_id>\w+)', webpage,
+            'video id', group='video_id')
 
         return self.url_result(
             f'https://www.dailymotion.com/video/{dailymotion_video_id}',
