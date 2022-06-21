@@ -9,6 +9,7 @@ import os
 import random
 import sys
 import time
+import urllib.request
 import xml.etree.ElementTree
 
 from ..networking import Request
@@ -24,7 +25,6 @@ from ..compat import (
     compat_str,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlencode,
-    compat_urllib_request,
     compat_urlparse,
 )
 from ..downloader import FileDownloader
@@ -74,8 +74,6 @@ from ..utils import (
     unescapeHTML,
     unified_strdate,
     unified_timestamp,
-    update_Request,
-    update_url_query,
     url_basename,
     url_or_none,
     urljoin,
@@ -727,14 +725,14 @@ class InfoExtractor:
             return err.code in variadic(expected_status)
 
     def _create_request(self, url_or_request, data=None, headers={}, query={}):
-        # TODO
-        if isinstance(url_or_request, compat_urllib_request.Request):
-            return update_Request(url_or_request, data=data, headers=headers, query=query)
+        if isinstance(url_or_request, urllib.request.Request):
+            return Request(
+                url_or_request.get_full_url(), data=data or url_or_request.data, query=query,
+                headers=headers or url_or_request.headers, method=url_or_request.get_method())
         elif isinstance(url_or_request, Request):
             return update_request(url_or_request, data, headers, query)
-        if query:
-            url_or_request = update_url_query(url_or_request, query)
-        return Request(url_or_request, data, headers)
+
+        return Request(url_or_request, data, headers, query=query)
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
         """
