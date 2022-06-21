@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..utils import int_or_none, parse_duration, parse_iso8601
 
@@ -41,9 +40,7 @@ class NovaPlayIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
-        video_props = self._parse_json(self._search_regex(
-            r'<script\s?id=\"__NEXT_DATA__\"\s?type=\"application/json\">({.+})</script>',
-            webpage, 'video_props'), video_id)['props']['pageProps']['video']
+        video_props = self._search_nextjs_data(webpage, video_id)['props']['pageProps']['video']
         m3u8_url = self._download_json(
             f'https://nbg-api.fite.tv/api/v2/videos/{video_id}/streams',
             video_id, headers={'x-flipps-user-agent': 'Flipps/75/9.7'})[0]['url']

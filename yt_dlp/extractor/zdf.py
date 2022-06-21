@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -72,6 +69,7 @@ class ZDFBaseIE(InfoExtractor):
             f.update({
                 'url': format_url,
                 'format_id': join_nonempty('http', meta.get('type'), meta.get('quality')),
+                'tbr': int_or_none(self._search_regex(r'_(\d+)k_', format_url, 'tbr', default=None))
             })
             new_formats = [f]
         formats.extend(merge_dicts(f, {
@@ -111,7 +109,7 @@ class ZDFBaseIE(InfoExtractor):
                                 'class': track.get('class'),
                                 'language': track.get('language'),
                             })
-        self._sort_formats(formats, ('hasaud', 'res', 'quality', 'language_preference'))
+        self._sort_formats(formats, ('tbr', 'res', 'quality', 'language_preference'))
 
         duration = float_or_none(try_get(
             ptmd, lambda x: x['attributes']['duration']['value']), scale=1000)
@@ -136,6 +134,34 @@ class ZDFBaseIE(InfoExtractor):
 class ZDFIE(ZDFBaseIE):
     _VALID_URL = r'https?://www\.zdf\.de/(?:[^/]+/)*(?P<id>[^/?#&]+)\.html'
     _TESTS = [{
+        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
+        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
+        'md5': '34ec321e7eb34231fd88616c65c92db0',
+        'info_dict': {
+            'id': '210222_phx_nachgehakt_corona_protest',
+            'ext': 'mp4',
+            'title': 'Wohin führt der Protest in der Pandemie?',
+            'description': 'md5:7d643fe7f565e53a24aac036b2122fbd',
+            'duration': 1691,
+            'timestamp': 1613948400,
+            'upload_date': '20210221',
+        },
+        'skip': 'No longer available: "Diese Seite wurde leider nicht gefunden"',
+    }, {
+        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
+        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
+        'md5': '0aff3e7bc72c8813f5e0fae333316a1d',
+        'info_dict': {
+            'id': '141007_ab18_10wochensommer_film',
+            'ext': 'mp4',
+            'title': 'Ab 18! - 10 Wochen Sommer',
+            'description': 'md5:8253f41dc99ce2c3ff892dac2d65fe26',
+            'duration': 2660,
+            'timestamp': 1608604200,
+            'upload_date': '20201222',
+        },
+        'skip': 'No longer available: "Diese Seite wurde leider nicht gefunden"',
+    }, {
         'url': 'https://www.zdf.de/nachrichten/heute-journal/heute-journal-vom-30-12-2021-100.html',
         'info_dict': {
             'id': '211230_sendung_hjo',
@@ -162,7 +188,7 @@ class ZDFIE(ZDFBaseIE):
         },
     }, {
         'url': 'https://www.zdf.de/funk/druck-11790/funk-alles-ist-verzaubert-102.html',
-        'md5': '3d6f1049e9682178a11c54b91f3dd065',
+        'md5': '57af4423db0455a3975d2dc4578536bc',
         'info_dict': {
             'ext': 'mp4',
             'id': 'video_funk_1770473',
@@ -195,13 +221,29 @@ class ZDFIE(ZDFBaseIE):
         'url': 'https://www.zdf.de/dokumentation/planet-e/planet-e-uebersichtsseite-weitere-dokumentationen-von-planet-e-100.html',
         'only_matching': True,
     }, {
-        # Same as https://www.phoenix.de/sendungen/ereignisse/corona-nachgehakt/wohin-fuehrt-der-protest-in-der-pandemie-a-2050630.html
-        'url': 'https://www.zdf.de/politik/phoenix-sendungen/wohin-fuehrt-der-protest-in-der-pandemie-100.html',
-        'only_matching': True
+        'url': 'https://www.zdf.de/arte/todliche-flucht/page-video-artede-toedliche-flucht-16-100.html',
+        'info_dict': {
+            'id': 'video_artede_083871-001-A',
+            'ext': 'mp4',
+            'title': 'Tödliche Flucht (1/6)',
+            'description': 'md5:e34f96a9a5f8abd839ccfcebad3d5315',
+            'duration': 3193.0,
+            'timestamp': 1641355200,
+            'upload_date': '20220105',
+        },
+        'skip': 'No longer available "Diese Seite wurde leider nicht gefunden"'
     }, {
-        # Same as https://www.3sat.de/film/ab-18/10-wochen-sommer-108.html
-        'url': 'https://www.zdf.de/dokumentation/ab-18/10-wochen-sommer-102.html',
-        'only_matching': True
+        'url': 'https://www.zdf.de/serien/soko-stuttgart/das-geld-anderer-leute-100.html',
+        'info_dict': {
+            'id': '191205_1800_sendung_sok8',
+            'ext': 'mp4',
+            'title': 'Das Geld anderer Leute',
+            'description': 'md5:cb6f660850dc5eb7d1ab776ea094959d',
+            'duration': 2581.0,
+            'timestamp': 1654790700,
+            'upload_date': '20220609',
+            'thumbnail': 'https://epg-image.zdf.de/fotobase-webdelivery/images/e2d7e55a-09f0-424e-ac73-6cac4dd65f35?layout=2400x1350',
+        },
     }]
 
     def _extract_entry(self, url, player, content, video_id):

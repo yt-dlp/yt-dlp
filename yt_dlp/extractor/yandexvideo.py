@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import itertools
 import re
 
@@ -11,6 +8,7 @@ from ..utils import (
     int_or_none,
     try_get,
     url_or_none,
+    lowercase_escape,
 )
 
 
@@ -146,6 +144,44 @@ class YandexVideoIE(InfoExtractor):
             'release_year': int_or_none(content.get('release_year')),
             'formats': formats,
         }
+
+
+class YandexVideoPreviewIE(InfoExtractor):
+    _VALID_URL = r'https?://(?:www\.)?yandex\.ru/video/preview(?:/?\?.*?filmId=|/)(?P<id>\d+)'
+    _TESTS = [{  # Odnoklassniki
+        'url': 'https://yandex.ru/video/preview/?filmId=10682852472978372885&text=summer',
+        'info_dict': {
+            'id': '1352565459459',
+            'ext': 'mp4',
+            'like_count': int,
+            'upload_date': '20191202',
+            'age_limit': 0,
+            'duration': 196,
+            'thumbnail': 'https://i.mycdn.me/videoPreview?id=544866765315&type=37&idx=13&tkn=TY5qjLYZHxpmcnK8U2LgzYkgmaU&fn=external_8',
+            'uploader_id': '481054701571',
+            'title': 'LOFT - summer, summer, summer HD',
+            'uploader': 'АРТЁМ КУДРОВ',
+        },
+    }, {  # youtube
+        'url': 'https://yandex.ru/video/preview/?filmId=4479424425337895262&source=main_redirect&text=видео&utm_source=main_stripe_big',
+        'only_matching': True,
+    }, {  # YandexVideo
+        'url': 'https://yandex.ru/video/preview/5275069442094787341',
+        'only_matching': True,
+    }, {  # youtube
+        'url': 'https://yandex.ru/video/preview/?filmId=16658118429797832897&from=tabbar&p=1&text=%D0%BF%D1%80%D0%BE%D1%81%D0%BC%D0%BE%D1%82%D1%80+%D1%84%D1%80%D0%B0%D0%B3%D0%BC%D0%B5%D0%BD%D1%82%D0%B0+%D0%BC%D0%B0%D0%BB%D0%B5%D0%BD%D1%8C%D0%BA%D0%B8%D0%B9+%D0%BF%D1%80%D0%B8%D0%BD%D1%86+%D0%BC%D1%8B+%D0%B2+%D0%BE%D1%82%D0%B2%D0%B5%D1%82%D0%B5+%D0%B7%D0%B0+%D1%82%D0%B5%D1%85+%D0%BA%D0%BE%D0%B3%D0%BE+%D0%BF%D1%80%D0%B8%D1%80%D1%83%D1%87%D0%B8%D0%BB%D0%B8',
+        'only_matching': True,
+    }, {  # Odnoklassniki
+        'url': 'https://yandex.ru/video/preview/?text=Francis%20Lai%20-%20Le%20Bon%20Et%20Les%20MC)chants&path=wizard&parent-reqid=1643208087979310-1481782809207673478-sas3-0931-2f9-sas-l7-balancer-8080-BAL-9380&wiz_type=vital&filmId=12508152936505397283',
+        'only_matching': True,
+    }]
+
+    def _real_extract(self, url):
+        id = self._match_id(url)
+        webpage = self._download_webpage(url, id)
+        data_raw = self._search_regex(r'window.Ya.__inline_params__\s*=\s*JSON.parse\(\'([^"]+?\\u0022video\\u0022:[^"]+?})\'\);', webpage, 'data_raw')
+        data_json = self._parse_json(data_raw, id, transform_source=lowercase_escape)
+        return self.url_result(data_json['video']['url'])
 
 
 class ZenYandexIE(InfoExtractor):

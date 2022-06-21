@@ -1,4 +1,3 @@
-# coding: utf-8
 from .common import InfoExtractor
 from ..utils import int_or_none
 

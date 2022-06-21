@@ -1,23 +1,23 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
+import functools
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_str
 from ..utils import (
     clean_html,
     determine_ext,
     float_or_none,
     HEADRequest,
+    InAdvancePagedList,
     int_or_none,
     join_nonempty,
     orderedSet,
     remove_end,
+    smuggle_url,
     str_or_none,
     strip_jsonp,
     unescapeHTML,
     unified_strdate,
+    unsmuggle_url,
     url_or_none,
 )
 
@@ -25,9 +25,40 @@ from ..utils import (
 class ORFTVthekIE(InfoExtractor):
     IE_NAME = 'orf:tvthek'
     IE_DESC = 'ORF TVthek'
-    _VALID_URL = r'https?://tvthek\.orf\.at/(?:[^/]+/)+(?P<id>\d+)'
+    _VALID_URL = r'(?P<url>https?://tvthek\.orf\.at/(?:(?:[^/]+/){2}){1,2}(?P<id>\d+))(/[^/]+/(?P<vid>\d+))?(?:$|[?#])'
 
     _TESTS = [{
+        'url': 'https://tvthek.orf.at/profile/ZIB-2/1211/ZIB-2/14121079',
+        'info_dict': {
+            'id': '14121079',
+        },
+        'playlist_count': 11,
+        'params': {'noplaylist': True}
+    }, {
+        'url': 'https://tvthek.orf.at/profile/ZIB-2/1211/ZIB-2/14121079/Umfrage-Welches-Tier-ist-Sebastian-Kurz/15083150',
+        'info_dict': {
+            'id': '14121079',
+        },
+        'playlist_count': 1,
+        'params': {'playlist_items': '5'}
+    }, {
+        'url': 'https://tvthek.orf.at/profile/ZIB-2/1211/ZIB-2/14121079/Umfrage-Welches-Tier-ist-Sebastian-Kurz/15083150',
+        'info_dict': {
+            'id': '14121079',
+            'playlist_count': 1
+        },
+        'playlist': [{
+            'info_dict': {
+                'id': '15083150',
+                'ext': 'mp4',
+                'description': 'md5:7be1c485425f5f255a5e4e4815e77d04',
+                'thumbnail': 'https://api-tvthek.orf.at/uploads/media/segments/0130/59/824271ea35cd8931a0fb08ab316a5b0a1562342c.jpeg',
+                'title': 'Umfrage: Welches Tier ist Sebastian Kurz?',
+            }
+        }],
+        'playlist_count': 1,
+        'params': {'noplaylist': True, 'skip_download': 'm3u8'}
+    }, {
         'url': 'http://tvthek.orf.at/program/Aufgetischt/2745173/Aufgetischt-Mit-der-Steirischen-Tafelrunde/8891389',
         'playlist': [{
             'md5': '2942210346ed779588f428a92db88712',
@@ -62,8 +93,90 @@ class ORFTVthekIE(InfoExtractor):
         'only_matching': True,
     }]
 
+    def _pagefunc(self, url, data_jsb, n, *, image=None):
+        sd = data_jsb[n]
+        video_id, title = str(sd['id']), sd['title']
+        formats = []
+        for fd in sd['sources']:
+            src = url_or_none(fd.get('src'))
+            if not src:
+                continue
+            format_id = join_nonempty('delivery', 'quality', 'quality_string', from_dict=fd)
+            ext = determine_ext(src)
+            if ext == 'm3u8':
+                m3u8_formats = self._extract_m3u8_formats(
+                    src, video_id, 'mp4', m3u8_id=format_id, fatal=False, note=f'Downloading {format_id} m3u8 manifest')
+                if any('/geoprotection' in f['url'] for f in m3u8_formats):
+                    self.raise_geo_restricted()
+                formats.extend(m3u8_formats)
+            elif ext == 'f4m':
+                formats.extend(self._extract_f4m_formats(
+                    src, video_id, f4m_id=format_id, fatal=False))
+            elif ext == 'mpd':
+                formats.extend(self._extract_mpd_formats(
+                    src, video_id, mpd_id=format_id, fatal=False, note=f'Downloading {format_id} mpd manifest'))
+            else:
+                formats.append({
+                    'format_id': format_id,
+                    'url': src,
+                    'protocol': fd.get('protocol'),
+                })
+
+        # Check for geoblocking.
+        # There is a property is_geoprotection, but that's always false
+        geo_str = sd.get('geoprotection_string')
+        http_url = next(
+            (f['url'] for f in formats if re.match(r'^https?://.*\.mp4$', f['url'])),
+            None) if geo_str else None
+        if http_url:
+            self._request_webpage(
+                HEADRequest(http_url), video_id, fatal=False, note='Testing for geoblocking',
+                errnote=f'This video seems to be blocked outside of {geo_str}. You may want to try the streaming-* formats')
+
+        self._sort_formats(formats)
+
+        subtitles = {}
+        for sub in sd.get('subtitles', []):
+            sub_src = sub.get('src')
+            if not sub_src:
+                continue
+            subtitles.setdefault(sub.get('lang', 'de-AT'), []).append({
+                'url': sub_src,
+            })
+
+        upload_date = unified_strdate(sd.get('created_date'))
+
+        thumbnails = []
+        preview = sd.get('preview_image_url')
+        if preview:
+            thumbnails.append({
+                'id': 'preview',
+                'url': preview,
+                'preference': 0,
+            })
+        image = sd.get('image_full_url') or image
+        if image:
+            thumbnails.append({
+                'id': 'full',
+                'url': image,
+                'preference': 1,
+            })
+
+        yield {
+            'id': video_id,
+            'title': title,
+            'webpage_url': smuggle_url(f'{url}/part/{video_id}', {'force_noplaylist': True}),
+            'formats': formats,
+            'subtitles': subtitles,
+            'description': sd.get('description'),
+            'duration': int_or_none(sd.get('duration_in_seconds')),
+            'upload_date': upload_date,
+            'thumbnails': thumbnails,
+        }
+
     def _real_extract(self, url):
-        playlist_id = self._match_id(url)
+        url, smuggled_data = unsmuggle_url(url)
+        playlist_id, video_id, base_url = self._match_valid_url(url).group('id', 'vid', 'url')
         webpage = self._download_webpage(url, playlist_id)
 
         data_jsb = self._parse_json(
@@ -72,107 +185,16 @@ class ORFTVthekIE(InfoExtractor):
                 webpage, 'playlist', group='json'),
             playlist_id, transform_source=unescapeHTML)['playlist']['videos']
 
-        entries = []
-        for sd in data_jsb:
-            video_id, title = sd.get('id'), sd.get('title')
-            if not video_id or not title:
-                continue
-            video_id = compat_str(video_id)
-            formats = []
-            for fd in sd['sources']:
-                src = url_or_none(fd.get('src'))
-                if not src:
-                    continue
-                format_id = join_nonempty('delivery', 'quality', 'quality_string', from_dict=fd)
-                ext = determine_ext(src)
-                if ext == 'm3u8':
-                    m3u8_formats = self._extract_m3u8_formats(
-                        src, video_id, 'mp4', m3u8_id=format_id, fatal=False)
-                    if any('/geoprotection' in f['url'] for f in m3u8_formats):
-                        self.raise_geo_restricted()
-                    formats.extend(m3u8_formats)
-                elif ext == 'f4m':
-                    formats.extend(self._extract_f4m_formats(
-                        src, video_id, f4m_id=format_id, fatal=False))
-                elif ext == 'mpd':
-                    formats.extend(self._extract_mpd_formats(
-                        src, video_id, mpd_id=format_id, fatal=False))
-                else:
-                    formats.append({
-                        'format_id': format_id,
-                        'url': src,
-                        'protocol': fd.get('protocol'),
-                    })
+        if not self._yes_playlist(playlist_id, video_id, smuggled_data):
+            data_jsb = [sd for sd in data_jsb if str(sd.get('id')) == video_id]
 
-            # Check for geoblocking.
-            # There is a property is_geoprotection, but that's always false
-            geo_str = sd.get('geoprotection_string')
-            if geo_str:
-                try:
-                    http_url = next(
-                        f['url']
-                        for f in formats
-                        if re.match(r'^https?://.*\.mp4$', f['url']))
-                except StopIteration:
-                    pass
-                else:
-                    req = HEADRequest(http_url)
-                    self._request_webpage(
-                        req, video_id,
-                        note='Testing for geoblocking',
-                        errnote=((
-                            'This video seems to be blocked outside of %s. '
-                            'You may want to try the streaming-* formats.')
-                            % geo_str),
-                        fatal=False)
+        playlist_count = len(data_jsb)
+        image = self._og_search_thumbnail(webpage) if playlist_count == 1 else None
 
-            self._check_formats(formats, video_id)
-            self._sort_formats(formats)
-
-            subtitles = {}
-            for sub in sd.get('subtitles', []):
-                sub_src = sub.get('src')
-                if not sub_src:
-                    continue
-                subtitles.setdefault(sub.get('lang', 'de-AT'), []).append({
-                    'url': sub_src,
-                })
-
-            upload_date = unified_strdate(sd.get('created_date'))
-
-            thumbnails = []
-            preview = sd.get('preview_image_url')
-            if preview:
-                thumbnails.append({
-                    'id': 'preview',
-                    'url': preview,
-                    'preference': 0,
-                })
-            image = sd.get('image_full_url')
-            if not image and len(data_jsb) == 1:
-                image = self._og_search_thumbnail(webpage)
-            if image:
-                thumbnails.append({
-                    'id': 'full',
-                    'url': image,
-                    'preference': 1,
-                })
-
-            entries.append({
-                '_type': 'video',
-                'id': video_id,
-                'title': title,
-                'formats': formats,
-                'subtitles': subtitles,
-                'description': sd.get('description'),
-                'duration': int_or_none(sd.get('duration_in_seconds')),
-                'upload_date': upload_date,
-                'thumbnails': thumbnails,
-            })
-
+        page_func = functools.partial(self._pagefunc, base_url, data_jsb, image=image)
         return {
             '_type': 'playlist',
-            'entries': entries,
+            'entries': InAdvancePagedList(page_func, playlist_count, 1),
             'id': playlist_id,
         }
 

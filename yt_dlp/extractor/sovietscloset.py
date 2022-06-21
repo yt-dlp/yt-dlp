@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     try_get,
@@ -67,6 +64,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'series': 'The Witcher',
                 'season': 'Misc',
                 'episode_number': 13,
+                'episode': 'Episode 13',
             },
         },
         {
@@ -92,6 +90,7 @@ class SovietsClosetIE(SovietsClosetBaseIE):
                 'series': 'Arma 3',
                 'season': 'Zeus Games',
                 'episode_number': 3,
+                'episode': 'Episode 3',
             },
         },
     ]

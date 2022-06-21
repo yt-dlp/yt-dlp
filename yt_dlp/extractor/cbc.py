@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 import json
 import base64
@@ -127,9 +124,9 @@ class CBCIE(InfoExtractor):
     def _real_extract(self, url):
         display_id = self._match_id(url)
         webpage = self._download_webpage(url, display_id)
-        title = self._og_search_title(webpage, default=None) or self._html_search_meta(
-            'twitter:title', webpage, 'title', default=None) or self._html_search_regex(
-                r'<title>([^<]+)</title>', webpage, 'title', fatal=False)
+        title = (self._og_search_title(webpage, default=None)
+                 or self._html_search_meta('twitter:title', webpage, 'title', default=None)
+                 or self._html_extract_title(webpage))
         entries = [
             self._extract_player_init(player_init, display_id)
             for player_init in re.findall(r'CBC\.APP\.Caffeine\.initInstance\(({.+?})\);', webpage)]

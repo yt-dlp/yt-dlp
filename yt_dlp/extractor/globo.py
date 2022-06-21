@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import base64
 import hashlib
 import json
@@ -12,6 +9,7 @@ from ..compat import (
     compat_str,
 )
 from ..utils import (
+    HEADRequest,
     ExtractorError,
     float_or_none,
     orderedSet,
@@ -67,10 +65,27 @@ class GloboIE(InfoExtractor):
     }, {
         'url': 'globo:3607726',
         'only_matching': True,
+    }, {
+        'url': 'https://globoplay.globo.com/v/10248083/',
+        'info_dict': {
+            'id': '10248083',
+            'ext': 'mp4',
+            'title': 'Melhores momentos: Equador 1 x 1 Brasil pelas Eliminatórias da Copa do Mundo 2022',
+            'duration': 530.964,
+            'uploader': 'SporTV',
+            'uploader_id': '698',
+        },
+        'params': {
+            'skip_download': True,
+        },
     }]
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
+
+        self._request_webpage(
+            HEADRequest('https://globo-ab.globo.com/v2/selected-alternatives?experiments=player-isolated-experiment-02&skipImpressions=true'),
+            video_id, 'Getting cookies')
 
         video = self._download_json(
             'http://api.globovideos.com/videos/%s/playlist' % video_id,
@@ -82,7 +97,7 @@ class GloboIE(InfoExtractor):
 
         formats = []
         security = self._download_json(
-            'https://playback.video.globo.com/v1/video-session', video_id, 'Downloading security hash for %s' % video_id,
+            'https://playback.video.globo.com/v2/video-session', video_id, 'Downloading security hash for %s' % video_id,
             headers={'content-type': 'application/json'}, data=json.dumps({
                 "player_type": "desktop",
                 "video_id": video_id,
@@ -92,7 +107,9 @@ class GloboIE(InfoExtractor):
                 "tz": "-3.0:00"
             }).encode())
 
-        security_hash = security['source']['token']
+        self._request_webpage(HEADRequest(security['sources'][0]['url_template']), video_id, 'Getting locksession cookie')
+
+        security_hash = security['sources'][0]['token']
         if not security_hash:
             message = security.get('message')
             if message:
@@ -115,15 +132,15 @@ class GloboIE(InfoExtractor):
         md5_data = (received_md5 + padded_sign_time + '0xAC10FD').encode()
         signed_md5 = base64.urlsafe_b64encode(hashlib.md5(md5_data).digest()).decode().strip('=')
         signed_hash = hash_prefix + padded_sign_time + signed_md5
-        source = security['source']['url_parts']
+        source = security['sources'][0]['url_parts']
         resource_url = source['scheme'] + '://' + source['domain'] + source['path']
         signed_url = '%s?h=%s&k=html5&a=%s' % (resource_url, signed_hash, 'F' if video.get('subscriber_only') else 'A')
 
-        formats.extend(self._extract_m3u8_formats(
-            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False))
+        fmts, subtitles = self._extract_m3u8_formats_and_subtitles(
+            signed_url, video_id, 'mp4', entry_protocol='m3u8_native', m3u8_id='hls', fatal=False)
+        formats.extend(fmts)
         self._sort_formats(formats)
 
-        subtitles = {}
         for resource in video['resources']:
             if resource.get('type') == 'subtitle':
                 subtitles.setdefault(resource.get('language') or 'por', []).append({
@@ -166,6 +183,7 @@ class GloboArticleIE(InfoExtractor):
         r'\bvideosIDs\s*:\s*["\']?(\d{7,})',
         r'\bdata-id=["\'](\d{7,})',
         r'<div[^>]+\bid=["\'](\d{7,})',
+        r'<bs-player[^>]+\bvideoid=["\'](\d{8,})',
     ]
 
     _TESTS = [{
@@ -193,6 +211,14 @@ class GloboArticleIE(InfoExtractor):
     }, {
         'url': 'http://oglobo.globo.com/rio/a-amizade-entre-um-entregador-de-farmacia-um-piano-19946271',
         'only_matching': True,
+    }, {
+        'url': 'https://ge.globo.com/video/ta-na-area-como-foi-assistir-ao-jogo-do-palmeiras-que-a-globo-nao-passou-10287094.ghtml',
+        'info_dict': {
+            'id': 'ta-na-area-como-foi-assistir-ao-jogo-do-palmeiras-que-a-globo-nao-passou-10287094',
+            'title': 'Tá na Área: como foi assistir ao jogo do Palmeiras que a Globo não passou',
+            'description': 'md5:2d089d036c4c9675117d3a56f8c61739',
+        },
+        'playlist_count': 1,
     }]
 
     @classmethod
@@ -208,6 +234,6 @@ class GloboArticleIE(InfoExtractor):
         entries = [
             self.url_result('globo:%s' % video_id, GloboIE.ie_key())
             for video_id in orderedSet(video_ids)]
-        title = self._og_search_title(webpage, fatal=False)
+        title = self._og_search_title(webpage)
         description = self._html_search_meta('description', webpage)
         return self.playlist_result(entries, display_id, title, description)

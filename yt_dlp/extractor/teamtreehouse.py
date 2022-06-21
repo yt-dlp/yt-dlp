@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -51,17 +48,14 @@ class TeamTreeHouseIE(InfoExtractor):
     }]
     _NETRC_MACHINE = 'teamtreehouse'
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
+    def _perform_login(self, username, password):
 
         signin_page = self._download_webpage(
             'https://teamtreehouse.com/signin',
             None, 'Downloading signin page')
         data = self._form_hidden_inputs('new_user_session', signin_page)
         data.update({
-            'user_session[email]': email,
+            'user_session[email]': username,
             'user_session[password]': password,
         })
         error_message = get_element_by_class('error-message', self._download_webpage(

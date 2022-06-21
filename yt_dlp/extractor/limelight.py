@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -194,7 +191,7 @@ class LimelightBaseIE(InfoExtractor):
                     cc_url = cc.get('webvttFileUrl')
                     if not cc_url:
                         continue
-                    lang = cc.get('languageCode') or self._search_regex(r'/[a-z]{2}\.vtt', cc_url, 'lang', default='en')
+                    lang = cc.get('languageCode') or self._search_regex(r'/([a-z]{2})\.vtt', cc_url, 'lang', default='en')
                     subtitles.setdefault(lang, []).append({
                         'url': cc_url,
                     })
