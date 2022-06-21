@@ -5,7 +5,6 @@ import sys
 
 from PyInstaller.__main__ import run as run_pyinstaller
 
-
 OS_NAME, ARCH = sys.platform, platform.architecture()[0][:2]
 
 
