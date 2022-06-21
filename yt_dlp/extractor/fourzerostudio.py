@@ -1,8 +1,5 @@
 from .common import InfoExtractor
-from ..utils import (
-    traverse_obj,
-    unified_timestamp,
-)
+from ..utils import traverse_obj, unified_timestamp
 
 
 class FourZeroStudioArchiveIE(InfoExtractor):
@@ -25,7 +22,7 @@ class FourZeroStudioArchiveIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
         webpage = self._download_webpage(url, video_id)
-        nuxt_data = self._search_nuxt_data(webpage, video_id, return_full_data=True)
+        nuxt_data = self._search_nuxt_data(webpage, video_id, traverse=None)
 
         pcb = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicCreatorBroadcast'), get_all=False)
         uploader_internal_id = traverse_obj(nuxt_data, (
@@ -82,7 +79,7 @@ class FourZeroStudioClipIE(InfoExtractor):
     def _real_extract(self, url):
         video_id, uploader_id = self._match_valid_url(url).group('id', 'uploader_id')
         webpage = self._download_webpage(url, video_id)
-        nuxt_data = self._search_nuxt_data(webpage, video_id, return_full_data=True)
+        nuxt_data = self._search_nuxt_data(webpage, video_id, traverse=None)
 
         clip_info = traverse_obj(nuxt_data, ('ssrRefs', lambda _, v: v['__typename'] == 'PublicCreatorArchivedClip'), get_all=False)
 

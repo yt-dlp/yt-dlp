@@ -80,7 +80,7 @@ class RadLiveIE(InfoExtractor):
             'release_timestamp': release_date,
             'channel': channel.get('name'),
             'channel_id': channel_id,
-            'channel_url': format_field(channel_id, template='https://rad.live/content/channel/%s'),
+            'channel_url': format_field(channel_id, None, 'https://rad.live/content/channel/%s'),
 
         }
         if content_type == 'episode':

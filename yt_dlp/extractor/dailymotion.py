@@ -5,13 +5,15 @@ import re
 from .common import InfoExtractor
 from ..compat import compat_HTTPError
 from ..utils import (
+    ExtractorError,
+    OnDemandPagedList,
     age_restricted,
     clean_html,
-    ExtractorError,
     int_or_none,
-    OnDemandPagedList,
+    traverse_obj,
     try_get,
     unescapeHTML,
+    unsmuggle_url,
     urlencode_postdata,
 )
 
@@ -220,6 +222,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         return urls
 
     def _real_extract(self, url):
+        url, smuggled_data = unsmuggle_url(url)
         video_id, playlist_id = self._match_valid_url(url).groups()
 
         if playlist_id:
@@ -252,7 +255,7 @@ class DailymotionIE(DailymotionBaseInfoExtractor):
         metadata = self._download_json(
             'https://www.dailymotion.com/player/metadata/video/' + xid,
             xid, 'Downloading metadata JSON',
-            query={'app': 'com.dailymotion.neon'})
+            query=traverse_obj(smuggled_data, 'query') or {'app': 'com.dailymotion.neon'})
 
         error = metadata.get('error')
         if error:

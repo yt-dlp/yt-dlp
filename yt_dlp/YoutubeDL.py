@@ -58,6 +58,7 @@ from .postprocessor import (
 from .update import detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
+    IDENTITY,
     LINK_TEMPLATES,
     NO_DEFAULT,
     NUMBER_RE,
@@ -669,7 +670,7 @@ class YoutubeDL:
                 'Set the LC_ALL environment variable to fix this.')
             self.params['restrictfilenames'] = True
 
-        self.outtmpl_dict = self.parse_outtmpl()
+        self._parse_outtmpl()
 
         # Creating format selector here allows us to catch syntax errors before the extraction
         self.format_selector = (
@@ -769,6 +770,7 @@ class YoutubeDL:
 
     def add_post_processor(self, pp, when='post_process'):
         """Add a PostProcessor object to the end of the chain."""
+        assert when in POSTPROCESS_WHEN, f'Invalid when={when}'
         self._pps[when].append(pp)
         pp.set_downloader(self)
 
@@ -996,21 +998,19 @@ class YoutubeDL:
             self.report_warning(msg)
 
     def parse_outtmpl(self):
-        outtmpl_dict = self.params.get('outtmpl', {})
-        if not isinstance(outtmpl_dict, dict):
-            outtmpl_dict = {'default': outtmpl_dict}
-        # Remove spaces in the default template
-        if self.params.get('restrictfilenames'):
+        self.deprecation_warning('"YoutubeDL.parse_outtmpl" is deprecated and may be removed in a future version')
+        self._parse_outtmpl()
+        return self.params['outtmpl']
+
+    def _parse_outtmpl(self):
+        sanitize = IDENTITY
+        if self.params.get('restrictfilenames'):  # Remove spaces in the default template
             sanitize = lambda x: x.replace(' - ', ' ').replace(' ', '-')
-        else:
-            sanitize = lambda x: x
-        outtmpl_dict.update({
-            k: sanitize(v) for k, v in DEFAULT_OUTTMPL.items()
-            if outtmpl_dict.get(k) is None})
-        for _, val in outtmpl_dict.items():
-            if isinstance(val, bytes):
-                self.report_warning('Parameter outtmpl is bytes, but should be a unicode string')
-        return outtmpl_dict
+
+        outtmpl = self.params.setdefault('outtmpl', {})
+        if not isinstance(outtmpl, dict):
+            self.params['outtmpl'] = outtmpl = {'default': outtmpl}
+        outtmpl.update({k: sanitize(v) for k, v in DEFAULT_OUTTMPL.items() if outtmpl.get(k) is None})
 
     def get_output_path(self, dir_type='', filename=None):
         paths = self.params.get('paths', {})
@@ -1248,7 +1248,7 @@ class YoutubeDL:
     def _prepare_filename(self, info_dict, *, outtmpl=None, tmpl_type=None):
         assert None in (outtmpl, tmpl_type), 'outtmpl and tmpl_type are mutually exclusive'
         if outtmpl is None:
-            outtmpl = self.outtmpl_dict.get(tmpl_type or 'default', self.outtmpl_dict['default'])
+            outtmpl = self.params['outtmpl'].get(tmpl_type or 'default', self.params['outtmpl']['default'])
         try:
             outtmpl = self._outtmpl_expandpath(outtmpl)
             filename = self.evaluate_outtmpl(outtmpl, info_dict, True)
@@ -1878,7 +1878,7 @@ class YoutubeDL:
             and (
                 not can_merge()
                 or info_dict.get('is_live') and not self.params.get('live_from_start')
-                or self.outtmpl_dict['default'] == '-'))
+                or self.params['outtmpl']['default'] == '-'))
         compat = (
             prefer_best
             or self.params.get('allow_multiple_audio_streams', False)
@@ -2984,13 +2984,12 @@ class YoutubeDL:
                         info_dict['ext'] = os.path.splitext(file)[1][1:]
                     return file
 
-                success = True
-                merger, fd = FFmpegMergerPP(self), None
+                fd, success = None, True
                 if info_dict.get('protocol') or info_dict.get('url'):
                     fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
                     if fd is not FFmpegFD and (
                             info_dict.get('section_start') or info_dict.get('section_end')):
-                        msg = ('This format cannot be partially downloaded' if merger.available
+                        msg = ('This format cannot be partially downloaded' if FFmpegFD.available()
                                else 'You have requested downloading the video partially, but ffmpeg is not installed')
                         self.report_error(f'{msg}. Aborting')
                         return
@@ -3049,6 +3048,7 @@ class YoutubeDL:
                     dl_filename = existing_video_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
 
+                    merger = FFmpegMergerPP(self)
                     downloaded = []
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)
@@ -3224,7 +3224,7 @@ class YoutubeDL:
     def download(self, url_list):
         """Download a given list of URLs."""
         url_list = variadic(url_list)  # Passing a single URL is a common mistake
-        outtmpl = self.outtmpl_dict['default']
+        outtmpl = self.params['outtmpl']['default']
         if (len(url_list) > 1
                 and outtmpl != '-'
                 and '%' not in outtmpl
