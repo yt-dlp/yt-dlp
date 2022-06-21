@@ -1603,6 +1603,7 @@ from .spike import (
     BellatorIE,
     ParamountNetworkIE,
 )
+from .steamcommunity import SteamCommunityBroadcastIE
 from .stitcher import (
     StitcherIE,
     StitcherShowIE,
