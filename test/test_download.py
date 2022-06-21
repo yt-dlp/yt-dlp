@@ -43,7 +43,7 @@ class YoutubeDL(yt_dlp.YoutubeDL):
         self.processed_info_dicts = []
         super().__init__(*args, **kwargs)
 
-    def report_warning(self, message):
+    def report_warning(self, message, *args, **kwargs):
         # Don't accept warnings during tests
         raise ExtractorError(message)
 
