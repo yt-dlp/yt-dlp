@@ -392,9 +392,9 @@ class RequestHandlerBroker:
                     raise
                 except Exception as e:
                     # something went very wrong, try fallback to next handler
-                    self.ydl.report_warning(
-                        f'Unexpected error from "{handler.name}" request handler, trying another handler... (cause: {type(e).__name__}:{e})' + bug_reports_message(),
-                        only_once=True)
+                    self.ydl.report_error(
+                        f'Unexpected error from "{handler.name}" request handler' + bug_reports_message(),
+                        is_error=False)
                     continue
             except UnsupportedRequest as e:
                 self.ydl.to_debugtraffic(
