@@ -1446,10 +1446,13 @@ class YoutubeDL:
                 break
         return wrapper
 
+    def _should_wait_for_video(self, ie_result):
+        return (self.params.get('wait_for_video')
+                and ie_result.get('_type', 'video') == 'video'
+                and not ie_result.get('formats') and not ie_result.get('url'))
+
     def _wait_for_video(self, ie_result):
-        if (not self.params.get('wait_for_video')
-                or ie_result.get('_type', 'video') != 'video'
-                or ie_result.get('formats') or ie_result.get('url')):
+        if not self._should_wait_for_video(ie_result):
             return
 
         format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
@@ -1481,6 +1484,8 @@ class YoutubeDL:
                 time.sleep(1)
         except KeyboardInterrupt:
             progress('')
+            # TODO: Make interrupts eventually terminate yt-dlp if the extractor finishes too quickly
+            time.sleep(1)
             raise ReExtractInfo('[wait] Interrupted by user', expected=True)
         except BaseException as e:
             if not isinstance(e, ReExtractInfo):
@@ -1723,8 +1728,8 @@ class YoutubeDL:
                 resolved_entries.append((playlist_index, entry))
 
             # TODO: Add auto-generated fields
-            if self._match_entry(entry, incomplete=True) is not None:
-                continue
+            # if self._match_entry(entry, incomplete=True) is not None:
+            #     continue
 
             self.to_screen('[download] Downloading video %s of %s' % (
                 self._format_screen(i + 1, self.Styles.ID), self._format_screen(n_entries, self.Styles.EMPHASIS)))
@@ -1773,6 +1778,9 @@ class YoutubeDL:
 
     @_handle_extraction_exceptions
     def __process_iterable_entry(self, entry, download, extra_info):
+        if self._should_wait_for_video(entry) and callable(entry.get('reextractor')):
+            entry = entry['reextractor']()
+            self._wait_for_video(entry)
         return self.process_ie_result(
             entry, download=download, extra_info=extra_info)
 

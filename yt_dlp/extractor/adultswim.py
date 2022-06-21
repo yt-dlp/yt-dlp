@@ -9,7 +9,6 @@ from .common import InfoExtractor
 from .turner import TurnerBaseIE
 from ..utils import (
     HEADRequest,
-    LazyList,
     determine_ext,
     float_or_none,
     int_or_none,
@@ -254,7 +253,7 @@ class AdultSwimStreamIE(InfoExtractor):
 
         digit_str_index, digit_str_length = match.span('index')[0], len(match.group('index'))
         fragment_url_template = fragment_template['url'][:digit_str_index] + '%s' + fragment_template['url'][digit_str_index + digit_str_length:]
-        fragment_count = episode_duration // FRAGMENT_DURATION + 1
+        fragment_count = int(episode_duration // FRAGMENT_DURATION) + 1
 
         for i in reversed(range(fragment_count)):
             if self._request_webpage(HEADRequest(fragment_url_template % f'{i:0{digit_str_length}}'),
@@ -270,10 +269,9 @@ class AdultSwimStreamIE(InfoExtractor):
                    'byte_range': fragment_template['byte_range'],
                    'media_sequence': fragment_template['media_sequence']}
 
-    def _get_stream_data(self, url, stream_id):
+    def _get_stream_data(self, url, timestamp, stream_id):
         webpage = self._download_webpage(url, stream_id)
         stream_data = self._search_nextjs_data(webpage, stream_id)
-        timestamp = self._resolve_server_timestamp(stream_id)
 
         def get_episodes(root, stream, timestamp):
             first_episode_name = None
@@ -294,8 +292,8 @@ class AdultSwimStreamIE(InfoExtractor):
     def _real_extract(self, url):
         stream_id = self._match_id(url)
 
-        stream, episodes = self._get_stream_data(url, stream_id)
-
+        timestamp = self._resolve_server_timestamp(stream_id)
+        stream, episodes = self._get_stream_data(url, timestamp, stream_id)
         formats = self._extract_m3u8_formats(
             f'https://adultswim-vodlive.cdn.turner.com/live/{stream_id}/stream_de.m3u8?hdnts=', stream_id)
         self._sort_formats(formats)
@@ -303,19 +301,9 @@ class AdultSwimStreamIE(InfoExtractor):
         for f in formats:
             f['protocol'] = 'm3u8_native_generator'
 
-        def get_episode_entry(stream, episode):
+        def get_episode_entry(stream, episode, timestamp=None):
             video_id = '%s-%s-%s' % (stream_id, episode.get('seasonNumber'), episode.get('episodeNumber'))
-            if episode.get('startTime') and episode.get('duration'):
-                release_timestamp = episode['startTime'] / 1000 + min(60, episode['duration'] / 2)
-                _formats = copy.deepcopy(formats)
-                for f in _formats:
-                    f['fragments'] = functools.partial(
-                        self._live_hls_fragments, episode['startTime'] / 1000, episode['duration'], video_id, f['url'])
-            else:
-                release_timestamp = None
-                _formats = None
-
-            return {
+            entry = {
                 'id': video_id,
                 'title': '%s S%s EP%s %s' % (stream.get('title'), episode.get('seasonNumber'), episode.get('episodeNumber'), episode.get('episodeName')),
                 'duration': episode.get('duration'),
@@ -323,24 +311,50 @@ class AdultSwimStreamIE(InfoExtractor):
                 'episode': episode.get('episodeName'),
                 'season_number': episode.get('seasonNumber'),
                 'episode_number': episode.get('episodeNumber'),
-                'formats': _formats,
-                'release_timestamp': release_timestamp,
             }
 
+            if not timestamp:
+                timestamp = self._resolve_server_timestamp(stream_id)
+            release_timestamp = episode['startTime'] / 1000 + min(60, episode['duration'] / 2)
+            if release_timestamp <= timestamp:
+                if type(episode.get('seasonNumber')) != int or type(episode.get('episodeNumber')) != int:
+                    _, new_episodes = self._get_stream_data(url, timestamp, stream_id)
+                    for e in new_episodes:
+                        if e['episodeName'] == episode['episodeName']:
+                            entry['season_number'] = e.get('seasonNumber')
+                            entry['episode_number'] = e.get('episodeNumber')
+                            break
+
+                _formats = copy.deepcopy(formats)
+                for f in _formats:
+                    f['fragments'] = functools.partial(
+                        self._live_hls_fragments, episode['startTime'] / 1000, episode['duration'], video_id, f['url'])
+                entry['formats'] = _formats
+            else:
+                entry['release_timestamp'] = release_timestamp
+                entry['reextractor'] = functools.partial(get_episode_entry, stream, episode)
+
+            return entry
+
+        can_download_playlist = False
+        no_playlist_reason = 'Downloading only currently live %s episode' % stream.get('title', stream_id)
         if self.get_param('noplaylist'):
-            entry = get_episode_entry(stream, episodes[0])
-            self.to_screen('Downloading only video %s because of --no-playlist' % entry.get('id'))
+            no_playlist_reason += ' because of --no-playlist'
+        elif not self.get_param('wait_for_video'):
+            no_playlist_reason += ' because --wait-for-video 0 is not set'
+        else:
+            can_download_playlist = True
+
+        if can_download_playlist:
+            self.to_screen('Downloading all %s episodes; add --no-playlist to only download currently live episode' % stream.get('title', stream_id))
+            entries = [get_episode_entry(stream, episode, timestamp) for episode in episodes]
+
+            return self.playlist_result(entries, stream_id, stream.get('title'),
+                                        stream.get('description'), multi_video=True)
+        else:
+            self.to_screen(no_playlist_reason)
+            entry = get_episode_entry(stream, episodes[0], timestamp)
             return {
                 **entry,
                 'description': stream.get('description'),
             }
-        else:
-            self.to_screen('Downloading all %s episodes; add --no-playlist to only download live episode' % stream.get('title', stream_id))
-
-            def entries(stream, episodes):
-                for episode in episodes:
-                    print("nice")
-                    yield get_episode_entry(stream, episode)
-
-            return self.playlist_result(LazyList(entries(stream, episodes)), stream_id,
-                                        stream.get('title'), stream.get('description'), multi_video=True)
