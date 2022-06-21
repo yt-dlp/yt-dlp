@@ -12,6 +12,7 @@ import sys
 from .compat import compat_getpass, compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
+from .downloader.external import get_external_downloader
 from .extractor import list_extractor_classes
 from .extractor.adobepass import MSO_INFO
 from .extractor.common import InfoExtractor
@@ -39,6 +40,7 @@ from .utils import (
     download_range_func,
     expand_path,
     float_or_none,
+    format_field,
     int_or_none,
     match_filter_func,
     parse_duration,
@@ -399,6 +401,15 @@ def validate_options(opts):
     if opts.no_sponsorblock:
         opts.sponsorblock_mark = opts.sponsorblock_remove = set()
 
+    default_downloader = None
+    for proto, path in opts.external_downloader.items():
+        ed = get_external_downloader(path)
+        if ed is None:
+            raise ValueError(
+                f'No such {format_field(proto, None, "%s ", ignore="default")}external downloader "{path}"')
+        elif ed and proto == 'default':
+            default_downloader = ed.get_basename()
+
     warnings, deprecation_warnings = [], []
 
     # Common mistake: -f best
@@ -409,13 +420,18 @@ def validate_options(opts):
             'If you know what you are doing and want only the best pre-merged format, use "-f b" instead to suppress this warning')))
 
     # --(postprocessor/downloader)-args without name
-    def report_args_compat(name, value, key1, key2=None):
+    def report_args_compat(name, value, key1, key2=None, where=None):
         if key1 in value and key2 not in value:
-            warnings.append(f'{name} arguments given without specifying name. The arguments will be given to all {name}s')
+            warnings.append(f'{name.title()} arguments given without specifying name. '
+                            f'The arguments will be given to {where or f"all {name}s"}')
             return True
         return False
 
-    report_args_compat('external downloader', opts.external_downloader_args, 'default')
+    if report_args_compat('external downloader', opts.external_downloader_args,
+                          'default', where=default_downloader) and default_downloader:
+        # Compat with youtube-dl's behavior. See https://github.com/ytdl-org/youtube-dl/commit/49c5293014bc11ec8c009856cd63cffa6296c1e1
+        opts.external_downloader_args.setdefault(default_downloader, opts.external_downloader_args.pop('default'))
+
     if report_args_compat('post-processor', opts.postprocessor_args, 'default-compat', 'default'):
         opts.postprocessor_args['default'] = opts.postprocessor_args.pop('default-compat')
         opts.postprocessor_args.setdefault('sponskrub', [])
