@@ -2298,7 +2298,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             microformats = traverse_obj(
                 prs, (..., 'microformat', 'playerMicroformatRenderer'),
                 expected_type=dict, default=[])
-            _, is_live, _, formats = self._list_formats(video_id, microformats, video_details, prs, player_url)
+            _, is_live, _, formats, _ = self._list_formats(video_id, microformats, video_details, prs, player_url)
             start_time = time.time()
 
         def mpd_feed(format_id, delay):
@@ -3136,7 +3136,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             self.report_warning(last_error)
         return prs, player_url
 
-    def _extract_formats(self, streaming_data, video_id, player_url, is_live, duration):
+    def _extract_formats_and_subtitles(self, streaming_data, video_id, player_url, is_live, duration):
         itags, stream_ids = {}, []
         itag_qualities, res_qualities = {}, {}
         q = qualities([
@@ -3293,17 +3293,22 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 if val in qdict), -1)
             return True
 
+        subtitles = {}
         for sd in streaming_data:
             hls_manifest_url = get_hls and sd.get('hlsManifestUrl')
             if hls_manifest_url:
-                for f in self._extract_m3u8_formats(hls_manifest_url, video_id, 'mp4', fatal=False):
+                fmts, subs = self._extract_m3u8_formats_and_subtitles(hls_manifest_url, video_id, 'mp4', fatal=False, live=is_live)
+                subtitles = self._merge_subtitles(subs, subtitles)
+                for f in fmts:
                     if process_manifest_format(f, 'hls', self._search_regex(
                             r'/itag/(\d+)', f['url'], 'itag', default=None)):
                         yield f
 
             dash_manifest_url = get_dash and sd.get('dashManifestUrl')
             if dash_manifest_url:
-                for f in self._extract_mpd_formats(dash_manifest_url, video_id, fatal=False):
+                formats, subs = self._extract_mpd_formats_and_subtitles(dash_manifest_url, video_id, fatal=False)
+                subtitles = self._merge_subtitles(subs, subtitles)  # Prioritize HLS subs over DASH
+                for f in formats:
                     if process_manifest_format(f, 'dash', f['format_id']):
                         f['filesize'] = int_or_none(self._search_regex(
                             r'/clen/(\d+)', f.get('fragment_base_url') or f['url'], 'file size', default=None))
@@ -3311,6 +3316,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                             f['is_from_start'] = True
 
                         yield f
+        yield subtitles
 
     def _extract_storyboard(self, player_responses, duration):
         spec = get_first(
@@ -3371,9 +3377,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             is_live = get_first(live_broadcast_details, 'isLiveNow')
 
         streaming_data = traverse_obj(player_responses, (..., 'streamingData'), default=[])
-        formats = list(self._extract_formats(streaming_data, video_id, player_url, is_live, duration))
+        *formats, subtitles = self._extract_formats_and_subtitles(streaming_data, video_id, player_url, is_live, duration)
 
-        return live_broadcast_details, is_live, streaming_data, formats
+        return live_broadcast_details, is_live, streaming_data, formats, subtitles
 
     def _real_extract(self, url):
         url, smuggled_data = unsmuggle_url(url, {})
@@ -3464,8 +3470,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'The livestream has not finished processing. Only 4 hours of the video can be currently downloaded. '
                     'This is a known issue and patches are welcome')
 
-        live_broadcast_details, is_live, streaming_data, formats = self._list_formats(
-            video_id, microformats, video_details, player_responses, player_url, duration)
+        live_broadcast_details, is_live, streaming_data, formats, automatic_captions = \
+            self._list_formats(video_id, microformats, video_details, player_responses, player_url)
 
         if not formats:
             if not self.get_param('allow_unplayable_formats') and traverse_obj(streaming_data, (..., 'licenseInfos')):
@@ -3595,6 +3601,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'release_timestamp': live_start_time,
         }
 
+        subtitles = {}
         pctr = traverse_obj(player_responses, (..., 'captions', 'playerCaptionsTracklistRenderer'), expected_type=dict)
         if pctr:
             def get_lang_code(track):
@@ -3624,7 +3631,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # NB: Constructing the full subtitle dictionary is slow
             get_translated_subs = 'translated_subs' not in self._configuration_arg('skip') and (
                 self.get_param('writeautomaticsub', False) or self.get_param('listsubtitles'))
-            subtitles, automatic_captions = {}, {}
             for lang_code, caption_track in captions.items():
                 base_url = caption_track.get('baseUrl')
                 orig_lang = parse_qs(base_url).get('lang', [None])[-1]
@@ -3655,8 +3661,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Setting tlang=lang returns damaged subtitles.
                     process_language(automatic_captions, base_url, trans_code, trans_name,
                                      {} if orig_lang == orig_trans_code else {'tlang': trans_code})
-            info['automatic_captions'] = automatic_captions
-            info['subtitles'] = subtitles
+
+        info['automatic_captions'] = automatic_captions
+        info['subtitles'] = subtitles
 
         parsed_url = urllib.parse.urlparse(url)
         for component in [parsed_url.fragment, parsed_url.query]:
