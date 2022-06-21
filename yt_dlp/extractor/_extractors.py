@@ -357,6 +357,10 @@ from .dailymotion import (
     DailymotionPlaylistIE,
     DailymotionUserIE,
 )
+from .dailywire import (
+    DailyWireIE,
+    DailyWirePodcastIE,
+)
 from .damtomo import (
     DamtomoRecordIE,
     DamtomoVideoIE,
@@ -703,12 +707,10 @@ from .iqiyi import (
     IqIE,
     IqAlbumIE
 )
-
 from .itprotv import (
     ITProTVIE,
     ITProTVCourseIE
 )
-
 from .itv import (
     ITVIE,
     ITVBTCCIE,
@@ -748,11 +750,13 @@ from .khanacademy import (
     KhanAcademyIE,
     KhanAcademyUnitIE,
 )
+from .kicker import KickerIE
 from .kickstarter import KickStarterIE
 from .kinja import KinjaEmbedIE
 from .kinopoisk import KinoPoiskIE
 from .konserthusetplay import KonserthusetPlayIE
 from .koo import KooIE
+from .kth import KTHIE
 from .krasview import KrasViewIE
 from .ku6 import Ku6IE
 from .kusi import KUSIIE
