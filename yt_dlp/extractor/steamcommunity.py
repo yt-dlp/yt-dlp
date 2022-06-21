@@ -11,6 +11,7 @@ class SteamCommunityBroadcastIE(InfoExtractor):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage(url, video_id)
+        # FIXME: line below always return ERROR 400
         json_data = self._download_json(
             f'https://steamcommunity.com/broadcast/getbroadcastmpd/?steamid={video_id}',
             video_id,
