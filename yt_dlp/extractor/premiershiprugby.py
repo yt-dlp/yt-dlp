@@ -32,6 +32,6 @@ class PremiershipRugbyIE(InfoExtractor):
             'formats': formats,
             'subtitles': subs,
             'thumbnail': traverse_obj(json_data, ('heroMedia', 'content', 'videoThumbnail')),
-            'duration': int_or_none(traverse_obj(json_data, ('heroMedia', 'content', 'metadata', 'msDuration'))) / 1000,
+            'duration': int_or_none(traverse_obj(json_data, ('heroMedia', 'content', 'metadata', 'msDuration'), default=0)) / 1000,
             'tags': json_data.get('tags'),
         }
