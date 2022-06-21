@@ -1,3 +1,4 @@
+import atexit
 import hashlib
 import json
 import os
@@ -8,7 +9,7 @@ from zipimport import zipimporter
 
 from .compat import functools  # isort: split
 from .compat import compat_realpath
-from .utils import Popen, traverse_obj, version_tuple
+from .utils import Popen, shell_quote, traverse_obj, version_tuple
 from .version import __version__
 
 REPOSITORY = 'yt-dlp/yt-dlp'
@@ -206,17 +207,28 @@ class Updater:
         if detect_variant() not in ('win32_exe', 'py2exe'):
             if old_filename:
                 os.remove(old_filename)
-            self.ydl.to_screen(f'Updated yt-dlp to version {self.new_version}; Restart yt-dlp to use the new version')
-            return
+        else:
+            atexit.register(Popen, f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
+                            shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-        try:
-            # Continues to run in the background
-            Popen(f'ping 127.0.0.1 -n 5 -w 1000 & del /F "{old_filename}"',
-                shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            self.ydl.to_screen(f'Updated yt-dlp to version {self.new_version}')
-            return True  # Exit app
-        except OSError:
-            self._report_unable('delete the old version')
+        self.ydl.to_screen(f'Updated yt-dlp to version {self.new_version}')
+        return True
+
+    @functools.cached_property
+    def cmd(self):
+        """The command-line to run the executable, if known"""
+        # There is no sys.orig_argv in py < 3.10. Also, it can be [] when frozen
+        if getattr(sys, 'orig_argv', None):
+            return sys.orig_argv
+        elif hasattr(sys, 'frozen'):
+            return sys.argv
+
+    def restart(self):
+        """Restart the executable"""
+        assert self.cmd, 'Must be frozen or Py >= 3.10'
+        self.ydl.write_debug(f'Restarting: {shell_quote(self.cmd)}')
+        _, _, returncode = Popen.run(self.cmd)
+        return returncode
 
 
 def run_update(ydl):
