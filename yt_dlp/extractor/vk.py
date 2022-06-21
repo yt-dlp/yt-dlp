@@ -51,11 +51,17 @@ class VKBaseIE(InfoExtractor):
                 'Unable to login, incorrect username and/or password', expected=True)
 
     def _download_payload(self, path, video_id, data, fatal=True):
+        url = 'https://vk.com/%s.php' % path
         data['al'] = 1
         code, payload = self._download_json(
-            'https://vk.com/%s.php' % path, video_id,
+            url,
+            video_id,
             data=urlencode_postdata(data), fatal=fatal,
-            headers={'X-Requested-With': 'XMLHttpRequest'})['payload']
+            headers={
+                'Referer': url,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        )['payload']
         if code == '3':
             self.raise_login_required()
         elif code == '8':
@@ -84,16 +90,19 @@ class VKIE(VKBaseIE):
     _TESTS = [
         {
             'url': 'http://vk.com/videos-77521?z=video-77521_162222515%2Fclub77521',
-            'md5': '7babad3b85ea2e91948005b1b8b0cb84',
+            'md5': 'bb22825c8ae7a50475a6673eeda0a957',
             'info_dict': {
                 'id': '-77521_162222515',
                 'ext': 'mp4',
                 'title': 'ProtivoGunz - Хуёвая песня',
                 'uploader': 're:(?:Noize MC|Alexander Ilyashenko).*',
-                'uploader_id': '-77521',
+                'uploader_id': '39545378',
                 'duration': 195,
                 'timestamp': 1329049880,
                 'upload_date': '20120212',
+                'comment_count': int,
+                'like_count': int,
+                'thumbnail': r're:^https?://.*\.jpg$',
             },
         },
         {
@@ -317,7 +326,7 @@ class VKIE(VKBaseIE):
         mv_data = {}
         if video_id:
             data = {
-                'act': 'show_inline',
+                'act': 'show',
                 'video': video_id,
             }
             # Some videos (removed?) can only be downloaded with list id specified
