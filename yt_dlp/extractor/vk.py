@@ -59,8 +59,8 @@ class VKBaseIE(InfoExtractor):
             data=urlencode_postdata(data), fatal=fatal,
             headers={
                 'Referer': url,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
+                'X-Requested-With': 'XMLHttpRequest'
+            }
         )['payload']
         if code == '3':
             self.raise_login_required()
