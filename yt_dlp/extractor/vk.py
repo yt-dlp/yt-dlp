@@ -102,7 +102,7 @@ class VKIE(VKBaseIE):
                 'upload_date': '20120212',
                 'comment_count': int,
                 'like_count': int,
-                'thumbnail': r're:^https?://.*\.jpg$',
+                'thumbnail': r're:https?://.+\.jpg$',
             },
         },
         {
