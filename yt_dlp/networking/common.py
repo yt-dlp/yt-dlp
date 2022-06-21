@@ -187,7 +187,7 @@ class Response(io.IOBase):
             reason: typing.Optional[str] = None):
 
         self.raw = raw
-        self.headers: Message = Message(policy=email.policy.HTTP)
+        self.headers: Message = Message()
         for name, value in (headers or {}).items():
             self.headers.add_header(name, value)
         self.status = status
