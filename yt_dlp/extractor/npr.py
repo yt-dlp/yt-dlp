@@ -1,11 +1,5 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
-from ..utils import (
-    int_or_none,
-    qualities,
-    url_or_none,
-)
+from ..utils import int_or_none, qualities, traverse_obj, url_or_none
 
 
 class NprIE(InfoExtractor):
@@ -53,6 +47,15 @@ class NprIE(InfoExtractor):
         # multimedia, no formats, stream
         'url': 'https://www.npr.org/2020/02/14/805476846/laura-stevenson-tiny-desk-concert',
         'only_matching': True,
+    }, {
+        'url': 'https://www.npr.org/2022/03/15/1084896560/bonobo-tiny-desk-home-concert',
+        'info_dict': {
+            'id': '1086468851',
+            'ext': 'mp4',
+            'title': 'Bonobo: Tiny Desk (Home) Concert',
+            'duration': 1061,
+            'thumbnail': r're:^https?://media.npr.org/assets/img/.*\.jpg$',
+        },
     }]
 
     def _real_extract(self, url):
@@ -112,6 +115,12 @@ class NprIE(InfoExtractor):
                 formats.extend(self._extract_m3u8_formats(
                     stream_url, stream_id, 'mp4', 'm3u8_native',
                     m3u8_id='hls', fatal=False))
+
+            if not formats:
+                raw_json_ld = self._yield_json_ld(self._download_webpage(url, playlist_id), playlist_id, fatal=False)
+                m3u8_url = traverse_obj(list(raw_json_ld), (..., 'subjectOf', ..., 'embedUrl'), get_all=False)
+                formats = self._extract_m3u8_formats(m3u8_url, media_id, 'mp4', m3u8_id='hls', fatal=False)
+
             self._sort_formats(formats)
 
             entries.append({

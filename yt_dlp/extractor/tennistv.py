@@ -1,5 +1,4 @@
-# coding: utf-8
-from __future__ import unicode_literals
+import json
 
 from .common import InfoExtractor
 
@@ -32,6 +31,7 @@ class TennisTVIE(InfoExtractor):
         'skip': 'Requires email and password of a subscribed account',
     }
     _NETRC_MACHINE = 'tennistv'
+    _session_token = None
 
     ACCESS_TOKEN = None
     REFRESH_TOKEN = None

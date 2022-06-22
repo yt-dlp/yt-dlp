@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -89,4 +86,5 @@ class ManyVidsIE(InfoExtractor):
             'view_count': view_count,
             'like_count': like_count,
             'formats': formats,
+            'uploader': self._html_search_regex(r'<meta[^>]+name="author"[^>]*>([^<]+)', webpage, 'uploader'),
         }

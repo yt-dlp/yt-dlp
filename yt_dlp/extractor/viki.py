@@ -1,5 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
 import hashlib
 import hmac
 import json
@@ -19,7 +17,7 @@ class VikiBaseIE(InfoExtractor):
     _VALID_URL_BASE = r'https?://(?:www\.)?viki\.(?:com|net|mx|jp|fr)/'
     _API_URL_TEMPLATE = 'https://api.viki.io%s'
 
-    _DEVICE_ID = '86085977d'  # used for android api
+    _DEVICE_ID = '112395910d'
     _APP = '100005a'
     _APP_VERSION = '6.11.3'
     _APP_SECRET = 'd96704b180208dbb2efa30fe44c48bd8690441af9f567ba8fd710a72badc85198f7472'
@@ -99,14 +97,7 @@ class VikiBaseIE(InfoExtractor):
                     self.raise_login_required(message)
                 self._raise_error(message)
 
-    def _real_initialize(self):
-        self._login()
-
-    def _login(self):
-        username, password = self._get_login_info()
-        if username is None:
-            return
-
+    def _perform_login(self, username, password):
         self._token = self._call_api(
             'sessions.json', None, 'Logging in', fatal=False,
             data={'username': username, 'password': password}).get('token')
@@ -253,7 +244,7 @@ class VikiIE(VikiBaseIE):
         } for thumbnail_id, thumbnail in (video.get('images') or {}).items() if thumbnail.get('url')]
 
         resp = self._call_api(
-            'playback_streams/%s.json?drms=dt1,dt2&device_id=%s' % (video_id, self._DEVICE_ID),
+            'playback_streams/%s.json?drms=dt3&device_id=%s' % (video_id, self._DEVICE_ID),
             video_id, 'Downloading video streams JSON')['main'][0]
 
         stream_id = try_get(resp, lambda x: x['properties']['track']['stream_id'])
@@ -264,10 +255,13 @@ class VikiIE(VikiBaseIE):
         } for ext in ('srt', 'vtt')]) for lang in (video.get('subtitle_completions') or {}).keys())
 
         mpd_url = resp['url']
-        # 1080p is hidden in another mpd which can be found in the current manifest content
+        # 720p is hidden in another MPD which can be found in the current manifest content
         mpd_content = self._download_webpage(mpd_url, video_id, note='Downloading initial MPD manifest')
         mpd_url = self._search_regex(
             r'(?mi)<BaseURL>(http.+.mpd)', mpd_content, 'new manifest', default=mpd_url)
+        if 'mpdhd_high' not in mpd_url and 'sig=' not in mpd_url:
+            # Modify the URL to get 1080p
+            mpd_url = mpd_url.replace('mpdhd', 'mpdhd_high')
         formats = self._extract_mpd_formats(mpd_url, video_id)
         self._sort_formats(formats)
 

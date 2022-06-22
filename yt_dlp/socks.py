@@ -1,8 +1,5 @@
 # Public Domain SOCKS proxy protocol implementation
 # Adapted from https://gist.github.com/bluec0re/cafd3764412967417fd3
-
-from __future__ import unicode_literals
-
 # References:
 # SOCKS4 protocol http://www.openssh.com/txt/socks4.protocol
 # SOCKS4A protocol http://www.openssh.com/txt/socks4a.protocol
@@ -12,11 +9,7 @@ from __future__ import unicode_literals
 import collections
 import socket
 
-from .compat import (
-    compat_ord,
-    compat_struct_pack,
-    compat_struct_unpack,
-)
+from .compat import compat_ord, compat_struct_pack, compat_struct_unpack
 
 __author__ = 'Timo Schmid <coding@timoschmid.de>'
 
@@ -33,7 +26,7 @@ SOCKS5_USER_AUTH_VERSION = 0x01
 SOCKS5_USER_AUTH_SUCCESS = 0x00
 
 
-class Socks4Command(object):
+class Socks4Command:
     CMD_CONNECT = 0x01
     CMD_BIND = 0x02
 
@@ -42,14 +35,14 @@ class Socks5Command(Socks4Command):
     CMD_UDP_ASSOCIATE = 0x03
 
 
-class Socks5Auth(object):
+class Socks5Auth:
     AUTH_NONE = 0x00
     AUTH_GSSAPI = 0x01
     AUTH_USER_PASS = 0x02
     AUTH_NO_ACCEPTABLE = 0xFF  # For server response
 
 
-class Socks5AddressType(object):
+class Socks5AddressType:
     ATYP_IPV4 = 0x01
     ATYP_DOMAINNAME = 0x03
     ATYP_IPV6 = 0x04
@@ -61,14 +54,14 @@ class ProxyError(socket.error):
     def __init__(self, code=None, msg=None):
         if code is not None and msg is None:
             msg = self.CODES.get(code) or 'unknown error'
-        super(ProxyError, self).__init__(code, msg)
+        super().__init__(code, msg)
 
 
 class InvalidVersionError(ProxyError):
     def __init__(self, expected_version, got_version):
-        msg = ('Invalid response version from server. Expected {0:02x} got '
-               '{1:02x}'.format(expected_version, got_version))
-        super(InvalidVersionError, self).__init__(0, msg)
+        msg = ('Invalid response version from server. Expected {:02x} got '
+               '{:02x}'.format(expected_version, got_version))
+        super().__init__(0, msg)
 
 
 class Socks4Error(ProxyError):
@@ -98,7 +91,7 @@ class Socks5Error(ProxyError):
     }
 
 
-class ProxyType(object):
+class ProxyType:
     SOCKS4 = 0
     SOCKS4A = 1
     SOCKS5 = 2
@@ -111,7 +104,7 @@ Proxy = collections.namedtuple('Proxy', (
 class sockssocket(socket.socket):
     def __init__(self, *args, **kwargs):
         self._proxy = None
-        super(sockssocket, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def setproxy(self, proxytype, addr, port, rdns=True, username=None, password=None):
         assert proxytype in (ProxyType.SOCKS4, ProxyType.SOCKS4A, ProxyType.SOCKS5)
@@ -123,13 +116,13 @@ class sockssocket(socket.socket):
         while len(data) < cnt:
             cur = self.recv(cnt - len(data))
             if not cur:
-                raise EOFError('{0} bytes missing'.format(cnt - len(data)))
+                raise EOFError(f'{cnt - len(data)} bytes missing')
             data += cur
         return data
 
     def _recv_bytes(self, cnt):
         data = self.recvall(cnt)
-        return compat_struct_unpack('!{0}B'.format(cnt), data)
+        return compat_struct_unpack(f'!{cnt}B', data)
 
     @staticmethod
     def _len_and_data(data):
@@ -143,7 +136,7 @@ class sockssocket(socket.socket):
     def _resolve_address(self, destaddr, default, use_remote_dns):
         try:
             return socket.inet_aton(destaddr)
-        except socket.error:
+        except OSError:
             if use_remote_dns and self._proxy.remote_dns:
                 return default
             else:
@@ -156,11 +149,11 @@ class sockssocket(socket.socket):
 
         packet = compat_struct_pack('!BBH', SOCKS4_VERSION, Socks4Command.CMD_CONNECT, port) + ipaddr
 
-        username = (self._proxy.username or '').encode('utf-8')
+        username = (self._proxy.username or '').encode()
         packet += username + b'\x00'
 
         if is_4a and self._proxy.remote_dns:
-            packet += destaddr.encode('utf-8') + b'\x00'
+            packet += destaddr.encode() + b'\x00'
 
         self.sendall(packet)
 
@@ -185,7 +178,7 @@ class sockssocket(socket.socket):
             auth_methods.append(Socks5Auth.AUTH_USER_PASS)
 
         packet += compat_struct_pack('!B', len(auth_methods))
-        packet += compat_struct_pack('!{0}B'.format(len(auth_methods)), *auth_methods)
+        packet += compat_struct_pack(f'!{len(auth_methods)}B', *auth_methods)
 
         self.sendall(packet)
 
@@ -199,8 +192,8 @@ class sockssocket(socket.socket):
             raise Socks5Error(Socks5Auth.AUTH_NO_ACCEPTABLE)
 
         if method == Socks5Auth.AUTH_USER_PASS:
-            username = self._proxy.username.encode('utf-8')
-            password = self._proxy.password.encode('utf-8')
+            username = self._proxy.username.encode()
+            password = self._proxy.password.encode()
             packet = compat_struct_pack('!B', SOCKS5_USER_AUTH_VERSION)
             packet += self._len_and_data(username) + self._len_and_data(password)
             self.sendall(packet)
@@ -223,7 +216,7 @@ class sockssocket(socket.socket):
         reserved = 0
         packet = compat_struct_pack('!BBB', SOCKS5_VERSION, Socks5Command.CMD_CONNECT, reserved)
         if ipaddr is None:
-            destaddr = destaddr.encode('utf-8')
+            destaddr = destaddr.encode()
             packet += compat_struct_pack('!B', Socks5AddressType.ATYP_DOMAINNAME)
             packet += self._len_and_data(destaddr)
         else:

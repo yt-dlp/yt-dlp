@@ -1,19 +1,17 @@
-from __future__ import unicode_literals
-
 from math import ceil
 
-from .compat import compat_b64decode, compat_pycrypto_AES
+from .compat import compat_b64decode, compat_ord
+from .dependencies import Cryptodome_AES
 from .utils import bytes_to_intlist, intlist_to_bytes
 
-
-if compat_pycrypto_AES:
+if Cryptodome_AES:
     def aes_cbc_decrypt_bytes(data, key, iv):
         """ Decrypt bytes with AES-CBC using pycryptodome """
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_CBC, iv).decrypt(data)
+        return Cryptodome_AES.new(key, Cryptodome_AES.MODE_CBC, iv).decrypt(data)
 
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using pycryptodome """
-        return compat_pycrypto_AES.new(key, compat_pycrypto_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
+        return Cryptodome_AES.new(key, Cryptodome_AES.MODE_GCM, nonce).decrypt_and_verify(data, tag)
 
 else:
     def aes_cbc_decrypt_bytes(data, key, iv):
@@ -23,6 +21,10 @@ else:
     def aes_gcm_decrypt_and_verify_bytes(data, key, tag, nonce):
         """ Decrypt bytes with AES-GCM using native implementation since pycryptodome is unavailable """
         return intlist_to_bytes(aes_gcm_decrypt_and_verify(*map(bytes_to_intlist, (data, key, tag, nonce))))
+
+
+def unpad_pkcs7(data):
+    return data[:-compat_ord(data[-1])]
 
 
 BLOCK_SIZE_BYTES = 16
@@ -263,7 +265,7 @@ def aes_decrypt_text(data, password, key_size_bytes):
     NONCE_LENGTH_BYTES = 8
 
     data = bytes_to_intlist(compat_b64decode(data))
-    password = bytes_to_intlist(password.encode('utf-8'))
+    password = bytes_to_intlist(password.encode())
 
     key = password[:key_size_bytes] + [0] * (key_size_bytes - len(password))
     key = aes_encrypt(key[:BLOCK_SIZE_BYTES], key_expansion(key)) * (key_size_bytes // BLOCK_SIZE_BYTES)
@@ -492,7 +494,7 @@ def ghash(subkey, data):
 
     last_y = [0] * BLOCK_SIZE_BYTES
     for i in range(0, len(data), BLOCK_SIZE_BYTES):
-        block = data[i : i + BLOCK_SIZE_BYTES]  # noqa: E203
+        block = data[i: i + BLOCK_SIZE_BYTES]
         last_y = block_product(xor(last_y, block), subkey)
 
     return last_y
@@ -506,5 +508,6 @@ __all__ = [
     'aes_encrypt',
     'aes_gcm_decrypt_and_verify',
     'aes_gcm_decrypt_and_verify_bytes',
-    'key_expansion'
+    'key_expansion',
+    'unpad_pkcs7',
 ]

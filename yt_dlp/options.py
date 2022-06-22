@@ -1,29 +1,14 @@
-from __future__ import unicode_literals
-
-import os.path
+import collections
+import contextlib
 import optparse
+import os.path
 import re
+import shlex
+import string
 import sys
 
-from .compat import (
-    compat_expanduser,
-    compat_get_terminal_size,
-    compat_getenv,
-    compat_kwargs,
-    compat_shlex_split,
-)
-from .utils import (
-    Config,
-    expand_path,
-    get_executable_path,
-    OUTTMPL_TYPES,
-    POSTPROCESS_WHEN,
-    remove_end,
-    write_string,
-)
+from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
-from .version import __version__
-
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
     FFmpegExtractAudioPP,
@@ -33,18 +18,24 @@ from .postprocessor import (
     SponsorBlockPP,
 )
 from .postprocessor.modify_chapters import DEFAULT_SPONSORBLOCK_CHAPTER_TITLE
+from .update import detect_variant
+from .utils import (
+    OUTTMPL_TYPES,
+    POSTPROCESS_WHEN,
+    Config,
+    expand_path,
+    get_executable_path,
+    join_nonempty,
+    remove_end,
+    write_string,
+)
+from .version import __version__
 
 
 def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
-    parser = create_parser()
-    root = Config(parser)
-
+    root = Config(create_parser())
     if ignore_config_files == 'if_override':
         ignore_config_files = overrideArguments is not None
-    if overrideArguments:
-        root.append_config(overrideArguments, label='Override')
-    else:
-        root.append_config(sys.argv[1:], label='Command-line')
 
     def _readUserConf(package_name, default=[]):
         # .config
@@ -80,7 +71,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     def add_config(label, path, user=False):
         """ Adds config and returns whether to continue """
-        if root.parse_args()[0].ignoreconfig:
+        if root.parse_known_args()[0].ignoreconfig:
             return False
         # Multiple package names can be given here
         # Eg: ('yt-dlp', 'youtube-dlc', 'youtube-dl') will look for
@@ -99,42 +90,120 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
     def load_configs():
         yield not ignore_config_files
         yield add_config('Portable', get_executable_path())
-        yield add_config('Home', expand_path(root.parse_args()[0].paths.get('home', '')).strip())
+        yield add_config('Home', expand_path(root.parse_known_args()[0].paths.get('home', '')).strip())
         yield add_config('User', None, user=True)
         yield add_config('System', '/etc')
 
-    if all(load_configs()):
-        # If ignoreconfig is found inside the system configuration file,
-        # the user configuration is removed
-        if root.parse_args()[0].ignoreconfig:
-            user_conf = next((i for i, conf in enumerate(root.configs) if conf.label == 'User'), None)
-            if user_conf is not None:
-                root.configs.pop(user_conf)
+    opts = optparse.Values({'verbose': True, 'print_help': False})
+    try:
+        try:
+            if overrideArguments:
+                root.append_config(overrideArguments, label='Override')
+            else:
+                root.append_config(sys.argv[1:], label='Command-line')
+            loaded_all_configs = all(load_configs())
+        except ValueError as err:
+            raise root.parser.error(err)
 
-    opts, args = root.parse_args()
-    if opts.verbose:
-        write_string(f'\n{root}'.replace('\n| ', '\n[debug] ')[1:] + '\n')
-    return parser, opts, args
+        if loaded_all_configs:
+            # If ignoreconfig is found inside the system configuration file,
+            # the user configuration is removed
+            if root.parse_known_args()[0].ignoreconfig:
+                user_conf = next((i for i, conf in enumerate(root.configs) if conf.label == 'User'), None)
+                if user_conf is not None:
+                    root.configs.pop(user_conf)
+
+        opts, args = root.parse_args()
+    except optparse.OptParseError:
+        with contextlib.suppress(optparse.OptParseError):
+            opts, _ = root.parse_known_args(strict=False)
+        raise
+    except (SystemExit, KeyboardInterrupt):
+        opts.verbose = False
+        raise
+    finally:
+        verbose = opts.verbose and f'\n{root}'.replace('\n| ', '\n[debug] ')[1:]
+        if verbose:
+            write_string(f'{verbose}\n')
+        if opts.print_help:
+            if verbose:
+                write_string('\n')
+            root.parser.print_help()
+    if opts.print_help:
+        sys.exit()
+    return root.parser, opts, args
+
+
+class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
+    def __init__(self):
+        # No need to wrap help messages if we're on a wide console
+        max_width = compat_get_terminal_size().columns or 80
+        # The % is chosen to get a pretty output in README.md
+        super().__init__(width=max_width, max_help_position=int(0.45 * max_width))
+
+    @staticmethod
+    def format_option_strings(option):
+        """ ('-o', '--option') -> -o, --format METAVAR """
+        opts = join_nonempty(
+            option._short_opts and option._short_opts[0],
+            option._long_opts and option._long_opts[0],
+            delim=', ')
+        if option.takes_value():
+            opts += f' {option.metavar}'
+        return opts
+
+
+class _YoutubeDLOptionParser(optparse.OptionParser):
+    # optparse is deprecated since python 3.2. So assume a stable interface even for private methods
+    ALIAS_TRIGGER_LIMIT = 100
+
+    def __init__(self):
+        super().__init__(
+            prog='yt-dlp' if detect_variant() == 'source' else None,
+            version=__version__,
+            usage='%prog [OPTIONS] URL [URL...]',
+            epilog='See full documentation at  https://github.com/yt-dlp/yt-dlp#readme',
+            formatter=_YoutubeDLHelpFormatter(),
+            conflict_handler='resolve',
+        )
+
+    _UNKNOWN_OPTION = (optparse.BadOptionError, optparse.AmbiguousOptionError)
+    _BAD_OPTION = optparse.OptionValueError
+
+    def parse_known_args(self, args=None, values=None, strict=True):
+        """Same as parse_args, but ignore unknown switches. Similar to argparse.parse_known_args"""
+        self.rargs, self.largs = self._get_args(args), []
+        self.values = values or self.get_default_values()
+        while self.rargs:
+            try:
+                self._process_args(self.largs, self.rargs, self.values)
+            except optparse.OptParseError as err:
+                if isinstance(err, self._UNKNOWN_OPTION):
+                    self.largs.append(err.opt_str)
+                elif strict:
+                    if isinstance(err, self._BAD_OPTION):
+                        self.error(str(err))
+                    raise
+        return self.check_values(self.values, self.largs)
+
+    def error(self, msg):
+        msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
+        raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
+
+    def _get_args(self, args):
+        return sys.argv[1:] if args is None else list(args)
+
+    def _match_long_opt(self, opt):
+        """Improve ambigious argument resolution by comparing option objects instead of argument strings"""
+        try:
+            return super()._match_long_opt(opt)
+        except optparse.AmbiguousOptionError as e:
+            if len({self._long_opt[p] for p in e.possibilities}) == 1:
+                return e.possibilities[0]
+            raise
 
 
 def create_parser():
-    def _format_option_string(option):
-        ''' ('-o', '--option') -> -o, --format METAVAR'''
-
-        opts = []
-
-        if option._short_opts:
-            opts.append(option._short_opts[0])
-        if option._long_opts:
-            opts.append(option._long_opts[0])
-        if len(opts) > 1:
-            opts.insert(1, ', ')
-
-        if option.takes_value():
-            opts.append(' %s' % option.metavar)
-
-        return ''.join(opts)
-
     def _list_from_options_callback(option, opt_str, value, parser, append=True, delim=',', process=str.strip):
         # append can be True, False or -1 (prepend)
         current = list(getattr(parser.values, option.dest)) if append else []
@@ -150,6 +219,8 @@ def create_parser():
         values = [process(value)] if delim is None else list(map(process, value.split(delim)[::-1]))
         while values:
             actual_val = val = values.pop()
+            if not val:
+                raise optparse.OptionValueError(f'Invalid {option.metavar} for {opt_str}: {value}')
             if val == 'all':
                 current.update(allowed_values)
             elif val == '-all':
@@ -173,16 +244,21 @@ def create_parser():
             process_key=str.lower, append=False):
 
         out_dict = dict(getattr(parser.values, option.dest))
+        multiple_args = not isinstance(value, str)
         if multiple_keys:
-            allowed_keys = r'(%s)(,(%s))*' % (allowed_keys, allowed_keys)
-        mobj = re.match(r'(?i)(?P<keys>%s)%s(?P<val>.*)$' % (allowed_keys, delimiter), value)
+            allowed_keys = fr'({allowed_keys})(,({allowed_keys}))*'
+        mobj = re.match(
+            fr'(?i)(?P<keys>{allowed_keys}){delimiter}(?P<val>.*)$',
+            value[0] if multiple_args else value)
         if mobj is not None:
             keys, val = mobj.group('keys').split(','), mobj.group('val')
+            if multiple_args:
+                val = [val, *value[1:]]
         elif default_key is not None:
             keys, val = [default_key], value
         else:
             raise optparse.OptionValueError(
-                'wrong %s formatting; it should be %s, not "%s"' % (opt_str, option.metavar, value))
+                f'wrong {opt_str} formatting; it should be {option.metavar}, not "{value}"')
         try:
             keys = map(process_key, keys) if process_key else keys
             val = process(val) if process else val
@@ -192,30 +268,45 @@ def create_parser():
             out_dict[key] = out_dict.get(key, []) + [val] if append else val
         setattr(parser.values, option.dest, out_dict)
 
-    # No need to wrap help messages if we're on a wide console
-    columns = compat_get_terminal_size().columns
-    max_width = columns if columns else 80
-    # 47% is chosen because that is how README.md is currently formatted
-    # and moving help text even further to the right is undesirable.
-    # This can be reduced in the future to get a prettier output
-    max_help_position = int(0.47 * max_width)
+    parser = _YoutubeDLOptionParser()
+    alias_group = optparse.OptionGroup(parser, 'Aliases')
+    Formatter = string.Formatter()
 
-    fmt = optparse.IndentedHelpFormatter(width=max_width, max_help_position=max_help_position)
-    fmt.format_option_strings = _format_option_string
+    def _create_alias(option, opt_str, value, parser):
+        aliases, opts = value
+        try:
+            nargs = len({i if f == '' else f
+                         for i, (_, f, _, _) in enumerate(Formatter.parse(opts)) if f is not None})
+            opts.format(*map(str, range(nargs)))  # validate
+        except Exception as err:
+            raise optparse.OptionValueError(f'wrong {opt_str} OPTIONS formatting; {err}')
+        if alias_group not in parser.option_groups:
+            parser.add_option_group(alias_group)
 
-    kw = {
-        'version': __version__,
-        'formatter': fmt,
-        'usage': '%prog [OPTIONS] URL [URL...]',
-        'conflict_handler': 'resolve',
-    }
+        aliases = (x if x.startswith('-') else f'--{x}' for x in map(str.strip, aliases.split(',')))
+        try:
+            alias_group.add_option(
+                *aliases, help=opts, nargs=nargs, type='str' if nargs else None,
+                dest='_triggered_aliases', default=collections.defaultdict(int),
+                metavar=' '.join(f'ARG{i}' for i in range(nargs)), action='callback',
+                callback=_alias_callback, callback_kwargs={'opts': opts, 'nargs': nargs})
+        except Exception as err:
+            raise optparse.OptionValueError(f'wrong {opt_str} formatting; {err}')
 
-    parser = optparse.OptionParser(**compat_kwargs(kw))
+    def _alias_callback(option, opt_str, value, parser, opts, nargs):
+        counter = getattr(parser.values, option.dest)
+        counter[opt_str] += 1
+        if counter[opt_str] > parser.ALIAS_TRIGGER_LIMIT:
+            raise optparse.OptionValueError(f'Alias {opt_str} exceeded invocation limit')
+        if nargs == 1:
+            value = [value]
+        assert (nargs == 0 and value is None) or len(value) == nargs
+        parser.rargs[:0] = shlex.split(
+            opts if value is None else opts.format(*map(shlex.quote, value)))
 
     general = optparse.OptionGroup(parser, 'General Options')
     general.add_option(
-        '-h', '--help',
-        action='help',
+        '-h', '--help', dest='print_help', action='store_true',
         help='Print this help text and exit')
     general.add_option(
         '--version',
@@ -224,7 +315,11 @@ def create_parser():
     general.add_option(
         '-U', '--update',
         action='store_true', dest='update_self',
-        help='Update this program to latest version. Make sure that you have sufficient permissions (run with sudo if needed)')
+        help='Update this program to latest version')
+    general.add_option(
+        '--no-update',
+        action='store_false', dest='update_self',
+        help='Do not update (default)')
     general.add_option(
         '-i', '--ignore-errors',
         action='store_true', dest='ignoreerrors',
@@ -256,7 +351,12 @@ def create_parser():
     general.add_option(
         '--default-search',
         dest='default_search', metavar='PREFIX',
-        help='Use this prefix for unqualified URLs. For example "gvsearch2:" downloads two videos from google videos for the search term "large apple". Use the value "auto" to let yt-dlp guess ("auto_warning" to emit a warning when guessing). "error" just throws an error. The default value "fixup_error" repairs broken URLs, but emits an error if this is not possible instead of searching')
+        help=(
+            'Use this prefix for unqualified URLs. '
+            'Eg: "gvsearch2:python" downloads two videos from google videos for the search term "python". '
+            'Use the value "auto" to let yt-dlp guess ("auto_warning" to emit a warning when guessing). '
+            '"error" just throws an error. The default value "fixup_error" repairs broken URLs, '
+            'but emits an error if this is not possible instead of searching'))
     general.add_option(
         '--ignore-config', '--no-config',
         action='store_true', dest='ignoreconfig',
@@ -274,8 +374,8 @@ def create_parser():
         '--config-locations',
         dest='config_locations', metavar='PATH', action='append',
         help=(
-            'Location of the main configuration file; either the path to the config or its containing directory. '
-            'Can be used multiple times and inside other configuration files'))
+            'Location of the main configuration file; either the path to the config or its containing directory '
+            '("-" for stdin). Can be used multiple times and inside other configuration files'))
     general.add_option(
         '--flat-playlist',
         action='store_const', dest='extract_flat', const='in_playlist', default=False,
@@ -305,7 +405,7 @@ def create_parser():
     general.add_option(
         '--mark-watched',
         action='store_true', dest='mark_watched', default=False,
-        help='Mark videos watched (even with --simulate). Currently only supported for YouTube')
+        help='Mark videos watched (even with --simulate)')
     general.add_option(
         '--no-mark-watched',
         action='store_false', dest='mark_watched',
@@ -320,10 +420,10 @@ def create_parser():
         action='callback', callback=_set_from_options_callback,
         callback_kwargs={
             'allowed_values': {
-                'filename', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
+                'filename', 'filename-sanitization', 'format-sort', 'abort-on-error', 'format-spec', 'no-playlist-metafiles',
                 'multistreams', 'no-live-chat', 'playlist-index', 'list-formats', 'no-direct-merge',
                 'no-youtube-channel-redirect', 'no-youtube-unavailable-videos', 'no-attach-info-json', 'embed-metadata',
-                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs',
+                'embed-thumbnail-atomicparsley', 'seperate-video-versions', 'no-clean-infojson', 'no-keep-subs', 'no-certifi',
             }, 'aliases': {
                 'youtube-dl': ['-multistreams', 'all'],
                 'youtube-dlc': ['-no-youtube-channel-redirect', '-no-live-chat', 'all'],
@@ -332,16 +432,26 @@ def create_parser():
             'Options that can help keep compatibility with youtube-dl or youtube-dlc '
             'configurations by reverting some of the changes made in yt-dlp. '
             'See "Differences in default behavior" for details'))
+    general.add_option(
+        '--alias', metavar='ALIASES OPTIONS', dest='_', type='str', nargs=2,
+        action='callback', callback=_create_alias,
+        help=(
+            'Create aliases for an option string. Unless an alias starts with a dash "-", it is prefixed with "--". '
+            'Arguments are parsed according to the Python string formatting mini-language. '
+            'Eg: --alias get-audio,-X "-S=aext:{0},abr -x --audio-format {0}" creates options '
+            '"--get-audio" and "-X" that takes an argument (ARG0) and expands to '
+            '"-S=aext:ARG0,abr -x --audio-format ARG0". All defined aliases are listed in the --help output. '
+            'Alias options can trigger more aliases; so be carefull to avoid defining recursive options. '
+            f'As a safety measure, each alias may be triggered a maximum of {_YoutubeDLOptionParser.ALIAS_TRIGGER_LIMIT} times. '
+            'This option can be used multiple times'))
 
     network = optparse.OptionGroup(parser, 'Network Options')
     network.add_option(
         '--proxy', dest='proxy',
         default=None, metavar='URL',
         help=(
-            'Use the specified HTTP/HTTPS/SOCKS proxy. To enable '
-            'SOCKS proxy, specify a proper scheme. For example '
-            'socks5://127.0.0.1:1080/. Pass in an empty string (--proxy "") '
-            'for direct connection'))
+            'Use the specified HTTP/HTTPS/SOCKS proxy. To enable SOCKS proxy, specify a proper scheme. '
+            'Eg: socks5://user:pass@127.0.0.1:1080/. Pass in an empty string (--proxy "") for direct connection'))
     network.add_option(
         '--socket-timeout',
         dest='socket_timeout', type=float, default=None, metavar='SECONDS',
@@ -376,10 +486,10 @@ def create_parser():
     geo.add_option(
         '--geo-bypass',
         action='store_true', dest='geo_bypass', default=True,
-        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header')
+        help='Bypass geographic restriction via faking X-Forwarded-For HTTP header (default)')
     geo.add_option(
         '--no-geo-bypass',
-        action='store_false', dest='geo_bypass', default=True,
+        action='store_false', dest='geo_bypass',
         help='Do not bypass geographic restriction via faking X-Forwarded-For HTTP header')
     geo.add_option(
         '--geo-bypass-country', metavar='CODE',
@@ -394,15 +504,19 @@ def create_parser():
     selection.add_option(
         '--playlist-start',
         dest='playliststart', metavar='NUMBER', default=1, type=int,
-        help='Playlist video to start at (default is %default)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
         '--playlist-end',
         dest='playlistend', metavar='NUMBER', default=None, type=int,
-        help='Playlist video to end at (default is last)')
+        help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--playlist-items',
+        '-I', '--playlist-items',
         dest='playlist_items', metavar='ITEM_SPEC', default=None,
-        help='Playlist video items to download. Specify indices of the videos in the playlist separated by commas like: "--playlist-items 1,2,5,8" if you want to download videos indexed 1, 2, 5, 8 in the playlist. You can specify range: "--playlist-items 1-3,7,10-13", it will download the videos at index 1, 2, 3, 7, 10, 11, 12 and 13')
+        help=(
+            'Comma seperated playlist_index of the videos to download. '
+            'You can specify a range using "[START]:[STOP][:STEP]". For backward compatibility, START-STOP is also supported. '
+            'Use negative indices to count from the right and negative STEP to download in reverse order. '
+            'Eg: "-I 1:3,7,-5::2" used on a playlist of size 15 will download the videos at index 1,2,3,7,11,13,15'))
     selection.add_option(
         '--match-title',
         dest='matchtitle', metavar='REGEX',
@@ -423,9 +537,8 @@ def create_parser():
         '--date',
         metavar='DATE', dest='date', default=None,
         help=(
-            'Download only videos uploaded on this date. '
-            'The date can be "YYYYMMDD" or in the format '
-            '"(now|today)[+-][0-9](day|week|month|year)(s)?"'))
+            'Download only videos uploaded on this date. The date can be "YYYYMMDD" or in the format '
+            '[now|today|yesterday][-N[day|week|month|year]]. Eg: --date today-2weeks'))
     selection.add_option(
         '--datebefore',
         metavar='DATE', dest='datebefore', default=None,
@@ -447,20 +560,20 @@ def create_parser():
         metavar='COUNT', dest='max_views', default=None, type=int,
         help=optparse.SUPPRESS_HELP)
     selection.add_option(
-        '--match-filter',
-        metavar='FILTER', dest='match_filter', default=None,
+        '--match-filters',
+        metavar='FILTER', dest='match_filter', action='append',
         help=(
-            'Generic video filter. Any field (see "OUTPUT TEMPLATE") can be compared with a '
+            'Generic video filter. Any "OUTPUT TEMPLATE" field can be compared with a '
             'number or a string using the operators defined in "Filtering formats". '
-            'You can also simply specify a field to match if the field is present '
-            'and "!field" to check if the field is not present. In addition, '
-            'Python style regular expression matching can be done using "~=", '
-            'and multiple filters can be checked with "&". '
-            'Use a "\\" to escape "&" or quotes if needed. Eg: --match-filter '
-            '"!is_live & like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
-            'matches only videos that are not live, has a like count more than 100 '
-            '(or the like field is not available), and also has a description '
-            'that contains the phrase "cats & dogs" (ignoring case)'))
+            'You can also simply specify a field to match if the field is present, '
+            'use "!field" to check if the field is not present, and "&" to check multiple conditions. '
+            'Use a "\\" to escape "&" or quotes if needed. If used multiple times, '
+            'the filter matches if atleast one of the conditions are met. Eg: --match-filter '
+            '!is_live --match-filter "like_count>?100 & description~=\'(?i)\\bcats \\& dogs\\b\'" '
+            'matches only videos that are not live OR those that have a like count more than 100 '
+            '(or the like field is not available) and also has a description '
+            'that contains the phrase "cats & dogs" (caseless). '
+            'Use "--match-filter -" to interactively ask whether to download each video'))
     selection.add_option(
         '--no-match-filter',
         metavar='FILTER', dest='match_filter', action='store_const', const=None,
@@ -500,11 +613,11 @@ def create_parser():
     selection.add_option(
         '--break-per-input',
         action='store_true', dest='break_per_url', default=False,
-        help='Make --break-on-existing and --break-on-reject act only on the current input URL')
+        help='Make --break-on-existing, --break-on-reject and --max-downloads act only on the current input URL')
     selection.add_option(
         '--no-break-per-input',
         action='store_false', dest='break_per_url',
-        help='--break-on-existing and --break-on-reject terminates the entire download queue')
+        help='--break-on-existing and similar options terminates the entire download queue')
     selection.add_option(
         '--skip-playlist-after-errors', metavar='N',
         dest='skip_playlist_after_errors', default=None, type=int,
@@ -559,6 +672,19 @@ def create_parser():
         '--ap-list-mso',
         action='store_true', dest='ap_list_mso', default=False,
         help='List all supported multiple-system operators')
+    authentication.add_option(
+        '--client-certificate',
+        dest='client_certificate', metavar='CERTFILE',
+        help='Path to client certificate file in PEM format. May include the private key')
+    authentication.add_option(
+        '--client-certificate-key',
+        dest='client_certificate_key', metavar='KEYFILE',
+        help='Path to private key file for client certificate')
+    authentication.add_option(
+        '--client-certificate-password',
+        dest='client_certificate_password', metavar='PASSWORD',
+        help='Password for client certificate private key, if encrypted. '
+             'If not provided, and the key is encrypted, yt-dlp will ask interactively')
 
     video_format = optparse.OptionGroup(parser, 'Video Format Options')
     video_format.add_option(
@@ -575,13 +701,11 @@ def create_parser():
         action='store_true', dest='format_sort_force', metavar='FORMAT', default=False,
         help=(
             'Force user specified sort order to have precedence over all fields, '
-            'see "Sorting Formats" for more details'))
+            'see "Sorting Formats" for more details (Alias: --S-force)'))
     video_format.add_option(
         '--no-format-sort-force',
         action='store_false', dest='format_sort_force', metavar='FORMAT', default=False,
-        help=(
-            'Some fields have precedence over the user specified sort order (default), '
-            'see "Sorting Formats" for more details'))
+        help='Some fields have precedence over the user specified sort order (default)')
     video_format.add_option(
         '--video-multistreams',
         action='store_true', dest='allow_multiple_video_streams', default=None,
@@ -615,7 +739,7 @@ def create_parser():
     video_format.add_option(
         '--check-formats',
         action='store_const', const='selected', dest='check_formats', default=None,
-        help='Check that the selected formats are actually downloadable')
+        help='Make sure formats are selected only from those that are actually downloadable')
     video_format.add_option(
         '--check-all-formats',
         action='store_true', dest='check_formats',
@@ -680,14 +804,14 @@ def create_parser():
     subtitles.add_option(
         '--sub-format',
         action='store', dest='subtitlesformat', metavar='FORMAT', default='best',
-        help='Subtitle format, accepts formats preference, for example: "srt" or "ass/srt/best"')
+        help='Subtitle format; accepts formats preference, Eg: "srt" or "ass/srt/best"')
     subtitles.add_option(
         '--sub-langs', '--srt-langs',
         action='callback', dest='subtitleslangs', metavar='LANGS', type='str',
         default=[], callback=_list_from_options_callback,
         help=(
             'Languages of the subtitles to download (can be regex) or "all" separated by commas. (Eg: --sub-langs "en.*,ja") '
-            'You can prefix the language code with a "-" to exempt it from the requested languages. (Eg: --sub-langs all,-live_chat) '
+            'You can prefix the language code with a "-" to exclude it from the requested languages. (Eg: --sub-langs all,-live_chat) '
             'Use --list-subs for a list of available language tags'))
 
     downloader = optparse.OptionGroup(parser, 'Download Options')
@@ -709,20 +833,33 @@ def create_parser():
         help='Number of retries (default is %default), or "infinite"')
     downloader.add_option(
         '--file-access-retries',
-        dest='file_access_retries', metavar='RETRIES', default=10,
+        dest='file_access_retries', metavar='RETRIES', default=3,
         help='Number of times to retry on file access error (default is %default), or "infinite"')
     downloader.add_option(
         '--fragment-retries',
         dest='fragment_retries', metavar='RETRIES', default=10,
         help='Number of retries for a fragment (default is %default), or "infinite" (DASH, hlsnative and ISM)')
     downloader.add_option(
+        '--retry-sleep',
+        dest='retry_sleep', metavar='[TYPE:]EXPR', default={}, type='str',
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'http|fragment|file_access',
+            'default_key': 'http',
+        }, help=(
+            'An expression for the time to sleep between retries in seconds (optionally) prefixed '
+            'by the type of retry (file_access, fragment, http (default)) to apply the sleep to. '
+            'EXPR can be a number, linear=START[:END[:STEP=1]] or exp=START[:END[:BASE=2]]. '
+            'This option can be used multiple times to set the sleep for the different retry types. '
+            'Eg: --retry-sleep linear=1::2 --retry-sleep fragment:exp=1:20'))
+    downloader.add_option(
         '--skip-unavailable-fragments', '--no-abort-on-unavailable-fragment',
         action='store_true', dest='skip_unavailable_fragments', default=True,
-        help='Skip unavailable fragments for DASH, hlsnative and ISM (default) (Alias: --no-abort-on-unavailable-fragment)')
+        help='Skip unavailable fragments for DASH, hlsnative and ISM downloads (default) (Alias: --no-abort-on-unavailable-fragment)')
     downloader.add_option(
         '--abort-on-unavailable-fragment', '--no-skip-unavailable-fragments',
         action='store_false', dest='skip_unavailable_fragments',
-        help='Abort downloading if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
+        help='Abort download if a fragment is unavailable (Alias: --no-skip-unavailable-fragments)')
     downloader.add_option(
         '--keep-fragments',
         action='store_true', dest='keep_fragments', default=False,
@@ -755,16 +892,24 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-reverse',
-        action='store_true',
-        help='Download playlist videos in reverse order')
+        action='store_true', dest='playlist_reverse',
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--no-playlist-reverse',
         action='store_false', dest='playlist_reverse',
-        help='Download playlist videos in default order (default)')
+        help=optparse.SUPPRESS_HELP)
     downloader.add_option(
         '--playlist-random',
-        action='store_true',
+        action='store_true', dest='playlist_random',
         help='Download playlist videos in random order')
+    downloader.add_option(
+        '--lazy-playlist',
+        action='store_true', dest='lazy_playlist',
+        help='Process entries in the playlist as they are received. This disables n_entries, --playlist-random and --playlist-reverse')
+    downloader.add_option(
+        '--no-lazy-playlist',
+        action='store_false', dest='lazy_playlist',
+        help='Process videos in the playlist only after the entire playlist is parsed (default)')
     downloader.add_option(
         '--xattr-set-filesize',
         dest='xattr_set_filesize', action='store_true',
@@ -792,6 +937,14 @@ def create_parser():
             'Do not use the mpegts container for HLS videos. '
             'This is default when not downloading live streams'))
     downloader.add_option(
+        '--download-sections',
+        metavar='REGEX', dest='download_ranges', action='append',
+        help=(
+            'Download only chapters whose title matches the given regular expression. '
+            'Time ranges prefixed by a "*" can also be used in place of chapters to download the specified range. '
+            'Eg: --download-sections "*10:15-15:00" --download-sections "intro". '
+            'Needs ffmpeg. This option can be used multiple times to download multiple sections'))
+    downloader.add_option(
         '--downloader', '--external-downloader',
         dest='external_downloader', metavar='[PROTO:]NAME', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
@@ -802,11 +955,11 @@ def create_parser():
         }, help=(
             'Name or path of the external downloader to use (optionally) prefixed by '
             'the protocols (http, ftp, m3u8, dash, rstp, rtmp, mms) to use it for. '
-            'Currently supports native, %s (Recommended: aria2c). '
+            f'Currently supports native, {", ".join(list_external_downloaders())}. '
             'You can use this option multiple times to set different downloaders for different protocols. '
             'For example, --downloader aria2c --downloader "dash,m3u8:native" will use '
             'aria2c for http/ftp downloads, and the native downloader for dash/m3u8 downloads '
-            '(Alias: --external-downloader)' % ', '.join(list_external_downloaders())))
+            '(Alias: --external-downloader)'))
     downloader.add_option(
         '--downloader-args', '--external-downloader-args',
         metavar='NAME:ARGS', dest='external_downloader_args', default={}, type='str',
@@ -814,7 +967,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'ffmpeg_[io]\d*|%s' % '|'.join(map(re.escape, list_external_downloaders())),
             'default_key': 'default',
-            'process': compat_shlex_split
+            'process': shlex.split
         }, help=(
             'Give these arguments to the external downloader. '
             'Specify the downloader name and the arguments separated by a colon ":". '
@@ -842,17 +995,16 @@ def create_parser():
     workarounds.add_option(
         '--user-agent',
         metavar='UA', dest='user_agent',
-        help='Specify a custom user agent')
+        help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
         '--referer',
         metavar='URL', dest='referer', default=None,
-        help='Specify a custom referer, use if the video access is restricted to one domain',
-    )
+        help=optparse.SUPPRESS_HELP)
     workarounds.add_option(
         '--add-header',
         metavar='FIELD:VALUE', dest='headers', default={}, type='str',
         action='callback', callback=_dict_from_options_callback,
-        callback_kwargs={'multiple_keys': False, 'process_key': None},
+        callback_kwargs={'multiple_keys': False},
         help='Specify a custom HTTP header and its value, separated by a colon ":". You can use this option multiple times',
     )
     workarounds.add_option(
@@ -922,7 +1074,20 @@ def create_parser():
         }, help=(
             'Field name or output template to print to screen, optionally prefixed with when to print it, separated by a ":". '
             'Supported values of "WHEN" are the same as that of --use-postprocessor, and "video" (default). '
-            'Implies --quiet and --simulate (unless --no-simulate is used). This option can be used multiple times'))
+            'Implies --quiet. Implies --simulate unless --no-simulate or later stages of WHEN are used. '
+            'This option can be used multiple times'))
+    verbosity.add_option(
+        '--print-to-file',
+        metavar='[WHEN:]TEMPLATE FILE', dest='print_to_file', default={}, type='str', nargs=2,
+        action='callback', callback=_dict_from_options_callback,
+        callback_kwargs={
+            'allowed_keys': 'video|' + '|'.join(map(re.escape, POSTPROCESS_WHEN)),
+            'default_key': 'video',
+            'multiple_keys': False,
+            'append': True,
+        }, help=(
+            'Append given template to the file. The values of WHEN and TEMPLATE are same as that of --print. '
+            'FILE uses the same syntax as the output template. This option can be used multiple times'))
     verbosity.add_option(
         '-g', '--get-url',
         action='store_true', dest='geturl', default=False,
@@ -1018,6 +1183,10 @@ def create_parser():
         action='store_true', dest='write_pages', default=False,
         help='Write downloaded intermediary pages to files in the current directory to debug problems')
     verbosity.add_option(
+        '--load-pages',
+        action='store_true', dest='load_pages', default=False,
+        help=optparse.SUPPRESS_HELP)
+    verbosity.add_option(
         '--youtube-print-sig-code',
         action='store_true', dest='youtube_print_sig_code', default=False,
         help=optparse.SUPPRESS_HELP)
@@ -1028,7 +1197,7 @@ def create_parser():
     verbosity.add_option(
         '-C', '--call-home',
         dest='call_home', action='store_true', default=False,
-        # help='[Broken] Contact the yt-dlp server for debugging')
+        # help='Contact the yt-dlp server for debugging')
         help=optparse.SUPPRESS_HELP)
     verbosity.add_option(
         '--no-call-home',
@@ -1076,7 +1245,7 @@ def create_parser():
     filesystem.add_option(
         '--output-na-placeholder',
         dest='outtmpl_na_placeholder', metavar='TEXT', default='NA',
-        help=('Placeholder value for unavailable meta fields in output filename template (default: "%default")'))
+        help=('Placeholder for unavailable fields in "OUTPUT TEMPLATE" (default: "%default")'))
     filesystem.add_option(
         '--autonumber-size',
         dest='autonumber_size', metavar='NUMBER', type=int,
@@ -1153,7 +1322,7 @@ def create_parser():
         help='Do not write video description (default)')
     filesystem.add_option(
         '--write-info-json',
-        action='store_true', dest='writeinfojson', default=False,
+        action='store_true', dest='writeinfojson', default=None,
         help='Write video metadata to a .info.json file (this may contain personal information)')
     filesystem.add_option(
         '--no-write-info-json',
@@ -1178,13 +1347,13 @@ def create_parser():
         action='store_false', dest='allow_playlist_files',
         help='Do not write playlist metadata when using --write-info-json, --write-description etc.')
     filesystem.add_option(
-        '--clean-infojson',
+        '--clean-info-json', '--clean-infojson',
         action='store_true', dest='clean_infojson', default=None,
         help=(
             'Remove some private fields such as filenames from the infojson. '
             'Note that it could still contain some personal information (default)'))
     filesystem.add_option(
-        '--no-clean-infojson',
+        '--no-clean-info-json', '--no-clean-infojson',
         action='store_false', dest='clean_infojson',
         help='Write all fields to the infojson')
     filesystem.add_option(
@@ -1282,26 +1451,27 @@ def create_parser():
     postproc.add_option(
         '--audio-format', metavar='FORMAT', dest='audioformat', default='best',
         help=(
-            'Specify audio format to convert the audio to when -x is used. Currently supported formats are: '
-            'best (default) or one of %s' % '|'.join(FFmpegExtractAudioPP.SUPPORTED_EXTS)))
+            'Format to convert the audio to when -x is used. '
+            f'(currently supported: best (default), {", ".join(FFmpegExtractAudioPP.SUPPORTED_EXTS)}). '
+            'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--audio-quality', metavar='QUALITY',
         dest='audioquality', default='5',
-        help='Specify ffmpeg audio quality, insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)')
+        help=(
+            'Specify ffmpeg audio quality to use when converting the audio with -x. '
+            'Insert a value between 0 (best) and 10 (worst) for VBR or a specific bitrate like 128K (default %default)'))
     postproc.add_option(
         '--remux-video',
         metavar='FORMAT', dest='remuxvideo', default=None,
         help=(
-            'Remux the video into another container if necessary (currently supported: %s). '
-            'If target container does not support the video/audio codec, remuxing will fail. '
-            'You can specify multiple rules; Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 '
-            'and anything else to mkv.' % '|'.join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)))
+            'Remux the video into another container if necessary '
+            f'(currently supported: {", ".join(FFmpegVideoRemuxerPP.SUPPORTED_EXTS)}). '
+            'If target container does not support the video/audio codec, remuxing will fail. You can specify multiple rules; '
+            'Eg. "aac>m4a/mov>mp4/mkv" will remux aac to m4a, mov to mp4 and anything else to mkv'))
     postproc.add_option(
         '--recode-video',
         metavar='FORMAT', dest='recodevideo', default=None,
-        help=(
-            'Re-encode the video into another format if re-encoding is necessary. '
-            'The syntax and supported formats are the same as --remux-video'))
+        help='Re-encode the video into another format if necessary. The syntax and supported formats are the same as --remux-video')
     postproc.add_option(
         '--postprocessor-args', '--ppa',
         metavar='NAME:ARGS', dest='postprocessor_args', default={}, type='str',
@@ -1309,7 +1479,7 @@ def create_parser():
         callback_kwargs={
             'allowed_keys': r'\w+(?:\+\w+)?',
             'default_key': 'default-compat',
-            'process': compat_shlex_split,
+            'process': shlex.split,
             'multiple_keys': False
         }, help=(
             'Give these arguments to the postprocessors. '
@@ -1398,7 +1568,7 @@ def create_parser():
         dest='parse_metadata', metavar='FIELDS REGEX REPLACE', action='append', nargs=3,
         help='Replace text in a metadata field using the given regex. This option can be used multiple times')
     postproc.add_option(
-        '--xattrs',
+        '--xattrs', '--xattr',
         action='store_true', dest='xattrs', default=False,
         help='Write metadata to the video file\'s xattrs (using dublin core and xdg standards)')
     postproc.add_option(
@@ -1410,7 +1580,7 @@ def create_parser():
             '"multi_video" (default; only when the videos form a single show). '
             'All the video files must have same codecs and number of streams to be concatable. '
             'The "pl_video:" prefix can be used with "--paths" and "--output" to '
-            'set the output filename for the split files. See "OUTPUT TEMPLATE" for details'))
+            'set the output filename for the concatenated files. See "OUTPUT TEMPLATE" for details'))
     postproc.add_option(
         '--fixup',
         metavar='POLICY', dest='fixup', default=None,
@@ -1458,20 +1628,21 @@ def create_parser():
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--no-exec-before-download',
-        action='store_const', dest='exec_before_dl_cmd', const=[],
+        action='store_const', dest='exec_before_dl_cmd', const=None,
         help=optparse.SUPPRESS_HELP)
     postproc.add_option(
         '--convert-subs', '--convert-sub', '--convert-subtitles',
         metavar='FORMAT', dest='convertsubtitles', default=None,
         help=(
             'Convert the subtitles to another format (currently supported: %s) '
-            '(Alias: --convert-subtitles)' % '|'.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
+            '(Alias: --convert-subtitles)' % ', '.join(FFmpegSubtitlesConvertorPP.SUPPORTED_EXTS)))
     postproc.add_option(
         '--convert-thumbnails',
         metavar='FORMAT', dest='convertthumbnails', default=None,
         help=(
             'Convert the thumbnails to another format '
-            '(currently supported: %s) ' % '|'.join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)))
+            f'(currently supported: {", ".join(FFmpegThumbnailsConvertorPP.SUPPORTED_EXTS)}). '
+            'You can specify multiple rules using similar syntax as --remux-video'))
     postproc.add_option(
         '--split-chapters', '--split-tracks',
         dest='split_chapters', action='store_true', default=False,
@@ -1488,9 +1659,7 @@ def create_parser():
         metavar='REGEX', dest='remove_chapters', action='append',
         help=(
             'Remove chapters whose title matches the given regular expression. '
-            'Time ranges prefixed by a "*" can also be used in place of chapters to remove the specified range. '
-            'Eg: --remove-chapters "*10:15-15:00" --remove-chapters "intro". '
-            'This option can be used multiple times'))
+            'The syntax is the same as --download-sections. This option can be used multiple times'))
     postproc.add_option(
         '--no-remove-chapters', dest='remove_chapters', action='store_const', const=None,
         help='Do not remove any chapters from the file (default)')
@@ -1498,9 +1667,8 @@ def create_parser():
         '--force-keyframes-at-cuts',
         action='store_true', dest='force_keyframes_at_cuts', default=False,
         help=(
-            'Force keyframes around the chapters before removing/splitting them. '
-            'Requires a re-encode and thus is very slow, but the resulting video '
-            'may have fewer artifacts around the cuts'))
+            'Force keyframes at cuts when downloading/splitting/removing sections. '
+            'This is slow due to needing a re-encode, but the resulting video may have fewer artifacts around the cuts'))
     postproc.add_option(
         '--no-force-keyframes-at-cuts',
         action='store_false', dest='force_keyframes_at_cuts',
@@ -1520,11 +1688,11 @@ def create_parser():
             'and (optionally) arguments to be passed to it, separated by a colon ":". '
             'ARGS are a semicolon ";" delimited list of NAME=VALUE. '
             'The "when" argument determines when the postprocessor is invoked. '
-            'It can be one of "pre_process" (after extraction), '
-            '"before_dl" (before video download), "post_process" (after video download; default), '
-            '"after_move" (after moving file to their final locations), '
+            'It can be one of "pre_process" (after video extraction), "after_filter" (after video passes filter), '
+            '"before_dl" (before each video download), "post_process" (after each video download; default), '
+            '"after_move" (after moving video file to it\'s final locations), '
             '"after_video" (after downloading and processing all formats of a video), '
-            'or "playlist" (end of playlist). '
+            'or "playlist" (at end of playlist). '
             'This option can be used multiple times to add different postprocessors'))
 
     sponsorblock = optparse.OptionGroup(parser, 'SponsorBlock Options', description=(
@@ -1538,8 +1706,8 @@ def create_parser():
             'aliases': {'default': ['all']}
         }, help=(
             'SponsorBlock categories to create chapters for, separated by commas. '
-            f'Available categories are all, default(=all), {", ".join(SponsorBlockPP.CATEGORIES.keys())}. '
-            'You can prefix the category with a "-" to exempt it. See [1] for description of the categories. '
+            f'Available categories are {", ".join(SponsorBlockPP.CATEGORIES.keys())}, all and default (=all). '
+            'You can prefix the category with a "-" to exclude it. See [1] for description of the categories. '
             'Eg: --sponsorblock-mark all,-preview [1] https://wiki.sponsor.ajay.app/w/Segment_Categories'))
     sponsorblock.add_option(
         '--sponsorblock-remove', metavar='CATS',
@@ -1560,9 +1728,9 @@ def create_parser():
         '--sponsorblock-chapter-title', metavar='TEMPLATE',
         default=DEFAULT_SPONSORBLOCK_CHAPTER_TITLE, dest='sponsorblock_chapter_title',
         help=(
-            'The title template for SponsorBlock chapters created by --sponsorblock-mark. '
-            'The same syntax as the output template is used, but the only available fields are '
-            'start_time, end_time, category, categories, name, category_names. Defaults to "%default"'))
+            'An output template for the title of the SponsorBlock chapters created by --sponsorblock-mark. '
+            'The only available fields are start_time, end_time, category, categories, name, category_names. '
+            'Defaults to "%default"'))
     sponsorblock.add_option(
         '--no-sponsorblock', default=False,
         action='store_true', dest='no_sponsorblock',

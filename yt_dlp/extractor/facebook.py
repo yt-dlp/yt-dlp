@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 import re
 
@@ -18,6 +15,7 @@ from ..utils import (
     ExtractorError,
     float_or_none,
     get_element_by_id,
+    get_first,
     int_or_none,
     js_to_json,
     merge_dicts,
@@ -328,11 +326,7 @@ class FacebookIE(InfoExtractor):
             urls.append(mobj.group('url'))
         return urls
 
-    def _login(self):
-        useremail, password = self._get_login_info()
-        if useremail is None:
-            return
-
+    def _perform_login(self, username, password):
         login_page_req = sanitized_Request(self._LOGIN_URL)
         self._set_cookie('facebook.com', 'locale', 'en_US')
         login_page = self._download_webpage(login_page_req, None,
@@ -344,7 +338,7 @@ class FacebookIE(InfoExtractor):
         lgnrnd = self._search_regex(r'name="lgnrnd" value="([^"]*?)"', login_page, 'lgnrnd')
 
         login_form = {
-            'email': useremail,
+            'email': username,
             'pass': password,
             'lsd': lsd,
             'lgnrnd': lgnrnd,
@@ -391,9 +385,6 @@ class FacebookIE(InfoExtractor):
             self.report_warning('unable to log in: %s' % error_to_compat_str(err))
             return
 
-    def _real_initialize(self):
-        self._login()
-
     def _extract_from_url(self, url, video_id):
         webpage = self._download_webpage(
             url.replace('://m.facebook.com/', '://www.facebook.com/'), video_id)
@@ -403,13 +394,11 @@ class FacebookIE(InfoExtractor):
                 r'handleWithCustomApplyEach\(\s*ScheduledApplyEach\s*,\s*(\{.+?\})\s*\);', webpage)]
             post = traverse_obj(post_data, (
                 ..., 'require', ..., ..., ..., '__bbox', 'result', 'data'), expected_type=dict) or []
-            media = [m for m in traverse_obj(post, (..., 'attachments', ..., 'media'), expected_type=dict) or []
-                     if str(m.get('id')) == video_id and m.get('__typename') == 'Video']
-            title = traverse_obj(media, (..., 'title', 'text'), get_all=False)
-            description = traverse_obj(media, (
-                ..., 'creation_story', 'comet_sections', 'message', 'story', 'message', 'text'), get_all=False)
-            uploader_data = (traverse_obj(media, (..., 'owner'), get_all=False)
-                             or traverse_obj(post, (..., 'node', 'actors', ...), get_all=False) or {})
+            media = traverse_obj(post, (..., 'attachments', ..., lambda k, v: (
+                k == 'media' and str(v['id']) == video_id and v['__typename'] == 'Video')), expected_type=dict)
+            title = get_first(media, ('title', 'text'))
+            description = get_first(media, ('creation_story', 'comet_sections', 'message', 'story', 'message', 'text'))
+            uploader_data = get_first(media, 'owner') or get_first(post, ('node', 'actors', ...)) or {}
 
             page_title = title or self._html_search_regex((
                 r'<h2\s+[^>]*class="uiHeaderTitle"[^>]*>(?P<content>[^<]*)</h2>',
@@ -534,7 +523,8 @@ class FacebookIE(InfoExtractor):
                     info = {
                         'id': v_id,
                         'formats': formats,
-                        'thumbnail': try_get(video, lambda x: x['thumbnailImage']['uri']),
+                        'thumbnail': traverse_obj(
+                            video, ('thumbnailImage', 'uri'), ('preferred_thumbnail', 'image', 'uri')),
                         'uploader_id': try_get(video, lambda x: x['owner']['id']),
                         'timestamp': int_or_none(video.get('publish_time')),
                         'duration': float_or_none(video.get('playable_duration_in_ms'), 1000),

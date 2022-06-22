@@ -11,6 +11,7 @@
     - [Is anyone going to need the feature?](#is-anyone-going-to-need-the-feature)
     - [Is your question about yt-dlp?](#is-your-question-about-yt-dlp)
     - [Are you willing to share account details if needed?](#are-you-willing-to-share-account-details-if-needed)
+    - [Is the website primarily used for piracy](#is-the-website-primarily-used-for-piracy)
 - [DEVELOPER INSTRUCTIONS](#developer-instructions)
     - [Adding new feature or making overarching changes](#adding-new-feature-or-making-overarching-changes)
     - [Adding support for a new site](#adding-support-for-a-new-site)
@@ -24,6 +25,7 @@
         - [Collapse fallbacks](#collapse-fallbacks)
         - [Trailing parentheses](#trailing-parentheses)
         - [Use convenience conversion and parsing functions](#use-convenience-conversion-and-parsing-functions)
+    - [My pull request is labeled pending-fixes](#my-pull-request-is-labeled-pending-fixes)
 - [EMBEDDING YT-DLP](README.md#embedding-yt-dlp)
 
 
@@ -113,7 +115,7 @@ If the issue is with `youtube-dl` (the upstream fork of yt-dlp) and not with yt-
 
 ### Are you willing to share account details if needed?
 
-The maintainers and potential contributors of the project often do not have an account for the website you are asking support for. So any developer interested in solving your issue may ask you for account details. It is your personal discression whether you are willing to share the account in order for the developer to try and solve your issue. However, if you are unwilling or unable to provide details, they obviously cannot work on the issue and it cannot be solved unless some developer who both has an account and is willing/able to contribute decides to solve it.
+The maintainers and potential contributors of the project often do not have an account for the website you are asking support for. So any developer interested in solving your issue may ask you for account details. It is your personal discretion whether you are willing to share the account in order for the developer to try and solve your issue. However, if you are unwilling or unable to provide details, they obviously cannot work on the issue and it cannot be solved unless some developer who both has an account and is willing/able to contribute decides to solve it.
 
 By sharing an account with anyone, you agree to bear all risks associated with it. The maintainers and yt-dlp can't be held responsible for any misuse of the credentials.
 
@@ -122,6 +124,10 @@ While these steps won't necessarily ensure that no misuse of the account takes p
 - Look for people with `Member` (maintainers of the project) or `Contributor` (people who have previously contributed code) tag on their messages.
 - Change the password before sharing the account to something random (use [this](https://passwordsgenerator.net/) if you don't have a random password generator).
 - Change the password after receiving the account back.
+
+### Is the website primarily used for piracy?
+
+We follow [youtube-dl's policy](https://github.com/ytdl-org/youtube-dl#can-you-add-support-for-this-anime-video-site-or-site-which-shows-current-movies-for-free) to not support services that is primarily used for infringing copyright. Additionally, it has been decided to not to support porn sites that specialize in deep fake. We also cannot support any service that serves only [DRM protected content](https://en.wikipedia.org/wiki/Digital_rights_management). 
 
 
 
@@ -172,7 +178,6 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Start with this simple template and save it to `yt_dlp/extractor/yourextractor.py`:
 
     ```python
-    # coding: utf-8
     from .common import InfoExtractor
     
     
@@ -209,8 +214,8 @@ After you have ensured this site is distributing its content legally, you can fo
                 # TODO more properties (see yt_dlp/extractor/common.py)
             }
     ```
-1. Add an import in [`yt_dlp/extractor/extractors.py`](yt_dlp/extractor/extractors.py).
-1. Run `python test/test_download.py TestDownload.test_YourExtractor`. This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
+1. Add an import in [`yt_dlp/extractor/_extractors.py`](yt_dlp/extractor/_extractors.py). Note that the class name must end with `IE`.
+1. Run `python test/test_download.py TestDownload.test_YourExtractor` (note that `YourExtractor` doesn't end with `IE`). This *should fail* at first, but you can continually re-run it until you're done. If you decide to add more than one test, the tests will then be named `TestDownload.test_YourExtractor`, `TestDownload.test_YourExtractor_1`, `TestDownload.test_YourExtractor_2`, etc. Note that tests with `only_matching` key in test's dict are not counted in. You can also run all the tests in one go with `TestDownload.test_YourExtractor_all`
 1. Make sure you have atleast one test for your extractor. Even if all videos covered by the extractor are expected to be inaccessible for automated testing, tests should still be added with a `skip` parameter indicating why the particular test is disabled from running.
 1. Have a look at [`yt_dlp/extractor/common.py`](yt_dlp/extractor/common.py) for possible helper methods and a [detailed description of what your extractor should and may return](yt_dlp/extractor/common.py#L91-L426). Add tests and code for as many as you want.
 1. Make sure your code follows [yt-dlp coding conventions](#yt-dlp-coding-conventions) and check the code with [flake8](https://flake8.pycqa.org/en/latest/index.html#quickstart):
@@ -220,7 +225,7 @@ After you have ensured this site is distributing its content legally, you can fo
 1. Make sure your code works under all [Python](https://www.python.org/) versions supported by yt-dlp, namely CPython and PyPy for Python 3.6 and above. Backward compatibility is not required for even older versions of Python.
 1. When the tests pass, [add](https://git-scm.com/docs/git-add) the new files, [commit](https://git-scm.com/docs/git-commit) them and [push](https://git-scm.com/docs/git-push) the result, like this:
 
-        $ git add yt_dlp/extractor/extractors.py
+        $ git add yt_dlp/extractor/_extractors.py
         $ git add yt_dlp/extractor/yourextractor.py
         $ git commit -m '[yourextractor] Add extractor'
         $ git push origin yourextractor
@@ -252,7 +257,11 @@ For extraction to work yt-dlp relies on metadata your extractor extracts and pro
  - `title` (media title)
  - `url` (media download URL) or `formats`
 
-The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While, in fact, only `id` is technically mandatory, due to compatibility reasons, yt-dlp also treats `title` as mandatory. The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
+The aforementioned metafields are the critical data that the extraction does not make any sense without and if any of them fail to be extracted then the extractor is considered completely broken. While all extractors must return a `title`, they must also allow it's extraction to be non-fatal.
+
+For pornographic sites, appropriate `age_limit` must also be returned.
+
+The extractor is allowed to return the info dict without url or formats in some special cases if it allows the user to extract usefull information with `--ignore-no-formats-error` - Eg: when the video is a live stream that has not started yet.
 
 [Any field](yt_dlp/extractor/common.py#219-L426) apart from the aforementioned ones are considered **optional**. That means that extraction should be **tolerant** to situations when sources for these fields can potentially be unavailable (even if they are always available at the moment) and **future-proof** in order not to break the extraction of general purpose mandatory fields.
 
@@ -291,14 +300,10 @@ description = meta['summary']  # incorrect
 The latter will break extraction process with `KeyError` if `summary` disappears from `meta` at some later time but with the former approach extraction will just go ahead with `description` set to `None` which is perfectly fine (remember `None` is equivalent to the absence of data).
 
 
-If the data is nested, do not use `.get` chains, but instead make use of the utility functions `try_get` or `traverse_obj`
+If the data is nested, do not use `.get` chains, but instead make use of `traverse_obj`.
 
 Considering the above `meta` again, assume you want to extract `["user"]["name"]` and put it in the resulting info dict as `uploader`
 
-```python
-uploader = try_get(meta, lambda x: x['user']['name'])  # correct
-```
-or
 ```python
 uploader = traverse_obj(meta, ('user', 'name'))  # correct
 ```
@@ -311,6 +316,10 @@ uploader = meta['user']['name']  # incorrect
 or
 ```python
 uploader = meta.get('user', {}).get('name')  # incorrect
+```
+or
+```python
+uploader = try_get(meta, lambda x: x['user']['name'])  # old utility
 ```
 
 
@@ -337,25 +346,25 @@ On failure this code will silently continue the extraction with `description` se
 
 Another thing to remember is not to try to iterate over `None`
 
-Say you extracted a list of thumbnails into `thumbnail_data` using `try_get` and now want to iterate over them
+Say you extracted a list of thumbnails into `thumbnail_data` and want to iterate over them
 
 ```python
-thumbnail_data = try_get(...)
+thumbnail_data = data.get('thumbnails') or []
 thumbnails = [{
     'url': item['url']
-} for item in thumbnail_data or []]  # correct
+} for item in thumbnail_data]  # correct
 ```
 
 and not like:
 
 ```python
-thumbnail_data = try_get(...)
+thumbnail_data = data.get('thumbnails')
 thumbnails = [{
     'url': item['url']
 } for item in thumbnail_data]  # incorrect
 ```
 
-In the later case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `for item in thumbnail_data or []` avoids this error and results in setting an empty list in `thumbnails` instead.
+In this case, `thumbnail_data` will be `None` if the field was not found and this will cause the loop `for item in thumbnail_data` to raise a fatal error. Using `or []` avoids this error and results in setting an empty list in `thumbnails` instead.
 
 
 ### Provide fallbacks
@@ -365,21 +374,21 @@ When extracting metadata try to do so from multiple sources. For example if `tit
 
 #### Example
 
-Say `meta` from the previous example has a `title` and you are about to extract it. Since `title` is a mandatory meta field you should end up with something like:
+Say `meta` from the previous example has a `title` and you are about to extract it like:
 
 ```python
-title = meta['title']
+title = meta.get('title')
 ```
 
-If `title` disappears from `meta` in future due to some changes on the hoster's side the extraction would fail since `title` is mandatory. That's expected.
+If `title` disappears from `meta` in future due to some changes on the hoster's side the title extraction would fail.
 
-Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback scenario:
+Assume that you have some another source you can extract `title` from, for example `og:title` HTML meta of a `webpage`. In this case you can provide a fallback like:
 
 ```python
 title = meta.get('title') or self._og_search_title(webpage)
 ```
 
-This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`.
+This code will try to extract from `meta` first and if it fails it will try extracting `og:title` from a `webpage`, making the extractor more robust.
 
 
 ### Regular expressions
@@ -422,7 +431,7 @@ title = self._search_regex(  # correct
     r'<span[^>]+class="title"[^>]*>([^<]+)', webpage, 'title')
 ```
 
-Or even better:
+which tolerates potential changes in the `style` attribute's value. Or even better:
 
 ```python
 title = self._search_regex(  # correct
@@ -430,7 +439,7 @@ title = self._search_regex(  # correct
     webpage, 'title', group='title')
 ```
 
-Note how you tolerate potential changes in the `style` attribute's value or switch from using double quotes to single for `class` attribute: 
+which also handles both single quotes in addition to double quotes.
 
 The code definitely should not look like:
 
@@ -449,6 +458,41 @@ title = self._search_regex(  # incorrect
 ```
 
 Here the presence or absence of other attributes including `style` is irrelevent for the data we need, and so the regex must not depend on it
+
+
+#### Keep the regular expressions as simple as possible, but no simpler
+
+Since many extractors deal with unstructured data provided by websites, we will often need to use very complex regular expressions. You should try to use the *simplest* regex that can accomplish what you want. In other words, each part of the regex must have a reason for existing. If you can take out a symbol and the functionality does not change, the symbol should not be there.
+
+##### Example
+
+Correct:
+
+```python
+_VALID_URL = r'https?://(?:www\.)?website\.com/(?:[^/]+/){3,4}(?P<display_id>[^/]+)_(?P<id>\d+)'
+```
+
+Incorrect:
+
+```python
+_VALID_URL = r'https?:\/\/(?:www\.)?website\.com\/[^\/]+/[^\/]+/[^\/]+(?:\/[^\/]+)?\/(?P<display_id>[^\/]+)_(?P<id>\d+)'
+```
+
+#### Do not misuse `.` and use the correct quantifiers (`+*?`)
+
+Avoid creating regexes that over-match because of wrong use of quantifiers. Also try to avoid non-greedy matching (`?`) where possible since they could easily result in [catastrophic backtracking](https://www.regular-expressions.info/catastrophic.html)
+
+Correct:
+
+```python
+title = self._search_regex(r'<span\b[^>]+class="title"[^>]*>([^<]+)', webpage, 'title')
+```
+
+Incorrect:
+
+```python
+title = self._search_regex(r'<span\b.*class="title".*>(.+?)<', webpage, 'title')
+```
 
 
 ### Long lines policy
@@ -512,27 +556,35 @@ formats = self._extract_m3u8_formats(m3u8_url,
 
 ### Quotes
 
-Always use single quotes for strings (even if the string has `'`) and double quotes for docstrings. Use `'''` only for multi-line strings. An exception can be made if a string has multiple single quotes in it and escaping makes it significantly harder to read. For f-strings, use you can use double quotes on the inside. But avoid f-strings that have too many quotes inside.
+Always use single quotes for strings (even if the string has `'`) and double quotes for docstrings. Use `'''` only for multi-line strings. An exception can be made if a string has multiple single quotes in it and escaping makes it *significantly* harder to read. For f-strings, use you can use double quotes on the inside. But avoid f-strings that have too many quotes inside.
 
 
 ### Inline values
 
 Extracting variables is acceptable for reducing code duplication and improving readability of complex expressions. However, you should avoid extracting variables used only once and moving them to opposite parts of the extractor file, which makes reading the linear flow difficult.
 
-#### Example
+#### Examples
 
 Correct:
 
 ```python
-title = self._html_search_regex(r'<title>([^<]+)</title>', webpage, 'title')
+return {
+    'title': self._html_search_regex(r'<h1>([^<]+)</h1>', webpage, 'title'),
+    # ...some lines of code...
+}
 ```
 
 Incorrect:
 
 ```python
-TITLE_RE = r'<title>([^<]+)</title>'
+TITLE_RE = r'<h1>([^<]+)</h1>'
 # ...some lines of code...
 title = self._html_search_regex(TITLE_RE, webpage, 'title')
+# ...some lines of code...
+return {
+    'title': title,
+    # ...some lines of code...
+}
 ```
 
 
@@ -564,33 +616,32 @@ Methods supporting list of patterns are: `_search_regex`, `_html_search_regex`, 
 
 ### Trailing parentheses
 
-Always move trailing parentheses used for grouping/functions after the last argument. On the other hand, literal list/tuple/dict/set should closed be in a new line. Generators and list/dict comprehensions may use either style
+Always move trailing parentheses used for grouping/functions after the last argument. On the other hand, multi-line literal list/tuple/dict/set should closed be in a new line. Generators and list/dict comprehensions may use either style
 
 #### Examples
 
 Correct:
 
 ```python
-url = try_get(
-    info,
-    lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
-    list)
+url = traverse_obj(info, (
+    'context', 'dispatcher', 'stores', 'VideoTitlePageStore', 'data', 'video', 0, 'VideoUrlSet', 'VideoUrl'), list)
 ```
 Correct:
 
 ```python
-url = try_get(info,
-              lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
-              list)
+url = traverse_obj(
+    info,
+    ('context', 'dispatcher', 'stores', 'VideoTitlePageStore', 'data', 'video', 0, 'VideoUrlSet', 'VideoUrl'),
+    list)
 ```
 
 Incorrect:
 
 ```python
-url = try_get(
+url = traverse_obj(
     info,
-    lambda x: x['ResultSet']['Result'][0]['VideoUrlSet']['VideoUrl'],
-    list,
+    ('context', 'dispatcher', 'stores', 'VideoTitlePageStore', 'data', 'video', 0, 'VideoUrlSet', 'VideoUrl'),
+    list
 )
 ```
 
@@ -633,26 +684,26 @@ Wrap all extracted numeric data into safe functions from [`yt_dlp/utils.py`](yt_
 
 Use `url_or_none` for safe URL processing.
 
-Use `try_get`, `dict_get` and `traverse_obj` for safe metadata extraction from parsed JSON.
+Use `traverse_obj` and `try_call` (superseeds `dict_get` and `try_get`) for safe metadata extraction from parsed JSON.
 
 Use `unified_strdate` for uniform `upload_date` or any `YYYYMMDD` meta field extraction, `unified_timestamp` for uniform `timestamp` extraction, `parse_filesize` for `filesize` extraction, `parse_count` for count meta fields extraction, `parse_resolution`, `parse_duration` for `duration` extraction, `parse_age_limit` for `age_limit` extraction. 
 
 Explore [`yt_dlp/utils.py`](yt_dlp/utils.py) for more useful convenience functions.
 
-#### More examples
+#### Examples
 
-##### Safely extract optional description from parsed JSON
 ```python
 description = traverse_obj(response, ('result', 'video', 'summary'), expected_type=str)
-```
-
-##### Safely extract more optional metadata
-```python
+thumbnails = traverse_obj(response, ('result', 'thumbnails', ..., 'url'), expected_type=url_or_none)
 video = traverse_obj(response, ('result', 'video', 0), default={}, expected_type=dict)
-description = video.get('summary')
 duration = float_or_none(video.get('durationMs'), scale=1000)
 view_count = int_or_none(video.get('views'))
 ```
+
+
+# My pull request is labeled pending-fixes
+
+The `pending-fixes` label is added when there are changes requested to a PR. When the necessary changes are made, the label should be removed. However, despite our best efforts, it may sometimes happen that the maintainer did not see the changes or forgot to remove the label. If your PR is still marked as `pending-fixes` a few days after all requested changes have been made, feel free to ping the maintainer who labeled your issue and ask them to re-review and remove the label.
 
 
 

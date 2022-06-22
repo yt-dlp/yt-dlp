@@ -1,8 +1,3 @@
-# coding: utf-8
-
-from __future__ import unicode_literals
-
-
 from .common import InfoExtractor
 from ..utils import (
     determine_ext,
@@ -187,7 +182,7 @@ class FranceTVIE(InfoExtractor):
                 'protocol': 'mhtml',
                 'url': 'about:invalid',
                 'fragments': [{
-                    'path': sheet,
+                    'url': sheet,
                     # XXX: not entirely accurate; each spritesheet seems to be
                     # a 10×10 grid of thumbnails corresponding to approximately
                     # 2 seconds of the video; the last spritesheet may be shorter

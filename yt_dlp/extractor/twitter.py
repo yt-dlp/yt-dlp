@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -90,6 +87,9 @@ class TwitterBaseIE(InfoExtractor):
         headers = {
             'Authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAAPYXBAAAAAAACLXUNDekMxqa8h%2F40K4moUkGsoc%3DTYfbDKbT3jJPCEVnMYqilB28NHfOPqkca3qaAxGfsyKCs0wRbw',
         }
+        token = self._get_cookies(self._API_BASE).get('ct0')
+        if token:
+            headers['x-csrf-token'] = token.value
         if not self._GUEST_TOKEN:
             self._GUEST_TOKEN = self._download_json(
                 self._API_BASE + 'guest/activate.json', video_id,
@@ -470,7 +470,7 @@ class TwitterIE(TwitterBaseIE):
             'uploader': uploader,
             'timestamp': unified_timestamp(status.get('created_at')),
             'uploader_id': uploader_id,
-            'uploader_url': format_field(uploader_id, template='https://twitter.com/%s'),
+            'uploader_url': format_field(uploader_id, None, 'https://twitter.com/%s'),
             'like_count': int_or_none(status.get('favorite_count')),
             'repost_count': int_or_none(status.get('retweet_count')),
             'comment_count': int_or_none(status.get('reply_count')),

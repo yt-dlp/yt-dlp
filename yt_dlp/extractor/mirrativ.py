@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from .common import InfoExtractor
 from ..utils import (
     ExtractorError,
@@ -19,9 +17,25 @@ class MirrativBaseIE(InfoExtractor):
 class MirrativIE(MirrativBaseIE):
     IE_NAME = 'mirrativ'
     _VALID_URL = r'https?://(?:www\.)?mirrativ\.com/live/(?P<id>[^/?#&]+)'
-    LIVE_API_URL = 'https://www.mirrativ.com/api/live/live?live_id=%s'
 
     TESTS = [{
+        'url': 'https://mirrativ.com/live/UQomuS7EMgHoxRHjEhNiHw',
+        'info_dict': {
+            'id': 'UQomuS7EMgHoxRHjEhNiHw',
+            'title': 'ねむいぃ、。『参加型』🔰jcが初めてやるCOD✨初見さん大歓迎💗',
+            'is_live': True,
+            'description': 'md5:bfcd8f77f2fab24c3c672e5620f3f16e',
+            'thumbnail': r're:https?://.+',
+            'uploader': '# あ ち ゅ 。💡',
+            'uploader_id': '118572165',
+            'duration': None,
+            'view_count': 1241,
+            'release_timestamp': 1646229192,
+            'timestamp': 1646229167,
+            'was_live': False,
+        },
+        'skip': 'livestream',
+    }, {
         'url': 'https://mirrativ.com/live/POxyuG1KmW2982lqlDTuPw',
         'only_matching': True,
     }]
@@ -29,12 +43,11 @@ class MirrativIE(MirrativBaseIE):
     def _real_extract(self, url):
         video_id = self._match_id(url)
         webpage = self._download_webpage('https://www.mirrativ.com/live/%s' % video_id, video_id)
-        live_response = self._download_json(self.LIVE_API_URL % video_id, video_id)
+        live_response = self._download_json(f'https://www.mirrativ.com/api/live/live?live_id={video_id}', video_id)
         self.assert_error(live_response)
 
         hls_url = dict_get(live_response, ('archive_url_hls', 'streaming_url_hls'))
         is_live = bool(live_response.get('is_live'))
-        was_live = bool(live_response.get('is_archive'))
         if not hls_url:
             raise ExtractorError('Neither archive nor live is available.', expected=True)
 
@@ -42,55 +55,29 @@ class MirrativIE(MirrativBaseIE):
             hls_url, video_id,
             ext='mp4', entry_protocol='m3u8_native',
             m3u8_id='hls', live=is_live)
-        rtmp_url = live_response.get('streaming_url_edge')
-        if rtmp_url:
-            keys_to_copy = ('width', 'height', 'vcodec', 'acodec', 'tbr')
-            fmt = {
-                'format_id': 'rtmp',
-                'url': rtmp_url,
-                'protocol': 'rtmp',
-                'ext': 'mp4',
-            }
-            fmt.update({k: traverse_obj(formats, (0, k)) for k in keys_to_copy})
-            formats.append(fmt)
         self._sort_formats(formats)
-
-        title = self._og_search_title(webpage, default=None) or self._search_regex(
-            r'<title>\s*(.+?) - Mirrativ\s*</title>', webpage) or live_response.get('title')
-        description = live_response.get('description')
-        thumbnail = live_response.get('image_url')
-
-        duration = try_get(live_response, lambda x: x['ended_at'] - x['started_at'])
-        view_count = live_response.get('total_viewer_num')
-        release_timestamp = live_response.get('started_at')
-        timestamp = live_response.get('created_at')
-
-        owner = live_response.get('owner', {})
-        uploader = owner.get('name')
-        uploader_id = owner.get('user_id')
 
         return {
             'id': video_id,
-            'title': title,
+            'title': self._og_search_title(webpage, default=None) or self._search_regex(
+                r'<title>\s*(.+?) - Mirrativ\s*</title>', webpage) or live_response.get('title'),
             'is_live': is_live,
-            'description': description,
+            'description': live_response.get('description'),
             'formats': formats,
-            'thumbnail': thumbnail,
-            'uploader': uploader,
-            'uploader_id': uploader_id,
-            'duration': duration,
-            'view_count': view_count,
-            'release_timestamp': release_timestamp,
-            'timestamp': timestamp,
-            'was_live': was_live,
+            'thumbnail': live_response.get('image_url'),
+            'uploader': traverse_obj(live_response, ('owner', 'name')),
+            'uploader_id': traverse_obj(live_response, ('owner', 'user_id')),
+            'duration': try_get(live_response, lambda x: x['ended_at'] - x['started_at']) if not is_live else None,
+            'view_count': live_response.get('total_viewer_num'),
+            'release_timestamp': live_response.get('started_at'),
+            'timestamp': live_response.get('created_at'),
+            'was_live': bool(live_response.get('is_archive')),
         }
 
 
 class MirrativUserIE(MirrativBaseIE):
     IE_NAME = 'mirrativ:user'
     _VALID_URL = r'https?://(?:www\.)?mirrativ\.com/user/(?P<id>\d+)'
-    LIVE_HISTORY_API_URL = 'https://www.mirrativ.com/api/live/live_history?user_id=%s&page=%d'
-    USER_INFO_API_URL = 'https://www.mirrativ.com/api/user/profile?user_id=%s'
 
     _TESTS = [{
         # Live archive is available up to 3 days
@@ -104,8 +91,8 @@ class MirrativUserIE(MirrativBaseIE):
         page = 1
         while page is not None:
             api_response = self._download_json(
-                self.LIVE_HISTORY_API_URL % (user_id, page), user_id,
-                note='Downloading page %d' % page)
+                f'https://www.mirrativ.com/api/live/live_history?user_id={user_id}&page={page}', user_id,
+                note=f'Downloading page {page}')
             self.assert_error(api_response)
             lives = api_response.get('lives')
             if not lives:
@@ -123,12 +110,10 @@ class MirrativUserIE(MirrativBaseIE):
     def _real_extract(self, url):
         user_id = self._match_id(url)
         user_info = self._download_json(
-            self.USER_INFO_API_URL % user_id, user_id,
+            f'https://www.mirrativ.com/api/user/profile?user_id={user_id}', user_id,
             note='Downloading user info', fatal=False)
         self.assert_error(user_info)
 
-        uploader = user_info.get('name')
-        description = user_info.get('description')
-
-        entries = self._entries(user_id)
-        return self.playlist_result(entries, user_id, uploader, description)
+        return self.playlist_result(
+            self._entries(user_id), user_id,
+            user_info.get('name'), user_info.get('description'))
