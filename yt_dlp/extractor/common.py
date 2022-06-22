@@ -385,6 +385,11 @@ class InfoExtractor:
     release_year:   Year (YYYY) when the album was released.
     composer:       Composer of the piece
 
+    The following fields should only be set for clips that should be cut from the original video:
+
+    section_start:  Start time of the section in seconds
+    section_end:    End time of the section in seconds
+
     Unless mentioned otherwise, the fields should be Unicode strings.
 
     Unless mentioned otherwise, None is equivalent to absence of information.
@@ -1188,13 +1193,32 @@ class InfoExtractor:
             self.report_warning('unable to extract %s' % _name + bug_reports_message())
             return None
 
-    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='', contains_pattern='(?s:.+)', fatal=True, **kwargs):
+    def _search_json(self, start_pattern, string, name, video_id, *, end_pattern='',
+                     contains_pattern='(?s:.+)', fatal=True, default=NO_DEFAULT, **kwargs):
         """Searches string for the JSON object specified by start_pattern"""
         # NB: end_pattern is only used to reduce the size of the initial match
-        return self._parse_json(
-            self._search_regex(rf'{start_pattern}\s*(?P<json>{{{contains_pattern}}})\s*{end_pattern}',
-                               string, name, group='json', fatal=fatal) or '{}',
-            video_id, fatal=fatal, ignore_extra=True, **kwargs) or {}
+        if default is NO_DEFAULT:
+            default, has_default = {}, False
+        else:
+            fatal, has_default = False, True
+
+        json_string = self._search_regex(
+            rf'{start_pattern}\s*(?P<json>{{\s*{contains_pattern}\s*}})\s*{end_pattern}',
+            string, name, group='json', fatal=fatal, default=None if has_default else NO_DEFAULT)
+        if not json_string:
+            return default
+
+        _name = self._downloader._format_err(name, self._downloader.Styles.EMPHASIS)
+        try:
+            return self._parse_json(json_string, video_id, ignore_extra=True, **kwargs)
+        except ExtractorError as e:
+            if fatal:
+                raise ExtractorError(
+                    f'Unable to extract {_name} - Failed to parse JSON', cause=e.cause, video_id=video_id)
+            elif not has_default:
+                self.report_warning(
+                    f'Unable to extract {_name} - Failed to parse JSON: {e}', video_id=video_id)
+        return default
 
     def _html_search_regex(self, pattern, string, name, default=NO_DEFAULT, fatal=True, flags=0, group=None):
         """
@@ -1569,15 +1593,13 @@ class InfoExtractor:
                 webpage, 'next.js data', fatal=fatal, **kw),
             video_id, transform_source=transform_source, fatal=fatal)
 
-    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', return_full_data=False):
-        ''' Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function. '''
-        # not all website do this, but it can be changed
-        # https://stackoverflow.com/questions/67463109/how-to-change-or-hide-nuxt-and-nuxt-keyword-in-page-source
+    def _search_nuxt_data(self, webpage, video_id, context_name='__NUXT__', *, fatal=True, traverse=('data', 0)):
+        """Parses Nuxt.js metadata. This works as long as the function __NUXT__ invokes is a pure function"""
         rectx = re.escape(context_name)
+        FUNCTION_RE = r'\(function\((?P<arg_keys>.*?)\){return\s+(?P<js>{.*?})\s*;?\s*}\((?P<arg_vals>.*?)\)'
         js, arg_keys, arg_vals = self._search_regex(
-            (r'<script>window\.%s=\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.+?)\)\);?</script>' % rectx,
-             r'%s\(.*?\(function\((?P<arg_keys>.*?)\)\{return\s(?P<js>\{.*?\})\}\((?P<arg_vals>.*?)\)' % rectx),
-            webpage, context_name, group=['js', 'arg_keys', 'arg_vals'])
+            (rf'<script>\s*window\.{rectx}={FUNCTION_RE}\s*\)\s*;?\s*</script>', rf'{rectx}\(.*?{FUNCTION_RE}'),
+            webpage, context_name, group=('js', 'arg_keys', 'arg_vals'), fatal=fatal)
 
         args = dict(zip(arg_keys.split(','), arg_vals.split(',')))
 
@@ -1585,10 +1607,8 @@ class InfoExtractor:
             if val in ('undefined', 'void 0'):
                 args[key] = 'null'
 
-        ret = self._parse_json(js_to_json(js, args), video_id)
-        if return_full_data:
-            return ret
-        return ret['data'][0]
+        ret = self._parse_json(js, video_id, transform_source=functools.partial(js_to_json, vars=args), fatal=fatal)
+        return traverse_obj(ret, traverse) or {}
 
     @staticmethod
     def _hidden_inputs(html):

@@ -108,7 +108,7 @@ class FileDownloader:
 
     @classproperty
     def FD_NAME(cls):
-        return re.sub(r'(?<!^)(?=[A-Z])', '_', cls.__name__[:-2]).lower()
+        return re.sub(r'(?<=[a-z])(?=[A-Z])', '_', cls.__name__[:-2]).lower()
 
     @staticmethod
     def format_seconds(seconds):
