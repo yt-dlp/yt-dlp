@@ -3815,7 +3815,8 @@ class InfoExtractor:
         return True
 
     def _error_or_warning(self, err, _count=None, _retries=0, *, fatal=True):
-        RetryManager.report_retry(err, _count or int(fatal), _retries, info=self.to_screen, warn=self.report_warning, sleep_func=None)
+        RetryManager.report_retry(err, _count or int(fatal), _retries, info=self.to_screen, warn=self.report_warning,
+                                  sleep_func=self.get_param('retry_sleep_functions', {}).get('extractor'))
 
     def RetryManager(self, **kwargs):
         return RetryManager(self.get_param('extractor_retries', 3), self._error_or_warning, **kwargs)
