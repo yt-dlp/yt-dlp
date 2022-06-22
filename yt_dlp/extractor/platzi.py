@@ -91,36 +91,24 @@ class PlatziIE(PlatziBaseIE):
         lecture_id = self._match_id(url)
 
         webpage = self._download_webpage(url, lecture_id)
-        data_preloaded_state = self._parse_json(
-            self._search_regex(
-                (r'window\s*.\s*__PRELOADED_STATE__\s*=\s*({.*?});?\s*</script'), webpage, 'client data'),
-            lecture_id)
+        video_player = self._search_json(
+            r'window\.__PRELOADED_STATE__\s*=', webpage, 'client data', lecture_id)['videoPlayer']
 
-        video_player = try_get(data_preloaded_state, lambda x: x['videoPlayer'], dict)
-        title = video_player.get('name', '')
-        duration = video_player.get('duration', '')
-        servers = try_get(video_player, lambda x: x['video']['servers'])
         formats = []
-        for server_json in servers.values():
+        for server_json in video_player['video']['servers'].values():
+            id_ = str_or_none(server_json.get('id'))
             if server_json.get('hls'):
-                formats.extend(self._extract_m3u8_formats(
-                    server_json['hls'], lecture_id, 'mp4',
-                    entry_protocol='m3u8_native', m3u8_id='hls',
-                    note='Downloading %s m3u8 information' % server_json.get('id', ''),
-                    fatal=False))
+                formats.extend(self._extract_m3u8_formats(server_json['hls'], lecture_id, 'mp4', m3u8_id='hls',
+                                                          note=f'Downloading {id_} m3u8 information', fatal=False))
             elif server_json.get('dash'):
-                formats.extend(self._extract_mpd_formats(
-                    server_json['dash'], lecture_id, mpd_id='dash',
-                    note='Downloading %s MPD manifest' % server_json.get('id', ''),
-                    fatal=False))
+                formats.extend(self._extract_mpd_formats(server_json['dash'], lecture_id, mpd_id='dash',
+                                                         note=f'Downloading {id_} MPD manifest', fatal=False))
+
         self._sort_formats(formats)
-
-        duration = int_or_none(duration, invscale=60)
-
         return {
             'id': lecture_id,
-            'title': title,
-            'duration': duration,
+            'title': video_player.get('name'),
+            'duration': int_or_none(video_player.get('duration'), invscale=60),
             'formats': formats,
         }
 
