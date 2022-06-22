@@ -305,7 +305,7 @@ class AdultSwimStreamIE(InfoExtractor):
         for f in formats:
             f['protocol'] = 'm3u8_native_generator'
 
-        def get_episode_entry(stream, episode):
+        def get_episode_entry(stream, episode, show_not_aired_message=False):
             entry = {}
 
             release_timestamp = episode['startTime'] / 1000 + min(60, episode['duration'] / 2)
@@ -323,9 +323,10 @@ class AdultSwimStreamIE(InfoExtractor):
                         self._live_hls_fragments, episode['startTime'] / 1000, episode['duration'], stream_id, f['url'])
                 entry['formats'] = _formats
             else:
-                self.to_screen('Episode "%s" has not aired yet' % episode.get('episodeName'))
+                if show_not_aired_message:
+                    self.to_screen('Episode "%s" has not aired yet' % episode.get('episodeName'))
                 entry['release_timestamp'] = release_timestamp
-                entry['reextractor'] = functools.partial(get_episode_entry, stream, episode)
+                entry['reextractor'] = functools.partial(get_episode_entry, stream, episode, True)
 
             return {
                 **entry,
