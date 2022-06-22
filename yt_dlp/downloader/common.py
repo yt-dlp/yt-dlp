@@ -13,6 +13,7 @@ from ..minicurses import (
     QuietMultilinePrinter,
 )
 from ..utils import (
+    IDENTITY,
     NO_DEFAULT,
     NUMBER_RE,
     LockingUnsupportedError,
@@ -21,9 +22,7 @@ from ..utils import (
     classproperty,
     decodeArgument,
     encodeFilename,
-    float_or_none,
     format_bytes,
-    format_field,
     join_nonempty,
     sanitize_open,
     shell_quote,
@@ -218,31 +217,24 @@ class FileDownloader:
         return filename + '.ytdl'
 
     def wrap_file_access(action, *, fatal=False):
-        def outer(func):
-            @functools.wraps(func)
-            def inner(self, *args, **kwargs):
-                def error_callback(err, count, retries):
-                    if count >= retries:
-                        if fatal:
-                            raise err
-                        self.report_error(f'unable to {action} file: {err}')
-                        return
+        def error_callback(err, count, retries, *, fd):
+            return RetryManager.report_retry(
+                err, count, retries, info=fd.__to_screen,
+                warn=lambda e: (time.sleep(0.01), fd.to_screen(f'[download] Unable to {action} file: {e}')),
+                error=None if fatal else lambda e: fd.report_error(f'Unable to {action} file: {e}'),
+                sleep_func=fd.params.get('retry_sleep_functions', {}).get('file_access'))
 
-                    self.to_screen(f'[download] Unable to {action} file due to file access error. '
-                                   f'Retrying (attempt {count + 1} of {self.format_retries(retries)}) ...')
-                    if not self.sleep_retry('file_access', retry):
-                        time.sleep(0.01)
+        def wrapper(self, func, *args, **kwargs):
+            for retry in RetryManager(self.params.get('file_access_retries'), error_callback, fd=self):
+                try:
+                    return func(self, *args, **kwargs)
+                except OSError as err:
+                    if err.errno in (errno.EACCES, errno.EINVAL):
+                        retry.error = err
+                        continue
+                    retry.error_callback(err, 1, 0)
 
-                for retry in RetryManager(self.params.get('file_access_retries'), error_callback):
-                    try:
-                        return func(self, *args, **kwargs)
-                    except OSError as err:
-                        if err.errno in (errno.EACCES, errno.EINVAL):
-                            retry.error = err
-                            continue
-                        raise
-            return inner
-        return outer
+        return functools.partial(functools.partialmethod, wrapper)
 
     @wrap_file_access('open', fatal=True)
     def sanitize_open(self, filename, open_mode):
@@ -387,30 +379,17 @@ class FileDownloader:
 
     def report_retry(self, err, count, retries, frag_index=NO_DEFAULT, fatal=True):
         """Report retry"""
-        type = ' fragment'
-        if frag_index is NO_DEFAULT:
-            frag_index, type = '', ''
-        if count >= retries:
-            if fatal:
-                self.report_error(f'[download] Got error: {err}. giving up after {count}{type} retries')
-            return
-        self.__to_screen(
-            f'\r[download] Got error{format_field(str(err), None, ": %s")}. '
-            f'Retrying{type}{"s" if frag_index is None else f" {frag_index}"} '
-            f'(attempt {count + 1} of {self.format_retries(retries)}) ...')
-        self.sleep_retry(type.strip() or 'http', count)
+        is_frag = False if frag_index is NO_DEFAULT else 'fragment'
+        RetryManager.report_retry(
+            err, count, retries, info=self.__to_screen,
+            warn=lambda msg: self.__to_screen(f'[download] Got error: {msg}'),
+            error=IDENTITY if not fatal else lambda e: self.report_error(f'\r[download] Got error: {e}'),
+            sleep_func=self.params.get('retry_sleep_functions', {}).get(is_frag or 'http'),
+            suffix=f'fragment{"s" if frag_index is None else f" {frag_index}"}' if is_frag else None)
 
     def report_unable_to_resume(self):
         """Report it was impossible to resume download."""
         self.to_screen('[download] Unable to resume')
-
-    def sleep_retry(self, retry_type, count):
-        sleep_func = self.params.get('retry_sleep_functions', {}).get(retry_type)
-        delay = float_or_none(sleep_func(n=count - 1)) if sleep_func else None
-        if delay:
-            self.__to_screen(f'Sleeping {delay:.2f} seconds ...')
-            time.sleep(delay)
-        return sleep_func is not None
 
     @staticmethod
     def supports_manifest(manifest):

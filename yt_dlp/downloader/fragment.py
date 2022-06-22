@@ -454,7 +454,7 @@ class FragmentFD(FileDownloader):
             fatal = is_fatal(fragment.get('index') or (frag_index - 1))
 
             def error_callback(err, count, retries):
-                if fatal and count >= retries:
+                if fatal and count > retries:
                     ctx['dest_stream'].close()
                 self.report_retry(err, count, retries, frag_index, fatal)
                 ctx['last_error'] = err

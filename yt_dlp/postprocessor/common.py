@@ -1,7 +1,6 @@
 import functools
 import json
 import os
-import time
 import urllib.error
 
 from ..utils import (
@@ -191,15 +190,10 @@ class PostProcessor(metaclass=PostProcessorMetaClass):
             progress_dict))
 
     def _retry_download(self, err, count, retries):
-        if count >= retries:
-            raise err
         # While this is not an extractor, it behaves similar to one and
         # so obey extractor_retries and sleep_interval_requests
-        self.report_warning(f'{err}. Retrying...')
-        sleep_interval = self.get_param('sleep_interval_requests') or 0
-        if sleep_interval > 0:
-            self.to_screen(f'Sleeping {sleep_interval} seconds ...')
-            time.sleep(sleep_interval)
+        RetryManager.report_retry(err, count, retries, info=self.to_screen, warn=self.report_warning,
+                                  sleep_func=self.get_param('sleep_interval_requests'))
 
     def _download_json(self, url, *, expected_http_errors=(404,)):
         self.write_debug(f'{self.PP_NAME} query: {url}')
