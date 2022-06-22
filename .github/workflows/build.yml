@@ -70,14 +70,16 @@ jobs:
 
   build_unix:
     needs: create_release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04  # Standalone executable should be built on minimum supported OS
     outputs:
       sha256_bin: ${{ steps.get_sha.outputs.sha256_bin }}
       sha512_bin: ${{ steps.get_sha.outputs.sha512_bin }}
       sha256_tar: ${{ steps.get_sha.outputs.sha256_tar }}
       sha512_tar: ${{ steps.get_sha.outputs.sha512_tar }}
-      sha256_unix_zip: ${{ steps.get_sha.outputs.sha256_unix_zip }}
-      sha512_unix_zip: ${{ steps.get_sha.outputs.sha512_unix_zip }}
+      sha256_linux: ${{ steps.get_sha.outputs.sha256_linux }}
+      sha512_linux: ${{ steps.get_sha.outputs.sha512_linux }}
+      sha256_linux_zip: ${{ steps.get_sha.outputs.sha256_linux_zip }}
+      sha512_linux_zip: ${{ steps.get_sha.outputs.sha512_linux_zip }}
 
     steps:
     - uses: actions/checkout@v2
@@ -94,9 +96,12 @@ jobs:
       run: |
           python devscripts/update-version.py ${{ needs.create_release.outputs.version_suffix }}
           python devscripts/make_lazy_extractors.py
-    - name: Build UNIX executables
+    - name: Build Unix executables
       run: |
           make all tar
+          python pyinst.py --onedir
+          (cd ./dist/yt-dlp_linux && zip -r ../yt-dlp_linux.zip .)
+          python pyinst.py
     - name: Get SHA2-SUMS
       id: get_sha
       run: |
@@ -104,6 +109,10 @@ jobs:
           echo "::set-output name=sha512_bin::$(sha512sum yt-dlp | awk '{print $1}')"
           echo "::set-output name=sha256_tar::$(sha256sum yt-dlp.tar.gz | awk '{print $1}')"
           echo "::set-output name=sha512_tar::$(sha512sum yt-dlp.tar.gz | awk '{print $1}')"
+          echo "::set-output name=sha256_linux::$(sha256sum dist/yt-dlp_linux | awk '{print $1}')"
+          echo "::set-output name=sha512_linux::$(sha512sum dist/yt-dlp_linux | awk '{print $1}')"
+          echo "::set-output name=sha256_linux_zip::$(sha256sum dist/yt-dlp_linux.zip | awk '{print $1}')"
+          echo "::set-output name=sha512_linux_zip::$(sha512sum dist/yt-dlp_linux.zip | awk '{print $1}')"
 
     - name: Upload zip binary
       uses: actions/upload-release-asset@v1
@@ -123,6 +132,24 @@ jobs:
         asset_path: ./yt-dlp.tar.gz
         asset_name: yt-dlp.tar.gz
         asset_content_type: application/gzip
+    - name: Upload standalone binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_linux
+        asset_name: yt-dlp_linux
+        asset_content_type: application/octet-stream
+    - name: Upload onedir binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create_release.outputs.upload_url }}
+        asset_path: ./dist/yt-dlp_linux.zip
+        asset_name: yt-dlp_linux.zip
+        asset_content_type: application/zip
 
     - name: Build and publish on PyPi
       env:
@@ -330,6 +357,8 @@ jobs:
       run: |
         echo "${{ needs.build_unix.outputs.sha256_bin }}  yt-dlp" >> SHA2-256SUMS
         echo "${{ needs.build_unix.outputs.sha256_tar }}  yt-dlp.tar.gz" >> SHA2-256SUMS
+        echo "${{ needs.build_unix.outputs.sha256_linux }}  yt-dlp_linux" >> SHA2-256SUMS
+        echo "${{ needs.build_unix.outputs.sha256_linux_zip }}  yt-dlp_linux.zip" >> SHA2-256SUMS
         echo "${{ needs.build_windows.outputs.sha256_win }}  yt-dlp.exe" >> SHA2-256SUMS
         echo "${{ needs.build_windows.outputs.sha256_py2exe }}  yt-dlp_min.exe" >> SHA2-256SUMS
         echo "${{ needs.build_windows32.outputs.sha256_win32 }}  yt-dlp_x86.exe" >> SHA2-256SUMS
@@ -338,6 +367,8 @@ jobs:
         echo "${{ needs.build_macos.outputs.sha256_macos_zip }}  yt-dlp_macos.zip" >> SHA2-256SUMS
         echo "${{ needs.build_unix.outputs.sha512_bin }}  yt-dlp" >> SHA2-512SUMS
         echo "${{ needs.build_unix.outputs.sha512_tar }}  yt-dlp.tar.gz" >> SHA2-512SUMS
+        echo "${{ needs.build_unix.outputs.sha512_linux }}  yt-dlp_linux" >> SHA2-512SUMS
+        echo "${{ needs.build_unix.outputs.sha512_linux_zip }}  yt-dlp_linux.zip" >> SHA2-512SUMS
         echo "${{ needs.build_windows.outputs.sha512_win }}  yt-dlp.exe" >> SHA2-512SUMS
         echo "${{ needs.build_windows.outputs.sha512_py2exe }}  yt-dlp_min.exe" >> SHA2-512SUMS
         echo "${{ needs.build_windows32.outputs.sha512_win32 }}  yt-dlp_x86.exe" >> SHA2-512SUMS

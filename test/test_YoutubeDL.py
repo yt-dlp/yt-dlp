@@ -41,7 +41,7 @@ class YDL(FakeYDL):
     def process_info(self, info_dict):
         self.downloaded_info_dicts.append(info_dict.copy())
 
-    def to_screen(self, msg):
+    def to_screen(self, msg, *args, **kwargs):
         self.msgs.append(msg)
 
     def dl(self, *args, **kwargs):
