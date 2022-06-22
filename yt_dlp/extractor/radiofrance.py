@@ -58,7 +58,7 @@ class RadioFranceIE(InfoExtractor):
 
 
 class FranceCultureIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/franceculture/podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d+)($|[?#])'
+    _VALID_URL = r'https?://(?:www\.)?radiofrance\.fr/(?:franceculture|fip|francemusique|mouv|franceinter)/podcasts/(?:[^?#]+/)?(?P<display_id>[^?#]+)-(?P<id>\d+)($|[?#])'
     _TESTS = [
         {
             'url': 'https://www.radiofrance.fr/franceculture/podcasts/science-en-questions/la-physique-d-einstein-aiderait-elle-a-comprendre-le-cerveau-8440487',
@@ -73,6 +73,10 @@ class FranceCultureIE(InfoExtractor):
                 'duration': 2750,
             },
         },
+        {
+            'url': 'https://www.radiofrance.fr/franceinter/podcasts/la-rafle-du-vel-d-hiv-une-affaire-d-etat/les-racines-du-crime-episode-1-3715507',
+            'only_matching': True,
+        }
     ]
 
     def _real_extract(self, url):

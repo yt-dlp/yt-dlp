@@ -16,7 +16,7 @@ from ..compat import compat_urllib_parse_urlparse, compat_urllib_request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
-    decode_base,
+    decode_base_n,
     int_or_none,
     intlist_to_bytes,
     request_to_url,
@@ -123,7 +123,7 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
                 'Content-Type': 'application/json',
             })
 
-        res = decode_base(license_response['k'], self.STRTABLE)
+        res = decode_base_n(license_response['k'], table=self.STRTABLE)
         encvideokey = bytes_to_intlist(struct.pack('>QQ', res >> 64, res & 0xffffffffffffffff))
 
         h = hmac.new(

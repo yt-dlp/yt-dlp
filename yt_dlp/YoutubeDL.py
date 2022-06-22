@@ -58,6 +58,7 @@ from .postprocessor import (
 from .update import detect_variant
 from .utils import (
     DEFAULT_OUTTMPL,
+    IDENTITY,
     LINK_TEMPLATES,
     NO_DEFAULT,
     NUMBER_RE,
@@ -581,9 +582,14 @@ class YoutubeDL:
             for type_, stream in self._out_files.items_ if type_ != 'console'
         })
 
-        if sys.version_info < (3, 6):
-            self.report_warning(
-                'Python version %d.%d is not supported! Please update to Python 3.6 or above' % sys.version_info[:2])
+        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 6), (3, 7)
+        current_version = sys.version_info[:2]
+        if current_version < MIN_RECOMMENDED:
+            msg = 'Support for Python version %d.%d has been deprecated and will break in future versions of yt-dlp'
+            if current_version < MIN_SUPPORTED:
+                msg = 'Python version %d.%d is no longer supported'
+            self.deprecation_warning(
+                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
@@ -769,6 +775,7 @@ class YoutubeDL:
 
     def add_post_processor(self, pp, when='post_process'):
         """Add a PostProcessor object to the end of the chain."""
+        assert when in POSTPROCESS_WHEN, f'Invalid when={when}'
         self._pps[when].append(pp)
         pp.set_downloader(self)
 
@@ -1001,7 +1008,7 @@ class YoutubeDL:
         return self.params['outtmpl']
 
     def _parse_outtmpl(self):
-        sanitize = lambda x: x
+        sanitize = IDENTITY
         if self.params.get('restrictfilenames'):  # Remove spaces in the default template
             sanitize = lambda x: x.replace(' - ', ' ').replace(' ', '-')
 
@@ -1594,9 +1601,13 @@ class YoutubeDL:
             if not info:
                 return info
 
+            exempted_fields = {'_type', 'url', 'ie_key'}
+            if not ie_result.get('section_end') and ie_result.get('section_start') is None:
+                # For video clips, the id etc of the clip extractor should be used
+                exempted_fields |= {'id', 'extractor', 'extractor_key'}
+
             new_result = info.copy()
-            new_result.update(filter_dict(ie_result, lambda k, v: (
-                v is not None and k not in {'_type', 'url', 'id', 'extractor', 'extractor_key', 'ie_key'})))
+            new_result.update(filter_dict(ie_result, lambda k, v: v is not None and k not in exempted_fields))
 
             # Extracted info may not be a video result (i.e.
             # info.get('_type', 'video') != video) but rather an url or
@@ -1721,7 +1732,7 @@ class YoutubeDL:
                 resolved_entries.append((playlist_index, entry))
 
             # TODO: Add auto-generated fields
-            if self._match_entry(entry, incomplete=True) is not None:
+            if not entry or self._match_entry(entry, incomplete=True) is not None:
                 continue
 
             self.to_screen('[download] Downloading video %s of %s' % (
@@ -2367,6 +2378,8 @@ class YoutubeDL:
 
         sanitize_string_field(info_dict, 'id')
         sanitize_numeric_fields(info_dict)
+        if info_dict.get('section_end') and info_dict.get('section_start') is not None:
+            info_dict['duration'] = round(info_dict['section_end'] - info_dict['section_start'], 3)
         if (info_dict.get('duration') or 0) <= 0 and info_dict.pop('duration', None):
             self.report_warning('"duration" field is negative, there is an error in extractor')
 
@@ -2602,10 +2615,11 @@ class YoutubeDL:
             for fmt, chapter in itertools.product(formats_to_download, requested_ranges or [{}]):
                 new_info = self._copy_infodict(info_dict)
                 new_info.update(fmt)
-                if chapter:
+                offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
+                if chapter or offset:
                     new_info.update({
-                        'section_start': chapter.get('start_time'),
-                        'section_end': chapter.get('end_time', 0),
+                        'section_start': offset + chapter.get('start_time', 0),
+                        'section_end': offset + min(chapter.get('end_time', 0), duration),
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
@@ -2982,13 +2996,12 @@ class YoutubeDL:
                         info_dict['ext'] = os.path.splitext(file)[1][1:]
                     return file
 
-                success = True
-                merger, fd = FFmpegMergerPP(self), None
+                fd, success = None, True
                 if info_dict.get('protocol') or info_dict.get('url'):
                     fd = get_suitable_downloader(info_dict, self.params, to_stdout=temp_filename == '-')
                     if fd is not FFmpegFD and (
                             info_dict.get('section_start') or info_dict.get('section_end')):
-                        msg = ('This format cannot be partially downloaded' if merger.available
+                        msg = ('This format cannot be partially downloaded' if FFmpegFD.available()
                                else 'You have requested downloading the video partially, but ffmpeg is not installed')
                         self.report_error(f'{msg}. Aborting')
                         return
@@ -3047,6 +3060,7 @@ class YoutubeDL:
                     dl_filename = existing_video_file(full_filename, temp_filename)
                     info_dict['__real_download'] = False
 
+                    merger = FFmpegMergerPP(self)
                     downloaded = []
                     if dl_filename is not None:
                         self.report_file_already_downloaded(dl_filename)

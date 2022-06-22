@@ -37,7 +37,7 @@ def md5_text(text):
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
 
-class IqiyiSDK(object):
+class IqiyiSDK:
     def __init__(self, target, ip, timestamp):
         self.target = target
         self.ip = ip
@@ -131,7 +131,7 @@ class IqiyiSDK(object):
         self.target = self.digit_sum(self.timestamp) + chunks[0] + compat_str(sum(ip))
 
 
-class IqiyiSDKInterpreter(object):
+class IqiyiSDKInterpreter:
     def __init__(self, sdk_code):
         self.sdk_code = sdk_code
 
