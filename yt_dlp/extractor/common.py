@@ -385,6 +385,11 @@ class InfoExtractor:
     release_year:   Year (YYYY) when the album was released.
     composer:       Composer of the piece
 
+    The following fields should only be set for clips that should be cut from the original video:
+
+    section_start:  Start time of the section in seconds
+    section_end:    End time of the section in seconds
+
     Unless mentioned otherwise, the fields should be Unicode strings.
 
     Unless mentioned otherwise, None is equivalent to absence of information.

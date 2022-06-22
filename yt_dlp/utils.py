@@ -991,9 +991,10 @@ def make_HTTPS_handler(params, **kwargs):
 
 
 def bug_reports_message(before=';'):
-    msg = ('please report this issue on  https://github.com/yt-dlp/yt-dlp/issues?q= , '
-           'filling out the appropriate issue template. '
-           'Confirm you are on the latest version using  yt-dlp -U')
+    from .update import REPOSITORY
+
+    msg = (f'please report this issue on  https://github.com/{REPOSITORY}/issues?q= , '
+           'filling out the appropriate issue template. Confirm you are on the latest version using  yt-dlp -U')
 
     before = before.rstrip()
     if not before or before.endswith(('.', '!', '?')):
@@ -2882,6 +2883,8 @@ class PlaylistEntries:
         for index in self.parse_playlist_items(playlist_items):
             for i, entry in self[index]:
                 yield i, entry
+                if not entry:
+                    continue
                 try:
                     # TODO: Add auto-generated fields
                     self.ydl._match_entry(entry, incomplete=True, silent=True)

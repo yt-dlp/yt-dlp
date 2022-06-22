@@ -23,7 +23,7 @@ class HttpQuietDownloader(HttpFD):
     def to_screen(self, *args, **kargs):
         pass
 
-    console_title = to_screen
+    to_console_title = to_screen
 
 
 class FragmentFD(FileDownloader):

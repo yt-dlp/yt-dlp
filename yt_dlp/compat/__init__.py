@@ -55,7 +55,7 @@ if compat_os_name == 'nt' and sys.version_info < (3, 8):
     def compat_realpath(path):
         while os.path.islink(path):
             path = os.path.abspath(os.readlink(path))
-        return path
+        return os.path.realpath(path)
 else:
     compat_realpath = os.path.realpath
 
