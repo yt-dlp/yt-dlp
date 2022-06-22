@@ -125,8 +125,28 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(compressed)+len(b'trailing garbage')))
             self.end_headers()
             self.wfile.write(compressed + b'trailing garbage')
+        elif self.path == '/302-non-ascii-redirect':
+            new_url = 'http://127.0.0.1:%d/中文.html' % http_server_port(self.server)
+            self.send_response(301)
+            self.send_header('Location', new_url)
+            self.send_header('Content-Length', '0')
+            self.end_headers()
         else:
             self._404()
+
+    def send_header(self, keyword, value):
+        """
+        Forcibly allow HTTP server to send non percent-encoded non-ASCII characters in headers.
+        This is against what is defined in RFC 3986, however we need to test we support this
+        since some sites incorrectly do this.
+        """
+        if keyword.lower() == 'connection':
+            return super().send_header(keyword, value)
+
+        if not hasattr(self, '_headers_buffer'):
+            self._headers_buffer = []
+
+        self._headers_buffer.append(f'{keyword}: {value}\r\n'.encode('utf-8'))
 
 
 def _build_proxy_handler(name):
@@ -237,6 +257,19 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             response = ydl.urlopen(url).read().decode('utf-8')
             # b'xn--fiq228c' is '中文'.encode('idna')
             self.assertEqual(response, 'normal: http://xn--fiq228c.tw/')
+
+    # TODO: urllib does not perform url normalization to spec (convert lowercase percent-encoded to uppercase)
+    # def test_percent_encode(self):
+    #     with self.make_ydl() as ydl:
+    #         res = ydl.urlopen(f'http://127.0.0.1:{self.http_port}/%E4%B8%AD%E6%96%87.html')
+    #         self.assertEqual(res.status, 200)
+    #         res = ydl.urlopen(f'http://127.0.0.1:{self.http_port}/%e4%B8%AD%E6%96%87.html')
+    #         self.assertEqual(res.status, 200)
+
+    def test_unicode_path_redirection(self):
+        with self.make_ydl(fake=False) as ydl:
+            r = ydl.extract_info('http://127.0.0.1:%d/302-non-ascii-redirect' % self.http_port)
+            self.assertEqual(r['entries'][0]['url'], 'http://127.0.0.1:%d/vid.mp4' % self.http_port)
 
     def test_raise_http_error(self):
         with self.make_ydl() as ydl:
