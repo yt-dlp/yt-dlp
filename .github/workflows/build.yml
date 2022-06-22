@@ -29,6 +29,7 @@ jobs:
         make issuetemplates
 
     - name: Push to release
+      id: push_release
       run: |
         git config --global user.name github-actions
         git config --global user.email github-actions@example.com
