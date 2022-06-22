@@ -89,7 +89,7 @@ class VineIE(InfoExtractor):
 
         username = data.get('username')
 
-        alt_title = format_field(username, template='Vine by %s')
+        alt_title = format_field(username, None, 'Vine by %s')
 
         return {
             'id': video_id,

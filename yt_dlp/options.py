@@ -96,12 +96,16 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     opts = optparse.Values({'verbose': True, 'print_help': False})
     try:
-        if overrideArguments:
-            root.append_config(overrideArguments, label='Override')
-        else:
-            root.append_config(sys.argv[1:], label='Command-line')
+        try:
+            if overrideArguments:
+                root.append_config(overrideArguments, label='Override')
+            else:
+                root.append_config(sys.argv[1:], label='Command-line')
+            loaded_all_configs = all(load_configs())
+        except ValueError as err:
+            raise root.parser.error(err)
 
-        if all(load_configs()):
+        if loaded_all_configs:
             # If ignoreconfig is found inside the system configuration file,
             # the user configuration is removed
             if root.parse_known_args()[0].ignoreconfig:
@@ -183,7 +187,7 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         return self.check_values(self.values, self.largs)
 
     def error(self, msg):
-        msg = f'{self.get_prog_name()}: error: {msg.strip()}\n'
+        msg = f'{self.get_prog_name()}: error: {str(msg).strip()}\n'
         raise optparse.OptParseError(f'{self.get_usage()}\n{msg}' if self.usage else msg)
 
     def _get_args(self, args):

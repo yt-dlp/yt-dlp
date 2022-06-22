@@ -3555,7 +3555,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             'uploader_id': self._search_regex(r'/(?:channel|user)/([^/?&#]+)', owner_profile_url, 'uploader id') if owner_profile_url else None,
             'uploader_url': owner_profile_url,
             'channel_id': channel_id,
-            'channel_url': format_field(channel_id, template='https://www.youtube.com/channel/%s'),
+            'channel_url': format_field(channel_id, None, 'https://www.youtube.com/channel/%s'),
             'duration': duration,
             'view_count': int_or_none(
                 get_first((video_details, microformats), (..., 'viewCount'))
@@ -3625,7 +3625,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         if 'translated_subs' in self._configuration_arg('skip'):
                             continue
                         trans_code += f'-{lang_code}'
-                        trans_name += format_field(lang_name, template=' from %s')
+                        trans_name += format_field(lang_name, None, ' from %s')
                     # Add an "-orig" label to the original language so that it can be distinguished.
                     # The subs are returned without "-orig" as well for compatibility
                     if lang_code == f'a-{orig_trans_code}':
@@ -5978,14 +5978,43 @@ class YoutubeTruncatedURLIE(InfoExtractor):
             expected=True)
 
 
-class YoutubeClipIE(InfoExtractor):
+class YoutubeClipIE(YoutubeTabBaseInfoExtractor):
     IE_NAME = 'youtube:clip'
-    IE_DESC = False  # Do not list
-    _VALID_URL = r'https?://(?:www\.)?youtube\.com/clip/'
+    _VALID_URL = r'https?://(?:www\.)?youtube\.com/clip/(?P<id>[^/?#]+)'
+    _TESTS = [{
+        # FIXME: Other metadata should be extracted from the clip, not from the base video
+        'url': 'https://www.youtube.com/clip/UgytZKpehg-hEMBSn3F4AaABCQ',
+        'info_dict': {
+            'id': 'UgytZKpehg-hEMBSn3F4AaABCQ',
+            'ext': 'mp4',
+            'section_start': 29.0,
+            'section_end': 39.7,
+            'duration': 10.7,
+        }
+    }]
 
     def _real_extract(self, url):
-        self.report_warning('YouTube clips are not currently supported. The entire video will be downloaded instead')
-        return self.url_result(url, 'Generic')
+        clip_id = self._match_id(url)
+        _, data = self._extract_webpage(url, clip_id)
+
+        video_id = traverse_obj(data, ('currentVideoEndpoint', 'watchEndpoint', 'videoId'))
+        if not video_id:
+            raise ExtractorError('Unable to find video ID')
+
+        clip_data = traverse_obj(data, (
+            'engagementPanels', ..., 'engagementPanelSectionListRenderer', 'content', 'clipSectionRenderer',
+            'contents', ..., 'clipAttributionRenderer', 'onScrubExit', 'commandExecutorCommand', 'commands', ...,
+            'openPopupAction', 'popup', 'notificationActionRenderer', 'actionButton', 'buttonRenderer', 'command',
+            'commandExecutorCommand', 'commands', ..., 'loopCommand'), get_all=False)
+
+        return {
+            '_type': 'url_transparent',
+            'url': f'https://www.youtube.com/watch?v={video_id}',
+            'ie_key': YoutubeIE.ie_key(),
+            'id': clip_id,
+            'section_start': int(clip_data['startTimeMs']) / 1000,
+            'section_end': int(clip_data['endTimeMs']) / 1000,
+        }
 
 
 class YoutubeTruncatedIDIE(InfoExtractor):
