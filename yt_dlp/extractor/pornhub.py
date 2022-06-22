@@ -21,6 +21,7 @@ from ..utils import (
     NO_DEFAULT,
     orderedSet,
     remove_quotes,
+    remove_start,
     str_to_int,
     update_url_query,
     urlencode_postdata,
@@ -198,6 +199,16 @@ class PornHubIE(PornHubBaseIE):
             'skip_download': True,
         },
         'skip': 'This video has been disabled',
+    }, {
+        'url': 'http://www.pornhub.com/view_video.php?viewkey=ph601dc30bae19a',
+        'info_dict': {
+            'id': 'ph601dc30bae19a',
+            'uploader': 'Projekt Melody',
+            'uploader_id': 'projekt-melody',
+            'upload_date': '20210205',
+            'title': '"Welcome to My Pussy Mansion" - CB Stream (02/03/21)',
+            'thumbnail': r're:https?://.+',
+        },
     }, {
         'url': 'http://www.pornhub.com/view_video.php?viewkey=ph557bbb6676d2d',
         'only_matching': True,
@@ -429,7 +440,7 @@ class PornHubIE(PornHubBaseIE):
                     default=None))
             formats.append({
                 'url': format_url,
-                'format_id': format_field(height, template='%dp'),
+                'format_id': format_field(height, None, '%dp'),
                 'height': height,
             })
 
@@ -457,9 +468,11 @@ class PornHubIE(PornHubBaseIE):
         self._sort_formats(
             formats, field_preference=('height', 'width', 'fps', 'format_id'))
 
+        model_profile = self._search_json(
+            r'var\s+MODEL_PROFILE\s*=', webpage, 'model profile', video_id, fatal=False)
         video_uploader = self._html_search_regex(
             r'(?s)From:&nbsp;.+?<(?:a\b[^>]+\bhref=["\']/(?:(?:user|channel)s|model|pornstar)/|span\b[^>]+\bclass=["\']username)[^>]+>(.+?)<',
-            webpage, 'uploader', default=None)
+            webpage, 'uploader', default=None) or model_profile.get('username')
 
         def extract_vote_count(kind, name):
             return self._extract_count(
@@ -488,6 +501,7 @@ class PornHubIE(PornHubBaseIE):
         return merge_dicts({
             'id': video_id,
             'uploader': video_uploader,
+            'uploader_id': remove_start(model_profile.get('modelProfileLink'), '/model/'),
             'upload_date': upload_date,
             'title': title,
             'thumbnail': thumbnail,

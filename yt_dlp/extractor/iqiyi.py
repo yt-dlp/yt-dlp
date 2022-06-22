@@ -37,7 +37,7 @@ def md5_text(text):
     return hashlib.md5(text.encode('utf-8')).hexdigest()
 
 
-class IqiyiSDK(object):
+class IqiyiSDK:
     def __init__(self, target, ip, timestamp):
         self.target = target
         self.ip = ip
@@ -131,7 +131,7 @@ class IqiyiSDK(object):
         self.target = self.digit_sum(self.timestamp) + chunks[0] + compat_str(sum(ip))
 
 
-class IqiyiSDKInterpreter(object):
+class IqiyiSDKInterpreter:
     def __init__(self, sdk_code):
         self.sdk_code = sdk_code
 
@@ -610,7 +610,7 @@ class IqIE(InfoExtractor):
         preview_time = traverse_obj(
             initial_format_data, ('boss_ts', (None, 'data'), ('previewTime', 'rtime')), expected_type=float_or_none, get_all=False)
         if traverse_obj(initial_format_data, ('boss_ts', 'data', 'prv'), expected_type=int_or_none):
-            self.report_warning('This preview video is limited%s' % format_field(preview_time, template=' to %s seconds'))
+            self.report_warning('This preview video is limited%s' % format_field(preview_time, None, ' to %s seconds'))
 
         # TODO: Extract audio-only formats
         for bid in set(traverse_obj(initial_format_data, ('program', 'video', ..., 'bid'), expected_type=str_or_none, default=[])):

@@ -187,7 +187,7 @@ class Response(io.IOBase):
             reason: typing.Optional[str] = None):
 
         self.raw = raw
-        self.headers: Message = Message(policy=email.policy.HTTP)
+        self.headers: Message = Message()
         for name, value in (headers or {}).items():
             self.headers.add_header(name, value)
         self.status = status
@@ -270,24 +270,22 @@ class BackendRH(RequestHandler):
     """
 
     def __init__(self, ydl: YoutubeDL):
-        self.ydl = ydl
+        self._set_ydl(ydl)
         self.cookiejar = self.ydl.cookiejar
 
-    # TODO: rework
-    def to_screen(self, *args, **kwargs):
-        self.ydl.to_stdout(*args, **kwargs)
+    def _set_ydl(self, ydl):
+        # TODO: this sucks
+        self.ydl = ydl
 
-    def to_stderr(self, message):
-        self.ydl.to_stderr(message)
-
-    def report_warning(self, *args, **kwargs):
-        self.ydl.report_warning(*args, **kwargs)
-
-    def report_error(self, *args, **kwargs):
-        self.ydl.report_error(*args, **kwargs)
-
-    def write_debug(self, *args, **kwargs):
-        self.ydl.write_debug(*args, **kwargs)
+        for func in (
+            'deprecation_warning',
+            'report_warning',
+            'to_stderr',
+            'write_debug',
+            'to_debugtraffic'
+        ):
+            if not hasattr(self, func):
+                setattr(self, func, getattr(ydl, func))
 
     def make_sslcontext(self, **kwargs):
         """
@@ -366,12 +364,6 @@ class RequestHandlerBroker:
         """Get all handlers for a particular class type"""
         return [h for h in self._handlers if isinstance(h, handler or RequestHandler)]
 
-    # TODO: we want this available for RequestHandlers too
-    # Ideally we would have some global logging object
-    def to_debugtraffic(self, msg):
-        if self.ydl.params.get('debug_printtraffic'):
-            self.ydl.to_stdout(msg)
-
     def send(self, request: Union[Request, str, urllib.request.Request]) -> Response:
         """
         Passes a request onto a suitable RequestHandler
@@ -393,28 +385,32 @@ class RequestHandlerBroker:
             try:
                 try:
                     handler.prepare_request(handler_req)
-                    self.to_debugtraffic(f'Forwarding request to {handler.name} request handler')
+                    self.ydl.to_debugtraffic(f'Forwarding request to "{handler.name}" request handler')
                     res = handler.handle(handler_req)
                 except RequestError as e:
                     e.handler = handler
                     raise
-                except YoutubeDLError as e:
-                    self.ydl.report_warning(
-                        f'Unexpected error from request handler: {type(e).__name__}: {e}' + bug_reports_message())
-                    raise
-            # Nested try-except since we want to catch RequestErrors with handler attached
+                except Exception as e:
+                    # something went very wrong, try fallback to next handler
+                    self.ydl.report_error(
+                        f'Unexpected error from "{handler.name}" request handler' + bug_reports_message(),
+                        is_error=False)
+                    continue
             except UnsupportedRequest as e:
-                self.to_debugtraffic(
-                    f'{handler.name} request handler cannot handle this request, trying next handler... (reason: {e})')
+                self.ydl.to_debugtraffic(
+                    f'"{handler.name}" request handler cannot handle this request, trying another handler... (cause: {type(e).__name__}:{e})')
                 continue
 
+            # TODO: move this into backendRH?
             except SSLError as e:
-                if 'SSLV3_ALERT_HANDSHAKE_FAILURE' in str(e):
-                    raise YoutubeDLError('SSLV3_ALERT_HANDSHAKE_FAILURE: Try using --legacy-server-connect') from e
+                for ssl_err_str in ('SSLV3_ALERT_HANDSHAKE_FAILURE', 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED'):
+                    if ssl_err_str in str(e):
+                        raise RequestError(f'{ssl_err_str}: Try using --legacy-server-connect') from e
                 raise
 
             if not res:
-                self.ydl.report_warning(f'{handler.name} request handler returned nothing for response' + bug_reports_message())
+                self.ydl.report_warning(
+                    f'{handler.name} request handler returned nothing for response, trying another handler...' + bug_reports_message())
                 continue
             assert isinstance(res, Response)
             return res

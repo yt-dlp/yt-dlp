@@ -23,6 +23,9 @@ class UnsupportedRH(BackendRH):
     """
     def prepare_request(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
+        if scheme == 'file':
+            raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
+
         for rh in self.ydl.http.get_handlers():
             if rh.SUPPORTED_SCHEMES is not None and scheme in rh.SUPPORTED_SCHEMES:
                 break
