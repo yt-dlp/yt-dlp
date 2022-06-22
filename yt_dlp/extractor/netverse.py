@@ -13,19 +13,18 @@ class NetverseBaseIE(InfoExtractor):
         'season': 'webseason_videos',
     }
 
-    def _call_api(self, input_data, query={}, season='',
-                  custom_id=None, force_endpoint_type='auto', input_type='url'):
+    def _call_api(self, url=None, slug=None, query={}, season='',
+                  custom_id=None, endpoint=None, input_type='url'):
 
-        slug = None
-        if input_type == 'url':
-            display_id, sites_type = self._match_valid_url(input_data).group('display_id', 'type')
-        elif input_type == 'slug':
-            slug = input_data
-        display_id = display_id if slug is None else slug
-        endpoint = self._ENDPOINTS[sites_type] if force_endpoint_type == 'auto' else self._ENDPOINTS[force_endpoint_type]
+        assert (url is None and slug) or (slug is None and url)
+
+        if url is not None:
+            sites_type, display_id = self._match_valid_url(url).group('type', 'display_id')
+        else:
+            sites_type, display_id = (endpoint, slug)
 
         json_data = self._download_json(
-            f'https://api.netverse.id/medias/api/v2/{endpoint}/{display_id}/{season}',
+            f'https://api.netverse.id/medias/api/v2/{self._ENDPOINTS[sites_type]}/{display_id}/{season}',
             custom_id or display_id, query=query)
         return display_id, json_data
 
@@ -168,15 +167,15 @@ class NetversePlaylistIE(NetverseBaseIE):
             'id': 'kelas-internasional',
             'title': 'Kelas Internasional',
         },
-        'playlist_count': 158,
+        'playlist_count': 203,
     }]
 
-    def parse_single_season_playlist(self, input_data, page_num, custom_id=None, season_id='',
-                                     force_endpoint_type='auto', input_type='url'):
+    def parse_single_season_playlist(self, page_num, url=None, slug=None, custom_id=None, season_id='',
+                                     endpoint=None):
 
         _, playlist_json = self._call_api(
-            input_data, query={'page': page_num + 1}, season=season_id, custom_id=custom_id,
-            force_endpoint_type=force_endpoint_type, input_type=input_type)
+            url=url, slug=slug, query={'page': page_num + 1}, season=season_id, custom_id=custom_id,
+            endpoint=endpoint)
         for slug in traverse_obj(playlist_json, ('response', ..., 'data', ..., 'slug')):
             yield self.url_result(f'https://www.netverse.id/video/{slug}', NetverseIE)
 
@@ -187,8 +186,8 @@ class NetversePlaylistIE(NetverseBaseIE):
         for season in season_id_list:
             # initial data
             _, playlist_json = self._call_api(
-                input_data=slug_sample, custom_id=playlist_id, season=season,
-                force_endpoint_type='season', input_type='slug')
+                slug=slug_sample, custom_id=playlist_id, season=season,
+                endpoint='season')
 
             season_list = traverse_obj(playlist_json, ('response', 'season_list'))
             number_video_per_page = season_list.get('to') - season_list.get('from') + 1
@@ -196,8 +195,8 @@ class NetversePlaylistIE(NetverseBaseIE):
 
             yield from InAdvancePagedList(
                 functools.partial(
-                    self.parse_single_season_playlist, slug_sample, custom_id=playlist_id,
-                    season_id=season, force_endpoint_type='season', input_type='slug'),
+                    self.parse_single_season_playlist, slug=slug_sample, custom_id=playlist_id,
+                    season_id=season, endpoint='season'),
                 number_of_pages, number_video_per_page)
 
     def _real_extract(self, url):
