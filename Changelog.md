@@ -11,6 +11,10 @@
 -->
 
 
+### 2022.06.22.1
+
+* [build] Fix updating homebrew formula
+
 ### 2022.06.22
 
 * [**Deprecate support for Python 3.6**](https://github.com/yt-dlp/yt-dlp/issues/3764#issuecomment-1154051119)
