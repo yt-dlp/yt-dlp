@@ -1604,7 +1604,7 @@ from .spike import (
     BellatorIE,
     ParamountNetworkIE,
 )
-from .steamcommunity import SteamCommunityBroadcastIE
+
 from .stitcher import (
     StitcherIE,
     StitcherShowIE,
@@ -1631,7 +1631,10 @@ from .srgssr import (
 from .srmediathek import SRMediathekIE
 from .stanfordoc import StanfordOpenClassroomIE
 from .startv import StarTVIE
-from .steam import SteamIE
+from .steam import (
+    SteamIE,
+    SteamCommunityBroadcastIE,
+)
 from .storyfire import (
     StoryFireIE,
     StoryFireUserIE,
