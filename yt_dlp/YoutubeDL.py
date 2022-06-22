@@ -582,9 +582,14 @@ class YoutubeDL:
             for type_, stream in self._out_files.items_ if type_ != 'console'
         })
 
-        if sys.version_info < (3, 6):
-            self.report_warning(
-                'Python version %d.%d is not supported! Please update to Python 3.6 or above' % sys.version_info[:2])
+        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 6), (3, 7)
+        current_version = sys.version_info[:2]
+        if current_version < MIN_RECOMMENDED:
+            msg = 'Support for Python version %d.%d has been deprecated and will break in future versions of yt-dlp'
+            if current_version < MIN_SUPPORTED:
+                msg = 'Python version %d.%d is no longer supported'
+            self.deprecation_warning(
+                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(

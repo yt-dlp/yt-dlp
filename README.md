@@ -264,7 +264,7 @@ File|Description
 <!-- MANPAGE: END EXCLUDED SECTION -->
 
 ## DEPENDENCIES
-Python versions 3.6+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
+Python versions 3.7+ (CPython and PyPy) are supported. Other versions and implementations may or may not work correctly.
 
 <!-- Python 3.5+ uses VC++14 and it is already embedded in the binary created
 <!x-- https://www.microsoft.com/en-us/download/details.aspx?id=26999 --x>
