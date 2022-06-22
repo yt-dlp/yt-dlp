@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -12,6 +9,7 @@ from ..utils import (
     int_or_none,
     parse_qs,
     qualities,
+    strip_or_none,
     try_get,
     unified_strdate,
     url_or_none,
@@ -137,6 +135,7 @@ class ArteTVIE(ArteTVBaseIE):
                     break
             else:
                 lang_pref = -1
+            format_note = '%s, %s' % (f.get('versionCode'), f.get('versionLibelle'))
 
             media_type = f.get('mediaType')
             if media_type == 'hls':
@@ -144,14 +143,17 @@ class ArteTVIE(ArteTVBaseIE):
                     format_url, video_id, 'mp4', entry_protocol='m3u8_native',
                     m3u8_id=format_id, fatal=False)
                 for m3u8_format in m3u8_formats:
-                    m3u8_format['language_preference'] = lang_pref
+                    m3u8_format.update({
+                        'language_preference': lang_pref,
+                        'format_note': format_note,
+                    })
                 formats.extend(m3u8_formats)
                 continue
 
             format = {
                 'format_id': format_id,
                 'language_preference': lang_pref,
-                'format_note': '%s, %s' % (f.get('versionCode'), f.get('versionLibelle')),
+                'format_note': format_note,
                 'width': int_or_none(f.get('width')),
                 'height': int_or_none(f.get('height')),
                 'tbr': int_or_none(f.get('bitrate')),
@@ -253,3 +255,44 @@ class ArteTVPlaylistIE(ArteTVBaseIE):
         title = collection.get('title')
         description = collection.get('shortDescription') or collection.get('teaserText')
         return self.playlist_result(entries, playlist_id, title, description)
+
+
+class ArteTVCategoryIE(ArteTVBaseIE):
+    _VALID_URL = r'https?://(?:www\.)?arte\.tv/(?P<lang>%s)/videos/(?P<id>[\w-]+(?:/[\w-]+)*)/?\s*$' % ArteTVBaseIE._ARTE_LANGUAGES
+    _TESTS = [{
+        'url': 'https://www.arte.tv/en/videos/politics-and-society/',
+        'info_dict': {
+            'id': 'politics-and-society',
+            'title': 'Politics and society',
+            'description': 'Investigative documentary series, geopolitical analysis, and international commentary',
+        },
+        'playlist_mincount': 13,
+    },
+    ]
+
+    @classmethod
+    def suitable(cls, url):
+        return (
+            not any(ie.suitable(url) for ie in (ArteTVIE, ArteTVPlaylistIE, ))
+            and super(ArteTVCategoryIE, cls).suitable(url))
+
+    def _real_extract(self, url):
+        lang, playlist_id = self._match_valid_url(url).groups()
+        webpage = self._download_webpage(url, playlist_id)
+
+        items = []
+        for video in re.finditer(
+                r'<a\b[^>]*?href\s*=\s*(?P<q>"|\'|\b)(?P<url>https?://www\.arte\.tv/%s/videos/[\w/-]+)(?P=q)' % lang,
+                webpage):
+            video = video.group('url')
+            if video == url:
+                continue
+            if any(ie.suitable(video) for ie in (ArteTVIE, ArteTVPlaylistIE, )):
+                items.append(video)
+
+        title = (self._og_search_title(webpage, default=None)
+                 or self._html_search_regex(r'<title\b[^>]*>([^<]+)</title>', default=None))
+        title = strip_or_none(title.rsplit('|', 1)[0]) or self._generic_title(url)
+
+        return self.playlist_from_matches(items, playlist_id=playlist_id, playlist_title=title,
+                                          description=self._og_search_description(webpage, default=None))

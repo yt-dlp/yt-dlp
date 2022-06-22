@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import random
 import re
 import string
@@ -111,7 +108,6 @@ class VideaIE(InfoExtractor):
 
     def _real_extract(self, url):
         video_id = self._match_id(url)
-
         video_page = self._download_webpage(url, video_id)
 
         if 'videa.hu/player' in url:
@@ -146,7 +142,7 @@ class VideaIE(InfoExtractor):
                 compat_b64decode(b64_info), key), video_id)
 
         video = xpath_element(info, './video', 'video')
-        if not video:
+        if video is None:
             raise ExtractorError(xpath_element(
                 info, './error', fatal=True), expected=True)
         sources = xpath_element(
@@ -163,9 +159,9 @@ class VideaIE(InfoExtractor):
             source_exp = source.get('exp')
             if not (source_url and source_name):
                 continue
-            hash_value = None
-            if hash_values:
-                hash_value = xpath_text(hash_values, 'hash_value_' + source_name)
+            hash_value = (
+                xpath_text(hash_values, 'hash_value_' + source_name)
+                if hash_values is not None else None)
             if hash_value and source_exp:
                 source_url = update_url_query(source_url, {
                     'md5': hash_value,

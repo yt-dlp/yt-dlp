@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 from hashlib import md5
 from base64 import b64encode
 from datetime import datetime
@@ -405,17 +402,12 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
         name = info['name']
         description = info['description']
 
-        if not info['songs'] or self.get_param('noplaylist'):
-            if info['songs']:
-                self.to_screen(
-                    'Downloading just the main audio %s because of --no-playlist'
-                    % info['mainSong']['id'])
-
+        if not self._yes_playlist(info['songs'] and program_id, info['mainSong']['id']):
             formats = self.extract_formats(info['mainSong'])
             self._sort_formats(formats)
 
             return {
-                'id': program_id,
+                'id': info['mainSong']['id'],
                 'title': name,
                 'description': description,
                 'creator': info['dj']['brand'],
@@ -424,10 +416,6 @@ class NetEaseMusicProgramIE(NetEaseMusicBaseIE):
                 'duration': self.convert_milliseconds(info.get('duration', 0)),
                 'formats': formats,
             }
-
-        self.to_screen(
-            'Downloading playlist %s - add --no-playlist to just download the main audio %s'
-            % (program_id, info['mainSong']['id']))
 
         song_ids = [info['mainSong']['id']]
         song_ids.extend([song['id'] for song in info['songs']])

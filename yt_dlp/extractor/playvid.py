@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import re
 
 from .common import InfoExtractor
@@ -85,8 +83,7 @@ class PlayvidIE(InfoExtractor):
 
         # Extract title - should be in the flashvars; if not, look elsewhere
         if video_title is None:
-            video_title = self._html_search_regex(
-                r'<title>(.*?)</title', webpage, 'title')
+            video_title = self._html_extract_title(webpage)
 
         return {
             'id': video_id,

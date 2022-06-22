@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .radiocanada import RadioCanadaIE
@@ -40,17 +37,14 @@ class TouTvIE(RadioCanadaIE):
     }]
     _CLIENT_KEY = '90505c8d-9c34-4f34-8da1-3a85bdc6d4f4'
 
-    def _real_initialize(self):
-        email, password = self._get_login_info()
-        if email is None:
-            return
+    def _perform_login(self, username, password):
         try:
             self._access_token = self._download_json(
                 'https://services.radio-canada.ca/toutv/profiling/accounts/login',
                 None, 'Logging in', data=json.dumps({
                     'ClientId': self._CLIENT_KEY,
                     'ClientSecret': '34026772-244b-49b6-8b06-317b30ac9a20',
-                    'Email': email,
+                    'Email': username,
                     'Password': password,
                     'Scope': 'id.write media-validation.read',
                 }).encode(), headers={

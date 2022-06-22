@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import json
 
 from .common import InfoExtractor
@@ -175,7 +172,7 @@ class BRIE(InfoExtractor):
 
 class BRMediathekIE(InfoExtractor):
     IE_DESC = 'Bayerischer Rundfunk Mediathek'
-    _VALID_URL = r'https?://(?:www\.)?br\.de/mediathek/video/[^/?&#]*?-(?P<id>av:[0-9a-f]{24})'
+    _VALID_URL = r'https?://(?:www\.)?br\.de/mediathek//?video/(?:[^/?&#]+?-)?(?P<id>av:[0-9a-f]{24})'
 
     _TESTS = [{
         'url': 'https://www.br.de/mediathek/video/gesundheit-die-sendung-vom-28112017-av:5a1e6a6e8fce6d001871cc8e',
@@ -188,6 +185,9 @@ class BRMediathekIE(InfoExtractor):
             'timestamp': 1511942766,
             'upload_date': '20171129',
         }
+    }, {
+        'url': 'https://www.br.de/mediathek//video/av:61b0db581aed360007558c12',
+        'only_matching': True,
     }]
 
     def _real_extract(self, url):

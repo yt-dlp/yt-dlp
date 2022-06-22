@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import unicode_literals
-
 import functools
 import re
 
@@ -181,8 +178,7 @@ class AsianCrushPlaylistIE(AsianCrushBaseIE):
                 'title', default=None) or self._og_search_title(
                 webpage, default=None) or self._html_search_meta(
                 'twitter:title', webpage, 'title',
-                default=None) or self._search_regex(
-                r'<title>([^<]+)</title>', webpage, 'title', fatal=False)
+                default=None) or self._html_extract_title(webpage)
             if title:
                 title = re.sub(r'\s*\|\s*.+?$', '', title)
 
