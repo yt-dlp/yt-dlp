@@ -168,4 +168,3 @@ class SteamCommunityBroadcastIE(InfoExtractor):
             'uploader_id': uploader_json.get('accountid'),
 
         }
-
