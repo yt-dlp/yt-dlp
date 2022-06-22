@@ -391,9 +391,10 @@ class F4mFD(FragmentFD):
                 query.append(info_dict['extra_param_to_segment_url'])
             url_parsed = base_url_parsed._replace(path=base_url_parsed.path + name, query='&'.join(query))
             try:
-                success, down_data = self._download_fragment(ctx, url_parsed.geturl(), info_dict)
+                success = self._download_fragment(ctx, url_parsed.geturl(), info_dict)
                 if not success:
                     return False
+                down_data = self._read_fragment(ctx)
                 reader = FlvReader(down_data)
                 while True:
                     try:

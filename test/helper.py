@@ -44,7 +44,7 @@ def try_rm(filename):
             raise
 
 
-def report_warning(message):
+def report_warning(message, *args, **kwargs):
     '''
     Print the message to stderr, it will be prefixed with 'WARNING:'
     If stderr is a tty file the 'WARNING:' will be colored
@@ -67,10 +67,10 @@ class FakeYDL(YoutubeDL):
         super().__init__(params, auto_init=False)
         self.result = []
 
-    def to_screen(self, s, skip_eol=None):
+    def to_screen(self, s, *args, **kwargs):
         print(s)
 
-    def trouble(self, s, tb=None):
+    def trouble(self, s, *args, **kwargs):
         raise Exception(s)
 
     def download(self, x):
@@ -80,10 +80,10 @@ class FakeYDL(YoutubeDL):
         # Silence an expected warning matching a regex
         old_report_warning = self.report_warning
 
-        def report_warning(self, message):
+        def report_warning(self, message, *args, **kwargs):
             if re.match(regex, message):
                 return
-            old_report_warning(message)
+            old_report_warning(message, *args, **kwargs)
         self.report_warning = types.MethodType(report_warning, self)
 
 
@@ -301,9 +301,9 @@ def assertEqual(self, got, expected, msg=None):
 def expect_warnings(ydl, warnings_re):
     real_warning = ydl.report_warning
 
-    def _report_warning(w):
+    def _report_warning(w, *args, **kwargs):
         if not any(re.search(w_re, w) for w_re in warnings_re):
-            real_warning(w)
+            real_warning(w, *args, **kwargs)
 
     ydl.report_warning = _report_warning
 
