@@ -44,23 +44,47 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def _redirect(self):
         self.send_response(int(self.path[len('/redirect_'):]))
-        self.send_header('Location', '/gen_204')
+        self.send_header('Location', '/method')
         self.send_header('Content-Length', '0')
         self.end_headers()
 
-    def _404(self):
-        payload = b'<html>404 NOT FOUND</html>'
-        self.send_response(404)
+    def _method(self, method: str):
+        self.send_response(200)
+        self.send_header('Content-Length', str(len(method)))
+        self.send_header('Method', method)
+        self.end_headers()
+
+    def _status(self, status):
+        payload = f'<html>{status} NOT FOUND</html>'.encode('utf-8')
+        self.send_response(int(status))
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
 
+    def do_POST(self):
+        if self.path.startswith('/redirect_'):
+            self._redirect()
+        elif self.path.startswith('/method'):
+            self._method('POST')
+        else:
+            self._status(404)
+
     def do_HEAD(self):
         if self.path.startswith('/redirect_'):
             self._redirect()
+        elif self.path.startswith('/method'):
+            self._method('HEAD')
         else:
-            self._404()
+            self._status(404)
+
+    def do_PUT(self):
+        if self.path.startswith('/redirect_'):
+            self._redirect()
+        elif self.path.startswith('/method'):
+            self._method('PUT')
+        else:
+            self._status(404)
 
     def do_GET(self):
         if self.path == '/video.html':
@@ -105,6 +129,8 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
         elif self.path.startswith('/redirect_'):
             self._redirect()
+        elif self.path.startswith('/method'):
+            self._method('GET')
         elif self.path.startswith('/incompleteread'):
             payload = b'<html></html>'
             self.send_response(200)
@@ -139,7 +165,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', '0')
             self.end_headers()
         else:
-            self._404()
+            self._status(404)
 
     def send_header(self, keyword, value):
         """
@@ -297,19 +323,36 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
     def test_get_url(self):
         with self.make_ydl() as ydl:
             res = ydl.urlopen('http://127.0.0.1:%d/redirect_301' % self.http_port)
-            self.assertEqual(res.url, 'http://127.0.0.1:%d/gen_204' % self.http_port)
+            self.assertEqual(res.url, 'http://127.0.0.1:%d/method' % self.http_port)
             res2 = ydl.urlopen('http://127.0.0.1:%d/gen_200' % self.http_port)
             self.assertEqual(res2.url, 'http://127.0.0.1:%d/gen_200' % self.http_port)
 
     def test_redirect(self):
-        # TODO
         with self.make_ydl() as ydl:
-            # HEAD request. Should follow through with head request to gen_204 which should fail.
-            with self.assertRaises(HTTPError):
-                ydl.urlopen(HEADRequest('http://127.0.0.1:%d/redirect_301' % self.http_port))
+            def do_req(redirect_status, method):
+                if method in ('POST', 'PUT'):
+                    data = 'test'
+                else:
+                    data = None
+                return ydl.urlopen(
+                    Request(f'http://127.0.0.1:%d/redirect_{redirect_status}' % self.http_port, method=method, data=data)).headers.get('method', '')
 
-            #res = ydl.urlopen('http://127.0.0.1:%d/redirect_301' % self.http_port)
-            #self.assertEquals(res.method, 'GET')
+            # A 303 must either use GET or HEAD for subsequent request
+            self.assertEqual(do_req(303, 'POST'), 'GET')
+            self.assertEqual(do_req(303, 'HEAD'), 'HEAD')
+            # self.assertEqual(do_req(303, 'PUT'), 'GET')
+
+            # 301 and 302 turn POST only into a GET
+            self.assertEqual(do_req(301, 'POST'), 'GET')
+            self.assertEqual(do_req(301, 'HEAD'), 'HEAD')
+            self.assertEqual(do_req(302, 'POST'), 'GET')
+            self.assertEqual(do_req(302, 'HEAD'), 'HEAD')
+            # self.assertEqual(do_req(301, 'PUT'), 'PUT')
+            # self.assertEqual(do_req(302, 'PUT'), 'PUT')
+
+            # 307 and 308 should not change method
+            self.assertEqual(do_req(307, 'POST'), 'POST')
+            self.assertEqual(do_req(308, 'POST'), 'POST')
 
     def test_incompleteread(self):
         with self.make_ydl({'socket_timeout': 2}) as ydl:
