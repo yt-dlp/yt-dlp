@@ -2664,8 +2664,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             CPN_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
             cpn = ''.join(CPN_ALPHABET[random.randint(0, 256) & 63] for _ in range(0, 16))
 
-            # '0' fallback will set watched, but not show the red progress bar
-            video_length = qs.get('len') or ['0.0']
+            video_length = qs.get('len') or ['1.5']
+            # more consistent results setting it to right before the end
+            video_length_float = float(video_length[0]) - 1
+            video_length = [str(video_length_float)]
 
             qs.update({
                 'ver': ['2'],
