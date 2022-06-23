@@ -2643,19 +2643,13 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return sts
 
     def _mark_watched(self, video_id, player_responses):
-        mark_watched_urls = {
-            "playback": get_first(
-                player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
-                expected_type=url_or_none),
-            "watchtime": get_first(
-                player_responses, ('playbackTracking', 'videostatsWatchtimeUrl', 'baseUrl'),
-                expected_type=url_or_none)
-        }
-
-        if not all(mark_watched_urls.values()):
-            self.report_warning('Unable to mark watched')
-            return
-        for url_type, url in mark_watched_urls.items():
+        for is_full, key in enumerate(('videostatsPlaybackUrl', 'videostatsWatchtimeUrl')):
+            label = 'fully ' if is_full else ''
+            url = get_first(player_responses, ('playbackTracking', key, 'baseUrl'),
+                            expected_type=url_or_none)
+            if not url:
+                self.report_warning(f'Unable to mark {label}watched')
+                return
             parsed_url = compat_urlparse.urlparse(url)
             qs = compat_urlparse.parse_qs(parsed_url.query)
 
@@ -2674,7 +2668,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'el': 'detailpage',  # otherwise defaults to "shorts"
             })
 
-            if url_type == "watchtime":
+            if is_full:
                 # these seem to mark watchtime "history" in the real world
                 # they're required, so send in a single value
                 qs.update({
@@ -2686,7 +2680,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
 
             self._download_webpage(
-                url, video_id, f'Marking watched ({url_type})',
+                url, video_id, f'Marking {label}watched',
                 'Unable to mark watched', fatal=False)
 
     @staticmethod
