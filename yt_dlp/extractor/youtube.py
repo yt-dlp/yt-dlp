@@ -2643,30 +2643,50 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return sts
 
     def _mark_watched(self, video_id, player_responses):
-        playback_url = get_first(
-            player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
-            expected_type=url_or_none)
-        if not playback_url:
+        mark_watched_urls = {
+            "playback": get_first(
+                player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
+                expected_type=url_or_none),
+            "watchtime": get_first(
+                player_responses, ('playbackTracking', 'videostatsWatchtimeUrl', 'baseUrl'),
+                expected_type=url_or_none)
+        }
+
+        if not all(mark_watched_urls.values()):
             self.report_warning('Unable to mark watched')
             return
-        parsed_playback_url = compat_urlparse.urlparse(playback_url)
-        qs = compat_urlparse.parse_qs(parsed_playback_url.query)
+        for url_type, url in mark_watched_urls.items():
+            parsed_url = compat_urlparse.urlparse(url)
+            qs = compat_urlparse.parse_qs(parsed_url.query)
 
-        # cpn generation algorithm is reverse engineered from base.js.
-        # In fact it works even with dummy cpn.
-        CPN_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
-        cpn = ''.join(CPN_ALPHABET[random.randint(0, 256) & 63] for _ in range(0, 16))
+            # cpn generation algorithm is reverse engineered from base.js.
+            # In fact it works even with dummy cpn.
+            CPN_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
+            cpn = ''.join(CPN_ALPHABET[random.randint(0, 256) & 63] for _ in range(0, 16))
 
-        qs.update({
-            'ver': ['2'],
-            'cpn': [cpn],
-        })
-        playback_url = compat_urlparse.urlunparse(
-            parsed_playback_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
+            # '0' fallback will set watched, but not show the red progress bar
+            video_length = qs.get('len') or ['0.0']
 
-        self._download_webpage(
-            playback_url, video_id, 'Marking watched',
-            'Unable to mark watched', fatal=False)
+            qs.update({
+                'ver': ['2'],
+                'cpn': [cpn],
+                'cmt': video_length,
+            })
+
+            if url_type == "watchtime":
+                # these seem to mark watchtime "history" in the real world
+                # they're required, so send in a single value
+                qs.update({
+                    'st': video_length,
+                    'et': video_length,
+                })
+
+            url = compat_urlparse.urlunparse(
+                parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
+
+            self._download_webpage(
+                url, video_id, f'Marking watched ({url_type})',
+                'Unable to mark watched', fatal=False)
 
     @staticmethod
     def _extract_urls(webpage):
