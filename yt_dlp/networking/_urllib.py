@@ -320,8 +320,7 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
         but another Handler might.
         """
         m = req.get_method()
-        if (not (code in (301, 302, 303, 307, 308) and m in ("GET", "HEAD")
-                 or code in (301, 302, 303) and m == "POST")):
+        if not (code in (301, 302, 303, 307, 308) and m in ('GET', 'HEAD', 'POST')):
             raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
         # Strictly (according to RFC 2616), 301 or 302 in response to
         # a POST MUST NOT cause a redirection without confirmation
