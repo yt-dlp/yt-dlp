@@ -23,8 +23,7 @@ class PremiershipRugbyIE(InfoExtractor):
             display_id)['data']['article']
 
         formats, subs = self._extract_m3u8_formats_and_subtitles(
-            json_data['heroMedia']['content']['videoLink'], display_id
-        )
+            json_data['heroMedia']['content']['videoLink'], display_id)
 
         return {
             'id': json_data['heroMedia']['content']['sourceSystemId'],
