@@ -34,7 +34,6 @@ from .compat import (
     compat_str,
     compat_urllib_error,
 )
-from .compat.urllib.request import getproxies
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -3784,7 +3783,7 @@ class YoutubeDL:
             else:
                 proxies = {'http': opts_proxy, 'https': opts_proxy}
         else:
-            proxies = getproxies()
+            proxies = urllib.request.getproxies()
             # Set HTTPS proxy to HTTP one if given (https://github.com/ytdl-org/youtube-dl/issues/805)
             if 'http' in proxies and 'https' not in proxies:
                 proxies['https'] = proxies['http']
