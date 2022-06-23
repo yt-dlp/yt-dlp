@@ -11,7 +11,7 @@ from ..utils import (
 
 class TennisTVIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?tennistv\.com/videos/(?P<id>[-a-z0-9]+)'
-    _TEST = {
+    _TESTS = [{
         'url': 'https://www.tennistv.com/videos/indian-wells-2018-verdasco-fritz',
         'info_dict': {
             'id': 'indian-wells-2018-verdasco-fritz',
@@ -26,7 +26,18 @@ class TennisTVIE(InfoExtractor):
             'skip_download': True,
         },
         'skip': 'Requires email and password of a subscribed account',
-    }
+    }, {
+        'url': 'https://www.tennistv.com/videos/2650480/best-matches-of-2022-part-5',
+        'info_dict': {
+            'id': '2650480',
+            'ext': 'mp4',
+            'title': 'Best Matches of 2022 - Part 5',
+            'description': 'md5:36dec3bfae7ed74bd79e48045b17264c',
+            'thumbnail': 'https://open.http.mp.streamamg.com/p/3001482/sp/300148200/thumbnail/entry_id/0_myef18pd/version/100001/height/1920',
+        },
+        'params': {'skip_download': 'm3u8'},
+        'skip': 'Requires email and password of a subscribed account',
+    }]
     _NETRC_MACHINE = 'tennistv'
 
     access_token, refresh_token = None, None
@@ -138,9 +149,9 @@ class TennisTVIE(InfoExtractor):
             'thumbnail': f'https://open.http.mp.streamamg.com/p/{self._PARTNER_ID}/sp/{self._PARTNER_ID}00/thumbnail/entry_id/{entryid}/version/100001/height/1920',
             'timestamp': unified_timestamp(self._html_search_regex(
                 r'<span itemprop="description" content=["\']([^"\']+)["\']>', webpage, 'upload time')),
-            'series': self._html_search_regex(r'data-series\s*?=\s*?"(.*?)"', webpage, 'series', fatal=False),
-            'season': self._html_search_regex(r'data-tournament-city\s*?=\s*?"(.*?)"', webpage, 'season', fatal=False),
-            'episode': self._html_search_regex(r'data-round\s*?=\s*?"(.*?)"', webpage, 'round', fatal=False),
+            'series': self._html_search_regex(r'data-series\s*?=\s*?"(.*?)"', webpage, 'series', fatal=False) or None,
+            'season': self._html_search_regex(r'data-tournament-city\s*?=\s*?"(.*?)"', webpage, 'season', fatal=False) or None,
+            'episode': self._html_search_regex(r'data-round\s*?=\s*?"(.*?)"', webpage, 'round', fatal=False) or None,
             'formats': formats,
             'subtitles': subtitles,
         }
