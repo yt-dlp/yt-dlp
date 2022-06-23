@@ -309,7 +309,7 @@ class AdultSwimStreamIE(InfoExtractor):
         def update_episodes():
             _, new_episodes = self._get_stream_data(url, stream_id)
             for ep in episodes:
-                for n_ep in new_episodes: 
+                for n_ep in new_episodes:
                     if ep['episodeName'] == n_ep['episodeName'] and invalid_episode(ep):
                         ep.update(n_ep)
                         break

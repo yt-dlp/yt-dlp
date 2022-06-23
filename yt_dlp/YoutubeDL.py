@@ -1459,6 +1459,9 @@ class YoutubeDL:
         if not self._should_wait_for_video(ie_result):
             return
 
+        # TODO: Make interrupts eventually terminate yt-dlp if the extractor finishes too quickly
+        time.sleep(0.5)
+
         format_dur = lambda dur: '%02d:%02d:%02d' % timetuple_from_msec(dur * 1000)[:-1]
         last_msg = ''
 
@@ -1488,8 +1491,6 @@ class YoutubeDL:
                 time.sleep(1)
         except KeyboardInterrupt:
             progress('')
-            # TODO: Make interrupts eventually terminate yt-dlp if the extractor finishes too quickly
-            time.sleep(1)
             raise ReExtractInfo('[wait] Interrupted by user', expected=True)
         except BaseException as e:
             if not isinstance(e, ReExtractInfo):
