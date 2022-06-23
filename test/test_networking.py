@@ -84,6 +84,13 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.send_header('Content-Length', str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
+        elif self.path == '/%c7%9f':
+            payload = b'<html><video src="/vid.mp4" /></html>'
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html; charset=utf-8')
+            self.send_header('Content-Length', str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
         elif self.path.startswith('/gen_'):
             payload = b'<html></html>'
             self.send_response(int(self.path[len('/gen_'):]))
@@ -172,8 +179,8 @@ class RequestHandlerTestBase:
 
     def make_ydl(self, params=None, fake=True):
         ydl = (FakeYDL if fake else YoutubeDL)(params)
-        if self.handler is not None:
-            ydl.http = ydl.build_http([self.handler])
+
+        ydl.http = ydl.build_http([UnsupportedRH, self.handler])
         return ydl
 
 
@@ -258,13 +265,15 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             # b'xn--fiq228c' is '中文'.encode('idna')
             self.assertEqual(response, 'normal: http://xn--fiq228c.tw/')
 
-    # TODO: urllib does not perform url normalization to spec (convert lowercase percent-encoded to uppercase)
-    # def test_percent_encode(self):
-    #     with self.make_ydl() as ydl:
-    #         res = ydl.urlopen(f'http://127.0.0.1:{self.http_port}/%E4%B8%AD%E6%96%87.html')
-    #         self.assertEqual(res.status, 200)
-    #         res = ydl.urlopen(f'http://127.0.0.1:{self.http_port}/%e4%B8%AD%E6%96%87.html')
-    #         self.assertEqual(res.status, 200)
+    def test_percent_encode(self):
+        with self.make_ydl() as ydl:
+            # Unicode characters should be encoded with uppercase percent-encoding
+            res = ydl.urlopen(f'http://127.0.0.1:{self.http_port}/中文.html')
+            self.assertEqual(res.status, 200)
+
+            # don't normalize existing percent encodings
+            res = ydl.urlopen(f'http://127.0.0.1:{self.http_port}/%c7%9f')
+            self.assertEqual(res.status, 200)
 
     def test_unicode_path_redirection(self):
         with self.make_ydl(fake=False) as ydl:
