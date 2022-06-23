@@ -51,14 +51,13 @@ class VKBaseIE(InfoExtractor):
                 'Unable to login, incorrect username and/or password', expected=True)
 
     def _download_payload(self, path, video_id, data, fatal=True):
-        url = 'https://vk.com/%s.php' % path
+        endpoint = f'https://vk.com/{path}.php'
         data['al'] = 1
         code, payload = self._download_json(
-            url,
-            video_id,
+            endpoint, video_id,
             data=urlencode_postdata(data), fatal=fatal,
             headers={
-                'Referer': url,
+                'Referer': endpoint,
                 'X-Requested-With': 'XMLHttpRequest'
             }
         )['payload']
