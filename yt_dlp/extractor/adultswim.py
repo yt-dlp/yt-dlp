@@ -227,10 +227,9 @@ class AdultSwimStreamIE(InfoExtractor):
             'episode_number': int,
             'duration': float,
         },
-        'params': {
-            'skip_download': True,
-            # 'skip': 'Live video',
-        },
+        # 'params': {
+        #     'skip_download': True,
+        # },
     }]
 
     def _live_hls_fragments(self, episode_start_time, episode_duration, video_id, hls_url, hls_content):
@@ -297,27 +296,37 @@ class AdultSwimStreamIE(InfoExtractor):
         stream_id = self._match_id(url)
 
         stream, episodes = self._get_stream_data(url, stream_id)
+        if len(episodes) == 0:
+            raise ExtractError('No episodes found')
+
         formats = self._extract_m3u8_formats(
             f'https://adultswim-vodlive.cdn.turner.com/live/{stream_id}/stream_de.m3u8?hdnts=', stream_id)
         self._sort_formats(formats)
 
-        for f in formats:
-            f['protocol'] = 'm3u8_native_generator'
+        def invalid_episode(episode):
+            return type(episode.get('seasonNumber')) != int or type(episode.get('episodeNumber')) != int
 
-        def get_episode_entry(stream, episode, show_not_aired_message=False):
+        def update_episodes():
+            _, new_episodes = self._get_stream_data(url, stream_id)
+            for ep in episodes:
+                for n_ep in new_episodes: 
+                    if ep['episodeName'] == n_ep['episodeName'] and invalid_episode(ep):
+                        ep.update(n_ep)
+                        break
+
+        def get_episode_entry(idx, show_not_aired_message=False):
             entry = {}
+            episode = episodes[idx]
 
             release_timestamp = episode['startTime'] / 1000 + min(60, episode['duration'] / 2)
             if release_timestamp <= time.time():
-                if type(episode.get('seasonNumber')) != int or type(episode.get('episodeNumber')) != int:
-                    _, new_episodes = self._get_stream_data(url, stream_id)
-                    for e in new_episodes:
-                        if e['episodeName'] == episode['episodeName']:
-                            episode = e
-                            break
+                if invalid_episode(episode):
+                    update_episodes()
+                    episode = episodes[idx]
 
                 _formats = copy.deepcopy(formats)
                 for f in _formats:
+                    f['protocol'] = 'm3u8_native_generator'
                     f['fragments'] = functools.partial(
                         self._live_hls_fragments, episode['startTime'] / 1000, episode['duration'], stream_id, f['url'])
                 entry['formats'] = _formats
@@ -325,7 +334,7 @@ class AdultSwimStreamIE(InfoExtractor):
                 if show_not_aired_message:
                     self.to_screen('Episode "%s" has not aired yet' % episode.get('episodeName'))
                 entry['release_timestamp'] = release_timestamp
-                entry['reextractor'] = functools.partial(get_episode_entry, stream, episode, True)
+                entry['reextractor'] = functools.partial(get_episode_entry, idx, True)
 
             return {
                 **entry,
@@ -349,13 +358,13 @@ class AdultSwimStreamIE(InfoExtractor):
 
         if can_download_playlist:
             self.to_screen('Downloading all %s episodes; add --no-playlist to only download currently live episode' % stream.get('title', stream_id))
-            entries = [get_episode_entry(stream, episode) for episode in episodes]
+            entries = [get_episode_entry(idx) for idx in range(len(episodes))]
 
             return self.playlist_result(entries, stream_id, stream.get('title'),
                                         stream.get('description'), multi_video=True)
         else:
             self.to_screen(no_playlist_reason)
-            entry = get_episode_entry(stream, episodes[0])
+            entry = get_episode_entry(0)
             return {
                 **entry,
                 'description': stream.get('description'),
