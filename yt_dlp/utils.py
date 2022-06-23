@@ -950,17 +950,18 @@ def make_HTTPS_handler(params, **kwargs):
     if opts_check_certificate:
         if has_certifi and 'no-certifi' not in params.get('compat_opts', []):
             context.load_verify_locations(cafile=certifi.where())
-        try:
-            context.load_default_certs()
-        # Work around the issue in load_default_certs when there are bad certificates. See:
-        # https://github.com/yt-dlp/yt-dlp/issues/1060,
-        # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
-        except ssl.SSLError:
-            # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
-            if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
-                for storename in ('CA', 'ROOT'):
-                    _ssl_load_windows_store_certs(context, storename)
-            context.set_default_verify_paths()
+        else:
+            try:
+                context.load_default_certs()
+                # Work around the issue in load_default_certs when there are bad certificates. See:
+                # https://github.com/yt-dlp/yt-dlp/issues/1060,
+                # https://bugs.python.org/issue35665, https://bugs.python.org/issue45312
+            except ssl.SSLError:
+                # enum_certificates is not present in mingw python. See https://github.com/yt-dlp/yt-dlp/issues/1151
+                if sys.platform == 'win32' and hasattr(ssl, 'enum_certificates'):
+                    for storename in ('CA', 'ROOT'):
+                        _ssl_load_windows_store_certs(context, storename)
+                context.set_default_verify_paths()
 
     client_certfile = params.get('client_certificate')
     if client_certfile:
