@@ -229,6 +229,7 @@ class AdultSwimStreamIE(InfoExtractor):
         },
         'params': {
             'skip_download': True,
+            # 'skip': 'Live video',
         },
     }]
 
@@ -236,11 +237,9 @@ class AdultSwimStreamIE(InfoExtractor):
         FRAGMENT_DURATION = 10.010
 
         timestamp = time.time()
-        sleep_until = episode_start_time + min(60, episode_duration)
-
-        if timestamp < sleep_until:
+        if timestamp < episode_start_time:
             raise ExtractError('Episode has not aired yet')
-        if timestamp > sleep_until + episode_duration:
+        if timestamp > episode_start_time + episode_duration:
             raise ExtractError('Skipping episode as new episode has already aired')
 
         fragments, error_msg = HlsFD._parse_m3u8(hls_content, {'url': hls_url})

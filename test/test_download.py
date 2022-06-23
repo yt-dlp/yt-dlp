@@ -141,16 +141,13 @@ def generator(test_case, tname):
         ydl.add_progress_hook(_hook)
         expect_warnings(ydl, test_case.get('expected_warnings', []))
 
-        def get_tc_filename(tc):
-            return ydl.prepare_filename(dict(tc.get('info_dict', {})))
-
         res_dict = None
 
         def try_rm_tcs_files(tcs=None):
             if tcs is None:
-                tcs = test_cases
+                tcs = [dict(tc.get('info_dict', {})) for tc in test_cases]
             for tc in tcs:
-                tc_filename = get_tc_filename(tc)
+                tc_filename = ydl.prepare_filename(tc)
                 try_rm(tc_filename)
                 try_rm(tc_filename + '.part')
                 try_rm(os.path.splitext(tc_filename)[0] + '.info.json')
@@ -217,7 +214,8 @@ def generator(test_case, tname):
                 # First, check test cases' data against extracted data alone
                 expect_info_dict(self, tc_res_dict, tc.get('info_dict', {}))
                 # Now, check downloaded file consistency
-                tc_filename = get_tc_filename(tc)
+                # res_dict is already assured to be valid
+                tc_filename = ydl.prepare_filename(res_dict)
                 if not test_case.get('params', {}).get('skip_download', False):
                     self.assertTrue(os.path.exists(tc_filename), msg='Missing file ' + tc_filename)
                     self.assertTrue(tc_filename in finished_hook_called)
@@ -244,13 +242,7 @@ def generator(test_case, tname):
                     info_dict = json.load(infof)
                 expect_info_dict(self, info_dict, tc.get('info_dict', {}))
         finally:
-            try_rm_tcs_files()
-            if is_playlist and res_dict is not None and res_dict.get('entries'):
-                # Remove all other files that may have been extracted if the
-                # extractor returns full results even with extract_flat
-                res_tcs = [{'info_dict': e} for e in res_dict['entries']]
-                try_rm_tcs_files(res_tcs)
-
+            try_rm_tcs_files(res_dict['entries'])
     return test_template
 
 

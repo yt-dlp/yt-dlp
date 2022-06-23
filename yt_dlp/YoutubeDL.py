@@ -1078,14 +1078,13 @@ class YoutubeDL:
         info_dict.setdefault('epoch', int(time.time()))  # keep epoch consistent once set
 
         info_dict = self._copy_infodict(info_dict)
-        info_dict['duration_string'] = (  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
-            formatSeconds(info_dict['duration'], '-' if sanitize else ':')
-            if info_dict.get('duration', None) is not None
-            else None)
         info_dict['autonumber'] = int(self.params.get('autonumber_start', 1) - 1 + self._num_downloads)
         info_dict['video_autonumber'] = self._num_videos
         if info_dict.get('resolution') is None:
             info_dict['resolution'] = self.format_resolution(info_dict, default=None)
+        duration = float_or_none(info_dict.get('duration'))  # It may not be sanitized when run from test runner
+        if duration:  # %(duration>%H-%M-%S)s is wrong if duration > 24hrs
+            info_dict['duration_string'] = formatSeconds(duration, '-' if sanitize else ':')
 
         # For fields playlist_index, playlist_autonumber and autonumber convert all occurrences
         # of %(field)s to %(field)0Nd for backward compatibility
