@@ -347,8 +347,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             self.assertEqual(do_req(303, 'POST'), ('', 'GET'))
             self.assertEqual(do_req(303, 'HEAD'), ('', 'HEAD'))
 
-            # FIXME: urllib redirect handler does not handle methods other than GET, POST, HEAD
-            # self.assertEqual(do_req(303, 'PUT'), ('', 'GET'))
+            self.assertEqual(do_req(303, 'PUT'), ('', 'GET'))
 
             # 301 and 302 turn POST only into a GET
             self.assertEqual(do_req(301, 'POST'), ('', 'GET'))
@@ -356,9 +355,8 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             self.assertEqual(do_req(302, 'POST'), ('', 'GET'))
             self.assertEqual(do_req(302, 'HEAD'), ('', 'HEAD'))
 
-            # FIXME: urllib redirect handler does not handle methods other than GET, POST, HEAD
-            # self.assertEqual(do_req(301, 'PUT'), ('testdata', 'PUT'))
-            # self.assertEqual(do_req(302, 'PUT'), ('testdata', 'PUT'))
+            self.assertEqual(do_req(301, 'PUT'), ('testdata', 'PUT'))
+            self.assertEqual(do_req(302, 'PUT'), ('testdata', 'PUT'))
 
             # 307 and 308 should not change method
             self.assertEqual(do_req(307, 'POST'), ('testdata', 'POST'))
