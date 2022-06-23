@@ -3,7 +3,7 @@ from ..utils import traverse_obj
 
 
 class FuyinTVIE(InfoExtractor):
-    _VALID_URL = r'https?://(?:www\.)fuyin\.(?:tv)/(?:html)/(?P<mov_id>\w+)/(?P<url_id>\d+)(?:\.html)'
+    _VALID_URL = r'https?://(?:www\.)?fuyin\.tv/html/(?P<mov_id>\w+)/(?P<url_id>\d+)\.html'
     _TESTS = [{
         'url': 'https://www.fuyin.tv/html/2733/44129.html',
         'info_dict': {
