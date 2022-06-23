@@ -563,6 +563,7 @@ from .funimation import (
 )
 from .funk import FunkIE
 from .fusion import FusionIE
+from .fuyintv import FuyinTVIE
 from .gab import (
     GabTVIE,
     GabIE,
