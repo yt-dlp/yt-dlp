@@ -297,10 +297,12 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
 
     The code is based on HTTPRedirectHandler implementation from CPython [1].
 
-    This redirect handler solves two issues:
-     - ensures redirect URL is always unicode under python 2
-     - introduces support for experimental HTTP response status code
+    This redirect handler has the following improvements:
+     - introduces support for HTTP response status code
        308 Permanent Redirect [2] used by some sites [3]
+     - improved redirect method handling
+     - only strip payload/headers when method changes from POST to GET
+
 
     1. https://github.com/python/cpython/blob/master/Lib/urllib/request.py
     2. https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/308
@@ -319,6 +321,7 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
         else should try to handle this url.  Return None if you can't
         but another Handler might.
         """
+        # XXX: what about other methods?
         m = req.get_method()
         if not (code in (301, 302, 303, 307, 308) and m in ('GET', 'HEAD', 'POST')):
             raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
@@ -333,13 +336,20 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
         # but it is kept for compatibility with other callers.
         newurl = newurl.replace(' ', '%20')
 
-        CONTENT_HEADERS = ("content-length", "content-type")
-        # NB: don't use dict comprehension for python 2.6 compatibility
-        newheaders = {k: v for k, v in req.headers.items() if k.lower() not in CONTENT_HEADERS}
+        new_data = req.data
+        remove_headers = []
+        new_method = get_redirect_method(m, code)
+
+        # only remove payload if method changed (e.g. POST to GET)
+        if new_method != m and new_data is not None:
+            new_data = None
+            remove_headers.extend(['Content-Length', 'Content-Type'])
+
+        new_headers = {k: v for k, v in req.headers.items() if k.lower() not in remove_headers}
 
         return urllib.request.Request(
-            newurl, headers=newheaders, origin_req_host=req.origin_req_host,
-            unverifiable=True, method=get_redirect_method(m, code))
+            newurl, headers=new_headers, origin_req_host=req.origin_req_host,
+            unverifiable=True, method=new_method, data=new_data)
 
 
 class PUTRequest(urllib.request.Request):
