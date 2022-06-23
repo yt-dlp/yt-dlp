@@ -109,7 +109,7 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
         self.ie = ie
 
     def _get_videokey_from_ticket(self, ticket):
-        to_show = self.ie._downloader.params.get('verbose', False)
+        to_show = self.ie.get_param('verbose', False)
         media_token = self.ie._get_media_token(to_show=to_show)
 
         license_response = self.ie._download_json(

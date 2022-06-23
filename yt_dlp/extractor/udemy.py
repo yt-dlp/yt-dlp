@@ -148,7 +148,7 @@ class UdemyIE(InfoExtractor):
             'X-Udemy-Snail-Case': 'true',
             'X-Requested-With': 'XMLHttpRequest',
         }
-        for cookie in self._downloader.cookiejar:
+        for cookie in self.cookiejar:
             if cookie.name == 'client_id':
                 headers['X-Udemy-Client-Id'] = cookie.value
             elif cookie.name == 'access_token':
