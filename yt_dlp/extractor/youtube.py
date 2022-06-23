@@ -2643,30 +2643,45 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         return sts
 
     def _mark_watched(self, video_id, player_responses):
-        playback_url = get_first(
-            player_responses, ('playbackTracking', 'videostatsPlaybackUrl', 'baseUrl'),
-            expected_type=url_or_none)
-        if not playback_url:
-            self.report_warning('Unable to mark watched')
-            return
-        parsed_playback_url = compat_urlparse.urlparse(playback_url)
-        qs = compat_urlparse.parse_qs(parsed_playback_url.query)
+        for is_full, key in enumerate(('videostatsPlaybackUrl', 'videostatsWatchtimeUrl')):
+            label = 'fully ' if is_full else ''
+            url = get_first(player_responses, ('playbackTracking', key, 'baseUrl'),
+                            expected_type=url_or_none)
+            if not url:
+                self.report_warning(f'Unable to mark {label}watched')
+                return
+            parsed_url = compat_urlparse.urlparse(url)
+            qs = compat_urlparse.parse_qs(parsed_url.query)
 
-        # cpn generation algorithm is reverse engineered from base.js.
-        # In fact it works even with dummy cpn.
-        CPN_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
-        cpn = ''.join(CPN_ALPHABET[random.randint(0, 256) & 63] for _ in range(0, 16))
+            # cpn generation algorithm is reverse engineered from base.js.
+            # In fact it works even with dummy cpn.
+            CPN_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_'
+            cpn = ''.join(CPN_ALPHABET[random.randint(0, 256) & 63] for _ in range(0, 16))
 
-        qs.update({
-            'ver': ['2'],
-            'cpn': [cpn],
-        })
-        playback_url = compat_urlparse.urlunparse(
-            parsed_playback_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
+            # # more consistent results setting it to right before the end
+            video_length = [str(float((qs.get('len') or ['1.5'])[0]) - 1)]
 
-        self._download_webpage(
-            playback_url, video_id, 'Marking watched',
-            'Unable to mark watched', fatal=False)
+            qs.update({
+                'ver': ['2'],
+                'cpn': [cpn],
+                'cmt': video_length,
+                'el': 'detailpage',  # otherwise defaults to "shorts"
+            })
+
+            if is_full:
+                # these seem to mark watchtime "history" in the real world
+                # they're required, so send in a single value
+                qs.update({
+                    'st': video_length,
+                    'et': video_length,
+                })
+
+            url = compat_urlparse.urlunparse(
+                parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
+
+            self._download_webpage(
+                url, video_id, f'Marking {label}watched',
+                'Unable to mark watched', fatal=False)
 
     @staticmethod
     def _extract_urls(webpage):
