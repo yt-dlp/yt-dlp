@@ -43,7 +43,6 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         pass
 
     def _redirect(self):
-        self._read_data()  # clear any data sent
         self.send_response(int(self.path[len('/redirect_'):]))
         self.send_header('Location', '/method')
         self.send_header('Content-Length', '0')
@@ -70,10 +69,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             return self.rfile.read(int(self.headers['Content-Length']))
 
     def do_POST(self):
+        data = self._read_data()
         if self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
-            self._method('POST', self._read_data())
+            self._method('POST', data)
         else:
             self._status(404)
 
@@ -86,10 +86,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._status(404)
 
     def do_PUT(self):
+        data = self._read_data()
         if self.path.startswith('/redirect_'):
             self._redirect()
         elif self.path.startswith('/method'):
-            self._method('PUT', self._read_data())
+            self._method('PUT', data)
         else:
             self._status(404)
 
@@ -362,6 +363,12 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             # 307 and 308 should not change method
             self.assertEqual(do_req(307, 'POST'), ('testdata', 'POST'))
             self.assertEqual(do_req(308, 'POST'), ('testdata', 'POST'))
+
+            # These should not redirect and instead raise an HTTPError
+            for code in (300, 304, 305, 306):
+                with self.assertRaises(HTTPError):
+                    do_req(code, 'GET')
+
 
     def test_incompleteread(self):
         with self.make_ydl({'socket_timeout': 2}) as ydl:
