@@ -13,10 +13,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import urllib.request
 from test.helper import gettestcases
 
-from yt_dlp.utils import compat_urllib_parse_urlparse
+from yt_dlp.utils import compat_urllib_parse_urlparse, compat_urllib_request
 
 if len(sys.argv) > 1:
     METHOD = 'LIST'
@@ -27,7 +26,7 @@ else:
 for test in gettestcases():
     if METHOD == 'EURISTIC':
         try:
-            webpage = urllib.request.urlopen(test['url'], timeout=10).read()
+            webpage = compat_urllib_request.urlopen(test['url'], timeout=10).read()
         except Exception:
             print('\nFail: {}'.format(test['name']))
             continue

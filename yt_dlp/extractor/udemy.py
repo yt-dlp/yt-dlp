@@ -1,10 +1,10 @@
 import re
-import urllib.request
 
 from .common import InfoExtractor
 from ..compat import (
     compat_HTTPError,
     compat_str,
+    compat_urllib_request,
     compat_urlparse,
 )
 from ..utils import (
@@ -155,7 +155,7 @@ class UdemyIE(InfoExtractor):
                 headers['X-Udemy-Bearer-Token'] = cookie.value
                 headers['X-Udemy-Authorization'] = 'Bearer %s' % cookie.value
 
-        if isinstance(url_or_request, urllib.request.Request):
+        if isinstance(url_or_request, compat_urllib_request.Request):
             for header, value in headers.items():
                 url_or_request.add_header(header, value)
         else:

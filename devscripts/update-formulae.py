@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import urllib.request
+from yt_dlp.compat import compat_urllib_request
 
 # usage: python3 ./devscripts/update-formulae.py <path-to-formulae-rb> <version>
 # version can be either 0-aligned (yt-dlp version) or normalized (PyPl version)
@@ -15,7 +15,7 @@ filename, version = sys.argv[1:]
 
 normalized_version = '.'.join(str(int(x)) for x in version.split('.'))
 
-pypi_release = json.loads(urllib.request.urlopen(
+pypi_release = json.loads(compat_urllib_request.urlopen(
     'https://pypi.org/pypi/yt-dlp/%s/json' % normalized_version
 ).read().decode())
 

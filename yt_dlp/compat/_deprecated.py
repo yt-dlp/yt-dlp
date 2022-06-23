@@ -14,7 +14,8 @@ import os
 import shutil
 import struct
 import tokenize
-import urllib
+
+from . import urllib
 
 compat_b64decode = base64.b64decode
 compat_chr = chr
@@ -41,6 +42,7 @@ compat_urllib_parse_unquote = urllib.parse.unquote
 compat_urllib_parse_unquote_plus = urllib.parse.unquote_plus
 compat_urllib_parse_urlencode = urllib.parse.urlencode
 compat_urllib_parse_urlparse = urllib.parse.urlparse
+compat_urllib_request = urllib.request
 compat_urlparse = compat_urllib_parse = urllib.parse
 
 

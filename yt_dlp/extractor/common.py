@@ -9,7 +9,6 @@ import os
 import random
 import sys
 import time
-import urllib.request
 import xml.etree.ElementTree
 
 from ..compat import functools, re  # isort: split
@@ -25,6 +24,7 @@ from ..compat import (
     compat_urllib_error,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlencode,
+    compat_urllib_request,
     compat_urlparse,
 )
 from ..downloader import FileDownloader
@@ -726,7 +726,7 @@ class InfoExtractor:
             return err.code in variadic(expected_status)
 
     def _create_request(self, url_or_request, data=None, headers={}, query={}):
-        if isinstance(url_or_request, urllib.request.Request):
+        if isinstance(url_or_request, compat_urllib_request.Request):
             return update_Request(url_or_request, data=data, headers=headers, query=query)
         if query:
             url_or_request = update_url_query(url_or_request, query)
@@ -794,7 +794,7 @@ class InfoExtractor:
 
         Arguments:
         url_or_request -- plain text URL as a string or
-            a urllib.request.Requestobject
+            a compat_urllib_request.Requestobject
         video_id -- Video/playlist/item identifier (string)
 
         Keyword arguments:
