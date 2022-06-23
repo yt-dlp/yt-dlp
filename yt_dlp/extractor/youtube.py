@@ -2673,6 +2673,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'ver': ['2'],
                 'cpn': [cpn],
                 'cmt': video_length,
+                'el': 'detailpage',  # otherwise defaults to "shorts"
             })
 
             if url_type == "watchtime":
