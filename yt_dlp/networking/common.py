@@ -11,6 +11,11 @@ import urllib.request
 import urllib.response
 from typing import Union
 
+try:
+    from urllib.request import _parse_proxy
+except ImportError:
+    _parse_proxy = None
+
 from ..utils import (
     extract_basic_auth,
     escape_url,
@@ -21,7 +26,8 @@ from ..utils import (
     RequestError,
     CaseInsensitiveDict,
     UnsupportedRequest,
-    SSLError
+    SSLError,
+    remove_start
 )
 
 if typing.TYPE_CHECKING:
@@ -329,9 +335,17 @@ class BackendRH(RequestHandler):
         if req_proxy:
             del request.headers['Ytdl-request-proxy']
             request.proxies.update({'http': req_proxy, 'https': req_proxy})
-        for k, v in request.proxies.items():
-            if v == '__noproxy__':  # compat
-                request.proxies[k] = None
+        for proxy_key, proxy_url in request.proxies.items():
+            if proxy_url == '__noproxy__':  # compat
+                request.proxies[proxy_key] = None
+                continue
+
+            if proxy_url is not None and _parse_proxy is not None:
+                # Ensure proxies without a scheme are http.
+                proxy_scheme = _parse_proxy(proxy_url)[0]
+                if proxy_scheme is None:
+                    request.proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
+
         request.timeout = float(request.timeout or self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
         self._prepare_request(request)
 

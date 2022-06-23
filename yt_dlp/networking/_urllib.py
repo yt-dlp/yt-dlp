@@ -514,8 +514,10 @@ class UrllibRH(BackendRH):
             raise  # unexpected
         except urllib.error.URLError as e:
             cause = e.reason
-            handle_sslerror(cause)
-            handle_response_read_exceptions(cause)
+            # e.reason may be a string
+            if isinstance(cause, Exception):
+                handle_sslerror(cause)
+                handle_response_read_exceptions(cause)
             raise TransportError(cause=e)
 
         except Exception as e:

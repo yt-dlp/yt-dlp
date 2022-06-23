@@ -236,7 +236,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
         geo_proxy2 = 'localhost:{0}'.format(self.geo_port)  # ensure backend can support this format
 
         with self.make_ydl({
-            'proxy': '127.0.0.1:{0}'.format(self.proxy_port),
+            'proxy': '//127.0.0.1:{0}'.format(self.proxy_port),
             'geo_verification_proxy': geo_proxy,
         }) as ydl:
             url = 'http://foo.com/bar'
