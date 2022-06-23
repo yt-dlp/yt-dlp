@@ -65,7 +65,7 @@ class Request:
             url = update_url_query(url, query)
         # rely on urllib Request's url parsing
         self.__request_store = urllib.request.Request(url)
-        self.__method = method
+        self.method = method
         self._headers = CaseInsensitiveDict(headers)
         self._data = None
         self.data = data
@@ -109,7 +109,7 @@ class Request:
 
     @property
     def method(self):
-        return self.__method or 'POST' if self.data is not None else 'GET'
+        return self.__method or ('POST' if self.data is not None else 'GET')
 
     @method.setter
     def method(self, method: str):
