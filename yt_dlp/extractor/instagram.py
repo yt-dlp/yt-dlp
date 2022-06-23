@@ -646,8 +646,12 @@ class InstagramStoryIE(InstagramBaseIE):
         story_info, wh = self._download_webpage_handle(url, story_id, errnote='Can\'t fetch content (Note that some metadata might be missing)')
         if 'www.instagram.com/accounts/login' in wh.geturl():
             self.raise_login_required('You need to log in to access this content')
-        user_id = self._search_regex(r'"user":{"id":"(\d*)"', story_info, 'user id')
-        highlight_title = traverse_obj(story_info, ('highlight', 'title'))
+        user_info = self._parse_json(
+            self._search_regex(r'"user":\s*({.+?}),', story_info, 'user info', fatal=False),
+            story_id, fatal=False)
+        if not user_info:
+            self.raise_login_required('This content is unreachable')
+        user_id = user_info.get('id')
 
         story_info_url = user_id if username != 'highlights' else f'highlight:{story_id}'
         videos = self._download_json(f'https://i.instagram.com/api/v1/feed/reels_media/?reel_ids={story_info_url}', story_id, headers={
@@ -657,21 +661,18 @@ class InstagramStoryIE(InstagramBaseIE):
         })['reels']
 
         full_name = traverse_obj(videos, ('user', 'full_name'))
-
-        user_info = {}
-        if not (username and username != 'highlights' and full_name):
-            user_info = self._download_json(
-                f'https://i.instagram.com/api/v1/users/{user_id}/info/', story_id, headers={
-                    'User-Agent': 'Mozilla/5.0 (Linux; Android 11; SM-A505F Build/RP1A.200720.012; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/96.0.4664.45 Mobile Safari/537.36 Instagram 214.1.0.29.120 Android (30/11; 450dpi; 1080x2122; samsung; SM-A505F; a50; exynos9610; en_US; 333717274)',
-                }, note='Downloading user info')
-
-        username = traverse_obj(user_info, ('user', 'username')) or username
-        full_name = traverse_obj(user_info, ('user', 'full_name')) or full_name
+        story_title = traverse_obj(videos, (f'highlight:{story_id}', 'title'))
+        if not story_title:
+            story_title = f'Story by {username}'
 
         highlights = traverse_obj(videos, (f'highlight:{story_id}', 'items'), (str(user_id), 'items'))
-        return self.playlist_result([{
-            **self._extract_product(highlight),
-            'title': f'Story by {username}',
-            'uploader': full_name,
-            'uploader_id': user_id,
-        } for highlight in highlights], playlist_id=story_id, playlist_title=highlight_title)
+        info_data = []
+        for highlight in highlights:
+            highlight_data = self._extract_product(highlight)
+            if highlight_data.get('formats'):
+                info_data.append({
+                    **highlight_data,
+                    'uploader': full_name,
+                    'uploader_id': user_id,
+                })
+        return self.playlist_result(info_data, playlist_id=story_id, playlist_title=story_title)
