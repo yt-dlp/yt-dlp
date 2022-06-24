@@ -14,7 +14,7 @@ class FuyinTVIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        playlist_id, video_id = self._match_valid_url(url).group('mov_id', 'url_id')
+        _, video_id = self._match_valid_url(url).group('mov_id', 'url_id')
         json_data = self._download_json(
             'https://www.fuyin.tv/api/api/tv.movie/url',
             video_id, query={'urlid': f'{video_id}'})
