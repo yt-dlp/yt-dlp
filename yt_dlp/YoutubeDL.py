@@ -2617,9 +2617,10 @@ class YoutubeDL:
                 new_info.update(fmt)
                 offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
                 if chapter or offset:
+                    chapter_duration = chapter.get('end_time', 0) - chapter.get('start_time', 0) if chapter else float('inf')
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        'section_end': offset + min(chapter.get('end_time', 0), duration),
+                        'section_end': offset + min(chapter_duration, duration),
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
