@@ -3723,6 +3723,8 @@ def _match_one(filter_part, dct, incomplete):
         if m['quote']:
             comparison_value = comparison_value.replace(r'\%s' % m['quote'], m['quote'])
         actual_value = dct.get(m['key'])
+        if comparison_value in dct:
+            comparison_value = dct.get(comparison_value)
         numeric_comparison = None
         if isinstance(actual_value, (int, float)):
             # If the original field is a string and matching comparisonvalue is
@@ -3788,6 +3790,7 @@ def match_filter_func(filters):
         else:
             video_title = info_dict.get('title') or info_dict.get('id') or 'entry'
             filter_str = ') | ('.join(map(str.strip, filters))
+            print ("%s %s" % (info_dict['uploader_id'], info_dict['playlist_uploader_id']))
             return f'{video_title} does not pass filter ({filter_str}), skipping ..'
     return _match_func
 
