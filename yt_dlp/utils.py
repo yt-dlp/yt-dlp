@@ -1343,7 +1343,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
 
         req.headers = handle_youtubedl_headers(req.headers)
 
-        return req
+        return super().do_request_(req)
 
     def http_response(self, req, resp):
         old_resp = resp
