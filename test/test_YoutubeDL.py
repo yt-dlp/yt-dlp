@@ -14,7 +14,7 @@ import urllib.error
 
 from test.helper import FakeYDL, assertRegexpMatches
 from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_os_name, compat_str
+from yt_dlp.compat import compat_os_name
 from yt_dlp.extractor import YoutubeIE
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.postprocessor.common import PostProcessor
@@ -1185,7 +1185,7 @@ class TestYoutubeDL(unittest.TestCase):
 
             def _entries(self):
                 for n in range(3):
-                    video_id = compat_str(n)
+                    video_id = str(n)
                     yield {
                         '_type': 'url_transparent',
                         'ie_key': VideoIE.ie_key(),

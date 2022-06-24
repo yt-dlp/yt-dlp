@@ -13,19 +13,12 @@ import os
 import random
 import sys
 import time
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 
 from ..compat import functools, re  # isort: split
-from ..compat import (
-    compat_etree_fromstring,
-    compat_expanduser,
-    compat_os_name,
-    compat_str,
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_urlencode,
-    compat_urlparse,
-)
+from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..utils import (
@@ -834,7 +827,7 @@ class InfoExtractor:
         """
 
         # Strip hashes from the URL (#1038)
-        if isinstance(url_or_request, (compat_str, str)):
+        if isinstance(url_or_request, str):
             url_or_request = url_or_request.partition('#')[0]
 
         urlh = self._request_webpage(url_or_request, video_id, note, errnote, fatal, data=data, headers=headers, query=query, expected_status=expected_status)
@@ -1427,7 +1420,7 @@ class InfoExtractor:
             return {}
 
     def _json_ld(self, json_ld, video_id, fatal=True, expected_type=None):
-        if isinstance(json_ld, compat_str):
+        if isinstance(json_ld, str):
             json_ld = self._parse_json(json_ld, video_id, fatal=fatal)
         if not json_ld:
             return {}
@@ -1517,7 +1510,7 @@ class InfoExtractor:
                 # both types can have 'name' property(inherited from 'Thing' type). [1]
                 # however some websites are using 'Text' type instead.
                 # 1. https://schema.org/VideoObject
-                'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, compat_str) else None,
+                'uploader': author.get('name') if isinstance(author, dict) else author if isinstance(author, str) else None,
                 'filesize': int_or_none(float_or_none(e.get('contentSize'))),
                 'tbr': int_or_none(e.get('bitrate')),
                 'width': int_or_none(e.get('width')),
@@ -2166,7 +2159,7 @@ class InfoExtractor:
         ]), m3u8_doc)
 
         def format_url(url):
-            return url if re.match(r'^https?://', url) else compat_urlparse.urljoin(m3u8_url, url)
+            return url if re.match(r'^https?://', url) else urllib.parse.urljoin(m3u8_url, url)
 
         if self.get_param('hls_split_discontinuity', False):
             def _extract_m3u8_playlist_indices(manifest_url=None, m3u8_doc=None):
@@ -2539,7 +2532,7 @@ class InfoExtractor:
                     })
                 continue
 
-            src_url = src if src.startswith('http') else compat_urlparse.urljoin(base, src)
+            src_url = src if src.startswith('http') else urllib.parse.urljoin(base, src)
             src_url = src_url.strip()
 
             if proto == 'm3u8' or src_ext == 'm3u8':
@@ -2562,7 +2555,7 @@ class InfoExtractor:
                         'plugin': 'flowplayer-3.2.0.1',
                     }
                 f4m_url += '&' if '?' in f4m_url else '?'
-                f4m_url += compat_urllib_parse_urlencode(f4m_params)
+                f4m_url += urllib.parse.urlencode(f4m_params)
                 formats.extend(self._extract_f4m_formats(f4m_url, video_id, f4m_id='hds', fatal=False))
             elif src_ext == 'mpd':
                 formats.extend(self._extract_mpd_formats(
@@ -2832,7 +2825,7 @@ class InfoExtractor:
                             if re.match(r'^https?://', base_url):
                                 break
                     if mpd_base_url and base_url.startswith('/'):
-                        base_url = compat_urlparse.urljoin(mpd_base_url, base_url)
+                        base_url = urllib.parse.urljoin(mpd_base_url, base_url)
                     elif mpd_base_url and not re.match(r'^https?://', base_url):
                         if not mpd_base_url.endswith('/'):
                             mpd_base_url += '/'
@@ -3102,7 +3095,7 @@ class InfoExtractor:
                 sampling_rate = int_or_none(track.get('SamplingRate'))
 
                 track_url_pattern = re.sub(r'{[Bb]itrate}', track.attrib['Bitrate'], url_pattern)
-                track_url_pattern = compat_urlparse.urljoin(ism_url, track_url_pattern)
+                track_url_pattern = urllib.parse.urljoin(ism_url, track_url_pattern)
 
                 fragments = []
                 fragment_ctx = {
@@ -3121,7 +3114,7 @@ class InfoExtractor:
                         fragment_ctx['duration'] = (next_fragment_time - fragment_ctx['time']) / fragment_repeat
                     for _ in range(fragment_repeat):
                         fragments.append({
-                            'url': re.sub(r'{start[ _]time}', compat_str(fragment_ctx['time']), track_url_pattern),
+                            'url': re.sub(r'{start[ _]time}', str(fragment_ctx['time']), track_url_pattern),
                             'duration': fragment_ctx['duration'] / stream_timescale,
                         })
                         fragment_ctx['time'] += fragment_ctx['duration']
@@ -3365,7 +3358,7 @@ class InfoExtractor:
         return formats, subtitles
 
     def _extract_wowza_formats(self, url, video_id, m3u8_entry_protocol='m3u8_native', skip_protocols=[]):
-        query = compat_urlparse.urlparse(url).query
+        query = urllib.parse.urlparse(url).query
         url = re.sub(r'/(?:manifest|playlist|jwplayer)\.(?:m3u8|f4m|mpd|smil)', '', url)
         mobj = re.search(
             r'(?:(?:http|rtmp|rtsp)(?P<s>s)?:)?(?P<url>//[^?]+)', url)
@@ -3471,7 +3464,7 @@ class InfoExtractor:
                     if not isinstance(track, dict):
                         continue
                     track_kind = track.get('kind')
-                    if not track_kind or not isinstance(track_kind, compat_str):
+                    if not track_kind or not isinstance(track_kind, str):
                         continue
                     if track_kind.lower() not in ('captions', 'subtitles'):
                         continue
@@ -3544,7 +3537,7 @@ class InfoExtractor:
                     # Often no height is provided but there is a label in
                     # format like "1080p", "720p SD", or 1080.
                     height = int_or_none(self._search_regex(
-                        r'^(\d{3,4})[pP]?(?:\b|$)', compat_str(source.get('label') or ''),
+                        r'^(\d{3,4})[pP]?(?:\b|$)', str(source.get('label') or ''),
                         'height', default=None))
                 a_format = {
                     'url': source_url,
@@ -3770,10 +3763,10 @@ class InfoExtractor:
         return headers
 
     def _generic_id(self, url):
-        return compat_urllib_parse_unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
+        return urllib.parse.unquote(os.path.splitext(url.rstrip('/').split('/')[-1])[0])
 
     def _generic_title(self, url):
-        return compat_urllib_parse_unquote(os.path.splitext(url_basename(url))[0])
+        return urllib.parse.unquote(os.path.splitext(url_basename(url))[0])
 
     @staticmethod
     def _availability(is_private=None, needs_premium=None, needs_subscription=None, needs_auth=None, is_unlisted=None):

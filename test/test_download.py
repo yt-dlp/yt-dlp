@@ -26,7 +26,6 @@ from test.helper import (
 )
 
 import yt_dlp.YoutubeDL  # isort: split
-from yt_dlp.compat import compat_HTTPError
 from yt_dlp.extractor import get_info_extractor
 from yt_dlp.utils import (
     DownloadError,
@@ -168,7 +167,7 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if not err.exc_info[0] in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine) or (err.exc_info[0] == compat_HTTPError and err.exc_info[1].code == 503):
+                    if not err.exc_info[0] in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine) or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503):
                         raise
 
                     if try_num == RETRIES:

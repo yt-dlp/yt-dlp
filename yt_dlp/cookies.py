@@ -1,3 +1,4 @@
+import base64
 import contextlib
 import ctypes
 import http.cookiejar
@@ -18,7 +19,6 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import compat_b64decode
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
@@ -836,7 +836,7 @@ def _get_windows_v10_key(browser_root, logger):
     except KeyError:
         logger.error('no encrypted key in Local State')
         return None
-    encrypted_key = compat_b64decode(base64_key)
+    encrypted_key = base64.b64decode(base64_key)
     prefix = b'DPAPI'
     if not encrypted_key.startswith(prefix):
         logger.error('invalid key')

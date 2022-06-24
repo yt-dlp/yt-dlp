@@ -26,7 +26,7 @@ from string import ascii_letters
 
 from .cache import Cache
 from .compat import HAS_LEGACY as compat_has_legacy
-from .compat import compat_os_name, compat_shlex_quote, compat_str
+from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -791,7 +791,7 @@ class YoutubeDL:
             return message
 
         assert hasattr(self, '_output_process')
-        assert isinstance(message, compat_str)
+        assert isinstance(message, str)
         line_count = message.count('\n') + 1
         self._output_process.stdin.write((message + '\n').encode())
         self._output_process.stdin.flush()
@@ -827,7 +827,7 @@ class YoutubeDL:
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
-        assert isinstance(message, compat_str)
+        assert isinstance(message, str)
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
@@ -1562,7 +1562,7 @@ class YoutubeDL:
             additional_urls = (ie_result or {}).get('additional_urls')
             if additional_urls:
                 # TODO: Improve MetadataParserPP to allow setting a list
-                if isinstance(additional_urls, compat_str):
+                if isinstance(additional_urls, str):
                     additional_urls = [additional_urls]
                 self.to_screen(
                     '[info] %s: %d additional URL(s) requested' % (ie_result['id'], len(additional_urls)))
@@ -2355,10 +2355,10 @@ class YoutubeDL:
 
         def sanitize_string_field(info, string_field):
             field = info.get(string_field)
-            if field is None or isinstance(field, compat_str):
+            if field is None or isinstance(field, str):
                 return
             report_force_conversion(string_field, 'a string', 'string')
-            info[string_field] = compat_str(field)
+            info[string_field] = str(field)
 
         def sanitize_numeric_fields(info):
             for numeric_field in self._NUMERIC_FIELDS:
@@ -2461,7 +2461,7 @@ class YoutubeDL:
             sanitize_numeric_fields(format)
             format['url'] = sanitize_url(format['url'])
             if not format.get('format_id'):
-                format['format_id'] = compat_str(i)
+                format['format_id'] = str(i)
             else:
                 # Sanitize format_id from characters used in format selector expression
                 format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])

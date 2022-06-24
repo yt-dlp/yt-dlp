@@ -13,7 +13,6 @@ import subprocess
 import urllib.request
 
 from test.helper import FakeYDL, get_params, is_download_test
-from yt_dlp.compat import compat_str
 
 
 @is_download_test
@@ -102,13 +101,13 @@ class TestSocks(unittest.TestCase):
         return ydl.urlopen('http://yt-dl.org/ip').read().decode()
 
     def test_socks4(self):
-        self.assertTrue(isinstance(self._get_ip('socks4'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4'), str))
 
     def test_socks4a(self):
-        self.assertTrue(isinstance(self._get_ip('socks4a'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4a'), str))
 
     def test_socks5(self):
-        self.assertTrue(isinstance(self._get_ip('socks5'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks5'), str))
 
 
 if __name__ == '__main__':

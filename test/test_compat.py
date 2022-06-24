@@ -15,7 +15,6 @@ from yt_dlp import compat
 from yt_dlp.compat import (
     compat_etree_fromstring,
     compat_expanduser,
-    compat_str,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlencode,
 )
@@ -82,11 +81,11 @@ class TestCompat(unittest.TestCase):
             </root>
         '''
         doc = compat_etree_fromstring(xml.encode())
-        self.assertTrue(isinstance(doc.attrib['foo'], compat_str))
-        self.assertTrue(isinstance(doc.attrib['spam'], compat_str))
-        self.assertTrue(isinstance(doc.find('normal').text, compat_str))
-        self.assertTrue(isinstance(doc.find('chinese').text, compat_str))
-        self.assertTrue(isinstance(doc.find('foo/bar').text, compat_str))
+        self.assertTrue(isinstance(doc.attrib['foo'], str))
+        self.assertTrue(isinstance(doc.attrib['spam'], str))
+        self.assertTrue(isinstance(doc.find('normal').text, str))
+        self.assertTrue(isinstance(doc.find('chinese').text, str))
+        self.assertTrue(isinstance(doc.find('foo/bar').text, str))
 
     def test_compat_etree_fromstring_doctype(self):
         xml = '''<?xml version="1.0"?>

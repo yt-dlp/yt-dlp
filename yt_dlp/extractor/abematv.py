@@ -7,13 +7,13 @@ import json
 import re
 import struct
 import time
+import urllib.parse
 import urllib.request
 import urllib.response
 import uuid
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
-from ..compat import compat_urllib_parse_urlparse
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
@@ -137,7 +137,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
 
     def abematv_license_open(self, url):
         url = request_to_url(url)
-        ticket = compat_urllib_parse_urlparse(url).netloc
+        ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={
             'Content-Length': len(response_data),

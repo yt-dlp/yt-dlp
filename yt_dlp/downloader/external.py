@@ -6,7 +6,7 @@ import sys
 import time
 
 from .fragment import FragmentFD
-from ..compat import functools  # isort: split
+from ..compat import functools
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
