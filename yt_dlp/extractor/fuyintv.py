@@ -10,6 +10,7 @@ class FuyinTVIE(InfoExtractor):
             'id': '44129',
             'ext': 'mp4',
             'title': '第1集',
+            'description': 'md5:21a3d238dc8d49608e1308e85044b9c3',
         }
     }]
 
@@ -18,10 +19,13 @@ class FuyinTVIE(InfoExtractor):
         json_data = self._download_json(
             'https://www.fuyin.tv/api/api/tv.movie/url',
             video_id, query={'urlid': f'{video_id}'})
+        webpage = self._download_webpage(url, video_id)
+        
 
         return {
             'id': video_id,
             'title': traverse_obj(json_data, ('data', 'title')),
             'url': json_data['data']['url'],
             'ext': 'mp4',
+            'description': self._html_search_meta('description', webpage),
         }
