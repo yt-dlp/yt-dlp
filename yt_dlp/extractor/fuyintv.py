@@ -20,7 +20,6 @@ class FuyinTVIE(InfoExtractor):
             'https://www.fuyin.tv/api/api/tv.movie/url',
             video_id, query={'urlid': f'{video_id}'})
         webpage = self._download_webpage(url, video_id)
-        
 
         return {
             'id': video_id,
