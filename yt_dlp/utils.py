@@ -2322,6 +2322,8 @@ class PlaylistEntries:
         for index in self.parse_playlist_items(playlist_items):
             for i, entry in self[index]:
                 yield i, entry
+                if not entry:
+                    continue
                 try:
                     # TODO: Add auto-generated fields
                     self.ydl._match_entry(entry, incomplete=True, silent=True)

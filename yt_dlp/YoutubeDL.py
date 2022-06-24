@@ -1747,7 +1747,7 @@ class YoutubeDL:
                 resolved_entries.append((playlist_index, entry))
 
             # TODO: Add auto-generated fields
-            if self._match_entry(entry, incomplete=True) is not None:
+            if not entry or self._match_entry(entry, incomplete=True) is not None:
                 continue
 
             self.to_screen('[download] Downloading video %s of %s' % (

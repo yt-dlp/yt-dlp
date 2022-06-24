@@ -404,6 +404,8 @@ def validate_options(opts):
 
     default_downloader = None
     for proto, path in opts.external_downloader.items():
+        if path == 'native':
+            continue
         ed = get_external_downloader(path)
         if ed is None:
             raise ValueError(

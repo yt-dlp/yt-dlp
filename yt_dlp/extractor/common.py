@@ -694,6 +694,14 @@ class InfoExtractor:
         """Sets a YoutubeDL instance as the downloader for this IE."""
         self._downloader = downloader
 
+    @property
+    def cache(self):
+        return self._downloader.cache
+
+    @property
+    def cookiejar(self):
+        return self._downloader.cookiejar
+
     def _initialize_pre_login(self):
         """ Intialization before login. Redefine in subclasses."""
         pass
@@ -1394,27 +1402,25 @@ class InfoExtractor:
         return self._html_search_meta('twitter:player', html,
                                       'twitter card player')
 
-    def _search_json_ld(self, html, video_id, expected_type=None, **kwargs):
-        json_ld_list = list(re.finditer(JSON_LD_RE, html))
-        default = kwargs.get('default', NO_DEFAULT)
-        # JSON-LD may be malformed and thus `fatal` should be respected.
-        # At the same time `default` may be passed that assumes `fatal=False`
-        # for _search_regex. Let's simulate the same behavior here as well.
-        fatal = kwargs.get('fatal', True) if default is NO_DEFAULT else False
-        json_ld = []
-        for mobj in json_ld_list:
-            json_ld_item = self._parse_json(
-                mobj.group('json_ld'), video_id, fatal=fatal)
-            if not json_ld_item:
-                continue
-            if isinstance(json_ld_item, dict):
-                json_ld.append(json_ld_item)
-            elif isinstance(json_ld_item, (list, tuple)):
-                json_ld.extend(json_ld_item)
-        if json_ld:
-            json_ld = self._json_ld(json_ld, video_id, fatal=fatal, expected_type=expected_type)
-        if json_ld:
-            return json_ld
+    def _yield_json_ld(self, html, video_id, *, fatal=True, default=NO_DEFAULT):
+        """Yield all json ld objects in the html"""
+        if default is not NO_DEFAULT:
+            fatal = False
+        for mobj in re.finditer(JSON_LD_RE, html):
+            json_ld_item = self._parse_json(mobj.group('json_ld'), video_id, fatal=fatal)
+            for json_ld in variadic(json_ld_item):
+                if isinstance(json_ld, dict):
+                    yield json_ld
+
+    def _search_json_ld(self, html, video_id, expected_type=None, *, fatal=True, default=NO_DEFAULT):
+        """Search for a video in any json ld in the html"""
+        if default is not NO_DEFAULT:
+            fatal = False
+        info = self._json_ld(
+            list(self._yield_json_ld(html, video_id, fatal=fatal, default=default)),
+            video_id, fatal=fatal, expected_type=expected_type)
+        if info:
+            return info
         if default is not NO_DEFAULT:
             return default
         elif fatal:
@@ -1502,7 +1508,7 @@ class InfoExtractor:
             assert is_type(e, 'VideoObject')
             author = e.get('author')
             info.update({
-                'url': traverse_obj(e, 'contentUrl', 'embedUrl', expected_type=url_or_none),
+                'url': url_or_none(e.get('contentUrl')),
                 'title': unescapeHTML(e.get('name')),
                 'description': unescapeHTML(e.get('description')),
                 'thumbnails': [{'url': url}
@@ -3597,7 +3603,7 @@ class InfoExtractor:
             0, name, value, port, port is not None, domain, True,
             domain.startswith('.'), path, True, secure, expire_time,
             discard, None, None, rest)
-        self._downloader.cookiejar.set_cookie(cookie)
+        self.cookiejar.set_cookie(cookie)
 
     def _get_cookies(self, url):
         """ Return a compat_cookies_SimpleCookie with the cookies for the url """
