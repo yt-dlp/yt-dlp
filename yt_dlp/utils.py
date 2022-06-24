@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import atexit
 import base64
 import binascii
@@ -16,6 +15,8 @@ import hashlib
 import hmac
 import html.entities
 import html.parser
+import http.client
+import http.cookiejar
 import importlib.util
 import io
 import itertools
@@ -42,8 +43,6 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree
 import zlib
-import http.client
-import http.cookiejar
 
 from .compat import asyncio, functools  # isort: split
 from .compat import (

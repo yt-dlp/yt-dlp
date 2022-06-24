@@ -1,10 +1,10 @@
+import http.client
 import os
 import random
 import socket
 import ssl
 import time
 import urllib.error
-import http.client
 
 from .common import FileDownloader
 from ..utils import (

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
-import contextlib
 import os
 import sys
 import unittest
@@ -8,7 +8,7 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# Various small unit tests
+import contextlib
 import io
 import itertools
 import json

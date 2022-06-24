@@ -4,7 +4,6 @@ import importlib
 import sys
 import types
 
-
 _NO_ATTRIBUTE = object()
 
 _Package = collections.namedtuple('Package', ('name', 'version'))

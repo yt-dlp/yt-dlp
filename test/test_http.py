@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
 import unittest
-import http.server
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import http.server
 import ssl
 import threading
 import urllib.request
-from test.helper import http_server_port
 
+from test.helper import http_server_port
 from yt_dlp import YoutubeDL
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))

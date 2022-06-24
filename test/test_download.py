@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -8,10 +9,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 import hashlib
+import http.client
 import json
 import socket
 import urllib.error
-import http.client
 
 from test.helper import (
     assertGreaterEqual,
@@ -23,6 +24,7 @@ from test.helper import (
     report_warning,
     try_rm,
 )
+
 import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.compat import compat_HTTPError
 from yt_dlp.extractor import get_info_extractor

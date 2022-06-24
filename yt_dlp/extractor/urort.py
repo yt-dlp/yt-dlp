@@ -1,5 +1,3 @@
-
-
 import urllib.parse
 
 from .common import InfoExtractor

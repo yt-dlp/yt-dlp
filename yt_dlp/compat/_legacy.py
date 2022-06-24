@@ -22,14 +22,13 @@ import urllib.request
 import xml.etree.ElementTree as etree
 from subprocess import DEVNULL
 
-from .compat_utils import passthrough_module
+from .compat_utils import passthrough_module  # isort: split
 from .asyncio import run as compat_asyncio_run  # noqa: F401
 from .re import Pattern as compat_Pattern  # noqa: F401
 from .re import match as compat_Match  # noqa: F401
 from ..dependencies import Cryptodome_AES as compat_pycrypto_AES  # noqa: F401
 from ..dependencies import brotli as compat_brotli  # noqa: F401
 from ..dependencies import websockets as compat_websockets  # noqa: F401
-
 
 passthrough_module(__name__, '...utils', ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'))
 

@@ -2,6 +2,9 @@ import base64
 import collections
 import getpass
 import hashlib
+import http.client
+import http.cookiejar
+import http.cookies
 import itertools
 import json
 import math
@@ -12,9 +15,6 @@ import sys
 import time
 import urllib.request
 import xml.etree.ElementTree
-import http.client
-import http.cookiejar
-import http.cookies
 
 from ..compat import functools, re  # isort: split
 from ..compat import (

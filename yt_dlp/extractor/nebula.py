@@ -1,8 +1,8 @@
 import itertools
 import json
 import time
-import urllib.parse
 import urllib.error
+import urllib.parse
 
 from .common import InfoExtractor
 from ..utils import ExtractorError, parse_iso8601, try_get

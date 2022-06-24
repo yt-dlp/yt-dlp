@@ -1,5 +1,6 @@
 import contextlib
 import ctypes
+import http.cookiejar
 import json
 import os
 import shutil
@@ -11,7 +12,6 @@ import time
 from datetime import datetime, timedelta, timezone
 from enum import Enum, auto
 from hashlib import pbkdf2_hmac
-import http.cookiejar
 
 from .aes import (
     aes_cbc_decrypt_bytes,

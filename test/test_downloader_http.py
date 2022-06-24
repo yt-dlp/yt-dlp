@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
 import unittest
-import http.server
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
+import http.server
 import re
 import threading
-from test.helper import http_server_port, try_rm
 
+from test.helper import http_server_port, try_rm
 from yt_dlp import YoutubeDL
 from yt_dlp.downloader.http import HttpFD
 from yt_dlp.utils import encodeFilename
