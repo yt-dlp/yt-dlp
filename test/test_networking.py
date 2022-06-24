@@ -7,8 +7,10 @@ import unittest
 import urllib.request
 from http.cookiejar import Cookie
 
+
 from yt_dlp.networking import UrllibRH, UnsupportedRH, Request, HEADRequest
-from yt_dlp.utils import HTTPError, SSLError, TransportError, IncompleteRead
+from yt_dlp.networking.utils import update_request
+from yt_dlp.utils import HTTPError, SSLError, TransportError, IncompleteRead, urlencode_postdata
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -42,6 +44,14 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
+    def _headers(self):
+        payload = str(self.headers).encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Length', str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
     def _redirect(self):
         self.send_response(int(self.path[len('/redirect_'):]))
         self.send_header('Location', '/method')
@@ -74,6 +84,8 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self._redirect()
         elif self.path.startswith('/method'):
             self._method('POST', data)
+        elif self.path.startswith('/headers'):
+            self._headers()
         else:
             self._status(404)
 
@@ -148,12 +160,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(payload)
             self.finish()
         elif self.path.startswith('/headers'):
-            payload = str(self.headers).encode('utf-8')
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Content-Length', str(len(payload)))
-            self.end_headers()
-            self.wfile.write(payload)
+            self._headers()
         elif self.path == '/trailing_garbage':
             payload = b'<html><video src="/vid.mp4" /></html>'
             self.send_response(200)
@@ -367,6 +374,18 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
                 with self.assertRaises(HTTPError):
                     do_req(code, 'GET')
 
+    def test_content_type(self):
+        with self.make_ydl(fake=False, params={'nocheckcertificate': True}) as ydl:
+            # method should be auto-detected as POST
+            r = Request('https://localhost:%d/headers' % self.https_port, data=urlencode_postdata({'test': 'test'}), method='POST')
+
+            headers = ydl.urlopen(r).read().decode('utf-8')
+            self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
+
+            # test http
+            r2 = update_request(r, url='http://localhost:%d/headers' % self.http_port)
+            headers = ydl.urlopen(r2).read().decode('utf-8')
+            self.assertIn('Content-Type: application/x-www-form-urlencoded', headers)
 
     def test_incompleteread(self):
         with self.make_ydl({'socket_timeout': 2}) as ydl:
