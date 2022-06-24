@@ -345,7 +345,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
     def test_redirect(self):
         with self.make_ydl() as ydl:
             def do_req(redirect_status, method):
-                data = 'testdata' if method in ('POST', 'PUT') else None
+                data = b'testdata' if method in ('POST', 'PUT') else None
                 res = ydl.urlopen(
                     Request(f'http://127.0.0.1:%d/redirect_{redirect_status}' % self.http_port, method=method, data=data))
                 return res.read().decode('utf-8'), res.headers.get('method', '')
