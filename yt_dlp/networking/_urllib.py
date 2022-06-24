@@ -15,6 +15,9 @@ import urllib.response
 import urllib.error
 import urllib.parse
 
+from urllib.request import (
+    UnknownHandler, HTTPDefaultErrorHandler, HTTPErrorProcessor, FTPHandler
+)
 import http.client
 
 from .common import (
@@ -103,7 +106,7 @@ def _create_http_connection(ydl_handler, http_class, is_https, *args, **kwargs):
     return hc
 
 
-class YoutubeDLHandler(urllib.request.HTTPHandler):
+class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
     """Handler for HTTP requests and responses.
 
     This class, when installed with an OpenerDirector, automatically adds
@@ -121,9 +124,11 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
     public domain.
     """
 
-    def __init__(self, params, *args, **kwargs):
-        urllib.request.HTTPHandler.__init__(self, *args, **kwargs)
+    def __init__(self, params, context=None, check_hostname=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._params = params
+        self._context = context
+        self._check_hostname = check_hostname
 
     def http_open(self, req):
         conn_class = http.client.HTTPConnection
@@ -136,6 +141,21 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
         return self.do_open(functools.partial(
             _create_http_connection, self, conn_class, False),
             req)
+
+    def https_open(self, req):
+        conn_class = http.client.HTTPSConnection
+
+        kwargs = {
+                'check_hostname': self._check_hostname,
+                'context': self._context
+        }
+
+        socks_proxy = req.headers.pop('Ytdl-socks-proxy', None)
+        if socks_proxy:
+            conn_class = make_socks_conn_class(conn_class, socks_proxy)
+
+        return self.do_open(
+            functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
 
     @staticmethod
     def deflate(data):
@@ -179,7 +199,7 @@ class YoutubeDLHandler(urllib.request.HTTPHandler):
 
         req.headers = handle_youtubedl_headers(req.headers)
 
-        return req
+        return super().do_request_(req)
 
     def http_response(self, req, resp):
         old_resp = resp
@@ -255,30 +275,6 @@ def make_socks_conn_class(base_class, socks_proxy):
                     self.sock = ssl.wrap_socket(self.sock)
 
     return SocksConnection
-
-
-class YoutubeDLHTTPSHandler(urllib.request.HTTPSHandler):
-    def __init__(self, params, https_conn_class=None, *args, **kwargs):
-        urllib.request.HTTPSHandler.__init__(self, *args, **kwargs)
-        self._https_conn_class = https_conn_class or http.client.HTTPSConnection
-        self._params = params
-
-    def https_open(self, req):
-        kwargs = {}
-        conn_class = self._https_conn_class
-
-        if hasattr(self, '_context'):  # python > 2.6
-            kwargs['context'] = self._context
-        if hasattr(self, '_check_hostname'):  # python 3.x
-            kwargs['check_hostname'] = self._check_hostname
-
-        socks_proxy = req.headers.get('Ytdl-socks-proxy')
-        if socks_proxy:
-            conn_class = make_socks_conn_class(conn_class, socks_proxy)
-            del req.headers['Ytdl-socks-proxy']
-
-        return self.do_open(
-            functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
 
 
 class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
@@ -467,10 +463,8 @@ class UrllibRH(BackendRH):
         cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
         proxy_handler = YDLProxyHandler(proxies)
         debuglevel = int(bool(self.ydl.params.get('debug_printtraffic')))
-        https_handler = YoutubeDLHTTPSHandler(
-            self.ydl.params, context=self.make_sslcontext(), debuglevel=debuglevel)
 
-        ydlh = YoutubeDLHandler(self.ydl.params, debuglevel=debuglevel)
+        ydlh = YoutubeDLHandler(self.ydl.params, debuglevel=debuglevel, context=self.make_sslcontext())
         redirect_handler = YoutubeDLRedirectHandler()
         data_handler = urllib.request.DataHandler()
 
@@ -484,8 +478,14 @@ class UrllibRH(BackendRH):
             raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
 
         file_handler.file_open = file_open
-        opener = urllib.request.build_opener(
-            proxy_handler, https_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler)
+        opener = urllib.request.OpenerDirector()
+
+        handlers = [proxy_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler,
+                        UnknownHandler(), HTTPDefaultErrorHandler(), FTPHandler(), HTTPErrorProcessor()]
+
+        for handler in handlers:
+            opener.add_handler(handler)
+
         # Delete the default user-agent header, which would otherwise apply in
         # cases where our custom HTTP handler doesn't come into play
         # (See https://github.com/ytdl-org/youtube-dl/issues/1309 for details)
