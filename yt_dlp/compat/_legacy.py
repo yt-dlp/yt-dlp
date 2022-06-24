@@ -14,12 +14,16 @@ import urllib
 import xml.etree.ElementTree as etree
 from subprocess import DEVNULL
 
+from .compat_utils import passthrough_module
 from .asyncio import run as compat_asyncio_run  # noqa: F401
 from .re import Pattern as compat_Pattern  # noqa: F401
 from .re import match as compat_Match  # noqa: F401
 from ..dependencies import Cryptodome_AES as compat_pycrypto_AES  # noqa: F401
 from ..dependencies import brotli as compat_brotli  # noqa: F401
 from ..dependencies import websockets as compat_websockets  # noqa: F401
+
+
+passthrough_module(__name__, '...utils', ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'))
 
 
 # compat_ctypes_WINFUNCTYPE = ctypes.WINFUNCTYPE
@@ -55,10 +59,3 @@ compat_xml_parse_error = etree.ParseError
 compat_xpath = lambda xpath: xpath
 compat_zip = zip
 workaround_optparse_bug9161 = lambda: None
-
-
-def __getattr__(name):
-    if name in ('WINDOWS_VT_MODE', 'windows_enable_vt_mode'):
-        from .. import utils
-        return getattr(utils, name)
-    raise AttributeError(name)

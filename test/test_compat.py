@@ -26,6 +26,9 @@ class TestCompat(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             compat.compat_basestring
 
+        with self.assertWarns(DeprecationWarning):
+            compat.WINDOWS_VT_MODE
+
         compat.asyncio.events  # Must not raise error
 
     def test_compat_getenv(self):
