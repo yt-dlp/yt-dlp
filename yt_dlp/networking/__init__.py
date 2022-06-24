@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import urllib.parse
 
 from ._urllib import UrllibRH
@@ -20,6 +21,7 @@ class UnsupportedRH(BackendRH):
     E.g. a dependency is required.
 
     """
+
     def prepare_request(self, request: Request):
         scheme = urllib.parse.urlparse(request.url).scheme.lower()
         if scheme == 'file':

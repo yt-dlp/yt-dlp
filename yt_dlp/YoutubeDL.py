@@ -3700,6 +3700,7 @@ class YoutubeDL:
                     'You are using an outdated version (newest version: %s)! '
                     'See https://yt-dl.org/update if you need help updating.' %
                     latest_version)
+
     @property
     def proxies(self) -> dict:
         """Global proxy configuration"""

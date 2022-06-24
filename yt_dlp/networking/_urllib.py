@@ -391,6 +391,7 @@ class UrllibHTTPResponseAdapter(Response):
     """
     HTTP Response adapter class for urllib addinfourl and http.client.HTTPResponse
     """
+
     def __init__(self, res: Union[http.client.HTTPResponse, urllib.response.addinfourl]):
         # addinfourl: In Python 3.9+, .status was introduced and .getcode() was deprecated [1]
         # HTTPResponse: .getcode() was deprecated, .status always existed [2]
@@ -469,7 +470,7 @@ class UrllibRH(BackendRH):
         opener = urllib.request.OpenerDirector()
 
         handlers = [proxy_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler,
-                        UnknownHandler(), HTTPDefaultErrorHandler(), FTPHandler(), HTTPErrorProcessor()]
+                    UnknownHandler(), HTTPDefaultErrorHandler(), FTPHandler(), HTTPErrorProcessor()]
 
         for handler in handlers:
             opener.add_handler(handler)

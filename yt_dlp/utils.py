@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import atexit
 import base64
 import binascii
@@ -4958,6 +4960,7 @@ class CaseInsensitiveDict(collections.UserDict):
     All keys are assumed to be a string, and are converted to title case.
     Latter headers are prioritized in constructor
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__()
         for dct in args:
@@ -5133,7 +5136,7 @@ def YoutubeDLHTTPSHandler(*args, **kwargs):
 # TODO: compat (moved to networking._urllib)
 def YoutubeDLCookieProcessor(*args, **kwargs):
     from .networking._urllib import YoutubeDLCookieProcessor
-    return YoutubeDLCookieProcessor(*args **kwargs)
+    return YoutubeDLCookieProcessor(*args, **kwargs)
 
 
 # TODO: compat (moved to networking._urllib)
@@ -5161,7 +5164,7 @@ def update_Request(*args, **kwargs):
 
 
 def YoutubeDLCookieJar(*args, **kwargs):
-    from cookies import YoutubeDLCookieJar
+    from .cookies import YoutubeDLCookieJar
     return YoutubeDLCookieJar(*args, **kwargs)
 
 

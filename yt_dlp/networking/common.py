@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import email.policy
 import io
 import ssl
 import typing
@@ -48,6 +47,7 @@ class Request:
     @param compression: whether to include content-encoding header on request.
     @param timeout: socket timeout value for this request.
     """
+
     def __init__(
             self,
             url: str,
@@ -407,7 +407,7 @@ class RequestHandlerBroker:
                 except Exception as e:
                     # something went very wrong, try fallback to next handler
                     self.ydl.report_error(
-                        f'Unexpected error from "{handler.name}" request handler' + bug_reports_message(),
+                        f'Unexpected error from "{handler.name}" request handler: {e}' + bug_reports_message(),
                         is_error=False)
                     continue
             except UnsupportedRequest as e:

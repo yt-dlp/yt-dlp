@@ -1,33 +1,34 @@
-import functools
-import gzip
-import io
+#!/usr/bin/env python3
+
+# Allow direct execution
 import os
 import sys
 import unittest
-import urllib.request
-from http.cookiejar import Cookie
-
-
-from yt_dlp.networking import UrllibRH, UnsupportedRH, Request, HEADRequest
-from yt_dlp.networking.utils import update_request
-from yt_dlp.utils import HTTPError, SSLError, TransportError, IncompleteRead, urlencode_postdata
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import http_server_port, FakeYDL
-from yt_dlp import YoutubeDL
-from yt_dlp.compat import compat_http_server
+import functools
+import gzip
+import http.client
+import http.server
+import io
 import ssl
 import threading
-import http.server
-import http.client
+import urllib.request
+from http.cookiejar import Cookie
+
+from test.helper import FakeYDL, http_server_port
+from yt_dlp import YoutubeDL
+from yt_dlp.networking import Request, UnsupportedRH, UrllibRH
+from yt_dlp.networking.utils import update_request
+from yt_dlp.utils import HTTPError, IncompleteRead, SSLError, urlencode_postdata
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
 HTTP_TEST_BACKEND_HANDLERS = [UrllibRH]
 
 
-class FakeLogger(object):
+class FakeLogger:
     def debug(self, msg):
         pass
 
@@ -67,7 +68,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(payload)
 
     def _status(self, status):
-        payload = f'<html>{status} NOT FOUND</html>'.encode('utf-8')
+        payload = f'<html>{status} NOT FOUND</html>'.encode()
         self.send_response(int(status))
         self.send_header('Content-Type', 'text/html; charset=utf-8')
         self.send_header('Content-Length', str(len(payload)))
@@ -170,7 +171,7 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
             with gzip.GzipFile(fileobj=buf, mode='wb') as f:
                 f.write(payload)
             compressed = buf.getvalue()
-            self.send_header('Content-Length', str(len(compressed)+len(b'trailing garbage')))
+            self.send_header('Content-Length', str(len(compressed) + len(b'trailing garbage')))
             self.end_headers()
             self.wfile.write(compressed + b'trailing garbage')
         elif self.path == '/302-non-ascii-redirect':
@@ -194,11 +195,11 @@ class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         if not hasattr(self, '_headers_buffer'):
             self._headers_buffer = []
 
-        self._headers_buffer.append(f'{keyword}: {value}\r\n'.encode('utf-8'))
+        self._headers_buffer.append(f'{keyword}: {value}\r\n'.encode())
 
 
 def _build_proxy_handler(name):
-    class HTTPTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+    class HTTPTestRequestHandler(http.server.BaseHTTPRequestHandler):
         proxy_name = name
 
         def log_message(self, format, *args):
@@ -237,7 +238,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
         # HTTPS server
         certfn = os.path.join(TEST_DIR, 'testcert.pem')
-        self.https_httpd = compat_http_server.ThreadingHTTPServer(
+        self.https_httpd = http.server.ThreadingHTTPServer(
             ('127.0.0.1', 0), HTTPTestRequestHandler)
         sslctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         sslctx.load_cert_chain(certfn, None)
@@ -273,22 +274,22 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             self.assertEqual(r['entries'][0]['url'], 'https://127.0.0.1:%d/vid.mp4' % self.https_port)
 
     def test_http_proxy(self):
-        geo_proxy = '127.0.0.1:{0}'.format(self.geo_port)
-        geo_proxy2 = 'localhost:{0}'.format(self.geo_port)  # ensure backend can support this format
+        geo_proxy = f'127.0.0.1:{self.geo_port}'
+        geo_proxy2 = f'localhost:{self.geo_port}'  # ensure backend can support this format
 
         with self.make_ydl({
-            'proxy': '//127.0.0.1:{0}'.format(self.proxy_port),
+            'proxy': f'//127.0.0.1:{self.proxy_port}',
             'geo_verification_proxy': geo_proxy,
         }) as ydl:
             url = 'http://foo.com/bar'
             response = ydl.urlopen(url).read().decode('utf-8')
-            self.assertEqual(response, 'normal: {0}'.format(url))
+            self.assertEqual(response, f'normal: {url}')
             req = Request(url)
             req.add_header('Ytdl-request-proxy', geo_proxy2)
             response1 = ydl.urlopen(req).read().decode('utf-8')
             response2 = ydl.urlopen(Request(url, proxies={'http': geo_proxy})).read().decode('utf-8')
-            self.assertEqual(response1, 'geo: {0}'.format(url))
-            self.assertEqual(response2, 'geo: {0}'.format(url))
+            self.assertEqual(response1, f'geo: {url}')
+            self.assertEqual(response2, f'geo: {url}')
             # test that __noproxy__ disables all proxies for that request
             real_url = 'http://127.0.0.1:%d/headers' % self.http_port
             response3 = ydl.urlopen(
@@ -299,7 +300,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
     def test_http_proxy_with_idn(self):
         with self.make_ydl({
-            'proxy': '127.0.0.1:{0}'.format(self.proxy_port),
+            'proxy': f'127.0.0.1:{self.proxy_port}',
         }) as ydl:
             url = 'http://中文.tw/'
             response = ydl.urlopen(url).read().decode('utf-8')

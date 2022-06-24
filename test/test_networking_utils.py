@@ -1,10 +1,14 @@
+#!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
 import unittest
-from yt_dlp.networking.utils import select_proxy
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+from yt_dlp.networking.utils import select_proxy
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 

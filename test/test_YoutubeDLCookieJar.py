@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import re
 import tempfile
 
-from yt_dlp.utils import YoutubeDLCookieJar
+from yt_dlp.cookies import YoutubeDLCookieJar
 
 
 class TestYoutubeDLCookieJar(unittest.TestCase):
