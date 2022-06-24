@@ -1,24 +1,18 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
 import unittest
 
-from test.test_networking import RequestHandlerTestBase, with_request_handlers
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 import random
 import subprocess
 
-from test.helper import (
-    get_params,
-    is_download_test,
-)
-from yt_dlp.compat import (
-    compat_str,
-)
-
+from test.helper import get_params, is_download_test
+from test.test_networking import RequestHandlerTestBase, with_request_handlers
 from yt_dlp.networking import Request
 
 
@@ -111,15 +105,15 @@ class TestSocks(RequestHandlerTestBase, unittest.TestCase):
 
     @with_request_handlers()
     def test_socks4(self):
-        self.assertTrue(isinstance(self._get_ip('socks4'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4'), str))
 
     @with_request_handlers()
     def test_socks4a(self):
-        self.assertTrue(isinstance(self._get_ip('socks4a'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks4a'), str))
 
     @with_request_handlers()
     def test_socks5(self):
-        self.assertTrue(isinstance(self._get_ip('socks5'), compat_str))
+        self.assertTrue(isinstance(self._get_ip('socks5'), str))
 
 
 if __name__ == '__main__':

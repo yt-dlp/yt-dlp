@@ -1,16 +1,12 @@
-import xml.etree.ElementTree
 import functools
 import itertools
 import json
 import re
+import urllib.error
+import xml.etree.ElementTree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_HTTPError,
-    compat_str,
-    compat_urllib_error,
-    compat_urlparse,
-)
+from ..compat import compat_HTTPError, compat_str, compat_urlparse
 from ..utils import (
     ExtractorError,
     OnDemandPagedList,
@@ -391,7 +387,7 @@ class BBCCoUkIE(InfoExtractor):
                                 href, programme_id, ext='mp4', entry_protocol='m3u8_native',
                                 m3u8_id=format_id, fatal=False)
                         except ExtractorError as e:
-                            if not (isinstance(e.exc_info[1], compat_urllib_error.HTTPError)
+                            if not (isinstance(e.exc_info[1], urllib.error.HTTPError)
                                     and e.exc_info[1].code in (403, 404)):
                                 raise
                             fmts = []

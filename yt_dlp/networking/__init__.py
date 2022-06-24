@@ -4,12 +4,11 @@ import urllib.parse
 from ._urllib import UrllibRH
 from .common import (
     BackendRH,
-    Request,
     HEADRequest,
     PUTRequest,
-    RequestHandlerBroker
+    Request,
+    RequestHandlerBroker,
 )
-
 from ..utils import RequestError
 
 

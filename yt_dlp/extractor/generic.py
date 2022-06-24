@@ -1,5 +1,6 @@
 import os
 import re
+import urllib.parse
 import xml.etree.ElementTree
 
 from .ant1newsgr import Ant1NewsGrEmbedIE
@@ -106,12 +107,7 @@ from .yapfiles import YapFilesIE
 from .youporn import YouPornIE
 from .youtube import YoutubeIE
 from .zype import ZypeIE
-from ..compat import (
-    compat_etree_fromstring,
-    compat_str,
-    compat_urllib_parse_unquote,
-    compat_urlparse,
-)
+from ..compat import compat_etree_fromstring
 from ..utils import (
     KNOWN_EXTENSIONS,
     ExtractorError,
@@ -2703,7 +2699,7 @@ class GenericIE(InfoExtractor):
 
         title = self._html_search_meta('DC.title', webpage, fatal=True)
 
-        camtasia_url = compat_urlparse.urljoin(url, camtasia_cfg)
+        camtasia_url = urllib.parse.urljoin(url, camtasia_cfg)
         camtasia_cfg = self._download_xml(
             camtasia_url, video_id,
             note='Downloading camtasia configuration',
@@ -2719,7 +2715,7 @@ class GenericIE(InfoExtractor):
             entries.append({
                 'id': os.path.splitext(url_n.text.rpartition('/')[2])[0],
                 'title': f'{title} - {n.tag}',
-                'url': compat_urlparse.urljoin(url, url_n.text),
+                'url': urllib.parse.urljoin(url, url_n.text),
                 'duration': float_or_none(n.find('./duration').text),
             })
 
@@ -2771,7 +2767,7 @@ class GenericIE(InfoExtractor):
         if url.startswith('//'):
             return self.url_result(self.http_scheme() + url)
 
-        parsed_url = compat_urlparse.urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         if not parsed_url.scheme:
             default_search = self.get_param('default_search')
             if default_search is None:
@@ -2847,7 +2843,7 @@ class GenericIE(InfoExtractor):
         m = re.match(r'^(?P<type>audio|video|application(?=/(?:ogg$|(?:vnd\.apple\.|x-)?mpegurl)))/(?P<format_id>[^;\s]+)', content_type)
         if m:
             self.report_detected('direct video link')
-            format_id = compat_str(m.group('format_id'))
+            format_id = str(m.group('format_id'))
             subtitles = {}
             if format_id.endswith('mpegurl'):
                 formats, subtitles = self._extract_m3u8_formats_and_subtitles(url, video_id, 'mp4')
@@ -2966,7 +2962,7 @@ class GenericIE(InfoExtractor):
         # Unescaping the whole page allows to handle those cases in a generic way
         # FIXME: unescaping the whole page may break URLs, commenting out for now.
         # There probably should be a second run of generic extractor on unescaped webpage.
-        # webpage = compat_urllib_parse_unquote(webpage)
+        # webpage = urllib.parse.unquote(webpage)
 
         # Unescape squarespace embeds to be detected by generic extractor,
         # see https://github.com/ytdl-org/youtube-dl/issues/21294
@@ -3239,7 +3235,7 @@ class GenericIE(InfoExtractor):
             return self.url_result(mobj.group('url'))
         mobj = re.search(r'class=["\']embedly-embed["\'][^>]src=["\'][^"\']*url=(?P<url>[^&]+)', webpage)
         if mobj is not None:
-            return self.url_result(compat_urllib_parse_unquote(mobj.group('url')))
+            return self.url_result(urllib.parse.unquote(mobj.group('url')))
 
         # Look for funnyordie embed
         matches = re.findall(r'<iframe[^>]+?src="(https?://(?:www\.)?funnyordie\.com/embed/[^"]+)"', webpage)
@@ -3492,7 +3488,7 @@ class GenericIE(InfoExtractor):
             r'<iframe[^>]+src="(?:https?:)?(?P<url>%s)"' % UDNEmbedIE._PROTOCOL_RELATIVE_VALID_URL, webpage)
         if mobj is not None:
             return self.url_result(
-                compat_urlparse.urljoin(url, mobj.group('url')), 'UDNEmbed')
+                urllib.parse.urljoin(url, mobj.group('url')), 'UDNEmbed')
 
         # Look for Senate ISVP iframe
         senate_isvp_url = SenateISVPIE._search_iframe_url(webpage)
@@ -3725,7 +3721,7 @@ class GenericIE(InfoExtractor):
         if mediasite_urls:
             entries = [
                 self.url_result(smuggle_url(
-                    compat_urlparse.urljoin(url, mediasite_url),
+                    urllib.parse.urljoin(url, mediasite_url),
                     {'UrlReferrer': url}), ie=MediasiteIE.ie_key())
                 for mediasite_url in mediasite_urls]
             return self.playlist_result(entries, video_id, video_title)
@@ -3920,11 +3916,11 @@ class GenericIE(InfoExtractor):
             subtitles = {}
             for source in sources:
                 src = source.get('src')
-                if not src or not isinstance(src, compat_str):
+                if not src or not isinstance(src, str):
                     continue
-                src = compat_urlparse.urljoin(url, src)
+                src = urllib.parse.urljoin(url, src)
                 src_type = source.get('type')
-                if isinstance(src_type, compat_str):
+                if isinstance(src_type, str):
                     src_type = src_type.lower()
                 ext = determine_ext(src).lower()
                 if src_type == 'video/youtube':
@@ -3958,7 +3954,7 @@ class GenericIE(InfoExtractor):
                 if not src:
                     continue
                 subtitles.setdefault(dict_get(sub, ('language', 'srclang')) or 'und', []).append({
-                    'url': compat_urlparse.urljoin(url, src),
+                    'url': urllib.parse.urljoin(url, src),
                     'name': sub.get('label'),
                     'http_headers': {
                         'Referer': full_response.geturl(),
@@ -3985,7 +3981,7 @@ class GenericIE(InfoExtractor):
                 return True
             if RtmpIE.suitable(vurl):
                 return True
-            vpath = compat_urlparse.urlparse(vurl).path
+            vpath = urllib.parse.urlparse(vurl).path
             vext = determine_ext(vpath, None)
             return vext not in (None, 'swf', 'png', 'jpg', 'srt', 'sbv', 'sub', 'vtt', 'ttml', 'js', 'xml')
 
@@ -4113,7 +4109,7 @@ class GenericIE(InfoExtractor):
                 if refresh_header:
                     found = re.search(REDIRECT_REGEX, refresh_header)
             if found:
-                new_url = compat_urlparse.urljoin(url, unescapeHTML(found.group(1)))
+                new_url = urllib.parse.urljoin(url, unescapeHTML(found.group(1)))
                 if new_url != url:
                     self.report_following_redirect(new_url)
                     return {
@@ -4139,8 +4135,8 @@ class GenericIE(InfoExtractor):
         for video_url in orderedSet(found):
             video_url = unescapeHTML(video_url)
             video_url = video_url.replace('\\/', '/')
-            video_url = compat_urlparse.urljoin(url, video_url)
-            video_id = compat_urllib_parse_unquote(os.path.basename(video_url))
+            video_url = urllib.parse.urljoin(url, video_url)
+            video_id = urllib.parse.unquote(os.path.basename(video_url))
 
             # Sometimes, jwplayer extraction will result in a YouTube URL
             if YoutubeIE.suitable(video_url):

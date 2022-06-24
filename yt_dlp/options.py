@@ -4,10 +4,11 @@ import optparse
 import os.path
 import re
 import shlex
+import shutil
 import string
 import sys
 
-from .compat import compat_expanduser, compat_get_terminal_size, compat_getenv
+from .compat import compat_expanduser
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader.external import list_external_downloaders
 from .postprocessor import (
@@ -39,7 +40,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 
     def _readUserConf(package_name, default=[]):
         # .config
-        xdg_config_home = compat_getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
+        xdg_config_home = os.getenv('XDG_CONFIG_HOME') or compat_expanduser('~/.config')
         userConfFile = os.path.join(xdg_config_home, package_name, 'config')
         if not os.path.isfile(userConfFile):
             userConfFile = os.path.join(xdg_config_home, '%s.conf' % package_name)
@@ -48,7 +49,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
             return userConf, userConfFile
 
         # appdata
-        appdata_dir = compat_getenv('appdata')
+        appdata_dir = os.getenv('appdata')
         if appdata_dir:
             userConfFile = os.path.join(appdata_dir, package_name, 'config')
             userConf = Config.read_file(userConfFile, default=None)
@@ -137,7 +138,7 @@ def parseOpts(overrideArguments=None, ignore_config_files='if_override'):
 class _YoutubeDLHelpFormatter(optparse.IndentedHelpFormatter):
     def __init__(self):
         # No need to wrap help messages if we're on a wide console
-        max_width = compat_get_terminal_size().columns or 80
+        max_width = shutil.get_terminal_size().columns or 80
         # The % is chosen to get a pretty output in README.md
         super().__init__(width=max_width, max_help_position=int(0.45 * max_width))
 

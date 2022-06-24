@@ -1,8 +1,8 @@
-from __future__ import annotations
-
+import base64
 import collections
 import contextlib
 import ctypes
+import http.cookiejar
 import io
 import json
 import os
@@ -21,20 +21,13 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import compat_b64decode, compat_cookiejar_Cookie, compat_cookiejar
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
     sqlite3,
 )
 from .minicurses import MultilinePrinter, QuietMultilinePrinter
-from .utils import (
-    Popen,
-    error_to_str,
-    expand_path,
-    str_or_none,
-    write_string
-)
+from .utils import Popen, error_to_str, expand_path, str_or_none, write_string
 
 CHROMIUM_BASED_BROWSERS = {'brave', 'chrome', 'chromium', 'edge', 'opera', 'vivaldi'}
 SUPPORTED_BROWSERS = CHROMIUM_BASED_BROWSERS | {'firefox', 'safari'}
@@ -152,7 +145,7 @@ def _extract_firefox_cookies(profile, logger):
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
                     progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
-                    cookie = compat_cookiejar_Cookie(
+                    cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
                         path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
@@ -307,7 +300,7 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
-    return is_encrypted, compat_cookiejar_Cookie(
+    return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
@@ -599,7 +592,7 @@ def _parse_safari_cookies_record(data, jar, logger):
 
     p.skip_to(record_size, 'space at the end of the record')
 
-    cookie = compat_cookiejar_Cookie(
+    cookie = http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=domain, domain_specified=bool(domain), domain_initial_dot=domain.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expiration_date, discard=False,
@@ -845,7 +838,7 @@ def _get_windows_v10_key(browser_root, logger):
     except KeyError:
         logger.error('no encrypted key in Local State')
         return None
-    encrypted_key = compat_b64decode(base64_key)
+    encrypted_key = base64.b64decode(base64_key)
     prefix = b'DPAPI'
     if not encrypted_key.startswith(prefix):
         logger.error('invalid key')
@@ -966,7 +959,7 @@ def _parse_browser_specification(browser_name, profile=None, keyring=None):
     return browser_name, profile, keyring
 
 
-class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
+class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
     """
     See [1] for cookie file format.
 
@@ -1037,7 +1030,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             if self.filename is not None:
                 filename = self.filename
             else:
-                raise ValueError(compat_cookiejar.MISSING_FILENAME_TEXT)
+                raise ValueError(http.cookiejar.MISSING_FILENAME_TEXT)
 
         # Store session cookies with `expires` set to 0 instead of an empty string
         for cookie in self:
@@ -1054,7 +1047,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             if self.filename is not None:
                 filename = self.filename
             else:
-                raise ValueError(compat_cookiejar.MISSING_FILENAME_TEXT)
+                raise ValueError(http.cookiejar.MISSING_FILENAME_TEXT)
 
         def prepare_line(line):
             if line.startswith(self._HTTPONLY_PREFIX):
@@ -1064,10 +1057,10 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 return line
             cookie_list = line.split('\t')
             if len(cookie_list) != self._ENTRY_LEN:
-                raise compat_cookiejar.LoadError('invalid length %d' % len(cookie_list))
+                raise http.cookiejar.LoadError('invalid length %d' % len(cookie_list))
             cookie = self._CookieFileEntry(*cookie_list)
             if cookie.expires_at and not cookie.expires_at.isdigit():
-                raise compat_cookiejar.LoadError('invalid expires at %s' % cookie.expires_at)
+                raise http.cookiejar.LoadError('invalid expires at %s' % cookie.expires_at)
             return line
 
         cf = io.StringIO()
@@ -1075,9 +1068,9 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             for line in f:
                 try:
                     cf.write(prepare_line(line))
-                except compat_cookiejar.LoadError as e:
+                except http.cookiejar.LoadError as e:
                     if f'{line.strip()} '[0] in '[{"':
-                        raise compat_cookiejar.LoadError(
+                        raise http.cookiejar.LoadError(
                             'Cookies file must be Netscape formatted, not JSON. See  '
                             'https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl')
                     write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')

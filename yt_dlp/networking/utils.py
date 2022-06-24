@@ -4,19 +4,18 @@ import contextlib
 import random
 import ssl
 import sys
+import typing
 import urllib.parse
 import urllib.request
 
-import typing
-
-from ..compat import compat_urllib_parse_unquote_plus, compat_urlparse
 from ..dependencies import certifi
 from ..socks import ProxyType
 from ..utils import CaseInsensitiveDict, std_headers, update_url_query
 
 if typing.TYPE_CHECKING:
-    from .common import Request
     from http.cookiejar import CookieJar
+
+    from .common import Request
 
 
 def random_user_agent():
@@ -118,7 +117,7 @@ def _ssl_load_windows_store_certs(ssl_context, storename):
 
 
 def socks_create_proxy_args(socks_proxy):
-    url_components = compat_urlparse.urlparse(socks_proxy)
+    url_components = urllib.parse.urlparse(socks_proxy)
     if url_components.scheme.lower() == 'socks5':
         socks_type = ProxyType.SOCKS5
     elif url_components.scheme.lower() in ('socks', 'socks4'):
@@ -129,7 +128,7 @@ def socks_create_proxy_args(socks_proxy):
     def unquote_if_non_empty(s):
         if not s:
             return s
-        return compat_urllib_parse_unquote_plus(s)
+        return urllib.parse.unquote_plus(s)
     return {
         'proxytype': socks_type,
         'addr': url_components.hostname,

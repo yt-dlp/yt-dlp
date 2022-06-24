@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-from __future__ import annotations
 import atexit
 import base64
 import binascii
@@ -12,12 +10,13 @@ import datetime
 import email.header
 import email.utils
 import errno
-import gzip
 import hashlib
 import hmac
-import http
+import html.entities
+import html.parser
+import http.client
+import http.cookiejar
 import importlib.util
-import io
 import itertools
 import json
 import locale
@@ -31,15 +30,15 @@ import re
 import shlex
 import socket
 import ssl
+import struct
 import subprocess
 import sys
 import tempfile
-import time
 import traceback
 import types
-import urllib.parse
 import urllib.error
-import http.client
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree
 import zlib
 
@@ -47,31 +46,13 @@ import typing
 
 from .compat import asyncio, functools  # isort: split
 from .compat import (
-    compat_chr,
-    compat_cookiejar,
     compat_etree_fromstring,
     compat_expanduser,
-    compat_html_entities,
-    compat_html_entities_html5,
     compat_HTMLParseError,
-    compat_HTMLParser,
-    compat_http_client,
-    compat_HTTPError,
     compat_os_name,
-    compat_parse_qs,
     compat_shlex_quote,
-    compat_str,
-    compat_struct_pack,
-    compat_struct_unpack,
-    compat_urllib_error,
-    compat_urllib_parse_unquote_plus,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_urlparse,
-    compat_urllib_request,
-    compat_urlparse,
 )
-from .dependencies import brotli, certifi, websockets
-from .socks import ProxyType, sockssocket
+from .dependencies import certifi, websockets, xattr
 
 if typing.TYPE_CHECKING:
     from networking.common import Response
@@ -252,7 +233,7 @@ def xpath_element(node, xpath, name=None, fatal=False, default=NO_DEFAULT):
     def _find_xpath(xpath):
         return node.find(xpath)
 
-    if isinstance(xpath, (str, compat_str)):
+    if isinstance(xpath, str):
         n = _find_xpath(xpath)
     else:
         for xp in xpath:
@@ -380,7 +361,7 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
         )
 
 
-class HTMLBreakOnClosingTagParser(compat_HTMLParser):
+class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
     """
     HTML parser which raises HTMLBreakOnClosingTagException upon reaching the
     closing tag for the first opening tag it has encountered, and can be used
@@ -392,7 +373,7 @@ class HTMLBreakOnClosingTagParser(compat_HTMLParser):
 
     def __init__(self):
         self.tagstack = collections.deque()
-        compat_HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
 
     def __enter__(self):
         return self
@@ -457,22 +438,22 @@ def get_element_text_and_html_by_tag(tag, html):
         raise compat_HTMLParseError('unexpected end of html')
 
 
-class HTMLAttributeParser(compat_HTMLParser):
+class HTMLAttributeParser(html.parser.HTMLParser):
     """Trivial HTML parser to gather the attributes for a single element"""
 
     def __init__(self):
         self.attrs = {}
-        compat_HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
 
     def handle_starttag(self, tag, attrs):
         self.attrs = dict(attrs)
 
 
-class HTMLListAttrsParser(compat_HTMLParser):
+class HTMLListAttrsParser(html.parser.HTMLParser):
     """HTML parser to gather the attributes for the elements of a list"""
 
     def __init__(self):
-        compat_HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
         self.items = []
         self._level = 0
 
@@ -682,10 +663,10 @@ def sanitize_url(url):
 
 
 def extract_basic_auth(url):
-    parts = compat_urlparse.urlsplit(url)
+    parts = urllib.parse.urlsplit(url)
     if parts.username is None:
         return url, None
-    url = compat_urlparse.urlunsplit(parts._replace(netloc=(
+    url = urllib.parse.urlunsplit(parts._replace(netloc=(
         parts.hostname if parts.port is None
         else '%s:%d' % (parts.hostname, parts.port))))
     auth_payload = base64.b64encode(
@@ -715,13 +696,13 @@ def _htmlentity_transform(entity_with_semicolon):
     entity = entity_with_semicolon[:-1]
 
     # Known non-numeric HTML entity
-    if entity in compat_html_entities.name2codepoint:
-        return compat_chr(compat_html_entities.name2codepoint[entity])
+    if entity in html.entities.name2codepoint:
+        return chr(html.entities.name2codepoint[entity])
 
     # TODO: HTML5 allows entities without a semicolon. For example,
     # '&Eacuteric' should be decoded as 'Éric'.
-    if entity_with_semicolon in compat_html_entities_html5:
-        return compat_html_entities_html5[entity_with_semicolon]
+    if entity_with_semicolon in html.entities.html5:
+        return html.entities.html5[entity_with_semicolon]
 
     mobj = re.match(r'#(x[0-9a-fA-F]+|[0-9]+)', entity)
     if mobj is not None:
@@ -733,7 +714,7 @@ def _htmlentity_transform(entity_with_semicolon):
             base = 10
         # See https://github.com/ytdl-org/youtube-dl/issues/7518
         with contextlib.suppress(ValueError):
-            return compat_chr(int(numstr, base))
+            return chr(int(numstr, base))
 
     # Unknown entity in name, return its literal representation
     return '&%s;' % entity
@@ -822,7 +803,7 @@ def decodeFilename(b, for_subprocess=False):
 def encodeArgument(s):
     # Legacy code that uses byte strings
     # Uncomment the following line after fixing all post processors
-    # assert isinstance(s, str), 'Internal error: %r should be of type %r, is %r' % (s, compat_str, type(s))
+    # assert isinstance(s, str), 'Internal error: %r should be of type %r, is %r' % (s, str, type(s))
     return s if isinstance(s, str) else s.decode('ascii')
 
 
@@ -836,7 +817,7 @@ def decodeOption(optval):
     if isinstance(optval, bytes):
         optval = optval.decode(preferredencoding())
 
-    assert isinstance(optval, compat_str)
+    assert isinstance(optval, str)
     return optval
 
 
@@ -1201,7 +1182,7 @@ def unified_strdate(date_str, day_first=True):
             with contextlib.suppress(ValueError):
                 upload_date = datetime.datetime(*timetuple[:6]).strftime('%Y%m%d')
     if upload_date is not None:
-        return compat_str(upload_date)
+        return str(upload_date)
 
 
 def unified_timestamp(date_str, day_first=True):
@@ -1375,12 +1356,12 @@ class DateRange:
 
 
 def platform_name():
-    """ Returns the platform name as a compat_str """
+    """ Returns the platform name as a str """
     res = platform.platform()
     if isinstance(res, bytes):
         res = res.decode(preferredencoding())
 
-    assert isinstance(res, compat_str)
+    assert isinstance(res, str)
     return res
 
 
@@ -1423,7 +1404,7 @@ def bytes_to_intlist(bs):
 def intlist_to_bytes(xs):
     if not xs:
         return b''
-    return compat_struct_pack('%dB' % len(xs), *xs)
+    return struct.pack('%dB' % len(xs), *xs)
 
 
 class LockingUnsupportedError(OSError):
@@ -1606,7 +1587,7 @@ def smuggle_url(url, data):
 
     url, idata = unsmuggle_url(url, {})
     data.update(idata)
-    sdata = compat_urllib_parse_urlencode(
+    sdata = urllib.parse.urlencode(
         {'__youtubedl_smuggle': json.dumps(data)})
     return url + '#' + sdata
 
@@ -1615,7 +1596,7 @@ def unsmuggle_url(smug_url, default=None):
     if '#__youtubedl_smuggle' not in smug_url:
         return smug_url, default
     url, _, sdata = smug_url.rpartition('#')
-    jsond = compat_parse_qs(sdata)['__youtubedl_smuggle'][0]
+    jsond = urllib.parse.parse_qs(sdata)['__youtubedl_smuggle'][0]
     data = json.loads(jsond)
     return url, data
 
@@ -1775,7 +1756,7 @@ def parse_resolution(s, *, lenient=False):
 
 
 def parse_bitrate(s):
-    if not isinstance(s, compat_str):
+    if not isinstance(s, str):
         return
     mobj = re.search(r'\b(\d+)\s*kbps', s)
     if mobj:
@@ -1812,7 +1793,7 @@ def fix_xml_ampersands(xml_str):
 
 
 def setproctitle(title):
-    assert isinstance(title, compat_str)
+    assert isinstance(title, str)
 
     # ctypes in Jython is not complete
     # http://bugs.jython.org/issue2148
@@ -1860,7 +1841,7 @@ def get_domain(url):
 
 
 def url_basename(url):
-    path = compat_urlparse.urlparse(url).path
+    path = urllib.parse.urlparse(url).path
     return path.strip('/').split('/')[-1]
 
 
@@ -1871,16 +1852,16 @@ def base_url(url):
 def urljoin(base, path):
     if isinstance(path, bytes):
         path = path.decode()
-    if not isinstance(path, compat_str) or not path:
+    if not isinstance(path, str) or not path:
         return None
     if re.match(r'^(?:[a-zA-Z][a-zA-Z0-9+-.]*:)?//', path):
         return path
     if isinstance(base, bytes):
         base = base.decode()
-    if not isinstance(base, compat_str) or not re.match(
+    if not isinstance(base, str) or not re.match(
             r'^(?:https?:)?//', base):
         return None
-    return compat_urlparse.urljoin(base, path)
+    return urllib.parse.urljoin(base, path)
 
 
 def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
@@ -1893,14 +1874,14 @@ def int_or_none(v, scale=1, default=None, get_attr=None, invscale=1):
 
 
 def str_or_none(v, default=None):
-    return default if v is None else compat_str(v)
+    return default if v is None else str(v)
 
 
 def str_to_int(int_str):
     """ A more relaxed version of int_or_none """
     if isinstance(int_str, int):
         return int_str
-    elif isinstance(int_str, compat_str):
+    elif isinstance(int_str, str):
         int_str = re.sub(r'[,\.\+]', '', int_str)
         return int_or_none(int_str)
 
@@ -1919,11 +1900,11 @@ def bool_or_none(v, default=None):
 
 
 def strip_or_none(v, default=None):
-    return v.strip() if isinstance(v, compat_str) else default
+    return v.strip() if isinstance(v, str) else default
 
 
 def url_or_none(url):
-    if not url or not isinstance(url, compat_str):
+    if not url or not isinstance(url, str):
         return None
     url = url.strip()
     return url if re.match(r'^(?:(?:https?|rt(?:m(?:pt?[es]?|fp)|sp[su]?)|mms|ftps?):)?//', url) else None
@@ -1934,7 +1915,7 @@ def strftime_or_none(timestamp, date_format, default=None):
     try:
         if isinstance(timestamp, (int, float)):  # unix timestamp
             datetime_object = datetime.datetime.utcfromtimestamp(timestamp)
-        elif isinstance(timestamp, compat_str):  # assume YYYYMMDD
+        elif isinstance(timestamp, str):  # assume YYYYMMDD
             datetime_object = datetime.datetime.strptime(timestamp, '%Y%m%d')
         return datetime_object.strftime(date_format)
     except (ValueError, TypeError, AttributeError):
@@ -2037,7 +2018,7 @@ def _get_exe_version_output(exe, args, *, to_screen=None):
 
 
 def detect_exe_version(output, version_re=None, unrecognized='present'):
-    assert isinstance(output, compat_str)
+    assert isinstance(output, str)
     if version_re is None:
         version_re = r'version\s+([-0-9._a-zA-Z]+)'
     m = re.search(version_re, output)
@@ -2418,7 +2399,7 @@ def escape_rfc3986(s):
 
 def escape_url(url):
     """Escape URL as suggested by RFC 3986"""
-    url_parsed = compat_urllib_parse_urlparse(url)
+    url_parsed = urllib.parse.urlparse(url)
     return url_parsed._replace(
         netloc=url_parsed.netloc.encode('idna').decode('ascii'),
         path=escape_rfc3986(url_parsed.path),
@@ -2429,12 +2410,12 @@ def escape_url(url):
 
 
 def parse_qs(url):
-    return compat_parse_qs(compat_urllib_parse_urlparse(url).query)
+    return urllib.parse.parse_qs(urllib.parse.urlparse(url).query)
 
 
 def read_batch_urls(batch_fd):
     def fixup(url):
-        if not isinstance(url, compat_str):
+        if not isinstance(url, str):
             url = url.decode('utf-8', 'replace')
         BOM_UTF8 = ('\xef\xbb\xbf', '\ufeff')
         for bom in BOM_UTF8:
@@ -2452,17 +2433,17 @@ def read_batch_urls(batch_fd):
 
 
 def urlencode_postdata(*args, **kargs):
-    return compat_urllib_parse_urlencode(*args, **kargs).encode('ascii')
+    return urllib.parse.urlencode(*args, **kargs).encode('ascii')
 
 
 def update_url_query(url, query):
     if not query:
         return url
-    parsed_url = compat_urlparse.urlparse(url)
-    qs = compat_parse_qs(parsed_url.query)
+    parsed_url = urllib.parse.urlparse(url)
+    qs = urllib.parse.parse_qs(parsed_url.query)
     qs.update(query)
-    return compat_urlparse.urlunparse(parsed_url._replace(
-        query=compat_urllib_parse_urlencode(qs, True)))
+    return urllib.parse.urlunparse(parsed_url._replace(
+        query=urllib.parse.urlencode(qs, True)))
 
 
 def _multipart_encode_impl(data, boundary):
@@ -2471,9 +2452,9 @@ def _multipart_encode_impl(data, boundary):
     out = b''
     for k, v in data.items():
         out += b'--' + boundary.encode('ascii') + b'\r\n'
-        if isinstance(k, compat_str):
+        if isinstance(k, str):
             k = k.encode()
-        if isinstance(v, compat_str):
+        if isinstance(v, str):
             v = v.encode()
         # RFC 2047 requires non-ASCII field names to be encoded, while RFC 7578
         # suggests sending UTF-8 directly. Firefox sends UTF-8, too
@@ -2554,7 +2535,7 @@ def merge_dicts(*dicts):
 
 
 def encode_compat_str(string, encoding=preferredencoding(), errors='strict'):
-    return string if isinstance(string, compat_str) else compat_str(string, encoding, errors)
+    return string if isinstance(string, str) else str(string, encoding, errors)
 
 
 US_RATINGS = {
@@ -2934,7 +2915,7 @@ def determine_protocol(info_dict):
     elif ext == 'f4m':
         return 'f4m'
 
-    return compat_urllib_parse_urlparse(url).scheme
+    return urllib.parse.urlparse(url).scheme
 
 
 def render_table(header_row, data, delim=False, extra_gap=0, hide_empty=False):
@@ -4055,10 +4036,10 @@ class GeoUtils:
         else:
             block = code_or_block
         addr, preflen = block.split('/')
-        addr_min = compat_struct_unpack('!L', socket.inet_aton(addr))[0]
+        addr_min = struct.unpack('!L', socket.inet_aton(addr))[0]
         addr_max = addr_min | (0xffffffff >> int(preflen))
-        return compat_str(socket.inet_ntoa(
-            compat_struct_pack('!L', random.randint(addr_min, addr_max))))
+        return str(socket.inet_ntoa(
+            struct.pack('!L', random.randint(addr_min, addr_max))))
 
 
 # Both long_to_bytes and bytes_to_long are adapted from PyCrypto, which is
@@ -4077,7 +4058,7 @@ def long_to_bytes(n, blocksize=0):
     s = b''
     n = int(n)
     while n > 0:
-        s = compat_struct_pack('>I', n & 0xffffffff) + s
+        s = struct.pack('>I', n & 0xffffffff) + s
         n = n >> 32
     # strip off leading zeros
     for i in range(len(s)):
@@ -4108,7 +4089,7 @@ def bytes_to_long(s):
         s = b'\000' * extra + s
         length = length + extra
     for i in range(0, length, 4):
-        acc = (acc << 32) + compat_struct_unpack('>I', s[i:i + 4])[0]
+        acc = (acc << 32) + struct.unpack('>I', s[i:i + 4])[0]
     return acc
 
 
@@ -4236,7 +4217,7 @@ def decode_png(png_data):
         raise OSError('Not a valid PNG file.')
 
     int_map = {1: '>B', 2: '>H', 4: '>I'}
-    unpack_integer = lambda x: compat_struct_unpack(int_map[len(x)], x)[0]
+    unpack_integer = lambda x: struct.unpack(int_map[len(x)], x)[0]
 
     chunks = []
 
@@ -4348,7 +4329,6 @@ def write_xattr(path, key, value):
         return
 
     # UNIX Method 1. Use xattrs/pyxattrs modules
-    from .dependencies import xattr
 
     setxattr = None
     if getattr(xattr, '_yt_dlp__identifier', None) == 'pyxattr':
@@ -4437,7 +4417,7 @@ def iri_to_uri(iri):
     The function doesn't add an additional layer of escaping; e.g., it doesn't escape `%3C` as `%253C`. Instead, it percent-escapes characters with an underlying UTF-8 encoding *besides* those already escaped, leaving the URI intact.
     """
 
-    iri_parts = compat_urllib_parse_urlparse(iri)
+    iri_parts = urllib.parse.urlparse(iri)
 
     if '[' in iri_parts.netloc:
         raise ValueError('IPv6 URIs are not, yet, supported.')
@@ -5073,14 +5053,14 @@ def make_HTTPS_handler(params, **kwargs):
 
 
 # TODO: REMOVE
-class PerRequestProxyHandler(compat_urllib_request.ProxyHandler):
+class PerRequestProxyHandler(urllib.request.ProxyHandler):
     def __init__(self, proxies=None):
         # Set default handlers
         for type in ('http', 'https'):
             setattr(self, '%s_open' % type,
                     lambda r, proxy='__noproxy__', type=type, meth=self.proxy_open:
                         meth(r, proxy, type))
-        compat_urllib_request.ProxyHandler.__init__(self, proxies)
+        urllib.request.ProxyHandler.__init__(self, proxies)
 
     def proxy_open(self, req, proxy, type):
         req_proxy = req.headers.get('Ytdl-request-proxy')
@@ -5090,11 +5070,11 @@ class PerRequestProxyHandler(compat_urllib_request.ProxyHandler):
 
         if proxy == '__noproxy__':
             return None  # No Proxy
-        if compat_urlparse.urlparse(proxy).scheme.lower() in ('socks', 'socks4', 'socks4a', 'socks5'):
+        if urllib.parse.urlparse(proxy).scheme.lower() in ('socks', 'socks4', 'socks4a', 'socks5'):
             req.add_header('Ytdl-socks-proxy', proxy)
             # yt-dlp's http/https handlers do wrapping the socket with socks
             return None
-        return compat_urllib_request.ProxyHandler.proxy_open(
+        return urllib.request.ProxyHandler.proxy_open(
             self, req, proxy, type)
 
 
@@ -5191,12 +5171,12 @@ def register_socks_protocols():
     # In Python < 2.6.5, urlsplit() suffers from bug https://bugs.python.org/issue7904
     # URLs with protocols not in urlparse.uses_netloc are not handled correctly
     for scheme in ('socks', 'socks4', 'socks4a', 'socks5'):
-        if scheme not in compat_urlparse.uses_netloc:
-            compat_urlparse.uses_netloc.append(scheme)
+        if scheme not in urllib.parse.uses_netloc:
+            urllib.parse.uses_netloc.append(scheme)
 
 # TODO: remove
 def request_to_url(req):
-    if isinstance(req, compat_urllib_request.Request):
+    if isinstance(req, urllib.request.Request):
         return req.get_full_url()
     else:
         return req

@@ -1,53 +1,50 @@
 from __future__ import annotations
+
 import contextlib
 import errno
 import functools
 import gzip
+import http.client
 import io
-import ssl
-import zlib
 import socket
-from typing import Union
-
-from ..dependencies import brotli
-import urllib.request
-import urllib.response
+import ssl
 import urllib.error
 import urllib.parse
-
+import urllib.request
+import urllib.response
+import zlib
+from typing import Union
 from urllib.request import (
-    UnknownHandler, HTTPDefaultErrorHandler, HTTPErrorProcessor, FTPHandler
-)
-import http.client
-
-from .common import (
-    Response,
-    BackendRH
+    FTPHandler,
+    HTTPDefaultErrorHandler,
+    HTTPErrorProcessor,
+    UnknownHandler,
 )
 
+from .common import BackendRH, Response
 from .utils import (
+    get_redirect_method,
     handle_youtubedl_headers,
     make_std_headers,
-    socks_create_proxy_args,
     select_proxy,
+    socks_create_proxy_args,
     ssl_load_certs,
-    get_redirect_method
 )
-
+from ..dependencies import brotli
 from ..socks import sockssocket
-
 from ..utils import (
-    escape_url,
-    update_url_query,
-    extract_basic_auth,
-    sanitize_url,
-    TransportError,
-    SSLError,
+    HTTPError,
     IncompleteRead,
     ProxyError,
-    HTTPError,
-    RequestError
+    RequestError,
+    SSLError,
+    TransportError,
+    escape_url,
+    extract_basic_auth,
+    sanitize_url,
+    update_url_query,
 )
+
 CONTENT_DECODE_ERRORS = [zlib.error, OSError]
 
 SUPPORTED_ENCODINGS = [

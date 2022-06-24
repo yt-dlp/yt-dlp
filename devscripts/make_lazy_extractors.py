@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-import optparse
+
+# Allow direct execution
 import os
 import sys
-from inspect import getsource
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+
+import optparse
+from inspect import getsource
 
 NO_ATTR = object()
 STATIC_CLASS_PROPERTIES = ['IE_NAME', 'IE_DESC', 'SEARCH_KEY', '_WORKING', '_NETRC_MACHINE', 'age_limit']

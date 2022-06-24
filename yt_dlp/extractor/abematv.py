@@ -7,12 +7,13 @@ import json
 import re
 import struct
 import time
+import urllib.parse
+import urllib.request
 import urllib.response
 import uuid
 
 from .common import InfoExtractor
 from ..aes import aes_ecb_decrypt
-from ..compat import compat_urllib_parse_urlparse, compat_urllib_request
 from ..utils import (
     ExtractorError,
     bytes_to_intlist,
@@ -33,7 +34,7 @@ def add_opener(ydl, handler):
     ''' Add a handler for opening URLs, like _download_webpage '''
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
-    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
+    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
     ydl._opener.add_handler(handler)
 
 
@@ -46,7 +47,7 @@ def remove_opener(ydl, handler):
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L426
     # https://github.com/python/cpython/blob/main/Lib/urllib/request.py#L605
     opener = ydl._opener
-    assert isinstance(ydl._opener, compat_urllib_request.OpenerDirector)
+    assert isinstance(ydl._opener, urllib.request.OpenerDirector)
     if isinstance(handler, (type, tuple)):
         find_cp = lambda x: isinstance(x, handler)
     else:
@@ -96,7 +97,7 @@ def remove_opener(ydl, handler):
         opener.handlers[:] = [x for x in opener.handlers if not find_cp(x)]
 
 
-class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
+class AbemaLicenseHandler(urllib.request.BaseHandler):
     handler_order = 499
     STRTABLE = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
     HKEY = b'3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E'
@@ -136,7 +137,7 @@ class AbemaLicenseHandler(compat_urllib_request.BaseHandler):
 
     def abematv_license_open(self, url):
         url = request_to_url(url)
-        ticket = compat_urllib_parse_urlparse(url).netloc
+        ticket = urllib.parse.urlparse(url).netloc
         response_data = self._get_videokey_from_ticket(ticket)
         return urllib.response.addinfourl(io.BytesIO(response_data), headers={
             'Content-Length': len(response_data),

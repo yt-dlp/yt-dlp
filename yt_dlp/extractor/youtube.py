@@ -13,19 +13,11 @@ import sys
 import threading
 import time
 import traceback
+import urllib.error
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
-from ..compat import functools  # isort: split
-from ..compat import (
-    compat_chr,
-    compat_HTTPError,
-    compat_parse_qs,
-    compat_str,
-    compat_urllib_parse_unquote_plus,
-    compat_urllib_parse_urlencode,
-    compat_urllib_parse_urlparse,
-    compat_urlparse,
-)
+from ..compat import functools
 from ..jsinterp import JSInterpreter
 from ..utils import (
     NO_DEFAULT,
@@ -382,11 +374,11 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         pref = {}
         if pref_cookie:
             try:
-                pref = dict(compat_urlparse.parse_qsl(pref_cookie.value))
+                pref = dict(urllib.parse.parse_qsl(pref_cookie.value))
             except ValueError:
                 self.report_warning('Failed to parse user PREF cookie' + bug_reports_message())
         pref.update({'hl': 'en', 'tz': 'UTC'})
-        self._set_cookie('.youtube.com', name='PREF', value=compat_urllib_parse_urlencode(pref))
+        self._set_cookie('.youtube.com', name='PREF', value=urllib.parse.urlencode(pref))
 
     def _real_initialize(self):
         self._initialize_pref()
@@ -414,19 +406,19 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_client_name(self, ytcfg, default_client='web'):
         return self._ytcfg_get_safe(
             ytcfg, (lambda x: x['INNERTUBE_CLIENT_NAME'],
-                    lambda x: x['INNERTUBE_CONTEXT']['client']['clientName']), compat_str, default_client)
+                    lambda x: x['INNERTUBE_CONTEXT']['client']['clientName']), str, default_client)
 
     def _extract_client_version(self, ytcfg, default_client='web'):
         return self._ytcfg_get_safe(
             ytcfg, (lambda x: x['INNERTUBE_CLIENT_VERSION'],
-                    lambda x: x['INNERTUBE_CONTEXT']['client']['clientVersion']), compat_str, default_client)
+                    lambda x: x['INNERTUBE_CONTEXT']['client']['clientVersion']), str, default_client)
 
     def _select_api_hostname(self, req_api_hostname, default_client=None):
         return (self._configuration_arg('innertube_host', [''], ie_key=YoutubeIE.ie_key())[0]
                 or req_api_hostname or self._get_innertube_host(default_client or 'web'))
 
     def _extract_api_key(self, ytcfg=None, default_client='web'):
-        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], compat_str, default_client)
+        return self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_API_KEY'], str, default_client)
 
     def _extract_context(self, ytcfg=None, default_client='web'):
         context = get_first(
@@ -498,7 +490,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     # Deprecated?
     def _extract_identity_token(self, ytcfg=None, webpage=None):
         if ytcfg:
-            token = try_get(ytcfg, lambda x: x['ID_TOKEN'], compat_str)
+            token = try_get(ytcfg, lambda x: x['ID_TOKEN'], str)
             if token:
                 return token
         if webpage:
@@ -514,12 +506,12 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
         """
         for data in args:
             # ytcfg includes channel_syncid if on secondary channel
-            delegated_sid = try_get(data, lambda x: x['DELEGATED_SESSION_ID'], compat_str)
+            delegated_sid = try_get(data, lambda x: x['DELEGATED_SESSION_ID'], str)
             if delegated_sid:
                 return delegated_sid
             sync_ids = (try_get(
                 data, (lambda x: x['responseContext']['mainAppWebResponseContext']['datasyncId'],
-                       lambda x: x['DATASYNC_ID']), compat_str) or '').split('||')
+                       lambda x: x['DATASYNC_ID']), str) or '').split('||')
             if len(sync_ids) >= 2 and sync_ids[1]:
                 # datasyncid is of the form "channel_syncid||user_syncid" for secondary channel
                 # and just "user_syncid||" for primary channel. We only want the channel_syncid
@@ -553,7 +545,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
 
         origin = 'https://' + (self._select_api_hostname(api_hostname, default_client))
         headers = {
-            'X-YouTube-Client-Name': compat_str(
+            'X-YouTube-Client-Name': str(
                 self._ytcfg_get_safe(ytcfg, lambda x: x['INNERTUBE_CONTEXT_CLIENT_NAME'], default_client=default_client)),
             'X-YouTube-Client-Version': self._extract_client_version(ytcfg, default_client),
             'Origin': origin,
@@ -613,7 +605,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_continuation_ep_data(cls, continuation_ep: dict):
         if isinstance(continuation_ep, dict):
             continuation = try_get(
-                continuation_ep, lambda x: x['continuationCommand']['token'], compat_str)
+                continuation_ep, lambda x: x['continuationCommand']['token'], str)
             if not continuation:
                 return
             ctp = continuation_ep.get('clickTrackingParams')
@@ -673,7 +665,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
     def _extract_badges(self, renderer: dict):
         badges = set()
         for badge in try_get(renderer, lambda x: x['badges'], list) or []:
-            label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label'], compat_str)
+            label = try_get(badge, lambda x: x['metadataBadgeRenderer']['label'], str)
             if label:
                 badges.add(label.lower())
         return badges
@@ -688,7 +680,7 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                 if not any(key is ... or isinstance(key, (list, tuple)) for key in variadic(path)):
                     obj = [obj]
             for item in obj:
-                text = try_get(item, lambda x: x['simpleText'], compat_str)
+                text = try_get(item, lambda x: x['simpleText'], str)
                 if text:
                     return text
                 runs = try_get(item, lambda x: x['runs'], list) or []
@@ -790,20 +782,20 @@ class YoutubeBaseInfoExtractor(InfoExtractor):
                     note='%s%s' % (note, ' (retry #%d)' % count if count else ''))
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
-                    if isinstance(e.cause, compat_HTTPError):
+                    if isinstance(e.cause, urllib.error.HTTPError):
                         first_bytes = e.cause.read(512)
                         if not is_html(first_bytes):
                             yt_error = try_get(
                                 self._parse_json(
                                     self._webpage_read_content(e.cause, None, item_id, prefix=first_bytes) or '{}', item_id, fatal=False),
-                                lambda x: x['error']['message'], compat_str)
+                                lambda x: x['error']['message'], str)
                             if yt_error:
                                 self._report_alerts([('ERROR', yt_error)], fatal=False)
                     # Downloading page may result in intermittent 5xx HTTP error
                     # Sometimes a 404 is also recieved. See: https://github.com/ytdl-org/youtube-dl/issues/28289
                     # We also want to catch all other network exceptions since errors in later pages can be troublesome
                     # See https://github.com/yt-dlp/yt-dlp/issues/507#issuecomment-880188210
-                    if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
+                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
                         last_error = error_to_compat_str(e.cause or e.msg)
                         if count < retries:
                             continue
@@ -2346,7 +2338,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             # Obtain from MPD's maximum seq value
             old_mpd_url = mpd_url
             last_error = ctx.pop('last_error', None)
-            expire_fast = immediate or last_error and isinstance(last_error, compat_HTTPError) and last_error.code == 403
+            expire_fast = immediate or last_error and isinstance(last_error, urllib.error.HTTPError) and last_error.code == 403
             mpd_url, stream_number, is_live = (mpd_feed(format_id, 5 if expire_fast else 18000)
                                                or (mpd_url, stream_number, False))
             if not refresh_sequence:
@@ -2428,7 +2420,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _extract_player_url(self, *ytcfgs, webpage=None):
         player_url = traverse_obj(
             ytcfgs, (..., 'PLAYER_JS_URL'), (..., 'WEB_PLAYER_CONTEXT_CONFIGS', ..., 'jsUrl'),
-            get_all=False, expected_type=compat_str)
+            get_all=False, expected_type=str)
         if not player_url:
             return
         return urljoin('https://www.youtube.com', player_url)
@@ -2445,7 +2437,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
     def _signature_cache_id(self, example_sig):
         """ Return a string representation of a signature """
-        return '.'.join(compat_str(len(part)) for part in example_sig.split('.'))
+        return '.'.join(str(len(part)) for part in example_sig.split('.'))
 
     @classmethod
     def _extract_player_info(cls, player_url):
@@ -2483,7 +2475,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if code:
             res = self._parse_sig_js(code)
 
-            test_string = ''.join(map(compat_chr, range(len(example_sig))))
+            test_string = ''.join(map(chr, range(len(example_sig))))
             cache_res = res(test_string)
             cache_spec = [ord(c) for c in cache_res]
 
@@ -2522,12 +2514,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 yield _genslice(start, i, step)
 
-        test_string = ''.join(map(compat_chr, range(len(example_sig))))
+        test_string = ''.join(map(chr, range(len(example_sig))))
         cache_res = func(test_string)
         cache_spec = [ord(c) for c in cache_res]
         expr_code = ' + '.join(gen_sig_code(cache_spec))
         signature_id_tuple = '(%s)' % (
-            ', '.join(compat_str(len(p)) for p in example_sig.split('.')))
+            ', '.join(str(len(p)) for p in example_sig.split('.')))
         code = ('if tuple(len(p) for p in s.split(\'.\')) == %s:\n'
                 '    return %s\n') % (signature_id_tuple, expr_code)
         self.to_screen('Extracted signature function:\n' + code)
@@ -2650,8 +2642,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if not url:
                 self.report_warning(f'Unable to mark {label}watched')
                 return
-            parsed_url = compat_urlparse.urlparse(url)
-            qs = compat_urlparse.parse_qs(parsed_url.query)
+            parsed_url = urllib.parse.urlparse(url)
+            qs = urllib.parse.parse_qs(parsed_url.query)
 
             # cpn generation algorithm is reverse engineered from base.js.
             # In fact it works even with dummy cpn.
@@ -2676,8 +2668,8 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     'et': video_length,
                 })
 
-            url = compat_urlparse.urlunparse(
-                parsed_url._replace(query=compat_urllib_parse_urlencode(qs, True)))
+            url = urllib.parse.urlunparse(
+                parsed_url._replace(query=urllib.parse.urlencode(qs, True)))
 
             self._download_webpage(
                 url, video_id, f'Marking {label}watched',
@@ -2794,12 +2786,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         timestamp, time_text = self._extract_time_text(comment_renderer, 'publishedTimeText')
         author = self._get_text(comment_renderer, 'authorText')
         author_id = try_get(comment_renderer,
-                            lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], compat_str)
+                            lambda x: x['authorEndpoint']['browseEndpoint']['browseId'], str)
 
         votes = parse_count(try_get(comment_renderer, (lambda x: x['voteCount']['simpleText'],
-                                                       lambda x: x['likeCount']), compat_str)) or 0
+                                                       lambda x: x['likeCount']), str)) or 0
         author_thumbnail = try_get(comment_renderer,
-                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], compat_str)
+                                   lambda x: x['authorThumbnail']['thumbnails'][-1]['url'], str)
 
         author_is_uploader = try_get(comment_renderer, lambda x: x['authorIsChannelOwner'], bool)
         is_favorited = 'creatorHeart' in (try_get(
@@ -3179,7 +3171,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
             fmt_url = fmt.get('url')
             if not fmt_url:
-                sc = compat_parse_qs(fmt.get('signatureCipher'))
+                sc = urllib.parse.parse_qs(fmt.get('signatureCipher'))
                 fmt_url = url_or_none(try_get(sc, lambda x: x['url'][0]))
                 encrypted_sig = try_get(sc, lambda x: x['s'][0])
                 if not all((sc, fmt_url, player_url, encrypted_sig)):
@@ -3420,12 +3412,12 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # Unquote should take place before split on comma (,) since textual
                     # fields may contain comma as well (see
                     # https://github.com/ytdl-org/youtube-dl/issues/8536)
-                    feed_data = compat_parse_qs(
-                        compat_urllib_parse_unquote_plus(feed))
+                    feed_data = urllib.parse.parse_qs(
+                        urllib.parse.unquote_plus(feed))
 
                     def feed_entry(name):
                         return try_get(
-                            feed_data, lambda x: x[name][0], compat_str)
+                            feed_data, lambda x: x[name][0], str)
 
                     feed_id = feed_entry('id')
                     if not feed_id:
@@ -3652,9 +3644,9 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             info['automatic_captions'] = automatic_captions
             info['subtitles'] = subtitles
 
-        parsed_url = compat_urllib_parse_urlparse(url)
+        parsed_url = urllib.parse.urlparse(url)
         for component in [parsed_url.fragment, parsed_url.query]:
-            query = compat_parse_qs(component)
+            query = urllib.parse.parse_qs(component)
             for k, v in query.items():
                 for d_k, s_ks in [('start', ('start', 't')), ('end', ('end',))]:
                     d_k += '_time'
@@ -3947,7 +3939,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             # generic endpoint URL support
             ep_url = urljoin('https://www.youtube.com/', try_get(
                 renderer, lambda x: x['navigationEndpoint']['commandMetadata']['webCommandMetadata']['url'],
-                compat_str))
+                str))
             if ep_url:
                 for ie in (YoutubeTabIE, YoutubePlaylistIE, YoutubeIE):
                     if ie.suitable(ep_url):
@@ -3991,7 +3983,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
     def _shelf_entries(self, shelf_renderer, skip_channels=False):
         ep = try_get(
             shelf_renderer, lambda x: x['endpoint']['commandMetadata']['webCommandMetadata']['url'],
-            compat_str)
+            str)
         shelf_url = urljoin('https://www.youtube.com', ep)
         if shelf_url:
             # Skipping links to another channels, note that checking for
@@ -4051,7 +4043,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 yield entry
         # playlist attachment
         playlist_id = try_get(
-            post_renderer, lambda x: x['backstageAttachment']['playlistRenderer']['playlistId'], compat_str)
+            post_renderer, lambda x: x['backstageAttachment']['playlistRenderer']['playlistId'], str)
         if playlist_id:
             yield self.url_result(
                 'https://www.youtube.com/playlist?list=%s' % playlist_id,
@@ -4062,7 +4054,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             if not isinstance(run, dict):
                 continue
             ep_url = try_get(
-                run, lambda x: x['navigationEndpoint']['urlEndpoint']['url'], compat_str)
+                run, lambda x: x['navigationEndpoint']['urlEndpoint']['url'], str)
             if not ep_url:
                 continue
             if not YoutubeIE.suitable(ep_url):
@@ -4239,10 +4231,10 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
             uploader['uploader'] = self._search_regex(
                 r'^by (.+) and \d+ others?$', owner_text, 'uploader', default=owner_text)
             uploader['uploader_id'] = try_get(
-                owner, lambda x: x['navigationEndpoint']['browseEndpoint']['browseId'], compat_str)
+                owner, lambda x: x['navigationEndpoint']['browseEndpoint']['browseId'], str)
             uploader['uploader_url'] = urljoin(
                 'https://www.youtube.com/',
-                try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], compat_str))
+                try_get(owner, lambda x: x['navigationEndpoint']['browseEndpoint']['canonicalBaseUrl'], str))
         return {k: v for k, v in uploader.items() if v is not None}
 
     def _extract_from_tabs(self, item_id, ytcfg, data, tabs):
@@ -4370,13 +4362,13 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
 
     def _extract_from_playlist(self, item_id, url, data, playlist, ytcfg):
         title = playlist.get('title') or try_get(
-            data, lambda x: x['titleText']['simpleText'], compat_str)
+            data, lambda x: x['titleText']['simpleText'], str)
         playlist_id = playlist.get('playlistId') or item_id
 
         # Delegating everything except mix playlists to regular tab-based playlist URL
         playlist_url = urljoin(url, try_get(
             playlist, lambda x: x['endpoint']['commandMetadata']['webCommandMetadata']['url'],
-            compat_str))
+            str))
 
         # Some playlists are unviewable but YouTube still provides a link to the (broken) playlist page [1]
         # [1] MLCT, RLTDwFCb4jeqaKWnciAYM-ZVHg
@@ -4447,7 +4439,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 continue
             nav_item_renderer = menu_item.get('menuNavigationItemRenderer')
             text = try_get(
-                nav_item_renderer, lambda x: x['text']['simpleText'], compat_str)
+                nav_item_renderer, lambda x: x['text']['simpleText'], str)
             if not text or text.lower() != 'show unavailable videos':
                 continue
             browse_endpoint = try_get(
@@ -4489,7 +4481,7 @@ class YoutubeTabBaseInfoExtractor(YoutubeBaseInfoExtractor):
                 data = self.extract_yt_initial_data(item_id, webpage or '', fatal=fatal) or {}
             except ExtractorError as e:
                 if isinstance(e.cause, network_exceptions):
-                    if not isinstance(e.cause, compat_HTTPError) or e.cause.code not in (403, 429):
+                    if not isinstance(e.cause, urllib.error.HTTPError) or e.cause.code not in (403, 429):
                         last_error = error_to_compat_str(e.cause or e.msg)
                         if count < retries:
                             continue
@@ -5302,8 +5294,8 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
     @YoutubeTabBaseInfoExtractor.passthrough_smuggled_data
     def _real_extract(self, url, smuggled_data):
         item_id = self._match_id(url)
-        url = compat_urlparse.urlunparse(
-            compat_urlparse.urlparse(url)._replace(netloc='www.youtube.com'))
+        url = urllib.parse.urlunparse(
+            urllib.parse.urlparse(url)._replace(netloc='www.youtube.com'))
         compat_opts = self.get_param('compat_opts', [])
 
         def get_mobj(url):
@@ -5323,7 +5315,7 @@ class YoutubeTabIE(YoutubeTabBaseInfoExtractor):
                     mdata = self._extract_tab_endpoint(
                         f'https://music.youtube.com/channel/{item_id}', item_id, default_client='web_music')
                     murl = traverse_obj(mdata, ('microformat', 'microformatDataRenderer', 'urlCanonical'),
-                                        get_all=False, expected_type=compat_str)
+                                        get_all=False, expected_type=str)
                     if not murl:
                         raise ExtractorError('Failed to resolve album to playlist')
                     return self.url_result(murl, ie=YoutubeTabIE.ie_key())
@@ -5846,7 +5838,7 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
         if params:
             section = next((k for k, v in self._SECTIONS.items() if v == params), params)
         else:
-            section = compat_urllib_parse_unquote_plus((url.split('#') + [''])[1]).lower()
+            section = urllib.parse.unquote_plus((url.split('#') + [''])[1]).lower()
             params = self._SECTIONS.get(section)
             if not params:
                 section = None

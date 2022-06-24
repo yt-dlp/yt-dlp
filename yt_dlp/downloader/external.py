@@ -6,8 +6,8 @@ import sys
 import time
 
 from .fragment import FragmentFD
-from ..compat import functools  # isort: split
-from ..compat import compat_setenv
+from ..compat import functools
+from ..networking.utils import handle_youtubedl_headers
 from ..postprocessor.ffmpeg import EXT_TO_OUT_FORMATS, FFmpegPostProcessor
 from ..utils import (
     Popen,
@@ -23,8 +23,6 @@ from ..utils import (
     remove_end,
     traverse_obj,
 )
-
-from ..networking.utils import handle_youtubedl_headers
 
 
 class Features(enum.Enum):
@@ -404,8 +402,8 @@ class FFmpegFD(ExternalFD):
             # We could switch to the following code if we are able to detect version properly
             # args += ['-http_proxy', proxy]
             env = os.environ.copy()
-            compat_setenv('HTTP_PROXY', proxy, env=env)
-            compat_setenv('http_proxy', proxy, env=env)
+            env['HTTP_PROXY'] = proxy
+            env['http_proxy'] = proxy
 
         protocol = info_dict.get('protocol')
 

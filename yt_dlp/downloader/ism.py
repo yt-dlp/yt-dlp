@@ -3,8 +3,8 @@ import io
 import struct
 import time
 
-from ..utils import HTTPError
 from .fragment import FragmentFD
+from ..utils import HTTPError
 
 u8 = struct.Struct('>B')
 u88 = struct.Struct('>Bx')

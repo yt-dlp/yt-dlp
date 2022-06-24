@@ -2,11 +2,13 @@ import os
 import random
 import time
 
-from ..networking import Request
 from .common import FileDownloader
+from ..networking import Request
 from ..utils import (
     ContentTooShortError,
+    HTTPError,
     ThrottledDownload,
+    TransportError,
     XAttrMetadataError,
     XAttrUnavailableError,
     encodeFilename,
@@ -14,8 +16,6 @@ from ..utils import (
     parse_http_range,
     try_call,
     write_xattr,
-    TransportError,
-    HTTPError,
 )
 
 
@@ -187,7 +187,6 @@ class HttpFD(FileDownloader):
                     # Unexpected HTTP error
                     raise
                 raise RetryDownload(err)
-
             except TransportError as err:
                 raise RetryDownload(err)
 

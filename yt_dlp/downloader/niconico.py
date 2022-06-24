@@ -1,8 +1,8 @@
 import threading
 
-from ..networking import Request
 from . import get_suitable_downloader
 from .common import FileDownloader
+from ..networking import Request
 
 
 class NiconicoDmcFD(FileDownloader):
