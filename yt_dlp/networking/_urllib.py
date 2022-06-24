@@ -130,32 +130,23 @@ class YoutubeDLHandler(urllib.request.AbstractHTTPHandler):
         self._context = context
         self._check_hostname = check_hostname
 
-    def http_open(self, req):
-        conn_class = http.client.HTTPConnection
-
-        socks_proxy = req.headers.get('Ytdl-socks-proxy')
-        if socks_proxy:
-            conn_class = make_socks_conn_class(conn_class, socks_proxy)
-            del req.headers['Ytdl-socks-proxy']
-
-        return self.do_open(functools.partial(
-            _create_http_connection, self, conn_class, False),
-            req)
-
-    def https_open(self, req):
-        conn_class = http.client.HTTPSConnection
-
-        kwargs = {
-                'check_hostname': self._check_hostname,
-                'context': self._context
-        }
-
+    @staticmethod
+    def _make_conn_class(base, req):
+        conn_class = base
         socks_proxy = req.headers.pop('Ytdl-socks-proxy', None)
         if socks_proxy:
             conn_class = make_socks_conn_class(conn_class, socks_proxy)
+        return conn_class
 
+    def http_open(self, req):
+        conn_class = self._make_conn_class(http.client.HTTPConnection, req)
+        return self.do_open(functools.partial(_create_http_connection, self, conn_class, False), req)
+
+    def https_open(self, req):
+        conn_class = self._make_conn_class(http.client.HTTPSConnection, req)
         return self.do_open(
-            functools.partial(_create_http_connection, self, conn_class, True), req, **kwargs)
+            functools.partial(_create_http_connection, self, conn_class, True),
+            req, check_hostname=self._check_hostname, context=self._context)
 
     @staticmethod
     def deflate(data):
