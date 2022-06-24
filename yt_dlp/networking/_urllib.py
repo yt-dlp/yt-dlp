@@ -341,7 +341,7 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
         new_method = get_redirect_method(m, code)
 
         # only remove payload if method changed (e.g. POST to GET)
-        if new_method != m and new_method == 'GET':
+        if new_method != m:
             new_data = None
             remove_headers.extend(['Content-Length', 'Content-Type'])
 
