@@ -1,14 +1,13 @@
 import io
 import itertools
+import struct
 import time
+import urllib.error
 
 from .fragment import FragmentFD
 from ..compat import (
     compat_b64decode,
     compat_etree_fromstring,
-    compat_struct_pack,
-    compat_struct_unpack,
-    compat_urllib_error,
     compat_urllib_parse_urlparse,
     compat_urlparse,
 )
@@ -35,13 +34,13 @@ class FlvReader(io.BytesIO):
 
     # Utility functions for reading numbers and strings
     def read_unsigned_long_long(self):
-        return compat_struct_unpack('!Q', self.read_bytes(8))[0]
+        return struct.unpack('!Q', self.read_bytes(8))[0]
 
     def read_unsigned_int(self):
-        return compat_struct_unpack('!I', self.read_bytes(4))[0]
+        return struct.unpack('!I', self.read_bytes(4))[0]
 
     def read_unsigned_char(self):
-        return compat_struct_unpack('!B', self.read_bytes(1))[0]
+        return struct.unpack('!B', self.read_bytes(1))[0]
 
     def read_string(self):
         res = b''
@@ -203,11 +202,11 @@ def build_fragments_list(boot_info):
 
 
 def write_unsigned_int(stream, val):
-    stream.write(compat_struct_pack('!I', val))
+    stream.write(struct.pack('!I', val))
 
 
 def write_unsigned_int_24(stream, val):
-    stream.write(compat_struct_pack('!I', val)[1:])
+    stream.write(struct.pack('!I', val)[1:])
 
 
 def write_flv_header(stream):
@@ -411,7 +410,7 @@ class F4mFD(FragmentFD):
                     if box_type == b'mdat':
                         self._append_fragment(ctx, box_data)
                         break
-            except compat_urllib_error.HTTPError as err:
+            except urllib.error.HTTPError as err:
                 if live and (err.code == 404 or err.code == 410):
                     # We didn't keep up with the live window. Continue
                     # with the next available fragment.

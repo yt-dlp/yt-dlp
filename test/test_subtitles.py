@@ -6,8 +6,8 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from test.helper import FakeYDL, is_download_test, md5
 
+from test.helper import FakeYDL, is_download_test, md5
 from yt_dlp.extractor import (
     NPOIE,
     NRKTVIE,

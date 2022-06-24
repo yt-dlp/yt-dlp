@@ -1,3 +1,4 @@
+import getpass
 import json
 import re
 import time
@@ -5,18 +6,14 @@ import urllib.error
 import xml.etree.ElementTree as etree
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urlparse,
-    compat_getpass
-)
+from ..compat import compat_urlparse
 from ..utils import (
-    unescapeHTML,
-    urlencode_postdata,
-    unified_timestamp,
-    ExtractorError,
     NO_DEFAULT,
+    ExtractorError,
+    unescapeHTML,
+    unified_timestamp,
+    urlencode_postdata,
 )
-
 
 MSO_INFO = {
     'DTV': {
@@ -1506,7 +1503,7 @@ class AdobePassIE(InfoExtractor):
                             'send_confirm_link': False,
                             'send_token': True
                         }))
-                    philo_code = compat_getpass('Type auth code you have received [Return]: ')
+                    philo_code = getpass.getpass('Type auth code you have received [Return]: ')
                     self._download_webpage(
                         'https://idp.philo.com/auth/update/login_code', video_id, 'Submitting token', data=urlencode_postdata({
                             'token': philo_code

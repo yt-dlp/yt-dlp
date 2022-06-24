@@ -13,15 +13,14 @@ import sys
 import threading
 import time
 import traceback
+import urllib.parse
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..compat import functools  # isort: split
 from ..compat import (
-    compat_chr,
     compat_HTTPError,
     compat_parse_qs,
     compat_str,
-    compat_urllib_parse_unquote_plus,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
     compat_urlparse,
@@ -2483,7 +2482,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         if code:
             res = self._parse_sig_js(code)
 
-            test_string = ''.join(map(compat_chr, range(len(example_sig))))
+            test_string = ''.join(map(chr, range(len(example_sig))))
             cache_res = res(test_string)
             cache_spec = [ord(c) for c in cache_res]
 
@@ -2522,7 +2521,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             else:
                 yield _genslice(start, i, step)
 
-        test_string = ''.join(map(compat_chr, range(len(example_sig))))
+        test_string = ''.join(map(chr, range(len(example_sig))))
         cache_res = func(test_string)
         cache_spec = [ord(c) for c in cache_res]
         expr_code = ' + '.join(gen_sig_code(cache_spec))
@@ -3421,7 +3420,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     # fields may contain comma as well (see
                     # https://github.com/ytdl-org/youtube-dl/issues/8536)
                     feed_data = compat_parse_qs(
-                        compat_urllib_parse_unquote_plus(feed))
+                        urllib.parse.unquote_plus(feed))
 
                     def feed_entry(name):
                         return try_get(
@@ -5846,7 +5845,7 @@ class YoutubeMusicSearchURLIE(YoutubeTabBaseInfoExtractor):
         if params:
             section = next((k for k, v in self._SECTIONS.items() if v == params), params)
         else:
-            section = compat_urllib_parse_unquote_plus((url.split('#') + [''])[1]).lower()
+            section = urllib.parse.unquote_plus((url.split('#') + [''])[1]).lower()
             params = self._SECTIONS.get(section)
             if not params:
                 section = None

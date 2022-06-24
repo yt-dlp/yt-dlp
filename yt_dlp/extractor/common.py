@@ -1,5 +1,6 @@
 import base64
 import collections
+import getpass
 import hashlib
 import itertools
 import json
@@ -9,22 +10,20 @@ import os
 import random
 import sys
 import time
+import urllib.request
 import xml.etree.ElementTree
+import http.client
+import http.cookiejar
+import http.cookies
 
 from ..compat import functools, re  # isort: split
 from ..compat import (
-    compat_cookiejar_Cookie,
-    compat_cookies_SimpleCookie,
     compat_etree_fromstring,
     compat_expanduser,
-    compat_getpass,
-    compat_http_client,
     compat_os_name,
     compat_str,
-    compat_urllib_error,
     compat_urllib_parse_unquote,
     compat_urllib_parse_urlencode,
-    compat_urllib_request,
     compat_urlparse,
 )
 from ..downloader import FileDownloader
@@ -671,7 +670,7 @@ class InfoExtractor:
             if hasattr(e, 'countries'):
                 kwargs['countries'] = e.countries
             raise type(e)(e.orig_msg, **kwargs)
-        except compat_http_client.IncompleteRead as e:
+        except http.client.IncompleteRead as e:
             raise ExtractorError('A network error has occurred.', cause=e, expected=True, video_id=self.get_temp_id(url))
         except (KeyError, StopIteration) as e:
             raise ExtractorError('An extractor error has occurred.', cause=e, video_id=self.get_temp_id(url))
@@ -730,7 +729,7 @@ class InfoExtractor:
 
     @staticmethod
     def __can_accept_status_code(err, expected_status):
-        assert isinstance(err, compat_urllib_error.HTTPError)
+        assert isinstance(err, urllib.error.HTTPError)
         if expected_status is None:
             return False
         elif callable(expected_status):
@@ -739,7 +738,7 @@ class InfoExtractor:
             return err.code in variadic(expected_status)
 
     def _create_request(self, url_or_request, data=None, headers={}, query={}):
-        if isinstance(url_or_request, compat_urllib_request.Request):
+        if isinstance(url_or_request, urllib.request.Request):
             return update_Request(url_or_request, data=data, headers=headers, query=query)
         if query:
             url_or_request = update_url_query(url_or_request, query)
@@ -779,7 +778,7 @@ class InfoExtractor:
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))
         except network_exceptions as err:
-            if isinstance(err, compat_urllib_error.HTTPError):
+            if isinstance(err, urllib.error.HTTPError):
                 if self.__can_accept_status_code(err, expected_status):
                     # Retain reference to error to prevent file object from
                     # being closed before it can be read. Works around the
@@ -807,7 +806,7 @@ class InfoExtractor:
 
         Arguments:
         url_or_request -- plain text URL as a string or
-            a compat_urllib_request.Requestobject
+            a urllib.request.Request object
         video_id -- Video/playlist/item identifier (string)
 
         Keyword arguments:
@@ -1056,7 +1055,7 @@ class InfoExtractor:
         while True:
             try:
                 return self.__download_webpage(url_or_request, video_id, note, errnote, None, fatal, *args, **kwargs)
-            except compat_http_client.IncompleteRead as e:
+            except http.client.IncompleteRead as e:
                 try_count += 1
                 if try_count >= tries:
                     raise e
@@ -1292,7 +1291,7 @@ class InfoExtractor:
         if tfa is not None:
             return tfa
 
-        return compat_getpass('Type %s and press [Return]: ' % note)
+        return getpass.getpass('Type %s and press [Return]: ' % note)
 
     # Helper functions for extracting OpenGraph info
     @staticmethod
@@ -3597,15 +3596,15 @@ class InfoExtractor:
 
     def _set_cookie(self, domain, name, value, expire_time=None, port=None,
                     path='/', secure=False, discard=False, rest={}, **kwargs):
-        cookie = compat_cookiejar_Cookie(
+        cookie = http.cookiejar.Cookie(
             0, name, value, port, port is not None, domain, True,
             domain.startswith('.'), path, True, secure, expire_time,
             discard, None, None, rest)
         self.cookiejar.set_cookie(cookie)
 
     def _get_cookies(self, url):
-        """ Return a compat_cookies_SimpleCookie with the cookies for the url """
-        return compat_cookies_SimpleCookie(self._downloader._calc_cookies(url))
+        """ Return a http.cookies.SimpleCookie with the cookies for the url """
+        return http.cookies.SimpleCookie(self._downloader._calc_cookies(url))
 
     def _apply_first_set_cookie_header(self, url_handle, cookie):
         """

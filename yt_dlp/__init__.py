@@ -3,13 +3,14 @@ f'You are using an unsupported version of Python. Only Python versions 3.6 and a
 
 __license__ = 'Public Domain'
 
+import getpass
 import itertools
 import optparse
 import os
 import re
 import sys
 
-from .compat import compat_getpass, compat_shlex_quote
+from .compat import compat_shlex_quote
 from .cookies import SUPPORTED_BROWSERS, SUPPORTED_KEYRINGS
 from .downloader import FileDownloader
 from .downloader.external import get_external_downloader
@@ -531,9 +532,9 @@ def validate_options(opts):
 
     # Ask for passwords
     if opts.username is not None and opts.password is None:
-        opts.password = compat_getpass('Type account password and press [Return]: ')
+        opts.password = getpass.getpass('Type account password and press [Return]: ')
     if opts.ap_username is not None and opts.ap_password is None:
-        opts.ap_password = compat_getpass('Type TV provider account password and press [Return]: ')
+        opts.ap_password = getpass.getpass('Type TV provider account password and press [Return]: ')
 
     return warnings, deprecation_warnings
 

@@ -14,6 +14,8 @@ import errno
 import gzip
 import hashlib
 import hmac
+import html.entities
+import html.parser
 import importlib.util
 import io
 import itertools
@@ -29,6 +31,7 @@ import re
 import shlex
 import socket
 import ssl
+import struct
 import subprocess
 import sys
 import tempfile
@@ -36,35 +39,27 @@ import time
 import traceback
 import types
 import urllib.parse
+import urllib.request
 import xml.etree.ElementTree
 import zlib
+import http.client
+import http.cookiejar
 
 from .compat import asyncio, functools  # isort: split
 from .compat import (
-    compat_chr,
-    compat_cookiejar,
     compat_etree_fromstring,
     compat_expanduser,
-    compat_html_entities,
-    compat_html_entities_html5,
     compat_HTMLParseError,
-    compat_HTMLParser,
-    compat_http_client,
     compat_HTTPError,
     compat_os_name,
     compat_parse_qs,
     compat_shlex_quote,
     compat_str,
-    compat_struct_pack,
-    compat_struct_unpack,
-    compat_urllib_error,
-    compat_urllib_parse_unquote_plus,
     compat_urllib_parse_urlencode,
     compat_urllib_parse_urlparse,
-    compat_urllib_request,
     compat_urlparse,
 )
-from .dependencies import brotli, certifi, websockets
+from .dependencies import brotli, certifi, websockets, xattr
 from .socks import ProxyType, sockssocket
 
 
@@ -445,7 +440,7 @@ def get_elements_text_and_html_by_attribute(attribute, value, html, escape_value
         )
 
 
-class HTMLBreakOnClosingTagParser(compat_HTMLParser):
+class HTMLBreakOnClosingTagParser(html.parser.HTMLParser):
     """
     HTML parser which raises HTMLBreakOnClosingTagException upon reaching the
     closing tag for the first opening tag it has encountered, and can be used
@@ -457,7 +452,7 @@ class HTMLBreakOnClosingTagParser(compat_HTMLParser):
 
     def __init__(self):
         self.tagstack = collections.deque()
-        compat_HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
 
     def __enter__(self):
         return self
@@ -522,22 +517,22 @@ def get_element_text_and_html_by_tag(tag, html):
         raise compat_HTMLParseError('unexpected end of html')
 
 
-class HTMLAttributeParser(compat_HTMLParser):
+class HTMLAttributeParser(html.parser.HTMLParser):
     """Trivial HTML parser to gather the attributes for a single element"""
 
     def __init__(self):
         self.attrs = {}
-        compat_HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
 
     def handle_starttag(self, tag, attrs):
         self.attrs = dict(attrs)
 
 
-class HTMLListAttrsParser(compat_HTMLParser):
+class HTMLListAttrsParser(html.parser.HTMLParser):
     """HTML parser to gather the attributes for the elements of a list"""
 
     def __init__(self):
-        compat_HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
         self.items = []
         self._level = 0
 
@@ -763,7 +758,7 @@ def sanitized_Request(url, *args, **kwargs):
     if auth_header is not None:
         headers = args[1] if len(args) >= 2 else kwargs.setdefault('headers', {})
         headers['Authorization'] = auth_header
-    return compat_urllib_request.Request(url, *args, **kwargs)
+    return urllib.request.Request(url, *args, **kwargs)
 
 
 def expand_path(s):
@@ -788,13 +783,13 @@ def _htmlentity_transform(entity_with_semicolon):
     entity = entity_with_semicolon[:-1]
 
     # Known non-numeric HTML entity
-    if entity in compat_html_entities.name2codepoint:
-        return compat_chr(compat_html_entities.name2codepoint[entity])
+    if entity in html.entities.name2codepoint:
+        return chr(html.entities.name2codepoint[entity])
 
     # TODO: HTML5 allows entities without a semicolon. For example,
     # '&Eacuteric' should be decoded as 'Éric'.
-    if entity_with_semicolon in compat_html_entities_html5:
-        return compat_html_entities_html5[entity_with_semicolon]
+    if entity_with_semicolon in html.entities.html5:
+        return html.entities.html5[entity_with_semicolon]
 
     mobj = re.match(r'#(x[0-9a-fA-F]+|[0-9]+)', entity)
     if mobj is not None:
@@ -806,7 +801,7 @@ def _htmlentity_transform(entity_with_semicolon):
             base = 10
         # See https://github.com/ytdl-org/youtube-dl/issues/7518
         with contextlib.suppress(ValueError):
-            return compat_chr(int(numstr, base))
+            return chr(int(numstr, base))
 
     # Unknown entity in name, return its literal representation
     return '&%s;' % entity
@@ -1015,7 +1010,7 @@ class YoutubeDLError(Exception):
         super().__init__(self.msg)
 
 
-network_exceptions = [compat_urllib_error.URLError, compat_http_client.HTTPException, socket.error]
+network_exceptions = [urllib.error.URLError, http.client.HTTPException, socket.error]
 if hasattr(ssl, 'CertificateError'):
     network_exceptions.append(ssl.CertificateError)
 network_exceptions = tuple(network_exceptions)
@@ -1267,7 +1262,7 @@ def handle_youtubedl_headers(headers):
     return filtered_headers
 
 
-class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
+class YoutubeDLHandler(urllib.request.HTTPHandler):
     """Handler for HTTP requests and responses.
 
     This class, when installed with an OpenerDirector, automatically adds
@@ -1286,11 +1281,11 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
     """
 
     def __init__(self, params, *args, **kwargs):
-        compat_urllib_request.HTTPHandler.__init__(self, *args, **kwargs)
+        urllib.request.HTTPHandler.__init__(self, *args, **kwargs)
         self._params = params
 
     def http_open(self, req):
-        conn_class = compat_http_client.HTTPConnection
+        conn_class = http.client.HTTPConnection
 
         socks_proxy = req.headers.get('Ytdl-socks-proxy')
         if socks_proxy:
@@ -1365,18 +1360,18 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
                     break
                 else:
                     raise original_ioerror
-            resp = compat_urllib_request.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
+            resp = urllib.request.addinfourl(uncompressed, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # deflate
         if resp.headers.get('Content-encoding', '') == 'deflate':
             gz = io.BytesIO(self.deflate(resp.read()))
-            resp = compat_urllib_request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
+            resp = urllib.request.addinfourl(gz, old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
         # brotli
         if resp.headers.get('Content-encoding', '') == 'br':
-            resp = compat_urllib_request.addinfourl(
+            resp = urllib.request.addinfourl(
                 io.BytesIO(self.brotli(resp.read())), old_resp.headers, old_resp.url, old_resp.code)
             resp.msg = old_resp.msg
             del resp.headers['Content-encoding']
@@ -1399,7 +1394,7 @@ class YoutubeDLHandler(compat_urllib_request.HTTPHandler):
 
 def make_socks_conn_class(base_class, socks_proxy):
     assert issubclass(base_class, (
-        compat_http_client.HTTPConnection, compat_http_client.HTTPSConnection))
+        http.client.HTTPConnection, http.client.HTTPSConnection))
 
     url_components = compat_urlparse.urlparse(socks_proxy)
     if url_components.scheme.lower() == 'socks5':
@@ -1412,7 +1407,7 @@ def make_socks_conn_class(base_class, socks_proxy):
     def unquote_if_non_empty(s):
         if not s:
             return s
-        return compat_urllib_parse_unquote_plus(s)
+        return urllib.parse.unquote_plus(s)
 
     proxy_args = (
         socks_type,
@@ -1430,7 +1425,7 @@ def make_socks_conn_class(base_class, socks_proxy):
                 self.sock.settimeout(self.timeout)
             self.sock.connect((self.host, self.port))
 
-            if isinstance(self, compat_http_client.HTTPSConnection):
+            if isinstance(self, http.client.HTTPSConnection):
                 if hasattr(self, '_context'):  # Python > 2.6
                     self.sock = self._context.wrap_socket(
                         self.sock, server_hostname=self.host)
@@ -1440,10 +1435,10 @@ def make_socks_conn_class(base_class, socks_proxy):
     return SocksConnection
 
 
-class YoutubeDLHTTPSHandler(compat_urllib_request.HTTPSHandler):
+class YoutubeDLHTTPSHandler(urllib.request.HTTPSHandler):
     def __init__(self, params, https_conn_class=None, *args, **kwargs):
-        compat_urllib_request.HTTPSHandler.__init__(self, *args, **kwargs)
-        self._https_conn_class = https_conn_class or compat_http_client.HTTPSConnection
+        urllib.request.HTTPSHandler.__init__(self, *args, **kwargs)
+        self._https_conn_class = https_conn_class or http.client.HTTPSConnection
         self._params = params
 
     def https_open(self, req):
@@ -1470,7 +1465,7 @@ class YoutubeDLHTTPSHandler(compat_urllib_request.HTTPSHandler):
             raise
 
 
-class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
+class YoutubeDLCookieJar(http.cookiejar.MozillaCookieJar):
     """
     See [1] for cookie file format.
 
@@ -1541,7 +1536,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             if self.filename is not None:
                 filename = self.filename
             else:
-                raise ValueError(compat_cookiejar.MISSING_FILENAME_TEXT)
+                raise ValueError(http.cookiejar.MISSING_FILENAME_TEXT)
 
         # Store session cookies with `expires` set to 0 instead of an empty string
         for cookie in self:
@@ -1558,7 +1553,7 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             if self.filename is not None:
                 filename = self.filename
             else:
-                raise ValueError(compat_cookiejar.MISSING_FILENAME_TEXT)
+                raise ValueError(http.cookiejar.MISSING_FILENAME_TEXT)
 
         def prepare_line(line):
             if line.startswith(self._HTTPONLY_PREFIX):
@@ -1568,10 +1563,10 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 return line
             cookie_list = line.split('\t')
             if len(cookie_list) != self._ENTRY_LEN:
-                raise compat_cookiejar.LoadError('invalid length %d' % len(cookie_list))
+                raise http.cookiejar.LoadError('invalid length %d' % len(cookie_list))
             cookie = self._CookieFileEntry(*cookie_list)
             if cookie.expires_at and not cookie.expires_at.isdigit():
-                raise compat_cookiejar.LoadError('invalid expires at %s' % cookie.expires_at)
+                raise http.cookiejar.LoadError('invalid expires at %s' % cookie.expires_at)
             return line
 
         cf = io.StringIO()
@@ -1579,9 +1574,9 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
             for line in f:
                 try:
                     cf.write(prepare_line(line))
-                except compat_cookiejar.LoadError as e:
+                except http.cookiejar.LoadError as e:
                     if f'{line.strip()} '[0] in '[{"':
-                        raise compat_cookiejar.LoadError(
+                        raise http.cookiejar.LoadError(
                             'Cookies file must be Netscape formatted, not JSON. See  '
                             'https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl')
                     write_string(f'WARNING: skipping cookie file entry due to {e}: {line!r}\n')
@@ -1604,18 +1599,18 @@ class YoutubeDLCookieJar(compat_cookiejar.MozillaCookieJar):
                 cookie.discard = True
 
 
-class YoutubeDLCookieProcessor(compat_urllib_request.HTTPCookieProcessor):
+class YoutubeDLCookieProcessor(urllib.request.HTTPCookieProcessor):
     def __init__(self, cookiejar=None):
-        compat_urllib_request.HTTPCookieProcessor.__init__(self, cookiejar)
+        urllib.request.HTTPCookieProcessor.__init__(self, cookiejar)
 
     def http_response(self, request, response):
-        return compat_urllib_request.HTTPCookieProcessor.http_response(self, request, response)
+        return urllib.request.HTTPCookieProcessor.http_response(self, request, response)
 
-    https_request = compat_urllib_request.HTTPCookieProcessor.http_request
+    https_request = urllib.request.HTTPCookieProcessor.http_request
     https_response = http_response
 
 
-class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
+class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
     """YoutubeDL redirect handler
 
     The code is based on HTTPRedirectHandler implementation from CPython [1].
@@ -1630,7 +1625,7 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
     3. https://github.com/ytdl-org/youtube-dl/issues/28768
     """
 
-    http_error_301 = http_error_303 = http_error_307 = http_error_308 = compat_urllib_request.HTTPRedirectHandler.http_error_302
+    http_error_301 = http_error_303 = http_error_307 = http_error_308 = urllib.request.HTTPRedirectHandler.http_error_302
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         """Return a Request or None in response to a redirect.
@@ -1672,7 +1667,7 @@ class YoutubeDLRedirectHandler(compat_urllib_request.HTTPRedirectHandler):
         if code in (301, 302) and m == 'POST':
             m = 'GET'
 
-        return compat_urllib_request.Request(
+        return urllib.request.Request(
             newurl, headers=newheaders, origin_req_host=req.origin_req_host,
             unverifiable=True, method=m)
 
@@ -1967,7 +1962,7 @@ def bytes_to_intlist(bs):
 def intlist_to_bytes(xs):
     if not xs:
         return b''
-    return compat_struct_pack('%dB' % len(xs), *xs)
+    return struct.pack('%dB' % len(xs), *xs)
 
 
 class LockingUnsupportedError(OSError):
@@ -2427,12 +2422,12 @@ def urljoin(base, path):
     return compat_urlparse.urljoin(base, path)
 
 
-class HEADRequest(compat_urllib_request.Request):
+class HEADRequest(urllib.request.Request):
     def get_method(self):
         return 'HEAD'
 
 
-class PUTRequest(compat_urllib_request.Request):
+class PUTRequest(urllib.request.Request):
     def get_method(self):
         return 'PUT'
 
@@ -2484,7 +2479,7 @@ def url_or_none(url):
 
 
 def request_to_url(req):
-    if isinstance(req, compat_urllib_request.Request):
+    if isinstance(req, urllib.request.Request):
         return req.get_full_url()
     else:
         return req
@@ -3037,7 +3032,7 @@ def update_Request(req, url=None, data=None, headers={}, query={}):
     elif req_get_method == 'PUT':
         req_type = PUTRequest
     else:
-        req_type = compat_urllib_request.Request
+        req_type = urllib.request.Request
     new_req = req_type(
         req_url, data=req_data, headers=req_headers,
         origin_req_host=req.origin_req_host, unverifiable=req.unverifiable)
@@ -4636,20 +4631,20 @@ class GeoUtils:
         else:
             block = code_or_block
         addr, preflen = block.split('/')
-        addr_min = compat_struct_unpack('!L', socket.inet_aton(addr))[0]
+        addr_min = struct.unpack('!L', socket.inet_aton(addr))[0]
         addr_max = addr_min | (0xffffffff >> int(preflen))
         return compat_str(socket.inet_ntoa(
-            compat_struct_pack('!L', random.randint(addr_min, addr_max))))
+            struct.pack('!L', random.randint(addr_min, addr_max))))
 
 
-class PerRequestProxyHandler(compat_urllib_request.ProxyHandler):
+class PerRequestProxyHandler(urllib.request.ProxyHandler):
     def __init__(self, proxies=None):
         # Set default handlers
         for type in ('http', 'https'):
             setattr(self, '%s_open' % type,
                     lambda r, proxy='__noproxy__', type=type, meth=self.proxy_open:
                         meth(r, proxy, type))
-        compat_urllib_request.ProxyHandler.__init__(self, proxies)
+        urllib.request.ProxyHandler.__init__(self, proxies)
 
     def proxy_open(self, req, proxy, type):
         req_proxy = req.headers.get('Ytdl-request-proxy')
@@ -4663,7 +4658,7 @@ class PerRequestProxyHandler(compat_urllib_request.ProxyHandler):
             req.add_header('Ytdl-socks-proxy', proxy)
             # yt-dlp's http/https handlers do wrapping the socket with socks
             return None
-        return compat_urllib_request.ProxyHandler.proxy_open(
+        return urllib.request.ProxyHandler.proxy_open(
             self, req, proxy, type)
 
 
@@ -4683,7 +4678,7 @@ def long_to_bytes(n, blocksize=0):
     s = b''
     n = int(n)
     while n > 0:
-        s = compat_struct_pack('>I', n & 0xffffffff) + s
+        s = struct.pack('>I', n & 0xffffffff) + s
         n = n >> 32
     # strip off leading zeros
     for i in range(len(s)):
@@ -4714,7 +4709,7 @@ def bytes_to_long(s):
         s = b'\000' * extra + s
         length = length + extra
     for i in range(0, length, 4):
-        acc = (acc << 32) + compat_struct_unpack('>I', s[i:i + 4])[0]
+        acc = (acc << 32) + struct.unpack('>I', s[i:i + 4])[0]
     return acc
 
 
@@ -4842,7 +4837,7 @@ def decode_png(png_data):
         raise OSError('Not a valid PNG file.')
 
     int_map = {1: '>B', 2: '>H', 4: '>I'}
-    unpack_integer = lambda x: compat_struct_unpack(int_map[len(x)], x)[0]
+    unpack_integer = lambda x: struct.unpack(int_map[len(x)], x)[0]
 
     chunks = []
 
@@ -4954,7 +4949,6 @@ def write_xattr(path, key, value):
         return
 
     # UNIX Method 1. Use xattrs/pyxattrs modules
-    from .dependencies import xattr
 
     setxattr = None
     if getattr(xattr, '_yt_dlp__identifier', None) == 'pyxattr':
