@@ -443,6 +443,7 @@ def handle_response_read_exceptions(e):
 
 class UrllibRH(RequestHandler):
     SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp']
+    NAME = 'urllib'
 
     def __init__(self, ydl):
         super().__init__(ydl)
