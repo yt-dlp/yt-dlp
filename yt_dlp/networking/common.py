@@ -408,13 +408,6 @@ class RequestDirector:
                 unsupported_errors.append(e)
                 continue
 
-            # TODO: move this into SSLError?
-            except SSLError as e:
-                for ssl_err_str in ('SSLV3_ALERT_HANDSHAKE_FAILURE', 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED'):
-                    if ssl_err_str in str(e):
-                        raise RequestError(f'{ssl_err_str}: Try using --legacy-server-connect') from e
-                raise
-
             except Exception as e:
                 if isinstance(e, RequestError):
                     raise

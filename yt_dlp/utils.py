@@ -878,16 +878,11 @@ class RequestError(YoutubeDLError):
         super().__init__(msg)
 
     def __str__(self):
-        # TODO
-        backend_msg = cause_msg = ''
-        if self.handler:
-            backend_msg = f' in {self.handler.__class__.__name__}'
-        if self.cause:
-            cause_msg = f' (caused by {self.cause.__class__.__name__})'
-        return f'<{self.__class__.__name__}{backend_msg}: {self.msg}{cause_msg}>'
+        return self.msg + (f' (caused by {self.cause.__class__.__name__})' if self.cause else '')
 
 
 class UnsupportedRequest(RequestError):
+    """raised when a handler cannot handle a request"""
     pass
 
 
@@ -911,13 +906,17 @@ class IncompleteRead(TransportError, http.client.IncompleteRead):
     def __init__(self, partial, cause=None, expected=None):
         self.partial = partial
         self.expected = expected
-        super().__init__(msg=repr(self), cause=cause)  # TODO: since we override with repr() in http.client.IncompleteRead
+        super().__init__(msg=repr(self), cause=cause)
         http.client.IncompleteRead.__init__(self, partial=partial, expected=expected)
-        # TODO: incomplete read error
 
 
 class SSLError(TransportError):
-    pass
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for ssl_err_str in ('SSLV3_ALERT_HANDSHAKE_FAILURE', 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED'):
+            if ssl_err_str in str(self.msg):
+                self.msg = f'{ssl_err_str}: Try using --legacy-server-connect'
+                break
 
 
 class ProxyError(TransportError):
