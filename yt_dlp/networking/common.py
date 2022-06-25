@@ -378,6 +378,10 @@ class RequestDirector:
         """Get all handlers for a particular class type"""
         return [h for h in self._handlers if isinstance(h, handler or RequestHandler)]
 
+    def replace_handler(self, handler):
+        self.remove_handler(handler)
+        self.add_handler(handler)
+
     def send(self, request: Union[Request, str, urllib.request.Request]) -> Response:
         """
         Passes a request onto a suitable RequestHandler
