@@ -28,6 +28,7 @@ class PremiershipRugbyIE(InfoExtractor):
 
         return {
             'id': json_data['heroMedia']['content']['sourceSystemId'],
+            'display_id': display_id,
             'title': traverse_obj(json_data, ('heroMedia', 'title')),
             'formats': formats,
             'subtitles': subs,
