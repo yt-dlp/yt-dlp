@@ -1,6 +1,7 @@
+import json
+
 from .common import InfoExtractor
 from ..utils import (determine_ext, int_or_none)
-import json
 
 
 class ScrolllerIE(InfoExtractor):
@@ -59,7 +60,7 @@ class ScrolllerIE(InfoExtractor):
         query = {
             'query':
             '''{
-                getSubredditPost(url:'/%s'){
+                getSubredditPost(url:"/%s"){
                     id
                     title
                     isNsfw
@@ -80,15 +81,15 @@ class ScrolllerIE(InfoExtractor):
         formats = []
 
         for source in video_data['mediaSources']:
-            if determine_ext(source.get('url')) not in ('.jpg', '.png'):
+            if determine_ext(source['url']) in ('jpg', 'png'):
                 thumbnails.append({
-                    'url': source.get('url'),
+                    'url': source['url'],
                     'width': int_or_none(source.get('width')),
                     'height': int_or_none(source.get('height')),
                 })
-            else:
+            elif source.get('url'):
                 formats.append({
-                    'url': source.get('url'),
+                    'url': source['url'],
                     'width': int_or_none(source.get('width')),
                     'height': int_or_none(source.get('height')),
                 })
