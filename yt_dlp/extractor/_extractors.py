@@ -1604,7 +1604,6 @@ from .spike import (
     BellatorIE,
     ParamountNetworkIE,
 )
-
 from .stitcher import (
     StitcherIE,
     StitcherShowIE,
