@@ -19,7 +19,7 @@ from http.cookiejar import Cookie
 
 from test.helper import FakeYDL, http_server_port
 from yt_dlp import YoutubeDL
-from yt_dlp.networking import Request, UnsupportedRH, UrllibRH
+from yt_dlp.networking import Request, UrllibRH
 from yt_dlp.networking.utils import update_request
 from yt_dlp.utils import HTTPError, IncompleteRead, SSLError, urlencode_postdata
 
@@ -222,7 +222,7 @@ class RequestHandlerTestBase:
     def make_ydl(self, params=None, fake=True):
         ydl = (FakeYDL if fake else YoutubeDL)(params)
 
-        ydl.http = ydl.build_http([UnsupportedRH, self.handler])
+        ydl.http = ydl.build_http([self.handler])
         return ydl
 
 

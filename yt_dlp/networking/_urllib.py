@@ -21,7 +21,7 @@ from urllib.request import (
     UnknownHandler,
 )
 
-from .common import BackendRH, Response
+from .common import Response, RequestHandler
 from .utils import (
     get_redirect_method,
     handle_youtubedl_headers,
@@ -441,7 +441,7 @@ def handle_response_read_exceptions(e):
         raise TransportError(cause=e)
 
 
-class UrllibRH(BackendRH):
+class UrllibRH(RequestHandler):
     SUPPORTED_SCHEMES = ['http', 'https', 'data', 'ftp']
 
     def __init__(self, ydl):
@@ -497,7 +497,7 @@ class UrllibRH(BackendRH):
             ssl_load_certs(context, self.ydl.params)
         return context
 
-    def handle(self, request):
+    def _real_handle(self, request: Request):
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
 

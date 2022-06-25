@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import itertools
 import ssl
 import typing
 import urllib.parse
@@ -9,6 +10,8 @@ import urllib.response
 from email.message import Message
 from http import HTTPStatus
 from typing import Union
+
+from .. import utils
 
 try:
     from urllib.request import _parse_proxy
@@ -241,39 +244,8 @@ class Response(io.IOBase):
 
 
 class RequestHandler:
-    """
-    Bare-bones request handler.
-    Use this for defining custom protocols for extractors.
-    """
+
     SUPPORTED_SCHEMES: list = None
-
-    def _check_scheme(self, request: Request):
-        scheme = urllib.parse.urlparse(request.url).scheme.lower()
-        if scheme not in self.SUPPORTED_SCHEMES:
-            raise UnsupportedRequest(f'{scheme} scheme is not supported')
-
-    def prepare_request(self, request: Request):
-        """
-        Prepare a request for this handler.
-        If a request is unsupported, raises UnsupportedRequest
-        """
-        self._check_scheme(request)
-
-    def handle(self, request: Request):
-        """Method to handle given request. Redefine in subclasses"""
-
-    @property
-    def name(self):
-        return type(self).__name__
-
-    def close(self):
-        """Method to cleanly shut down request handler. Redefine in subclasses"""
-
-
-class BackendRH(RequestHandler):
-    """Network Backend adapter class
-    Responsible for handling requests.
-    """
 
     def __init__(self, ydl: YoutubeDL):
         self._set_ydl(ydl)
@@ -322,8 +294,16 @@ class BackendRH(RequestHandler):
         """Generate a backend-specific SSLContext. Redefine in subclasses"""
         raise NotImplementedError
 
+    def _check_scheme(self, request: Request):
+        scheme = urllib.parse.urlparse(request.url).scheme.lower()
+        if scheme == 'file':  # no other handler should handle this request
+            raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
+
+        if scheme not in self.SUPPORTED_SCHEMES:
+            raise UnsupportedRequest(f'{scheme} scheme is not supported')
+
     def prepare_request(self, request: Request):
-        super().prepare_request(request)
+        self._check_scheme(request)
         request.headers = CaseInsensitiveDict(self.ydl.params.get('http_headers', {}), request.headers)
         if request.headers.get('Youtubedl-no-compression'):
             request.compression = False
@@ -347,13 +327,33 @@ class BackendRH(RequestHandler):
                     request.proxies[proxy_key] = 'http://' + remove_start(proxy_url, '//')
 
         request.timeout = float(request.timeout or self.ydl.params.get('socket_timeout') or 20)  # do not accept 0
-        self._prepare_request(request)
+        return self._prepare_request(request)
 
     def _prepare_request(self, request: Request):
-        """Prepare a backend request. Redefine in subclasses."""
+        """Prepare a request for this handler. Redefine in subclasses."""
+        return request
+
+    def handle(self, request: Request):
+        try:
+            request = self.prepare_request(request)
+            return self._real_handle(request)
+        except RequestError as e:
+            e.handler = self
+            raise
+
+    def _real_handle(self, request: Request):
+        """Handle a request. Redefine in subclasses."""
+        raise NotImplementedError
+
+    def close(self):
+        pass
+
+    @utils.classproperty
+    def NAME(cls):
+        return cls.__name__
 
 
-class RequestHandlerBroker:
+class RequestDirector:
 
     def __init__(self, ydl):
         self._handlers = []
@@ -383,7 +383,7 @@ class RequestHandlerBroker:
         Passes a request onto a suitable RequestHandler
         """
         if len(self._handlers) == 0:
-            raise YoutubeDLError('No request handlers configured')
+            raise RequestError('No request handlers configured')
         if isinstance(request, str):
             request = Request(request)
         elif isinstance(request, urllib.request.Request):
@@ -394,38 +394,57 @@ class RequestHandlerBroker:
 
         assert isinstance(request, Request)
 
+        unexpected_errors = []
+        unsupported_errors = []
         for handler in reversed(self._handlers):
             handler_req = request.copy()
             try:
-                try:
-                    handler.prepare_request(handler_req)
-                    self.ydl.to_debugtraffic(f'Forwarding request to "{handler.name}" request handler')
-                    res = handler.handle(handler_req)
-                except RequestError as e:
-                    e.handler = handler
-                    raise
-                except Exception as e:
-                    # something went very wrong, try fallback to next handler
-                    self.ydl.report_error(
-                        f'Unexpected error from "{handler.name}" request handler: {e}' + bug_reports_message(),
-                        is_error=False)
-                    continue
+                self.ydl.to_debugtraffic(f'Forwarding request to "{handler.NAME}" request handler')
+                response = handler.handle(handler_req)
+
             except UnsupportedRequest as e:
                 self.ydl.to_debugtraffic(
-                    f'"{handler.name}" request handler cannot handle this request, trying another handler... (cause: {type(e).__name__}:{e})')
+                    f'"{handler.NAME}" request handler cannot handle this request, trying another handler... (cause: {type(e).__name__}:{e})')
+                unsupported_errors.append(e)
                 continue
 
-            # TODO: move this into backendRH?
+            # TODO: move this into SSLError?
             except SSLError as e:
                 for ssl_err_str in ('SSLV3_ALERT_HANDSHAKE_FAILURE', 'UNSAFE_LEGACY_RENEGOTIATION_DISABLED'):
                     if ssl_err_str in str(e):
                         raise RequestError(f'{ssl_err_str}: Try using --legacy-server-connect') from e
                 raise
 
-            if not res:
-                self.ydl.report_warning(
-                    f'{handler.name} request handler returned nothing for response, trying another handler...' + bug_reports_message())
+            except Exception as e:
+                if isinstance(e, RequestError):
+                    raise
+                # something went very wrong, try fallback to next handler
+                self.ydl.report_error(
+                    f'Unexpected error from "{handler.NAME}" request handler: {e}' + bug_reports_message(),
+                    is_error=False)
+                unexpected_errors.append(e)
                 continue
-            assert isinstance(res, Response)
-            return res
-        raise YoutubeDLError('No request handlers configured that could handle this request.')
+
+            if not response:
+                self.ydl.report_warning(
+                    f'{handler.NAME} request handler returned nothing for response, trying another handler...' + bug_reports_message())
+                continue
+
+            assert isinstance(response, Response)
+            return response
+
+        # no handler was able to handle the request, try print some useful info
+        # FIXME: this is a bit ugly
+        err_handler_map = {}
+        for err in unsupported_errors:
+            err_handler_map.setdefault(err.msg, []).append(err.handler.NAME)
+
+        reasons = [f'{msg} ({", ".join(handlers)})' for msg, handlers in err_handler_map.items()]
+        if unexpected_errors:
+            reasons.append(f'{len(unexpected_errors)} unexpected error(s)')
+
+        err_str = 'Unable to handle request'
+        if reasons:
+            err_str += f', possible reason(s): ' + ', '.join(reasons)
+
+        raise RequestError(err_str)

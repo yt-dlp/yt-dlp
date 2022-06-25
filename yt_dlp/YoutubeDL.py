@@ -37,7 +37,7 @@ from .networking import (
     REQUEST_HANDLERS,
     HEADRequest,
     Request,
-    RequestHandlerBroker,
+    RequestDirector,
     UrllibRH,
 )
 from .networking.utils import get_cookie_header, make_std_headers
@@ -3733,7 +3733,7 @@ class YoutubeDL:
         return self.http.get_handlers(UrllibRH)[0].get_opener(self.proxies)
 
     def build_http(self, handlers):
-        broker = RequestHandlerBroker(self)
+        broker = RequestDirector(self)
         for klass in handlers:
             if klass is not None:
                 broker.add_handler(klass(self))
