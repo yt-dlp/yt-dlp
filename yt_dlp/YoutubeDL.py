@@ -697,7 +697,7 @@ class YoutubeDL:
                 get_postprocessor(pp_def.pop('key'))(self, **pp_def),
                 when=when)
 
-        self.http = self.build_http(REQUEST_HANDLERS)
+        self._request_director = self.build_request_director(REQUEST_HANDLERS)
 
         def preload_download_archive(fn):
             """Preload the archive, if any is specified"""
@@ -873,11 +873,11 @@ class YoutubeDL:
     def __exit__(self, *args):
         self.restore_console_title()
         self.save_cookies()
-        self.http.close()
+        self._request_director.close()
 
     def close(self):
         self.save_cookies()
-        self.http.close()
+        self._request_director.close()
 
     def trouble(self, message=None, tb=None, is_error=True):
         """Determine action to take when a download problem appears.
@@ -3592,7 +3592,7 @@ class YoutubeDL:
 
     def urlopen(self, req):
         """ Start an HTTP download """
-        return self.http.send(req)
+        return self._request_director.send(req)
 
     def print_debug_header(self):
         if not self.params.get('verbose'):
@@ -3730,14 +3730,14 @@ class YoutubeDL:
         Deprecated: use YoutubeDL.urlopen() instead.
         Get an urllib OpenerDirector from the Urllib handler.
         """
-        return self.http.get_handlers(UrllibRH)[0].get_opener(self.proxies)
+        return self._request_director.get_handlers(UrllibRH)[0].get_opener(self.proxies)
 
-    def build_http(self, handlers):
-        broker = RequestDirector(self)
+    def build_request_director(self, handlers):
+        director = RequestDirector(self)
         for klass in handlers:
             if klass is not None:
-                broker.add_handler(klass(self))
-        return broker
+                director.add_handler(klass(self))
+        return director
 
     def encode(self, s):
         if isinstance(s, bytes):

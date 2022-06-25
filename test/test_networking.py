@@ -222,7 +222,7 @@ class RequestHandlerTestBase:
     def make_ydl(self, params=None, fake=True):
         ydl = (FakeYDL if fake else YoutubeDL)(params)
 
-        ydl.http = ydl.build_http([self.handler])
+        ydl._request_director = ydl.build_request_director([self.handler])
         return ydl
 
 
