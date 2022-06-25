@@ -176,8 +176,19 @@ class _YoutubeDLOptionParser(optparse.OptionParser):
         self.rargs, self.largs = self._get_args(args), []
         self.values = values or self.get_default_values()
         while self.rargs:
+            arg = self.rargs[0]
             try:
-                self._process_args(self.largs, self.rargs, self.values)
+                if arg == '--':
+                    del self.rargs[0]
+                    break
+                elif arg.startswith('--'):
+                    self._process_long_opt(self.rargs, self.values)
+                elif arg.startswith('-') and arg != '-':
+                    self._process_short_opts(self.rargs, self.values)
+                elif self.allow_interspersed_args:
+                    self.largs.append(self.rargs.pop(0))
+                else:
+                    break
             except optparse.OptParseError as err:
                 if isinstance(err, self._UNKNOWN_OPTION):
                     self.largs.append(err.opt_str)
