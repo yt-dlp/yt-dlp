@@ -1,5 +1,4 @@
 import itertools
-import re
 
 from .common import InfoExtractor
 from ..utils import (
@@ -7,6 +6,7 @@ from ..utils import (
     extract_attributes,
     int_or_none,
     parse_qs,
+    traverse_obj,
     try_get,
     url_or_none,
     lowercase_escape,
@@ -282,62 +282,76 @@ class ZenYandexChannelIE(InfoExtractor):
             'title': 'AcademeG DailyStream',
         },
         'playlist_mincount': 657,
+    }, {
+        # Test that the playlist extractor finishes extracting
+        # when the channel has only a few entries, less than one page
+        'url': 'https://zen.yandex.ru/jony_me',
+        'info_dict': {
+            'id': 'jony_me',
+            'description': 'md5:50d5d275333b4b5735872e6bc5c5b1da',
+            'title': 'JONY ',
+        },
+        'playlist_maxcount': 1000,
+    }, {
+        # Test that the playlist extractor finishes extracting
+        # when the channel has more than one page of entries
+        #
+        # For the test to be valid the maxcount value specified in
+        # 'entries': 'maxcount:***' must be strictly less than the value specified for
+        # 'playlist_maxcount': ***,
+        'url': 'https://zen.yandex.ru/tatyanareva',
+        'info_dict': {
+            'id': 'tatyanareva',
+            'description': 'md5:296b588d60841c3756c9105f237b70c6',
+            'title': 'Татьяна Рева',
+            'entries': 'maxcount:200',
+        },
+        # Adding a playlist_maxcount field as well to ensure that the test
+        # eventually stops in case the playlist extractor is broken and loops forever.
+        'playlist_mincount': 2,
+        'playlist_maxcount': 250,
     }]
 
     def _entries(self, channel_title, server_state_json, server_settings_json):
-        items = list((try_get(server_state_json, lambda x: x['feed']['items'], dict) or {}).values())
-
-        if(len(items) == 0):
-            items = list(try_get(server_settings_json, lambda x: x['exportData']['items']))
+        items = (traverse_obj(server_state_json, ('feed', 'items', ...))
+                 or traverse_obj(server_settings_json, ('exportData', 'items', ...)))
 
         prev_next_page_id = None
-        more = try_get(
-            server_state_json, lambda x: x['links']['more']
-        ) or try_get(
-            server_settings_json, lambda x: x['exportData']['more']['link']) or None
-
-        if more:
-            next_page_id = try_get(parse_qs(more), lambda x: x['next_page_id'][0]) or None
-        else:
-            next_page_id = None
+        more = (traverse_obj(server_state_json, ('links', 'more'))
+                or traverse_obj(server_settings_json, ('exportData', 'more', 'link')))
 
         for page in itertools.count(1):
-            for item in filter(lambda x: x.get('type') == 'gif', items):
+            for item in items:
+                if item.get('type') != 'gif':
+                    continue
                 video_id = item.get('publication_id') or item.get('publicationId')
                 video_url = item.get('link')
                 yield self.url_result(video_url, ie=ZenYandexIE.ie_key(), video_id=video_id.split(':')[-1])
 
-            if any([not more, len(items) == 0, next_page_id and next_page_id == prev_next_page_id, not next_page_id]):
+            next_page_id = traverse_obj(parse_qs(more), ('next_page_id', -1))
+
+            if not all((more, items, next_page_id, next_page_id != prev_next_page_id)):
                 break
 
             data_json = self._download_json(more, channel_title, note='Downloading Page %d' % page)
             items = data_json.get('items', [])
-            more = try_get(data_json, lambda x: x['more']['link']) or None
+            more = traverse_obj(data_json, ('more', 'link'))
 
             prev_next_page_id = next_page_id
-            if more:
-                next_page_id = try_get(parse_qs(more), lambda x: x['next_page_id'][0]) or None
-            else:
-                next_page_id = None
 
     def _real_extract(self, url):
         id = self._match_id(url)
         webpage = self._download_webpage(url, id)
-        data_json = self._parse_json(re.findall(r'var\s?data\s?=\s?({.+?})\s?;', webpage)[-1], id)
-        server_state_json = None
-        server_settings_json = None
-        for key in data_json.keys():
-            if key.startswith('__serverState__'):
-                server_state_json = data_json[key]
-            if key.startswith('__serverSettings__'):
-                server_settings_json = data_json[key]
-            if server_state_json and server_settings_json:
-                break
+        data_json = self._parse_json(
+            self._search_regex(r'var\s+data\s*=\s*({\s*\"\s*__serverState__.+?})\s*;', webpage, "First channel page data_json"),
+            id)
+        server_state_json = traverse_obj(data_json, lambda k, _: k.startswith('__serverState__'), get_all=False)
+        server_settings_json = traverse_obj(data_json, lambda k, _: k.startswith('__serverSettings__'), get_all=False)
 
-        channel_title = try_get(server_state_json, lambda x: x['channel']['source']['title']) or id
-        channel_description = try_get(server_state_json, lambda x: x['channel']['source']['description']) or None
+        channel_title = traverse_obj(server_state_json, ('channel', 'source', 'title')) or id
 
-        return self.playlist_result(self._entries(channel_title, server_state_json, server_settings_json),
-                                    playlist_id=id,
-                                    playlist_title=channel_title,
-                                    playlist_description=channel_description)
+        return self.playlist_result(
+            self._entries(channel_title, server_state_json, server_settings_json),
+            id,
+            channel_title,
+            traverse_obj(server_state_json, ('channel', 'source', 'description')))
