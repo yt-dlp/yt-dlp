@@ -149,8 +149,8 @@ def expect_value(self, got, expected, field):
             got = 'md5:' + md5(got)
         elif isinstance(expected, str) and re.match(r'^(?:min|max)?count:\d+', expected):
             self.assertTrue(
-                isinstance(got, (list, dict)),
-                f'Expected field {field} to be a list or a dict, but it is of type {type(got).__name__}')
+                isinstance(got, (list, dict, tuple)),
+                f'Expected field {field} to be a list, a dict or a tuple, but it is of type {type(got).__name__}')
             op, _, expected_num = expected.partition(':')
             expected_num = int(expected_num)
             if op == 'mincount':
