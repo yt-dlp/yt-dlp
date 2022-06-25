@@ -16,6 +16,7 @@ from ..utils import (
     try_get,
     UnsupportedError,
     urljoin,
+    HEADRequest,
 )
 
 
@@ -183,11 +184,12 @@ class LBRYIE(LBRYBaseIE):
         uri = 'lbry://' + display_id
         result = self._resolve_url(uri, display_id, 'stream')
         if result['value'].get('stream_type') in self._SUPPORTED_STREAM_TYPES:
-            claim_id, is_live, headers = result['claim_id'], False, None
+            claim_id, is_live, headers = result['claim_id'], False, {}
             streaming_url = self._call_api_proxy(
                 'get', claim_id, {'uri': uri}, 'streaming url')['streaming_url']
             final_url = self._request_webpage(
-                streaming_url, display_id, note='Downloading streaming redirect url info').geturl()
+                HEADRequest(streaming_url), display_id,
+                note='Downloading streaming redirect url info').geturl()
         elif result.get('value_type') == 'stream':
             claim_id, is_live = result['signing_channel']['claim_id'], True
             headers = {'referer': 'https://player.odysee.live/'}
