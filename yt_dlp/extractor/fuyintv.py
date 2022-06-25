@@ -19,7 +19,7 @@ class FuyinTVIE(InfoExtractor):
         json_data = self._download_json(
             'https://www.fuyin.tv/api/api/tv.movie/url',
             video_id, query={'urlid': f'{video_id}'})
-        webpage = self._download_webpage(url, video_id)
+        webpage = self._download_webpage(url, video_id, fatal=False)
 
         return {
             'id': video_id,
