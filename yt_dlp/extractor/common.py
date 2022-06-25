@@ -730,14 +730,14 @@ class InfoExtractor:
         else:
             return err.code in variadic(expected_status)
 
-    def _create_request(self, url_or_request, data=None, headers={}, query={}):
+    def _create_request(self, url_or_request, data=None, headers=None, query=None):
         if isinstance(url_or_request, urllib.request.Request):
             return update_Request(url_or_request, data=data, headers=headers, query=query)
         if query:
             url_or_request = update_url_query(url_or_request, query)
-        return sanitized_Request(url_or_request, data, headers)
+        return sanitized_Request(url_or_request, data, headers or {})
 
-    def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):
+    def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers=None, query=None, expected_status=None):
         """
         Return the response handle.
 
@@ -765,8 +765,8 @@ class InfoExtractor:
         # geo unrestricted country. We will do so once we encounter any
         # geo restriction error.
         if self._x_forwarded_for_ip:
-            if 'X-Forwarded-For' not in headers:
-                headers['X-Forwarded-For'] = self._x_forwarded_for_ip
+            headers = (headers or {}).copy()
+            headers.setdefault('X-Forwarded-For', self._x_forwarded_for_ip)
 
         try:
             return self._downloader.urlopen(self._create_request(url_or_request, data, headers, query))

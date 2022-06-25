@@ -3015,9 +3015,9 @@ def update_url_query(url, query):
         query=urllib.parse.urlencode(qs, True)))
 
 
-def update_Request(req, url=None, data=None, headers={}, query={}):
+def update_Request(req, url=None, data=None, headers=None, query=None):
     req_headers = req.headers.copy()
-    req_headers.update(headers)
+    req_headers.update(headers or {})
     req_data = data or req.data
     req_url = update_url_query(url or req.get_full_url(), query)
     req_get_method = req.get_method()
