@@ -27,12 +27,12 @@ class StarTrekIE(InfoExtractor):
         description = self._html_search_regex(
             r'(?s)<div class="header-body">(.+?)</div>',
             webpage, 'description', fatal=False)
-        ld = self._search_json_ld(webpage, video_id, fatal=False)
+        json_ld = self._search_json_ld(webpage, video_id, fatal=False)
 
         player = self._search_regex(r'(<div id="cvp-player-[^<]+</div>)', webpage, 'player')
 
         hls = self._html_search_regex(r' data-hls="([^"]+)" ', player, 'HLS URL')
-        title = self._html_search_regex(r' data-title="([^"]+)" ', player, 'title', ld.get('title'))
+        title = self._html_search_regex(r' data-title="([^"]+)" ', player, 'title', json_ld.get('title'))
         duration = int_or_none(
             self._html_search_regex(r' data-duration="(\d+)" ', player, 'duration', None))
         poster = self._html_search_regex(r' data-poster-url="([^"]+)" ', player, 'thumbnail', None)
@@ -52,5 +52,5 @@ class StarTrekIE(InfoExtractor):
             'formats': formats,
             'subtitles': subtitles,
             'thumbnail': poster,
-            'timestamp': ld.get('timestamp'),
+            'timestamp': json_ld.get('timestamp'),
         }
