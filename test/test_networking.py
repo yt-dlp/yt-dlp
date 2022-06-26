@@ -434,7 +434,7 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
 
     def test_no_redirects(self):
         with self.make_ydl() as ydl:
-            res = ydl.urlopen(Request('http://localhost:%d/redirect_302' % self.http_port, redirect=False))
+            res = ydl.urlopen(Request('http://localhost:%d/redirect_302' % self.http_port, allow_redirects=False))
             self.assertEqual(res.status, 302)
 
 

@@ -48,7 +48,7 @@ class Request:
     @param query: URL query parameters to update the url with.
     @param method: HTTP method to use. If no method specified, will use POST if payload data is present else GET
     @param compression: whether to include content-encoding header on request.
-    @param redirect: whether to follow redirects for this request.
+    @param allow_redirects: whether to follow redirects for this request.
     @param timeout: socket timeout value for this request.
     """
 
@@ -61,7 +61,7 @@ class Request:
             query: dict = None,
             method: str = None,
             compression: bool = True,
-            redirect: bool = True,
+            allow_redirects: bool = True,
             timeout: Union[float, int] = None):
 
         url, basic_auth_header = extract_basic_auth(escape_url(sanitize_url(url)))
@@ -75,7 +75,7 @@ class Request:
         self._data = None
         self.data = data
         self.timeout = timeout
-        self.redirect = redirect
+        self.allow_redirects = allow_redirects
 
         if basic_auth_header:
             self.headers['Authorization'] = basic_auth_header
@@ -124,7 +124,8 @@ class Request:
     def copy(self):
         return type(self)(
             url=self.url, data=self.data, headers=self.headers.copy(), timeout=self.timeout,
-            proxies=self.proxies.copy(), compression=self.compression, method=self.method, redirect=self.redirect)
+            proxies=self.proxies.copy(), compression=self.compression, method=self.method,
+            allow_redirects=self.allow_redirects)
 
     def add_header(self, key, value):
         self._headers[key] = value

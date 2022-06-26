@@ -457,7 +457,7 @@ class UrllibRH(RequestHandler):
         super().__init__(ydl)
         self._openers = {}
 
-    def _create_opener(self, proxies=None, redirect=True):
+    def _create_opener(self, proxies=None, allow_redirects=True):
         cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
         proxy_handler = YDLProxyHandler(proxies)
         debuglevel = int(bool(self.ydl.params.get('debug_printtraffic')))
@@ -479,7 +479,7 @@ class UrllibRH(RequestHandler):
 
         handlers = [proxy_handler, cookie_processor, ydlh, data_handler, file_handler,
                     UnknownHandler(), HTTPDefaultErrorHandler(), FTPHandler(), HTTPErrorProcessor(),
-                    YoutubeDLRedirectHandler() if redirect else YoutubeDLNoRedirectHandler()]
+                    YoutubeDLRedirectHandler() if allow_redirects else YoutubeDLNoRedirectHandler()]
 
         for handler in handlers:
             opener.add_handler(handler)
@@ -492,8 +492,8 @@ class UrllibRH(RequestHandler):
 
     def get_opener(self, request):
         return self._openers.setdefault(
-            frozenset(list(request.proxies.items()) + [request.redirect]),
-            self._create_opener(proxies=request.proxies, redirect=request.redirect))
+            frozenset(list(request.proxies.items()) + [request.allow_redirects]),
+            self._create_opener(proxies=request.proxies, allow_redirects=request.allow_redirects))
 
     def _make_sslcontext(self, verify, **kwargs):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
