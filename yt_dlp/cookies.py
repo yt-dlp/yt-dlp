@@ -1,5 +1,7 @@
+import base64
 import contextlib
 import ctypes
+import http.cookiejar
 import json
 import os
 import shutil
@@ -17,7 +19,6 @@ from .aes import (
     aes_gcm_decrypt_and_verify_bytes,
     unpad_pkcs7,
 )
-from .compat import compat_b64decode, compat_cookiejar_Cookie
 from .dependencies import (
     _SECRETSTORAGE_UNAVAILABLE_REASON,
     secretstorage,
@@ -142,7 +143,7 @@ def _extract_firefox_cookies(profile, logger):
                 total_cookie_count = len(table)
                 for i, (host, name, value, path, expiry, is_secure) in enumerate(table):
                     progress_bar.print(f'Loading cookie {i: 6d}/{total_cookie_count: 6d}')
-                    cookie = compat_cookiejar_Cookie(
+                    cookie = http.cookiejar.Cookie(
                         version=0, name=name, value=value, port=None, port_specified=False,
                         domain=host, domain_specified=bool(host), domain_initial_dot=host.startswith('.'),
                         path=path, path_specified=bool(path), secure=is_secure, expires=expiry, discard=False,
@@ -297,7 +298,7 @@ def _process_chrome_cookie(decryptor, host_key, name, value, encrypted_value, pa
         if value is None:
             return is_encrypted, None
 
-    return is_encrypted, compat_cookiejar_Cookie(
+    return is_encrypted, http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=host_key, domain_specified=bool(host_key), domain_initial_dot=host_key.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expires_utc, discard=False,
@@ -589,7 +590,7 @@ def _parse_safari_cookies_record(data, jar, logger):
 
     p.skip_to(record_size, 'space at the end of the record')
 
-    cookie = compat_cookiejar_Cookie(
+    cookie = http.cookiejar.Cookie(
         version=0, name=name, value=value, port=None, port_specified=False,
         domain=domain, domain_specified=bool(domain), domain_initial_dot=domain.startswith('.'),
         path=path, path_specified=bool(path), secure=is_secure, expires=expiration_date, discard=False,
@@ -835,7 +836,7 @@ def _get_windows_v10_key(browser_root, logger):
     except KeyError:
         logger.error('no encrypted key in Local State')
         return None
-    encrypted_key = compat_b64decode(base64_key)
+    encrypted_key = base64.b64decode(base64_key)
     prefix = b'DPAPI'
     if not encrypted_key.startswith(prefix):
         logger.error('invalid key')

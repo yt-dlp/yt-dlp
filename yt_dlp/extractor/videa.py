@@ -1,8 +1,10 @@
 import random
 import re
 import string
+import struct
 
 from .common import InfoExtractor
+from ..compat import compat_b64decode, compat_ord
 from ..utils import (
     ExtractorError,
     int_or_none,
@@ -13,11 +15,6 @@ from ..utils import (
     urljoin,
     xpath_element,
     xpath_text,
-)
-from ..compat import (
-    compat_b64decode,
-    compat_ord,
-    compat_struct_pack,
 )
 
 
@@ -102,7 +99,7 @@ class VideaIE(InfoExtractor):
             j = (j + S[i]) % 256
             S[i], S[j] = S[j], S[i]
             k = S[(S[i] + S[j]) % 256]
-            res += compat_struct_pack('B', k ^ compat_ord(cipher_text[m]))
+            res += struct.pack('B', k ^ compat_ord(cipher_text[m]))
 
         return res.decode()
 

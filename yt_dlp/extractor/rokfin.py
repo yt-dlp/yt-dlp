@@ -360,7 +360,7 @@ class RokfinSearchIE(SearchInfoExtractor):
     _db_access_key = None
 
     def _real_initialize(self):
-        self._db_url, self._db_access_key = self._downloader.cache.load(self.ie_key(), 'auth', default=(None, None))
+        self._db_url, self._db_access_key = self.cache.load(self.ie_key(), 'auth', default=(None, None))
         if not self._db_url:
             self._get_db_access_credentials()
 
@@ -405,6 +405,6 @@ class RokfinSearchIE(SearchInfoExtractor):
 
             self._db_url = url_or_none(f'{auth_data["ENDPOINT_BASE"]}/api/as/v1/engines/rokfin-search/search.json')
             self._db_access_key = f'Bearer {auth_data["SEARCH_KEY"]}'
-            self._downloader.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
+            self.cache.store(self.ie_key(), 'auth', (self._db_url, self._db_access_key))
             return
         raise ExtractorError('Unable to extract access credentials')

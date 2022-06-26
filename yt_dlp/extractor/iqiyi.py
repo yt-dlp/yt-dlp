@@ -521,7 +521,7 @@ class IqIE(InfoExtractor):
     '''
 
     def _extract_vms_player_js(self, webpage, video_id):
-        player_js_cache = self._downloader.cache.load('iq', 'player_js')
+        player_js_cache = self.cache.load('iq', 'player_js')
         if player_js_cache:
             return player_js_cache
         webpack_js_url = self._proto_relative_url(self._search_regex(
@@ -534,7 +534,7 @@ class IqIE(InfoExtractor):
                 f'https://stc.iqiyipic.com/_next/static/chunks/{webpack_map1.get(module_index, module_index)}.{webpack_map2[module_index]}.js',
                 video_id, note=f'Downloading #{module_index} module JS', errnote='Unable to download module JS', fatal=False) or ''
             if 'vms request' in module_js:
-                self._downloader.cache.store('iq', 'player_js', module_js)
+                self.cache.store('iq', 'player_js', module_js)
                 return module_js
         raise ExtractorError('Unable to extract player JS')
 

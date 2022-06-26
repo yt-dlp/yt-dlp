@@ -1,11 +1,7 @@
 import re
 
 from .common import InfoExtractor
-from ..compat import compat_chr
-from ..utils import (
-    decode_packed_codes,
-    ExtractorError,
-)
+from ..utils import ExtractorError, decode_packed_codes
 
 
 class VShareIE(InfoExtractor):
@@ -37,7 +33,7 @@ class VShareIE(InfoExtractor):
         digits = [int(digit) for digit in digits.split(',')]
         key_digit = self._search_regex(
             r'fromCharCode\(.+?(\d+)\)}', unpacked, 'key digit')
-        chars = [compat_chr(d - int(key_digit)) for d in digits]
+        chars = [chr(d - int(key_digit)) for d in digits]
         return ''.join(chars)
 
     def _real_extract(self, url):

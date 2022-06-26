@@ -347,6 +347,7 @@ class FFmpegPostProcessor(PostProcessor):
         _, stderr, returncode = Popen.run(
             cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         if returncode not in variadic(expected_retcodes):
+            self.write_debug(stderr)
             raise FFmpegPostProcessorError(stderr.strip().splitlines()[-1])
         for out_path, _ in output_path_opts:
             if out_path:

@@ -1,14 +1,9 @@
 import re
+import urllib.parse
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_urllib_parse_unquote,
-    compat_urllib_parse_unquote_plus,
-)
-from ..utils import (
-    clean_html,
-    ExtractorError,
-)
+from ..compat import compat_urllib_parse_unquote
+from ..utils import ExtractorError, clean_html
 
 
 class PlayvidIE(InfoExtractor):
@@ -62,7 +57,7 @@ class PlayvidIE(InfoExtractor):
                 val = videovars_match.group(2)
 
                 if key == 'title':
-                    video_title = compat_urllib_parse_unquote_plus(val)
+                    video_title = urllib.parse.unquote_plus(val)
                 if key == 'duration':
                     try:
                         duration = int(val)

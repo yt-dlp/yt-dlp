@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
 import os
 import sys
@@ -6,10 +7,12 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import threading
-from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
 
-from yt_dlp.compat import compat_etree_fromstring, compat_http_server
+import http.server
+import threading
+
+from test.helper import FakeYDL, expect_dict, expect_value, http_server_port
+from yt_dlp.compat import compat_etree_fromstring
 from yt_dlp.extractor import YoutubeIE, get_info_extractor
 from yt_dlp.extractor.common import InfoExtractor
 from yt_dlp.utils import (
@@ -23,7 +26,7 @@ TEAPOT_RESPONSE_STATUS = 418
 TEAPOT_RESPONSE_BODY = "<h1>418 I'm a teapot</h1>"
 
 
-class InfoExtractorTestRequestHandler(compat_http_server.BaseHTTPRequestHandler):
+class InfoExtractorTestRequestHandler(http.server.BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
@@ -1655,7 +1658,7 @@ jwplayer("mediaplayer").setup({"abouttext":"Visit Indie DB","aboutlink":"http:\/
         # or the underlying `_download_webpage_handle` returning no content
         # when a response matches `expected_status`.
 
-        httpd = compat_http_server.HTTPServer(
+        httpd = http.server.HTTPServer(
             ('127.0.0.1', 0), InfoExtractorTestRequestHandler)
         port = http_server_port(httpd)
         server_thread = threading.Thread(target=httpd.serve_forever)

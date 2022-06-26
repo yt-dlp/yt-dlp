@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import collections
 import contextlib
 import datetime
@@ -26,15 +25,8 @@ import urllib.request
 from string import ascii_letters
 
 from .cache import Cache
-from .compat import (
-    HAS_LEGACY as compat_has_legacy,
-    compat_get_terminal_size,
-    compat_os_name,
-    compat_shlex_quote,
-    compat_str,
-    compat_urllib_error,
-    compat_urllib_request,
-)
+from .compat import HAS_LEGACY as compat_has_legacy
+from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -644,7 +636,7 @@ class YoutubeDL:
             try:
                 import pty
                 master, slave = pty.openpty()
-                width = compat_get_terminal_size().columns
+                width = shutil.get_terminal_size().columns
                 width_args = [] if width is None else ['-w', str(width)]
                 sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': self._out_files.error}
                 try:
@@ -799,7 +791,7 @@ class YoutubeDL:
             return message
 
         assert hasattr(self, '_output_process')
-        assert isinstance(message, compat_str)
+        assert isinstance(message, str)
         line_count = message.count('\n') + 1
         self._output_process.stdin.write((message + '\n').encode())
         self._output_process.stdin.flush()
@@ -835,7 +827,7 @@ class YoutubeDL:
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
-        assert isinstance(message, compat_str)
+        assert isinstance(message, str)
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
@@ -1574,7 +1566,7 @@ class YoutubeDL:
             additional_urls = (ie_result or {}).get('additional_urls')
             if additional_urls:
                 # TODO: Improve MetadataParserPP to allow setting a list
-                if isinstance(additional_urls, compat_str):
+                if isinstance(additional_urls, str):
                     additional_urls = [additional_urls]
                 self.to_screen(
                     '[info] %s: %d additional URL(s) requested' % (ie_result['id'], len(additional_urls)))
@@ -2370,10 +2362,10 @@ class YoutubeDL:
 
         def sanitize_string_field(info, string_field):
             field = info.get(string_field)
-            if field is None or isinstance(field, compat_str):
+            if field is None or isinstance(field, str):
                 return
             report_force_conversion(string_field, 'a string', 'string')
-            info[string_field] = compat_str(field)
+            info[string_field] = str(field)
 
         def sanitize_numeric_fields(info):
             for numeric_field in self._NUMERIC_FIELDS:
@@ -2389,6 +2381,15 @@ class YoutubeDL:
             info_dict['duration'] = round(info_dict['section_end'] - info_dict['section_start'], 3)
         if (info_dict.get('duration') or 0) <= 0 and info_dict.pop('duration', None):
             self.report_warning('"duration" field is negative, there is an error in extractor')
+
+        chapters = info_dict.get('chapters') or []
+        dummy_chapter = {'end_time': 0, 'start_time': info_dict.get('duration')}
+        for prev, current, next_ in zip(
+                (dummy_chapter, *chapters), chapters, (*chapters[1:], dummy_chapter)):
+            if current.get('start_time') is None:
+                current['start_time'] = prev.get('end_time')
+            if not current.get('end_time'):
+                current['end_time'] = next_.get('start_time')
 
         if 'playlist' not in info_dict:
             # It isn't part of a playlist
@@ -2476,7 +2477,7 @@ class YoutubeDL:
             sanitize_numeric_fields(format)
             format['url'] = sanitize_url(format['url'])
             if not format.get('format_id'):
-                format['format_id'] = compat_str(i)
+                format['format_id'] = str(i)
             else:
                 # Sanitize format_id from characters used in format selector expression
                 format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])
@@ -2626,7 +2627,7 @@ class YoutubeDL:
                 if chapter or offset:
                     new_info.update({
                         'section_start': offset + chapter.get('start_time', 0),
-                        'section_end': offset + min(chapter.get('end_time', 0), duration),
+                        'section_end': offset + min(chapter.get('end_time', duration), duration),
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
@@ -3731,7 +3732,7 @@ class YoutubeDL:
             else:
                 proxies = {'http': opts_proxy, 'https': opts_proxy}
         else:
-            proxies = compat_urllib_request.getproxies()
+            proxies = urllib.request.getproxies()
             # Set HTTPS proxy to HTTP one if given (https://github.com/ytdl-org/youtube-dl/issues/805)
             if 'http' in proxies and 'https' not in proxies:
                 proxies['https'] = proxies['http']
@@ -3747,13 +3748,13 @@ class YoutubeDL:
         # default FileHandler and allows us to disable the file protocol, which
         # can be used for malicious purposes (see
         # https://github.com/ytdl-org/youtube-dl/issues/8227)
-        file_handler = compat_urllib_request.FileHandler()
+        file_handler = urllib.request.FileHandler()
 
         def file_open(*args, **kwargs):
-            raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
+            raise urllib.error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
         file_handler.file_open = file_open
 
-        opener = compat_urllib_request.build_opener(
+        opener = urllib.request.build_opener(
             proxy_handler, https_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler)
 
         # Delete the default user-agent header, which would otherwise apply in
