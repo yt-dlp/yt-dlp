@@ -29,13 +29,13 @@ class StarTrekIE(InfoExtractor):
             webpage, 'description', fatal=False)
         ld = self._search_json_ld(webpage, video_id, fatal=False)
 
-        player = self._search_regex(r'(<div id="cvp-player-.+?></div>)', webpage, 'player')
+        player = self._search_regex(r'(<div id="cvp-player-[^<]+</div>)', webpage, 'player')
 
-        hls = self._html_search_regex(r' data-hls="(.+?)" ', player, 'HLS URL')
-        title = self._html_search_regex(r' data-title="(.+?)" ', player, 'title', ld.get('title'))
+        hls = self._html_search_regex(r' data-hls="([^"]+)" ', player, 'HLS URL')
+        title = self._html_search_regex(r' data-title="([^"]+)" ', player, 'title', ld.get('title'))
         duration = int_or_none(
-            self._html_search_regex(r' data-duration="(\d+?)" ', player, 'duration', None))
-        poster = self._html_search_regex(r' data-poster-url="(.+?)" ', player, 'thumbnail', None)
+            self._html_search_regex(r' data-duration="(\d+)" ', player, 'duration', None))
+        poster = self._html_search_regex(r' data-poster-url="([^"]+)" ', player, 'thumbnail', None)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id)
         self._sort_formats(formats)
