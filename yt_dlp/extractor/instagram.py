@@ -186,6 +186,12 @@ class InstagramBaseIE(InfoExtractor):
         }
         carousel_media = product_info.get('carousel_media')
         if carousel_media:
+            if self.get_param('noplaylist'):
+                self.to_screen('Downloading only one result due to --no-playlist')
+                return {
+                    **info_dict,
+                    **self._extract_product_media(carousel_media[0])
+                }
             return {
                 '_type': 'playlist',
                 **info_dict,
