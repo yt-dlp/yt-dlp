@@ -1,5 +1,5 @@
-from yt_dlp.utils import int_or_none
 from .common import InfoExtractor
+from ..utils import int_or_none
 
 
 class StarTrekIE(InfoExtractor):
