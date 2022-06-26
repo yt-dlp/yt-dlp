@@ -25,18 +25,20 @@ class StarTrekIE(InfoExtractor):
         webpage = self._download_webpage(url, video_id)
 
         description = self._html_search_regex(
-            r'(?s)<div class="header-body">(.+?)</div>',
+            r'(?s)<\s*div\s+class\s*=\s*"header-body"\s*>(.+?)<\s*/div\s*>',
             webpage, 'description', fatal=False)
         json_ld = self._search_json_ld(webpage, video_id, fatal=False)
 
-        player = self._search_regex(r'(<div id="cvp-player-[^<]+</div>)', webpage, 'player')
+        player = self._search_regex(
+            r'(<\s*div\s+id\s*=\s*"cvp-player-[^<]+<\s*/div\s*>)', webpage, 'player')
 
-        hls = self._html_search_regex(r' data-hls="([^"]+)" ', player, 'HLS URL')
-        title = self._html_search_regex(r' data-title="([^"]+)" ', player, 'title', json_ld.get('title'))
+        hls = self._html_search_regex(r'\bdata-hls\s*=\s*"([^"]+)"', player, 'HLS URL')
+        title = self._html_search_regex(r'\bdata-title\s*=\s*"([^"]+)"', player, 'title', json_ld.get('title'))
         duration = int_or_none(
-            self._html_search_regex(r' data-duration="(\d+)" ', player, 'duration', fatal=False))
-        poster = urljoin(urlbase,
-                         self._html_search_regex(r' data-poster-url="([^"]+)" ', player, 'thumbnail', fatal=False))
+            self._html_search_regex(r'\bdata-duration\s*=\s*"(\d+)"', player, 'duration', fatal=False))
+        poster = urljoin(
+            urlbase,
+            self._html_search_regex(r'\bdata-poster-url\s*=\s*"([^"]+)"', player, 'thumbnail', fatal=False))
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id)
         self._sort_formats(formats)
