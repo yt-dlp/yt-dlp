@@ -317,5 +317,5 @@ class GoIE(AdobePassIE):
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subtitles,
-            'timestamp': timeconvert(video_data.get('airdates', {}).get('airdate', [None])[0]),
+            'timestamp': unified_timestamp(traverse_obj(video_data, ('airdates', 'airdate', 0))),
         }
