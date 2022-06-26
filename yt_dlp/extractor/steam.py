@@ -132,8 +132,16 @@ class SteamIE(InfoExtractor):
 class SteamCommunityBroadcastIE(InfoExtractor):
     _VALID_URL = r'https?://steamcommunity\.(?:com)/broadcast/watch/(?P<id>\d+)'
     _TESTS = [{
-        'url': 'https://steamcommunity.com/broadcast/watch/76561199037072858',
-        'only_matching': True,
+        'url': 'https://steamcommunity.com/broadcast/watch/76561199073851486',
+        'info_dict': {
+            'id': '76561199073851486',
+            'title': r're:Steam Community :: pepperm!nt :: Broadcast 2022-06-26 \d{2}:\d{2}',
+            'ext': 'mp4',
+            'uploader_id': 1113585758,
+            'uploader': 'pepperm!nt',
+            'live_status': 'is_live',
+        },
+        'skip': 'Stream has ended',
     }]
 
     def _real_extract(self, url):
@@ -143,12 +151,13 @@ class SteamCommunityBroadcastIE(InfoExtractor):
             'https://steamcommunity.com/broadcast/getbroadcastmpd/',
             video_id, query={'steamid': f'{video_id}'}
         )
-        formats = []
-        mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(json_data['url'], video_id)
-        format_, subs = self._extract_m3u8_formats_and_subtitles(json_data['hls_url'], video_id)
 
-        formats.extend(format_)
-        formats.extend(mpd_formats)
+        formats, subs = self._extract_m3u8_formats_and_subtitles(json_data['hls_url'], video_id)
+
+        # uncomment below if there's no issue for live dash in ffmpeg
+        # mpd_formats, mpd_subs = self._extract_mpd_formats_and_subtitles(json_data['url'], video_id)
+        # formats.extend(mpd_formats)
+        # self._merge_subtitles(subtitles, target=subs)
 
         uploader_json = self._download_json(
             'https://steamcommunity.com/actions/ajaxresolveusers',
@@ -166,5 +175,5 @@ class SteamCommunityBroadcastIE(InfoExtractor):
             'view_count': json_data.get('num_view'),
             'uploader': uploader_json.get('persona_name'),
             'uploader_id': uploader_json.get('accountid'),
-
+            'subtitles': subs,
         }
