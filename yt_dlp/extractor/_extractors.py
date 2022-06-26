@@ -563,6 +563,7 @@ from .funimation import (
 )
 from .funk import FunkIE
 from .fusion import FusionIE
+from .fuyintv import FuyinTVIE
 from .gab import (
     GabTVIE,
     GabIE,
@@ -1329,6 +1330,7 @@ from .puhutv import (
     PuhuTVIE,
     PuhuTVSerieIE,
 )
+from .premiershiprugby import PremiershipRugbyIE
 from .presstv import PressTVIE
 from .projectveritas import ProjectVeritasIE
 from .prosiebensat1 import ProSiebenSat1IE

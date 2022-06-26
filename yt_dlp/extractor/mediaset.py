@@ -23,7 +23,7 @@ class MediasetIE(ThePlatformBaseIE):
                             (?:\w+\.)+mediaset\.it/
                             (?:
                                 (?:video|on-demand|movie)/(?:[^/]+/)+[^/]+_|
-                                player/index\.html\?.*?\bprogramGuid=
+                                player/(?:v\d+/)?index\.html\?.*?\bprogramGuid=
                             )
                     )(?P<id>[0-9A-Z]{16,})
                     '''
@@ -161,6 +161,9 @@ class MediasetIE(ThePlatformBaseIE):
         'only_matching': True,
     }, {
         'url': 'https://mediasetinfinity.mediaset.it/video/braveandbeautiful/episodio-113_F310948005000402',
+        'only_matching': True,
+    }, {
+        'url': 'https://static3.mediasetplay.mediaset.it/player/v2/index.html?partnerId=wittytv&configId=&programGuid=FD00000000153323',
         'only_matching': True,
     }]
 

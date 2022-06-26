@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import collections
 import contextlib
 import datetime
@@ -26,15 +25,8 @@ import urllib.request
 from string import ascii_letters
 
 from .cache import Cache
-from .compat import (
-    HAS_LEGACY as compat_has_legacy,
-    compat_get_terminal_size,
-    compat_os_name,
-    compat_shlex_quote,
-    compat_str,
-    compat_urllib_error,
-    compat_urllib_request,
-)
+from .compat import HAS_LEGACY as compat_has_legacy
+from .compat import compat_os_name, compat_shlex_quote
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -582,9 +574,14 @@ class YoutubeDL:
             for type_, stream in self._out_files.items_ if type_ != 'console'
         })
 
-        if sys.version_info < (3, 6):
-            self.report_warning(
-                'Python version %d.%d is not supported! Please update to Python 3.6 or above' % sys.version_info[:2])
+        MIN_SUPPORTED, MIN_RECOMMENDED = (3, 6), (3, 7)
+        current_version = sys.version_info[:2]
+        if current_version < MIN_RECOMMENDED:
+            msg = 'Support for Python version %d.%d has been deprecated and will break in future versions of yt-dlp'
+            if current_version < MIN_SUPPORTED:
+                msg = 'Python version %d.%d is no longer supported'
+            self.deprecation_warning(
+                f'{msg}! Please update to Python %d.%d or above' % (*current_version, *MIN_RECOMMENDED))
 
         if self.params.get('allow_unplayable_formats'):
             self.report_warning(
@@ -639,7 +636,7 @@ class YoutubeDL:
             try:
                 import pty
                 master, slave = pty.openpty()
-                width = compat_get_terminal_size().columns
+                width = shutil.get_terminal_size().columns
                 width_args = [] if width is None else ['-w', str(width)]
                 sp_kwargs = {'stdin': subprocess.PIPE, 'stdout': slave, 'stderr': self._out_files.error}
                 try:
@@ -794,7 +791,7 @@ class YoutubeDL:
             return message
 
         assert hasattr(self, '_output_process')
-        assert isinstance(message, compat_str)
+        assert isinstance(message, str)
         line_count = message.count('\n') + 1
         self._output_process.stdin.write((message + '\n').encode())
         self._output_process.stdin.flush()
@@ -830,7 +827,7 @@ class YoutubeDL:
 
     def to_stderr(self, message, only_once=False):
         """Print message to stderr"""
-        assert isinstance(message, compat_str)
+        assert isinstance(message, str)
         if self.params.get('logger'):
             self.params['logger'].error(message)
         else:
@@ -1565,7 +1562,7 @@ class YoutubeDL:
             additional_urls = (ie_result or {}).get('additional_urls')
             if additional_urls:
                 # TODO: Improve MetadataParserPP to allow setting a list
-                if isinstance(additional_urls, compat_str):
+                if isinstance(additional_urls, str):
                     additional_urls = [additional_urls]
                 self.to_screen(
                     '[info] %s: %d additional URL(s) requested' % (ie_result['id'], len(additional_urls)))
@@ -1596,9 +1593,13 @@ class YoutubeDL:
             if not info:
                 return info
 
+            exempted_fields = {'_type', 'url', 'ie_key'}
+            if not ie_result.get('section_end') and ie_result.get('section_start') is None:
+                # For video clips, the id etc of the clip extractor should be used
+                exempted_fields |= {'id', 'extractor', 'extractor_key'}
+
             new_result = info.copy()
-            new_result.update(filter_dict(ie_result, lambda k, v: (
-                v is not None and k not in {'_type', 'url', 'id', 'extractor', 'extractor_key', 'ie_key'})))
+            new_result.update(filter_dict(ie_result, lambda k, v: v is not None and k not in exempted_fields))
 
             # Extracted info may not be a video result (i.e.
             # info.get('_type', 'video') != video) but rather an url or
@@ -1724,7 +1725,7 @@ class YoutubeDL:
                 resolved_entries.append((playlist_index, entry))
 
             # TODO: Add auto-generated fields
-            if self._match_entry(entry, incomplete=True) is not None:
+            if not entry or self._match_entry(entry, incomplete=True) is not None:
                 continue
 
             self.to_screen('[download] Downloading video %s of %s' % (
@@ -2359,10 +2360,10 @@ class YoutubeDL:
 
         def sanitize_string_field(info, string_field):
             field = info.get(string_field)
-            if field is None or isinstance(field, compat_str):
+            if field is None or isinstance(field, str):
                 return
             report_force_conversion(string_field, 'a string', 'string')
-            info[string_field] = compat_str(field)
+            info[string_field] = str(field)
 
         def sanitize_numeric_fields(info):
             for numeric_field in self._NUMERIC_FIELDS:
@@ -2374,8 +2375,19 @@ class YoutubeDL:
 
         sanitize_string_field(info_dict, 'id')
         sanitize_numeric_fields(info_dict)
+        if info_dict.get('section_end') and info_dict.get('section_start') is not None:
+            info_dict['duration'] = round(info_dict['section_end'] - info_dict['section_start'], 3)
         if (info_dict.get('duration') or 0) <= 0 and info_dict.pop('duration', None):
             self.report_warning('"duration" field is negative, there is an error in extractor')
+
+        chapters = info_dict.get('chapters') or []
+        dummy_chapter = {'end_time': 0, 'start_time': info_dict.get('duration')}
+        for prev, current, next_ in zip(
+                (dummy_chapter, *chapters), chapters, (*chapters[1:], dummy_chapter)):
+            if current.get('start_time') is None:
+                current['start_time'] = prev.get('end_time')
+            if not current.get('end_time'):
+                current['end_time'] = next_.get('start_time')
 
         if 'playlist' not in info_dict:
             # It isn't part of a playlist
@@ -2463,7 +2475,7 @@ class YoutubeDL:
             sanitize_numeric_fields(format)
             format['url'] = sanitize_url(format['url'])
             if not format.get('format_id'):
-                format['format_id'] = compat_str(i)
+                format['format_id'] = str(i)
             else:
                 # Sanitize format_id from characters used in format selector expression
                 format['format_id'] = re.sub(r'[\s,/+\[\]()]', '_', format['format_id'])
@@ -2609,10 +2621,11 @@ class YoutubeDL:
             for fmt, chapter in itertools.product(formats_to_download, requested_ranges or [{}]):
                 new_info = self._copy_infodict(info_dict)
                 new_info.update(fmt)
-                if chapter:
+                offset, duration = info_dict.get('section_start') or 0, info_dict.get('duration') or float('inf')
+                if chapter or offset:
                     new_info.update({
-                        'section_start': chapter.get('start_time'),
-                        'section_end': chapter.get('end_time', 0),
+                        'section_start': offset + chapter.get('start_time', 0),
+                        'section_end': offset + min(chapter.get('end_time', duration), duration),
                         'section_title': chapter.get('title'),
                         'section_number': chapter.get('index'),
                     })
@@ -3717,7 +3730,7 @@ class YoutubeDL:
             else:
                 proxies = {'http': opts_proxy, 'https': opts_proxy}
         else:
-            proxies = compat_urllib_request.getproxies()
+            proxies = urllib.request.getproxies()
             # Set HTTPS proxy to HTTP one if given (https://github.com/ytdl-org/youtube-dl/issues/805)
             if 'http' in proxies and 'https' not in proxies:
                 proxies['https'] = proxies['http']
@@ -3733,13 +3746,13 @@ class YoutubeDL:
         # default FileHandler and allows us to disable the file protocol, which
         # can be used for malicious purposes (see
         # https://github.com/ytdl-org/youtube-dl/issues/8227)
-        file_handler = compat_urllib_request.FileHandler()
+        file_handler = urllib.request.FileHandler()
 
         def file_open(*args, **kwargs):
-            raise compat_urllib_error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
+            raise urllib.error.URLError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
         file_handler.file_open = file_open
 
-        opener = compat_urllib_request.build_opener(
+        opener = urllib.request.build_opener(
             proxy_handler, https_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler)
 
         # Delete the default user-agent header, which would otherwise apply in

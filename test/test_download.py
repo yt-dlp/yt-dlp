@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
+
 # Allow direct execution
-import hashlib
-import json
 import os
-import socket
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+import hashlib
+import http.client
+import json
+import socket
+import urllib.error
 
 from test.helper import (
     assertGreaterEqual,
@@ -20,12 +25,7 @@ from test.helper import (
     try_rm,
 )
 
-import yt_dlp.YoutubeDL
-from yt_dlp.compat import (
-    compat_http_client,
-    compat_HTTPError,
-    compat_urllib_error,
-)
+import yt_dlp.YoutubeDL  # isort: split
 from yt_dlp.extractor import get_info_extractor
 from yt_dlp.utils import (
     DownloadError,
@@ -167,7 +167,7 @@ def generator(test_case, tname):
                         force_generic_extractor=params.get('force_generic_extractor', False))
                 except (DownloadError, ExtractorError) as err:
                     # Check if the exception is not a network related one
-                    if not err.exc_info[0] in (compat_urllib_error.URLError, socket.timeout, UnavailableVideoError, compat_http_client.BadStatusLine) or (err.exc_info[0] == compat_HTTPError and err.exc_info[1].code == 503):
+                    if not err.exc_info[0] in (urllib.error.URLError, socket.timeout, UnavailableVideoError, http.client.BadStatusLine) or (err.exc_info[0] == urllib.error.HTTPError and err.exc_info[1].code == 503):
                         raise
 
                     if try_num == RETRIES:

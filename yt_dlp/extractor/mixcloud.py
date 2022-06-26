@@ -3,7 +3,6 @@ import itertools
 from .common import InfoExtractor
 from ..compat import (
     compat_b64decode,
-    compat_chr,
     compat_ord,
     compat_str,
     compat_urllib_parse_unquote,
@@ -72,7 +71,7 @@ class MixcloudIE(MixcloudBaseIE):
     def _decrypt_xor_cipher(key, ciphertext):
         """Encrypt/Decrypt XOR cipher. Both ways are possible because it's XOR."""
         return ''.join([
-            compat_chr(compat_ord(ch) ^ compat_ord(k))
+            chr(compat_ord(ch) ^ compat_ord(k))
             for ch, k in zip(ciphertext, itertools.cycle(key))])
 
     def _real_extract(self, url):

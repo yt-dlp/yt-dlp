@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+
+# Allow direct execution
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 import subprocess
 import sys
 from datetime import datetime
