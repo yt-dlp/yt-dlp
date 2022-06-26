@@ -11,6 +11,7 @@ from ..utils import (
     try_get,
     urlencode_postdata,
     ExtractorError,
+    timeconvert,
 )
 
 
@@ -316,4 +317,5 @@ class GoIE(AdobePassIE):
             'thumbnails': thumbnails,
             'formats': formats,
             'subtitles': subtitles,
+            'timestamp': timeconvert(video_data.get('airdates', {}).get('airdate', [None])[0]),
         }
