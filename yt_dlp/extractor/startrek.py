@@ -21,9 +21,8 @@ class StarTrekIE(InfoExtractor):
     }]
 
     def _real_extract(self, url):
-        video_id = self._match_id(url)
+        urlbase, video_id = self._match_valid_url(url).group('base', 'id')
         webpage = self._download_webpage(url, video_id)
-        urlbase = self._match_valid_url(url).group('base')
 
         description = self._html_search_regex(
             r'(?s)<div class="header-body">(.+?)</div>',
@@ -37,7 +36,7 @@ class StarTrekIE(InfoExtractor):
         hls = self._html_search_regex(r' data-hls="(.+?)" ', player, 'HLS URL')
         title = self._html_search_regex(r' data-title="(.+?)" ', player, 'title', ld.get('title'))
         duration = int_or_none(
-            self._html_search_regex(r' data-duration="([0-9]+?)" ', player, 'duration', None))
+            self._html_search_regex(r' data-duration="(\d+?)" ', player, 'duration', None))
         poster = self._html_search_regex(r' data-poster-url="(.+?)" ', player, 'thumbnail', None)
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id)
