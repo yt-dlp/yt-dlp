@@ -391,7 +391,7 @@ class InfoExtractor:
     There must be a key "entries", which is a list, an iterable, or a PagedList
     object, each element of which is a valid dictionary by this specification.
 
-    Additionally, playlists can have "id", "title", and any other relevent
+    Additionally, playlists can have "id", "title", and any other relevant
     attributes with the same semantics as videos (see above).
 
     It can also have the following optional fields:
@@ -696,7 +696,7 @@ class InfoExtractor:
         return self._downloader.cookiejar
 
     def _initialize_pre_login(self):
-        """ Intialization before login. Redefine in subclasses."""
+        """ Initialization before login. Redefine in subclasses."""
         pass
 
     def _perform_login(self, username, password):
@@ -3207,7 +3207,7 @@ class InfoExtractor:
 
         entries = []
         # amp-video and amp-audio are very similar to their HTML5 counterparts
-        # so we wll include them right here (see
+        # so we will include them right here (see
         # https://www.ampproject.org/docs/reference/components/amp-video)
         # For dl8-* tags see https://delight-vr.com/documentation/dl8-video/
         _MEDIA_TAG_NAME_RE = r'(?:(?:amp|dl8(?:-live)?)-)?(video|audio)'

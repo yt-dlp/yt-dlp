@@ -103,7 +103,7 @@ class AbemaLicenseHandler(urllib.request.BaseHandler):
     HKEY = b'3AF0298C219469522A313570E8583005A642E73EDD58E3EA2FB7339D3DF1597E'
 
     def __init__(self, ie: 'AbemaTVIE'):
-        # the protcol that this should really handle is 'abematv-license://'
+        # the protocol that this should really handle is 'abematv-license://'
         # abematv_license_open is just a placeholder for development purposes
         # ref. https://github.com/python/cpython/blob/f4c03484da59049eb62a9bf7777b963e2267d187/Lib/urllib/request.py#L510
         setattr(self, 'abematv-license_open', getattr(self, 'abematv_license_open'))
@@ -312,7 +312,7 @@ class AbemaTVIE(AbemaTVBaseIE):
 
     def _real_extract(self, url):
         # starting download using infojson from this extractor is undefined behavior,
-        # and never be fixed in the future; you must trigger downloads by directly specifing URL.
+        # and never be fixed in the future; you must trigger downloads by directly specifying URL.
         # (unless there's a way to hook before downloading by extractor)
         video_id, video_type = self._match_valid_url(url).group('id', 'type')
         headers = {

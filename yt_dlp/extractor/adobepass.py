@@ -1639,7 +1639,7 @@ class AdobePassIE(InfoExtractor):
                     post_form(mvpd_confirm_page_res, 'Confirming Login')
                 elif mso_id == 'Suddenlink':
                     # Suddenlink is similar to SlingTV in using a tab history count and a meta refresh,
-                    # but they also do a dynmaic redirect using javascript that has to be followed as well
+                    # but they also do a dynamic redirect using javascript that has to be followed as well
                     first_bookend_page, urlh = post_form(
                         provider_redirect_page_res, 'Pressing Continue...')
 

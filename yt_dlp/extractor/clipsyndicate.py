@@ -27,7 +27,7 @@ class ClipsyndicateIE(InfoExtractor):
         video_id = self._match_id(url)
         js_player = self._download_webpage(
             'http://eplayer.clipsyndicate.com/embed/player.js?va_id=%s' % video_id,
-            video_id, 'Downlaoding player')
+            video_id, 'Downloading player')
         # it includes a required token
         flvars = self._search_regex(r'flvars: "(.*?)"', js_player, 'flvars')
 

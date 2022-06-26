@@ -110,7 +110,7 @@ class RokfinIE(InfoExtractor):
                 self.raise_login_required('This video is only available to premium users', True, method='cookies')
             elif scheduled:
                 self.raise_no_formats(
-                    f'Stream is offline; sheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
+                    f'Stream is offline; scheduled for {datetime.fromtimestamp(scheduled).strftime("%Y-%m-%d %H:%M:%S")}',
                     video_id=video_id, expected=True)
         self._sort_formats(formats)
 

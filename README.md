@@ -150,7 +150,7 @@ Some of yt-dlp's default options are different from that of youtube-dl and youtu
 * Some private fields such as filenames are removed by default from the infojson. Use `--no-clean-infojson` or `--compat-options no-clean-infojson` to revert this
 * When `--embed-subs` and `--write-subs` are used together, the subtitles are written to disk and also embedded in the media file. You can use just `--embed-subs` to embed the subs and automatically delete the separate file. See [#630 (comment)](https://github.com/yt-dlp/yt-dlp/issues/630#issuecomment-893659460) for more info. `--compat-options no-keep-subs` can be used to revert this
 * `certifi` will be used for SSL root certificates, if installed. If you want to use only system certificates, use `--compat-options no-certifi`
-* youtube-dl tries to remove some superfluous punctuations from filenames. While this can sometimes be helpfull, it is often undesirable. So yt-dlp tries to keep the fields in the filenames as close to their original values as possible. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
+* youtube-dl tries to remove some superfluous punctuations from filenames. While this can sometimes be helpful, it is often undesirable. So yt-dlp tries to keep the fields in the filenames as close to their original values as possible. You can use `--compat-options filename-sanitization` to revert to youtube-dl's behavior
 
 For ease of use, a few more compat options are available:
 
@@ -239,7 +239,7 @@ If you [installed using Homebrew](#with-homebrew), run `brew upgrade yt-dlp/taps
 
 File|Description
 :---|:---
-[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform-independant [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**)
+[yt-dlp](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp)|Platform-independent [zipimport](https://docs.python.org/3/library/zipimport.html) binary. Needs Python (recommended for **Linux/BSD**)
 [yt-dlp.exe](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe)|Windows (Win7 SP1+) standalone x64 binary (recommended for **Windows**)
 [yt-dlp_macos](https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos)|MacOS (10.15+) standalone executable (recommended for **MacOS**)
 
@@ -433,7 +433,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     "-S=aext:ARG0,abr -x --audio-format ARG0".
                                     All defined aliases are listed in the --help
                                     output. Alias options can trigger more
-                                    aliases; so be carefull to avoid defining
+                                    aliases; so be careful to avoid defining
                                     recursive options. As a safety measure, each
                                     alias may be triggered a maximum of 100
                                     times. This option can be used multiple times
@@ -466,7 +466,7 @@ You can also fork the project on github and run your fork's [build workflow](.gi
                                     explicitly provided IP block in CIDR notation
 
 ## Video Selection:
-    -I, --playlist-items ITEM_SPEC  Comma seperated playlist_index of the videos
+    -I, --playlist-items ITEM_SPEC  Comma separated playlist_index of the videos
                                     to download. You can specify a range using
                                     "[START]:[STOP][:STEP]". For backward
                                     compatibility, START-STOP is also supported.
