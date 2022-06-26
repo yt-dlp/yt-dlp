@@ -3730,7 +3730,7 @@ class YoutubeDL:
         Deprecated: use YoutubeDL.urlopen() instead.
         Get an urllib OpenerDirector from the Urllib handler.
         """
-        return self._request_director.get_handlers(UrllibRH)[0].get_opener(self.proxies)
+        return self._request_director.get_handlers(UrllibRH)[0].get_opener(Request('http://', proxies=self.proxies))
 
     def build_request_director(self, handlers):
         director = RequestDirector(self)

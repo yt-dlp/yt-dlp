@@ -432,6 +432,11 @@ class RequestHandlerCommonTestsBase(RequestHandlerTestBase):
             data = ydl.urlopen('http://localhost:%d/trailing_garbage' % self.http_port).read().decode('utf-8')
             self.assertEqual(data, '<html><video src="/vid.mp4" /></html>')
 
+    def test_no_redirects(self):
+        with self.make_ydl() as ydl:
+            res = ydl.urlopen(Request('http://localhost:%d/redirect_302' % self.http_port, redirect=False))
+            self.assertEqual(res.status, 302)
+
 
 def with_request_handlers(handlers=HTTP_TEST_BACKEND_HANDLERS):
     def inner_func(test):

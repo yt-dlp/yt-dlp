@@ -336,6 +336,14 @@ class YoutubeDLRedirectHandler(urllib.request.HTTPRedirectHandler):
             unverifiable=True, method=new_method, data=new_data)
 
 
+class YoutubeDLNoRedirectHandler(urllib.request.BaseHandler):
+
+    def http_error_302(self, req, fp, code, msg, headers):
+        return fp
+
+    http_error_301 = http_error_303 = http_error_307 = http_error_308 = http_error_302
+
+
 class PUTRequest(urllib.request.Request):
     def get_method(self):
         return 'PUT'
@@ -449,13 +457,12 @@ class UrllibRH(RequestHandler):
         super().__init__(ydl)
         self._openers = {}
 
-    def _create_opener(self, proxies=None):
+    def _create_opener(self, proxies=None, redirect=True):
         cookie_processor = YoutubeDLCookieProcessor(self.cookiejar)
         proxy_handler = YDLProxyHandler(proxies)
         debuglevel = int(bool(self.ydl.params.get('debug_printtraffic')))
 
         ydlh = YoutubeDLHandler(self.ydl.params, debuglevel=debuglevel, context=self.make_sslcontext())
-        redirect_handler = YoutubeDLRedirectHandler()
         data_handler = urllib.request.DataHandler()
 
         # When passing our own FileHandler instance, build_opener won't add the
@@ -470,8 +477,9 @@ class UrllibRH(RequestHandler):
         file_handler.file_open = file_open
         opener = urllib.request.OpenerDirector()
 
-        handlers = [proxy_handler, cookie_processor, ydlh, redirect_handler, data_handler, file_handler,
-                    UnknownHandler(), HTTPDefaultErrorHandler(), FTPHandler(), HTTPErrorProcessor()]
+        handlers = [proxy_handler, cookie_processor, ydlh, data_handler, file_handler,
+                    UnknownHandler(), HTTPDefaultErrorHandler(), FTPHandler(), HTTPErrorProcessor(),
+                    YoutubeDLRedirectHandler() if redirect else YoutubeDLNoRedirectHandler()]
 
         for handler in handlers:
             opener.add_handler(handler)
@@ -482,8 +490,10 @@ class UrllibRH(RequestHandler):
         opener.addheaders = []
         return opener
 
-    def get_opener(self, proxies=None):
-        return self._openers.setdefault(frozenset(proxies.items() or {}), self._create_opener(proxies))
+    def get_opener(self, request):
+        return self._openers.setdefault(
+            frozenset(list(request.proxies.items()) + [request.redirect]),
+            self._create_opener(proxies=request.proxies, redirect=request.redirect))
 
     def _make_sslcontext(self, verify, **kwargs):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
@@ -498,7 +508,7 @@ class UrllibRH(RequestHandler):
             ssl_load_certs(context, self.ydl.params)
         return context
 
-    def _real_handle(self, request: Request):
+    def _real_handle(self, request):
         urllib_req = urllib.request.Request(
             url=request.url, data=request.data, headers=dict(request.headers), method=request.method)
 
@@ -506,7 +516,7 @@ class UrllibRH(RequestHandler):
             urllib_req.add_header('Youtubedl-no-compression', '1')
 
         try:
-            res = self.get_opener(request.proxies).open(urllib_req, timeout=request.timeout)
+            res = self.get_opener(request).open(urllib_req, timeout=request.timeout)
         except urllib.error.HTTPError as e:
             if isinstance(e.fp, (http.client.HTTPResponse, urllib.response.addinfourl)):
                 raise HTTPError(UrllibHTTPResponseAdapter(e.fp), redirect_loop='redirect error' in str(e))
