@@ -34,9 +34,9 @@ class StarTrekIE(InfoExtractor):
         hls = self._html_search_regex(r' data-hls="([^"]+)" ', player, 'HLS URL')
         title = self._html_search_regex(r' data-title="([^"]+)" ', player, 'title', json_ld.get('title'))
         duration = int_or_none(
-            self._html_search_regex(r' data-duration="(\d+)" ', player, 'duration', None))
+            self._html_search_regex(r' data-duration="(\d+)" ', player, 'duration', fatal=False))
         poster = urljoin(urlbase,
-                         self._html_search_regex(r' data-poster-url="([^"]+)" ', player, 'thumbnail', None))
+                         self._html_search_regex(r' data-poster-url="([^"]+)" ', player, 'thumbnail', fatal=False))
 
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id)
         self._sort_formats(formats)
