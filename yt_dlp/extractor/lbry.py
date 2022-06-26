@@ -2,21 +2,18 @@ import functools
 import json
 
 from .common import InfoExtractor
-from ..compat import (
-    compat_str,
-    compat_urllib_parse_unquote,
-)
+from ..compat import compat_str, compat_urllib_parse_unquote
 from ..utils import (
-    determine_ext,
     ExtractorError,
+    HEADRequest,
+    OnDemandPagedList,
+    UnsupportedError,
+    determine_ext,
     int_or_none,
     mimetype2ext,
     parse_qs,
-    OnDemandPagedList,
     try_get,
-    UnsupportedError,
     urljoin,
-    HEADRequest,
 )
 
 
