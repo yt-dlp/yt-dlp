@@ -24,32 +24,28 @@ class StarTrekIE(InfoExtractor):
         urlbase, video_id = self._match_valid_url(url).group('base', 'id')
         webpage = self._download_webpage(url, video_id)
 
-        description = self._html_search_regex(
-            r'(?s)<\s*div\s+class\s*=\s*"header-body"\s*>(.+?)<\s*/div\s*>',
-            webpage, 'description', fatal=False)
-        json_ld = self._search_json_ld(webpage, video_id, fatal=False)
-
         player = self._search_regex(
             r'(<\s*div\s+id\s*=\s*"cvp-player-[^<]+<\s*/div\s*>)', webpage, 'player')
 
         hls = self._html_search_regex(r'\bdata-hls\s*=\s*"([^"]+)"', player, 'HLS URL')
-        title = self._html_search_regex(r'\bdata-title\s*=\s*"([^"]+)"', player, 'title', json_ld.get('title'))
-        duration = int_or_none(
-            self._html_search_regex(r'\bdata-duration\s*=\s*"(\d+)"', player, 'duration', fatal=False))
-        poster = urljoin(
-            urlbase,
-            self._html_search_regex(r'\bdata-poster-url\s*=\s*"([^"]+)"', player, 'thumbnail', fatal=False))
-
         formats, subtitles = self._extract_m3u8_formats_and_subtitles(hls, video_id)
         self._sort_formats(formats)
 
+        json_ld = self._search_json_ld(webpage, video_id, fatal=False)
+
         return {
             'id': video_id,
-            'title': title,
-            'description': description,
-            'duration': duration,
+            'title': self._html_search_regex(
+                r'\bdata-title\s*=\s*"([^"]+)"', player, 'title', json_ld.get('title')),
+            'description': self._html_search_regex(
+                r'(?s)<\s*div\s+class\s*=\s*"header-body"\s*>(.+?)<\s*/div\s*>',
+                webpage, 'description', fatal=False),
+            'duration': int_or_none(self._html_search_regex(
+                r'\bdata-duration\s*=\s*"(\d+)"', player, 'duration', fatal=False)),
             'formats': formats,
             'subtitles': subtitles,
-            'thumbnail': poster,
+            'thumbnail': urljoin(
+                urlbase,
+                self._html_search_regex(r'\bdata-poster-url\s*=\s*"([^"]+)"', player, 'thumbnail', fatal=False)),
             'timestamp': json_ld.get('timestamp'),
         }
