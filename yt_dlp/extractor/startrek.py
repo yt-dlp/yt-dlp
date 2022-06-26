@@ -28,9 +28,7 @@ class StarTrekIE(InfoExtractor):
             r'(?s)<div class="header-body">(.+?)</div>',
             webpage, 'description', fatal=False)
         ld = self._search_json_ld(webpage, video_id, fatal=False)
-        self.write_debug(ld)
 
-        # Extract the player element so that the rest of the matching will be done only there.
         player = self._search_regex(r'(<div id="cvp-player-.+?></div>)', webpage, 'player')
 
         hls = self._html_search_regex(r' data-hls="(.+?)" ', player, 'HLS URL')
