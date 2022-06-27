@@ -121,6 +121,11 @@ class Request:
     def method(self, method: str):
         self.__method = method
 
+    def update(self, url=None, data=None, headers=None, query=None):
+        self.data = data or self.data
+        self.headers.update(headers or {})
+        self.url = update_url_query(url or self.url, query or {})
+
     def copy(self):
         return type(self)(
             url=self.url, data=self.data, headers=self.headers.copy(), timeout=self.timeout,

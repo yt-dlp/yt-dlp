@@ -22,7 +22,6 @@ from ..compat import compat_etree_fromstring, compat_expanduser, compat_os_name
 from ..downloader import FileDownloader
 from ..downloader.f4m import get_base_url, remove_encrypted_media
 from ..networking import Request
-from ..networking.utils import update_request
 from ..utils import (
     JSON_LD_RE,
     NO_DEFAULT,
@@ -736,8 +735,8 @@ class InfoExtractor:
         if isinstance(url_or_request, urllib.request.Request):
             return update_Request(url_or_request, data=data, headers=headers, query=query)
         elif isinstance(url_or_request, Request):
-            return update_request(url_or_request, data, headers, query)
-
+            url_or_request.update(data=data, headers=headers, query=query)
+            return url_or_request
         return Request(url_or_request, data, headers, query=query)
 
     def _request_webpage(self, url_or_request, video_id, note=None, errnote=None, fatal=True, data=None, headers={}, query={}, expected_status=None):

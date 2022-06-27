@@ -152,18 +152,6 @@ def make_std_headers():
     return CaseInsensitiveDict(_std_headers, std_headers)
 
 
-def update_request(req: Request, url: str = None, data=None,
-                   headers: typing.Mapping = None, query: dict = None):
-    """
-    Creates a copy of the request and updates relevant fields
-    """
-    req = req.copy()
-    req.data = data or req.data
-    req.headers.update(headers or {})
-    req.url = update_url_query(url or req.url, query or {})
-    return req
-
-
 def get_cookie_header(req: Request, cookiejar: CookieJar):
     cookie_req = urllib.request.Request(url=req.url)
     cookiejar.add_cookie_header(cookie_req)
