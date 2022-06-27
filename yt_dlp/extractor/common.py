@@ -34,6 +34,7 @@ from ..utils import (
     LenientJSONDecoder,
     RegexNotFoundError,
     UnsupportedError,
+    update_Request,
     age_restricted,
     base_url,
     bug_reports_message,
@@ -733,9 +734,7 @@ class InfoExtractor:
 
     def _create_request(self, url_or_request, data=None, headers={}, query={}):
         if isinstance(url_or_request, urllib.request.Request):
-            return Request(
-                url_or_request.get_full_url(), data=data or url_or_request.data, query=query,
-                headers=headers or url_or_request.headers, method=url_or_request.get_method())
+            return update_Request(url_or_request, data=data, headers=headers, query=query)
         elif isinstance(url_or_request, Request):
             return update_request(url_or_request, data, headers, query)
 
