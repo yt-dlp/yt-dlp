@@ -187,7 +187,7 @@ class InstagramBaseIE(InfoExtractor):
         carousel_media = product_info.get('carousel_media')
         if carousel_media:
             if self.get_param('noplaylist'):
-                self.to_screen('Downloading only one result due to --no-playlist')
+                self.to_screen('Downloading only one video due to --no-playlist')
                 return {
                     **info_dict,
                     **self._extract_product_media(carousel_media[0])
@@ -666,7 +666,7 @@ class InstagramStoryIE(InstagramBaseIE):
             'X-IG-WWW-Claim': 0,
         })['reels']
 
-        full_name = traverse_obj(videos, ('user', 'full_name'))
+        full_name = traverse_obj(videos, (f'highlight:{story_id}', 'user', 'full_name'), (str(user_id), 'user', 'full_name'))
         story_title = traverse_obj(videos, (f'highlight:{story_id}', 'title'))
         if not story_title:
             story_title = f'Story by {username}'
@@ -676,6 +676,15 @@ class InstagramStoryIE(InstagramBaseIE):
         for highlight in highlights:
             highlight_data = self._extract_product(highlight)
             if highlight_data.get('formats'):
+                if self.get_param('noplaylist'):
+                    self.to_screen('Downloading only one video due to --no-playlist')
+                    return {
+                        **highlight_data,
+                        'id': story_id,
+                        'title': story_title,
+                        'uploader': full_name,
+                        'uploader_id': user_id,
+                    }
                 info_data.append({
                     **highlight_data,
                     'uploader': full_name,
