@@ -43,7 +43,7 @@ class TrovoBaseIE(InfoExtractor):
 
 
 class TrovoIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?!(?:clip|video)/)(?P<id>[^/?&#]+)'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:s/)?(?!(?:clip|video)/)(?P<id>(?!s/)[^/?&#]+(?![^?]+\?vid))'
 
     def _real_extract(self, url):
         username = self._match_id(url)
@@ -71,6 +71,7 @@ class TrovoIE(TrovoBaseIE):
                 'format_id': format_id,
                 'height': int_or_none(format_id[:-1]) if format_id else None,
                 'url': play_url,
+                'tbr': stream_info.get('bitrate'),
                 'http_headers': self._HEADERS,
             })
         self._sort_formats(formats)
@@ -87,7 +88,7 @@ class TrovoIE(TrovoBaseIE):
 
 
 class TrovoVodIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video)/(?P<id>[^/?&#]+)'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+\?vid=)?(?P<id>[^/?&#]+)'
     _TESTS = [{
         'url': 'https://trovo.live/clip/lc-5285890818705062210?ltab=videos',
         'params': {'getcomments': True},
