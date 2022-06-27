@@ -5,13 +5,12 @@ import os
 import sys
 import unittest
 
-from yt_dlp.networking import Request
-from yt_dlp.utils import CaseInsensitiveDict
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from yt_dlp.networking.utils import select_proxy
+from yt_dlp.networking import Request
+from yt_dlp.utils import CaseInsensitiveDict
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 
