@@ -219,7 +219,7 @@ jobs:
         MACOSX_DEPLOYMENT_TARGET: 10.9  # Used up by the Python build tools
       run: |
           brew install python@3.10
-          export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 )
+          export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 --version | cut -d ' ' -f 2 )
           curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
           sudo installer -pkg python.pkg -target /
           python3 --version
