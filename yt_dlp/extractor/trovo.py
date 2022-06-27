@@ -44,6 +44,13 @@ class TrovoBaseIE(InfoExtractor):
 
 class TrovoIE(TrovoBaseIE):
     _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:s/)?(?!(?:clip|video)/)(?P<id>(?!s/)[^/?&#]+(?![^?]+\?vid))'
+    _TESTS = [{
+        'url': 'https://trovo.live/Exsl',
+        'only_matching': True,
+    }, {
+        'url': 'https://trovo.live/s/SkenonSLive/549759191497',
+        'only_matching': True,
+    }]
 
     def _real_extract(self, url):
         username = self._match_id(url)
@@ -88,7 +95,7 @@ class TrovoIE(TrovoBaseIE):
 
 
 class TrovoVodIE(TrovoBaseIE):
-    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+\?vid=)?(?P<id>[^/?&#]+)'
+    _VALID_URL = TrovoBaseIE._VALID_URL_BASE + r'(?:clip|video|s)/(?:[^/]+/\d+\?vid=)?(?P<id>(?<!/s/)[^/?&#]+)'
     _TESTS = [{
         'url': 'https://trovo.live/clip/lc-5285890818705062210?ltab=videos',
         'params': {'getcomments': True},
