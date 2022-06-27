@@ -3,7 +3,6 @@ import contextlib
 import datetime
 import errno
 import fileinput
-import functools
 import io
 import itertools
 import json
@@ -26,7 +25,7 @@ from string import ascii_letters
 
 from .cache import Cache
 from .compat import HAS_LEGACY as compat_has_legacy
-from .compat import compat_os_name, compat_shlex_quote
+from .compat import compat_os_name, compat_shlex_quote, functools
 from .cookies import load_cookies
 from .downloader import FFmpegFD, get_suitable_downloader, shorten_protocol_name
 from .downloader.rtmp import rtmpdump_version
@@ -559,9 +558,6 @@ class YoutubeDL:
         self._playlist_level = 0
         self._playlist_urls = set()
         self.cache = Cache(self)
-
-        self._cookiejar = None
-        self._proxies = None
 
         windows_enable_vt_mode()
         stdout = sys.stderr if self.params.get('logtostderr') else sys.stdout
@@ -3710,28 +3706,25 @@ class YoutubeDL:
                     'See https://yt-dl.org/update if you need help updating.' %
                     latest_version)
 
-    @property
+    @functools.cached_property
     def proxies(self) -> dict:
         """Global proxy configuration"""
-        if not self._proxies:
-            self._proxies = urllib.request.getproxies() or {}
-            # compat. Set HTTPS_PROXY to __noproxy__ to revert
-            if 'http' in self._proxies and 'https' not in self._proxies:
-                self._proxies['https'] = self._proxies['http']
-            conf_proxy = self.params.get('proxy')
-            if conf_proxy:
-                # compat. We should ideally use `all` proxy here
-                self._proxies.update({'http': conf_proxy, 'https': conf_proxy})
-        return self._proxies
+        proxies = urllib.request.getproxies() or {}
+        # compat. Set HTTPS_PROXY to __noproxy__ to revert
+        if 'http' in proxies and 'https' not in proxies:
+            proxies['https'] = proxies['http']
+        conf_proxy = self.params.get('proxy')
+        if conf_proxy:
+            # compat. We should ideally use `all` proxy here
+            proxies.update({'http': conf_proxy, 'https': conf_proxy})
+        return proxies
 
-    @property
+    @functools.cached_property
     def cookiejar(self):
         """Global cookiejar instance"""
-        if self._cookiejar is None:
-            opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
-            opts_cookiefile = self.params.get('cookiefile')
-            self._cookiejar = load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self)
-        return self._cookiejar
+        opts_cookiesfrombrowser = self.params.get('cookiesfrombrowser')
+        opts_cookiefile = self.params.get('cookiefile')
+        return load_cookies(opts_cookiefile, opts_cookiesfrombrowser, self)
 
     @property
     def _opener(self):
