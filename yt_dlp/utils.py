@@ -5092,9 +5092,6 @@ SUPPORTED_ENCODINGS = []
 # TODO: compat (moved to networking.utils)
 std_headers = {}
 
-# TODO: compat (moved to networking.utils)
-USER_AGENTS = {}
-
 
 # TODO: compat (moved to networking._urllib)
 def sanitized_Request(*args, **kwargs):

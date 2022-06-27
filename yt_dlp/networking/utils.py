@@ -63,11 +63,6 @@ def random_user_agent():
     return _USER_AGENT_TPL % random.choice(_CHROME_VERSIONS)
 
 
-USER_AGENTS = {
-    'Safari': 'Mozilla/5.0 (X11; Linux x86_64; rv:10.0) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27',
-}
-
-
 # Use make_std_headers() to get a copy of these
 _std_headers = CaseInsensitiveDict({
     'User-Agent': random_user_agent(),
