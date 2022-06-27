@@ -52,5 +52,6 @@ class TestRequest(unittest.TestCase):
         self.assertEqual(req.headers, {'test2': 'test2'})
         self.assertIsNot(req.headers, new_headers)
 
+
 if __name__ == '__main__':
     unittest.main()

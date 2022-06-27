@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import io
 import ssl
 import typing
@@ -177,16 +178,8 @@ class Request:
         return self._headers.get(key, default)
 
 
-class HEADRequest(Request):
-    @property
-    def method(self):
-        return 'HEAD'
-
-
-class PUTRequest(Request):
-    @property
-    def method(self):
-        return 'PUT'
+HEADRequest = functools.partial(Request, method='HEAD')
+PUTRequest = functools.partial(Request, method='PUT')
 
 
 class Response(io.IOBase):
