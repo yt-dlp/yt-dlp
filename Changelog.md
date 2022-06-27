@@ -544,7 +544,7 @@
 * [downloader/ffmpeg] Handle unknown formats better
 * [outtmpl] Handle `-o ""` better
 * [outtmpl] Handle hard-coded file extension better
-* [extractor] Add convinience function `_yes_playlist`
+* [extractor] Add convenience function `_yes_playlist`
 * [extractor] Allow non-fatal `title` extraction
 * [extractor] Extract video inside `Article` json_ld
 * [generic] Allow further processing of json_ld URL
@@ -1678,7 +1678,7 @@
 * [utils] Generalize `traverse_dict` to `traverse_obj`
 * [downloader/ffmpeg] Hide FFmpeg banner unless in verbose mode by [fstirlitz](https://github.com/fstirlitz)
 * [build] Release `yt-dlp.tar.gz`
-* [build,update] Add GNU-style SHA512 and prepare updater for simlar SHA256 by [nihil-admirari](https://github.com/nihil-admirari)
+* [build,update] Add GNU-style SHA512 and prepare updater for similar SHA256 by [nihil-admirari](https://github.com/nihil-admirari)
 * [pyinst] Show Python version in exe metadata by [nihil-admirari](https://github.com/nihil-admirari)
 * [docs] Improve documentation of dependencies
 * [cleanup] Mark unused files

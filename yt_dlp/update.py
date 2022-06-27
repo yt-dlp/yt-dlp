@@ -234,7 +234,7 @@ class Updater:
 
 def run_update(ydl):
     """Update the program file with the latest version from the repository
-    @returns    Whether there was a successfull update (No update = False)
+    @returns    Whether there was a successful update (No update = False)
     """
     return Updater(ydl).update()
 
