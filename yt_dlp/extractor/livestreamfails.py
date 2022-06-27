@@ -3,7 +3,6 @@ from ..utils import (
     traverse_obj,
     unified_timestamp,
 )
-import json
 
 
 class LivestreamfailsIE(InfoExtractor):
