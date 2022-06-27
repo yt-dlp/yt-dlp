@@ -16,7 +16,7 @@ class LivestreamfailsIE(InfoExtractor):
             'display_id': 'ConcernedLitigiousSalmonPeteZaroll-O8yo9W2L8OZEKhV2',
             'title': 'Streamer jumps off a trampoline at full speed',
             'creator': 'paradeev1ch',
-            'thumbnail': 'https://livestreamfails-image-prod.b-cdn.net/image/3877b1d38db083fa25c82685bbaf645637e575ea.png',
+            'thumbnail': r're:^https?://.*\..*$',
             'timestamp': 1656271785,
             'upload_date': '20220626',
         }
