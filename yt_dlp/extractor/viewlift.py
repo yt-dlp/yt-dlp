@@ -230,7 +230,7 @@ class ViewLiftIE(ViewLiftBaseIE):
     }, {
         'url': 'https://www.marquee.tv/watch/sadlerswells-sacredmonsters',
         'only_matching': True,
-    }, {  # Free film with language code
+    }, {  # Free film with langauge code
         'url': 'https://www.hoichoi.tv/bn/films/title/shuyopoka',
         'info_dict': {
             'id': '7a7a9d33-1f4c-4771-9173-ee4fb6dbf196',

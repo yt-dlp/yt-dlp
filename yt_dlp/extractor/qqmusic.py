@@ -215,7 +215,7 @@ class QQMusicSingerIE(QQPlaylistBaseIE):
         if mid:
             singer_desc_page = self._download_xml(
                 'http://s.plcloud.music.qq.com/fcgi-bin/fcg_get_singer_desc.fcg', mid,
-                'Download singer description XML',
+                'Donwload singer description XML',
                 query={'utf8': 1, 'outCharset': 'utf-8', 'format': 'xml', 'singermid': mid},
                 headers={'Referer': 'https://y.qq.com/n/yqq/singer/'})
 
