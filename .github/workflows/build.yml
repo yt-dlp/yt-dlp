@@ -216,11 +216,12 @@ jobs:
     - name: Install Python
       # We need the official Python, because the GA ones only support newer macOS versions
       env:
-        PYTHON_VERSION: 3.10.5
         MACOSX_DEPLOYMENT_TARGET: 10.9  # Used up by the Python build tools
       run: |
           brew install python@3.10
-          brew link --overwrite python@3.10
+          export PYTHON_VERSION=$( $(brew --prefix)/opt/python@3.10/bin/python3 )
+          curl https://www.python.org/ftp/python/${PYTHON_VERSION}/python-${PYTHON_VERSION}-macos11.pkg -o "python.pkg"
+          sudo installer -pkg python.pkg -target /
           python3 --version
     - name: Install Requirements
       run: |
