@@ -868,8 +868,7 @@ class YoutubeDL:
 
     def __exit__(self, *args):
         self.restore_console_title()
-        self.save_cookies()
-        self._request_director.close()
+        self.close()
 
     def close(self):
         self.save_cookies()
