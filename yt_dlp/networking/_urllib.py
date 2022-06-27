@@ -19,7 +19,8 @@ from urllib.request import (
     HTTPDefaultErrorHandler,
     HTTPErrorProcessor,
     UnknownHandler,
-    HTTPCookieProcessor
+    HTTPCookieProcessor,
+    DataHandler,
 )
 
 from .common import Response, RequestHandler
@@ -448,28 +449,19 @@ class UrllibRH(RequestHandler):
         self._openers = {}
 
     def _create_opener(self, proxies=None, allow_redirects=True):
-        cookie_processor = HTTPCookieProcessor(self.cookiejar)
-        proxy_handler = YDLProxyHandler(proxies)
-        debuglevel = int(bool(self.ydl.params.get('debug_printtraffic')))
-
-        ydlh = YoutubeDLHandler(self.ydl.params, debuglevel=debuglevel, context=self.make_sslcontext())
-        data_handler = urllib.request.DataHandler()
-
-        # When passing our own FileHandler instance, build_opener won't add the
-        # default FileHandler and allows us to disable the file protocol, which
-        # can be used for malicious purposes (see
-        # https://github.com/ytdl-org/youtube-dl/issues/8227)
-        file_handler = urllib.request.FileHandler()
-
-        def file_open(*args, **kwargs):
-            raise RequestError('file:// scheme is explicitly disabled in yt-dlp for security reasons')
-
-        file_handler.file_open = file_open
         opener = urllib.request.OpenerDirector()
-
-        handlers = [proxy_handler, cookie_processor, ydlh, data_handler, file_handler,
-                    UnknownHandler(), HTTPDefaultErrorHandler(), FTPHandler(), HTTPErrorProcessor(),
-                    YoutubeDLRedirectHandler() if allow_redirects else YoutubeDLNoRedirectHandler()]
+        handlers = [
+            YDLProxyHandler(proxies),
+            HTTPCookieProcessor(self.cookiejar),
+            YoutubeDLHandler(
+                self.ydl.params, debuglevel=int(bool(self.ydl.params.get('debug_printtraffic'))),
+                context=self.make_sslcontext()),
+            DataHandler(),
+            UnknownHandler(),
+            HTTPDefaultErrorHandler(),
+            FTPHandler(),
+            HTTPErrorProcessor(),
+            YoutubeDLRedirectHandler() if allow_redirects else YoutubeDLNoRedirectHandler()]
 
         for handler in handlers:
             opener.add_handler(handler)
