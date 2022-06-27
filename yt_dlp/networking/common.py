@@ -133,7 +133,7 @@ class Request:
     def copy(self):
         return type(self)(
             url=self.url, data=self.data, headers=self.headers.copy(), timeout=self.timeout,
-            proxies=self.proxies.copy(), compression=self.compression, method=self.method,
+            proxies=self.proxies.copy(), compression=self.compression, method=self.__method,
             allow_redirects=self.allow_redirects)
 
     @property
